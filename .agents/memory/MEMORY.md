@@ -1,0 +1,1 @@
+- [State migration compatibility](state-compatibility.md) — preserve caller-held world references while moving toward explicit sessions.

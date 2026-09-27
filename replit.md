@@ -1,12 +1,15 @@
-# [Project name]
+# AI-DND
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Türkçe doğal dil ile oynanan, Python kurallar motoru ve Qwen anlatıcısı kullanan bir D&D macera oyunu.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `python main.py` — start the AI-DND terminal game
+- `python ai-dnd/run_tests.py` — run the deterministic AI-DND gates
+- `python ai-dnd/acceptance_test.py` — run the live Qwen acceptance suite when Ollama and `qwen3:8b` are available
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
@@ -22,15 +25,24 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `ai-dnd/game.py` — current game engine and terminal entry point
+- `ai-dnd/run_tests.py` — portable deterministic test runner
+- `ai-dnd/test_combat_v2_authoritative.py` — authoritative combat contract
+- `ai-dnd/legacy_debug/` — historical debugging scripts, not release gates
+- `ai-dnd/_source_backup/` — uploaded source archive kept as a recovery copy
+- `main.py` — workspace-level launcher for the game
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Python owns HP, AC, dice, combat, inventory, doors, locations, NPC IDs, and committed world changes.
+- Qwen parses Turkish intent and produces narration; model output is validated before it can affect persistent state.
+- `game.py` is import-safe: importing it creates a quiet deterministic default state; interactive character creation runs only through the program entry point.
+- Deterministic tests do not require an Ollama service; live suites are separate and require `qwen3:8b`.
+- Canonical IDs and validation are preferred over trusting model-provided entity data.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+AI-DND is a Turkish-language terminal D&D game. Players create a character, describe actions naturally, explore canonical or dynamically proposed locations, speak with NPCs, inspect environments, manage items, and resolve combat through deterministic D&D mechanics.
 
 ## User preferences
 
@@ -38,7 +50,10 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Run deterministic gates from the repository root with `python ai-dnd/run_tests.py`.
+- The live suites require a reachable Ollama server with `qwen3:8b`; a missing server is an environment limitation, not a deterministic test failure.
+- Do not use the prototype `test_combat_v2.py` or `test_combat_v2_fixed.py` as release gates; the authoritative suite is `test_combat_v2_authoritative.py`.
+- Keep model output out of mechanical state mutation paths.
 
 ## Pointers
 
