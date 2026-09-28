@@ -43,8 +43,10 @@ from api.schemas import (
     TurnResponse,
 )
 from api.serializers import (
+    SkillCheckResultSerializationError,
     redact_sensitive_values,
     serialize_combat_result,
+    serialize_skill_check_result,
     serialize_session_state,
 )
 from api.session_manager import SessionManager, UnknownSessionError
@@ -476,6 +478,10 @@ def create_app(
                     if isinstance(result, dict)
                     else None
                 )
+                skill_check_result = serialize_skill_check_result(
+                    action_result,
+                    session,
+                )
                 presence_location_id = None
                 if (
                     isinstance(action_result, dict)
@@ -517,6 +523,17 @@ def create_app(
                         "Session rollback failed after journal update error (error_type=%s)",
                         type(restore_error).__name__,
                     )
+                if isinstance(error, SkillCheckResultSerializationError):
+                    _logger.error(
+                        "Engine returned an invalid skill-check result."
+                    )
+                    raise HTTPException(
+                        status_code=500,
+                        detail={
+                            "code": "engine_error",
+                            "message": "The skill-check result could not be verified safely.",
+                        },
+                    ) from None
                 _logger.error(
                     "Campaign journal update failed (error_type=%s)",
                     type(error).__name__,
@@ -556,6 +573,7 @@ def create_app(
                 narration=narration,
                 state=serialize_session_state(session, record.journal),
                 combat_result=serialize_combat_result(action_result),
+                skill_check_result=skill_check_result,
             )
             return redact_sensitive_values(response.model_dump())
 

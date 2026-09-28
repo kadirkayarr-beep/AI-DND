@@ -44,16 +44,17 @@ import {
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
-import type { CampaignHistoryEntry, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { CampaignHistoryEntry, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
+import { SkillCheckResultCard } from '@/components/skill-check-result';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
-type TranscriptEntry = { kind: 'player' | 'narration'; text: string };
+type TranscriptEntry = { kind: 'player' | 'narration'; text: string; skillCheckResult?: SkillCheckResult };
 type Drawer = 'character' | 'world' | null;
 type WorldTab = 'world' | 'npcs' | 'journal' | 'combat';
 
@@ -403,7 +404,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries }: { state: G
 
 function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry[]; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void }) {
   if (!entries.length) return <div className="empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya, sunucunun onayladığı bir yanıtla karşılık verecek.</div>;
-  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen · yerel kayıt</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p></div>)}</div><div className="reader-note">Yerel anlatı kaydı · kanonik dünya durumu sağ panelde</div></div>;
+  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen · yerel kayıt</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Yerel anlatı kaydı · kanonik dünya durumu sağ panelde</div></div>;
 }
 
 function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null }) {
@@ -564,7 +565,13 @@ export default function GameBrowser() {
     if (!sessionId) { setEntries([]); return; }
     try {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
-      setEntries(Array.isArray(stored) ? stored.filter((entry): entry is TranscriptEntry => Boolean(entry) && typeof entry === 'object' && ((entry as TranscriptEntry).kind === 'player' || (entry as TranscriptEntry).kind === 'narration') && typeof (entry as TranscriptEntry).text === 'string') : []);
+      const restored = Array.isArray(stored) ? stored.flatMap((entry): TranscriptEntry[] => {
+        if (!entry || typeof entry !== 'object') return [];
+        const candidate = entry as { kind?: unknown; text?: unknown };
+        if ((candidate.kind !== 'player' && candidate.kind !== 'narration') || typeof candidate.text !== 'string') return [];
+        return [{ kind: candidate.kind, text: candidate.text }];
+      }) : [];
+      setEntries(restored);
     } catch { setEntries([]); }
   }, [sessionId]);
 
@@ -710,9 +717,20 @@ export default function GameBrowser() {
     setNotice(null);
     playTurn.mutate({ sessionId, data: { message: trimmed } }, {
       onSuccess: (result) => {
-        const next = [...entries, { kind: 'player' as const, text: trimmed }, { kind: 'narration' as const, text: result.narration }];
+        const next = [
+          ...entries,
+          { kind: 'player' as const, text: trimmed },
+          {
+            kind: 'narration' as const,
+            text: result.narration,
+            skillCheckResult: result.skill_check_result ?? undefined,
+          },
+        ];
         setEntries(next);
-        window.localStorage.setItem(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next));
+        window.localStorage.setItem(
+          `${TRANSCRIPT_KEY}${sessionId}`,
+          JSON.stringify(next.map(({ kind, text }) => ({ kind, text }))),
+        );
         const combatResult = result.combat_result;
         if (combatResult) {
           setCombatEntries((current) => [

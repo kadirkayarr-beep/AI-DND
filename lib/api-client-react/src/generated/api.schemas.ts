@@ -460,12 +460,74 @@ export interface CombatTurnResult {
   enemy_action?: CombatAttackResult | null;
 }
 
+export type SkillCheckResultAbility = typeof SkillCheckResultAbility[keyof typeof SkillCheckResultAbility];
+
+
+export const SkillCheckResultAbility = {
+  strength: 'strength',
+  dexterity: 'dexterity',
+  constitution: 'constitution',
+  intelligence: 'intelligence',
+  wisdom: 'wisdom',
+  charisma: 'charisma',
+} as const;
+
+export type SkillCheckResultDifficulty = typeof SkillCheckResultDifficulty[keyof typeof SkillCheckResultDifficulty];
+
+
+export const SkillCheckResultDifficulty = {
+  easy: 'easy',
+  medium: 'medium',
+  hard: 'hard',
+  very_hard: 'very_hard',
+  extreme: 'extreme',
+} as const;
+
+export type SkillCheckResultOutcome = typeof SkillCheckResultOutcome[keyof typeof SkillCheckResultOutcome];
+
+
+export const SkillCheckResultOutcome = {
+  critical_success: 'critical_success',
+  success: 'success',
+  failure: 'failure',
+  critical_failure: 'critical_failure',
+} as const;
+
+export interface SkillCheckResult {
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  skill: string;
+  ability: SkillCheckResultAbility;
+  /**
+     * @minimum 1
+     * @maximum 20
+     */
+  d20: number;
+  proficient: boolean;
+  ability_modifier: number;
+  /** @minimum 0 */
+  proficiency_modifier: number;
+  total_modifier: number;
+  total: number;
+  difficulty: SkillCheckResultDifficulty;
+  /**
+     * @minimum 1
+     * @maximum 30
+     */
+  dc: number;
+  outcome: SkillCheckResultOutcome;
+}
+
 export interface GameTurnResult {
   session_id: string;
   narration: string;
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */
   combat_result: CombatTurnResult | null;
+  /** Structured Python-owned skill-check result; null when no skill check occurred. */
+  skill_check_result: SkillCheckResult | null;
 }
 
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];

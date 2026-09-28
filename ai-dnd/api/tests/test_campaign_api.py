@@ -433,6 +433,151 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("state_changes", result)
         self.assertNotIn("direct_response", result["enemy_action"])
 
+    async def test_skill_check_turn_returns_only_allowlisted_canonical_result(self):
+        created = await self.create_campaign()
+        session = self.manager.get(created["session_id"]).game_session
+        session.character["modifiers"]["wisdom"] = 2
+        session.character["modifiers"]["strength"] = 3
+        session.character["proficient_skills"] = ["Perception"]
+        session.character["proficiency_bonus"] = 2
+
+        def perception_turn(_message):
+            return {
+                "narration": "Bir ses duyuyorsun.",
+                "action_result": {
+                    "action": "skill_check",
+                    "skill": "Perception",
+                    "ability": "wisdom",
+                    "dice": 14,
+                    "modifier": 2,
+                    "proficiency_bonus": 2,
+                    "total": 18,
+                    "dc": 15,
+                    "outcome": "success",
+                    "success": True,
+                    "status": "resolved",
+                    "target_type": "door",
+                    "direct_response": "must not leave the engine",
+                    "state_changes": ["private"],
+                    "model_result": {"d20": 20, "outcome": "critical_success"},
+                },
+            }
+
+        session.run_player_turn = perception_turn
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Kapının arkasından ses dinliyorum."},
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()["skill_check_result"]
+        self.assertEqual(
+            result,
+            {
+                "skill": "Perception",
+                "ability": "wisdom",
+                "d20": 14,
+                "proficient": True,
+                "ability_modifier": 2,
+                "proficiency_modifier": 2,
+                "total_modifier": 4,
+                "total": 18,
+                "difficulty": "medium",
+                "dc": 15,
+                "outcome": "success",
+            },
+        )
+        self.assertNotIn("direct_response", result)
+        self.assertNotIn("state_changes", result)
+        self.assertNotIn("model_result", result)
+        self.assertIsNone(response.json()["combat_result"])
+
+        def athletics_turn(_message):
+            return {
+                "narration": "Tırmanışın başarılı olur.",
+                "action_result": {
+                    "action": "skill_check",
+                    "skill": "Athletics",
+                    "ability": "strength",
+                    "dice": 13,
+                    "modifier": 3,
+                    "proficiency_bonus": 0,
+                    "total": 16,
+                    "dc": 15,
+                    "outcome": "success",
+                    "success": True,
+                    "status": "resolved",
+                    "state_changes": ["private"],
+                },
+            }
+
+        session.run_player_turn = athletics_turn
+        nonproficient_response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Tırmanıyorum."},
+        )
+        self.assertEqual(
+            nonproficient_response.status_code,
+            200,
+            nonproficient_response.text,
+        )
+        nonproficient = nonproficient_response.json()["skill_check_result"]
+        self.assertEqual(nonproficient["skill"], "Athletics")
+        self.assertEqual(nonproficient["ability"], "strength")
+        self.assertFalse(nonproficient["proficient"])
+        self.assertEqual(nonproficient["proficiency_modifier"], 0)
+        self.assertEqual(nonproficient["total_modifier"], 3)
+        self.assertEqual(nonproficient["total"], 16)
+
+    async def test_invalid_skill_check_projection_rolls_back_turn(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        before = copy.deepcopy(session.serialize_game_state())
+
+        def invalid_skill_turn(_message):
+            session.character["current_hp"] -= 1
+            return {
+                "narration": "This result must not be committed.",
+                "action_result": {
+                    "action": "skill_check",
+                    "skill": "Perception",
+                    "ability": "charisma",
+                    "dice": 14,
+                    "modifier": 2,
+                    "proficiency_bonus": 0,
+                    "total": 16,
+                    "dc": 15,
+                    "outcome": "success",
+                },
+            }
+
+        session.run_player_turn = invalid_skill_turn
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Kapının arkasından ses dinliyorum."},
+        )
+
+        self.assertEqual(response.status_code, 500, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "engine_error")
+        self.assertEqual(session.serialize_game_state(), before)
+
+    async def test_turn_request_rejects_client_skill_mechanics(self):
+        created = await self.create_campaign()
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={
+                "message": "Kapının arkasından ses dinliyorum.",
+                "skill": "Perception",
+                "d20": 20,
+                "dc": 1,
+                "outcome": "critical_success",
+                "skill_check_result": {"skill": "Perception", "d20": 20},
+            },
+        )
+
+        self.assertEqual(response.status_code, 422, response.text)
+
     async def test_successful_turn_is_autosaved_with_history(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
@@ -468,6 +613,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(turn.status_code, 200, turn.text)
         self.assertIsNone(turn.json()["combat_result"])
+        self.assertIsNone(turn.json()["skill_check_result"])
         self.assertIn("Lantern", turn.json()["state"]["inventory"])
         self.assertEqual(turn.json()["state"]["location"], "tavern")
 

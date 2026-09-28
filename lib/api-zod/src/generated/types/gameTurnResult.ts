@@ -7,6 +7,7 @@
  */
 import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
+import type { SkillCheckResult } from './skillCheckResult';
 
 export interface GameTurnResult {
   session_id: string;
@@ -14,4 +15,6 @@ export interface GameTurnResult {
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */
   combat_result: CombatTurnResult | null;
+  /** Structured Python-owned skill-check result; null when no skill check occurred. */
+  skill_check_result: SkillCheckResult | null;
 }

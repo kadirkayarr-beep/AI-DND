@@ -4,3 +4,4 @@
 - [Artifact service working directory](artifact-service-working-directory.md) — development service commands run from the artifact directory, not the workspace root.
 - [Shared API routes across artifacts](shared-api-routes.md) — verify sibling service reachability before adding duplicate routes or a second engine process.
 - [Quest ledger authority](quest-journal-authority.md) — keep quests narration-independent and empty until Python exposes structured quest lifecycle events.
+- [Server-authoritative skill results](server-authoritative-skill-results.md) — render validated engine results only; never create or restore client-side roll cards.

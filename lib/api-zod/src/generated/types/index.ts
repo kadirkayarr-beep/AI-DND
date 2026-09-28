@@ -54,3 +54,7 @@ export * from './journalNpc';
 export * from './requestValidationError';
 export * from './requestValidationErrorResponse';
 export * from './requestValidationIssue';
+export * from './skillCheckResult';
+export * from './skillCheckResultAbility';
+export * from './skillCheckResultDifficulty';
+export * from './skillCheckResultOutcome';

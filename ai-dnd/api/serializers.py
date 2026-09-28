@@ -7,6 +7,9 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+import game
+from pydantic import ValidationError
+from api.schemas import SkillCheckResult
 from api.world_metadata import world_metadata_for_state
 from api.campaign_journal import empty_campaign_journal
 
@@ -79,6 +82,10 @@ _COMBAT_TURN_FIELDS = (
 )
 
 
+class SkillCheckResultSerializationError(ValueError):
+    """Raised when a canonical engine skill-check result fails validation."""
+
+
 def _project_fields(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
@@ -112,6 +119,95 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
             _COMBAT_ATTACK_FIELDS,
         )
     return projected
+
+
+def serialize_skill_check_result(
+    action_result: Any,
+    session: Any,
+) -> dict[str, Any] | None:
+    """Expose only a validated projection of a Python-owned skill check."""
+    if not isinstance(action_result, Mapping) or action_result.get("action") != "skill_check":
+        return None
+
+    skill = action_result.get("skill")
+    ability = action_result.get("ability")
+    d20 = action_result.get("dice")
+    ability_modifier = action_result.get("modifier")
+    proficiency_modifier = action_result.get("proficiency_bonus")
+    total = action_result.get("total")
+    dc = action_result.get("dc")
+    outcome = action_result.get("outcome")
+
+    if not isinstance(skill, str) or skill not in game.SKILLS:
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+    if ability != game.SKILLS[skill]:
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+    if any(
+        type(value) is not int
+        for value in (d20, ability_modifier, proficiency_modifier, total, dc)
+    ):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+
+    difficulty = next(
+        (
+            label
+            for label, configured_dc in game.DIFFICULTY_DC.items()
+            if configured_dc == dc
+        ),
+        None,
+    )
+    if difficulty is None:
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+
+    character = getattr(session, "character", None)
+    if not isinstance(character, Mapping):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+    proficient_skills = character.get("proficient_skills")
+    if not isinstance(proficient_skills, (list, tuple)):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+    proficient = skill in proficient_skills
+    character_proficiency_bonus = character.get("proficiency_bonus")
+    modifiers = character.get("modifiers")
+    if (
+        type(character_proficiency_bonus) is not int
+        or character_proficiency_bonus < 0
+        or not isinstance(modifiers, Mapping)
+        or modifiers.get(ability) != ability_modifier
+    ):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+
+    expected_proficiency_modifier = (
+        character_proficiency_bonus if proficient else 0
+    )
+    total_modifier = ability_modifier + proficiency_modifier
+    if (
+        d20 < 1
+        or d20 > 20
+        or proficiency_modifier < 0
+        or proficiency_modifier != expected_proficiency_modifier
+        or total != d20 + total_modifier
+    ):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+
+    try:
+        projected = SkillCheckResult(
+            skill=skill,
+            ability=ability,
+            d20=d20,
+            proficient=proficient,
+            ability_modifier=ability_modifier,
+            proficiency_modifier=proficiency_modifier,
+            total_modifier=total_modifier,
+            total=total,
+            difficulty=difficulty,
+            dc=dc,
+            outcome=outcome,
+        )
+    except ValidationError:
+        raise SkillCheckResultSerializationError(
+            "Invalid skill-check result."
+        ) from None
+    return projected.model_dump()
 
 
 def serialize_session_state(

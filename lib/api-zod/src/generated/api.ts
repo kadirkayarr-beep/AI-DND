@@ -468,6 +468,14 @@ export const playGameTurnResponseStateJournalQuestsMax = 100;
 
 export const playGameTurnResponseStateTurnIndexMin = 0;
 
+export const playGameTurnResponseSkillCheckResultOneSkillMax = 40;
+
+export const playGameTurnResponseSkillCheckResultOneD20Max = 20;
+
+export const playGameTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
+
+export const playGameTurnResponseSkillCheckResultOneDcMax = 30;
+
 
 
 export const PlayGameTurnResponse = zod.object({
@@ -633,7 +641,20 @@ export const PlayGameTurnResponse = zod.object({
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
 }),zod.null()]).optional()
-}),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.')
+}),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
+  "skill_check_result": zod.union([zod.object({
+  "skill": zod.string().min(1).max(playGameTurnResponseSkillCheckResultOneSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20Max),
+  "proficient": zod.boolean(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(playGameTurnResponseSkillCheckResultOneProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneDcMax),
+  "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
+}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.')
 })
 
 
@@ -1774,6 +1795,14 @@ export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
 
+export const playLegacyTurnResponseSkillCheckResultOneSkillMax = 40;
+
+export const playLegacyTurnResponseSkillCheckResultOneD20Max = 20;
+
+export const playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
+
+export const playLegacyTurnResponseSkillCheckResultOneDcMax = 30;
+
 
 
 export const PlayLegacyTurnResponse = zod.object({
@@ -1939,7 +1968,20 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
 }),zod.null()]).optional()
-}),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.')
+}),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
+  "skill_check_result": zod.union([zod.object({
+  "skill": zod.string().min(1).max(playLegacyTurnResponseSkillCheckResultOneSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20Max),
+  "proficient": zod.boolean(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneDcMax),
+  "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
+}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.')
 })
 
 

@@ -59,11 +59,35 @@ class CombatTurnResult(CombatAttackResult):
     enemy_action: CombatAttackResult | None = None
 
 
+class SkillCheckResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    skill: str = Field(min_length=1, max_length=40)
+    ability: Literal[
+        "strength",
+        "dexterity",
+        "constitution",
+        "intelligence",
+        "wisdom",
+        "charisma",
+    ]
+    d20: int = Field(ge=1, le=20)
+    proficient: bool
+    ability_modifier: int
+    proficiency_modifier: int = Field(ge=0)
+    total_modifier: int
+    total: int
+    difficulty: Literal["easy", "medium", "hard", "very_hard", "extreme"]
+    dc: int = Field(ge=1, le=30)
+    outcome: Literal["critical_success", "success", "failure", "critical_failure"]
+
+
 class TurnResponse(BaseModel):
     session_id: str
     narration: str
     state: dict[str, Any]
     combat_result: CombatTurnResult | None = None
+    skill_check_result: SkillCheckResult | None = None
 
 
 class CharacterCreateInput(BaseModel):
