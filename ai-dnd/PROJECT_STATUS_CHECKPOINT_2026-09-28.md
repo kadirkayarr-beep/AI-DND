@@ -36,9 +36,9 @@ These are the current gameplay-roadmap statuses; they are separate from the earl
 | Phase 1 — Skill Checks V1 | **PARTIAL — ENGINE ROUTING REQUIRED** | Keep the typed, allowlisted `skill_check_result`, generated client, browser result card, rollback coverage, and currently supported canonical routes. Persuasion, Deception, Acrobatics, and Survival still require explicit engine routing. Do not simulate them in an adapter, UI, narration parser, or arbitrary model output. |
 | Phase 2 — Combat Result History Persistence | **PASS** | Validated structured results persist separately from transcript history, are bounded to 50 per campaign, and rehydrate after resume. Failed turns/autosaves do not append results. Combat mechanics and `game.py` were not changed. |
 | Phase 3 — Quest Outcomes V1 | **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** | The frozen engine emits no canonical quest acceptance, objective progression, completion, failure, or cancellation events. Keep the quest ledger empty; do not infer transitions from narration, player wording, or browser state. |
-| Phase 3.5 — Narrative Director V1 | **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: a promise thread was retrieved after the recent window and after resume, quest memory stayed empty, and no turn exceeded two model calls. The frozen narrator still limits every response to two short sentences, so richer scene-adaptive narration is blocked; `game.py` remains unchanged. |
+| Phase 3.5 — Narrative Director V1 | **PARTIAL — RICH-PROSE PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: an older promise thread was retrieved after the recent window and after resume; quest memory stayed empty; no request exceeded two model calls. The proposed scene-adaptive prose contract is documented in approval package §2.C only; the two-sentence prompt ceiling remains, `game.py` is unchanged, and implementation is not authorized. |
 
-**Approval stop:** `ai-dnd/game.py` SHA-256 remains `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`. The consolidated package is `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`. **ENGINE CHANGE APPROVAL REQUIRED.** Item #38 is approved but remains deferred until explicit engine approval; its confirmed scope is included in the package.
+**Approval stop:** `ai-dnd/game.py` SHA-256 remains `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`. The consolidated package is `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md` and now lists proposals A–F, including rich prose in §2.C. **ENGINE CHANGE APPROVAL REQUIRED.** Item #38 has confirmed scope but remains deferred; no proposal has been implemented.
 
 ## 2. Architecture
 
@@ -220,7 +220,7 @@ Turn input is natural-language `message` only (maximum 4,000 characters); caller
 
 | Check | Current result |
 |---|---|
-| API unittest suite | **84 passed, 0 failed.** Ran `python -m unittest discover -s api/tests` from `ai-dnd/`. Campaign persistence tests use isolated test databases; logged engine/storage failures are expected negative-path cases. |
+| API unittest suite | **108 passed, 0 failed.** Ran `python -m unittest discover -s api/tests` from `ai-dnd/`. Campaign persistence tests use isolated test databases; logged engine/storage failures are expected negative-path cases. |
 | Deterministic engine gates | **17/17 gates passed** with a temporary DB override via `python ai-dnd/run_tests.py`. Includes semantic, session, persistence, combat, regression, migration, query, door, and NPC-query checks. |
 | Semantic/query/narrator checks | 87 semantic, 24 query-grounding, 18 narrator-safety checks passed inside the deterministic runner. |
 | Combat V1 | 10 scenarios passed, including hit/miss, natural 1/20, knockout, target-location, and forged-target cases. |
@@ -295,9 +295,9 @@ The amendment phases have reached the requested stop:
 1. Phase 1 remains **PARTIAL — ENGINE ROUTING REQUIRED**.
 2. Phase 2 **PASS**: validated combat-result history persists and rehydrates.
 3. Phase 3 remains **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED**; the quest ledger stays empty.
-4. Phase 3.5 remains **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED**; API-side memory and the real-model continuity/resume smoke pass, but the frozen two-sentence prompt prevents the requested richer narration.
+4. Phase 3.5 remains **PARTIAL — RICH-PROSE PROMPT APPROVAL REQUIRED**; API-side memory and the real-model continuity/resume smoke pass, but the frozen two-sentence prompt remains unchanged. The proposed replacement and its safety/performance tests are documented in package §2.C only.
 5. Review `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`.
-6. Do not begin engine work until the owner explicitly approves the proposed scope. Combat V3, Spells V1, XP/Leveling V1, and item #38 remain deferred.
+6. Do not begin any engine work in package items A–F until the owner explicitly approves the applicable scope. Item #38 has confirmed scope but its implementation remains deferred.
 
 Public-release hardening remains separate: authentication/ownership, rate limiting, backup/recovery, single/multi-instance design, observability, security review, and model operations are still required before public use.
 
@@ -374,14 +374,14 @@ Not ready for public users:
 - Phase 1 — Skill Checks V1: **PARTIAL — ENGINE ROUTING REQUIRED**.
 - Phase 2 — Combat Result History Persistence: **PASS**.
 - Phase 3 — Quest Outcomes V1: **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED**.
-- Phase 3.5 — Narrative Director V1: **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED**; API-side memory and the 15-turn real-model continuity/resume smoke pass, but narration remains capped at two short sentences.
+- Phase 3.5 — Narrative Director V1: **PARTIAL — RICH-PROSE PROMPT APPROVAL REQUIRED**; API-side memory and the 15-turn real-model continuity/resume smoke pass. Package §2.C specifies the proposed contract; the current two-sentence ceiling remains in place.
 
 **APPROVAL REQUIRED**
 
-- `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md` consolidates known engine changes.
-- Approve the Phase 3.5 narrator prompt contract before implementation; preserve Python authority, validated updates, fallback behavior, and model-call limits.
+- `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md` consolidates proposals A–F, including the Phase 3.5 rich-prose contract in §2.C.
+- No proposal authorizes implementation by itself. Obtain explicit owner approval before changing `game.py`; preserve Python authority, validated updates, fallback behavior, and model-call limits.
 - Keep `ai-dnd/game.py` unchanged until explicit owner approval.
-- Do not begin Combat V3, Spells V1, or XP/Leveling V1.
+- Do not begin Quest Outcomes, Combat V3, Spells V1, or XP/Leveling V1 without approval of the corresponding package scope.
 - Item #38 is approved but deferred. Its confirmed scope and acceptance criteria are included in the package; do not execute it before explicit engine approval.
 
 **SEPARATE BACKLOG**
@@ -401,7 +401,7 @@ Not ready for public users:
 7. Journal tracks canonical locations/NPCs/events; the quest ledger remains empty until Python emits structured quest outcomes.
 8. Combat V1/V2 is authoritative and resumable; Combat V3 is not implemented.
 9. Validated combat-result cards are restored after campaign resume; pre-v2 results cannot be recovered.
-10. Validation: 84 API tests, 17 deterministic gates, six UI tests, typechecks, and production build passed.
+10. Validation: 108 API tests, 17 deterministic gates, six UI tests, typechecks, and production build passed.
 11. The dev DB retains one campaign row of unverified provenance; preserve it pending owner confirmation.
 12. Before public use, add auth/ownership, rate limits, backup/recovery, model operations, and a security review.
 
@@ -419,10 +419,10 @@ Not ready for public users:
 
 ## C. Top 5 next actions
 
-1. Owner review and explicit approval of the consolidated Engine Change Approval Package.
+1. Owner review and explicit approval of the applicable items in the consolidated Engine Change Approval Package.
 2. Keep Phase 1 visibly partial and do not simulate the missing skill routes.
 3. Keep the quest ledger empty until Python emits an approved canonical lifecycle contract.
-4. Preserve the protected engine hash; do not start Combat V3, Spells, or Leveling before approval.
+4. Preserve the protected engine hash; do not start any unapproved engine item A–F.
 5. Separately resolve API route naming and public-use security/operations before any public release.
 
 ## D. Current next step
