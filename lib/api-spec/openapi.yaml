@@ -236,7 +236,68 @@ components:
           type: string
         state:
           $ref: "#/components/schemas/GameState"
-      required: [session_id, narration, state]
+        combat_result:
+          anyOf:
+            - $ref: "#/components/schemas/CombatTurnResult"
+            - type: "null"
+          description: Structured combat outcome returned by Python; null for non-combat turns.
+      required: [session_id, narration, state, combat_result]
+    CombatAttackResult:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+        status:
+          type: string
+        success:
+          type: boolean
+        outcome:
+          type: string
+        actor:
+          type: string
+        target:
+          type: string
+        target_id:
+          type: string
+        target_name:
+          type: string
+        weapon:
+          type: string
+        attack_roll:
+          type: integer
+        attack_bonus:
+          type: integer
+        attack_total:
+          type: integer
+        target_ac:
+          type: integer
+        critical:
+          type: boolean
+        damage:
+          type: integer
+        target_hp_before:
+          type: integer
+        target_hp_after:
+          type: integer
+        target_status:
+          type: string
+    CombatTurnResult:
+      allOf:
+        - $ref: "#/components/schemas/CombatAttackResult"
+        - type: object
+          additionalProperties: false
+          properties:
+            combat_started:
+              type: boolean
+            combat_ended:
+              type: boolean
+            end_reason:
+              type: string
+            enemy_action:
+              anyOf:
+                - $ref: "#/components/schemas/CombatAttackResult"
+                - type: "null"
     GameState:
       type: object
       properties:

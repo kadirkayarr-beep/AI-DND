@@ -42,7 +42,11 @@ from api.schemas import (
     TurnRequest,
     TurnResponse,
 )
-from api.serializers import redact_sensitive_values, serialize_session_state
+from api.serializers import (
+    redact_sensitive_values,
+    serialize_combat_result,
+    serialize_session_state,
+)
 from api.session_manager import SessionManager, UnknownSessionError
 from api.world_metadata import (
     set_session_world_metadata,
@@ -551,6 +555,7 @@ def create_app(
                 session_id=session_id,
                 narration=narration,
                 state=serialize_session_state(session, record.journal),
+                combat_result=serialize_combat_result(action_result),
             )
             return redact_sensitive_values(response.model_dump())
 

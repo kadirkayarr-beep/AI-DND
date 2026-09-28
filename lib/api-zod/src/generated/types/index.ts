@@ -20,6 +20,8 @@ export * from './campaignSummary';
 export * from './characterCreateInput';
 export * from './characterCreateInputMode';
 export * from './characterCreationOptions';
+export * from './combatAttackResult';
+export * from './combatTurnResult';
 export * from './gameCharacter';
 export * from './gameCombat';
 export * from './gameCombatParticipantsItem';

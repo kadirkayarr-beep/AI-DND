@@ -338,6 +338,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .world-tabs { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 12px; border-bottom: 1px solid rgba(77, 58, 38, .86); }
 .world-tabs button { min-height: 36px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #7e705c; cursor: pointer; font-size: 8px; font-weight: 700; letter-spacing: .08em; }
 .world-tabs button:hover, .world-tabs button.active { color: #d0b074; border-bottom-color: #bd9559; }
+.world-tabs button.combat-live { color: #cf9878; }
+.world-tabs button.combat-live.active { border-bottom-color: #b66d52; }
 .header-location { display: flex; align-items: center; gap: 8px; margin-left: auto; color: #c5ad81; font-family: var(--app-font-serif); font-size: 17px; }
 .header-location-copy { display: grid; gap: 2px; min-width: 0; }
 .header-location-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -345,10 +347,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .header-hp { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; border-left: 1px solid rgba(117, 88, 54, .7); padding-left: 10px; color: #d0b074; font-family: var(--app-font-mono); font-size: 10px; white-space: nowrap; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .drawer-trigger { display: none; min-height: 35px; align-items: center; gap: 6px; border: 1px solid rgba(115, 88, 54, .7); background: rgba(39, 29, 21, .8); color: #c4ad82; cursor: pointer; padding: 0 10px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.combat-quick-status { display: none; }
 .location-ribbon { display: flex; align-items: center; gap: 11px; margin-bottom: 20px; border-left: 2px solid var(--theme-line); background: rgba(100, 71, 39, .1); padding: 10px 13px; color: #d1b883; transition: border-color .3s ease, background-color .3s ease; }
 .location-ribbon-new { background: rgba(152, 104, 52, .2); }
 .location-ribbon strong { display: block; margin-top: 2px; color: #e4d4b6; font-family: var(--app-font-serif); font-size: 20px; font-weight: 500; }
 .location-ribbon span { display: block; margin-top: 3px; color: #887962; font-size: 9px; }
+.combat-transition-banner { display: flex; align-items: center; gap: 10px; margin: -5px 0 20px; border: 1px solid rgba(145, 116, 64, .62); background: rgba(104, 74, 35, .14); padding: 10px 12px; color: #c7aa73; }
+.combat-transition-banner > div { display: grid; gap: 3px; }
+.combat-transition-banner strong { font-size: 8px; letter-spacing: .14em; }
+.combat-transition-banner span { color: #ab9979; font-family: var(--app-font-serif); font-size: 15px; }
 .transcript-scroll { max-height: min(57dvh, 680px); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #765534 #1d1712; scrollbar-width: thin; padding-right: 10px; }
 .reader-note { margin: 24px 0 4px; border-top: 1px solid rgba(86, 63, 39, .6); padding-top: 9px; color: #70624e; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
 .workspace-error { grid-column: 1 / -1; max-width: 680px; margin: 80px auto; width: 100%; }
@@ -416,9 +423,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .header-location small { margin-left: 0; }
   .header-hp { grid-column: 3; grid-row: 1 / 3; margin-left: 0; }
   .app-header-inner { flex-wrap: wrap; padding: 10px 0; }
-  .header-actions { margin-left: auto; }
+  .header-actions { order: 5; margin-left: auto; }
   .drawer-trigger { display: inline-flex; }
   .session-chip { display: none; }
+  .combat-quick-status { display: flex; order: 4; align-items: center; gap: 8px; width: 100%; min-height: 37px; margin-top: 7px; border: 1px solid rgba(142, 88, 65, .7); background: rgba(72, 39, 31, .34); color: #d0a17f; cursor: pointer; padding: 0 11px; font-size: 9px; letter-spacing: .06em; text-align: left; }
+  .combat-quick-status-label { font-size: 8px; font-weight: 700; letter-spacing: .14em; }
+  .combat-quick-hp { margin-left: auto; color: #d5be94; font-family: var(--app-font-mono); font-size: 9px; }
   .story-heading { margin-bottom: 18px; }
   .transcript-scroll { max-height: none; min-height: 180px; padding-right: 0; }
   .command-box { position: sticky; bottom: 10px; z-index: 5; box-shadow: 0 12px 34px rgba(8, 5, 3, .38); }

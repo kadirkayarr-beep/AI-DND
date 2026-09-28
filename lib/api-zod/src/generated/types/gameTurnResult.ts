@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
 
 export interface GameTurnResult {
   session_id: string;
   narration: string;
   state: GameState;
+  /** Structured combat outcome returned by Python; null for non-combat turns. */
+  combat_result: CombatTurnResult | null;
 }

@@ -454,7 +454,51 @@ export const PlayGameTurnResponse = zod.object({
 }),
   "player_combat_status": zod.string().nullable(),
   "turn_index": zod.number().int()
-})
+}),
+  "combat_result": zod.union([zod.object({
+  "action": zod.string().optional(),
+  "status": zod.string().optional(),
+  "success": zod.boolean().optional(),
+  "outcome": zod.string().optional(),
+  "actor": zod.string().optional(),
+  "target": zod.string().optional(),
+  "target_id": zod.string().optional(),
+  "target_name": zod.string().optional(),
+  "weapon": zod.string().optional(),
+  "attack_roll": zod.number().int().optional(),
+  "attack_bonus": zod.number().int().optional(),
+  "attack_total": zod.number().int().optional(),
+  "target_ac": zod.number().int().optional(),
+  "critical": zod.boolean().optional(),
+  "damage": zod.number().int().optional(),
+  "target_hp_before": zod.number().int().optional(),
+  "target_hp_after": zod.number().int().optional(),
+  "target_status": zod.string().optional()
+}).and(zod.object({
+  "combat_started": zod.boolean().optional(),
+  "combat_ended": zod.boolean().optional(),
+  "end_reason": zod.string().optional(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().optional(),
+  "status": zod.string().optional(),
+  "success": zod.boolean().optional(),
+  "outcome": zod.string().optional(),
+  "actor": zod.string().optional(),
+  "target": zod.string().optional(),
+  "target_id": zod.string().optional(),
+  "target_name": zod.string().optional(),
+  "weapon": zod.string().optional(),
+  "attack_roll": zod.number().int().optional(),
+  "attack_bonus": zod.number().int().optional(),
+  "attack_total": zod.number().int().optional(),
+  "target_ac": zod.number().int().optional(),
+  "critical": zod.boolean().optional(),
+  "damage": zod.number().int().optional(),
+  "target_hp_before": zod.number().int().optional(),
+  "target_hp_after": zod.number().int().optional(),
+  "target_status": zod.string().optional()
+}),zod.null()]).optional()
+})),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.')
 })
 
 

@@ -306,10 +306,40 @@ export interface GameTurnInput {
   message: string;
 }
 
+export interface CombatAttackResult {
+  action?: string;
+  status?: string;
+  success?: boolean;
+  outcome?: string;
+  actor?: string;
+  target?: string;
+  target_id?: string;
+  target_name?: string;
+  weapon?: string;
+  attack_roll?: number;
+  attack_bonus?: number;
+  attack_total?: number;
+  target_ac?: number;
+  critical?: boolean;
+  damage?: number;
+  target_hp_before?: number;
+  target_hp_after?: number;
+  target_status?: string;
+}
+
+export type CombatTurnResult = CombatAttackResult & ({
+  combat_started?: boolean;
+  combat_ended?: boolean;
+  end_reason?: string;
+  enemy_action?: CombatAttackResult | null;
+});
+
 export interface GameTurnResult {
   session_id: string;
   narration: string;
   state: GameState;
+  /** Structured combat outcome returned by Python; null for non-combat turns. */
+  combat_result: CombatTurnResult | null;
 }
 
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];

@@ -51,6 +51,32 @@ _DOOR_FIELDS = (
     "broken",
 )
 _LOCATION_FIELDS = ("id", "name", "type", "description")
+_COMBAT_ATTACK_FIELDS = (
+    "action",
+    "status",
+    "success",
+    "outcome",
+    "actor",
+    "target",
+    "target_id",
+    "target_name",
+    "weapon",
+    "attack_roll",
+    "attack_bonus",
+    "attack_total",
+    "target_ac",
+    "critical",
+    "damage",
+    "target_hp_before",
+    "target_hp_after",
+    "target_status",
+)
+_COMBAT_TURN_FIELDS = (
+    *_COMBAT_ATTACK_FIELDS,
+    "combat_started",
+    "combat_ended",
+    "end_reason",
+)
 
 
 def _project_fields(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
@@ -71,6 +97,21 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
         for item in value
         if (projected := _project_fields(item, fields))
     ]
+
+
+def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
+    """Expose only Python-owned combat outcome fields to the browser."""
+    if not isinstance(action_result, Mapping) or action_result.get("action") != "attack":
+        return None
+
+    projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)
+    enemy_action = action_result.get("enemy_action")
+    if isinstance(enemy_action, Mapping):
+        projected["enemy_action"] = _project_fields(
+            enemy_action,
+            _COMBAT_ATTACK_FIELDS,
+        )
+    return projected
 
 
 def serialize_session_state(

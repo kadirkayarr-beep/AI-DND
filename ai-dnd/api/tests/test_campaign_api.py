@@ -340,6 +340,99 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("SESSION_SECRET", str(response))
             self.assertNotIn("Authorization", str(response))
 
+    async def test_attack_turn_returns_only_safe_structured_combat_result(self):
+        created = await self.create_campaign()
+        session = self.manager.get(created["session_id"]).game_session
+        target = {
+            "id": "npc_bandit",
+            "name": "Bandit",
+            "role": "bandit",
+            "location": "tavern",
+            "max_hp": 14,
+            "current_hp": 7,
+            "armor_class": 12,
+            "combat_status": "active",
+            "memory": [],
+        }
+        session.world_state["npcs"].append(target)
+        session.world_state["combat"].update(
+            {
+                "active": True,
+                "round": 1,
+                "initiative_order": ["player", "npc_bandit"],
+                "current_turn_index": 0,
+                "participants": ["player", "npc_bandit"],
+                "target_id": "npc_bandit",
+            }
+        )
+
+        def attack_turn(_message):
+            return {
+                "narration": "The blade catches the bandit.",
+                "action_result": {
+                    "action": "attack",
+                    "status": "resolved",
+                    "success": True,
+                    "outcome": "critical_hit",
+                    "actor": "player",
+                    "target": "npc_bandit",
+                    "target_id": "npc_bandit",
+                    "target_name": "Bandit",
+                    "weapon": "Longsword",
+                    "attack_roll": 20,
+                    "attack_bonus": 4,
+                    "attack_total": 24,
+                    "target_ac": 12,
+                    "critical": True,
+                    "damage": 7,
+                    "target_hp_before": 14,
+                    "target_hp_after": 7,
+                    "target_status": "active",
+                    "combat_started": True,
+                    "combat_ended": False,
+                    "enemy_action": {
+                        "action": "enemy_attack",
+                        "status": "resolved",
+                        "success": True,
+                        "outcome": "hit",
+                        "actor": "npc_bandit",
+                        "target": "player",
+                        "target_id": "player",
+                        "target_name": "Arven",
+                        "weapon": "Dagger",
+                        "attack_roll": 12,
+                        "attack_bonus": 2,
+                        "attack_total": 14,
+                        "target_ac": 13,
+                        "critical": False,
+                        "damage": 2,
+                        "target_hp_before": 11,
+                        "target_hp_after": 9,
+                        "target_status": "active",
+                        "direct_response": "must not leave the engine",
+                    },
+                    "direct_response": "must not leave the engine",
+                    "state_changes": {"private": "must not leave the engine"},
+                },
+            }
+
+        session.run_player_turn = attack_turn
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Bandit'e saldırıyorum."},
+        )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()["combat_result"]
+        self.assertEqual(result["outcome"], "critical_hit")
+        self.assertEqual(result["attack_roll"], 20)
+        self.assertEqual(result["damage"], 7)
+        self.assertEqual(result["enemy_action"]["attack_total"], 14)
+        self.assertEqual(result["enemy_action"]["damage"], 2)
+        self.assertNotIn("direct_response", result)
+        self.assertNotIn("state_changes", result)
+        self.assertNotIn("direct_response", result["enemy_action"])
+
     async def test_successful_turn_is_autosaved_with_history(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
@@ -374,6 +467,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             json={"message": "Mira'ya adım Arven diyorum."},
         )
         self.assertEqual(turn.status_code, 200, turn.text)
+        self.assertIsNone(turn.json()["combat_result"])
         self.assertIn("Lantern", turn.json()["state"]["inventory"])
         self.assertEqual(turn.json()["state"]["location"], "tavern")
 

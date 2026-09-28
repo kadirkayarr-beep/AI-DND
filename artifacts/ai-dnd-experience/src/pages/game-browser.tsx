@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -7,7 +8,6 @@ import {
   Backpack,
   BookOpen,
   Check,
-  CircleDot,
   Compass,
   DoorOpen,
   Feather,
@@ -209,12 +209,6 @@ function DetailsPanel({ state }: { state: GameState }) {
   return <section className="state-panel" data-testid="panel-details"><Kicker><DoorOpen size={12} className="mr-1 inline" /> İncelenebilir</Kicker><h2>Ayrıntılar</h2><div className="mt-4">{state.doors.length ? state.doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}><div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-[#bc7062]" /> : <KeyRound size={14} className="text-[#c09a61]" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div><div className="data-row-desc">{door.description}</div></div>) : <div className="empty-line">Kapı veya geçit kaydedilmedi.</div>}</div><Rule /><div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{state.features.length ? state.features.map((feature, index) => <div className="border-l border-[#866942] pl-3" key={`${feature.name}-${index}`} data-testid={`feature-${index}`}><div className="font-serif text-[17px] text-[#d1c2a6]">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div></div>) : <div className="empty-line">Motor çevre özelliği kaydetmedi.</div>}</div></div></section>;
 }
 
-function CombatPanel({ state }: { state: GameState }) {
-  const combat = state.combat;
-  const active = Boolean(combat.active);
-  return <section className="state-panel" data-testid="panel-combat"><Kicker><Swords size={12} className="mr-1 inline" /> Motor durumu</Kicker><h2>Çatışma</h2><div className={`mt-4 border p-3 ${active ? 'border-[#9c5646] bg-[#5e2e26]/15' : 'border-[#4b3926] bg-[#211a14]'}`}><div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2"><CircleDot size={13} className={active ? 'text-[#c66b56]' : 'text-[#817662]'} />{active ? 'Çatışma sürüyor' : 'Çatışma yok'}</span>{typeof combat.round === 'number' && <span className="font-mono text-[10px] text-[#83745e]">Tur {combat.round}</span>}</div>{active && combat.initiative_order?.length ? <div className="mt-3 border-t border-[#4b3926] pt-3"><Kicker>İnisiyatif</Kicker><div className="mt-2 flex flex-wrap gap-2">{combat.initiative_order.map((participant, index) => <span className="status-pill" key={`${participant}-${index}`}>{participant}</span>)}</div></div> : null}{active && typeof combat.current_turn_index === 'number' && <div className="mt-3 border-t border-[#4b3926] pt-3 text-sm text-[#b7a88c]">Sıra indeksi: {combat.current_turn_index}</div>}{state.player_combat_status && <div className="mt-3 border-t border-[#4b3926] pt-3 text-sm text-[#b7a88c]">{state.player_combat_status}</div>}</div></section>;
-}
-
 function LeftColumn({ state }: { state: GameState }) {
   return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></aside>;
 }
@@ -357,7 +351,7 @@ function JournalPanel({ state }: { state: GameState }) {
   );
 }
 
-function WorldTabs({ state, activeTab, setActiveTab }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
+function WorldTabs({ state, activeTab, setActiveTab, combatEntries }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[] }) {
   const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'NPC’LER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -386,11 +380,12 @@ function WorldTabs({ state, activeTab, setActiveTab }: { state: GameState; activ
             aria-controls="world-panel-content"
             aria-selected={activeTab === tab.id}
             tabIndex={activeTab === tab.id ? 0 : -1}
-            className={activeTab === tab.id ? 'active' : ''}
+            className={`${activeTab === tab.id ? 'active' : ''} ${tab.id === 'combat' && state.combat.active ? 'combat-live' : ''}`}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             onKeyDown={(event) => handleTabKeyDown(event, index)}
             data-testid={`tab-${tab.id}`}
+            aria-label={tab.id === 'combat' && state.combat.active ? 'Çatışma sürüyor' : undefined}
           >
             {tab.label}
           </button>
@@ -400,7 +395,7 @@ function WorldTabs({ state, activeTab, setActiveTab }: { state: GameState; activ
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
         {activeTab === 'npcs' && <PeoplePanel npcs={state.npcs} />}
         {activeTab === 'journal' && <JournalPanel state={state} />}
-        {activeTab === 'combat' && <CombatPanel state={state} />}
+        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} />}
       </div>
     </aside>
   );
@@ -411,16 +406,75 @@ function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry
   return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen · yerel kayıt</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p></div>)}</div><div className="reader-note">Yerel anlatı kaydı · kanonik dünya durumu sağ panelde</div></div>;
 }
 
-function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean }) {
+function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null }) {
   const location = state.locations[state.location];
-  return <section className="story-column workspace-story" data-testid="panel-story"><div className="story-heading"><div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div><div><Kicker>Dungeon Master · sunucu anlatısı</Kicker><div className="story-meta mt-1">Başarılı turlar yerel olarak gösterilir</div></div><div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div></div><div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location"><MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div></div><Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />{notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}<div className="command-box"><form className="command-form" onSubmit={onSubmit}><label className="sr-only" htmlFor="player-message">Hamleni anlat</label><textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} /><button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">{sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}{sending ? 'Motor düşünüyor' : 'Gönder'}</button></form><div className="command-help"><span>Doğal dil · 1–4000 karakter · Python karar verir</span><span data-testid="text-message-count">{message.length} / 4000</span></div></div></section>;
+  return (
+    <section className="story-column workspace-story" data-testid="panel-story">
+      <div className="story-heading">
+        <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
+        <div><Kicker>Dungeon Master · sunucu anlatısı</Kicker><div className="story-meta mt-1">Başarılı turlar yerel olarak gösterilir</div></div>
+        <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
+      </div>
+      <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
+        <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div>
+      </div>
+      {combatEndNotice && (
+        <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
+          <Swords size={14} aria-hidden="true" />
+          <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
+        </div>
+      )}
+      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />
+      {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
+      <div className="command-box">
+        <form className="command-form" onSubmit={onSubmit}>
+          <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
+          <textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
+          <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
+            {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+            {sending ? 'Motor düşünüyor' : 'Gönder'}
+          </button>
+        </form>
+        <div className="command-help"><span>Doğal dil · 1–4000 karakter · Python karar verir</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
+      </div>
+    </section>
+  );
 }
 
-function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>) => void }) {
-  return <header className="app-header"><div className="dnd-shell app-header-inner"><Brand /><div className="header-location"><MapPinned size={13} /><div className="header-location-copy"><span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span><small data-testid="text-neutral-atmosphere">Otomatik kaydediliyor</small></div><span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span></div><div className="header-actions"><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button><div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span> #{campaignId.slice(0, 8)}</div><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button></div></div></header>;
+function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, onOpenCombat }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>) => void; onOpenCombat: () => void }) {
+  return (
+    <header className="app-header">
+      <div className="dnd-shell app-header-inner">
+        <Brand />
+        <div className="header-location">
+          <MapPinned size={13} />
+          <div className="header-location-copy">
+            <span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span>
+            <small data-testid="text-neutral-atmosphere">Otomatik kaydediliyor</small>
+          </div>
+          <span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span>
+        </div>
+        {state.combat.active && (
+          <button className="combat-quick-status" type="button" aria-haspopup="dialog" onClick={onOpenCombat} data-testid="button-open-active-combat">
+            <Swords size={14} aria-hidden="true" />
+            <span className="combat-quick-status-label">ÇATIŞMA</span>
+            {typeof state.combat.round === 'number' && <span>Tur {state.combat.round}</span>}
+            <span className="combat-quick-hp">{state.character.current_hp}/{state.character.max_hp} CAN</span>
+          </button>
+        )}
+        <div className="header-actions">
+          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button>
+          <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button>
+          <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span> #{campaignId.slice(0, 8)}</div>
+          <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button>
+          <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button>
+        </div>
+      </div>
+    </header>
+  );
 }
 
-function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
+function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[] }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -451,7 +505,7 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab }: { draw
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünya paneli'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünya paneli'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -471,6 +525,8 @@ export default function GameBrowser() {
   const [phase, setPhase] = useState<'opening' | 'library' | 'creation' | 'reveal' | 'adventure'>('opening');
   const [creationReturnPhase, setCreationReturnPhase] = useState<'opening' | 'library'>('opening');
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
+  const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
+  const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
@@ -500,14 +556,25 @@ export default function GameBrowser() {
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
   const previousLocation = useRef<string>('');
+  const previousCombatActive = useRef<boolean | null>(null);
 
   useEffect(() => {
+    setCombatEntries([]);
+    setCombatEndNotice(null);
     if (!sessionId) { setEntries([]); return; }
     try {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
       setEntries(Array.isArray(stored) ? stored.filter((entry): entry is TranscriptEntry => Boolean(entry) && typeof entry === 'object' && ((entry as TranscriptEntry).kind === 'player' || (entry as TranscriptEntry).kind === 'narration') && typeof (entry as TranscriptEntry).text === 'string') : []);
     } catch { setEntries([]); }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!state) return;
+    const active = Boolean(state.combat.active);
+    if (active) setActiveTab('combat');
+    else if (previousCombatActive.current === true) setActiveTab('world');
+    previousCombatActive.current = active;
+  }, [state?.combat.active]);
 
   useEffect(() => {
     if (!state || previousLocation.current === '') { if (state) previousLocation.current = state.location; return; }
@@ -545,10 +612,14 @@ export default function GameBrowser() {
     setCampaignId('');
     setPhase('opening');
     setEntries([]);
+    setCombatEntries([]);
+    setCombatEndNotice(null);
     setMessage('');
     setNotice(null);
     setResumingCampaignId(null);
     setDrawer(null);
+    setActiveTab('world');
+    previousCombatActive.current = null;
   };
 
   const handleCreate = () => {
@@ -566,6 +637,10 @@ export default function GameBrowser() {
         queryClient.setQueryData(getGetGameSessionStateQueryKey(created.session_id), created.state);
         window.localStorage.removeItem(`${TRANSCRIPT_KEY}${created.session_id}`);
         setEntries([]);
+        setCombatEntries([]);
+        setCombatEndNotice(null);
+        setActiveTab('world');
+        previousCombatActive.current = null;
         setSessionId(created.session_id);
         setPhase('reveal');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
@@ -599,6 +674,10 @@ export default function GameBrowser() {
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, resumed.campaign_id);
         window.localStorage.setItem(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
         setEntries(transcript);
+        setCombatEntries([]);
+        setCombatEndNotice(null);
+        setActiveTab('world');
+        previousCombatActive.current = null;
         setSessionId(resumed.session_id);
         setMessage('');
         setPhase('adventure');
@@ -634,6 +713,27 @@ export default function GameBrowser() {
         const next = [...entries, { kind: 'player' as const, text: trimmed }, { kind: 'narration' as const, text: result.narration }];
         setEntries(next);
         window.localStorage.setItem(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next));
+        const combatResult = result.combat_result;
+        if (combatResult) {
+          setCombatEntries((current) => [
+            ...current,
+            { id: result.state.turn_index, result: combatResult },
+          ].slice(-8));
+          if (combatResult.combat_ended) {
+            const endReason = combatResult.end_reason;
+            setCombatEndNotice(
+              endReason === 'target_defeated'
+                ? 'Rakip etkisiz hale getirildi.'
+                : endReason === 'player_defeated'
+                  ? 'Karakter bilinç kaybetti.'
+                  : 'Motor çatışmayı sonlandırdı.',
+            );
+          } else {
+            setCombatEndNotice(null);
+          }
+        } else {
+          setCombatEndNotice(null);
+        }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
@@ -661,7 +761,7 @@ export default function GameBrowser() {
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="dnd-app" data-testid="app-session">
-        {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={setDrawer} />}
+        {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={setDrawer} onOpenCombat={() => { setActiveTab('combat'); setDrawer('world'); }} />}
         <main className="app-main workspace-grid">
           {stateQuery.isLoading ? (
             <>
@@ -688,12 +788,12 @@ export default function GameBrowser() {
           ) : state ? (
             <>
               <LeftColumn state={state} />
-              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} />
-              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} />
+              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} />
+              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
         </main>
-        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} />}
+        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
           {sessionLabel} · yalnızca başarılı sunucu turları saklanır
         </div>

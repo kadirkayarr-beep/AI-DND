@@ -29,10 +29,41 @@ class TurnRequest(BaseModel):
         return value
 
 
+class CombatAttackResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: str | None = None
+    status: str | None = None
+    success: bool | None = None
+    outcome: str | None = None
+    actor: str | None = None
+    target: str | None = None
+    target_id: str | None = None
+    target_name: str | None = None
+    weapon: str | None = None
+    attack_roll: int | None = None
+    attack_bonus: int | None = None
+    attack_total: int | None = None
+    target_ac: int | None = None
+    critical: bool | None = None
+    damage: int | None = None
+    target_hp_before: int | None = None
+    target_hp_after: int | None = None
+    target_status: str | None = None
+
+
+class CombatTurnResult(CombatAttackResult):
+    combat_started: bool | None = None
+    combat_ended: bool | None = None
+    end_reason: str | None = None
+    enemy_action: CombatAttackResult | None = None
+
+
 class TurnResponse(BaseModel):
     session_id: str
     narration: str
     state: dict[str, Any]
+    combat_result: CombatTurnResult | None = None
 
 
 class CharacterCreateInput(BaseModel):
