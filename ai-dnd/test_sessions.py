@@ -140,6 +140,38 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(expected["version"], 1)
         self.assertEqual(self.b.serialize_game_state(), before_b)
 
+    def test_save_load_conscious_player_clears_unconscious_status(self):
+        self.a.character["current_hp"] = 3
+        self.a.world_state["player_combat_status"] = "active"
+        self.a.recent_dm_narrations.append("Ayaktasın.")
+        expected = self.a.serialize_game_state()
+        before_b = self.b.serialize_game_state()
+        rng_b = self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        world = self.a.world_state
+        character = self.a.character
+        history = self.a.recent_dm_narrations
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "conscious.json"
+            self.a.save_game(path)
+            character["current_hp"] = 0
+            world["player_combat_status"] = "unconscious"
+            world["inventory"].clear()
+            history.clear()
+            self.assertEqual(self.a.load_game(path), expected)
+        self.assertIs(world, self.a.world_state)
+        self.assertIs(character, self.a.character)
+        self.assertIs(history, self.a.recent_dm_narrations)
+        self.assertEqual(character["current_hp"], 3)
+        self.assertGreater(character["current_hp"], 0)
+        self.assertEqual(world["player_combat_status"], "active")
+        self.assertEqual(history, expected["recent_dm_narrations"])
+        self.assertEqual(self.a.serialize_game_state(), expected)
+        self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
     def test_save_load_unconscious_player_keeps_other_sessions_conscious(self):
         self.a.character["current_hp"] = 0
         self.a.world_state["player_combat_status"] = "unconscious"
