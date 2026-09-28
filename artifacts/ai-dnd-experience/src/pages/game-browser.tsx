@@ -219,27 +219,145 @@ function LeftColumn({ state }: { state: GameState }) {
   return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
-function JournalPanel({ entries }: { entries: TranscriptEntry[] }) {
+const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
+  tavern: 'Taverna',
+  forest: 'Orman',
+  city: 'Şehir',
+  village: 'Köy',
+  road: 'Yol',
+  wilderness: 'Yabanıl alan',
+  dungeon: 'Zindan',
+  cave: 'Mağara',
+  castle: 'Kale',
+  temple: 'Tapınak',
+  ruins: 'Harabeler',
+  unknown: 'Türü bilinmiyor',
+};
+
+const JOURNAL_STATUS_LABELS: Record<string, string> = {
+  active: 'Sürüyor',
+  completed: 'Tamamlandı',
+  failed: 'Başarısız',
+  cancelled: 'İptal edildi',
+};
+
+function JournalPanel({ state }: { state: GameState }) {
+  const { journal } = state;
+  const events = [...journal.notable_events].sort(
+    (left, right) => left.turn_index - right.turn_index || left.created_at.localeCompare(right.created_at),
+  );
+
   return (
     <section className="state-panel" data-testid="panel-journal">
-      <Kicker><BookOpen size={12} className="mr-1 inline" /> Bu cihazdaki anlatı</Kicker>
+      <Kicker><BookOpen size={12} className="mr-1 inline" /> Kanonik kampanya kaydı</Kicker>
       <h2>Günlük</h2>
-      <p className="subtle-text mt-3">Bu geçmiş yalnızca bu tarayıcıya kaydedilir; kanonik kampanya kaydı sunucudadır.</p>
-      {entries.length ? (
-        <ol className="journal-entries" aria-label="Bu cihazdaki başarılı turlar">
-          {entries.map((entry, index) => (
-            <li className={entry.kind === 'player' ? 'journal-entry journal-entry-player' : 'journal-entry'} key={`${entry.kind}-${index}`} data-testid={`journal-entry-${index}`}>
-              <span>{entry.kind === 'player' ? 'Sen · yerel kayıt' : 'Dungeon Master · sunucu anlatısı'}</span>
-              <p>{entry.text}</p>
-            </li>
-          ))}
-        </ol>
-      ) : <div className="empty-line mt-4">Henüz bu tarayıcıda kaydedilmiş başarılı bir tur yok.</div>}
+      <p className="subtle-text mt-3">Keşifler ve olaylar Python oyun durumundan gelir. Anlatı metni görev veya ilerleme kaydı oluşturmaz.</p>
+
+      <section className="journal-section" data-testid="section-journal-locations">
+        <div className="journal-section-heading">
+          <div><Kicker><MapPinned size={11} className="mr-1 inline" /> Keşifler</Kicker><h3>Yerler</h3></div>
+          <span className="character-badge">{String(journal.discovered_locations.length).padStart(2, '0')}</span>
+        </div>
+        {journal.discovered_locations.length ? (
+          <div className="mt-3">
+            {journal.discovered_locations.map((location) => {
+              const isCurrent = location.location_id === state.location;
+              const turnsSinceVisit = Math.max(0, state.turn_index - location.last_visited_turn);
+              const visitLabel = isCurrent
+                ? 'Şu an buradasın'
+                : turnsSinceVisit === 0
+                  ? 'Son ziyaret: bu tur'
+                  : `Son ziyaret: ${turnsSinceVisit} tur önce`;
+              return (
+                <div className="data-row journal-record" key={location.location_id} data-testid={`journal-location-${location.location_id}`}>
+                  <div className="data-row-head"><span>{location.name}</span>{isCurrent && <span className="status-pill">Şu an</span>}</div>
+                  <div className="data-row-meta">{JOURNAL_ENVIRONMENT_LABELS[location.environment] ?? 'Türü bilinmiyor'} · {visitLabel}</div>
+                  <div className="journal-record-note">İlk keşif: Tur {location.first_discovered_turn} · {location.visit_count} ziyaret</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-locations">Henüz keşfedilmiş bir yer yok.</div>}
+      </section>
+
+      <section className="journal-section" data-testid="section-journal-npcs">
+        <div className="journal-section-heading">
+          <div><Kicker><Users size={11} className="mr-1 inline" /> Karşılaşmalar</Kicker><h3>Tanınan kişiler</h3></div>
+          <span className="character-badge">{String(journal.known_npcs.length).padStart(2, '0')}</span>
+        </div>
+        {journal.known_npcs.length ? (
+          <div className="mt-3">
+            {journal.known_npcs.map((npc) => {
+              const turnsSinceSeen = Math.max(0, state.turn_index - npc.last_seen_turn);
+              const seenLabel = turnsSinceSeen === 0
+                ? 'Bu tur görüldü'
+                : `${turnsSinceSeen} tur önce görüldü`;
+              return (
+                <div className="data-row journal-record" key={npc.npc_id} data-testid={`journal-npc-${npc.npc_id}`}>
+                  <div className="data-row-head"><span>{npc.name}</span>{npc.role && <span className="status-pill">{npc.role}</span>}</div>
+                  <div className="data-row-meta">{seenLabel}{npc.last_known_location ? ` · ${npc.last_known_location}` : ''}</div>
+                  <div className="journal-record-note">İlk karşılaşma: Tur {npc.first_met_turn}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-npcs">Henüz tanınan kişi yok.</div>}
+      </section>
+
+      <section className="journal-section" data-testid="section-journal-events">
+        <div className="journal-section-heading">
+          <div><Kicker><ScrollText size={11} className="mr-1 inline" /> Kronoloji</Kicker><h3>Öne çıkan olaylar</h3></div>
+          <span className="character-badge">{String(events.length).padStart(2, '0')}</span>
+        </div>
+        {events.length ? (
+          <ol className="journal-chronicle mt-3" aria-label="Kanonik olaylar">
+            {events.map((event) => (
+              <li className="journal-chronicle-entry" key={event.event_id} data-testid={`journal-event-${event.event_id}`}>
+                <span>Tur {event.turn_index}{event.location_name ? ` · ${event.location_name}` : ''}</span>
+                <p>{event.summary}</p>
+              </li>
+            ))}
+          </ol>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-events">Henüz kaydedilmiş bir olay yok.</div>}
+      </section>
+
+      <section className="journal-section" data-testid="section-journal-quests">
+        <div className="journal-section-heading">
+          <div><Kicker><ScrollText size={11} className="mr-1 inline" /> Kayıt defteri</Kicker><h3>Görevler</h3></div>
+          <span className="character-badge">{String(journal.quests.length).padStart(2, '0')}</span>
+        </div>
+        {journal.quests.length ? (
+          <div className="mt-3">
+            {journal.quests.map((quest) => {
+              const giver = quest.giver_npc_id
+                ? journal.known_npcs.find((npc) => npc.npc_id === quest.giver_npc_id)
+                : undefined;
+              return (
+                <article className="data-row journal-record" key={quest.quest_id} data-testid={`journal-quest-${quest.quest_id}`}>
+                  <div className="data-row-head"><span>{quest.title}</span><span className="status-pill">{JOURNAL_STATUS_LABELS[quest.status] ?? quest.status}</span></div>
+                  <p className="data-row-desc">{quest.description}</p>
+                  {giver && <div className="data-row-meta">Görevi veren: {giver.name}</div>}
+                  {quest.objectives.length > 0 && (
+                    <ul className="journal-objectives">
+                      {quest.objectives.map((objective) => (
+                        <li key={objective.objective_id} data-testid={`journal-objective-${objective.objective_id}`}>
+                          <span>{objective.description}</span>
+                          <span className="status-pill">{JOURNAL_STATUS_LABELS[objective.status] ?? objective.status}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-quests">Henüz kayıtlı görev yok.</div>}
+      </section>
     </section>
   );
 }
 
-function WorldTabs({ state, entries, activeTab, setActiveTab }: { state: GameState; entries: TranscriptEntry[]; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
+function WorldTabs({ state, activeTab, setActiveTab }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
   const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'NPC’LER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -281,7 +399,7 @@ function WorldTabs({ state, entries, activeTab, setActiveTab }: { state: GameSta
       <div role="tabpanel" id="world-panel-content" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
         {activeTab === 'npcs' && <PeoplePanel npcs={state.npcs} />}
-        {activeTab === 'journal' && <JournalPanel entries={entries} />}
+        {activeTab === 'journal' && <JournalPanel state={state} />}
         {activeTab === 'combat' && <CombatPanel state={state} />}
       </div>
     </aside>
@@ -302,7 +420,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer }:
   return <header className="app-header"><div className="dnd-shell app-header-inner"><Brand /><div className="header-location"><MapPinned size={13} /><div className="header-location-copy"><span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span><small data-testid="text-neutral-atmosphere">Otomatik kaydediliyor</small></div><span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span></div><div className="header-actions"><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button><div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span> #{campaignId.slice(0, 8)}</div><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button></div></div></header>;
 }
 
-function DrawerSheet({ drawer, state, entries, onClose, activeTab, setActiveTab }: { drawer: Drawer; state: GameState; entries: TranscriptEntry[]; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
+function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -333,7 +451,7 @@ function DrawerSheet({ drawer, state, entries, onClose, activeTab, setActiveTab 
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünya paneli'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} entries={entries} activeTab={activeTab} setActiveTab={setActiveTab} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünya paneli'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -571,11 +689,11 @@ export default function GameBrowser() {
             <>
               <LeftColumn state={state} />
               <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} />
-              <WorldTabs state={state} entries={entries} activeTab={activeTab} setActiveTab={setActiveTab} />
+              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
         </main>
-        {state && <DrawerSheet drawer={drawer} state={state} entries={entries} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} />}
+        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
           {sessionLabel} · yalnızca başarılı sunucu turları saklanır
         </div>

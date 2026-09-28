@@ -30,6 +30,19 @@ export const GetGameHealthResponse = zod.object({
 /**
  * @summary Create a new isolated game session
  */
+export const createGameSessionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const createGameSessionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const createGameSessionResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const createGameSessionResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const createGameSessionResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const CreateGameSessionResponse = zod.object({
   "session_id": zod.string(),
   "state": zod.object({
@@ -39,6 +52,56 @@ export const CreateGameSessionResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(createGameSessionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(createGameSessionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(createGameSessionResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(createGameSessionResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(createGameSessionResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -110,6 +173,19 @@ export const GetGameSessionStateParams = zod.object({
   "session_id": zod.coerce.string()
 })
 
+export const getGameSessionStateResponseJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const getGameSessionStateResponseJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const getGameSessionStateResponseJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const getGameSessionStateResponseJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const getGameSessionStateResponseJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const GetGameSessionStateResponse = zod.object({
   "location": zod.string(),
   "world": zod.object({
@@ -117,6 +193,56 @@ export const GetGameSessionStateResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(getGameSessionStateResponseJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(getGameSessionStateResponseJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(getGameSessionStateResponseJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(getGameSessionStateResponseJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(getGameSessionStateResponseJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -195,6 +321,19 @@ export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax)
 })
 
+export const playGameTurnResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const playGameTurnResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const playGameTurnResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const playGameTurnResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const playGameTurnResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const PlayGameTurnResponse = zod.object({
   "session_id": zod.string(),
   "narration": zod.string(),
@@ -205,6 +344,56 @@ export const PlayGameTurnResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(playGameTurnResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(playGameTurnResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(playGameTurnResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(playGameTurnResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(playGameTurnResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -316,6 +505,19 @@ export const CreateCampaignBody = zod.object({
 }),zod.null()]).optional()
 })
 
+export const createCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const createCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const createCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const createCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const createCampaignResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const CreateCampaignResponse = zod.object({
   "campaign_id": zod.string().uuid(),
   "session_id": zod.string().uuid(),
@@ -327,6 +529,56 @@ export const CreateCampaignResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(createCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(createCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(createCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(createCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(createCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -403,6 +655,19 @@ export const GetCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const getCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const getCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const getCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const getCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const getCampaignResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const GetCampaignResponse = zod.object({
   "campaign": zod.object({
   "campaign_id": zod.string().uuid(),
@@ -424,6 +689,56 @@ export const GetCampaignResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(getCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(getCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(getCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(getCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(getCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -500,6 +815,19 @@ export const ResumeCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const resumeCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const resumeCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const resumeCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const resumeCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const resumeCampaignResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+
+
 export const ResumeCampaignResponse = zod.object({
   "campaign_id": zod.string().uuid(),
   "session_id": zod.string().uuid(),
@@ -511,6 +839,56 @@ export const ResumeCampaignResponse = zod.object({
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
   "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
 }).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string(),
+  "name": zod.string(),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(resumeCampaignResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(resumeCampaignResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(resumeCampaignResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(resumeCampaignResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().nullable(),
+  "last_known_location": zod.string().nullable()
+})),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(resumeCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string(),
+  "location_id": zod.string().nullable(),
+  "location_name": zod.string().nullable(),
+  "related_npc_id": zod.string().nullable(),
+  "related_item": zod.string().nullable()
+})),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string(),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+}))
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),

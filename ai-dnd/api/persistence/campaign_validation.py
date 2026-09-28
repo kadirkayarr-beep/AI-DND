@@ -5,10 +5,15 @@ from __future__ import annotations
 import json
 import os
 import random
+from copy import deepcopy
 from typing import Any
 
 import game
 
+from api.campaign_journal import (
+    empty_campaign_journal,
+    validate_campaign_journal,
+)
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignValidationError,
@@ -122,7 +127,10 @@ def _validate_rng_state(value: Any, error_type: type[Exception]) -> None:
         raise error_type("Campaign random state is invalid.") from None
 
 
-def serialize_campaign_payload(session: Any) -> dict[str, Any]:
+def serialize_campaign_payload(
+    session: Any,
+    journal: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Keep the engine save intact and persist API-owned RNG/world metadata."""
     try:
         engine_save = session.serialize_game_state()
@@ -138,12 +146,15 @@ def serialize_campaign_payload(session: Any) -> dict[str, Any]:
         engine_save.get("world_state", {}),
         getattr(session, "world_metadata", None),
     )
+    journal_payload = journal if journal is not None else empty_campaign_journal()
+    validate_campaign_journal(journal_payload, CampaignValidationError)
     payload = {
         "format": CAMPAIGN_FORMAT,
         "version": CAMPAIGN_FORMAT_VERSION,
         "engine_save": engine_save,
         "rng_state": serializable_rng,
         "world_metadata": world_metadata,
+        "journal": journal_payload,
     }
     validate_campaign_payload(payload, CampaignValidationError)
     ensure_no_configured_secrets(payload)
@@ -161,9 +172,9 @@ def validate_campaign_payload(
     if payload.get("version") != CAMPAIGN_FORMAT_VERSION:
         raise error_type("Campaign save version is unsupported.")
     required_fields = {"format", "version", "engine_save", "rng_state"}
-    if set(payload) not in (
-        required_fields,
-        required_fields | {"world_metadata"},
+    allowed_fields = required_fields | {"world_metadata", "journal"}
+    if not required_fields.issubset(payload) or not set(payload).issubset(
+        allowed_fields
     ):
         raise error_type("Campaign save fields are invalid.")
 
@@ -171,6 +182,8 @@ def validate_campaign_payload(
     _validate_rng_state(payload["rng_state"], error_type)
     if "world_metadata" in payload:
         validate_world_metadata(payload["world_metadata"], error_type)
+    if "journal" in payload:
+        validate_campaign_journal(payload["journal"], error_type)
     ensure_no_configured_secrets(payload)
 
 
@@ -215,7 +228,7 @@ def validate_history_entry(entry: Any) -> dict[str, str]:
     }
 
 
-def restore_campaign_session(session: Any, payload: dict[str, Any]) -> None:
+def restore_campaign_session(session: Any, payload: dict[str, Any]) -> dict[str, Any]:
     """Restore through the engine loader without serializing prompt text."""
     validate_campaign_payload(payload)
     import json
@@ -243,6 +256,9 @@ def restore_campaign_session(session: Any, payload: dict[str, Any]) -> None:
             session,
             payload.get("world_metadata"),
         )
+        journal = deepcopy(
+            payload.get("journal", empty_campaign_journal())
+        )
     except Exception:
         raise CampaignCorruptError(
             "Campaign could not be restored safely."
@@ -250,3 +266,4 @@ def restore_campaign_session(session: Any, payload: dict[str, Any]) -> None:
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
+    return journal

@@ -244,6 +244,8 @@ components:
           type: string
         world:
           $ref: "#/components/schemas/GameWorldMetadata"
+        journal:
+          $ref: "#/components/schemas/CampaignJournal"
         locations:
           type: object
           additionalProperties:
@@ -275,6 +277,7 @@ components:
       required:
         - location
         - world
+        - journal
         - locations
         - character
         - inventory
@@ -284,6 +287,200 @@ components:
         - combat
         - player_combat_status
         - turn_index
+    CampaignJournal:
+      type: object
+      description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.
+      properties:
+        schema_version:
+          type: integer
+          enum: [1]
+        discovered_locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/JournalLocation"
+        known_npcs:
+          type: array
+          items:
+            $ref: "#/components/schemas/JournalNpc"
+        notable_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/JournalEvent"
+        quests:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignQuest"
+      required:
+        - schema_version
+        - discovered_locations
+        - known_npcs
+        - notable_events
+        - quests
+    JournalLocation:
+      type: object
+      properties:
+        location_id:
+          type: string
+        name:
+          type: string
+        environment:
+          type: string
+          enum: [tavern, forest, city, village, road, wilderness, dungeon, cave, castle, temple, ruins, unknown]
+        first_discovered_at:
+          type: string
+          format: date-time
+        last_visited_at:
+          type: string
+          format: date-time
+        first_discovered_turn:
+          type: integer
+          minimum: 0
+        last_visited_turn:
+          type: integer
+          minimum: 0
+        visit_count:
+          type: integer
+          minimum: 1
+      required:
+        - location_id
+        - name
+        - environment
+        - first_discovered_at
+        - last_visited_at
+        - first_discovered_turn
+        - last_visited_turn
+        - visit_count
+    JournalNpc:
+      type: object
+      properties:
+        npc_id:
+          type: string
+        name:
+          type: string
+        role:
+          type: ["string", "null"]
+        first_met_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+        first_met_turn:
+          type: integer
+          minimum: 0
+        last_seen_turn:
+          type: integer
+          minimum: 0
+        last_known_location_id:
+          type: ["string", "null"]
+        last_known_location:
+          type: ["string", "null"]
+      required:
+        - npc_id
+        - name
+        - role
+        - first_met_at
+        - last_seen_at
+        - first_met_turn
+        - last_seen_turn
+        - last_known_location_id
+        - last_known_location
+    JournalEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum:
+            - location_discovered
+            - npc_met
+            - combat_started
+            - combat_ended
+            - enemy_defeated
+            - player_unconscious
+            - item_gained
+            - item_lost
+        created_at:
+          type: string
+          format: date-time
+        turn_index:
+          type: integer
+          minimum: 0
+        summary:
+          type: string
+        location_id:
+          type: ["string", "null"]
+        location_name:
+          type: ["string", "null"]
+        related_npc_id:
+          type: ["string", "null"]
+        related_item:
+          type: ["string", "null"]
+      required:
+        - event_id
+        - event_type
+        - created_at
+        - turn_index
+        - summary
+        - location_id
+        - location_name
+        - related_npc_id
+        - related_item
+    CampaignQuest:
+      type: object
+      properties:
+        quest_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, failed, cancelled]
+        giver_npc_id:
+          type: ["string", "null"]
+        objectives:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignQuestObjective"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - quest_id
+        - title
+        - description
+        - status
+        - giver_npc_id
+        - objectives
+        - created_at
+        - updated_at
+        - completed_at
+    CampaignQuestObjective:
+      type: object
+      properties:
+        objective_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, failed, cancelled]
+      required:
+        - objective_id
+        - description
+        - status
     GameWorldMetadata:
       type: object
       description: Python-owned atmosphere metadata; never supplied by the browser.

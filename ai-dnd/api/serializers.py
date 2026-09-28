@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from api.world_metadata import world_metadata_for_state
+from api.campaign_journal import empty_campaign_journal
 
 
 _PLAYER_FIELDS = (
@@ -72,7 +73,10 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     ]
 
 
-def serialize_session_state(session: Any) -> dict[str, Any]:
+def serialize_session_state(
+    session: Any,
+    journal: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Project the engine snapshot without exposing prompts or private internals."""
     snapshot = session.serialize_game_state()
     player = snapshot.get("player", {})
@@ -94,6 +98,9 @@ def serialize_session_state(session: Any) -> dict[str, Any]:
     return {
         "location": copy.deepcopy(world.get("location")),
         "world": world_metadata,
+        "journal": copy.deepcopy(
+            journal if journal is not None else empty_campaign_journal()
+        ),
         "locations": locations,
         "character": _project_fields(player, _PLAYER_FIELDS),
         "inventory": copy.deepcopy(world.get("inventory", [])),

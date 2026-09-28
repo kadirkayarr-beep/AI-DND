@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CampaignJournal } from './campaignJournal';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
@@ -16,6 +17,7 @@ import type { GameWorldMetadata } from './gameWorldMetadata';
 export interface GameState {
   location: string;
   world: GameWorldMetadata;
+  journal: CampaignJournal;
   locations: GameStateLocations;
   character: GameCharacter;
   inventory: string[];

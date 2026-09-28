@@ -8,5 +8,8 @@ from api.persistence.campaign_models import StoredCampaign
 from api.persistence.campaign_validation import restore_campaign_session
 
 
-def restore_stored_campaign(session: Any, campaign: StoredCampaign) -> None:
-    restore_campaign_session(session, campaign.payload)
+def restore_stored_campaign(
+    session: Any,
+    campaign: StoredCampaign,
+) -> dict[str, Any]:
+    return restore_campaign_session(session, campaign.payload)

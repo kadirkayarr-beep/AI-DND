@@ -14,6 +14,7 @@ from typing import Any, Iterator
 
 import game
 
+from api.campaign_journal import empty_campaign_journal
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignIdConflictError,
@@ -209,9 +210,10 @@ class CampaignStore:
         campaign_id: str,
         name: str,
         session: Any,
+        journal: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
-        payload = serialize_campaign_payload(session)
+        payload = serialize_campaign_payload(session, journal)
         if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100:
             raise CampaignValidationError("Campaign name is invalid.")
         from api.persistence.campaign_validation import ensure_no_configured_secrets
@@ -264,9 +266,13 @@ class CampaignStore:
         campaign_id: str,
         session: Any,
         turn_entry: dict[str, str] | None = None,
+        journal: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
-        payload = serialize_campaign_payload(session)
+        if journal is None:
+            current = self.get_campaign(campaign_id)
+            journal = current.payload.get("journal", empty_campaign_journal())
+        payload = serialize_campaign_payload(session, journal)
         if turn_entry is not None:
             turn_entry = serialize_history_entry(
                 turn_entry.get("player_message"),

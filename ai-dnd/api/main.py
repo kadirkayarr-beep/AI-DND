@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import game
+from api.campaign_journal import update_campaign_journal
 from api.character_creation import CharacterCreationError
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
@@ -200,7 +201,7 @@ def create_app(
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
         session_id, record = manager.create()
-        state = serialize_session_state(record.game_session)
+        state = serialize_session_state(record.game_session, record.journal)
         return SessionResponse(
             session_id=session_id,
             state=redact_sensitive_values(state),
@@ -243,7 +244,10 @@ def create_app(
                     "campaign_id": campaign_id,
                     "session_id": session_id,
                     "name": metadata["name"],
-                    "state": serialize_session_state(record.game_session),
+                    "state": serialize_session_state(
+                        record.game_session,
+                        record.journal,
+                    ),
                     "history": [],
                 }
             )
@@ -319,7 +323,10 @@ def create_app(
     def read_state(session_id: str) -> dict[str, Any]:
         record = get_record(session_id)
         with record.turn_lock:
-            state = serialize_session_state(record.game_session)
+            state = serialize_session_state(
+                record.game_session,
+                record.journal,
+            )
         return redact_sensitive_values(state)
 
     @application.post(
@@ -372,6 +379,7 @@ def create_app(
             metadata_snapshot = dict(
                 getattr(session, "world_metadata", {})
             )
+            journal_snapshot = copy.deepcopy(record.journal)
             try:
                 with canonical_world_metadata_context(
                     lambda: world_metadata_for_state(
@@ -459,11 +467,70 @@ def create_app(
 
             set_session_world_metadata(session, metadata_snapshot)
             try:
+                action_result = (
+                    result.get("action_result")
+                    if isinstance(result, dict)
+                    else None
+                )
+                presence_location_id = None
+                if (
+                    isinstance(action_result, dict)
+                    and action_result.get("action") == "query"
+                    and action_result.get("query_type") == "presence"
+                ):
+                    resolve_location = getattr(
+                        session,
+                        "resolve_location_reference",
+                        None,
+                    )
+                    requested_location = (
+                        resolve_location(request.message)
+                        if callable(resolve_location)
+                        else None
+                    )
+                    presence_location_id = (
+                        requested_location
+                        or session.world_state.get("location")
+                    )
+                record.journal = update_campaign_journal(
+                    record.journal,
+                    snapshot["save"],
+                    session.serialize_game_state(),
+                    action_result,
+                    world_metadata_for_state(
+                        session.world_state,
+                        getattr(session, "world_metadata", None),
+                    ),
+                    presence_location_id=presence_location_id,
+                )
+            except Exception as error:
+                try:
+                    _restore_session(session, snapshot)
+                    session.world_metadata = metadata_snapshot
+                    record.journal = journal_snapshot
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Session rollback failed after journal update error (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                _logger.error(
+                    "Campaign journal update failed (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "journal_error",
+                        "message": "The campaign journal could not be updated safely.",
+                    },
+                ) from None
+            try:
                 manager.autosave_turn(record, request.message, narration)
             except CampaignError as error:
                 try:
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
+                    record.journal = journal_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after persistence error (error_type=%s)",
@@ -483,7 +550,7 @@ def create_app(
             response = TurnResponse(
                 session_id=session_id,
                 narration=narration,
-                state=serialize_session_state(session),
+                state=serialize_session_state(session, record.journal),
             )
             return redact_sensitive_values(response.model_dump())
 

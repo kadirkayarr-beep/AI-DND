@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -17,6 +19,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.persistence.campaign_models import CampaignStorageError
@@ -63,6 +66,17 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(created["campaign_id"])
         self.assertTrue(created["session_id"])
         self.assertEqual(created["history"], [])
+        self.assertEqual(
+            set(created["state"]["journal"]),
+            {
+                "schema_version",
+                "discovered_locations",
+                "known_npcs",
+                "notable_events",
+                "quests",
+            },
+        )
+        self.assertEqual(created["state"]["journal"]["quests"], [])
 
         campaign_id = created["campaign_id"]
         listed = await self.http.get("/api/game/campaigns")
@@ -345,7 +359,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 ],
             }
             session.world_state["npcs"].append(npc)
-            return {"narration": "Mira welcomes Arven."}
+            return {
+                "narration": "Mira welcomes Arven.",
+                "action_result": {
+                    "action": "dialogue",
+                    "npc_id": "npc_api",
+                    "status": "resolved",
+                },
+            }
 
         session.run_player_turn = complete_turn
         turn = await self.http.post(
@@ -370,11 +391,27 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             detail.json()["state"]["npcs"][0]["name"],
             "Mira",
         )
+        journal = turn.json()["state"]["journal"]
+        self.assertEqual(
+            [item["location_id"] for item in journal["discovered_locations"]],
+            ["tavern"],
+        )
+        self.assertEqual(journal["known_npcs"][0]["npc_id"], "npc_api")
+        self.assertEqual(journal["quests"], [])
+        self.assertEqual(
+            [item["event_type"] for item in journal["notable_events"]],
+            ["location_discovered", "npc_met", "item_gained"],
+        )
+        stored = self.store.get_campaign(created["campaign_id"])
+        self.assertEqual(stored.payload["journal"], journal)
 
     async def test_failed_autosave_rolls_back_turn_and_keeps_last_good_save(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
         before = copy.deepcopy(session.serialize_game_state())
+        journal_before = copy.deepcopy(
+            self.manager.get(created["session_id"]).journal
+        )
         saved_before = self.store.get_campaign(created["campaign_id"]).payload
 
         def mutate_then_succeed(_message):
@@ -396,6 +433,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 503)
         self.assertNotIn("database unavailable", response.text)
         self.assertEqual(session.serialize_game_state(), before)
+        self.assertEqual(
+            self.manager.get(created["session_id"]).journal,
+            journal_before,
+        )
         self.assertEqual(
             self.store.get_campaign(created["campaign_id"]).payload,
             saved_before,
@@ -434,6 +475,155 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             unavailable.json()["detail"]["code"],
             "campaign_not_found",
+        )
+
+    async def test_journal_survives_explicit_save_and_a_new_session_manager(self):
+        created = await self.create_campaign()
+        session = self.manager.get(created["session_id"]).game_session
+
+        def visit_tavern(_message):
+            session.world_state["location"] = "tavern"
+            return {
+                "narration": "The room comes into view.",
+                "action_result": {"action": "travel", "status": "completed", "success": True},
+            }
+
+        session.run_player_turn = visit_tavern
+        turn = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Taverna'ya giriyorum."},
+        )
+        self.assertEqual(turn.status_code, 200, turn.text)
+        saved = await self.http.post(
+            f"/api/game/campaigns/{created['campaign_id']}/save"
+        )
+        self.assertEqual(saved.status_code, 200, saved.text)
+
+        restarted_manager = SessionManager(campaign_store=self.store)
+        _, _, _, _, resumed_state = restarted_manager.resume_campaign(
+            created["campaign_id"]
+        )
+        self.assertEqual(
+            resumed_state["journal"],
+            turn.json()["state"]["journal"],
+        )
+
+    async def test_store_save_without_journal_argument_preserves_existing_journal(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        session.world_state["location"] = "tavern"
+        record.journal = create_initial_campaign_journal(
+            session.world_state,
+            session.world_metadata,
+        )
+        self.store.save_campaign(
+            created["campaign_id"],
+            session,
+            journal=record.journal,
+        )
+
+        self.store.save_campaign(created["campaign_id"], session)
+        stored = self.store.get_campaign(created["campaign_id"])
+        self.assertEqual(stored.payload["journal"], record.journal)
+
+    async def test_legacy_save_without_journal_migrates_to_empty_ledger(self):
+        created = await self.create_campaign()
+        connection = sqlite3.connect(self.store.path)
+        try:
+            row = connection.execute(
+                "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
+                (created["campaign_id"],),
+            ).fetchone()
+            payload = json.loads(row[0])
+            payload.pop("journal")
+            connection.execute(
+                "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
+                (json.dumps(payload), created["campaign_id"]),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        restarted_manager = SessionManager(campaign_store=self.store)
+        _, record, _, _, state = restarted_manager.resume_campaign(
+            created["campaign_id"]
+        )
+        self.assertEqual(record.journal["quests"], [])
+        self.assertEqual(state["journal"], record.journal)
+        migrated = self.store.get_campaign(created["campaign_id"])
+        self.assertEqual(migrated.payload["journal"]["discovered_locations"], [])
+        self.assertEqual(migrated.payload["journal"]["quests"], [])
+
+    async def test_turn_request_cannot_inject_journal_sections(self):
+        created = await self.create_campaign()
+        forged_fields = {
+            "discovered_locations": [{"location_id": "forged"}],
+            "known_npcs": [{"npc_id": "forged"}],
+            "notable_events": [{"summary": "forged"}],
+            "quests": [{"title": "Forged quest"}],
+        }
+        for field, value in forged_fields.items():
+            response = await self.http.post(
+                f"/api/game/sessions/{created['session_id']}/turn",
+                json={"message": "continue", field: value},
+            )
+            self.assertEqual(response.status_code, 422, response.text)
+        state = await self.http.get(
+            f"/api/game/sessions/{created['session_id']}/state"
+        )
+        self.assertEqual(state.status_code, 200, state.text)
+        self.assertEqual(state.json()["journal"]["quests"], [])
+        self.assertEqual(
+            state.json()["journal"]["discovered_locations"],
+            [],
+        )
+
+    async def test_narration_cannot_create_or_complete_quests(self):
+        created = await self.create_campaign()
+        session = self.manager.get(created["session_id"]).game_session
+        session.run_player_turn = lambda _message: {
+            "narration": "Görev tamamlandı; ödülün sana verildi."
+        }
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Ne oldu?"},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        journal = response.json()["state"]["journal"]
+        self.assertEqual(journal["quests"], [])
+        self.assertEqual(journal["notable_events"], [])
+
+    async def test_journal_state_is_isolated_between_campaigns(self):
+        first = await self.create_campaign()
+        second = await self.create_campaign()
+        session = self.manager.get(first["session_id"]).game_session
+
+        def enter_forest(_message):
+            session.world_state["location"] = "forest"
+            return {
+                "narration": "Ormana ilerliyorsun.",
+                "action_result": {"action": "travel", "status": "completed", "success": True},
+            }
+
+        session.run_player_turn = enter_forest
+        changed = await self.http.post(
+            f"/api/game/sessions/{first['session_id']}/turn",
+            json={"message": "Ormana gidiyorum."},
+        )
+        self.assertEqual(changed.status_code, 200, changed.text)
+        self.assertEqual(
+            changed.json()["state"]["journal"]["discovered_locations"][0]["location_id"],
+            "forest",
+        )
+
+        untouched = await self.http.get(
+            f"/api/game/sessions/{second['session_id']}/state"
+        )
+        self.assertEqual(untouched.status_code, 200, untouched.text)
+        self.assertEqual(
+            untouched.json()["journal"]["discovered_locations"],
+            [],
         )
 
 

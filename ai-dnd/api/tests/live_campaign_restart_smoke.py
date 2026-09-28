@@ -141,13 +141,59 @@ def run_smoke() -> dict[str, Any]:
                 created = created_response.json()
                 campaign_id = created["campaign_id"]
                 session_id = created["session_id"]
-
-                for message in (
-                    "tavernaya gidiyorum",
-                    "etrafıma bakıyorum",
-                    "burda kimler var",
+                initial_state = created["state"]
+                initial_journal = initial_state.get("journal", {})
+                if set(initial_journal) != {
+                    "schema_version",
+                    "discovered_locations",
+                    "known_npcs",
+                    "notable_events",
+                    "quests",
+                }:
+                    raise RuntimeError("New campaign journal has an invalid public shape.")
+                if initial_state.get("location") == "Henüz belirlenmedi" and (
+                    initial_journal.get("discovered_locations")
+                    or initial_journal.get("notable_events")
                 ):
-                    result = _post_turn(client, base_url, session_id, message)
+                    raise RuntimeError(
+                        "An unresolved starting location was incorrectly journaled."
+                    )
+
+                starting_location = initial_state["location"]
+                first_travel_result = _post_turn(
+                    client,
+                    base_url,
+                    session_id,
+                    "tavernaya gidiyorum",
+                )
+                first_travel_location = first_travel_result["state"]["location"]
+                travel_result = first_travel_result
+                fallback_used = False
+                if first_travel_location == starting_location:
+                    fallback_used = True
+                    travel_result = _post_turn(
+                        client,
+                        base_url,
+                        session_id,
+                        "Taverna'ya doğru yürüyorum.",
+                    )
+                travel_state = travel_result["state"]
+                travel_changed = travel_state["location"] != starting_location
+                if travel_changed and not any(
+                    entry.get("location_id") == travel_state["location"]
+                    for entry in travel_state["journal"]["discovered_locations"]
+                ):
+                    raise RuntimeError(
+                        "Canonical travel changed location without updating the journal."
+                    )
+
+                _post_turn(client, base_url, session_id, "etrafıma bakıyorum")
+                result = _post_turn(
+                    client,
+                    base_url,
+                    session_id,
+                    "burada kimler var?",
+                )
 
                 state = result["state"]
                 npcs = state.get("npcs", [])
@@ -187,6 +233,10 @@ def run_smoke() -> dict[str, Any]:
                 state_before_restart = client.get(
                     f"{base_url}/api/campaigns/{campaign_id}"
                 ).json()["state"]
+                if state_before_restart["journal"]["quests"]:
+                    raise RuntimeError(
+                        "Narration unexpectedly populated the unsupported quest ledger."
+                    )
                 saved_payload_before_restart = copy.deepcopy(
                     persisted_before_restart.payload
                 )
@@ -244,8 +294,23 @@ def run_smoke() -> dict[str, Any]:
                 )
                 if not npc_memory or not _player_memory_mentions(npc_memory, "Arven"):
                     raise RuntimeError("NPC memory was not present after server restart.")
+                remembered_player_text = next(
+                    (
+                        entry["text"]
+                        for entry in npc_memory.get("memory", [])
+                        if isinstance(entry, dict)
+                        and entry.get("speaker") == "player"
+                        and "Arven" in str(entry.get("text", ""))
+                    ),
+                    None,
+                )
+                if not remembered_player_text:
+                    raise RuntimeError(
+                        "The saved player utterance could not be selected for continuity."
+                    )
                 continuity_claim = (
-                    f"{npc_name}, daha önce adım Arven demiştim; bunu hatırlıyor musun?"
+                    f"{npc_name}, ben sana daha önce şunu söylemiştim: "
+                    f"{remembered_player_text}; hatırlıyor musun?"
                 )
                 if not game.npc_memory_supports_claim(npc_memory, continuity_claim):
                     raise RuntimeError(
@@ -258,6 +323,10 @@ def run_smoke() -> dict[str, Any]:
                     resumed["session_id"],
                     continuity_claim,
                 )
+                if post_restart_turn["state"]["journal"]["quests"]:
+                    raise RuntimeError(
+                        "A real Qwen narration populated the unsupported quest ledger."
+                    )
                 updated_payload = CampaignStore(database_path).get_campaign(
                     campaign_id
                 ).payload
@@ -283,11 +352,29 @@ def run_smoke() -> dict[str, Any]:
                     "hp": resumed["state"]["character"]["current_hp"],
                     "inventory": resumed["state"]["inventory"],
                     "location": resumed["state"]["location"],
+                    "environment": resumed["state"]["world"]["environment"],
+                    "travel_first_location": first_travel_location,
+                    "travel_fallback_used": fallback_used,
+                    "travel_final_location": travel_state["location"],
+                    "travel_changed_location": travel_changed,
+                    "travel_metadata_changed": (
+                        travel_state.get("world") != initial_state.get("world")
+                    ),
+                    "travel_environment": travel_state.get("world", {}).get(
+                        "environment"
+                    ),
+                    "discovered_location_ids": [
+                        entry["location_id"]
+                        for entry in resumed["state"]["journal"]["discovered_locations"]
+                    ],
+                    "journal_event_count": len(
+                        resumed["state"]["journal"]["notable_events"]
+                    ),
+                    "quest_count": len(resumed["state"]["journal"]["quests"]),
                     "npc_name": npc_name,
                     "npc_memory_survived_restart": True,
                     "combat_active": bool(resumed["state"]["combat"].get("active")),
                     "history_entries_after_resume": len(resumed["history"]),
-                    "qwen_post_restart_narration": post_restart_turn["narration"],
                 }
         finally:
             if process is not None:

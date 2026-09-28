@@ -9,6 +9,10 @@ from typing import Any, Callable
 
 import game
 
+from api.campaign_journal import (
+    create_initial_campaign_journal,
+    empty_campaign_journal,
+)
 from api.character_creation import configure_character
 from api.persistence.campaign_models import (
     CampaignNotActiveError,
@@ -29,6 +33,7 @@ class ManagedSession:
     game_session: Any
     turn_lock: threading.Lock = field(default_factory=threading.Lock)
     campaign_id: str | None = None
+    journal: dict[str, Any] = field(default_factory=empty_campaign_journal)
 
 
 class SessionManager:
@@ -70,12 +75,25 @@ class SessionManager:
         if character is not None:
             configure_character(session, **character)
         set_session_world_metadata(session)
+        journal = create_initial_campaign_journal(
+            session.world_state,
+            getattr(session, "world_metadata", None),
+        )
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
-        metadata = store.create_campaign(campaign_id, campaign_name, session)
+        metadata = store.create_campaign(
+            campaign_id,
+            campaign_name,
+            session,
+            journal=journal,
+        )
         with self._registry_lock:
             session_id = self._new_session_id_locked()
-            record = ManagedSession(game_session=session, campaign_id=campaign_id)
+            record = ManagedSession(
+                game_session=session,
+                campaign_id=campaign_id,
+                journal=journal,
+            )
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
         return campaign_id, session_id, record, metadata
@@ -93,10 +111,10 @@ class SessionManager:
     def get_campaign_detail(self, campaign_id: str) -> dict[str, Any]:
         stored = self._require_campaign_store().get_campaign(campaign_id)
         session = self._session_factory()
-        restore_stored_campaign(session, stored)
+        journal = restore_stored_campaign(session, stored)
         return {
             "campaign": stored.metadata,
-            "state": serialize_session_state(session),
+            "state": serialize_session_state(session, journal),
             "history": stored.history,
         }
 
@@ -118,7 +136,7 @@ class SessionManager:
         if record is None:
             stored = store.get_campaign(campaign_id)
             session = self._session_factory()
-            restore_stored_campaign(session, stored)
+            journal = restore_stored_campaign(session, stored)
             with self._registry_lock:
                 active_id = self._campaign_sessions.get(campaign_id)
                 record = self._sessions.get(active_id) if active_id else None
@@ -127,6 +145,7 @@ class SessionManager:
                     record = ManagedSession(
                         game_session=session,
                         campaign_id=campaign_id,
+                        journal=journal,
                     )
                     self._sessions[session_id] = record
                     self._campaign_sessions[campaign_id] = session_id
@@ -139,15 +158,26 @@ class SessionManager:
             raise CampaignStorageError("Campaign runtime could not be created.")
         with record.turn_lock:
             stored = store.get_campaign(campaign_id)
-            if "world_metadata" not in stored.payload:
-                set_session_world_metadata(
+            needs_migration = (
+                "world_metadata" not in stored.payload
+                or "journal" not in stored.payload
+            )
+            if needs_migration:
+                if "world_metadata" not in stored.payload:
+                    set_session_world_metadata(
+                        record.game_session,
+                        getattr(record.game_session, "world_metadata", None),
+                    )
+                if "journal" not in stored.payload:
+                    record.journal = empty_campaign_journal()
+                store.save_campaign(
+                    campaign_id,
                     record.game_session,
-                    getattr(record.game_session, "world_metadata", None),
+                    journal=record.journal,
                 )
-                store.save_campaign(campaign_id, record.game_session)
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
-            state = serialize_session_state(record.game_session)
+            state = serialize_session_state(record.game_session, record.journal)
         return session_id, record, metadata, stored.history, state
 
     def save_campaign(self, campaign_id: str) -> dict[str, Any]:
@@ -162,7 +192,11 @@ class SessionManager:
                 record.game_session,
                 getattr(record.game_session, "world_metadata", None),
             )
-            return store.save_campaign(campaign_id, record.game_session)
+            return store.save_campaign(
+                campaign_id,
+                record.game_session,
+                journal=record.journal,
+            )
 
     def autosave_turn(
         self,
@@ -184,6 +218,7 @@ class SessionManager:
                 "player_message": player_message,
                 "narration": narration,
             },
+            journal=record.journal,
         )
 
     def _require_campaign_store(self) -> CampaignStore:

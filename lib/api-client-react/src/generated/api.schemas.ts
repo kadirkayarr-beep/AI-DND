@@ -64,6 +64,144 @@ export interface GameWorldMetadata {
   weather: GameWorldMetadataWeather;
 }
 
+export type CampaignJournalSchemaVersion = typeof CampaignJournalSchemaVersion[keyof typeof CampaignJournalSchemaVersion];
+
+
+export const CampaignJournalSchemaVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type JournalLocationEnvironment = typeof JournalLocationEnvironment[keyof typeof JournalLocationEnvironment];
+
+
+export const JournalLocationEnvironment = {
+  tavern: 'tavern',
+  forest: 'forest',
+  city: 'city',
+  village: 'village',
+  road: 'road',
+  wilderness: 'wilderness',
+  dungeon: 'dungeon',
+  cave: 'cave',
+  castle: 'castle',
+  temple: 'temple',
+  ruins: 'ruins',
+  unknown: 'unknown',
+} as const;
+
+export interface JournalLocation {
+  location_id: string;
+  name: string;
+  environment: JournalLocationEnvironment;
+  first_discovered_at: string;
+  last_visited_at: string;
+  /** @minimum 0 */
+  first_discovered_turn: number;
+  /** @minimum 0 */
+  last_visited_turn: number;
+  /** @minimum 1 */
+  visit_count: number;
+}
+
+export interface JournalNpc {
+  npc_id: string;
+  name: string;
+  /** @nullable */
+  role: string | null;
+  first_met_at: string;
+  last_seen_at: string;
+  /** @minimum 0 */
+  first_met_turn: number;
+  /** @minimum 0 */
+  last_seen_turn: number;
+  /** @nullable */
+  last_known_location_id: string | null;
+  /** @nullable */
+  last_known_location: string | null;
+}
+
+export type JournalEventEventType = typeof JournalEventEventType[keyof typeof JournalEventEventType];
+
+
+export const JournalEventEventType = {
+  location_discovered: 'location_discovered',
+  npc_met: 'npc_met',
+  combat_started: 'combat_started',
+  combat_ended: 'combat_ended',
+  enemy_defeated: 'enemy_defeated',
+  player_unconscious: 'player_unconscious',
+  item_gained: 'item_gained',
+  item_lost: 'item_lost',
+} as const;
+
+export interface JournalEvent {
+  event_id: string;
+  event_type: JournalEventEventType;
+  created_at: string;
+  /** @minimum 0 */
+  turn_index: number;
+  summary: string;
+  /** @nullable */
+  location_id: string | null;
+  /** @nullable */
+  location_name: string | null;
+  /** @nullable */
+  related_npc_id: string | null;
+  /** @nullable */
+  related_item: string | null;
+}
+
+export type CampaignQuestStatus = typeof CampaignQuestStatus[keyof typeof CampaignQuestStatus];
+
+
+export const CampaignQuestStatus = {
+  active: 'active',
+  completed: 'completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export type CampaignQuestObjectiveStatus = typeof CampaignQuestObjectiveStatus[keyof typeof CampaignQuestObjectiveStatus];
+
+
+export const CampaignQuestObjectiveStatus = {
+  active: 'active',
+  completed: 'completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface CampaignQuestObjective {
+  objective_id: string;
+  description: string;
+  status: CampaignQuestObjectiveStatus;
+}
+
+export interface CampaignQuest {
+  quest_id: string;
+  title: string;
+  description: string;
+  status: CampaignQuestStatus;
+  /** @nullable */
+  giver_npc_id: string | null;
+  objectives: CampaignQuestObjective[];
+  created_at: string;
+  updated_at: string;
+  /** @nullable */
+  completed_at: string | null;
+}
+
+/**
+ * Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.
+ */
+export interface CampaignJournal {
+  schema_version: CampaignJournalSchemaVersion;
+  discovered_locations: JournalLocation[];
+  known_npcs: JournalNpc[];
+  notable_events: JournalEvent[];
+  quests: CampaignQuest[];
+}
+
 export interface GameLocation {
   id: string;
   name: string;
@@ -142,6 +280,7 @@ export type GameStateLocations = {[key: string]: GameLocation};
 export interface GameState {
   location: string;
   world: GameWorldMetadata;
+  journal: CampaignJournal;
   locations: GameStateLocations;
   character: GameCharacter;
   inventory: string[];
