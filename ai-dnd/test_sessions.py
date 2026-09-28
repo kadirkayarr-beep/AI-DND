@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
+import copy
 import random
 import json
 import tempfile
@@ -139,6 +140,48 @@ class SessionTests(unittest.TestCase):
         self.assertIs(character, self.a.character)
         self.assertEqual(expected["version"], 1)
         self.assertEqual(self.b.serialize_game_state(), before_b)
+
+    def test_invalid_load_preserves_all_sessions_and_held_references(self):
+        for session, name, hp in ((self.a, "Target", 3),
+                                  (self.b, "Other", 7)):
+            self.npc(session)
+            session.character.update(name=name, current_hp=hp)
+            session.world_state["inventory"].append(f"{name} item")
+            session.recent_dm_narrations.append(f"{name} narration")
+            session.messages.append({"role": "user", "content": name})
+        self.a.roll_d20()
+        self.b.roll_stat()
+
+        sessions = (self.a, self.b, game._DEFAULT_SESSION)
+        snapshots = [session.serialize_game_state() for session in sessions]
+        rng_states = [session.rng.getstate() for session in sessions]
+        messages = [copy.deepcopy(session.messages) for session in sessions]
+        world = self.a.world_state
+        character = self.a.character
+        history = self.a.recent_dm_narrations
+        held_contents = copy.deepcopy((world, character, history))
+
+        # Different valid player/world values expose a partial restore before
+        # the invalid narration is rejected at the end of payload validation.
+        payload = copy.deepcopy(snapshots[1])
+        payload["recent_dm_narrations"] = ["Replacement narration", None]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Anlatı geçmişi geçersiz"):
+                self.a.load_game(path)
+
+        self.assertIs(world, self.a.world_state)
+        self.assertIs(character, self.a.character)
+        self.assertIs(history, self.a.recent_dm_narrations)
+        self.assertEqual((world, character, history), held_contents)
+        self.assertIs(game._session(), game._DEFAULT_SESSION)
+        for session, snapshot, rng_state, message_history in zip(
+                sessions, snapshots, rng_states, messages):
+            with self.subTest(session=session):
+                self.assertEqual(session.serialize_game_state(), snapshot)
+                self.assertEqual(session.rng.getstate(), rng_state)
+                self.assertEqual(session.messages, message_history)
 
     def test_save_load_conscious_player_clears_unconscious_status(self):
         self.a.character["current_hp"] = 3
