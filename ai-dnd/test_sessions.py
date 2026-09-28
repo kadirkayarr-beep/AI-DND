@@ -36,7 +36,7 @@ class SessionTests(unittest.TestCase):
         return npc
 
     @contextmanager
-    def rolls(self, session, *expected, barrier=None):
+    def rolls(self, session, *expected, barrier=None, damage_barrier=None):
         """Require every scripted die to be consumed by its owning adventure."""
         remaining = iter(expected)
 
@@ -49,6 +49,9 @@ class SessionTests(unittest.TestCase):
             self.assertIs(game._session(), session)
             if barrier is not None and sides == 20:
                 barrier.wait(timeout=5)
+            if damage_barrier is not None and sides != 20:
+                damage_barrier.wait(timeout=5)
+            self.assertIs(game._session(), session)
             return value
 
         with patch.object(session.rng, "randint", side_effect=randint):
@@ -199,6 +202,45 @@ class SessionTests(unittest.TestCase):
                          [11, 12])
         self.assertEqual(self.a.character["current_hp"], 11)
         self.assertEqual(self.b.character["current_hp"], 7)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
+
+    def test_overlapping_hits_keep_damage_dice_in_their_own_sessions(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.a.character.update(armor_class=10, current_hp=19)
+        self.b.character.update(armor_class=12, current_hp=23)
+        enemies[0].update(attack_bonus=0, damage_die=6,
+                          damage_dice=1, damage_modifier=2)
+        enemies[1].update(attack_bonus=0, damage_die=8,
+                          damage_dice=2, damage_modifier=1)
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        attack_barrier = threading.Barrier(2)
+        damage_barrier = threading.Barrier(2)
+        # Both attacks roll two damage dice: A doubles its die on a critical,
+        # while B has two base dice. Rendezvous on each damage die as well as
+        # the attack, so ownership is checked after the attack-roll boundary.
+        with self.rolls(self.a, (20, 20), (6, 3), (6, 5),
+                        barrier=attack_barrier, damage_barrier=damage_barrier), \
+             self.rolls(self.b, (20, 15), (8, 7), (8, 4),
+                        barrier=attack_barrier, damage_barrier=damage_barrier), \
+             self.rolls(game._DEFAULT_SESSION):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(game.resolve_enemy_attack, npc,
+                                       session=session)
+                           for npc, session in zip(enemies, (self.a, self.b))]
+                results = [future.result(timeout=10) for future in futures]
+        self.assertEqual([result["success"] for result in results], [True, True])
+        self.assertEqual([result["critical"] for result in results], [True, False])
+        self.assertEqual([result["outcome"] for result in results],
+                         ["critical_hit", "hit"])
+        self.assertEqual([result["attack_roll"] for result in results], [20, 15])
+        self.assertEqual([result["target_ac"] for result in results], [10, 12])
+        self.assertEqual([result["damage"] for result in results], [10, 12])
+        self.assertEqual([result["target_hp_before"] for result in results],
+                         [19, 23])
+        self.assertEqual([result["target_hp_after"] for result in results], [9, 11])
+        self.assertEqual(self.a.character["current_hp"], 9)
+        self.assertEqual(self.b.character["current_hp"], 11)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
