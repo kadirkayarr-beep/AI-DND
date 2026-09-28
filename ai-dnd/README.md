@@ -73,6 +73,18 @@ python ai-dnd/live_memory_test.py
 Those live suites require the `qwen3:8b` model to be installed and available
 through Ollama.
 
+To compare the current session-based engine with the checkpoint's nine-turn
+smoke, run `python ai-dnd/live_narration_smoke.py` with a local Ollama service
+hosting `qwen3:8b` and `OLLAMA_HOST` / `OLLAMA_PROXY_TOKEN` available in the
+environment. The runner sends the bearer token only as an HTTP header and never
+prints it. It prints a UTF-8 JSON transcript with the source hash,
+raw/normalized/validated intents, rule results, model replies and per-turn
+call counts, final narrations, fallback replacements, issues, and state deltas.
+It also adds two safety turns for remote NPC presence and unsupported claims.
+An unavailable model exits 2 with `BLOCKED`; it is not a passing live test.
+The recorded checkpoint's 14 calls/9 turns and 3 fallbacks are comparison
+figures from the original Windows source, not results for this engine.
+
 ## AI pipeline import
 
 The uploaded `CHECKPOINT_AI_PIPELINE_V10.md` records the validation of the
