@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "5a_tqYYj3RExOMsva5urW"
+uri = "file://ai-dnd/PROJECT_STATUS_CHECKPOINT_2026-09-28.md"
+type = "text"
+title = "AI-DND Status Checkpoint — 28 Sep 2026"
+description = "Verified 25-section project status report, test matrix, limitations, risks, and roadmap."
+logical_id = "3e08e3ca-d5e8-465e-835e-0b0593786bb4"
+content_hash = "sha256:24fa450c3ad676819d34464b4e9286685a20fa9faee09ecf2b105c4126f84f10"
+size = 42822
+mtime_ms = 1790614791739
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/3e08e3ca-d5e8-465e-835e-0b0593786bb4/ab1a63dc-87a0-4fd5-87a2-af97daa48361"
+storage_version_token = "1790614840822949"
+content_type = "text/markdown"
