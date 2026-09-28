@@ -2,8 +2,11 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import random
+import json
 import tempfile
 import threading
+import subprocess
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -141,6 +144,51 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(results[1]["success"])
         self.assertEqual(self.a.character["current_hp"], 11)
         self.assertLess(self.b.character["current_hp"], 12)
+
+
+class CompatibilityTests(unittest.TestCase):
+    def test_module_aliases_remain_live_without_scalar_mirrors(self):
+        before = game.serialize_game_state()
+        world = game.world_state
+        try:
+            game.current_hp = 3
+            game.character_name = "AliasHero"
+            self.assertEqual(game.serialize_game_state()["player"]["current_hp"], 3)
+            self.assertEqual(game.character_name, "AliasHero")
+            game._DEFAULT_SESSION.character["current_hp"] = 4
+            self.assertEqual(game.current_hp, 4)
+            self.assertNotIn("current_hp", vars(game))
+            game.initialize_game(creation_choice="2", print_fn=lambda *a: None)
+            self.assertEqual(game.current_hp, game.max_hp)
+            self.assertIs(game.world_state, world)
+        finally:
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "default.json"
+                path.write_text(json.dumps(before), encoding="utf-8")
+                game.load_game(path)
+
+    def test_exec_namespace_scalars_are_not_a_state_input(self):
+        namespace = {"__name__": "isolated_engine", "__file__": game.__file__}
+        exec(compile(Path(game.__file__).read_text(), game.__file__, "exec"),
+             namespace)
+        before = namespace["serialize_game_state"]()
+        namespace["current_hp"] = 0
+        namespace["character_name"] = "Unowned character"
+        session = namespace["create_session"](seed=17)
+        session.character["current_hp"] = 2
+        self.assertEqual(session.serialize_game_state()["player"]["current_hp"], 2)
+        self.assertEqual(namespace["serialize_game_state"](), before)
+        self.assertEqual(namespace["serialize_game_state"](session=session),
+                         session.serialize_game_state())
+
+    def test_terminal_initialization_dice_and_exit(self):
+        result = subprocess.run(
+            [sys.executable, game.__file__], input="2\nzar at\nexit\n",
+            text=True, capture_output=True, timeout=15,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("D20 sonucu:", result.stdout)
+        self.assertIn("Oyun kapatılıyor...", result.stdout)
 
 
 if __name__ == "__main__":

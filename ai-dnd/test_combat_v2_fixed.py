@@ -28,49 +28,21 @@ ollama_mock = types.SimpleNamespace(
     }
 )
 sys.modules["ollama"] = ollama_mock
-import builtins
-builtins.input = lambda prompt='': '2'
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama_mock,
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
-
-import builtins
-builtins.input = lambda prompt='': '2'
+import game
+session = game.create_session()
 
 # Extract functions
-world_state = game_namespace['world_state']
-roll_d20 = game_namespace['roll_d20']
-resolve_combat_target = game_namespace['resolve_combat_target']
-resolve_attack = game_namespace['resolve_attack']
-resolve_enemy_attack = game_namespace['resolve_enemy_attack']
-start_combat = game_namespace['start_combat']
-end_combat = game_namespace['end_combat']
-find_weapon_in_inventory = game_namespace['find_weapon_in_inventory']
-WEAPONS = game_namespace['WEAPONS']
-ensure_npc_combat_stats = game_namespace['ensure_npc_combat_stats']
-ensure_npc_enemy_stats = game_namespace['ensure_npc_enemy_stats']
-ensure_combat_state = game_namespace['ensure_combat_state']
+world_state = session.world_state
+resolve_combat_target = session.resolve_combat_target
+resolve_attack = session.resolve_attack
+resolve_enemy_attack = session.resolve_enemy_attack
+start_combat = session.start_combat
+end_combat = session.end_combat
+find_weapon_in_inventory = session.find_weapon_in_inventory
+WEAPONS = game.WEAPONS
+ensure_npc_combat_stats = session.ensure_npc_combat_stats
+ensure_npc_enemy_stats = session.ensure_npc_enemy_stats
+ensure_combat_state = session.ensure_combat_state
 
 def reset_world_state():
     world_state["location"] = "tavern"
@@ -111,13 +83,13 @@ def add_npc(name="Gromm", role="Barmen", hp=10, ac=10):
     return npc
 
 def force_roll(value):
-    original = game_namespace['roll_d20']
-    game_namespace['roll_d20'] = lambda: value
+    original = game.roll_d20
+    game.roll_d20 = lambda: value
     return original
 
 def run_turn(player_input):
     messages = [{"role": "system", "content": "test"}]
-    return game_namespace['run_player_turn'](player_input, messages)
+    return session.run_player_turn(player_input, messages)
 
 # ============================================================
 # TEST A: COMBAT START
@@ -129,10 +101,10 @@ def test_combat_start():
     add_npc()
     
     # Need 4 rolls: attack, init_p, init_n, enemy_atk
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     rolls = [15, 15, 5, 15]  # attack=15, player_init=15+3=18, npc=5, enemy_atk=15
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -144,7 +116,7 @@ def test_combat_start():
         assert "initiative_order" in combat, "Should have initiative_order"
         print("  PASS - Combat starts correctly")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 # ============================================================
@@ -156,18 +128,18 @@ def test_initiative_player_higher():
     reset_world_state()
     add_npc()
     # Force player init high (15), NPC low (5)
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     # Need 4 rolls: attack, init_p, init_n, enemy_atk
     rolls = [15, 15, 5, 15]  # attack=15, player_init=15+3=18, npc=5, enemy_atk=15
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         combat = result["action_result"].get("combat", {})
         assert combat.get("initiative_order") == ["player", "npc_001"], f"Player should go first: {combat.get('initiative_order')}"
         print("  PASS - Player goes first")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_initiative_npc_higher():
@@ -175,18 +147,18 @@ def test_initiative_npc_higher():
     print("C) INITIATIVE NPC HIGHER")
     reset_world_state()
     add_npc()
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     # Need 4 rolls: attack, init_p, init_n, enemy_atk
     rolls = [15, 5, 15, 15]  # attack=15, player=5, npc=15, enemy_atk=15
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         combat = result["action_result"].get("combat", {})
         assert combat.get("initiative_order") == ["npc_001", "player"], f"NPC should go first: {combat.get('initiative_order')}"
         print("  PASS - NPC goes first")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_enemy_hit():
@@ -195,10 +167,10 @@ def test_enemy_hit():
     reset_world_state()
     add_npc()
     # Force enemy hit
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     rolls = [15, 15, 5, 18]  # attack=15, init_p=15, init_n=5, enemy_atk=18
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -208,7 +180,7 @@ def test_enemy_hit():
         print(f"  Enemy action: {enemy.get('outcome')}, damage: {enemy.get('damage')}")
         print("  PASS")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_enemy_miss():
@@ -216,11 +188,11 @@ def test_enemy_miss():
     print("E) ENEMY MISS")
     reset_world_state()
     add_npc()
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     # Need 4 rolls: attack, init_p, init_n, enemy_atk
     rolls = [15, 15, 5, 2]  # attack=15, init_p=15, init_n=5, enemy_atk=2 (miss)
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -229,7 +201,7 @@ def test_enemy_miss():
         assert enemy.get("outcome") == "miss", "Enemy should miss"
         print("  PASS")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_enemy_nat1():
@@ -237,10 +209,10 @@ def test_enemy_nat1():
     print("F) ENEMY NAT1")
     reset_world_state()
     add_npc()
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     rolls = [15, 15, 5, 1]  # attack=15, init_p=15, init_n=5, enemy_atk=1 (NAT1)
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -249,7 +221,7 @@ def test_enemy_nat1():
         assert enemy.get("critical") == False
         print("  PASS")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_enemy_nat20():
@@ -257,10 +229,10 @@ def test_enemy_nat20():
     print("G) ENEMY NAT20")
     reset_world_state()
     add_npc()
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     rolls = [15, 15, 5, 20]  # attack=15, init_p=15, init_n=5, enemy_atk=20 (crit)
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -269,7 +241,7 @@ def test_enemy_nat20():
         assert enemy.get("critical") == True, "Should be critical"
         print(f"  PASS - Critical damage: {enemy.get('damage')}")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_player_knocks_out_npc():
@@ -277,11 +249,11 @@ def test_player_knocks_out_npc():
     print("H) PLAYER KNOCKS OUT NPC")
     reset_world_state()
     add_npc(hp=5, ac=10)  # Low HP NPC
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     # attack=20(crit), init_p=15, init_n=5, enemy_no_turn (dead)
     rolls = [20, 15, 5]
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
@@ -292,7 +264,7 @@ def test_player_knocks_out_npc():
         assert "enemy_action" not in ar, "Enemy should not attack after being defeated"
         print("  PASS - Combat ended, no enemy response")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_npc_knocks_out_player():
@@ -301,22 +273,22 @@ def test_npc_knocks_out_player():
     reset_world_state()
     add_npc(hp=20, ac=8)  # High HP, low AC
     # Set player HP very low
-    game_namespace['current_hp'] = 1
-    game_namespace['max_hp'] = 10
-    original_roll = game_namespace['roll_d20']
+    session.character['current_hp'] = 1
+    session.character['max_hp'] = 10
+    original_roll = game.roll_d20
     # patk=15, init_p=15, init_n=5, natk=20(crit)
     rolls = [15, 15, 5, 15, 20]
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         result = run_turn("Gromm'a kılıcımla saldırıyorum")
         ar = result["action_result"]
         assert ar.get("combat_ended") == True, "Combat should end"
         assert ar.get("end_reason") == "player_defeated"
-        assert game_namespace.get("current_hp", 10) <= 0, "Player should be at 0 HP"
+        assert session.character["current_hp"] <= 0, "Player should be at 0 HP"
         print("  PASS - Player defeated, combat ended")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_round_advance():
@@ -324,13 +296,13 @@ def test_round_advance():
     print("J) ROUND ADVANCE")
     reset_world_state()
     add_npc()
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     # Need 4 attack rolls + 2 init per turn * 2 turns = 8 rolls
     # Turn 1: atk=15, init_p=15, init_n=10, enemy_atk=10
     # Turn 2: patk=10, init_p=10, init_n=10, enemy_atk=10
     rolls = [15, 15, 10, 15, 10, 10, 10, 10]
     roll_iter = iter(rolls)
-    game_namespace['roll_d20'] = lambda: next(roll_iter)
+    game.roll_d20 = lambda: next(roll_iter)
     try:
         for i in range(4):
             result = run_turn("Gromm'a kılıcımla saldırıyorum")
@@ -342,7 +314,7 @@ def test_round_advance():
             assert combat.get("round") == expected_round, f"Round should be {expected_round}, got {combat.get('round')}"
         print("  PASS - Round advances correctly")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     return True
 
 def test_combat_state_legacy():

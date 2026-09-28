@@ -24,51 +24,8 @@ ollama_mock.chat.return_value = {
 }
 sys.modules['ollama'] = ollama_mock
 
-# Read game.py source and execute function/class definitions + system_prompt + messages
-# Read game.py source and execute everything except the __main__ block
-# Mock input() to avoid interactive prompts
-import builtins
-builtins.input = lambda prompt='': '2'  # Choose random character
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-# Create a namespace to exec the source
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama_mock,
-}
-
-# Execute the source
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
-
-# Create a simple wrapper class for dict-like access
-class GameModule:
-    def __init__(self, ns):
-        self._ns = ns
-    def __getattr__(self, name):
-        return self._ns[name]
-    def __setattr__(self, name, value):
-        if name == '_ns':
-            super().__setattr__(name, value)
-        else:
-            self._ns[name] = value
-
-game = GameModule(game_namespace)
+import game as engine
+game = engine.create_session()
 
 # Define system_prompt directly (it's a constant string in game.py)
 game.system_prompt = """
@@ -265,12 +222,12 @@ def main():
     print("LIVE TEST 7: FAILED STEALTH / NARRATOR SAFETY - 'gizleniyorum'")
     print("="*70)
     reset_world_state()
-    original_roll = game.roll_d20
-    game.roll_d20 = lambda: 1
+    original_roll = engine.roll_d20
+    engine.roll_d20 = lambda: 1
     try:
         result = run_turn("gizleniyorum")
     finally:
-        game.roll_d20 = original_roll
+        engine.roll_d20 = original_roll
     ar = result["action_result"]
     narration = result.get("narration", "").lower()
     passed = ar.get("outcome") in ("failure", "critical_failure") and "başarılı" not in narration

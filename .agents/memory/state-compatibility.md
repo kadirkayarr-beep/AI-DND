@@ -9,8 +9,8 @@ Preserve the identity of the shared world dictionary during restoration until ca
 
 **How to apply:** Restore contents in place and test reference identity. A future session refactor should migrate callers together rather than assuming module-variable reassignment updates their references.
 
-During incremental migration, retain the default-adventure adapter for callers that execute the engine in a plain dictionary as well as callers that import it.
+Keep imported-module character aliases, but do not reintroduce character-state synchronization from plain exec dictionaries.
 
-**Why:** Existing offline consumers assign character scalars directly in an exec namespace; a module-only property adapter cannot intercept those assignments. Independent sessions must not temporarily swap module globals to accommodate them.
+**Why:** Plain dictionary assignment cannot be intercepted by module properties. Supporting both made test setup a second implicit input into the default adventure; those consumers were migrated to explicit sessions deliberately.
 
-**How to apply:** Keep compatibility at default-session boundaries until those consumers are migrated. Prefer explicit session ownership for new callers, and exercise overlapping adventures when changing the adapter.
+**How to apply:** Use explicit session ownership for test setup and new callers. Preserve terminal default-session behavior and imported-module aliases, and exercise overlapping adventures when changing session dispatch.

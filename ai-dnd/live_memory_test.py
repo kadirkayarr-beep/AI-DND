@@ -30,38 +30,14 @@ except Exception as e:
     sys.exit(1)
 
 # Load game.py functions
-import builtins
-builtins.input = lambda prompt='': '2'
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama,
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
+import game
+session = game.create_session()
 
 # Extract needed functions
-run_player_turn = game_namespace['run_player_turn']
-system_prompt = game_namespace['system_prompt']
-world_state = game_namespace['world_state']
-recent_dm_narrations = game_namespace['recent_dm_narrations']
+run_player_turn = session.run_player_turn
+system_prompt = game.system_prompt
+world_state = session.world_state
+recent_dm_narrations = session.recent_dm_narrations
 
 def reset_world_state():
     world_state["location"] = "tavern"

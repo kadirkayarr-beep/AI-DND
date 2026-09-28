@@ -28,41 +28,17 @@ except Exception as e:
     sys.exit(1)
 
 # Load game.py functions
-import builtins
-builtins.input = lambda prompt='': '2'
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama,
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
+import game
+session = game.create_session()
 
 # Extract needed functions
-run_player_turn = game_namespace['run_player_turn']
-system_prompt = game_namespace['system_prompt']
-world_state = game_namespace['world_state']
-recent_dm_narrations = game_namespace['recent_dm_narrations']
-parse_player_intent = game_namespace['parse_player_intent']
-normalize_intent = game_namespace['normalize_intent']
-validate_intent = game_namespace['validate_intent']
+run_player_turn = session.run_player_turn
+system_prompt = game.system_prompt
+world_state = session.world_state
+recent_dm_narrations = session.recent_dm_narrations
+parse_player_intent = session.parse_player_intent
+normalize_intent = session.normalize_intent
+validate_intent = session.validate_intent
 
 def reset_world_state():
     world_state["location"] = "tavern"
@@ -105,8 +81,8 @@ def add_door(locked=False, open=False, name="Test Kapısı"):
     })
 
 def force_roll(value):
-    original = game_namespace['roll_d20']
-    game_namespace['roll_d20'] = lambda: value
+    original = game.roll_d20
+    game.roll_d20 = lambda: value
     return original
 
 def hash_file(path):
@@ -118,8 +94,8 @@ print("="*80)
 print("LIVE END-TO-END ACCEPTANCE TEST - 20 SCENARIOS")
 print("="*80)
 
-game_hash_before = hash_file(r'C:\Users\Kadir\Desktop\AI-DND\game.py')
-backup_hash = hash_file(r'C:\Users\Kadir\Desktop\AI-DND\game_backup.py')
+game_hash_before = hash_file(GAME_FILE)
+backup_hash = hash_file(PROJECT_DIR / 'game_backup.py')
 print(f"game.py hash: {game_hash_before}")
 print(f"game_backup.py hash: {backup_hash}")
 
@@ -256,7 +232,7 @@ def test_5():
     ar = result["action_result"]
     raw = parse_player_intent("kapıyı açıyorum")
     val = validate_intent(raw, "kapıyı açıyorum")
-    door = game_namespace['_current_door']()
+    door = session._current_door()
     passed = ar.get("action") != "skill_check" and door.get("open") == True
     return {
         'passed': passed,
@@ -298,7 +274,7 @@ def test_7():
     ar = result["action_result"]
     raw = parse_player_intent("içeri giriyorum")
     val = validate_intent(raw, "içeri giriyorum")
-    door = game_namespace['_current_door']()
+    door = session._current_door()
     passed = ar.get("action") != "skill_check" and door.get("open") == True
     return {
         'passed': passed,
@@ -319,7 +295,7 @@ def test_8():
     try:
         result = run_turn("gizleniyorum")
     finally:
-        game_namespace['roll_d20'] = original_roll
+        game.roll_d20 = original_roll
     ar = result["action_result"]
     raw = parse_player_intent("gizleniyorum")
     val = validate_intent(raw, "gizleniyorum")
@@ -560,7 +536,7 @@ def test_18():
 # ============================================================
 def test_19():
     # Just verify the fallback code paths exist in game.py
-    with open(r'C:\Users\Kadir\Desktop\AI-DND\game.py', 'r', encoding='utf-8') as f:
+    with open(GAME_FILE, 'r', encoding='utf-8') as f:
         content = f.read()
     has_fallback = "_fallback_for_action_result" in content
     has_malformed = "malformed" in content.lower() or "JSONDecodeError" in content
@@ -604,7 +580,7 @@ def test_20():
     ]
     
     # Force stealth failure on turn 7
-    original_roll = game_namespace['roll_d20']
+    original_roll = game.roll_d20
     
     state_snapshots = []
     crash = False
@@ -612,9 +588,9 @@ def test_20():
     for i, turn in enumerate(turns):
         try:
             if i == 6:  # Stealth turn
-                game_namespace['roll_d20'] = lambda: 1
+                game.roll_d20 = lambda: 1
             else:
-                game_namespace['roll_d20'] = original_roll
+                game.roll_d20 = original_roll
             
             result = run_turn(turn)
             ar = result["action_result"]
@@ -639,7 +615,7 @@ def test_20():
             crash = True
             return {'passed': False, 'reason': f'Crash: {e}'}
         finally:
-            game_namespace['roll_d20'] = original_roll
+            game.roll_d20 = original_roll
         
         # Check for duplicates/state issues
         issues = []
@@ -731,9 +707,9 @@ for name, passed, data in results:
 print("-"*100)
 print(f"\nTOTAL: {passed_count}/{total} PASS")
 
-game_hash_after = hash_file(r'C:\Users\Kadir\Desktop\AI-DND\game.py')
+game_hash_after = hash_file(GAME_FILE)
 print(f"\nGame integrity: game.py hash {'UNCHANGED' if game_hash_after == game_hash_before else 'CHANGED'} ({game_hash_after})")
-print(f"Backup integrity: game_backup.py hash {'UNCHANGED' if hash_file(r'C:\\Users\\Kadir\\Desktop\\AI-DND\\game_backup.py') == backup_hash else 'CHANGED'}")
+print(f"Backup integrity: game_backup.py hash {'UNCHANGED' if hash_file(PROJECT_DIR / 'game_backup.py') == backup_hash else 'CHANGED'}")
 
 print(f"\nContradictions (narrator vs mechanical): {contradictions}")
 print(f"State issues (duplicates, leaks): {state_issues}")

@@ -28,13 +28,13 @@ ollama_mock.chat.return_value = {
 sys.modules["ollama"] = ollama_mock
 import game
 
-game.initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None)
-game.world_state["location"] = "tavern"
-game.world_state["npcs"] = []
-game.recent_dm_narrations.clear()
+session = game.create_session()
+session.world_state["location"] = "tavern"
+session.world_state["npcs"] = []
+session.recent_dm_narrations.clear()
 
 # Test with active NPC
-game.world_state['npcs'].append({
+session.world_state['npcs'].append({
     "id": "npc_001", "name": "Barmen", "role": "Barmen",
     "location": "tavern", "personality": "", "appearance": "",
     "relationship": "neutral", "knowledge": [], "memory": [],
@@ -42,42 +42,42 @@ game.world_state['npcs'].append({
 })
 
 # Get the NPC target (as would be resolved by resolve_npc_reference)
-npc_target = game.active_npcs()[0]
+npc_target = session.active_npcs()[0]
 print(f"NPC target: {npc_target['name']}")
 
 # Test 1: active NPC + "adın ne?"
-result1 = game._detect_query_type("adın ne?", npc_target)
+result1 = session._detect_query_type("adın ne?", npc_target)
 print(f"'adın ne?' with NPC: {result1}")
 
 # Test 2: active NPC + "senin adın ne?"
-result2 = game._detect_query_type("senin adın ne?", npc_target)
+result2 = session._detect_query_type("senin adın ne?", npc_target)
 print(f"'senin adın ne?' with NPC: {result2}")
 
 # Test 3: no NPC + "adın ne?"
-result3 = game._detect_query_type("adın ne?", None)
+result3 = session._detect_query_type("adın ne?", None)
 print(f"'adın ne?' without NPC: {result3}")
 
 # Test 4: active NPC + "kimsin?"
-result4 = game._detect_query_type("kimsin?", npc_target)
+result4 = session._detect_query_type("kimsin?", npc_target)
 print(f"'kimsin?' with NPC: {result4}")
 
 # Test 5: no NPC + "kimsin?"
-result5 = game._detect_query_type("kimsin?", None)
+result5 = session._detect_query_type("kimsin?", None)
 print(f"'kimsin?' without NPC: {result5}")
 
 print("\n--- Response handling ---")
 if result1:
-    resp = game._handle_query("adın ne?", result1, npc_target)
+    resp = session._handle_query("adın ne?", result1, npc_target)
     print(f"Response to 'adın ne?' with NPC: {resp}")
 
 if result3:
-    resp = game._handle_query("adın ne?", result3, None)
+    resp = session._handle_query("adın ne?", result3, None)
     print(f"Response to 'adın ne?' without NPC: {resp}")
 else:
     print("'adın ne?' without NPC: No query type detected (correct - safe fallback)")
 
 if result5:
-    resp = game._handle_query("kimsin?", result5, None)
+    resp = session._handle_query("kimsin?", result5, None)
     print(f"Response to 'kimsin?' without NPC: {resp}")
 else:
     print("'kimsin?' without NPC: No query type detected (correct - safe fallback)")

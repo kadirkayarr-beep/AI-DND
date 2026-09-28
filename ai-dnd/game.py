@@ -4049,8 +4049,7 @@ _CHARACTER_GLOBALS = {
 }
 _ACTIVE_SESSION = contextvars.ContextVar("ai_dnd_active_session", default=None)
 _DEFAULT_SESSION = None
-_LEGACY_NAMESPACE = globals()
-_LAST_EXPORTED_CHARACTER = {}
+_ENGINE_NAMESPACE = globals()
 
 
 class GameSession:
@@ -4064,7 +4063,7 @@ class GameSession:
         self.rng = random.Random(seed)
 
     def __getattr__(self, name):
-        helper = _LEGACY_NAMESPACE.get(name)
+        helper = _ENGINE_NAMESPACE.get(name)
         if callable(helper) and getattr(helper, "_session_bound", False):
             return functools.partial(helper, session=self)
         raise AttributeError(name)
@@ -4074,45 +4073,23 @@ def _session():
     return _ACTIVE_SESSION.get() or _DEFAULT_SESSION
 
 
-def _import_legacy_character():
-    """Import only *changed* exec-namespace globals at a default-session boundary."""
-    for old_name, key in _CHARACTER_GLOBALS.items():
-        if old_name in _LEGACY_NAMESPACE:
-            value = _LEGACY_NAMESPACE[old_name]
-            if old_name not in _LAST_EXPORTED_CHARACTER or value != _LAST_EXPORTED_CHARACTER[old_name]:
-                _DEFAULT_SESSION.character[key] = value
-
-
-def _export_legacy_character():
-    for old_name, key in _CHARACTER_GLOBALS.items():
-        if key in _DEFAULT_SESSION.character:
-            value = _DEFAULT_SESSION.character[key]
-            _LEGACY_NAMESPACE[old_name] = value
-            _LAST_EXPORTED_CHARACTER[old_name] = copy.deepcopy(value)
-
-
 def _bind_session_engine():
     for name in _ENGINE_FUNCTIONS:
-        implementation = _LEGACY_NAMESPACE[name]
+        implementation = _ENGINE_NAMESPACE[name]
 
         @functools.wraps(implementation)
         def bound(*args, __implementation=implementation, session=None, **kwargs):
             selected = session if session is not None else _session()
             if not isinstance(selected, GameSession):
                 raise TypeError("session must be a GameSession")
-            outermost = _ACTIVE_SESSION.get() is None
-            if outermost and selected is _DEFAULT_SESSION:
-                _import_legacy_character()
             token = _ACTIVE_SESSION.set(selected)
             try:
                 return __implementation(*args, **kwargs)
             finally:
                 _ACTIVE_SESSION.reset(token)
-                if outermost and selected is _DEFAULT_SESSION:
-                    _export_legacy_character()
 
         bound._session_bound = True
-        _LEGACY_NAMESPACE[name] = bound
+        _ENGINE_NAMESPACE[name] = bound
 
 
 _DEFAULT_SESSION = GameSession()
@@ -4141,11 +4118,11 @@ if __name__ != "__main__":
         def __setattr__(self, name, value):
             if name in _CHARACTER_GLOBALS:
                 _DEFAULT_SESSION.character[_CHARACTER_GLOBALS[name]] = value
-                _LAST_EXPORTED_CHARACTER[name] = copy.deepcopy(value)
+                return
             super().__setattr__(name, value)
 
-    # An exec(dict) namespace is not a module; its legacy assignments are
-    # instead imported at the next outermost default-session helper call.
+    # Imported modules retain live character aliases. Plain exec dictionaries
+    # must use create_session() and explicit session-owned state instead.
     if isinstance(sys.modules.get(__name__), types.ModuleType) and sys.modules[__name__].__dict__ is globals():
         sys.modules[__name__].__class__ = _GameModule
 

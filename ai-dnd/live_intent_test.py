@@ -43,37 +43,13 @@ except Exception as e:
 
 # Now load game.py functions (without executing main loop)
 print("\n=== LOADING GAME.PY FUNCTIONS ===")
-import builtins
-builtins.input = lambda prompt='': '2'  # Random character
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama,  # REAL ollama module
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
+import game
+session = game.create_session()
 
 # Extract functions we need
-parse_player_intent = game_namespace['parse_player_intent']
-normalize_intent = game_namespace['normalize_intent']
-validate_intent = game_namespace['validate_intent']
+parse_player_intent = session.parse_player_intent
+normalize_intent = session.normalize_intent
+validate_intent = session.validate_intent
 
 print("✅ Game functions loaded (parse_player_intent, normalize_intent, validate_intent)")
 

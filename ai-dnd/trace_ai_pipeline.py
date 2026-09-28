@@ -14,47 +14,16 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
-import builtins
-builtins.input = lambda prompt='': '2'
-
-# Import the game module
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': __import__('ollama'),
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
-
-import builtins
-builtins.input = lambda prompt='': '2'
-
-# Extract key functions
-G = game_namespace
+import game
+session = game.create_session()
 
 # Override ollama to capture calls
-original_ask_dm = G.get('ask_dungeon_master')
-original_parse_intent = G.get('parse_player_intent')
-original_normalize_intent = G.get('normalize_intent')
-original_validate_intent = G.get('validate_intent')
-original_execute_intent = G.get('execute_intent')
-original_finalize_narration = G.get('finalize_narration')
+original_ask_dm = session.ask_dungeon_master
+original_parse_intent = session.parse_player_intent
+original_normalize_intent = session.normalize_intent
+original_validate_intent = session.validate_intent
+original_execute_intent = session.execute_intent
+original_finalize_narration = session.finalize_narration
 
 # Capture traces
 traces = []
@@ -104,12 +73,12 @@ def trace_finalize_narration(narration, player_input, npc_target, action_result)
     return result
 
 # Patch the functions
-G['ask_dungeon_master'] = trace_ask_dm
-G['parse_player_intent'] = trace_parse_intent
-G['normalize_intent'] = trace_normalize_intent
-G['validate_intent'] = trace_validate_intent
-G['execute_intent'] = trace_execute_intent
-G['finalize_narration'] = trace_finalize_narration
+game.ask_dungeon_master = trace_ask_dm
+game.parse_player_intent = trace_parse_intent
+game.normalize_intent = trace_normalize_intent
+game.validate_intent = trace_validate_intent
+game.execute_intent = trace_execute_intent
+game.finalize_narration = trace_finalize_narration
 
 # Disable ollama model calls for deterministic tracing
 fake_ollama = __import__('types').ModuleType('ollama')
@@ -120,11 +89,10 @@ fake_ollama.chat = no_model
 import sys
 sys.modules['ollama'] = fake_ollama
 
-# Also patch the G namespace ollama
-G['ollama'] = fake_ollama
+game.ollama = fake_ollama
 
 # Fresh world state
-world_state = G['world_state']
+world_state = session.world_state
 world_state.clear()
 world_state.update({
     "location": "neverwinter",
@@ -167,12 +135,8 @@ npc_gromm = {
 world_state["npcs"].append(npc_gromm)
 
 # Set player stats
-G['current_hp'] = 30
-G['max_hp'] = 30
-G['armor_class'] = 12
-G['strength_mod'] = 2
-G['dexterity_mod'] = 2
-G['proficiency_bonus'] = 2
+session.character.update(current_hp=30, max_hp=30, armor_class=12,
+                         strength_mod=2, dexterity_mod=2, proficiency_bonus=2)
 
 # Mock qwen intent responses for specific inputs
 mock_intents = {
@@ -193,7 +157,7 @@ def mock_parse_intent(player_input):
     traces.append(('parse_player_intent', {'input': player_input, 'raw_intent': result}))
     return result
 
-G['parse_player_intent'] = mock_parse_intent
+game.parse_player_intent = mock_parse_intent
 
 # Trace the specific inputs
 test_inputs = [
@@ -216,10 +180,10 @@ def run_trace(player_input):
     input_traces = []
     
     # Run the turn
-    result = G['run_player_turn'](player_input, [{"role": "system", "content": "test"}])
+    result = session.run_player_turn(player_input, [{"role": "system", "content": "test"}])
     
     # Capture all relevant state
-    w = G['world_state']
+    w = session.world_state
     trace_data = {
         'input': player_input,
         'raw_intent': None,

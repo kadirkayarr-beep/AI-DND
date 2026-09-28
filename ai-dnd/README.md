@@ -39,7 +39,10 @@ Each session owns its character dictionary, world, recent narrations, chat
 messages, and random generator. Helpers accept `session=`; bound calls such as
 `first.run_player_turn("Etrafa bak")` select the same session for nested rules.
 Calls without a session keep using the terminal's default adventure, including
-legacy character globals and caller-held world/narration references.
+module character aliases (such as `game.current_hp`) and caller-held
+world/narration references. Plain `exec` dictionaries are not a character-state
+input: use `create_session()`, edit `session.character`, and call session-bound
+helpers instead.
 Loading preserves the top-level character/world/history containers; nested
 world records may be replaced. Saves remain version 1; random-generator state
 and chat messages are not included in that format.

@@ -25,59 +25,17 @@ ollama_mock = types.SimpleNamespace(
     }
 )
 sys.modules["ollama"] = ollama_mock
-import builtins
-builtins.input = lambda prompt='': '2'
-
-with open(GAME_FILE, 'r', encoding='utf-8') as f:
-    source = f.read()
-
-lines = source.split('\n')
-exec_lines = []
-in_main_block = False
-for line in lines:
-    if line.startswith('if __name__ == "__main__":'):
-        in_main_block = True
-        continue
-    if in_main_block:
-        continue
-    exec_lines.append(line)
-
-final_source = '\n'.join(exec_lines)
-
-game_namespace = {
-    '__name__': 'game',
-    '__file__': str(GAME_FILE),
-    'ollama': ollama_mock,
-}
-
-exec(compile(final_source, str(GAME_FILE), 'exec'), game_namespace)
-
-import builtins
-builtins.input = lambda prompt='': '2'
+import game
+session = game.create_session()
 
 # Extract functions
-world_state = game_namespace['world_state']
-roll_d20 = game_namespace['roll_d20']
-resolve_combat_target = game_namespace['resolve_combat_target']
-resolve_attack = game_namespace['resolve_attack']
-find_weapon_in_inventory = game_namespace['find_weapon_in_inventory']
-WEAPONS = game_namespace['WEAPONS']
-ensure_npc_combat_stats = game_namespace['ensure_npc_combat_stats']
-# Debug: print available keys
-print("Available keys:", [k for k in game_namespace.keys() if 'run' in k.lower()])
-# run_player_turn is defined in the main block, we need to extract it
-import sys
-# Make sure the function is available
-if 'run_player_turn' not in game_namespace:
-    # The function is in the main block, let's extract it
-    exec_globals = {}
-    exec(final_source, exec_globals)
-    # Now we should have it
-    run_player_turn = exec_globals.get('run_player_turn', game_namespace.get('run_player_turn'))
-else:
-    run_player_turn = game_namespace['run_player_turn']
-
-print(f"run_player_turn available: {'run_player_turn' in dir()}")
+world_state = session.world_state
+resolve_combat_target = session.resolve_combat_target
+resolve_attack = session.resolve_attack
+find_weapon_in_inventory = session.find_weapon_in_inventory
+WEAPONS = game.WEAPONS
+ensure_npc_combat_stats = session.ensure_npc_combat_stats
+run_player_turn = session.run_player_turn
 
 def reset_world_state():
     world_state["location"] = "tavern"
@@ -114,8 +72,8 @@ print("=== COMBAT MECHANICS TEST ===\n")
 print("TEST A: Normal hit (d20=15, AC=10)")
 reset_world_state()
 npc = add_npc("Test", "Dummy", hp=10, ac=10)
-original_roll = game_namespace['roll_d20']
-game_namespace['roll_d20'] = lambda: 15
+original_roll = game.roll_d20
+game.roll_d20 = lambda: 15
 try:
     weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
     target = resolve_combat_target("test", npc)
@@ -127,13 +85,13 @@ try:
     assert result['target_hp_after'] < result['target_hp_before'], "HP should decrease"
     print("  PASS")
 finally:
-    game_namespace['roll_d20'] = original_roll
+    game.roll_d20 = original_roll
 
 # Test B: Miss
 print("\nTEST B: Miss (d20=5, AC=20)")
 reset_world_state()
 npc = add_npc("Test", "Dummy", hp=10, ac=20)
-game_namespace['roll_d20'] = lambda: 5
+game.roll_d20 = lambda: 5
 try:
     weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
     target = resolve_combat_target("test", npc)
@@ -144,13 +102,13 @@ try:
     assert result['target_hp_after'] == result['target_hp_before'], "HP should not change"
     print("  PASS")
 finally:
-    game_namespace['roll_d20'] = original_roll
+    game.roll_d20 = original_roll
 
 # Test C: Natural 1 = auto miss
 print("\nTEST C: Natural 1 = auto miss (even with low AC)")
 reset_world_state()
 npc = add_npc("Test", "Dummy", hp=10, ac=5)
-game_namespace['roll_d20'] = lambda: 1
+game.roll_d20 = lambda: 1
 try:
     weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
     target = resolve_combat_target("test", npc)
@@ -159,13 +117,13 @@ try:
     assert result['outcome'] == 'miss', "Natural 1 should always miss"
     print("  PASS")
 finally:
-    game_namespace['roll_d20'] = original_roll
+    game.roll_d20 = original_roll
 
 # Test D: Natural 20 = critical hit
 print("\nTEST D: Natural 20 = critical hit")
 reset_world_state()
 npc = add_npc("Test", "Dummy", hp=20, ac=15)
-game_namespace['roll_d20'] = lambda: 20
+game.roll_d20 = lambda: 20
 try:
     weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
     target = resolve_combat_target("test", npc)
@@ -177,19 +135,18 @@ try:
     assert result['critical'] == True, "Should be critical"
     print("  PASS")
 finally:
-    game_namespace['roll_d20'] = original_roll
+    game.roll_d20 = original_roll
 
 # Test E: Zero HP -> unconscious
 print("\nTEST E: Zero HP -> unconscious")
 reset_world_state()
 npc = add_npc("Test", "Dummy", hp=5, ac=5)
-import random
-original_roll = game_namespace['roll_d20']
-original_randint = random.randint
+original_roll = game.roll_d20
+original_randint = session.rng.randint
 try:
-    game_namespace['roll_d20'] = lambda: 20
+    game.roll_d20 = lambda: 20
     # Mock damage roll to be deterministic
-    random.randint = lambda low, high: high  # Always max damage
+    session.rng.randint = lambda low, high: high  # Always max damage
     weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
     target = resolve_combat_target("test", npc)
     result = resolve_attack("attack", weapon_name, WEAPONS[weapon_name], target)
@@ -200,8 +157,8 @@ try:
     assert result['target_status'] == 'unconscious', "Should be unconscious"
     print("  PASS")
 finally:
-    game_namespace['roll_d20'] = original_roll
-    random.randint = original_randint
+    game.roll_d20 = original_roll
+    session.rng.randint = original_randint
 
 # Test F: Wrong location
 print("\nTEST F: Wrong location - NPC in different location")

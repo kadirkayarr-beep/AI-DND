@@ -26,11 +26,12 @@ sys.modules['ollama'] = ollama_mock
 # Mock input to return "2" for random character, then "TestHero" for name
 input_responses = iter(["2", "TestHero"])
 with patch('builtins.input', lambda prompt='': next(input_responses)):
-    import game
+    import game as engine
+game = engine.create_session()
 
 # Re-mock ollama after import
 sys.modules['ollama'] = ollama_mock
-game.ollama = ollama_mock
+engine.ollama = ollama_mock
 
 
 def reset_world_state():
@@ -76,12 +77,12 @@ def test_failed_stealth_narrator_contradiction():
     }
 
     # Force a failed stealth check by patching roll_d20
-    original_roll = game.roll_d20
-    game.roll_d20 = lambda: 1
+    original_roll = engine.roll_d20
+    engine.roll_d20 = lambda: 1
     try:
         result = run_turn("gizleniyorum")
     finally:
-        game.roll_d20 = original_roll
+        engine.roll_d20 = original_roll
 
     narration = result["narration"]
     # The narration should NOT contain success language
@@ -219,7 +220,7 @@ def test_location_name_vs_character_name():
     result4 = run_turn("benim adım ne?")
     assert result4["action_result"].get("action") == "character_query", \
         f"FAIL: 'benim adım ne?' should be character_query, got {result4['action_result'].get('action')}"
-    char_name = game.character_name
+    char_name = game.character['name']
     assert char_name in result4["action_result"].get("direct_response", ""), \
         f"FAIL: Self query should return character name ({char_name})"
 
@@ -433,8 +434,8 @@ def test_unsupported_attack():
     before_snapshot = game._world_snapshot()
 
     # Patch parse_player_intent to return attack intent
-    original_parse = game.parse_player_intent
-    game.parse_player_intent = lambda player_input: {
+    original_parse = engine.parse_player_intent
+    engine.parse_player_intent = lambda player_input: {
         "intent": "attack",
         "action": "attack",
         "target": {"type": "npc", "reference": "düşman"},
@@ -444,7 +445,7 @@ def test_unsupported_attack():
     try:
         result = run_turn("düşmanı saldırıyorum")
     finally:
-        game.parse_player_intent = original_parse
+        engine.parse_player_intent = original_parse
 
     # Assert action_result fields
     assert result["action_result"].get("action") == "attack", \
@@ -489,12 +490,12 @@ def test_successful_investigation():
     reset_world_state()
 
     # Mock a successful investigation
-    original_roll = game.roll_d20
-    game.roll_d20 = lambda: 20
+    original_roll = engine.roll_d20
+    engine.roll_d20 = lambda: 20
     try:
         result = run_turn("etrafı araştırıyorum")
     finally:
-        game.roll_d20 = original_roll
+        engine.roll_d20 = original_roll
 
     assert result["action_result"].get("action") == "skill_check", \
         f"FAIL: Investigation should be skill check, got {result['action_result'].get('action')}"
@@ -510,12 +511,12 @@ def test_failed_investigation():
     """Failed investigation should use structured action_result."""
     reset_world_state()
 
-    original_roll = game.roll_d20
-    game.roll_d20 = lambda: 1
+    original_roll = engine.roll_d20
+    engine.roll_d20 = lambda: 1
     try:
         result = run_turn("etrafı araştırıyorum")
     finally:
-        game.roll_d20 = original_roll
+        engine.roll_d20 = original_roll
 
     assert result["action_result"].get("action") == "skill_check", \
         f"FAIL: Investigation should be skill check, got {result['action_result'].get('action')}"
