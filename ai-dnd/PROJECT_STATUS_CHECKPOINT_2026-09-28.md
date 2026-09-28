@@ -68,6 +68,7 @@ server-side Ollama adapter → qwen3:8b
 - **Protected source:** `ai-dnd/game.py`
 - **Current SHA-256:** `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`
 - **Checkpoint:** `ai-dnd/CHECKPOINT_CURRENT.sha256` contains the same hash for `game.py`.
+- **Direct re-verification:** Expected SHA `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`; actual SHA `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`; **MATCH: YES**. The different value in the previous final response was a response typo only.
 - The hash was verified at the end of Combat UX work and again during this report. No source changes were made for this checkpoint report.
 - The older `CHECKPOINT_V2.sha256`, `TESTING_CHECKPOINT.md`, and `CHECKPOINT_AI_PIPELINE_V10.md` refer to earlier source/test snapshots. They are historical evidence, not the current engine hash.
 - Treat `game.py` as frozen unless the owner explicitly approves an engine change. Do not start Combat V3 as part of this checkpoint.
