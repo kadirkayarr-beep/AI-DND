@@ -123,32 +123,43 @@ class SessionTests(unittest.TestCase):
         self.npc(self.a)
         self.a.character["current_hp"] = 3
         self.a.recent_dm_narrations.append("Önceki anlatı")
+        self.a.messages.append({"role": "user", "content": "Target before save"})
+        self.a.roll_d20()
         self.b.world_state["inventory"].append("Other item")
         self.b.character["current_hp"] = 7
         self.b.recent_dm_narrations.append("Other narration")
+        self.b.messages.append({"role": "user", "content": "Other adventure"})
+        self.b.roll_stat()
         expected = self.a.serialize_game_state()
         sessions = (self.a, self.b, game._DEFAULT_SESSION)
         snapshots = [session.serialize_game_state() for session in sessions]
-        held = [
-            (session.world_state, session.character, session.recent_dm_narrations)
-            for session in sessions
-        ]
-        held_contents = copy.deepcopy(held)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "save.json"
             self.a.save_game(path)
             self.a.character["current_hp"] = 0
             self.a.world_state["inventory"].clear()
             self.a.recent_dm_narrations.clear()
+            self.a.messages.append({"role": "user", "content": "Target after save"})
+            self.a.roll_stat()
+            held = [
+                (session.world_state, session.character, session.recent_dm_narrations,
+                 session.messages, session.rng)
+                for session in sessions
+            ]
+            message_histories = [copy.deepcopy(session.messages) for session in sessions]
+            rng_states = [session.rng.getstate() for session in sessions]
             self.assertEqual(self.a.load_game(path), expected)
         self.assertEqual(expected["version"], 1)
-        for session, references, contents, snapshot in zip(
-                sessions, held, held_contents, snapshots):
+        for session, references, history, rng_state, snapshot in zip(
+                sessions, held, message_histories, rng_states, snapshots):
             with self.subTest(session=session):
                 self.assertIs(session.world_state, references[0])
                 self.assertIs(session.character, references[1])
                 self.assertIs(session.recent_dm_narrations, references[2])
-                self.assertEqual(references, contents)
+                self.assertIs(session.messages, references[3])
+                self.assertIs(session.rng, references[4])
+                self.assertEqual(session.messages, history)
+                self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.serialize_game_state(), snapshot)
 
     def test_invalid_load_preserves_all_sessions_and_held_references(self):
