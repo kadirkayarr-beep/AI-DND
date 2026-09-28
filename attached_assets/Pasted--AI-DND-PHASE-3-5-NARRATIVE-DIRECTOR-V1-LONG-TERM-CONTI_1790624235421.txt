@@ -1,0 +1,2136 @@
+# AI-DND — PHASE 3.5
+# NARRATIVE DIRECTOR V1 + LONG-TERM CONTINUITY MEMORY
+# HIGH-PRIORITY STORYTELLING PHASE
+
+This is a MAJOR product-quality phase.
+
+The goal is not merely to make narration longer.
+
+The goal is to make AI-DND feel like a living, persistent tabletop story:
+
+- rich
+- reactive
+- atmospheric
+- character-aware
+- memory-aware
+- non-repetitive
+- consistent across long campaigns
+- capable of remembering people, places, conversations, promises, conflicts,
+  discoveries, and unresolved story threads
+
+while preserving the core architecture:
+
+PYTHON DECIDES REALITY.
+QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
+THE FRONTEND PRESENTS REALITY.
+
+Narrative quality must improve dramatically WITHOUT giving Qwen authority
+over canonical mechanics.
+
+======================================================================
+CURRENT ROADMAP STATE
+======================================================================
+
+Current verified status:
+
+Phase 1 — Canonical Skill Checks V1
+PARTIAL — ENGINE ROUTING REQUIRED
+
+Phase 2 — Combat Result History Persistence
+PASS
+
+Phase 3 — Quest Outcomes V1
+PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED
+
+The engine is currently still protected.
+
+Current protected:
+
+ai-dnd/game.py
+
+Expected protected SHA:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+DO NOT modify game.py during Narrative Director V1.
+
+If Narrative Director V1 genuinely requires an engine change:
+
+STOP that specific engine-dependent part.
+
+Add it to the existing consolidated Engine Change Approval Package.
+
+Do not edit the engine.
+
+======================================================================
+ROADMAP AMENDMENT
+======================================================================
+
+Insert this phase BEFORE the Engine Change Approval implementation work.
+
+New order:
+
+1. Skill Checks V1 — partial
+2. Combat Result History — PASS
+3. Quest Outcomes safe work — partial/blocked
+4. NARRATIVE DIRECTOR V1 — NOW
+5. Updated Consolidated Engine Change Approval Package
+6. Owner approval
+7. #38 remaining skill routes
+8. Quest engine work
+9. Combat V3
+10. Spells V1
+11. XP / Leveling V1
+
+Do NOT begin items 6–11 during this phase.
+
+======================================================================
+PRIMARY EXPERIENCE GOAL
+======================================================================
+
+Current narration is intentionally conservative because canonical safety has
+been prioritized.
+
+Narrative Director V1 should preserve that safety while making the OUTPUT feel
+like a high-quality AI tabletop adventure.
+
+A player should be able to:
+
+- enter a tavern
+- speak to an NPC
+- leave
+- have several unrelated adventures
+- return much later
+- meet that same NPC again
+
+and the story should remember:
+
+- who the NPC is
+- which exact NPC this was
+- where they met
+- what they discussed
+- promises made
+- arguments
+- favors
+- discoveries
+- relevant past events
+
+without dumping the entire campaign transcript into Qwen.
+
+The story must feel continuous.
+
+======================================================================
+CRITICAL PROBLEM #1
+CANONICAL FACTS VS NARRATIVE TEXTURE
+======================================================================
+
+Create an explicit distinction between:
+
+A. CANONICAL REALITY
+B. NARRATIVE CONTINUITY
+C. TEMPORARY NARRATIVE TEXTURE
+
+--------------------------------------------------
+A. CANONICAL REALITY
+--------------------------------------------------
+
+Owned by Python.
+
+Examples:
+
+- player HP
+- inventory
+- equipment
+- current canonical location
+- canonical NPC existence
+- NPC identity
+- combat
+- quest status
+- world metadata
+- doors
+- items
+- discovered places
+- mechanical outcomes
+- skill-check result
+- weather value
+- time_of_day value
+
+Qwen cannot change these.
+
+--------------------------------------------------
+B. NARRATIVE CONTINUITY
+--------------------------------------------------
+
+Persistent descriptive facts that may improve storytelling but have NO
+mechanical authority.
+
+Examples where safe:
+
+- an established NPC speaks slowly
+- a canonical tavern smells of smoke and spices
+- an NPC habitually taps the counter while thinking
+- an established room has cracked wooden shutters
+- an NPC previously made a joke
+- two characters previously argued
+- the player previously asked an NPC about a subject
+- an NPC previously expressed suspicion in dialogue
+
+These MAY persist as narrative memory.
+
+They must NEVER override canonical state.
+
+Example:
+
+Narrative memory:
+“Kasim tends to clean glasses while talking.”
+
+Fine.
+
+Narrative memory:
+“Kasim owns a legendary sword worth 5,000 gold.”
+
+NOT acceptable unless canonical.
+
+--------------------------------------------------
+C. TEMPORARY NARRATIVE TEXTURE
+--------------------------------------------------
+
+Qwen may freely add low-risk atmospheric detail that is not treated as
+persistent game reality.
+
+Examples:
+
+- fire crackles
+- floorboards creak
+- distant conversation
+- candle smoke
+- wind through trees
+- rain striking windows
+- vague crowds
+- distant carts
+- background laughter
+
+These are presentation.
+
+They must NOT automatically become:
+
+- inventory
+- NPCs
+- quests
+- locations
+- interactive objects
+- secrets
+- money
+- mechanics
+
+======================================================================
+NARRATIVE FREEDOM RULE
+======================================================================
+
+Qwen MUST be given more creative freedom than the current conservative
+narrator.
+
+It may creatively describe:
+
+- sensory detail
+- light
+- sound
+- smell
+- temperature
+- architecture
+- expressions
+- body language
+- pacing
+- atmosphere
+- environmental texture
+- minor non-interactive background activity
+
+provided the output does not contradict canonical state.
+
+Example canonical input:
+
+location = Tavern
+environment = tavern
+time = evening
+weather = rain
+NPC = Kasim
+player approaches Kasim
+
+Good narration may say:
+
+Rain taps steadily against the tavern windows. Warm light from the hearth
+catches on the wet shoulders of your cloak as you cross the uneven wooden
+floor. Kasim notices you approaching and stops polishing the glass in his
+hand.
+
+This does NOT require every decorative detail to exist mechanically.
+
+======================================================================
+WHAT QWEN MUST NEVER INVENT AS FACT
+======================================================================
+
+Qwen cannot independently establish:
+
+- major new NPC
+- canonical NPC identity
+- canonical location
+- quest
+- quest objective
+- item ownership
+- inventory changes
+- gold
+- damage
+- healing
+- combat state
+- faction membership
+- relationship score
+- discovered secret
+- locked/unlocked state
+- spell effect
+- XP
+- level
+- canonical weather change
+- canonical time advancement
+- death
+- permanent injury
+- canonical reward
+
+unless Python already established it.
+
+======================================================================
+PLAYER AGENCY
+======================================================================
+
+Narration must NOT decide major player actions.
+
+Bad:
+
+“You draw your sword and charge the guard.”
+
+if the player did not choose that.
+
+Bad:
+
+“You realize Kasim is lying and immediately distrust him.”
+
+if no canonical Insight result established that.
+
+Good:
+
+“Kasim’s gaze lingers on you for a moment longer than before.”
+
+The player decides what that means.
+
+Narration may describe involuntary sensory experience:
+
+- hearing
+- seeing
+- feeling heat/cold
+- pain already caused canonically
+
+but should not decide:
+
+- player intentions
+- beliefs
+- moral decisions
+- dialogue choices
+- major actions
+
+======================================================================
+PHASE 0 — DEEP INSPECTION
+======================================================================
+
+Before implementation, inspect and document:
+
+1. current narrator prompt
+2. narrator safety system
+3. intent prompt
+4. maximum model calls per turn
+5. current recent-message context
+6. campaign history representation
+7. NPC memory representation
+8. Journal
+9. canonical world metadata
+10. combat results
+11. skill_check_result
+12. session state
+13. current Qwen token/context configuration
+14. narrator fallback logic
+15. any summary/memory mechanism already present
+16. existing dynamic NPC/location functionality
+17. entity IDs
+18. quest IDs/schema
+19. persistence format
+20. model timeout/retry behavior
+
+Do NOT assume AI-DND needs an entirely new memory system.
+
+Reuse existing canonical data first.
+
+======================================================================
+NARRATIVE DIRECTOR ARCHITECTURE
+======================================================================
+
+Create a server-side Narrative Director / Context Builder layer.
+
+Conceptually:
+
+Canonical Game State
+        +
+Relevant NPC Memory
+        +
+Relevant Journal Events
+        +
+Relevant Quest State
+        +
+Narrative Continuity Memory
+        +
+Story Summary
+        +
+Recent Turns
+        +
+Scene Metadata
+        +
+Narrative Style Instructions
+        ↓
+Narrative Context Builder
+        ↓
+qwen3:8b
+        ↓
+Narrator Safety / Continuity Validation
+        ↓
+Player-visible Story
+
+Do not move canonical logic into this layer.
+
+======================================================================
+MEMORY ARCHITECTURE
+======================================================================
+
+Narrative memory must be STRUCTURED.
+
+Do not solve memory by simply sending the full transcript forever.
+
+Create distinct memory layers.
+
+At minimum:
+
+1. RECENT TURN MEMORY
+2. STORY SUMMARY MEMORY
+3. ENTITY MEMORY
+4. NPC INTERACTION MEMORY
+5. LOCATION CONTINUITY MEMORY
+6. QUEST MEMORY
+7. UNRESOLVED THREAD MEMORY
+8. NARRATIVE STYLE MEMORY
+
+Each layer has a different purpose.
+
+======================================================================
+1. RECENT TURN MEMORY
+======================================================================
+
+Keep the most recent relevant exchanges verbatim or near-verbatim.
+
+Purpose:
+
+- conversational continuity
+- immediate action context
+- avoid characters forgetting what was said 20 seconds ago
+
+Do not keep unlimited raw turns in the model context.
+
+Use a bounded recent window.
+
+Determine the correct size after inspecting context/token capacity.
+
+======================================================================
+2. STORY SUMMARY MEMORY
+======================================================================
+
+Create a persistent compact campaign summary.
+
+This must NOT be one giant paragraph that becomes increasingly useless.
+
+Prefer structured sections.
+
+Conceptual example:
+
+CURRENT ARC
+RECENT EVENTS
+IMPORTANT RELATIONSHIPS
+CURRENT LOCATION
+UNRESOLVED THREADS
+MAJOR DISCOVERIES
+PLAYER-RELEVANT HISTORY
+
+Update incrementally.
+
+Do not regenerate the entire campaign summary from scratch every turn.
+
+======================================================================
+SUMMARY FACT SAFETY
+======================================================================
+
+The summary must distinguish:
+
+CANONICAL FACT
+NARRATIVE CONTINUITY FACT
+UNRESOLVED / UNCERTAIN
+
+Never promote uncertain narration into canonical truth.
+
+Example:
+
+Canonical:
+Player defeated Bandit npc_87.
+
+Fine.
+
+Narration:
+Kasim “seemed worried.”
+
+May be stored as narrative continuity.
+
+Narration:
+Kasim secretly belongs to the royal assassins.
+
+Do NOT store as fact unless canonical state supports it.
+
+======================================================================
+3. ENTITY MEMORY
+======================================================================
+
+This is CRITICAL.
+
+NEVER use display name as identity.
+
+Every persistent entity must use stable canonical identity.
+
+Examples:
+
+npc_id
+location_id
+quest_id
+objective_id
+item_id where available
+
+Memory entries must reference IDs.
+
+Names are presentation only.
+
+======================================================================
+SAME-NAME ENTITY SAFETY
+======================================================================
+
+AI-DND MUST correctly handle:
+
+NPC:
+Arin — npc_001
+Arin — npc_058
+
+Quest:
+The Missing Child — quest_12
+The Missing Child — quest_91
+
+Location:
+Old Mill — location_A
+Old Mill — location_B
+
+These must NEVER be merged merely because display text matches.
+
+Internally build context such as:
+
+ENTITY:
+npc_001
+display_name: Arin
+role: blacksmith
+last_known_location: Eastgate
+
+ENTITY:
+npc_058
+display_name: Arin
+role: traveler
+last_known_location: Forest Camp
+
+Do not show IDs to the player unless debugging.
+
+======================================================================
+AMBIGUOUS REFERENCES
+======================================================================
+
+If the player says:
+
+“Arin’e gidiyorum.”
+
+and two known Arins are plausible:
+
+DO NOT guess.
+
+Resolve using:
+
+1. current location
+2. current scene participants
+3. recent conversational focus
+4. canonical availability
+5. explicit aliases
+
+If still ambiguous:
+
+ask a natural clarification.
+
+Example:
+
+“Eastgate’teki demirci Arin’i mi, yoksa orman kampında tanıştığın Arin’i mi
+kastediyorsun?”
+
+Do not merge memories.
+
+======================================================================
+4. NPC INTERACTION MEMORY
+======================================================================
+
+Each canonical NPC should have compact long-term interaction memory.
+
+Potential memory types:
+
+- first meeting
+- most recent meeting
+- important dialogue topics
+- promises
+- threats
+- favors
+- known player facts disclosed to that NPC
+- NPC facts disclosed to the player
+- unresolved conversations
+- relevant emotional/social continuity where already supported
+
+Do NOT store every line.
+
+Store meaningful interaction events.
+
+======================================================================
+NPC KNOWLEDGE BOUNDARIES
+======================================================================
+
+NPC memory must not become global omniscience.
+
+If NPC A learned something:
+
+NPC B does NOT automatically know it.
+
+Memory must be scoped to:
+
+npc_id
+
+or a canonical shared knowledge mechanism if one exists later.
+
+======================================================================
+NPC VOICE CONTINUITY
+======================================================================
+
+Narrative Director should give each recurring NPC a consistent speaking
+style when enough context exists.
+
+Possible descriptors:
+
+- terse
+- formal
+- sarcastic
+- cautious
+- warm
+- blunt
+
+Use existing canonical/personality information first.
+
+Narrative continuity may record established style.
+
+Do not randomly change personality every meeting.
+
+======================================================================
+5. LOCATION CONTINUITY MEMORY
+======================================================================
+
+When revisiting the same canonical location, narration should remember
+previously established safe descriptive continuity.
+
+Example:
+
+First visit:
+“Three narrow windows overlook the muddy road.”
+
+Return 30 turns later:
+the tavern should not suddenly have a marble glass atrium unless canonical
+state changed.
+
+Store only low-risk continuity facts.
+
+Location memory keyed by canonical location ID.
+
+Never merge same-name locations.
+
+======================================================================
+6. QUEST MEMORY
+======================================================================
+
+Use canonical quest_id.
+
+If quest lifecycle is currently unavailable:
+
+do NOT invent it.
+
+Narrative Director may remember discussions related to a possible task, but
+must not label it ACTIVE unless canonical Quest Outcomes confirms it.
+
+Two quests with identical titles remain separate by quest_id.
+
+Context should include:
+
+quest_id
+title
+giver ID
+status
+active objectives
+relevant progress
+
+only if canonical.
+
+======================================================================
+7. UNRESOLVED THREAD MEMORY
+======================================================================
+
+Create a lightweight narrative thread system.
+
+Examples:
+
+- NPC asked the player to return later
+- mysterious symbol was noticed
+- player promised to ask Kasim about something
+- player is searching for information
+- conversation was interrupted
+
+These are NOT automatically quests.
+
+They are narrative continuity threads.
+
+Each should have:
+
+thread_id
+related_entity_ids
+summary
+status:
+    open
+    resolved
+    stale
+last_referenced_turn
+
+They must never grant rewards or mechanics.
+
+======================================================================
+THREAD DUPLICATION
+======================================================================
+
+Before creating a new thread:
+
+check whether an equivalent unresolved thread already exists.
+
+Do not generate:
+
+“Mysterious symbol”
+“Mysterious symbol investigation”
+“Strange symbol mystery”
+“Question about symbol”
+
+as four separate threads for the same event.
+
+Deduplicate by entity relationships + event origin + normalized subject.
+
+======================================================================
+8. NARRATIVE STYLE MEMORY
+======================================================================
+
+Create a narrative style profile.
+
+Default target style:
+
+- immersive high fantasy
+- grounded
+- atmospheric
+- mature but not melodramatic
+- strong dialogue
+- sensory detail
+- variable sentence length
+- story-first
+- usually 2–5 paragraphs
+- longer only when scene importance justifies it
+- concise when user asks a direct factual question
+
+Do not make every response the same length.
+
+======================================================================
+AUTHOR NOTE / STORY STYLE
+======================================================================
+
+Create support for a compact narrative preference layer if architecture
+allows it without game.py changes.
+
+Possible settings:
+
+tone
+description_density
+dialogue_density
+pace
+darkness
+humor
+violence_detail
+
+These are narrative preferences only.
+
+They cannot change mechanics.
+
+If no UI is appropriate in V1, establish the server-side/default structure
+and report UI as future work.
+
+======================================================================
+SCENE CLASSIFICATION
+======================================================================
+
+Before narration, classify the current scene using canonical state/context.
+
+Possible scene types:
+
+- exploration
+- conversation
+- investigation
+- travel
+- combat
+- aftermath
+- discovery
+- transition
+- quiet character moment
+- direct query
+
+Use scene type to alter narration strategy.
+
+======================================================================
+EXPLORATION NARRATION
+======================================================================
+
+Prioritize:
+
+- spatial clarity
+- sensory detail
+- visible canonical entities
+- atmosphere
+- meaningful points of attention
+
+Do not overwhelm with ten invented interactive objects.
+
+======================================================================
+DIALOGUE NARRATION
+======================================================================
+
+Prioritize:
+
+- NPC voice
+- body language
+- remembered relationship
+- previous relevant conversations
+- current motivation where canonical/established
+- conversational rhythm
+
+Do not repeat character introductions every time.
+
+Bad repeated behavior:
+
+“Kasim, the burly bartender, wipes a glass...”
+
+every single interaction.
+
+If the player already knows Kasim:
+stop reintroducing him like a new NPC.
+
+======================================================================
+COMBAT NARRATION
+======================================================================
+
+Combat narration must follow structured canonical combat results.
+
+It may dramatize:
+
+- movement
+- impact
+- near misses
+- reactions
+- environment
+
+It must not change:
+
+- damage
+- hit/miss
+- target
+- HP
+- initiative
+- combat outcome
+
+Avoid repeating exact phrases such as:
+
+“Your blade finds its mark.”
+
+every attack.
+
+======================================================================
+SKILL CHECK NARRATION
+======================================================================
+
+Use canonical skill_check_result where available.
+
+Success/failure should influence prose.
+
+Do not expose DC or math in prose unless stylistically appropriate.
+
+The result card handles mechanics.
+
+Narration handles consequence/experience.
+
+======================================================================
+DIRECT QUERY MODE
+======================================================================
+
+If player asks:
+
+“Envanterimde ne var?”
+
+Do not respond with four paragraphs of poetic scenery.
+
+Answer the query cleanly.
+
+Narrative richness must be context-sensitive.
+
+======================================================================
+REPETITION PREVENTION — HIGH PRIORITY
+======================================================================
+
+This system MUST actively fight repetitive AI writing.
+
+Do not rely only on:
+
+“Please do not repeat yourself.”
+
+Implement structured anti-repetition context.
+
+Track recent narration patterns.
+
+At minimum consider:
+
+- recent opening sentences
+- recent closing sentences
+- repeated metaphors
+- repeated sensory cues
+- repeated NPC gestures
+- repeated dialogue tags
+- repeated sentence templates
+- repeated scene introductions
+- repeated transition phrases
+
+======================================================================
+REPETITION MEMORY
+======================================================================
+
+Maintain a small bounded recent-style fingerprint.
+
+Examples:
+
+recent_openings
+recent_phrases
+recent_npc_gestures
+recent_environment_descriptions
+
+Do not permanently blacklist normal language.
+
+This exists to prevent obvious short-term repetition.
+
+======================================================================
+DETERMINISTIC DUPLICATE DETECTION
+======================================================================
+
+Where practical, add a lightweight server-side similarity check.
+
+Do not require a new external vector database for V1.
+
+Possible safe techniques:
+
+- normalized sentence matching
+- repeated n-grams
+- phrase frequency
+- recent-opening equality
+- high lexical overlap
+
+Do not reject prose because ordinary words repeat.
+
+Target obvious repetition.
+
+======================================================================
+MODEL RETRY SAFETY
+======================================================================
+
+Current model call limits must remain respected.
+
+Do NOT simply add unlimited narrator retries.
+
+Inspect the current call budget.
+
+If a repetition rewrite would exceed the allowed per-turn model calls:
+
+do not exceed the cap.
+
+Prefer prevention through context/prompt construction.
+
+Any bounded retry strategy must remain inside existing call safety.
+
+======================================================================
+AVOID AI WRITING TICS
+======================================================================
+
+Narrator instructions should discourage constant reuse of patterns such as:
+
+- “For a moment...”
+- “The air is thick with...”
+- “You can't help but...”
+- “A sense of... washes over you.”
+- “Little do you know...”
+- “The weight of...”
+- constant “suddenly”
+- constant “almost as if”
+- constant dramatic ellipses
+- every NPC smirking/chuckling
+- every scene beginning with weather
+- every response ending with a rhetorical hook
+
+Do not ban these absolutely.
+
+Prevent overuse.
+
+======================================================================
+LONG-TERM MEMORY RETRIEVAL
+======================================================================
+
+Do not send ALL memory every turn.
+
+Build relevance selection.
+
+Potential scoring factors:
+
+- entity currently present
+- entity explicitly mentioned
+- current location
+- active canonical quest
+- unresolved thread
+- recent interaction
+- semantic/topic overlap
+- recency
+- importance
+- direct relationship to current action
+
+Retrieve only relevant memories.
+
+======================================================================
+MEMORY PRIORITY
+======================================================================
+
+Suggested priority:
+
+1. canonical current state
+2. current scene entities
+3. immediately recent turns
+4. directly referenced entity memory
+5. active relevant quest/objective
+6. unresolved relevant threads
+7. relevant story summary
+8. older narrative continuity details
+
+Canonical state always wins on contradiction.
+
+======================================================================
+MEMORY CONFLICT RESOLUTION
+======================================================================
+
+If memory contradicts canonical state:
+
+canonical state wins.
+
+Example:
+
+Old narrative memory:
+“Kasim is at the tavern.”
+
+Current canonical state:
+Kasim is in the market.
+
+Narrator receives:
+
+CURRENT CANONICAL:
+market
+
+Old location memory must not force him back into tavern.
+
+Either update or mark old memory historical.
+
+======================================================================
+TEMPORAL AWARENESS
+======================================================================
+
+Memory entries need origin information where practical:
+
+created_turn
+last_referenced_turn
+related_event_id
+related_entity_ids
+
+Do not invent an in-world calendar.
+
+Turn indices are acceptable.
+
+======================================================================
+MEMORY IMPORTANCE
+======================================================================
+
+Not every event deserves long-term memory.
+
+Create importance levels or equivalent.
+
+HIGH:
+
+- major canonical event
+- first meeting
+- major reveal
+- important promise
+- quest event
+- combat outcome with recurring NPC
+- relationship-changing interaction
+
+MEDIUM:
+
+- meaningful conversation
+- discovery
+- recurring descriptive continuity
+
+LOW:
+
+- ordinary movement
+- generic greetings
+- disposable atmosphere
+
+Low-value memories should eventually compact/drop.
+
+======================================================================
+MEMORY COMPACTION
+======================================================================
+
+Prevent unlimited campaign growth.
+
+Narrative memory should be bounded and compactable.
+
+Do not simply append forever.
+
+Older low-value events may be summarized.
+
+High-value identity-linked memories should remain retrievable.
+
+======================================================================
+CONTEXT TOKEN BUDGET
+======================================================================
+
+Inspect actual qwen3:8b context configuration.
+
+Do not assume a context size.
+
+Create an explicit context budget.
+
+Reserve space for:
+
+- system/narrator rules
+- canonical state
+- player action
+- recent turns
+- relevant memory
+- generation output
+
+Never fill context to the hard maximum routinely.
+
+Leave generation headroom.
+
+======================================================================
+CONTEXT BUILDER DEBUGGING
+======================================================================
+
+In development only, provide inspectable structured diagnostics.
+
+Example:
+
+Narrative Context:
+current_scene_entities: 3
+recent_turns: 6
+npc_memories_selected: 2
+location_memories_selected: 1
+threads_selected: 2
+summary_tokens: X
+estimated_context_tokens: Y
+
+Do NOT expose secrets/system prompts to production browser.
+
+This is debugging/observability only.
+
+======================================================================
+NARRATIVE MEMORY PERSISTENCE
+======================================================================
+
+Narrative continuity must survive:
+
+- autosave
+- explicit save
+- browser close
+- API restart
+- campaign resume
+
+Use campaign persistence.
+
+Do not store canonical narrative memory only in localStorage.
+
+======================================================================
+SAVE MIGRATION
+======================================================================
+
+Existing campaigns without Narrative Director state must still load.
+
+Migration should initialize safely:
+
+narrative_memory = empty
+story_summary = empty/default
+unresolved_threads = empty
+style_profile = default
+
+Then build continuity as play continues.
+
+Do not fabricate old memories from incomplete information.
+
+If existing canonical Journal/history provides safe facts, they may be used
+to construct an initial summary only under explicit validated rules.
+
+======================================================================
+TRANSCRIPT VS MEMORY
+======================================================================
+
+Do not confuse:
+
+TRANSCRIPT
+with
+MEMORY.
+
+Transcript:
+what was said.
+
+Memory:
+structured important information extracted/validated for continuity.
+
+Do not make the entire transcript permanent context.
+
+======================================================================
+MEMORY EXTRACTION SAFETY
+======================================================================
+
+If Qwen proposes a narrative memory entry:
+
+backend must validate its TYPE and authority class.
+
+It may enter:
+
+NARRATIVE CONTINUITY
+
+but never:
+
+CANONICAL STATE
+
+solely because Qwen suggested it.
+
+Prefer deterministic extraction from known entities/events where possible.
+
+======================================================================
+ENTITY PROMOTION
+======================================================================
+
+Inspect whether the existing engine safely supports dynamic NPC/location
+creation.
+
+If an atmospheric background figure becomes directly relevant because the
+player chooses to interact with them:
+
+DO NOT silently turn prose into canonical reality.
+
+If an EXISTING safe Python dynamic-entity creation contract exists:
+
+use that validated contract.
+
+If not:
+
+do not invent a promotion mechanism during this phase.
+
+Record it as:
+
+Narrative Entity Promotion — future/engine-contract requirement.
+
+======================================================================
+BACKGROUND CHARACTER RULE
+======================================================================
+
+Qwen may mention vague ambient people:
+
+- patrons
+- travelers
+- guards in the distance
+- merchants in a crowd
+
+Avoid giving them highly specific names, inventories, quests, or important
+histories unless they are canonical.
+
+This reduces accidental fake entities.
+
+======================================================================
+CONTRADICTION GUARD
+======================================================================
+
+Narrator validation should detect obvious contradictions involving:
+
+- current location
+- present NPCs
+- defeated NPCs
+- player inventory
+- HP/status
+- time_of_day
+- weather
+- active combat
+- quest status
+- known relationships where structured
+- dead/unconscious status if canonical
+
+Do not overcorrect harmless literary detail.
+
+======================================================================
+PLAYER CORRECTIONS
+======================================================================
+
+If a player says:
+
+“No, Kasim was the bartender we met earlier.”
+
+Do not automatically treat the correction as canonical truth.
+
+Resolve against stored identity/state.
+
+If correct:
+use it.
+
+If inconsistent:
+do not silently rewrite canonical state.
+
+======================================================================
+SAME-NAME NPC TEST SUITE — MANDATORY
+======================================================================
+
+Create explicit tests with at least two NPCs sharing the same display name.
+
+Example:
+
+npc_alpha:
+name = Arin
+location = Tavern
+
+npc_beta:
+name = Arin
+location = Forest
+
+Verify:
+
+1. memories stay separate
+2. dialogue history stays separate
+3. relationship continuity stays separate
+4. location context stays separate
+5. ambiguous player references do not merge them
+6. explicit disambiguation resolves correct NPC
+7. one Arin learning a secret does not give it to the other
+8. restart/resume preserves separation
+
+======================================================================
+SAME-NAME QUEST TEST SUITE — MANDATORY
+======================================================================
+
+Where canonical quest records exist in fixtures/schema:
+
+create two quests with same display title but different quest IDs.
+
+Verify:
+
+- status separation
+- objective separation
+- giver separation
+- memory separation
+- API/UI identity separation
+- no title-based merging
+
+If canonical quest lifecycle is blocked:
+test identity at schema/context level without inventing progression.
+
+======================================================================
+LONG-CAMPAIGN MEMORY TEST — MANDATORY
+======================================================================
+
+Create a deterministic long-sequence continuity test.
+
+Simulate enough turns/events to exceed the recent-turn window.
+
+Example flow:
+
+1. meet NPC A
+2. discuss Topic X
+3. visit several locations
+4. meet NPC B
+5. perform unrelated actions
+6. enter combat
+7. leave
+8. have many later turns
+9. return to NPC A
+10. reference Topic X
+
+Verify relevant old memory is retrievable without sending the entire transcript.
+
+======================================================================
+FORGETTING TEST
+======================================================================
+
+Verify that important information does NOT disappear simply because it falls
+outside the recent-message window.
+
+Examples:
+
+- NPC promise
+- major discovery
+- unresolved thread
+- important prior relationship event
+
+======================================================================
+CONTROLLED FORGETTING
+======================================================================
+
+At the same time, the system MUST forget/compact irrelevant detail.
+
+Do not remember permanently:
+
+- every footstep
+- every weather sentence
+- every generic greeting
+- every glass being moved
+- every anonymous patron
+
+Memory quality matters more than raw quantity.
+
+======================================================================
+REPETITION TEST SUITE — MANDATORY
+======================================================================
+
+Test repeated interaction scenarios.
+
+Examples:
+
+- speak to same NPC five times
+- enter same tavern five times
+- inspect same room repeatedly
+- perform multiple combat attacks
+- ask follow-up questions
+
+Verify narration does NOT repeatedly:
+
+- reintroduce known NPCs
+- reuse identical opening
+- reuse identical atmosphere paragraph
+- reuse identical gesture
+- reuse identical attack phrase
+- restate full backstory unnecessarily
+
+======================================================================
+NARRATIVE DENSITY
+======================================================================
+
+Target richer default prose.
+
+For meaningful story actions:
+
+typically 2–5 paragraphs.
+
+For major scenes:
+
+may be longer.
+
+For small actions:
+
+shorter.
+
+For direct mechanical/factual questions:
+
+concise.
+
+Do not enforce a rigid paragraph count.
+
+======================================================================
+DIALOGUE QUALITY
+======================================================================
+
+Recurring NPC dialogue should:
+
+- reference relevant shared history naturally
+- avoid dumping memory as exposition
+- maintain personality
+- react to current state
+- avoid repeating introductions
+
+Bad:
+
+“Hello, I am Kasim the bartender whom you met yesterday.”
+
+Good:
+
+Kasim glances at the mud on your boots.
+
+“So you actually went into that forest.”
+
+======================================================================
+MEMORY SHOULD BE USED NATURALLY
+======================================================================
+
+Do not force old memories into every response just because they were retrieved.
+
+Memory provides context.
+
+It does not require exposition.
+
+======================================================================
+STORY THREAD CALLBACKS
+======================================================================
+
+Use unresolved threads selectively.
+
+A callback should feel meaningful.
+
+Do not constantly remind the player:
+
+“You still haven't solved the mysterious symbol.”
+
+every turn.
+
+Use relevance and pacing.
+
+======================================================================
+STORY SUMMARY UPDATE POLICY
+======================================================================
+
+Do not summarize on every turn if unnecessary.
+
+Use deterministic thresholds such as:
+
+- after N meaningful turns
+- when recent-history budget approaches limit
+- major scene transition
+- major canonical event
+
+Choose based on architecture and token budget.
+
+Document the chosen policy.
+
+======================================================================
+SUMMARY DRIFT TEST
+======================================================================
+
+Repeated summary updates must not gradually mutate facts.
+
+Test:
+
+Original canonical:
+NPC name = Kasim
+
+After repeated compaction:
+must still be Kasim.
+
+Original:
+player has NOT completed quest X
+
+Summary must never drift into:
+quest completed.
+
+======================================================================
+HALLUCINATED MEMORY TEST
+======================================================================
+
+Qwen saying something once does not automatically make it remembered fact.
+
+Test prose containing an invented mechanical detail.
+
+Verify it does not enter canonical state or authoritative memory.
+
+======================================================================
+NARRATOR SAFETY BALANCE
+======================================================================
+
+Current narrator safety should NOT be weakened blindly.
+
+But inspect whether it is suppressing harmless creative texture.
+
+Adjust boundaries rather than disabling protection.
+
+Goal:
+
+STRICT about mechanics.
+
+FLEXIBLE about prose.
+
+======================================================================
+NARRATOR CONTRACT
+======================================================================
+
+Narrator input should explicitly distinguish:
+
+CANONICAL FACTS
+NARRATIVE CONTINUITY
+RECENT CONTEXT
+STYLE GUIDANCE
+PLAYER ACTION
+
+Narrator should know which information is authoritative.
+
+======================================================================
+CONCEPTUAL NARRATOR CONTEXT
+======================================================================
+
+Example:
+
+[CANONICAL — MUST NOT CONTRADICT]
+
+Player:
+Cedric
+HP: 13/13
+
+Location:
+Taverna
+
+Environment:
+tavern
+
+Time:
+evening
+
+Weather:
+rain
+
+Present NPC:
+npc_123
+Kasim
+bartender
+
+[RELEVANT CONTINUITY]
+
+Kasim and Cedric previously discussed a missing caravan.
+Kasim tends to become quieter when the caravan is mentioned.
+Cedric promised to ask around.
+
+[RECENT EXCHANGE]
+
+Cedric:
+“Bir şey öğrendim.”
+
+[ACTION RESULT]
+
+No mechanical state change.
+
+[STYLE]
+
+Immersive, restrained high fantasy.
+Strong dialogue.
+Use sensory detail.
+Do not repeat recent tavern descriptions.
+Do not invent canonical facts.
+
+Then generate narration.
+
+======================================================================
+DO NOT SHOW RAW CONTEXT TO PLAYER
+======================================================================
+
+IDs and internal memory metadata remain internal.
+
+Player sees prose.
+
+======================================================================
+API
+======================================================================
+
+Expose only what frontend needs.
+
+Narrative Director internals should mostly remain server-side.
+
+Possible public additions only if genuinely useful:
+
+- narrative style settings
+- story summary view if intentionally part of product
+- memory-debug tools in development mode only
+
+Do not expose raw narrator prompt.
+
+======================================================================
+FRONTEND
+======================================================================
+
+Story Feed remains primary.
+
+Do NOT redesign the entire application.
+
+Improve typography/spacing only if richer prose requires it.
+
+Longer narrative should remain readable.
+
+Requirements:
+
+- sensible paragraph spacing
+- dialogue readability
+- no giant chat bubbles
+- auto-scroll behavior that does not fight the player
+- preserve ability to reread previous turns
+
+Do not create an MMORPG quest-log feel.
+
+======================================================================
+OPTIONAL CONTINUE ACTION
+======================================================================
+
+Inspect whether a safe “Continue” storytelling action can be supported.
+
+Concept:
+
+Player presses:
+CONTINUE
+
+Server sends an explicit continue intent through the existing turn pipeline.
+
+Python determines whether any canonical action/state change occurs.
+
+Qwen may continue descriptive/dialogue narrative without inventing player
+decisions.
+
+Do NOT bypass the authoritative pipeline.
+
+If unsafe or architecturally unclear:
+defer it.
+
+======================================================================
+PERFORMANCE
+======================================================================
+
+Narrative Director must not make every turn extremely slow.
+
+Measure:
+
+- context construction
+- prompt size
+- model latency
+- memory lookup
+- persistence overhead
+
+Do not add a new network service unless necessary.
+
+======================================================================
+NO VECTOR DATABASE REQUIREMENT
+======================================================================
+
+Do not introduce Redis/vector DB/external embedding infrastructure just to
+complete V1 unless an existing project dependency already justifies it.
+
+Prefer deterministic structured retrieval first.
+
+A semantic memory index can be a future optimization.
+
+======================================================================
+CALL LIMITS
+======================================================================
+
+Preserve existing maximum model-call behavior.
+
+If memory summarization requires model use, it must NOT silently cause every
+game turn to exceed the current call budget.
+
+Prefer:
+
+- deterministic extraction
+- asynchronous/deferred compaction if existing architecture supports it
+- thresholded summaries
+
+Do not promise background work without actual supported infrastructure.
+
+======================================================================
+PERSISTENCE TRANSACTION SAFETY
+======================================================================
+
+Narrative memory updates must participate safely in campaign persistence.
+
+If turn fails:
+
+do not persist half-updated narrative memory.
+
+If autosave fails:
+
+restore last committed narrative state alongside canonical state.
+
+======================================================================
+PHASE TEST MATRIX
+======================================================================
+
+Add focused tests covering at least:
+
+1. canonical facts override narrative memory
+2. harmless narrative texture allowed
+3. invented HP change rejected
+4. invented inventory change rejected
+5. invented quest completion rejected
+6. invented NPC identity not canonical
+7. recent dialogue continuity
+8. long-term NPC memory
+9. NPC memory isolation
+10. same-name NPC isolation
+11. same-name quest isolation
+12. location continuity
+13. same-name location isolation where IDs exist
+14. unresolved thread creation
+15. thread deduplication
+16. thread resolution
+17. low-value memory compaction
+18. high-value memory retention
+19. recent-turn window bounded
+20. story summary persists
+21. story summary migration
+22. summary fact drift prevention
+23. API restart continuity
+24. campaign isolation
+25. failed-turn rollback
+26. autosave rollback
+27. repetition suppression
+28. repeated tavern visit
+29. repeated NPC dialogue
+30. repeated combat narration
+31. direct query remains concise
+32. scene-specific narration
+33. player agency preserved
+34. ambiguous same-name reference handled safely
+35. relevant-memory selection
+36. irrelevant memory excluded
+37. context token budget respected
+38. narrator call cap respected
+39. no Ollama secret exposure
+40. legacy campaigns still load
+
+======================================================================
+LONG LIVE-MODEL SMOKE — REQUIRED
+======================================================================
+
+Use real qwen3:8b.
+
+Use disposable campaign/session data.
+
+Do not touch Cedric.
+
+Run a substantial continuity smoke, not only two turns.
+
+Target at least 15–20 meaningful turns if practical within development limits.
+
+Include:
+
+- exploration
+- recurring NPC
+- dialogue callback
+- location revisit
+- unrelated intermediate actions
+- one skill-check result if supported
+- combat or combat aftermath if practical
+- long-range memory callback
+- repeated scene to check repetition
+
+Record:
+
+- model calls
+- contradictions
+- unwanted repetition
+- forgotten important facts
+- incorrectly merged entities
+- invented canonical facts
+- narrator fallbacks
+- latency observations
+
+Do not weaken safeguards to make the smoke look good.
+
+======================================================================
+SPECIFIC LIVE MEMORY SCENARIO
+======================================================================
+
+Include a scenario conceptually like:
+
+Turn 1:
+Meet Kasim.
+
+Turn 2:
+Discuss a caravan.
+
+Turn 3:
+Kasim mentions a detail.
+
+Turns 4–12:
+Player leaves, explores, talks to someone else, performs unrelated actions.
+
+Turn 13+:
+Player returns to Kasim.
+
+Player:
+“Kervanla ilgili söylediğin şeyi hatırlıyor musun?”
+
+Expected:
+
+The system retrieves Kasim-specific memory.
+
+It must not:
+- act like this is the first meeting
+- invent a completely different caravan story
+- attribute another NPC’s memory to Kasim
+- dump the entire past transcript
+
+======================================================================
+SAME-NAME LIVE/INTEGRATION FIXTURE
+======================================================================
+
+Where safe to construct deterministic fixtures:
+
+two NPCs should share the same display name.
+
+Verify retrieval by stable ID.
+
+If a live Qwen test of this would require unsafe engine mutation:
+use deterministic integration fixture instead.
+
+Do not modify game.py merely for the test.
+
+======================================================================
+QUALITY REVIEW
+======================================================================
+
+After implementation, manually inspect generated prose for:
+
+- repetition
+- generic AI phrasing
+- continuity
+- atmosphere
+- NPC voice
+- dialogue quality
+- over-description
+- under-description
+- player agency
+- canonical contradiction
+- memory callbacks
+- scene pacing
+
+Tests alone are not sufficient for narrative quality.
+
+======================================================================
+NO ENGINE CHANGE RULE
+======================================================================
+
+Throughout this phase:
+
+ai-dnd/game.py must remain unchanged.
+
+Before:
+
+calculate SHA.
+
+After:
+
+calculate SHA.
+
+Expected:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+If actual protected hash differs:
+STOP.
+
+If Narrative Director requires a real engine capability:
+record it for Engine Change Approval.
+
+Do not edit game.py.
+
+======================================================================
+NO SCOPE CREEP
+======================================================================
+
+Do NOT implement:
+
+- Combat V3
+- remaining #38 skill routes
+- canonical quest engine
+- spells
+- XP
+- leveling
+- multiplayer
+- authentication
+- public deployment
+- vector database infrastructure
+- procedural campaign generation
+- full lore RAG
+- AI portraits
+
+This phase is:
+
+STORY QUALITY
+MEMORY
+CONTINUITY
+NON-REPETITION
+CONTEXT MANAGEMENT
+
+======================================================================
+SUCCESS CRITERIA
+======================================================================
+
+Narrative Director V1 is PASS only if:
+
+1. narration is materially richer
+2. Python canonical authority remains intact
+3. Qwen can add harmless creative texture
+4. important long-term information can be remembered
+5. irrelevant details are compacted
+6. same-name entities do not merge
+7. recurring NPCs maintain identity
+8. repeated scenes do not read like copy/paste
+9. narrator does not constantly reintroduce known entities
+10. story summary does not drift facts
+11. memory survives API restart/resume
+12. failed turns roll back memory safely
+13. model call limits remain safe
+14. context growth remains bounded
+15. existing regressions remain green
+16. game.py remains unchanged
+17. real qwen3:8b continuity smoke succeeds
+
+======================================================================
+FINAL REPORT
+======================================================================
+
+Return a VERY detailed report containing:
+
+1. previous narrator architecture
+2. new Narrative Director architecture
+3. files created
+4. files modified
+5. canonical-vs-narrative authority model
+6. recent-turn memory design
+7. story-summary design
+8. entity-memory design
+9. NPC-memory design
+10. location-memory design
+11. quest-memory handling
+12. unresolved-thread design
+13. style-profile design
+14. entity-ID behavior
+15. same-name NPC handling
+16. same-name quest handling
+17. ambiguous-reference handling
+18. memory retrieval algorithm
+19. importance scoring
+20. compaction rules
+21. token/context budget
+22. repetition detection
+23. anti-repetition prompting
+24. narrator safety changes
+25. player-agency safeguards
+26. persistence changes
+27. save migration
+28. rollback behavior
+29. API changes
+30. frontend changes
+31. performance impact
+32. current call-count behavior
+33. focused test counts
+34. full regression result
+35. live qwen3:8b smoke result
+36. examples of BEFORE vs AFTER narration
+37. continuity failures encountered
+38. repetition failures encountered
+39. remaining known issues
+40. known limitations
+41. proposed future Narrative Director V2 improvements
+42. game.py SHA before
+43. game.py SHA after
+44. game.py unchanged YES/NO
+
+======================================================================
+UPDATED ENGINE APPROVAL PACKAGE
+======================================================================
+
+After Narrative Director V1 is complete:
+
+update the existing Consolidated Engine Change Approval Package.
+
+Keep:
+
+- #38 remaining skill routes
+- Quest Outcomes engine contract
+- Combat V3 proposal
+- Spells compatibility
+- XP/Leveling compatibility
+
+Add any engine capability discovered during Narrative Director work that could
+not safely be implemented without touching game.py.
+
+Then STOP.
+
+State:
+
+ENGINE CHANGE APPROVAL REQUIRED
+
+Do not begin engine changes automatically.
+
+======================================================================
+FINAL PRINCIPLE
+======================================================================
+
+The game should be allowed to WRITE LIKE A STORY without being allowed to
+MAKE UP THE RULES.
+
+Canonical reality should remain strict.
+
+Narrative expression should become rich.
+
+Memory should be selective but reliable.
+
+Identity must be ID-based, never name-based.
+
+A recurring character should feel like the SAME PERSON.
+
+A revisited place should feel like the SAME PLACE.
+
+Two people with the same name must remain TWO DIFFERENT PEOPLE.
+
+Two quests with the same title must remain TWO DIFFERENT QUESTS.
+
+Important history should survive.
+
+Irrelevant noise should fade.
+
+The narrator should not repeat itself constantly.
+
+The player should feel that the world remembers them.
+
+PYTHON DECIDES REALITY.
+QWEN REMEMBERS CONTEXT, UNDERSTANDS INTENT, AND TELLS THE STORY.
+THE FRONTEND PRESENTS THE WORLD.
