@@ -26,26 +26,29 @@ class CombatV2(unittest.TestCase):
         self.w['npcs'].append(self.npc)
 
     @contextlib.contextmanager
-    def rolls(self, d20, damage=()):
-        attack_values, damage_values = iter(d20), iter(damage)
-        def damage_roll(low, high):
-            value = next(damage_values)
-            self.assertLessEqual(low, value)
-            self.assertLessEqual(value, high)
+    def rolls(self, *expected, session=None):
+        """Strict, ordered (die size, value) pairs on the owning session."""
+        session = self.session if session is None else session
+        remaining = iter(expected)
+
+        def randint(low, high):
+            roll = next(remaining, None)
+            self.assertIsNotNone(roll, f"Unexpected d{high} roll")
+            sides, value = roll
+            self.assertEqual((low, high), (1, sides), "Wrong scripted die")
+            self.assertTrue(low <= value <= high, "Scripted value outside die range")
             return value
-        with patch.object(game, 'roll_d20', side_effect=lambda: next(attack_values)):
-            with patch.object(self.session.rng, 'randint', side_effect=damage_roll):
-                yield
-                sentinel = object()
-                self.assertIs(next(attack_values, sentinel), sentinel, 'Unused d20 values')
-                self.assertIs(next(damage_values, sentinel), sentinel, 'Unused damage values')
+
+        with patch.object(session.rng, 'randint', side_effect=randint) as dice:
+            yield dice
+            self.assertIsNone(next(remaining, None), "Unused scripted dice")
 
     def attack(self, target=None):
         return self.session.execute_intent({'intent': 'attack'},
                                            "Sentinel'a kılıcımla saldırıyorum", target or self.npc)
 
     def start(self, player=15, npc=5):
-        with self.rolls([player, npc]):
+        with self.rolls((20, player), (20, npc)):
             return self.session.start_combat(self.npc)
 
     def assert_snapshot(self, result):
@@ -56,7 +59,7 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(result['combat'], expected)
 
     def test_A_combat_starts(self):
-        with self.rolls([15, 5, 1, 1]):
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             result = self.attack()
         self.assertTrue(result['combat_started'])
         self.assertTrue(self.w['combat']['active'])
@@ -73,7 +76,7 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(self.w['combat']['initiative_order'][0], 'player')
 
     def test_C_npc_initiative_higher_still_one_exchange(self):
-        with self.rolls([2, 18, 1, 1]):
+        with self.rolls((20, 2), (20, 18), (20, 1), (20, 1)):
             result = self.attack()
         self.assertEqual(self.w['combat']['initiative_order'], [self.npc['id'], 'player'])
         self.assertEqual(result['enemy_action']['outcome'], 'miss')
@@ -81,38 +84,38 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(self.w['combat']['current_turn_index'], 1)
 
     def test_D_enemy_normal_hit(self):
-        with self.rolls([15], [4, 5]):
+        with self.rolls((20, 15), (6, 4), (6, 5)):
             result = self.session.resolve_enemy_attack(self.npc)
         self.assertEqual(result['damage'], 12)
         self.assertEqual((result['target_hp_before'], result['target_hp_after']), (30, 18))
         self.assertEqual(self.session.character['current_hp'], 18)
         self.npc['damage_modifier'] = -20
-        with self.rolls([15], [1, 1]):
+        with self.rolls((20, 15), (6, 1), (6, 1)):
             result = self.session.resolve_enemy_attack(self.npc)
         self.assertEqual(result['damage'], 1)
 
     def test_E_enemy_miss(self):
-        with self.rolls([2]):
+        with self.rolls((20, 2)):
             result = self.session.resolve_enemy_attack(self.npc)
         self.assertEqual((result['outcome'], result['damage']), ('miss', 0))
         self.assertEqual(self.session.character['current_hp'], 30)
 
     def test_F_enemy_nat1(self):
         self.npc['attack_bonus'] = 100
-        with self.rolls([1]):
+        with self.rolls((20, 1)):
             result = self.session.resolve_enemy_attack(self.npc)
         self.assertEqual((result['outcome'], result['damage'], result['critical']), ('miss', 0, False))
 
     def test_G_enemy_nat20(self):
         self.session.character['armor_class'] = 100
-        with self.rolls([20], [2, 3, 4, 5]):
+        with self.rolls((20, 20), (6, 2), (6, 3), (6, 4), (6, 5)):
             result = self.session.resolve_enemy_attack(self.npc)
         self.assertEqual((result['outcome'], result['critical'], result['damage']), ('critical_hit', True, 17))
         self.assertEqual((result['target_hp_before'], result['target_hp_after']), (30, 13))
 
     def test_H_player_knocks_out_npc(self):
         self.npc['current_hp'] = 1
-        with self.rolls([15, 5, 15], [4]):
+        with self.rolls((20, 15), (20, 5), (20, 15), (8, 4)):
             result = self.attack()
         self.assertEqual(self.npc['combat_status'], 'unconscious')
         self.assertNotIn('enemy_action', result)
@@ -123,7 +126,7 @@ class CombatV2(unittest.TestCase):
 
     def test_I_enemy_knocks_out_player(self):
         self.session.character['current_hp'] = 2
-        with self.rolls([15, 5, 1, 15], [4, 5]):
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5)):
             result = self.attack()
         self.assertEqual(self.session.character['current_hp'], 0)
         self.assertEqual(self.w['player_combat_status'], 'unconscious')
@@ -135,10 +138,10 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(self.w['player_combat_status'], 'unconscious')
 
     def test_J_round_once_per_exchange(self):
-        with self.rolls([15, 5, 1, 1]):
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             self.attack()
         self.assertEqual(self.w['combat']['round'], 2)
-        with self.rolls([1, 1]):
+        with self.rolls((20, 1), (20, 1)):
             self.attack()
         self.assertEqual(self.w['combat']['round'], 3)
         self.assertEqual(self.w['combat']['current_turn_index'], 0)
@@ -171,7 +174,7 @@ class CombatV2(unittest.TestCase):
 
     def test_N_wrong_location(self):
         self.npc['location'] = 'forest'
-        with self.rolls([]):
+        with self.rolls():
             result = self.attack()
         self.assertEqual(result['outcome'], 'no_target')
         self.assertEqual(self.npc['current_hp'], 100)
@@ -179,7 +182,7 @@ class CombatV2(unittest.TestCase):
     def test_O_forged_stats(self):
         forged = dict(self.npc, armor_class=0, current_hp=1)
         self.npc['armor_class'] = 100
-        with self.rolls([15, 5, 15, 1]):
+        with self.rolls((20, 15), (20, 5), (20, 15), (20, 1)):
             result = self.attack(forged)
         self.assertEqual(result['outcome'], 'miss')
         self.assertEqual(result['target_ac'], 100)
@@ -194,7 +197,7 @@ class CombatV2(unittest.TestCase):
         player_before = {key: self.session.character[key] for key in ('current_hp', 'max_hp', 'armor_class',
                                                 'strength_mod', 'dexterity_mod')}
         self.assertNotIn('tavern', self.w['ground_items_by_location'])
-        with self.rolls([]):
+        with self.rolls():
             result = self.attack(other)
         self.assertFalse(result['success'])
         self.assertEqual(result['outcome'], 'target_mismatch')
@@ -216,7 +219,7 @@ class CombatV2(unittest.TestCase):
         for hp, status in [(0, 'active'), (10, 'unconscious')]:
             self.session.character['current_hp'] = hp
             self.w['player_combat_status'] = status
-            with self.rolls([]):
+            with self.rolls():
                 result = self.attack()
             self.assertEqual(result['outcome'], 'player_unconscious')
             self.assertEqual(self.session.character['current_hp'], hp)
@@ -240,7 +243,7 @@ class CombatV2(unittest.TestCase):
         self.assertEqual([self.session.character[k] for k in ('current_hp', 'max_hp', 'armor_class')], player)
 
     def test_U_final_snapshot(self):
-        with self.rolls([2, 18, 1, 15], [2, 3]):
+        with self.rolls((20, 2), (20, 18), (20, 1), (20, 15), (6, 2), (6, 3)):
             result = self.attack()
         self.assert_snapshot(result)
         self.assertIn('player.current_hp', result['state_changes'])
@@ -252,7 +255,7 @@ class CombatV2(unittest.TestCase):
         with patch.object(game, 'parse_player_intent', return_value={'intent': 'attack'}), \
              patch.object(game, 'ask_dungeon_master', return_value={
                  'narration': 'Darbe hedefe isabet eder.', 'world_updates': {}}), \
-             self.rolls([15, 5, 1, 1]):
+             self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             result = self.session.run_player_turn("Sentinel'a kılıcımla saldırıyorum", [])
         self.assertEqual(self.npc['memory'], [])
         self.assertIn('ıskalar', result['narration'])
@@ -263,7 +266,7 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(sum(isinstance(n, ast.FunctionDef) and n.name == 'end_combat'
                              for n in ast.walk(tree)), 1)
         self.npc['current_hp'] = 1
-        with self.rolls([15, 5, 20], [3, 4]):
+        with self.rolls((20, 15), (20, 5), (20, 20), (8, 3), (8, 4)):
             result = self.attack()
         narration = self.session.finalize_narration('Hedef dimdik ayakta kalır.', 'saldırıyorum', self.npc, result)
         self.assertIn('kritik', narration)
@@ -298,6 +301,71 @@ class CombatV2(unittest.TestCase):
         self.session.update_inventory_from_player('kılıcı yerden al')
         self.assertEqual(self.w['ground_items_by_location']['tavern'], [])
         self.assertEqual(self.w['inventory'].count('Kılıç'), 1)
+
+    def test_Y_interleaved_adventures_own_all_combat_dice(self):
+        other = game.create_session()
+        other.character.update(copy.deepcopy(self.session.character))
+        other.world_state.update(copy.deepcopy(self.w))
+        other_npc = other.world_state['npcs'][0]
+        self.assertIsNot(self.session.rng, other.rng)
+        default_before = game.serialize_game_state()
+
+        # Keep both scripts installed throughout A/B/A/B exchanges. Different
+        # initiative, attack and damage values expose accidental cross-routing.
+        with self.rolls(
+            (20, 16), (20, 3),
+            (20, 14), (8, 4), (20, 12), (6, 2), (6, 3),
+            (20, 1), (20, 1),
+        ) as dice_a, self.rolls(
+            (20, 2), (20, 18),
+            (20, 20), (8, 7), (8, 8), (20, 15), (6, 5), (6, 6),
+            (20, 1), (20, 1), session=other,
+        ) as dice_b:
+            before_b = other.serialize_game_state()
+            init_a = self.session.start_combat(self.npc)
+            self.assertEqual((init_a['player_initiative'], init_a['npc_initiative']),
+                             (18, 3))
+            self.assertEqual(init_a['initiative_order'], ['player', self.npc['id']])
+            self.assertEqual((dice_a.call_count, dice_b.call_count), (2, 0))
+            self.assertEqual(other.serialize_game_state(), before_b)
+
+            before_a = self.session.serialize_game_state()
+            init_b = other.start_combat(other_npc)
+            self.assertEqual((init_b['player_initiative'], init_b['npc_initiative']),
+                             (4, 18))
+            self.assertEqual(init_b['initiative_order'], [other_npc['id'], 'player'])
+            self.assertEqual((dice_a.call_count, dice_b.call_count), (2, 2))
+            self.assertEqual(self.session.serialize_game_state(), before_a)
+
+            for session, npc, idle, own_dice, idle_dice, attack_roll, damage, enemy_roll, enemy_damage, total in (
+                (self.session, self.npc, other, dice_a, dice_b, 14, 6, 12, 8, 7),
+                (other, other_npc, self.session, dice_b, dice_a, 20, 17, 15, 14, 8),
+                (self.session, self.npc, other, dice_a, dice_b, 1, 0, 1, 0, 9),
+                (other, other_npc, self.session, dice_b, dice_a, 1, 0, 1, 0, 10),
+            ):
+                with self.subTest(session='A' if session is self.session else 'B',
+                                  attack_roll=attack_roll):
+                    idle_before = idle.serialize_game_state()
+                    idle_calls = idle_dice.call_count
+                    npc_hp, player_hp = npc['current_hp'], session.character['current_hp']
+                    round_before = session.world_state['combat']['round']
+                    result = session.execute_intent(
+                        {'intent': 'attack'}, "Sentinel'a kılıcımla saldırıyorum", npc)
+                    self.assertEqual((result['attack_roll'], result['damage']),
+                                     (attack_roll, damage))
+                    enemy = result['enemy_action']
+                    self.assertEqual((enemy['attack_roll'], enemy['damage']),
+                                     (enemy_roll, enemy_damage))
+                    self.assertEqual(npc['current_hp'], npc_hp - damage)
+                    self.assertEqual(session.character['current_hp'], player_hp - enemy_damage)
+                    self.assertEqual(result['combat']['round'], round_before + 1)
+                    self.assertEqual(own_dice.call_count, total)
+                    self.assertEqual(idle_dice.call_count, idle_calls)
+                    self.assertEqual(idle.serialize_game_state(), idle_before)
+                    self.assertEqual(game.serialize_game_state(), default_before)
+
+        self.assertEqual((self.npc['current_hp'], self.session.character['current_hp']), (94, 22))
+        self.assertEqual((other_npc['current_hp'], other.character['current_hp']), (83, 16))
 
 
 if __name__ == '__main__':
