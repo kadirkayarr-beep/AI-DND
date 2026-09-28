@@ -20,6 +20,8 @@ command to use another slot, for example `/save saves/forest.json`.
 Saving replaces the chosen slot; loading replaces the current session.
 Saves include character, world state, NPC memories, and recent narration.
 They are local JSON files, not tamper-proof or signed saves.
+If the default save exists at startup, choose to continue it directly or
+create a new character. Loading another slot remains available with `/load PATH`.
 
 ## Independent adventures
 

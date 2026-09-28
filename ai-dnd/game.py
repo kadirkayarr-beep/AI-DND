@@ -4031,6 +4031,36 @@ def run_player_turn(player_input, messages=None):
     return {"action_result": action_result, "narration": narration}
 
 
+DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
+
+
+def start_terminal_game(input_fn=input, print_fn=print, save_path=DEFAULT_SAVE_PATH):
+    """Resume a default save, or start a new character when none is chosen."""
+    save_path = Path(save_path).expanduser()
+    if save_path.is_file():
+        print_fn("Kayıtlı macera bulundu.")
+        print_fn("1. Yeni karakter oluştur")
+        print_fn("2. Kayıtlı maceraya devam et")
+        while True:
+            choice = input_fn("Seçimin: ").strip()
+            if choice == "1":
+                break
+            if choice == "2":
+                try:
+                    load_game(save_path)
+                except (OSError, ValueError, TypeError) as error:
+                    print_fn(f"Kayıt yüklenemedi: {error}")
+                    print_fn("Yeni karakter oluşturabilir veya oyundan çıkabilirsin.")
+                    continue
+                print_fn(f"Oyun yüklendi: {save_path}")
+                return True
+            if choice.casefold() in ("çık", "exit"):
+                return False
+            print_fn("Lütfen 1 veya 2 seç.")
+    initialize_game(input_fn=input_fn, print_fn=print_fn)
+    return True
+
+
 # All mutable engine references above resolve through _session(). The wrapper
 # below provides an explicit session= argument and propagates it to nested calls.
 _ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
@@ -4132,7 +4162,8 @@ if __name__ != "__main__":
 # =========================================================
 
 if __name__ == "__main__":
-    initialize_game()
+    if not start_terminal_game():
+        raise SystemExit(0)
     print("\nMacera başlıyor...\n")
 
 
@@ -4158,7 +4189,7 @@ if __name__ == "__main__":
 
         if command.split(maxsplit=1)[0] in ("/save", "/kaydet", "/load", "/yükle"):
             parts = player_input.split(maxsplit=1)
-            save_path = parts[1] if len(parts) == 2 else Path(__file__).resolve().parent / "saves" / "adventure.json"
+            save_path = parts[1] if len(parts) == 2 else DEFAULT_SAVE_PATH
             try:
                 if parts[0].lower() in ("/save", "/kaydet"):
                     save_game(save_path)
