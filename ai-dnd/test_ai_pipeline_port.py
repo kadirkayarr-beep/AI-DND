@@ -247,7 +247,8 @@ class PipelinePortTests(unittest.TestCase):
             narration, "Etrafıma bakıyorum", action_result=action_result
         )
 
-        self.assertEqual(first, narration)
+        self.assertEqual(first, game.clean_dm_response(narration))
+        self.assertEqual(first.count("\n"), 1)
         self.assertNotEqual(second, narration)
         self.assertEqual(self.session.world_state, before)
 
