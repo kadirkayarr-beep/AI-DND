@@ -527,6 +527,98 @@ class CompatibilityTests(unittest.TestCase):
                 path.write_text(json.dumps(before), encoding="utf-8")
                 game.load_game(path)
 
+    def test_successful_default_load_preserves_other_adventures_and_held_references(self):
+        default = game._DEFAULT_SESSION
+        explicit_sessions = (
+            game.create_session(seed=137),
+            game.create_session(seed=251),
+        )
+        sessions = (default, *explicit_sessions)
+        original_default_state = copy.deepcopy(game.serialize_game_state())
+        original_default_messages = copy.deepcopy(default.messages)
+        original_default_rng_state = default.rng.getstate()
+
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            load_path = directory / "loaded-adventure.json"
+            restore_path = directory / "restore-default.json"
+            restore_path.write_text(
+                json.dumps(original_default_state), encoding="utf-8"
+            )
+            try:
+                loaded_adventure = game.create_session(seed=389)
+                loaded_adventure.character["name"] = "LoadedHero"
+                loaded_adventure.world_state["location"] = "forest"
+                loaded_adventure.world_state["inventory"].append("Loaded keepsake")
+                loaded_adventure.recent_dm_narrations[:] = [
+                    "Narration from saved adventure"
+                ]
+                expected_loaded_state = loaded_adventure.serialize_game_state()
+                loaded_adventure.save_game(load_path)
+
+                game.character_name = "DefaultBeforeLoad"
+                game.world_state["inventory"].append("Default-only item")
+                default.recent_dm_narrations[:] = ["Default-only narration"]
+                default.messages.append(
+                    {"role": "user", "content": "Default-only message"}
+                )
+                default.roll_d20()
+                for index, session in enumerate(explicit_sessions, start=1):
+                    session.character["name"] = f"ExplicitAdventure{index}"
+                    session.world_state["inventory"].append(f"Adventure {index} item")
+                    session.recent_dm_narrations.append(
+                        f"Adventure {index} narration"
+                    )
+                    session.messages.append(
+                        {"role": "user", "content": f"Adventure {index} message"}
+                    )
+                    session.roll_stat()
+
+                held_references = [
+                    (
+                        session.world_state,
+                        session.character,
+                        session.recent_dm_narrations,
+                        session.messages,
+                        session.rng,
+                    )
+                    for session in sessions
+                ]
+                snapshots = [session.serialize_game_state() for session in sessions]
+                message_histories = [
+                    copy.deepcopy(session.messages) for session in sessions
+                ]
+                rng_states = [session.rng.getstate() for session in sessions]
+
+                loaded = game.load_game(load_path)
+
+                self.assertEqual(loaded, expected_loaded_state)
+                self.assertEqual(game.serialize_game_state(), expected_loaded_state)
+                self.assertEqual(
+                    default.recent_dm_narrations,
+                    ["Narration from saved adventure"],
+                )
+                self.assertIs(game.world_state, held_references[0][0])
+                for index, (session, references, history, rng_state) in enumerate(
+                    zip(sessions, held_references, message_histories, rng_states)
+                ):
+                    with self.subTest(session=index):
+                        self.assertIs(session.world_state, references[0])
+                        self.assertIs(session.character, references[1])
+                        self.assertIs(session.recent_dm_narrations, references[2])
+                        self.assertIs(session.messages, references[3])
+                        self.assertIs(session.rng, references[4])
+                        self.assertEqual(session.messages, history)
+                        self.assertEqual(session.rng.getstate(), rng_state)
+                        if session is not default:
+                            self.assertEqual(
+                                session.serialize_game_state(), snapshots[index]
+                            )
+            finally:
+                game.load_game(restore_path)
+                default.messages[:] = original_default_messages
+                default.rng.setstate(original_default_rng_state)
+
     def test_exec_namespace_scalars_are_not_a_state_input(self):
         namespace = {"__name__": "isolated_engine", "__file__": game.__file__}
         exec(compile(Path(game.__file__).read_text(), game.__file__, "exec"),
