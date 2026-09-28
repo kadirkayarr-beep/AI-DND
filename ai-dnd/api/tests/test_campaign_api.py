@@ -695,10 +695,38 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_autosave_rolls_back_turn_and_keeps_last_good_save(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
-        before = copy.deepcopy(session.serialize_game_state())
-        journal_before = copy.deepcopy(
-            self.manager.get(created["session_id"]).journal
+        record = self.manager.get(created["session_id"])
+        from api.narrative_memory import (
+            empty_narrative_memory,
+            update_narrative_memory,
         )
+
+        record.narrative_memory = update_narrative_memory(
+            empty_narrative_memory(),
+            player_message="I promise Mira I will ask about the caravan.",
+            narration="The hearth glows softly in the old inn.",
+            action_result={
+                "action": "dialogue",
+                "status": "success",
+                "npc_id": "npc-mira",
+            },
+            world_state_before={},
+            world_state_after={
+                "location": "loc-inn",
+                "npcs": [
+                    {
+                        "id": "npc-mira",
+                        "name": "Mira",
+                        "role": "merchant",
+                        "location": "loc-inn",
+                    }
+                ],
+            },
+        )
+        self.manager.save_campaign(created["campaign_id"])
+        before = copy.deepcopy(session.serialize_game_state())
+        journal_before = copy.deepcopy(record.journal)
+        memory_before = copy.deepcopy(record.narrative_memory)
         saved_before = self.store.get_campaign(created["campaign_id"]).payload
 
         def mutate_then_succeed(_message):
@@ -729,9 +757,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("database unavailable", response.text)
         self.assertEqual(session.serialize_game_state(), before)
         self.assertEqual(
-            self.manager.get(created["session_id"]).journal,
+            record.journal,
             journal_before,
         )
+        self.assertEqual(record.narrative_memory, memory_before)
         self.assertEqual(
             self.store.get_campaign(created["campaign_id"]).payload,
             saved_before,
@@ -829,6 +858,37 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.store.save_campaign(created["campaign_id"], session)
         stored = self.store.get_campaign(created["campaign_id"])
         self.assertEqual(stored.payload["journal"], record.journal)
+
+    async def test_legacy_save_without_narrative_memory_migrates_to_empty_memory(self):
+        from api.narrative_memory import empty_narrative_memory
+
+        created = await self.create_campaign()
+        connection = sqlite3.connect(self.store.path)
+        try:
+            row = connection.execute(
+                "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
+                (created["campaign_id"],),
+            ).fetchone()
+            payload = json.loads(row[0])
+            payload.pop("narrative_memory")
+            connection.execute(
+                "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
+                (json.dumps(payload), created["campaign_id"]),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        restarted_manager = SessionManager(campaign_store=self.store)
+        _, record, _, _, _ = restarted_manager.resume_campaign(
+            created["campaign_id"]
+        )
+        self.assertEqual(record.narrative_memory, empty_narrative_memory())
+        migrated = self.store.get_campaign(created["campaign_id"])
+        self.assertEqual(
+            migrated.payload["narrative_memory"],
+            empty_narrative_memory(),
+        )
 
     async def test_legacy_save_without_journal_migrates_to_empty_ledger(self):
         created = await self.create_campaign()

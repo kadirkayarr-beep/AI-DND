@@ -36,6 +36,7 @@ These are the current gameplay-roadmap statuses; they are separate from the earl
 | Phase 1 — Skill Checks V1 | **PARTIAL — ENGINE ROUTING REQUIRED** | Keep the typed, allowlisted `skill_check_result`, generated client, browser result card, rollback coverage, and currently supported canonical routes. Persuasion, Deception, Acrobatics, and Survival still require explicit engine routing. Do not simulate them in an adapter, UI, narration parser, or arbitrary model output. |
 | Phase 2 — Combat Result History Persistence | **PASS** | Validated structured results persist separately from transcript history, are bounded to 50 per campaign, and rehydrate after resume. Failed turns/autosaves do not append results. Combat mechanics and `game.py` were not changed. |
 | Phase 3 — Quest Outcomes V1 | **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** | The frozen engine emits no canonical quest acceptance, objective progression, completion, failure, or cancellation events. Keep the quest ledger empty; do not infer transitions from narration, player wording, or browser state. |
+| Phase 3.5 — Narrative Director V1 | **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: a promise thread was retrieved after the recent window and after resume, quest memory stayed empty, and no turn exceeded two model calls. The frozen narrator still limits every response to two short sentences, so richer scene-adaptive narration is blocked; `game.py` remains unchanged. |
 
 **Approval stop:** `ai-dnd/game.py` SHA-256 remains `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`. The consolidated package is `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`. **ENGINE CHANGE APPROVAL REQUIRED.** Item #38 is approved but remains deferred until explicit engine approval; its confirmed scope is included in the package.
 
@@ -294,8 +295,9 @@ The amendment phases have reached the requested stop:
 1. Phase 1 remains **PARTIAL — ENGINE ROUTING REQUIRED**.
 2. Phase 2 **PASS**: validated combat-result history persists and rehydrates.
 3. Phase 3 remains **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED**; the quest ledger stays empty.
-4. Review `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`.
-5. Do not begin engine work until the owner explicitly approves the proposed scope. Combat V3, Spells V1, XP/Leveling V1, and item #38 remain deferred.
+4. Phase 3.5 remains **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED**; API-side memory and the real-model continuity/resume smoke pass, but the frozen two-sentence prompt prevents the requested richer narration.
+5. Review `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`.
+6. Do not begin engine work until the owner explicitly approves the proposed scope. Combat V3, Spells V1, XP/Leveling V1, and item #38 remain deferred.
 
 Public-release hardening remains separate: authentication/ownership, rate limiting, backup/recovery, single/multi-instance design, observability, security review, and model operations are still required before public use.
 
@@ -372,10 +374,12 @@ Not ready for public users:
 - Phase 1 — Skill Checks V1: **PARTIAL — ENGINE ROUTING REQUIRED**.
 - Phase 2 — Combat Result History Persistence: **PASS**.
 - Phase 3 — Quest Outcomes V1: **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED**.
+- Phase 3.5 — Narrative Director V1: **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED**; API-side memory and the 15-turn real-model continuity/resume smoke pass, but narration remains capped at two short sentences.
 
 **APPROVAL REQUIRED**
 
 - `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md` consolidates known engine changes.
+- Approve the Phase 3.5 narrator prompt contract before implementation; preserve Python authority, validated updates, fallback behavior, and model-call limits.
 - Keep `ai-dnd/game.py` unchanged until explicit owner approval.
 - Do not begin Combat V3, Spells V1, or XP/Leveling V1.
 - Item #38 is approved but deferred. Its confirmed scope and acceptance criteria are included in the package; do not execute it before explicit engine approval.

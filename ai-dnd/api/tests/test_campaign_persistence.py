@@ -136,6 +136,51 @@ class CampaignPersistenceTests(unittest.TestCase):
         self.assertEqual(len(resumed.combat_history), 1)
         self.assertEqual(metadata["campaign_id"], campaign_id)
 
+    def test_narrative_memory_survives_campaign_resume_and_manager_restart(self):
+        from api.narrative_memory import (
+            empty_narrative_memory,
+            update_narrative_memory,
+        )
+
+        campaign_id, _, record, _ = self.create_campaign()
+        memory = update_narrative_memory(
+            empty_narrative_memory(),
+            player_message="I promised Mira I would ask about the caravan.",
+            narration="The inn's warm light falls across the table.",
+            action_result={
+                "action": "dialogue",
+                "status": "success",
+                "npc_id": "npc-mira",
+            },
+            world_state_before={},
+            world_state_after={
+                "location": "loc-inn",
+                "npcs": [
+                    {
+                        "id": "npc-mira",
+                        "name": "Mira",
+                        "role": "merchant",
+                        "location": "loc-inn",
+                    }
+                ],
+            },
+        )
+        self.manager.autosave_turn(
+            record,
+            "I promised Mira I would ask about the caravan.",
+            "The inn's warm light falls across the table.",
+            narrative_memory=memory,
+        )
+
+        stored = self.store.get_campaign(campaign_id)
+        self.assertEqual(stored.payload["narrative_memory"], memory)
+        self.assertNotIn("narrative_memory", stored.payload["engine_save"])
+
+        restarted_store = CampaignStore(self.store.path)
+        restarted_manager = SessionManager(campaign_store=restarted_store)
+        _, resumed_record, _, _, _ = restarted_manager.resume_campaign(campaign_id)
+        self.assertEqual(resumed_record.narrative_memory, memory)
+
     def test_campaign_ids_are_opaque_and_campaigns_are_isolated(self):
         first_id, _, first_record, _ = self.create_campaign("First")
         second_id, _, second_record, _ = self.create_campaign("Second")

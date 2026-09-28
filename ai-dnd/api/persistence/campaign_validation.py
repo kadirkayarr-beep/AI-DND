@@ -20,6 +20,10 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignValidationError,
 )
+from api.narrative_memory import (
+    empty_narrative_memory,
+    validate_narrative_memory,
+)
 from api.schemas import CombatTurnResult
 from api.world_metadata import (
     set_session_world_metadata,
@@ -136,6 +140,7 @@ def _validate_rng_state(value: Any, error_type: type[Exception]) -> None:
 def serialize_campaign_payload(
     session: Any,
     journal: dict[str, Any] | None = None,
+    narrative_memory: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Keep the engine save intact and persist API-owned RNG/world metadata."""
     try:
@@ -154,6 +159,12 @@ def serialize_campaign_payload(
     )
     journal_payload = journal if journal is not None else empty_campaign_journal()
     validate_campaign_journal(journal_payload, CampaignValidationError)
+    narrative_memory_payload = validate_narrative_memory(
+        narrative_memory
+        if narrative_memory is not None
+        else empty_narrative_memory(),
+        CampaignValidationError,
+    )
     payload = {
         "format": CAMPAIGN_FORMAT,
         "version": CAMPAIGN_FORMAT_VERSION,
@@ -161,6 +172,7 @@ def serialize_campaign_payload(
         "rng_state": serializable_rng,
         "world_metadata": world_metadata,
         "journal": journal_payload,
+        "narrative_memory": narrative_memory_payload,
     }
     validate_campaign_payload(payload, CampaignValidationError)
     ensure_no_configured_secrets(payload)
@@ -178,7 +190,11 @@ def validate_campaign_payload(
     if payload.get("version") != CAMPAIGN_FORMAT_VERSION:
         raise error_type("Campaign save version is unsupported.")
     required_fields = {"format", "version", "engine_save", "rng_state"}
-    allowed_fields = required_fields | {"world_metadata", "journal"}
+    allowed_fields = required_fields | {
+        "world_metadata",
+        "journal",
+        "narrative_memory",
+    }
     if not required_fields.issubset(payload) or not set(payload).issubset(
         allowed_fields
     ):
@@ -190,6 +206,8 @@ def validate_campaign_payload(
         validate_world_metadata(payload["world_metadata"], error_type)
     if "journal" in payload:
         validate_campaign_journal(payload["journal"], error_type)
+    if "narrative_memory" in payload:
+        validate_narrative_memory(payload["narrative_memory"], error_type)
     ensure_no_configured_secrets(payload)
 
 

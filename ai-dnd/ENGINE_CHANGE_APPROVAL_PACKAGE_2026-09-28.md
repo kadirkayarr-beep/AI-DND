@@ -15,6 +15,7 @@ This is an approval proposal only: no engine change, including #38, Quest Outcom
 | Phase 1 — Skill Checks V1 | **PARTIAL — ENGINE ROUTING REQUIRED** | The safe typed `skill_check_result` contract, allowlist, generated client, result card, rollback coverage, and currently supported canonical routes remain. Missing engine routes: Persuasion, Deception, Acrobatics, and Survival. No adapter, narration, or model-output workaround was added. |
 | Phase 2 — Combat-result history persistence | **PASS** | Validated history is stored separately from transcript history, bounded to 50 results per campaign, and restored through campaign detail/resume. Failed turns and failed autosaves do not append results. |
 | Phase 3 — Quest Outcomes V1 | **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** | The frozen engine has no canonical quest acceptance, objective progression, completion, failure, or cancellation outcomes. The quest ledger remains empty; no quest state is inferred from Qwen narration, player wording, or browser state. |
+| Phase 3.5 — Narrative Director V1 | **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: a promise thread was retrieved after the recent window and after resume, quest memory stayed empty, and no turn exceeded two model calls. Authenticated metadata reports a 40,960-token context window; the packet is capped at 4,800 UTF-8 bytes and estimated total context at 32,768 tokens including an 8,192-token prompt reserve. The frozen narrator still limits every response to two short sentences, so richer scene-adaptive narration remains blocked; `game.py` was not edited. |
 
 ### Source and persistence versions
 
@@ -181,6 +182,7 @@ Approval is required before changing `ai-dnd/game.py`. The owner-confirmed #38 s
 
 - Keep Phase 1 visibly **PARTIAL — ENGINE ROUTING REQUIRED**.
 - Keep Phase 3 **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** and the quest ledger empty.
+- Require explicit owner approval before changing the Phase 3.5 narrator prompt contract: replace the fixed two-short-sentence limit with scene-adaptive, typically 2–5 paragraph narration while preserving Python authority, the structured response schema, validated world updates, fallback behavior, and model-call limits. This approval does not authorize implementation.
 - Do not implement Combat V3, Spells V1, or XP/Leveling V1.
 - Keep owner-confirmed item **#38** deferred until explicit engine approval; implement only its listed four routes and acceptance criteria afterward.
 - Preserve the protected SHA above and the owner’s campaign data.

@@ -23,6 +23,11 @@ from api.ollama_adapter import (
     RequiredModelUnavailableError,
     canonical_world_metadata_context,
 )
+from api.narrative_director import (
+    install_narrative_context_adapter,
+    narrative_turn_context,
+)
+from api.narrative_memory import update_narrative_memory
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignError,
@@ -113,6 +118,7 @@ def create_app(
     )
     if adapter is not None:
         adapter.install_for_engine()
+    install_narrative_context_adapter(game)
 
     application = FastAPI(
         title="AI-DND API",
@@ -390,16 +396,23 @@ def create_app(
                 getattr(session, "world_metadata", {})
             )
             journal_snapshot = copy.deepcopy(record.journal)
+            narrative_player_message = redact_sensitive_values(
+                request.message
+            )
             try:
-                with canonical_world_metadata_context(
-                    lambda: world_metadata_for_state(
-                        session.world_state,
-                        getattr(session, "world_metadata", None),
-                    )
-                ):
-                    with active_adapter.capture_model_calls() as model_calls:
-                        with active_adapter.capture_model_failures() as model_failures:
-                            result = session.run_player_turn(request.message)
+                with narrative_turn_context(
+                    record.narrative_memory,
+                    narrative_player_message,
+                ) as narrative_frame:
+                    with canonical_world_metadata_context(
+                        lambda: world_metadata_for_state(
+                            session.world_state,
+                            getattr(session, "world_metadata", None),
+                        )
+                    ):
+                        with active_adapter.capture_model_calls() as model_calls:
+                            with active_adapter.capture_model_failures() as model_failures:
+                                result = session.run_player_turn(request.message)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
@@ -476,12 +489,49 @@ def create_app(
                 ) from None
 
             set_session_world_metadata(session, metadata_snapshot)
+            action_result = (
+                result.get("action_result")
+                if isinstance(result, dict)
+                else None
+            )
             try:
-                action_result = (
-                    result.get("action_result")
-                    if isinstance(result, dict)
-                    else None
+                staged_narrative_memory = update_narrative_memory(
+                    record.narrative_memory,
+                    player_message=narrative_player_message,
+                    narration=redact_sensitive_values(narration),
+                    action_result=action_result,
+                    world_state_before=snapshot["save"].get(
+                        "world_state",
+                        {},
+                    ),
+                    world_state_after=session.world_state,
+                    world_metadata=world_metadata_for_state(
+                        session.world_state,
+                        getattr(session, "world_metadata", None),
+                    ),
                 )
+            except Exception as error:
+                try:
+                    _restore_session(session, snapshot)
+                    session.world_metadata = metadata_snapshot
+                    record.journal = journal_snapshot
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Session rollback failed after narrative-memory error (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                _logger.error(
+                    "Narrative continuity update failed (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "narrative_memory_error",
+                        "message": "Campaign continuity could not be updated safely.",
+                    },
+                ) from None
+            try:
                 skill_check_result = serialize_skill_check_result(
                     action_result,
                     session,
@@ -572,6 +622,7 @@ def create_app(
                     request.message,
                     narration,
                     combat_history_entry=combat_history_entry,
+                    narrative_memory=staged_narrative_memory,
                 )
             except CampaignError as error:
                 try:
@@ -590,9 +641,26 @@ def create_app(
                 raise campaign_http_exception(error) from None
 
             _logger.info(
-                "Game turn completed (model=%s, model_calls=%d)",
+                "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
                 MODEL_NAME,
                 len(model_calls),
+                narrative_frame.diagnostics.get("scene_type", "unavailable"),
+                narrative_frame.diagnostics.get("estimated_tokens", "unavailable"),
+                narrative_frame.diagnostics.get(
+                    "estimated_total_tokens",
+                    "unavailable",
+                ),
+                narrative_frame.diagnostics.get(
+                    "max_estimated_total_tokens",
+                    "unavailable",
+                ),
+                narrative_frame.diagnostics.get(
+                    "model_context_window_tokens",
+                    "unavailable",
+                ),
+                narrative_frame.diagnostics.get("packet_characters", "unavailable"),
+                narrative_frame.diagnostics.get("selected_counts", {}),
+                len(narrative_frame.diagnostics.get("ambiguities", [])),
             )
             response = TurnResponse(
                 session_id=session_id,

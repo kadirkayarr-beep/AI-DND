@@ -247,9 +247,14 @@ class CampaignStore:
         name: str,
         session: Any,
         journal: dict[str, Any] | None = None,
+        narrative_memory: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
-        payload = serialize_campaign_payload(session, journal)
+        payload = serialize_campaign_payload(
+            session,
+            journal,
+            narrative_memory,
+        )
         if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100:
             raise CampaignValidationError("Campaign name is invalid.")
         from api.persistence.campaign_validation import ensure_no_configured_secrets
@@ -304,12 +309,20 @@ class CampaignStore:
         turn_entry: dict[str, str] | None = None,
         journal: dict[str, Any] | None = None,
         combat_history_entry: dict[str, Any] | None = None,
+        narrative_memory: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
-        if journal is None:
+        if journal is None or narrative_memory is None:
             current = self.get_campaign(campaign_id)
-            journal = current.payload.get("journal", empty_campaign_journal())
-        payload = serialize_campaign_payload(session, journal)
+            if journal is None:
+                journal = current.payload.get("journal", empty_campaign_journal())
+            if narrative_memory is None:
+                narrative_memory = current.payload.get("narrative_memory")
+        payload = serialize_campaign_payload(
+            session,
+            journal,
+            narrative_memory,
+        )
         if turn_entry is not None:
             turn_entry = serialize_history_entry(
                 turn_entry.get("player_message"),

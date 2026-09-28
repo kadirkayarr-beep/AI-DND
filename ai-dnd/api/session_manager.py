@@ -24,6 +24,10 @@ from api.persistence.campaign_store import (
     MAX_COMBAT_HISTORY_ENTRIES,
     CampaignStore,
 )
+from api.narrative_memory import (
+    empty_narrative_memory,
+    validate_narrative_memory,
+)
 from api.serializers import serialize_session_state
 from api.world_metadata import set_session_world_metadata
 
@@ -39,6 +43,7 @@ class ManagedSession:
     campaign_id: str | None = None
     journal: dict[str, Any] = field(default_factory=empty_campaign_journal)
     combat_history: list[dict[str, Any]] = field(default_factory=list)
+    narrative_memory: dict[str, Any] = field(default_factory=empty_narrative_memory)
 
 
 class SessionManager:
@@ -84,6 +89,7 @@ class SessionManager:
             session.world_state,
             getattr(session, "world_metadata", None),
         )
+        narrative_memory = empty_narrative_memory()
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(
@@ -91,6 +97,7 @@ class SessionManager:
             campaign_name,
             session,
             journal=journal,
+            narrative_memory=narrative_memory,
         )
         with self._registry_lock:
             session_id = self._new_session_id_locked()
@@ -98,6 +105,7 @@ class SessionManager:
                 game_session=session,
                 campaign_id=campaign_id,
                 journal=journal,
+                narrative_memory=narrative_memory,
             )
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
@@ -152,6 +160,12 @@ class SessionManager:
                         game_session=session,
                         campaign_id=campaign_id,
                         journal=journal,
+                        narrative_memory=validate_narrative_memory(
+                            stored.payload.get(
+                                "narrative_memory",
+                                empty_narrative_memory(),
+                            )
+                        ),
                     )
                     self._sessions[session_id] = record
                     self._campaign_sessions[campaign_id] = session_id
@@ -167,6 +181,13 @@ class SessionManager:
             needs_migration = (
                 "world_metadata" not in stored.payload
                 or "journal" not in stored.payload
+                or "narrative_memory" not in stored.payload
+            )
+            record.narrative_memory = validate_narrative_memory(
+                stored.payload.get(
+                    "narrative_memory",
+                    empty_narrative_memory(),
+                )
             )
             if needs_migration:
                 if "world_metadata" not in stored.payload:
@@ -176,10 +197,13 @@ class SessionManager:
                     )
                 if "journal" not in stored.payload:
                     record.journal = empty_campaign_journal()
+                if "narrative_memory" not in stored.payload:
+                    record.narrative_memory = empty_narrative_memory()
                 store.save_campaign(
                     campaign_id,
                     record.game_session,
                     journal=record.journal,
+                    narrative_memory=record.narrative_memory,
                 )
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
@@ -203,6 +227,7 @@ class SessionManager:
                 campaign_id,
                 record.game_session,
                 journal=record.journal,
+                narrative_memory=record.narrative_memory,
             )
 
     def autosave_turn(
@@ -211,9 +236,16 @@ class SessionManager:
         player_message: str,
         narration: str,
         combat_history_entry: dict[str, Any] | None = None,
+        narrative_memory: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """Persist a successful turn; caller holds record.turn_lock."""
+        candidate_memory = validate_narrative_memory(
+            narrative_memory
+            if narrative_memory is not None
+            else record.narrative_memory
+        )
         if record.campaign_id is None:
+            record.narrative_memory = candidate_memory
             self._remember_combat_entry(record, combat_history_entry)
             return None
         set_session_world_metadata(
@@ -229,7 +261,9 @@ class SessionManager:
             },
             journal=record.journal,
             combat_history_entry=combat_history_entry,
+            narrative_memory=candidate_memory,
         )
+        record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)
         return metadata
 
