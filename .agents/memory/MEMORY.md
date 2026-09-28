@@ -1,1 +1,2 @@
 - [State migration compatibility](state-compatibility.md) — preserve caller-held world references while moving toward explicit sessions.
+- [Turkish intent grounding](turkish-intent-grounding.md) — normalize text for matching, not for model input; keep Python authoritative when importing external pipeline work.

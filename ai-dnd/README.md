@@ -72,3 +72,14 @@ python ai-dnd/live_memory_test.py
 
 Those live suites require the `qwen3:8b` model to be installed and available
 through Ollama.
+
+## AI pipeline import
+
+The uploaded `CHECKPOINT_AI_PIPELINE_V10.md` records the validation of the
+original Codex source (`game.py` SHA-256 `67be354a…`) on the original Windows
+machine. The uploaded RAR remains in `attached_assets/`. Its standalone
+`game.py` was **not** copied over this project's session and save architecture:
+intent/query/exploration grounding and narration safeguards were adapted
+into the current engine. `test_ai_pipeline_port.py` covers these behaviors
+offline. The original checkpoint's 87 semantic tests and real-Ollama smoke
+transcript were not included in the archive, so they cannot be rerun here.

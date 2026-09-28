@@ -764,6 +764,8 @@ def is_npc_dialogue_input(player_input):
         return True
     if re.search(r"\b(?:selam|merhaba|iyi günler|teşekkür|sağ ol)\b", text):
         return True
+    if re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*)\b", text):
+        return True
     return bool(re.match(
         r"^(selam|merhaba|iyi günler|teşekkür|sağ ol|korkuyorum|"
         r"sinirleniyorum|sinirliyim|üzülüyorum|üzgünüm|mutluyum|"
@@ -894,53 +896,75 @@ def known_character_answer(player_input):
 
 
 def _detect_query_type(player_input, npc_target=None):
-    """Detect query type: self, npc_identity, location, presence, or None."""
-    text = player_input.casefold().strip()
-
-    # Self queries - only explicit first-person references
-    if any(phrase in text for phrase in (
+    """Ground questions in known entities, not in an ambient NPC alone."""
+    world_state = _session().world_state
+    text = _normalize_turkish_typos(player_input)
+    self_phrases = (
         "ben kimim", "karakterim kim", "kim oynuyorum",
         "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne",
         "hangi sınıfım", "sınıfım ne", "hangi class",
         "hangi ırktayım", "ırkım ne", "hangi ırkım",
-        "seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim"
-    )):
+        "seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim",
+    )
+    if any(_normalize_turkish_typos(phrase) in text for phrase in self_phrases):
         return "self"
-
-    # Location queries
-    if any(phrase in text for phrase in (
-        "buranın adı ne", "bu yerin adı ne", "bu yerin ismi ne",
-        "neredeyim", "şu an neredeyim", "hangi yerdeyim"
-    )):
-        return "location"
-
-    # Presence queries
-    if any(phrase in text for phrase in (
-        "burada kim var", "burada kimler var", "etrafta kim var",
-        "kimler burada", "bu odada kim var"
-    )):
+    if re.search(r"\bkim(?:ler)?\b.{0,48}\b(?:var|bulun\w*|bekl\w*|dur\w*)\b", text) or \
+            re.search(r"\bkimler\s+(?:burada|etrafta)\b", text):
         return "presence"
-
-    # NPC identity queries (when there's an active NPC context)
-    if npc_target and any(phrase in text for phrase in (
-        "adın ne", "ismin ne", "senin adın ne", "senin ismin ne",
-        "kimsin", "adın ne?", "ismin ne?"
-    )):
-        return "npc_identity"
-
+    asks_name = bool(re.search(r"\b(?:ad(?:i|in)|ism(?:i|in))\s+(?:ne|nedir)\b", text))
+    location_query = any(_normalize_turkish_typos(phrase) in text for phrase in (
+        "neredeyim", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
+    )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text))
+    location_id = _location_reference_in_text(player_input)
+    explicit_npcs = [
+        npc for npc in active_npcs()
+        if _entity_reference_in_text(npc.get("name", ""), player_input)
+        or _entity_reference_in_text(npc.get("role", ""), player_input)
+    ]
+    location_phrase = bool(re.search(
+        r"\b(?:buranin|bu\s+mekanin|bu\s+yerin|bulundugum\s+yerin)\b", text
+    ))
+    if location_query or (asks_name and (location_phrase or location_id)):
+        return "location"
+    if asks_name or re.search(r"\b(?:kim|kimsin)\b", text):
+        if len(explicit_npcs) == 1:
+            return "npc_identity"
+        if not explicit_npcs and not location_id and not location_phrase and npc_target in active_npcs():
+            return "npc_identity"
+        if not explicit_npcs and not location_id and not location_phrase and not npc_target:
+            # A known conversational target may be recovered by the action layer,
+            # but this classifier cannot invent an NPC from a bare question.
+            return None
     return None
+
+
+def _detect_explore_type(player_input):
+    """Distinguish ordinary looking from an investigative search."""
+    text = _normalize_turkish_typos(player_input)
+    if _detect_query_type(player_input):
+        return None
+    neighborhood = bool(re.search(r"\b(?:etraf\w*|cevre\w*|bura\w*|yakin\w*|ortam\w*)\b", text))
+    look = bool(re.search(r"\b(?:ne|neler|nasil|bak\w*|gor\w*|goz\s+at\w*|suz\w*|kolacan\w*|incele\w*|arastir\w*)\b", text))
+    if not (neighborhood and look) and not re.search(r"\bne\s+gor\w*\b", text):
+        return None
+    if re.search(r"\b(?:incele\w*|arastir\w*|analiz\w*|ipuclar\w*|izleri\s+ara\w*|gizli\w*\s+ara\w*)\b", text):
+        return "inspect" if re.search(r"\b(?:incele\w*|analiz\w*)\b", text) else "search"
+    return "observe"
 
 
 def _handle_query(player_input, query_type, npc_target=None):
     """Handle the detected query type and return response or None."""
+    world_state = _session().world_state
     if query_type == "self":
         return known_character_answer(player_input)
 
     if query_type == "location":
-        return f"Bulunduğun yer: {location_display_name()}."
+        location_id = _location_reference_in_text(player_input) or world_state.get("location")
+        return f"Bulunduğun yer: {location_display_name(location_id)}."
 
     if query_type == "presence":
-        npcs = active_npcs()
+        location_id = _location_reference_in_text(player_input) or world_state.get("location")
+        npcs = active_npcs(location_id)
         if npcs:
             names = [f"{npc['name']} ({npc['role']})" for npc in npcs]
             return f"Burada şunlar var: {', '.join(names)}."
@@ -1493,7 +1517,14 @@ def _has_unregistered_person_name(value, extra_names=()):
     allowed.update(feature.get("name", "").casefold() for feature in world_state["features"])
     # Turkish possessive suffixes mark proper names clearly (for example, "Elias'ın").
     for match in re.finditer(r"\b([A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,})['’][a-zçğıöşü]+\b", value):
-        if match.group(1).casefold() not in allowed:
+        possessive_word = match.group(1).casefold()
+        preceding = value[:match.start()].casefold().rstrip()
+        is_registered_name_end = any(
+            entity.endswith(" " + possessive_word)
+            and preceding.endswith(entity[:-(len(possessive_word) + 1)])
+            for entity in allowed if " " in entity
+        )
+        if possessive_word not in allowed and not is_registered_name_end:
             return True
     return False
 
@@ -1983,21 +2014,19 @@ def merge_world_updates(updates):
 
 def resolve_npc_reference(player_input):
     world_state = _session().world_state
-    text = player_input.casefold()
+    text = _normalize_turkish_typos(player_input)
     available = active_npcs()
     matches = []
     for npc in available:
-        name = npc.get("name", "").casefold()
-        role = npc.get("role", "").casefold()
-        name_match = bool(name and re.search(rf"(?<![\w]){re.escape(name)}(?=$|[^\w]|['’])", text))
-        role_match = bool(role and re.search(rf"(?<![\w]){re.escape(role)}", text))
-        mentions_bartender = bool(re.search(r"\b(?:barmen|barmene|barmeni|barman|bartender)\b", text))
-        is_bartender_role = any(term in role for term in ("barmen", "barman", "bartender", "barmaid", "barın görevlisi", "bar görevlisi"))
-        if mentions_bartender and is_bartender_role:
-            role_match = True
+        name_match = _entity_reference_in_text(npc.get("name", ""), text)
+        role_match = _entity_reference_in_text(npc.get("role", ""), text)
         if name_match or role_match:
             matches.append(npc)
-    if not matches and (is_npc_dialogue_input(player_input) or re.search(
+    explicit_unresolved_reference = bool(re.search(
+        r"\b[\wçğıöşü]+(?:la|le|dan|den|tan|ten|a|e)\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
+        player_input.casefold(),
+    ))
+    if not matches and not explicit_unresolved_reference and (is_npc_dialogue_input(player_input) or re.search(
         r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text
     )):
         flags = world_state.setdefault("flags", {})
@@ -2263,7 +2292,36 @@ def _location_alias_values(location):
         return []
     values = [location.get("name", "")]
     values.extend(location.get("aliases", []))
-    return [" ".join(value.casefold().split()) for value in values if isinstance(value, str) and value.strip()]
+    return [_normalize_turkish_typos(value) for value in values if isinstance(value, str) and value.strip()]
+
+
+def _reference_token_matches(reference_token, input_token):
+    reference_token = _normalize_turkish_typos(reference_token)
+    input_token = _normalize_turkish_typos(input_token)
+    if reference_token == input_token:
+        return True
+    case_endings = (
+        "larindan", "lerinden", "larina", "lerine", "larinda", "lerinde",
+        "larini", "lerini", "ndan", "nden", "ntan", "nten", "dan", "den",
+        "tan", "ten", "yla", "yle", "lar", "ler", "la", "le", "ya", "ye",
+        "na", "ne", "da", "de", "ta", "te", "nin", "nun", "in", "un",
+        "i", "u", "a", "e",
+    )
+    return any(input_token.endswith(suffix) and input_token[:-len(suffix)] == reference_token
+               for suffix in case_endings)
+
+
+def _entity_reference_in_text(reference, text):
+    """Match a complete name, allowing Turkish case endings."""
+    reference_words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(reference))
+    text_words = re.findall(r"[a-z0-9]+", _normalize_turkish_typos(text))
+    if not reference_words or len(text_words) < len(reference_words):
+        return False
+    return any(
+        all(_reference_token_matches(ref_word, text_words[start + offset])
+            for offset, ref_word in enumerate(reference_words))
+        for start in range(len(text_words) - len(reference_words) + 1)
+    )
 
 
 def resolve_location_reference(reference):
@@ -2271,16 +2329,13 @@ def resolve_location_reference(reference):
     world_state = _session().world_state
     if not isinstance(reference, str) or not reference.strip():
         return None
-    normalized = " ".join(reference.casefold().replace("’", "'").split()).strip(" .,!?:;\"'")
+    normalized = _normalize_turkish_typos(reference)
     locations = world_state.get("locations", {})
     if normalized in locations:
         return normalized
     for location_id, location in locations.items():
         for alias in _location_alias_values(location):
-            if normalized == alias or re.fullmatch(
-                re.escape(alias) + r"(?:['’]?(?:ya|ye|da|de|dan|den|ta|te|ın|in|un|ün|a|e|ı|i|u|ü))?",
-                normalized,
-            ):
+            if normalized == alias or (len(alias.split()) == 1 and _entity_reference_in_text(alias, normalized)):
                 return location_id
     return None
 
@@ -2291,8 +2346,7 @@ def _location_reference_in_text(text):
         return None
     for location_id, location in world_state.get("locations", {}).items():
         for alias in sorted(_location_alias_values(location), key=len, reverse=True):
-            pattern = r"(?<![\w])" + re.escape(alias) + r"(?:['’]?(?:ya|ye|da|de|dan|den|ta|te|ın|in|un|ün|a|e|ı|i|u|ü))?(?![\w])"
-            if re.search(pattern, text.casefold()):
+            if _entity_reference_in_text(alias, text):
                 return location_id
     return None
 
@@ -2388,6 +2442,8 @@ INTENT_SCHEMA = {
         },
         "completion": {"type": "string", "enum": ["intended", "completed", "unclear"]},
         "confidence": {"type": "number"},
+        "query_type": {"type": "string", "enum": ["self", "location", "presence", "npc_identity"]},
+        "explore_type": {"type": "string", "enum": ["observe", "inspect", "search"]},
     },
     "required": ["intent", "action", "target", "completion", "confidence"],
     "additionalProperties": False,
@@ -2447,8 +2503,11 @@ def parse_player_intent(player_input):
     prompt = (
         "Oyuncunun yalnızca mevcut mesajındaki niyeti sınıflandır. Hikâye yazma, zar/DC/sonuç belirleme, "
         "dünya veya karakter state'i değiştirme. Sadece schema'daki JSON'u döndür. "
-        "intent değerleri: narrative, travel, dialogue, observe, perception, investigation, stealth, attack, "
+        "intent değerleri: narrative, travel, query, explore, dialogue, observe, perception, investigation, stealth, attack, "
         "combat, inventory, interact, door, search, rest, use_item, unknown. "
+        "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
+        "Çevreye sıradan bakış explore_type=observe; ayrıntılı inceleme inspect; ipucu/nesne arama search olur. "
+        "Bir konum adının veya 'var' kelimesinin geçmesi tek başına seyahat değildir. "
         "Kibar soru, selam veya duygu dialogue/narrative olur; kendiliğinden skill check değildir. "
         "Duyularla fark etme perception; sistemli inceleme investigation; saklanma stealth. "
         "Yalnızca gerçekten seyahat etmeyi belirten eylem travel olur. 'X'e gitmek istiyorum' completion=intended; "
@@ -2477,11 +2536,14 @@ def parse_player_intent(player_input):
 
 
 def _has_travel_language(player_input):
-    if re.search(r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|dönmüyorum|dönme)\b", str(player_input).casefold()):
+    text = _normalize_turkish_typos(player_input)
+    if re.search(r"\b(?:gitmiyorum|gitme|gitmek istemiyorum|donmuyorum|donme)\b", text):
+        return False
+    if re.search(r"\b(?:ne|neler|kim|kimler)\b.{0,32}\bvar\b", text):
         return False
     return bool(re.search(
-        r"\b(?:git|gitmek|gid\w*|dön\w*|ulaş\w*|var\w*|gir\w*|geç\w*|ilerle\w*)\b",
-        str(player_input).casefold(),
+        r"\b(?:git\w*|gid\w*|don\w*|ulas\w*|var(?:iyorum|iyorsun|iyor|iyoruz|iyorlar|dim|din|dik|diniz|dilar|acak\w*|mak|maya)|gir\w*|gec\w*|ilerl\w*|yuru\w*)\b",
+        text,
     ))
 
 
@@ -2501,29 +2563,13 @@ def _travel_completion(player_input, model_completion="unclear"):
 
 
 def _normalize_turkish_typos(text):
-    """Normalize common Turkish typos/colloquialisms for matching."""
-    # Common Turkish colloquialisms and typos
-    typo_map = {
-        "nerdeyim": "neredeyim",
-        "nerdeym": "neredeyim",
-        "nerde": "nerede",
-        "tavernaya": "taverna",  # accusative -> base form for matching
-        "tavernaya": "tavernaya",  # keep for matching but we need base form
-        "ormana": "orman",
-        "tavernaya": "taverna",
-        "şehre": "şehir",
-        "köye": "köy",
-        "orman": "orman",
-        "taverna": "taverna",
-        "barmen": "barmen",
-        "barmene": "barmen",
-        "barmän": "barmen",
-    }
-    text = text.lower().strip()
-    for typo, correct in typo_map.items():
-        if typo in text:
-            text = text.replace(typo, correct)
-    return text
+    """Accent-fold for matching only; retain the original wording for Qwen."""
+    text = str(text).casefold().translate(str.maketrans({
+        "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
+    }))
+    text = re.sub(r"[’'`]+", " ", text)
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
+    return " ".join(text.split())
 
 
 def normalize_intent(raw_intent, player_input):
@@ -2549,20 +2595,31 @@ def normalize_intent(raw_intent, player_input):
     except (TypeError, ValueError):
         confidence = 0.0
 
-    # Apply typo normalization for matching
+    # Normalize only for matching; preserve the player's original wording.
     normalized_input = _normalize_turkish_typos(player_input)
-    
+    query_type = raw_intent.get("query_type")
+    if query_type not in {"self", "location", "presence", "npc_identity"}:
+        query_type = None
+    explore_type = raw_intent.get("explore_type")
+    if explore_type not in {"observe", "inspect", "search"}:
+        explore_type = None
+    detected_query = _detect_query_type(player_input)
+    detected_explore = _detect_explore_type(player_input)
+    if detected_query:
+        intent_type, query_type, explore_type = "query", detected_query, None
+    elif detected_explore:
+        intent_type, explore_type, query_type = "explore", detected_explore, None
+    elif intent_type in ("observe", "explore"):
+        intent_type, explore_type, query_type = "explore", explore_type or "observe", None
+
     known_location = _location_reference_in_text(normalized_input)
     pending = world_state.get("flags", {}).get("pending_destination")
     pending_followup = bool(pending and _has_travel_language(normalized_input) and re.search(
-        r"\b(?:oraya|orada|içeri|içeriye|hedefe)\b", normalized_input
+        r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", normalized_input
     ))
-    reference_mentioned = bool(reference and re.search(
-        rf"(?<![\w]){re.escape(reference.casefold())}(?:['’][\w]+)?(?![\w])",
-        normalized_input,
-    ))
-    if is_ordinary_environment_look(normalized_input):
-        intent_type = "observe"
+    reference_mentioned = bool(reference and _entity_reference_in_text(reference, player_input))
+    if intent_type in {"query", "explore"}:
+        pass
     elif known_location and _has_travel_language(normalized_input):
         intent_type = "travel"
         target_type = "location"
@@ -2574,51 +2631,40 @@ def normalize_intent(raw_intent, player_input):
         target_type = "location"
         reference = str(pending)
 
-    deterministic = deterministic_check_for_action(normalized_input)
+    deterministic = deterministic_check_for_action(player_input)
     if deterministic and deterministic.get("action_type") == "check":
         skill = deterministic.get("skill")
         category = {"Stealth": "stealth", "Perception": "perception", "Investigation": "investigation"}.get(skill)
         if category:
             intent_type = category
         else:
-            intent_type = "door" if re.search(r"kapı|kilit", normalized_input) else "interact"
+            intent_type = "door" if re.search(r"kapı|kilit", player_input.casefold()) else "interact"
 
-    if intent_type == "unknown" and is_npc_dialogue_input(normalized_input):
+    if intent_type == "unknown" and is_npc_dialogue_input(player_input):
         intent_type = "dialogue"
-    completion = _travel_completion(player_input, raw_intent.get("completion", "unclear"))
-    return {
+    completion = _travel_completion(player_input, raw_intent.get("completion", "unclear")) if intent_type == "travel" else "unclear"
+    normalized = {
         "intent": intent_type,
         "action": str(raw_intent.get("action", ""))[:100],
         "target": {"type": target_type, "reference": reference},
         "completion": completion,
         "confidence": confidence,
     }
+    if query_type:
+        normalized["query_type"] = query_type
+    if explore_type:
+        normalized["explore_type"] = explore_type
+    return normalized
 
 
 def _normalize_turkish_location(text, reference):
-    """Normalize Turkish location references for matching (case/accent/case-endings)."""
-    text = text.casefold()
-    ref = reference.casefold()
-    # Common Turkish case endings that should match the base form
-    # accusative: -(y)ı/-(y)i/-(y)u/-(y)ü -> e.g., tavern -> tavernayı, orman -> ormanı
-    # dative: -(y)a/-(y)e -> e.g., tavern -> tavernaya, orman -> ormana
-    # locative: -de/-da -> e.g., tavern -> tavernada
-    # ablative: -den/-dan -> e.g., tavernadan
-    
-    # Direct match
-    if ref in text:
-        return True
-    # Match with common case endings
-    for suffix in ("ı", "i", "u", "ü", "ya", "ye", "da", "de", "dan", "den", "ya", "ye"):
-        if ref + suffix in text:
-            return True
-    # Also try without last vowel for harmony
-    if len(ref) > 2:
-        base = ref[:-1]
-        for suffix in ("ı", "i", "u", "ü", "ya", "ye", "da", "de", "dan", "den"):
-            if base + suffix in text:
-                return True
-    return False
+    """Ground a model location target in complete player words."""
+    world_state = _session().world_state
+    location_id = resolve_location_reference(reference)
+    if location_id:
+        location = world_state.get("locations", {}).get(location_id, {})
+        return any(_entity_reference_in_text(alias, text) for alias in _location_alias_values(location))
+    return _entity_reference_in_text(reference, text)
 
 
 def validate_intent(intent, player_input):
@@ -2638,10 +2684,30 @@ def validate_intent(intent, player_input):
         target_type = "none"
     valid = dict(intent)
     valid["target"] = {"type": target_type, "reference": reference}
+    detected_query = _detect_query_type(player_input)
+    detected_explore = _detect_explore_type(player_input)
+    if detected_query:
+        valid.update(intent="query", query_type=detected_query, completion="unclear")
+        valid.pop("explore_type", None)
+        return valid
+    if detected_explore:
+        valid.update(intent="explore", explore_type=detected_explore, completion="unclear")
+        valid.pop("query_type", None)
+        return valid
+    if valid["intent"] == "query":
+        if valid.get("query_type") not in {"self", "location", "presence", "npc_identity"}:
+            valid["intent"] = "narrative"
+        valid["completion"] = "unclear"
+        return valid
+    if valid["intent"] in {"explore", "observe"}:
+        subtype = valid.get("explore_type", "observe")
+        valid.update(intent="explore", explore_type=subtype if subtype in {"observe", "inspect", "search"} else "observe", completion="unclear")
+        valid.pop("query_type", None)
+        return valid
     if valid["intent"] == "travel":
         text = str(player_input).casefold()
         pending = world_state.get("flags", {}).get("pending_destination")
-        pending_followup = bool(pending and re.search(r"\b(?:oraya|orada|içeri|içeriye|hedefe)\b", text))
+        pending_followup = bool(pending and re.search(r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", _normalize_turkish_typos(text)))
         if not (_has_travel_language(player_input) or pending_followup):
             valid["intent"] = "dialogue" if is_npc_dialogue_input(player_input) else "narrative"
         elif not reference and not pending_followup:
@@ -2864,8 +2930,28 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
     text = narration.casefold()
     input_text = player_input.casefold()
     action_outcome = (action_result or {}).get("outcome")
-    if re.search(rf"(?<![a-zçğıöşü]){re.escape(_session().character['name'].casefold())}(?![a-zçğıöşü])", text):
-        return True
+    character_name_pattern = rf"(?<![a-zçğıöşü]){re.escape(_session().character['name'].casefold())}(?![a-zçğıöşü])"
+    character_name_matches = list(re.finditer(character_name_pattern, text))
+    if character_name_matches:
+        travel_result = (
+            (action_result or {}).get("action") == "travel"
+            and (action_result or {}).get("status") == "completed"
+            and (action_result or {}).get("success") is True
+        )
+        if not travel_result or len(character_name_matches) != 1:
+            return True
+        match = character_name_matches[0]
+        arrival_clause = re.split(r"[,;.!?]", text[match.end():], maxsplit=1)[0]
+        current_location = world_state.get("location")
+        record = world_state.get("locations", {}).get(current_location, {})
+        aliases = _location_alias_values(record) or [_normalize_turkish_typos(location_display_name(current_location))]
+        location_pattern = "|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True))
+        committed_arrival = bool(location_pattern) and re.fullmatch(
+            rf"(?:{location_pattern})\w*\s+(?:ulas\w*|var\w*|gir\w*|gel\w*)",
+            _normalize_turkish_typos(arrival_clause),
+        )
+        if not committed_arrival:
+            return True
     if re.search(r"\b(eğer|belki|istersen|dilersen|açtıysan|başardıysan)\b", text):
         return True
 
@@ -2878,12 +2964,36 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
         r"dınız|diniz|dunuz|dünüz|tınız|tiniz|tunuz|tünüz|"
         r"sınız|siniz|sunuz|sünüz|acaksın|eceksin)\b"
     )
-    for match in second_person_verb.finditer(text):
+    player_action_text = text
+    if npc_target:
+        quotes = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|\'[^\']*\'')
+        player_action_text = quotes.sub(lambda quoted: " " * len(quoted.group(0)), text)
+    for match in second_person_verb.finditer(player_action_text):
         if match.group(1) not in input_text:
-            return True
+            normalized_verb = _normalize_turkish_typos(match.group(0))
+            travel_result = (
+                (action_result or {}).get("action") == "travel"
+                and (action_result or {}).get("status") == "completed"
+                and (action_result or {}).get("success") is True
+            )
+            observe_result = (
+                (action_result or {}).get("action") == "explore"
+                and (action_result or {}).get("status") == "resolved"
+                and (action_result or {}).get("explore_type") == "observe"
+            )
+            perceptual = observe_result and (
+                normalized_verb.startswith(("gor", "duy", "isit", "sez", "algila", "gozlemle"))
+                or (normalized_verb.startswith(("ede", "edi")) and text[:match.start()].rstrip().endswith("fark"))
+            )
+            committed_step = normalized_verb.startswith("at") and re.search(r"\badım\s*$", text[:match.start()])
+            if not (travel_result and (
+                normalized_verb.startswith(("ulas", "var", "gir", "git", "yuru", "gec", "ilerle", "don", "yaklas"))
+                or committed_step
+            )) and not perceptual:
+                return True
     if re.search(r"\bsana\b.{0,35}hissettir(?:iyor|ir|di)", text):
         return True
-    if re.search(r"\b(?:birlikte\s+)?otur\w*\b", text) and "otur" not in input_text:
+    if re.search(r"\bbirlikte\s+otur\w*\b", text) and "otur" not in input_text:
         return True
     if re.search(r"\b(?:seni|sana)\b.{0,50}\b(?:oturt\w*|içir\w*|yedir\w*|giydir\w*|aldır\w*|kaldır\w*)\b", text):
         return True
@@ -2911,6 +3021,7 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
                 return True
 
     registered_names = {npc.get("name", "").casefold() for npc in world_state["npcs"]}
+    registered_name_tokens = {part for name in registered_names for part in name.split()}
     known_places = {str(world_state.get("location", "")).casefold()}
     for location in world_state.get("locations", {}).values():
         known_places.update(alias.casefold() for alias in _location_alias_values(location))
@@ -2923,7 +3034,10 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
     )
     for pattern in name_patterns:
         for match in re.finditer(pattern, narration):
-            if match.group(1).casefold() not in registered_names | known_places:
+            quote_prefix = narration[:match.start()].rstrip()
+            if match.group(1).casefold() == "bir" and quote_prefix.endswith(("'", "’", '"', "“", "‘")):
+                continue
+            if match.group(1).casefold() not in registered_names | registered_name_tokens | known_places:
                 return True
     if _has_unregistered_person_name(narration):
         return True
@@ -2940,7 +3054,8 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
         "sandalye", "şömine", "masa", "müşteri", "müzisyen", "garson", "kitap",
         "sandık", "gizli oda", "gizli geçit", "hayvan", "köpek", "kedi", "at"
     ):
-        if term in text and term not in input_text and term not in known_facts:
+        item_pattern = r"\bat(?:lar|ler|ı|i|u|ü|ın|in|un|ün|a|e|ta|te|da|de)?\b" if term == "at" else rf"\b{re.escape(term)}\w*\b"
+        if re.search(item_pattern, text) and term not in input_text and term not in known_facts:
             sensory_atmosphere = term in ("kahve", "bira", "şarap", "yemek") and bool(re.search(
                 rf"(?:{re.escape(term)}\w*.{{0,24}}(?:kok\w*|aroma\w*|ses\w*)|(?:kok\w*|aroma\w*|ses\w*).{{0,24}}{re.escape(term)}\w*)",
                 text,
@@ -3007,6 +3122,11 @@ def is_player_world_assertion(player_input):
         r"\b(?:çantamda|envanterimde)\b.{0,50}\b(?:altın|kılıç|eşya|potion)\b",
         r"\b(?:öldü|öldürüldü|hayatını kaybetti)\b",
         r"\böldürdüm\b",
+        r"\b(?:karşımda|karsımda|önümde|onumde)\s+.{1,40}\b(?:var|duruyor|bekliyor)\b",
+        r"\bburada\s+(?:\d+|bir|iki|üç|uc|dört|dort|beş|bes|altı|alti|yedi|sekiz|dokuz|on)\s+(?:asker|haydut|muhafız|kisi|kişi)\b",
+        r"\b\w+\s+gör(?:üyorum|uyorum|dum|düm)\b",
+        r"\b(?:adı|ismi)\s+[A-ZÇĞİÖŞÜ][\w-]+\b",
+        r"\b\w+(?:in|ın|un|ün)\s+(?:adı|ismi)\s+(?!ne\b)[\w-]+\b",
     )
     return is_npc_historical_claim(player_input) or any(re.search(pattern, text) for pattern in patterns)
 
@@ -3163,7 +3283,10 @@ def ask_dungeon_master(
         "create_locations yalnızca Python henüz bilinmeyen bir seyahat hedefi için izin verdiyse kullanılır; "
         "location ID üretme, bunu Python yapar. "
         "onaylanmadan narration içinde kullanma. Yeni NPC'ler için her gerekli alanı doldur, mevcut NPC'nin ID'sini koru. "
-        "NPC kişiliğini, görünüşünü, rolünü, bilgisini ve sınırlı belleğini tutarlı kullan. Kayıtlı olmayan geçmişi kesin gerçek diye uydurma. "
+        "NPC kişiliğini, görünüşünü, rolünü, bilgisini ve sınırlı belleğini tutarlı kullan. "
+        "Yeni NPC role alanı kısa, doğal ve okunabilir Türkçe bir meslek/toplumsal rol isim tamlaması olsun; "
+        "fiil kökü veya yarım kelime olmasın. Barmen, Hancı, Muhafız, Tüccar, Korucu, Rahip ve Demirci "
+        "yalnızca örnektir, sabit liste değildir. Kayıtlı olmayan geçmişi kesin gerçek diye uydurma. "
         "Oyuncu karakterinin adını anlatımda kullanma. Bir yeni NPC yeterliyse ikinci NPC oluşturma. Events çoğu turda boş dizi kalsın. "
         "Oyuncunun yapmadığı eylemi ona yaptırma veya onun adına konuşturma. NPC'ler doğal konuşabilir ve tepki verebilir. "
         "Oyuncuya istemediği içecek, yemek veya eşya sunma; onu içmeye, yemeye, almaya ya da oturmaya yönlendirme. "
@@ -3274,6 +3397,7 @@ def ask_dungeon_master(
 
 
 def _fallback_for_action_result(player_input, action_result=None):
+    world_state = _session().world_state
     result = action_result if isinstance(action_result, dict) else {}
     action = result.get("action")
     if action == "attack":
@@ -3286,6 +3410,18 @@ def _fallback_for_action_result(player_input, action_result=None):
         if status == "completed":
             return f"{place} konumuna ulaştın."
         return "Bu seyahat hedefi doğrulanamadı; konumun değişmedi."
+    if action == "explore":
+        place = location_display_name()
+        visible = [npc.get("name", "kayıtlı kişi") for npc in active_npcs()]
+        visible.extend(feature.get("name", "kayıtlı çevre özelliği") for feature in location_features())
+        visible.extend(world_state.get("ground_items_by_location", {}).get(world_state.get("location"), []))
+        door = _current_door()
+        if door:
+            state = "açık" if door.get("open") else "kilitli ve kapalı" if door.get("locked") else "kapalı"
+            visible.append(f"{door.get('name', 'Kapı')} ({state})")
+        if visible:
+            return f"{place} çevresinde kayıtlı olanlar: {', '.join(visible)}."
+        return f"{place} içinde şu an kayıtlı ayrı bir kişi, çevre özelliği veya yerde duran eşya yok."
     if result.get("direct_response"):
         return str(result["direct_response"])
     if action == "skill_check":
@@ -3724,7 +3860,7 @@ def execute_intent(intent, player_input, npc_target=None):
         return result
 
     # Handle identity/location/presence queries
-    query_type = _detect_query_type(player_input, npc_target)
+    query_type = _detect_query_type(player_input, npc_target) or intent.get("query_type")
     if query_type:
         query_response = _handle_query(player_input, query_type, npc_target)
         if query_response:
@@ -3772,6 +3908,12 @@ def execute_intent(intent, player_input, npc_target=None):
             result["state_changes"] = _changed_state_fields(before)
         return result
 
+    if intent_type == "observe":
+        intent_type = "explore"
+    explore_type = intent.get("explore_type", "observe") if intent_type == "explore" else None
+    if intent_type == "explore":
+        result.update({"action": "explore", "explore_type": explore_type, "status": "resolved", "success": True})
+
     if intent_type == "dialogue" and npc_target:
         result.update({"npc_id": npc_target.get("id"), "npc_name": npc_target.get("name")})
 
@@ -3787,6 +3929,8 @@ def execute_intent(intent, player_input, npc_target=None):
             "investigation": "Investigation",
             "search": "Investigation",
         }.get(intent_type)
+        if intent_type == "explore" and explore_type in {"inspect", "search"}:
+            inferred_skill = "Investigation"
         if inferred_skill and (
             not is_npc_dialogue_input(player_input)
             or intent_type in {"perception", "investigation", "search", "stealth"}
@@ -3816,6 +3960,9 @@ def execute_intent(intent, player_input, npc_target=None):
             "target_type": "door" if ("kapı" in player_input.casefold() or "kilit" in player_input.casefold()) else None,
         })
         _print_skill_result(check_result, difficulty)
+        return result
+
+    if intent_type == "explore":
         return result
 
     python_reply = resolve_python_world_action(player_input)

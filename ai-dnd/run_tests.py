@@ -8,6 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 TESTS = (
+    "test_ai_pipeline_port.py",
     "test_startup.py",
     "test_sessions.py",
     "test_persistence.py",
