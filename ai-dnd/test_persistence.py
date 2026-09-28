@@ -134,6 +134,52 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 
+    def test_failed_temp_sync_preserves_all_sessions_and_existing_save(self):
+        other = game.create_session(seed=37)
+        self.session.character["name"] = "Target"
+        self.session.save_game(self.path)
+        original = self.path.read_bytes()
+
+        for session, name in ((self.session, "Target"), (other, "Other")):
+            session.world_state["inventory"].append(f"{name} unsaved item")
+            session.recent_dm_narrations.append(f"{name} narration")
+            session.messages.append({"role": "user", "content": name})
+        self.session.roll_d20()
+        other.roll_stat()
+        self.assertNotEqual(self.session.serialize_game_state(), json.loads(original))
+
+        sessions = (self.session, other, game._DEFAULT_SESSION)
+        held = [
+            (session.world_state, session.character, session.recent_dm_narrations,
+             session.messages, session.rng)
+            for session in sessions
+        ]
+        held_contents = copy.deepcopy([references[:4] for references in held])
+        snapshots = [session.serialize_game_state() for session in sessions]
+        rng_states = [session.rng.getstate() for session in sessions]
+
+        with patch.object(game.os, "fsync", side_effect=OSError("sync error")) as sync, \
+                patch.object(Path, "replace") as replace:
+            with self.assertRaisesRegex(OSError, "sync error"):
+                self.session.save_game(self.path)
+        sync.assert_called_once()
+        replace.assert_not_called()
+
+        for session, references, contents, snapshot, rng_state in zip(
+                sessions, held, held_contents, snapshots, rng_states):
+            with self.subTest(session=session):
+                self.assertIs(session.world_state, references[0])
+                self.assertIs(session.character, references[1])
+                self.assertIs(session.recent_dm_narrations, references[2])
+                self.assertIs(session.messages, references[3])
+                self.assertIs(session.rng, references[4])
+                self.assertEqual(references[:4], contents)
+                self.assertEqual(session.serialize_game_state(), snapshot)
+                self.assertEqual(session.messages, contents[3])
+                self.assertEqual(session.rng.getstate(), rng_state)
+        self.assertEqual(self.path.read_bytes(), original)
+        self.assertEqual(list(self.path.parent.iterdir()), [self.path])
+
 
 if __name__ == "__main__":
     unittest.main()
