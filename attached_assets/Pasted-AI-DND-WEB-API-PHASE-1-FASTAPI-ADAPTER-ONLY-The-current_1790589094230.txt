@@ -1,0 +1,473 @@
+AI-DND WEB API PHASE 1 — FASTAPI ADAPTER ONLY
+
+The current game engine is now frozen and verified.
+
+==================================================
+PROTECTED ENGINE
+==================================================
+
+Production engine:
+
+ai-dnd/game.py
+
+Required SHA256:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+DO NOT MODIFY game.py.
+
+Before starting, verify this SHA.
+
+If it differs:
+STOP.
+
+Current verified status:
+
+- deterministic gates: 17/17 PASS
+- semantic checks: 87 PASS
+- query grounding: 24 PASS
+- narrator safety: 18 PASS
+- Combat V1: PASS
+- Combat V2: PASS
+- authoritative Combat V2: 25 PASS
+- regression: 22 PASS
+- session isolation: PASS
+- persistence: PASS
+- real qwen3:8b smoke: PASS
+- contradictions: 0
+- routing/state issues: 0
+
+Architecture invariant:
+
+PYTHON DECIDES REALITY.
+QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
+
+==================================================
+GOAL
+==================================================
+
+Build a thin FastAPI adapter around the EXISTING GameSession architecture.
+
+Do NOT build the frontend yet.
+
+Do NOT rewrite the game engine.
+
+Do NOT implement gameplay logic in the API.
+
+Do NOT implement a Node-to-Python subprocess bridge.
+
+FastAPI must import and use the Python engine directly.
+
+Target:
+
+FastAPI
+    ↓
+GameSession
+    ↓
+game.py
+    ↓
+authenticated Ollama qwen3:8b
+
+==================================================
+PHASE 1 — MAP THE ENGINE INTERFACE
+==================================================
+
+Before writing API code:
+
+Inspect the current GameSession public interface.
+
+Identify exactly:
+
+- how a GameSession is created
+- how a player turn is executed
+- where current character state lives
+- where world_state lives
+- where message history lives
+- how save/load currently works
+- how Ollama/model access is currently invoked
+- whether model/client injection already exists
+
+Report this mapping before changing architecture.
+
+Do not change game.py.
+
+==================================================
+PHASE 2 — CREATE FASTAPI LAYER
+==================================================
+
+Create a clean Python API package outside game.py.
+
+Suggested structure:
+
+ai-dnd/
+    game.py
+    api/
+        __init__.py
+        main.py
+        schemas.py
+        session_manager.py
+        serializers.py
+
+Do not move game.py.
+
+Use FastAPI + Pydantic.
+
+==================================================
+SESSION MANAGER
+==================================================
+
+The browser must never directly manipulate GameSession objects.
+
+Create an API-side session manager.
+
+Each web game gets its own session identifier.
+
+Example:
+
+Browser A -> GameSession A
+Browser B -> GameSession B
+
+They must remain fully isolated.
+
+Use a cryptographically random opaque session id such as UUID4.
+
+Do not expose Python object ids.
+
+For the first version, an in-memory session registry is acceptable.
+
+Do not introduce Redis/Postgres yet.
+
+==================================================
+MINIMUM API
+==================================================
+
+Implement:
+
+GET /api/health
+
+Response example:
+
+{
+  "status": "ok",
+  "engine": "AI-DND",
+  "model": "qwen3:8b"
+}
+
+--------------------------------------------------
+
+POST /api/sessions
+
+Creates a new GameSession.
+
+Return:
+
+{
+  "session_id": "...",
+  "state": {...}
+}
+
+--------------------------------------------------
+
+GET /api/sessions/{session_id}/state
+
+Returns canonical Python state.
+
+--------------------------------------------------
+
+POST /api/sessions/{session_id}/turn
+
+Input:
+
+{
+  "message": "etrafıma bakıyorum"
+}
+
+The API must pass the player's natural-language input to the EXISTING
+GameSession turn pipeline.
+
+It must NOT interpret gameplay itself.
+
+Return structured data approximately:
+
+{
+  "session_id": "...",
+  "narration": "...",
+
+  "state": {
+    "location": ...,
+    "character": ...,
+    "inventory": ...,
+    "npcs": ...,
+    "features": ...,
+    "combat": ...
+  }
+}
+
+Adapt the response to the ACTUAL existing engine structures.
+
+Do not invent duplicate state structures if the engine already has them.
+
+==================================================
+STATE AUTHORITY
+==================================================
+
+The client may submit only player intent/message.
+
+The browser/API client must NOT be allowed to submit authoritative values
+such as:
+
+hp
+max_hp
+inventory
+location
+npc state
+combat state
+AC
+initiative
+door state
+world flags
+
+These must come from Python only.
+
+Never implement endpoints like:
+
+POST /set-hp
+POST /set-location
+POST /inventory/add
+
+The API exposes state.
+
+It does not give the frontend authority over state.
+
+==================================================
+SERIALIZATION
+==================================================
+
+Do not return raw internal Python objects blindly.
+
+Create explicit serialization functions.
+
+Return only JSON-safe data needed by the UI.
+
+Do not expose:
+
+- model prompts
+- secrets
+- OLLAMA_PROXY_TOKEN
+- internal callable objects
+- Python object representations
+- debug internals
+
+==================================================
+OLLAMA
+==================================================
+
+Existing Replit secrets:
+
+OLLAMA_HOST
+OLLAMA_PROXY_TOKEN
+
+Do not print either value.
+
+Do not silently replace qwen3:8b.
+
+Do not switch to OpenAI or another provider.
+
+Important:
+
+The existing live smoke already knows how to create an authenticated Ollama
+connection.
+
+Inspect that implementation.
+
+Use the smallest safe adapter necessary so API-triggered GameSession turns
+can use the same authenticated Ollama service.
+
+Prefer dependency/client injection OUTSIDE game.py.
+
+Do NOT modify game.py merely to make the API work unless there is proven
+no safe adapter method.
+
+If engine modification appears necessary:
+STOP and report why before modifying it.
+
+==================================================
+CONCURRENCY SAFETY
+==================================================
+
+A single session must not process two turns simultaneously.
+
+Add API-side per-session locking.
+
+Two DIFFERENT sessions may run independently.
+
+Do not allow concurrent requests to corrupt one GameSession.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Return appropriate API errors for:
+
+unknown session
+empty message
+Ollama unavailable
+model unavailable
+engine exception
+
+Never expose Python stack traces or secrets to the browser.
+
+Log useful server-side details without logging secret values.
+
+==================================================
+PHASE 3 — API TESTS
+==================================================
+
+Add tests proving:
+
+1. health endpoint works
+
+2. creating a session returns a unique session id
+
+3. two sessions receive different ids
+
+4. two sessions maintain isolated state
+
+5. state endpoint returns canonical Python state
+
+6. empty player messages are rejected
+
+7. turn endpoint invokes the existing GameSession turn pipeline
+
+8. frontend cannot directly modify HP
+
+9. frontend cannot directly modify inventory
+
+10. frontend cannot directly modify location
+
+11. frontend cannot directly modify combat state
+
+12. unknown session returns 404
+
+13. engine exceptions become safe API errors
+
+14. Ollama secrets are never included in responses
+
+15. concurrent turns in the SAME session cannot corrupt state
+
+Use mocks only for deterministic API unit tests.
+
+Do not count mocked API tests as real-model validation.
+
+==================================================
+PHASE 4 — EXISTING ENGINE REGRESSION
+==================================================
+
+After adding the API:
+
+run the full existing deterministic suite again.
+
+Expected:
+
+17/17 PASS
+
+Then verify game.py SHA again.
+
+It MUST STILL BE:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+==================================================
+PHASE 5 — REAL API -> QWEN SMOKE
+==================================================
+
+Only after deterministic API tests pass.
+
+Start FastAPI.
+
+Use the REAL API, not a direct GameSession test.
+
+Create one session through:
+
+POST /api/sessions
+
+Then send these through:
+
+POST /api/sessions/{id}/turn
+
+1. "tavernaya gidiyorum"
+2. "şöyle bi etrafa bakalım"
+3. "burda kimler var"
+4. if a canonical NPC exists, speak naturally to it
+5. "senin adın ne?"
+6. "nerdeyim"
+
+This test must travel through:
+
+HTTP request
+-> FastAPI
+-> session manager
+-> GameSession
+-> game.py
+-> real qwen3:8b
+-> response
+-> HTTP JSON
+
+Verify:
+
+- real qwen3:8b used
+- no mock parser
+- no fake model
+- state stays canonical
+- narration returned correctly
+- no API/state contradiction
+
+==================================================
+DO NOT DO YET
+==================================================
+
+Do NOT:
+
+- build React UI
+- build HTML UI
+- redesign current Express app
+- add PostgreSQL
+- start Combat V3
+- refactor game.py
+- alter narrator safety
+- fix the single player-name narration fallback
+- add multiplayer
+- add authentication/accounts
+- add monetization
+- add websocket streaming
+
+Those are later phases.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return:
+
+1. game.py SHA before work
+2. mapped GameSession interface
+3. files added
+4. production files modified
+5. API routes created
+6. session manager design
+7. state serialization design
+8. Ollama authenticated adapter approach
+9. API test results
+10. existing deterministic suite result
+11. real HTTP -> qwen smoke result
+12. session isolation result
+13. concurrency protection result
+14. game.py SHA after work
+15. game.py unchanged YES/NO
+16. secrets exposed anywhere YES/NO
+17. remaining issues
+18. recommended next frontend step
+
+DO NOT BUILD FRONTEND YET.
+DO NOT MODIFY GAME.PY.
+DO NOT START COMBAT V3.

@@ -1,0 +1,1 @@
+"""FastAPI adapter for the AI-DND session engine."""
