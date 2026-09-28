@@ -53,7 +53,7 @@ class CombatV2(unittest.TestCase):
         original_roll = G['roll_d20']
         G['roll_d20'] = lambda: next(attack_values)
         try:
-            with patch.object(G['random'], 'randint', side_effect=damage_roll):
+            with patch.object(G['_DEFAULT_SESSION'].rng, 'randint', side_effect=damage_roll):
                 yield
                 sentinel = object()
                 self.assertIs(next(attack_values, sentinel), sentinel, 'Unused d20 values')

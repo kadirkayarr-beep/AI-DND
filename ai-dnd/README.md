@@ -21,6 +21,29 @@ Saving replaces the chosen slot; loading replaces the current session.
 Saves include character, world state, NPC memories, and recent narration.
 They are local JSON files, not tamper-proof or signed saves.
 
+## Independent adventures
+
+Imported callers can create independent adventures without changing the
+terminal's default game:
+
+```python
+import game
+
+first = game.create_session(seed=42)
+second = game.create_session(seed=99)
+result = game.execute_intent({"intent": "attack"}, "Gobline saldır", session=first)
+first.save_game("saves/first.json")
+```
+
+Each session owns its character dictionary, world, recent narrations, chat
+messages, and random generator. Helpers accept `session=`; bound calls such as
+`first.run_player_turn("Etrafa bak")` select the same session for nested rules.
+Calls without a session keep using the terminal's default adventure, including
+legacy character globals and caller-held world/narration references.
+Loading preserves the top-level character/world/history containers; nested
+world records may be replaced. Saves remain version 1; random-generator state
+and chat messages are not included in that format.
+
 ## Verify
 
 ```bash

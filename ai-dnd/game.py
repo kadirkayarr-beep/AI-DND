@@ -6,6 +6,10 @@ import copy
 from pathlib import Path
 import os
 import tempfile
+import contextvars
+import functools
+import sys
+import types
 
 
 def ollama_response_content(response):
@@ -25,6 +29,7 @@ def ollama_response_content(response):
 # =========================================================
 
 def roll_d20():
+    random = _session().rng
     return random.randint(1, 20)
 
 
@@ -33,6 +38,7 @@ def get_modifier(stat):
 
 
 def roll_stat():
+    random = _session().rng
     rolls = [random.randint(1, 6) for _ in range(4)]
     rolls.remove(min(rolls))
     return sum(rolls)
@@ -453,6 +459,7 @@ def create_random_character():
     Testleri hızlandırmak için tamamen random karakter oluşturur.
     """
 
+    random = _session().rng
     name = random.choice(RANDOM_NAMES)
     race = random.choice(RACES)
     character_class = random.choice(CLASSES)
@@ -841,6 +848,7 @@ def deterministic_check_for_action(player_input):
 
 def known_player_action_narration(player_input):
     """Narrate common explicit actions without asking the model to control the hero."""
+    world_state = _session().world_state
     text = player_input.casefold().strip()
     npc_name = _current_npc_name()
     location = location_display_name()
@@ -875,13 +883,13 @@ def known_character_answer(player_input):
         return None
     facts = []
     if asks_identity or asks_name_self:
-        facts.append(f"Adın {character_name}")
+        facts.append(f"Adın {_session().character['name']}")
     if asks_race:
-        facts.append(f"ırkın {character_race}")
+        facts.append(f"ırkın {_session().character['race']}")
     if asks_class:
-        facts.append(f"sınıfın {character_class}")
+        facts.append(f"sınıfın {_session().character['class']}")
     if asks_level:
-        facts.append(f"seviyen {level}")
+        facts.append(f"seviyen {_session().character['level']}")
     return "; ".join(facts) + "."
 
 
@@ -946,6 +954,7 @@ def _handle_query(player_input, query_type, npc_target=None):
 
 def resolve_python_world_action(player_input):
     """Resolve explicit world interactions and reject unsupported assertions safely."""
+    world_state = _session().world_state
     text = player_input.casefold()
     door = _current_door()
 
@@ -1185,26 +1194,28 @@ SAVE_FORMAT_VERSION = 1
 
 def _player_state_for_save():
     return {
-        "name": character_name,
-        "race": character_race,
-        "class": character_class,
-        "strength": strength,
-        "dexterity": dexterity,
-        "constitution": constitution,
-        "intelligence": intelligence,
-        "wisdom": wisdom,
-        "charisma": charisma,
-        "proficient_skills": list(proficient_skills),
-        "level": level,
-        "proficiency_bonus": proficiency_bonus,
-        "max_hp": max_hp,
-        "current_hp": current_hp,
-        "armor_class": armor_class,
+        "name": _session().character["name"],
+        "race": _session().character["race"],
+        "class": _session().character["class"],
+        "strength": _session().character["strength"],
+        "dexterity": _session().character["dexterity"],
+        "constitution": _session().character["constitution"],
+        "intelligence": _session().character["intelligence"],
+        "wisdom": _session().character["wisdom"],
+        "charisma": _session().character["charisma"],
+        "proficient_skills": list(_session().character["proficient_skills"]),
+        "level": _session().character["level"],
+        "proficiency_bonus": _session().character["proficiency_bonus"],
+        "max_hp": _session().character["max_hp"],
+        "current_hp": _session().character["current_hp"],
+        "armor_class": _session().character["armor_class"],
     }
 
 
 def serialize_game_state():
     """Return a JSON-safe, versioned snapshot of the complete game session."""
+    recent_dm_narrations = _session().recent_dm_narrations
+    world_state = _session().world_state
     return {
         "format": "ai-dnd-save",
         "version": SAVE_FORMAT_VERSION,
@@ -1308,12 +1319,8 @@ def save_game(path):
 
 def load_game(path):
     """Validate and restore a JSON snapshot without executing arbitrary code."""
-    global character_name, character_race, character_class
-    global strength, dexterity, constitution, intelligence, wisdom, charisma
-    global proficient_skills, level, proficiency_bonus, max_hp, current_hp
-    global armor_class, strength_mod, dexterity_mod, constitution_mod
-    global intelligence_mod, wisdom_mod, charisma_mod, modifiers
-
+    recent_dm_narrations = _session().recent_dm_narrations
+    world_state = _session().world_state
     source = Path(path).expanduser()
     payload = json.loads(source.read_text(encoding="utf-8"))
     _validate_save_payload(payload)
@@ -1327,35 +1334,21 @@ def load_game(path):
 
     world_state.clear()
     world_state.update(saved_world)
-    character_name = str(player["name"])
-    character_race = str(player["race"])
-    character_class = str(player["class"])
-    strength = int(player["strength"])
-    dexterity = int(player["dexterity"])
-    constitution = int(player["constitution"])
-    intelligence = int(player["intelligence"])
-    wisdom = int(player["wisdom"])
-    charisma = int(player["charisma"])
-    proficient_skills = list(player["proficient_skills"])
-    level = int(player["level"])
-    proficiency_bonus = int(player["proficiency_bonus"])
-    max_hp = int(player["max_hp"])
-    current_hp = int(player["current_hp"])
-    armor_class = int(player["armor_class"])
-    strength_mod = get_modifier(strength)
-    dexterity_mod = get_modifier(dexterity)
-    constitution_mod = get_modifier(constitution)
-    intelligence_mod = get_modifier(intelligence)
-    wisdom_mod = get_modifier(wisdom)
-    charisma_mod = get_modifier(charisma)
-    modifiers = {
-        "strength": strength_mod,
-        "dexterity": dexterity_mod,
-        "constitution": constitution_mod,
-        "intelligence": intelligence_mod,
-        "wisdom": wisdom_mod,
-        "charisma": charisma_mod,
+    character = _session().character
+    for field in ("name", "race", "class"):
+        character[field] = str(player[field])
+    for field in ("strength", "dexterity", "constitution", "intelligence",
+                  "wisdom", "charisma", "level", "proficiency_bonus",
+                  "max_hp", "current_hp", "armor_class"):
+        character[field] = int(player[field])
+    character["proficient_skills"] = list(player["proficient_skills"])
+    character["modifiers"] = {
+        ability: get_modifier(character[ability])
+        for ability in ("strength", "dexterity", "constitution",
+                        "intelligence", "wisdom", "charisma")
     }
+    for ability, modifier in character["modifiers"].items():
+        character[f"{ability}_mod"] = modifier
     recent_dm_narrations.clear()
     recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
     _normalize_ground_items()
@@ -1364,6 +1357,7 @@ def load_game(path):
 
 
 def _current_door():
+    world_state = _session().world_state
     return next(
         (door for door in world_state["doors"] if door.get("location") == world_state["location"]),
         None
@@ -1373,6 +1367,7 @@ def _current_door():
 def _normalize_ground_items():
     """Migrate legacy ground_items list to ground_items_by_location dict."""
     # Ensure ground_items_by_location exists (safe init for legacy state)
+    world_state = _session().world_state
     if not isinstance(world_state.get("ground_items_by_location"), dict):
         world_state["ground_items_by_location"] = {}
     # If already normalized (dict exists and list is empty), nothing to do
@@ -1393,6 +1388,7 @@ def _normalize_ground_items():
 
 def ensure_combat_state():
     """Normalize legacy encounter data without reviving an incapacitated player."""
+    world_state = _session().world_state
     defaults = {"active": False, "round": 0, "initiative_order": [],
                 "current_turn_index": 0, "participants": [], "target_id": None}
     combat = world_state.get("combat")
@@ -1417,7 +1413,7 @@ def ensure_combat_state():
         if type(index) is not int or not 0 <= index < len(order):
             combat["current_turn_index"] = order.index("player")
     if world_state.get("player_combat_status") not in ("active", "unconscious"):
-        world_state["player_combat_status"] = "unconscious" if globals().get("current_hp", 1) <= 0 else "active"
+        world_state["player_combat_status"] = "unconscious" if _session().character.get("current_hp", 1) <= 0 else "active"
     return combat
 
 
@@ -1437,6 +1433,7 @@ def ensure_npc_enemy_stats(npc):
 
 
 def location_features(location=None):
+    world_state = _session().world_state
     location = location or world_state["location"]
     return [feature for feature in world_state["features"] if feature.get("location") == location]
 
@@ -1449,11 +1446,13 @@ def feature_descriptions(location=None):
 
 
 def active_npcs(location=None):
+    world_state = _session().world_state
     location = location or world_state["location"]
     return [npc for npc in world_state["npcs"] if npc.get("location") == location]
 
 
 def generate_npc_id():
+    world_state = _session().world_state
     number = max(1, int(world_state.get("next_npc_number", 1)))
     existing = {npc.get("id") for npc in world_state["npcs"]}
     while f"npc_{number:03d}" in existing:
@@ -1483,9 +1482,10 @@ def _clean_world_text_list(value, item_limit=180, max_items=8):
 
 
 def _has_unregistered_person_name(value, extra_names=()):
+    world_state = _session().world_state
     if not isinstance(value, str):
         return False
-    allowed = {character_name.casefold(), *(name.casefold() for name in extra_names if isinstance(name, str))}
+    allowed = {_session().character["name"].casefold(), *(name.casefold() for name in extra_names if isinstance(name, str))}
     allowed.update(npc.get("name", "").casefold() for npc in world_state["npcs"])
     for location_id, location in world_state.get("locations", {}).items():
         allowed.add(str(location_id).casefold())
@@ -1499,6 +1499,7 @@ def _has_unregistered_person_name(value, extra_names=()):
 
 
 def validate_npc_proposal(proposal, allow_other_location=False):
+    world_state = _session().world_state
     if not isinstance(proposal, dict):
         return None
     name = _clean_world_text(proposal.get("name"), 40)
@@ -1508,7 +1509,7 @@ def validate_npc_proposal(proposal, allow_other_location=False):
         return None
     if not re.fullmatch(r"[\w .’'-]+", name, flags=re.UNICODE) or "_" in name:
         return None
-    if name.casefold() == character_name.casefold():
+    if name.casefold() == _session().character["name"].casefold():
         return None
     if location not in world_state.get("locations", {}):
         return None
@@ -1537,6 +1538,7 @@ def validate_npc_proposal(proposal, allow_other_location=False):
 
 
 def create_npc_from_ai(proposal):
+    world_state = _session().world_state
     validated = validate_npc_proposal(proposal)
     if not validated:
         return None
@@ -1572,7 +1574,7 @@ def ensure_npc_combat_stats(npc):
 
 def calculate_attack_bonus():
     """Calculate player's melee attack bonus."""
-    return strength_mod + proficiency_bonus
+    return _session().character["strength_mod"] + _session().character["proficiency_bonus"]
 
 
 def roll_attack():
@@ -1582,6 +1584,7 @@ def roll_attack():
 
 def roll_damage(damage_die, damage_dice, ability_mod):
     """Roll damage dice."""
+    random = _session().rng
     total = 0
     for _ in range(damage_dice):
         total += random.randint(1, damage_die)
@@ -1595,6 +1598,7 @@ def resolve_combat_target(player_input, npc_target=None):
     and is in the current location. Rejects forged/detached NPC dicts.
     """
     # If explicit NPC target from reference resolution, validate it
+    world_state = _session().world_state
     if npc_target:
         # Validate it's a canonical NPC from world_state
         target_id = npc_target.get("id")
@@ -1660,7 +1664,7 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
         outcome = "critical_hit"
         damage_die = WEAPONS[weapon_name]["damage_die"]
         damage_dice = WEAPONS[weapon_name]["damage_dice"] * 2
-        ability_mod = globals().get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
+        ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
         damage = roll_damage(damage_die, damage_dice, ability_mod)
     # Normal hit/miss
     elif attack_total >= target_ac:
@@ -1668,7 +1672,7 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
         critical = False
         damage_die = WEAPONS[weapon_name]["damage_die"]
         damage_dice = WEAPONS[weapon_name]["damage_dice"]
-        ability_mod = globals().get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
+        ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
         damage = roll_damage(damage_die, damage_dice, ability_mod)
     else:
         outcome = "miss"
@@ -1726,11 +1730,12 @@ def roll_initiative_npc():
 
 def roll_initiative_player():
     """Roll initiative for player."""
-    return roll_initiative(dexterity_mod)
+    return roll_initiative(_session().character["dexterity_mod"])
 
 
 def find_weapon_in_inventory(weapon_name):
     """Find a specific weapon in inventory by name/aliases."""
+    world_state = _session().world_state
     for item in world_state.get("inventory", []):
         for w_name, weapon_data in WEAPONS.items():
             if w_name.casefold() == weapon_name.casefold() or any(weapon_name.casefold() == alias.casefold() for alias in weapon_data.get("aliases", [])):
@@ -1741,6 +1746,7 @@ def find_weapon_in_inventory(weapon_name):
 
 def start_combat(player_target_npc):
     """Initialize combat state between player and target NPC."""
+    world_state = _session().world_state
     ensure_combat_state()
     
     # Roll initiatives
@@ -1772,6 +1778,7 @@ def start_combat(player_target_npc):
 
 def resolve_enemy_attack(target_npc):
     """Resolve one canonical local enemy attack, retaining exact HP values."""
+    world_state = _session().world_state
     combat = ensure_combat_state()
     canonical = resolve_combat_target("", target_npc)
     if not canonical or canonical == "ambiguous" or (combat["active"] and canonical["id"] != combat["target_id"]):
@@ -1781,27 +1788,27 @@ def resolve_enemy_attack(target_npc):
     if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "invalid_target", "damage": 0}
-    if current_hp <= 0 or world_state["player_combat_status"] == "unconscious":
+    if _session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious":
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "player_unconscious", "damage": 0}
     attack_roll = roll_d20()
     attack_bonus = target_npc["attack_bonus"]
     attack_total = attack_roll + attack_bonus
     critical = attack_roll == 20
-    hit = attack_roll != 1 and (critical or attack_total >= armor_class)
+    hit = attack_roll != 1 and (critical or attack_total >= _session().character["armor_class"])
     damage = 0
-    player_hp_before = current_hp
+    player_hp_before = _session().character["current_hp"]
     if hit:
         dice = target_npc["damage_dice"] * (2 if critical else 1)
         damage = max(1, roll_damage(target_npc["damage_die"], dice, target_npc["damage_modifier"]))
     player_hp_after = max(0, player_hp_before - damage)
-    globals()["current_hp"] = player_hp_after
+    _session().character["current_hp"] = player_hp_after
     if player_hp_after == 0:
         world_state["player_combat_status"] = "unconscious"
     return {"action": "enemy_attack", "status": "resolved", "success": hit,
             "outcome": "critical_hit" if critical else "hit" if hit else "miss",
             "actor": target_npc["id"], "target": "player", "attack_roll": attack_roll,
-            "attack_bonus": attack_bonus, "attack_total": attack_total, "target_ac": armor_class,
+            "attack_bonus": attack_bonus, "attack_total": attack_total, "target_ac": _session().character["armor_class"],
             "critical": critical, "damage": damage, "target_hp_before": player_hp_before,
             "target_hp_after": player_hp_after, "target_status": world_state["player_combat_status"]}
 
@@ -1830,11 +1837,12 @@ def advance_combat_turn():
 
 def _combat_snapshot():
     """Detached snapshot of committed encounter and player combat state."""
+    world_state = _session().world_state
     combat = ensure_combat_state()
     snapshot = {key: list(value) if isinstance(value, list) else value for key, value in combat.items()}
     snapshot.update(
-        player_current_hp=current_hp,
-        player_max_hp=max_hp,
+        player_current_hp=_session().character["current_hp"],
+        player_max_hp=_session().character["max_hp"],
         player_combat_status=world_state["player_combat_status"]
     )
     return snapshot
@@ -1876,6 +1884,7 @@ def _combat_narration(result):
 
 def validate_world_updates(updates, allow_new_npcs=False, allow_new_features=False, allow_new_locations=False):
     """Whitelist narrative state updates; mechanical state is never accepted here."""
+    world_state = _session().world_state
     if not isinstance(updates, dict):
         return {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [], "events": []}
     result = {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [], "events": []}
@@ -1947,6 +1956,7 @@ def validate_world_updates(updates, allow_new_npcs=False, allow_new_features=Fal
 
 def merge_world_updates(updates):
     """Apply only prevalidated proposals, assigning entity IDs in Python."""
+    world_state = _session().world_state
     created = []
     for proposal in updates.get("create_locations", []):
         create_location_from_proposal(proposal)
@@ -1972,6 +1982,7 @@ def merge_world_updates(updates):
 
 
 def resolve_npc_reference(player_input):
+    world_state = _session().world_state
     text = player_input.casefold()
     available = active_npcs()
     matches = []
@@ -2188,21 +2199,22 @@ def historical_claim_denial(npc):
 
 
 def build_world_context(npc_target=None):
+    world_state = _session().world_state
     _normalize_ground_items()
     npcs = active_npcs()
     if npc_target and all(npc.get("id") != npc_target.get("id") for npc in npcs):
         npcs.append(npc_target)
     context = {
         "character": {
-            "name": character_name,
-            "race": character_race,
-            "class": character_class,
-            "level": level,
+            "name": _session().character["name"],
+            "race": _session().character["race"],
+            "class": _session().character["class"],
+            "level": _session().character["level"],
         },
         "player_combat": {
-            "current_hp": current_hp,
-            "max_hp": max_hp,
-            "armor_class": armor_class,
+            "current_hp": _session().character["current_hp"],
+            "max_hp": _session().character["max_hp"],
+            "armor_class": _session().character["armor_class"],
             "combat_status": world_state.get("player_combat_status", "active"),
         },
         "combat": {
@@ -2238,6 +2250,7 @@ def build_world_context(npc_target=None):
     return context
 
 def location_display_name(location_id=None):
+    world_state = _session().world_state
     location_id = world_state.get("location") if location_id is None else location_id
     location = world_state.get("locations", {}).get(location_id)
     if location:
@@ -2255,6 +2268,7 @@ def _location_alias_values(location):
 
 def resolve_location_reference(reference):
     """Resolve a natural-language place name or alias to its Python-owned ID."""
+    world_state = _session().world_state
     if not isinstance(reference, str) or not reference.strip():
         return None
     normalized = " ".join(reference.casefold().replace("’", "'").split()).strip(" .,!?:;\"'")
@@ -2272,6 +2286,7 @@ def resolve_location_reference(reference):
 
 
 def _location_reference_in_text(text):
+    world_state = _session().world_state
     if not isinstance(text, str):
         return None
     for location_id, location in world_state.get("locations", {}).items():
@@ -2319,6 +2334,7 @@ def validate_location_proposal(proposal):
 
 
 def create_location_from_proposal(proposal):
+    world_state = _session().world_state
     validated = validate_location_proposal(proposal)
     if not validated:
         return None
@@ -2335,6 +2351,7 @@ def create_location_from_proposal(proposal):
 
 def commit_location_change(location_id):
     """Commit a location transition after Python has resolved its destination."""
+    world_state = _session().world_state
     if location_id not in world_state.get("locations", {}):
         return False
     previous_location = world_state.get("location")
@@ -2421,6 +2438,7 @@ def _extract_json_object(raw):
 
 def parse_player_intent(player_input):
     """Ask Qwen only to label the current input; it cannot read or write state."""
+    world_state = _session().world_state
     locations = [
         {"name": value.get("name"), "aliases": value.get("aliases", [])[:6]}
         for value in list(world_state.get("locations", {}).values())[:20]
@@ -2510,6 +2528,7 @@ def _normalize_turkish_typos(text):
 
 def normalize_intent(raw_intent, player_input):
     """Normalize untrusted classifier output and apply deterministic intent hints."""
+    world_state = _session().world_state
     raw_intent = raw_intent if isinstance(raw_intent, dict) else {}
     intent_type = str(raw_intent.get("intent", "unknown")).strip().casefold()
     if intent_type not in INTENT_TYPES:
@@ -2604,6 +2623,7 @@ def _normalize_turkish_location(text, reference):
 
 def validate_intent(intent, player_input):
     """Reject unsupported/mismatched intent fields before the Python rule engine."""
+    world_state = _session().world_state
     if not isinstance(intent, dict) or intent.get("intent") not in INTENT_TYPES:
         return {"intent": "unknown", "action": "", "target": {"type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.0}
     target = intent.get("target", {})
@@ -2643,6 +2663,7 @@ def validate_intent(intent, player_input):
 
 def _ensure_location_entities(location):
     """Create only Python-owned mechanical entities for a known location."""
+    world_state = _session().world_state
     predefined_doors = {
         "tavern": {
             "name": "Taverna Kapısı", "description": "Taverna giriş kapısı.",
@@ -2667,6 +2688,7 @@ def update_world_state_from_player(player_input):
 
 def update_inventory_from_player(player_input):
     """Move the explicitly named sword using Python-owned inventory state."""
+    world_state = _session().world_state
     text = player_input.casefold()
     mentions_weapon = any(token in text for token in ("kılıç", "kılıc", "silah"))
     if not mentions_weapon:
@@ -2703,6 +2725,7 @@ def update_inventory_from_player(player_input):
 
 def apply_check_outcome_to_world_state(player_input, result):
     """Resolve simple stealth/door facts in Python after the actual roll."""
+    world_state = _session().world_state
     text = player_input.casefold()
     succeeded = result["result"] in ("BAŞARILI", "KRİTİK BAŞARI")
 
@@ -2723,6 +2746,7 @@ def apply_check_outcome_to_world_state(player_input, result):
 
 
 def _current_npc_name():
+    world_state = _session().world_state
     for npc in world_state["npcs"]:
         if npc.get("location") == world_state["location"]:
             return npc.get("name")
@@ -2746,6 +2770,7 @@ def _mechanical_outcome(player_input):
 
 
 def _fallback_narration(player_input):
+    world_state = _session().world_state
     outcome = _mechanical_outcome(player_input)
     skill_match = re.search(r"(?im)^Skill:\s*(.+?)\s*$", player_input)
     skill_name = skill_match.group(1).strip() if skill_match else None
@@ -2829,6 +2854,7 @@ def _fallback_narration(player_input):
 
 
 def _narration_is_unsafe(narration, player_input, npc_target=None, action_result=None):
+    world_state = _session().world_state
     if not isinstance(narration, str) or not narration.strip():
         return True
     if (action_result or {}).get("action") == "attack":
@@ -2838,7 +2864,7 @@ def _narration_is_unsafe(narration, player_input, npc_target=None, action_result
     text = narration.casefold()
     input_text = player_input.casefold()
     action_outcome = (action_result or {}).get("outcome")
-    if re.search(rf"(?<![a-zçğıöşü]){re.escape(character_name.casefold())}(?![a-zçğıöşü])", text):
+    if re.search(rf"(?<![a-zçğıöşü]){re.escape(_session().character['name'].casefold())}(?![a-zçğıöşü])", text):
         return True
     if re.search(r"\b(eğer|belki|istersen|dilersen|açtıysan|başardıysan)\b", text):
         return True
@@ -3091,6 +3117,7 @@ def ask_dungeon_master(
     return_details=False,
 ):
     """Request one structured narration turn; apply only Python-validated lore updates."""
+    world_state = _session().world_state
     context = json.dumps(build_world_context(npc_target), ensure_ascii=False, separators=(",", ":"))
     outcome = _mechanical_outcome(player_input) or (action_result or {}).get("outcome")
     outcome_guidance = ""
@@ -3278,6 +3305,7 @@ def _fallback_for_action_result(player_input, action_result=None):
 
 def finalize_narration(narration, player_input, npc_target=None, action_result=None):
     """Sanitize narration after Python has applied every validated proposal and state change."""
+    recent_dm_narrations = _session().recent_dm_narrations
     if not isinstance(narration, str) or not narration.strip():
         narration = _fallback_for_action_result(player_input, action_result)
     narration = clean_dm_response(narration)
@@ -3316,13 +3344,7 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
     entry point calls this function interactively, while tests and other
     callers can pass a choice and receive a ready-to-use rules engine.
     """
-    global character_name, character_race, character_class
-    global strength, dexterity, constitution, intelligence, wisdom, charisma
-    global proficient_skills
-    global strength_mod, dexterity_mod, constitution_mod
-    global intelligence_mod, wisdom_mod, charisma_mod, modifiers
-    global level, proficiency_bonus, max_hp, current_hp, armor_class
-
+    world_state = _session().world_state
     interactive = creation_choice is None
     if interactive:
         print_fn("===================================")
@@ -3423,6 +3445,17 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
         constitution_mod,
         wisdom_mod,
     )
+    _session().character.update({
+        "name": character_name, "race": character_race, "class": character_class,
+        "strength": strength, "dexterity": dexterity, "constitution": constitution,
+        "intelligence": intelligence, "wisdom": wisdom, "charisma": charisma,
+        "proficient_skills": proficient_skills, "level": level,
+        "proficiency_bonus": proficiency_bonus, "max_hp": max_hp,
+        "current_hp": current_hp, "armor_class": armor_class,
+        "strength_mod": strength_mod, "dexterity_mod": dexterity_mod,
+        "constitution_mod": constitution_mod, "intelligence_mod": intelligence_mod,
+        "wisdom_mod": wisdom_mod, "charisma_mod": charisma_mod, "modifiers": modifiers,
+    })
 
     if interactive:
         print_fn()
@@ -3503,10 +3536,6 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
     }
 
 
-# Imported callers receive a valid state but no prompts or terminal output.
-initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None)
-
-
 # =========================================================
 # AI DUNGEON MASTER
 # =========================================================
@@ -3562,11 +3591,12 @@ DEBUG_MODE = False
 
 
 def _world_snapshot():
+    world_state = _session().world_state
     _normalize_ground_items()
     return {
         "combat": json.dumps(world_state.get("combat", {}), sort_keys=True),
-        "player_current_hp": current_hp,
-        "player_max_hp": max_hp,
+        "player_current_hp": _session().character["current_hp"],
+        "player_max_hp": _session().character["max_hp"],
         "player_combat_status": world_state.get("player_combat_status"),
         "location": world_state.get("location"),
         "inventory": tuple(world_state.get("inventory", [])),
@@ -3638,6 +3668,7 @@ def _print_skill_result(result, difficulty):
 
 def _commit_travel_action(action_result):
     """Resolve a proposed/known travel destination and commit only a registered ID."""
+    world_state = _session().world_state
     target_reference = action_result.get("target_reference", "")
     target_id = resolve_location_reference(target_reference)
     if not target_id:
@@ -3670,6 +3701,7 @@ def _commit_travel_action(action_result):
 
 def execute_intent(intent, player_input, npc_target=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
+    world_state = _session().world_state
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
     before = _world_snapshot()
@@ -3681,7 +3713,7 @@ def execute_intent(intent, player_input, npc_target=None):
     }
 
     combat_was_active = bool(ensure_combat_state()["active"])
-    if intent_type in {"attack", "combat"} and (current_hp <= 0 or world_state["player_combat_status"] == "unconscious"):
+    if intent_type in {"attack", "combat"} and (_session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious"):
         result.update(action="attack", success=False, outcome="player_unconscious",
                       direct_response="Bilincin kapalı; saldırı yapamazsın.")
         return _finish_combat_result(result, before)
@@ -3762,7 +3794,9 @@ def execute_intent(intent, player_input, npc_target=None):
             skill = inferred_skill
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
-        check_result = perform_skill_check(skill, dc, modifiers, proficient_skills, proficiency_bonus)
+        check_result = perform_skill_check(skill, dc, _session().character["modifiers"],
+                                           _session().character["proficient_skills"],
+                                           _session().character["proficiency_bonus"])
         apply_check_outcome_to_world_state(player_input, check_result)
         outcome = _skill_result_category(check_result.get("result"))
         result.update({
@@ -3861,7 +3895,7 @@ def execute_intent(intent, player_input, npc_target=None):
             canonical_target = next(npc for npc in world_state["npcs"] if npc["id"] == combat["target_id"])
             enemy_result = resolve_enemy_attack(canonical_target)
             result["enemy_action"] = enemy_result
-            if current_hp <= 0 or world_state["player_combat_status"] == "unconscious":
+            if _session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious":
                 end_combat("player_defeated")
                 result.update(combat_ended=True, end_reason="player_defeated")
             else:
@@ -3883,8 +3917,11 @@ def execute_intent(intent, player_input, npc_target=None):
     return result
 
 
-def run_player_turn(player_input, messages):
+def run_player_turn(player_input, messages=None):
     """Intent → rules → validated updates → committed state → narration."""
+    world_state = _session().world_state
+    if messages is None:
+        messages = _session().messages
     flags = world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
 
@@ -3992,6 +4029,125 @@ def run_player_turn(player_input, messages):
 
     narration = finalize_narration(packet.get("narration"), player_input, npc_target, action_result)
     return {"action_result": action_result, "narration": narration}
+
+
+# All mutable engine references above resolve through _session(). The wrapper
+# below provides an explicit session= argument and propagates it to nested calls.
+_ENGINE_FUNCTIONS = tuple(name for name, value in globals().items()
+                          if isinstance(value, types.FunctionType)
+                          and value.__module__ == __name__)
+_CHARACTER_GLOBALS = {
+    "character_name": "name", "character_race": "race",
+    "character_class": "class",
+    **{key: key for key in (
+        "strength", "dexterity", "constitution", "intelligence", "wisdom",
+        "charisma", "proficient_skills", "level", "proficiency_bonus",
+        "max_hp", "current_hp", "armor_class", "strength_mod",
+        "dexterity_mod", "constitution_mod", "intelligence_mod",
+        "wisdom_mod", "charisma_mod", "modifiers",
+    )},
+}
+_ACTIVE_SESSION = contextvars.ContextVar("ai_dnd_active_session", default=None)
+_DEFAULT_SESSION = None
+_LEGACY_NAMESPACE = globals()
+_LAST_EXPORTED_CHARACTER = {}
+
+
+class GameSession:
+    """Independent player, world, narration history, conversation and dice."""
+
+    def __init__(self, seed=None):
+        self.character = {}
+        self.world_state = copy.deepcopy(INITIAL_WORLD_STATE)
+        self.recent_dm_narrations = []
+        self.messages = [{"role": "system", "content": system_prompt}]
+        self.rng = random.Random(seed)
+
+    def __getattr__(self, name):
+        helper = _LEGACY_NAMESPACE.get(name)
+        if callable(helper) and getattr(helper, "_session_bound", False):
+            return functools.partial(helper, session=self)
+        raise AttributeError(name)
+
+
+def _session():
+    return _ACTIVE_SESSION.get() or _DEFAULT_SESSION
+
+
+def _import_legacy_character():
+    """Import only *changed* exec-namespace globals at a default-session boundary."""
+    for old_name, key in _CHARACTER_GLOBALS.items():
+        if old_name in _LEGACY_NAMESPACE:
+            value = _LEGACY_NAMESPACE[old_name]
+            if old_name not in _LAST_EXPORTED_CHARACTER or value != _LAST_EXPORTED_CHARACTER[old_name]:
+                _DEFAULT_SESSION.character[key] = value
+
+
+def _export_legacy_character():
+    for old_name, key in _CHARACTER_GLOBALS.items():
+        if key in _DEFAULT_SESSION.character:
+            value = _DEFAULT_SESSION.character[key]
+            _LEGACY_NAMESPACE[old_name] = value
+            _LAST_EXPORTED_CHARACTER[old_name] = copy.deepcopy(value)
+
+
+def _bind_session_engine():
+    for name in _ENGINE_FUNCTIONS:
+        implementation = _LEGACY_NAMESPACE[name]
+
+        @functools.wraps(implementation)
+        def bound(*args, __implementation=implementation, session=None, **kwargs):
+            selected = session if session is not None else _session()
+            if not isinstance(selected, GameSession):
+                raise TypeError("session must be a GameSession")
+            outermost = _ACTIVE_SESSION.get() is None
+            if outermost and selected is _DEFAULT_SESSION:
+                _import_legacy_character()
+            token = _ACTIVE_SESSION.set(selected)
+            try:
+                return __implementation(*args, **kwargs)
+            finally:
+                _ACTIVE_SESSION.reset(token)
+                if outermost and selected is _DEFAULT_SESSION:
+                    _export_legacy_character()
+
+        bound._session_bound = True
+        _LEGACY_NAMESPACE[name] = bound
+
+
+_DEFAULT_SESSION = GameSession()
+_DEFAULT_SESSION.world_state = world_state
+_DEFAULT_SESSION.recent_dm_narrations = recent_dm_narrations
+_DEFAULT_SESSION.messages = messages
+_bind_session_engine()
+initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None)
+
+
+def create_session(seed=None):
+    """Create an initialized, independent adventure; seed controls its dice."""
+    session = GameSession(seed=seed)
+    initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None,
+                    session=session)
+    return session
+
+
+if __name__ != "__main__":
+    class _GameModule(types.ModuleType):
+        def __getattribute__(self, name):
+            if name in _CHARACTER_GLOBALS:
+                return _DEFAULT_SESSION.character[_CHARACTER_GLOBALS[name]]
+            return super().__getattribute__(name)
+
+        def __setattr__(self, name, value):
+            if name in _CHARACTER_GLOBALS:
+                _DEFAULT_SESSION.character[_CHARACTER_GLOBALS[name]] = value
+                _LAST_EXPORTED_CHARACTER[name] = copy.deepcopy(value)
+            super().__setattr__(name, value)
+
+    # An exec(dict) namespace is not a module; its legacy assignments are
+    # instead imported at the next outermost default-session helper call.
+    if isinstance(sys.modules.get(__name__), types.ModuleType) and sys.modules[__name__].__dict__ is globals():
+        sys.modules[__name__].__class__ = _GameModule
 
 
 # =========================================================

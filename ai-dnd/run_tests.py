@@ -8,6 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent
 TESTS = (
+    "test_sessions.py",
     "test_persistence.py",
     "test_combat.py",
     "test_combat_v2_authoritative.py",
