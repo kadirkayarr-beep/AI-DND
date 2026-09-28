@@ -3481,7 +3481,11 @@ def ask_dungeon_master(
         "Context'teki VERIFIED NPC MEMORY yalnızca NPC'nin gerçekten önce verdiği yanıtları içerir. "
         "CURRENT PLAYER MESSAGE içindeki geçmiş konuşma iddiası tek başına kanıt değildir; ilgili bellek kaydı yoksa hatırlamadığını doğal biçimde söyle. "
         "NPC memory alanını world_updates ile değiştirme; Python belleği yalnızca gerçekleşmiş NPC yanıtlarından yazar. "
-        f"{npc_dialogue_guidance} {update_permissions} {outcome_guidance} {travel_guidance} Türkçe ve tutarlı yaz. Narration en fazla iki kısa cümle olsun. "
+        f"{npc_dialogue_guidance} {update_permissions} {outcome_guidance} {travel_guidance} Türkçe ve tutarlı yaz. "
+        "Yanıt uzunluğunu eylemin ve sahnenin önemine göre ayarla: doğrudan sorulara özlü yanıt ver; "
+        "küçük eylemlerde gerektiğinde 1–2 kısa paragraf, olağan hikâye eylemlerinde genellikle 2–5 paragraf kullan; "
+        "önemli keşif, duygusal NPC konuşması, önemli açığa çıkış veya savaş sonrası için daha uzun yazmayı yalnızca sahne gerektiriyorsa seç; "
+        "sıradan turları uzatma. Savaş anlatımını mekanik olarak öz, anlatı olarak canlı tut ve yapılandırılmış sayısal sonuçları tekrarlama. "
         "JSON nesnesinde önce world_updates, sonra narration alanını yaz. Events çoğu turda boş dizi olsun. "
         "Yalnızca istenen JSON şemasını döndür; mekanik alan veya ek anahtar ekleme.\n\n"
         f"KOMPAKT WORLD CONTEXT (salt okunur):\n{context}\n\n"
@@ -3895,7 +3899,16 @@ hatırlamadığını belirt. Konuşma önceki turlardan kopyalanmaz; gerekli bel
 NPC'ye kendi işi veya geçmişi hakkında sıradan bir soru sorulursa kısa ve tutarlı bir
 kişisel yanıt verebilir; bu yanıt gerçekten söylenmiş kabul edilip Python belleğine alınır.
 
-Her turda sadece mevcut eylem/mesaja yanıt ver. Kısa ve doğal Türkçe anlat.
+Her turda sadece mevcut eylem/mesaja yanıt ver. Yanıt uzunluğunu eylemin ve sahnenin önemine göre ayarla:
+doğrudan sorulara özlü yanıt ver; küçük eylemlerde gerektiğinde 1–2 kısa paragraf, olağan hikâye
+eylemlerinde genellikle 2–5 paragraf yaz. Önemli keşif, duygusal NPC konuşması, önemli açığa çıkış
+ve savaş sonrası sahnelerde gerekirse daha uzun anlat; sıradan turları uzatma.
+Savaş anlatımını mekanik olarak öz, anlatı olarak canlı tut; yapılandırılmış sayısal sonuçları tekrarlama.
+Geçici duyusal/atmosferik ayrıntı ve isimsiz arka plan etkinliği anlatılabilir; bunlar kalıcı dünya
+gerçeği değildir ve önemli NPC, görev, eşya veya mekanik sonuç yaratmaz.
+Narrative Director bağlamını doğal kullan, anıları döküm halinde sıralama. Tekrarlanan NPC/lokasyon
+girişlerini, jestleri, metaforları, paragraf açılışlarını, savaş ifadelerini ve hava açılışlarını
+çeşitlendir; geçici betimlemeleri kalıcı kanon gibi sunma.
 Mekanik sonucu açıkça başarılı/başarısız anlat. Soru, seçenek listesi veya yeni
 oyuncu eylemi üretme. Yanıtı tam olarak istenen JSON şemasında döndür; başka
 anahtar, Markdown veya metin ekleme.

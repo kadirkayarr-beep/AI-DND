@@ -1,5 +1,6 @@
 """Offline checks for the imported V10 intent, query and narration behavior."""
 import copy
+import json
 import unittest
 from unittest.mock import patch
 
@@ -186,6 +187,69 @@ class PipelinePortTests(unittest.TestCase):
             'Gromm, "Burada ne arıyorsun?" diye sorar.',
             "Gromm'a selam veriyorum", npc_target=self.npc, action_result=result
         ))
+
+    def test_narration_prompt_uses_scene_adaptive_length_without_changing_schema(self):
+        captured = {}
+
+        def fake_chat(**kwargs):
+            captured.update(kwargs)
+            return {
+                "message": {
+                    "content": json.dumps(
+                        {"world_updates": {}, "narration": "Şu an Taverna'dasın."},
+                        ensure_ascii=False,
+                    )
+                }
+            }
+
+        with patch("game.ollama.chat", side_effect=fake_chat):
+            result = self.session.ask_dungeon_master(
+                messages=self.session.messages,
+                player_input="Neredeyim?",
+                action_result={"action": "query", "query_type": "location"},
+                return_details=True,
+            )
+
+        system_text = captured["messages"][0]["content"]
+        user_text = captured["messages"][1]["content"]
+        self.assertTrue(result["valid_response"])
+        self.assertIn("doğrudan sorulara özlü yanıt", system_text)
+        self.assertIn("2–5 paragraf", system_text)
+        self.assertIn("2–5 paragraf", user_text)
+        self.assertIn("sıradan turları uzatma", system_text)
+        self.assertNotIn("Narration en fazla iki kısa cümle olsun", user_text)
+        self.assertNotIn("Kısa ve doğal Türkçe anlat.", system_text)
+        self.assertEqual(captured["format"], game.DM_RESPONSE_SCHEMA)
+        self.assertEqual(
+            set(game.DM_RESPONSE_SCHEMA["properties"]),
+            {"world_updates", "narration"},
+        )
+        self.assertEqual(captured["options"]["num_predict"], 700)
+
+    def test_multi_paragraph_temporary_texture_stays_noncanonical_and_deduplicated(self):
+        narration = (
+            "Lambaların sarı ışığı, masa kenarlarında ince gölgeler bırakır. "
+            "Uzakta bir kupa tezgâha konurken kısa bir tını duyulur.\n\n"
+            "Odun dumanı hafifçe havaya karışır. Alçak konuşmalar, odanın içinde "
+            "kesintisiz bir uğultu oluşturur."
+        )
+        action_result = {
+            "action": "explore",
+            "status": "resolved",
+            "explore_type": "observe",
+        }
+        before = copy.deepcopy(self.session.world_state)
+
+        first = self.session.finalize_narration(
+            narration, "Etrafıma bakıyorum", action_result=action_result
+        )
+        second = self.session.finalize_narration(
+            narration, "Etrafıma bakıyorum", action_result=action_result
+        )
+
+        self.assertEqual(first, narration)
+        self.assertNotEqual(second, narration)
+        self.assertEqual(self.session.world_state, before)
 
     def test_pipe_does_not_let_model_move_player_on_location_question(self):
         before = copy.deepcopy(self.session.world_state)
