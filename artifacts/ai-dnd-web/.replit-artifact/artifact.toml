@@ -29,7 +29,7 @@ BASE_PATH = "/"
 
 [[services]]
 name = "AI-DND FastAPI"
-paths = [ "/api/game" ]
+paths = [ "/api/game", "/api/health", "/api/character-options", "/api/sessions", "/api/campaigns" ]
 localPort = 8008
 
 [services.development]

@@ -212,10 +212,10 @@ function AttackReadout({
 
       {hasRollData && (
         <div className="combat-roll-grid" aria-label="Saldırı değerleri">
-          <RollMetric label={naturalRoll ?? 'D20'} value={result.attack_roll} testId={`${prefix}-roll`} />
-          <RollMetric label="BONUS" value={result.attack_bonus} testId={`${prefix}-bonus`} />
-          <RollMetric label="TOPLAM" value={result.attack_total} testId={`${prefix}-total`} />
-          <RollMetric label="HEDEF ZIRHI" value={result.target_ac} testId={`${prefix}-target-ac`} />
+          <RollMetric label={naturalRoll ?? 'D20'} value={result.attack_roll ?? undefined} testId={`${prefix}-roll`} />
+          <RollMetric label="BONUS" value={result.attack_bonus ?? undefined} testId={`${prefix}-bonus`} />
+          <RollMetric label="TOPLAM" value={result.attack_total ?? undefined} testId={`${prefix}-total`} />
+          <RollMetric label="HEDEF ZIRHI" value={result.target_ac ?? undefined} testId={`${prefix}-target-ac`} />
         </div>
       )}
 

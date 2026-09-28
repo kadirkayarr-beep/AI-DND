@@ -3,7 +3,9 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: >-
+    AI-DND API contract. Prefer the /game/... route family for new clients.
+    The matching /... paths are retained as legacy compatibility aliases.
 servers:
   - url: /api
     description: Base API path
@@ -13,19 +15,6 @@ tags:
   - name: game
     description: Direct AI-DND game-session operations
 paths:
-  /healthz:
-    get:
-      operationId: healthCheck
-      tags: [health]
-      summary: Health check
-      description: Returns server health status
-      responses:
-        "200":
-          description: Healthy
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
   /game/health:
     get:
       operationId: getGameHealth
@@ -37,7 +26,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GameHealth"
+                $ref: "#/components/schemas/HealthResponse"
   /game/sessions:
     post:
       operationId: createGameSession
@@ -57,6 +46,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
     get:
       operationId: getGameSessionState
       tags: [game]
@@ -68,6 +58,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameState"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
   /game/sessions/{session_id}/turn:
     parameters:
       - in: path
@@ -75,6 +69,7 @@ paths:
         required: true
         schema:
           type: string
+          format: uuid
     post:
       operationId: playGameTurn
       tags: [game]
@@ -92,6 +87,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameTurnResult"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
   /game/character-options:
     get:
       operationId: getCharacterOptions
@@ -118,6 +121,10 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CampaignSummary"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
     post:
       operationId: createCampaign
       tags: [game]
@@ -135,6 +142,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CampaignSession"
+        "422":
+          $ref: "#/components/responses/CampaignCreateValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
   /game/campaigns/{campaign_id}:
     parameters:
       - in: path
@@ -154,6 +167,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
   /game/campaigns/{campaign_id}/resume:
     parameters:
       - in: path
@@ -173,6 +196,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CampaignSession"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
   /game/campaigns/{campaign_id}/save:
     parameters:
       - in: path
@@ -192,35 +225,278 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CampaignSummary"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+  /health:
+    get:
+      operationId: getLegacyHealth
+      tags: [game]
+      summary: Legacy health alias
+      description: Compatibility alias for /game/health. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: AI-DND service health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /character-options:
+    get:
+      operationId: getLegacyCharacterOptions
+      tags: [game]
+      summary: Legacy character-options alias
+      description: Compatibility alias for /game/character-options. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Canonical character creation options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterCreationOptions"
+  /sessions:
+    post:
+      operationId: createLegacySession
+      tags: [game]
+      summary: Legacy session-creation alias
+      description: Compatibility alias for /game/sessions. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: New game session and its public state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameSession"
+  /sessions/{session_id}/state:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getLegacySessionState
+      tags: [game]
+      summary: Legacy session-state alias
+      description: Compatibility alias for /game/sessions/{session_id}/state. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Current public game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+  /sessions/{session_id}/turn:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: playLegacyTurn
+      tags: [game]
+      summary: Legacy player-turn alias
+      description: Compatibility alias for /game/sessions/{session_id}/turn. Prefer the /game route family for new clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameTurnInput"
+      responses:
+        "200":
+          description: Engine-confirmed narration and updated public state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameTurnResult"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+  /campaigns:
+    get:
+      operationId: getLegacyCampaigns
+      tags: [game]
+      summary: Legacy campaign-list alias
+      description: Compatibility alias for /game/campaigns. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Persistent campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampaignSummary"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+    post:
+      operationId: createLegacyCampaign
+      tags: [game]
+      summary: Legacy campaign-creation alias
+      description: Compatibility alias for /game/campaigns. Prefer the /game route family for new clients.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignCreateInput"
+      responses:
+        "200":
+          description: Campaign, live session, and canonical state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSession"
+        "422":
+          $ref: "#/components/responses/CampaignCreateValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+  /campaigns/{campaign_id}:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getLegacyCampaign
+      tags: [game]
+      summary: Legacy campaign-detail alias
+      description: Compatibility alias for /game/campaigns/{campaign_id}. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+  /campaigns/{campaign_id}/resume:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resumeLegacyCampaign
+      tags: [game]
+      summary: Legacy campaign-resume alias
+      description: Compatibility alias for /game/campaigns/{campaign_id}/resume. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Resumed campaign and canonical state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSession"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
+  /campaigns/{campaign_id}/save:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: saveLegacyCampaign
+      tags: [game]
+      summary: Legacy campaign-save alias
+      description: Compatibility alias for /game/campaigns/{campaign_id}/save. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Updated safe campaign metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSummary"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+        "503":
+          $ref: "#/components/responses/ApiError"
 components:
   schemas:
-    HealthStatus:
+    HealthResponse:
       type: object
+      additionalProperties: false
       properties:
         status:
           type: string
-      required:
-        - status
-    GameHealth:
-      type: object
-      properties:
-        status:
-          type: string
+          enum: [ok]
+          default: ok
         engine:
           type: string
+          enum: [AI-DND]
+          default: AI-DND
         model:
           type: string
+          enum: [qwen3:8b]
+          default: qwen3:8b
       required: [status, engine, model]
     GameSession:
       type: object
       properties:
         session_id:
           type: string
+          format: uuid
         state:
           $ref: "#/components/schemas/GameState"
       required: [session_id, state]
     GameTurnInput:
       type: object
+      description: The message must contain at least one non-whitespace character.
+      additionalProperties: false
       properties:
         message:
           type: string
@@ -232,6 +508,7 @@ components:
       properties:
         session_id:
           type: string
+          format: uuid
         narration:
           type: string
         state:
@@ -247,59 +524,95 @@ components:
       additionalProperties: false
       properties:
         action:
-          type: string
+          type: ["string", "null"]
         status:
-          type: string
+          type: ["string", "null"]
         success:
-          type: boolean
+          type: ["boolean", "null"]
         outcome:
-          type: string
+          type: ["string", "null"]
         actor:
-          type: string
+          type: ["string", "null"]
         target:
-          type: string
+          type: ["string", "null"]
         target_id:
-          type: string
+          type: ["string", "null"]
         target_name:
-          type: string
+          type: ["string", "null"]
         weapon:
-          type: string
+          type: ["string", "null"]
         attack_roll:
-          type: integer
+          type: ["integer", "null"]
         attack_bonus:
-          type: integer
+          type: ["integer", "null"]
         attack_total:
-          type: integer
+          type: ["integer", "null"]
         target_ac:
-          type: integer
+          type: ["integer", "null"]
         critical:
-          type: boolean
+          type: ["boolean", "null"]
         damage:
-          type: integer
+          type: ["integer", "null"]
         target_hp_before:
-          type: integer
+          type: ["integer", "null"]
         target_hp_after:
-          type: integer
+          type: ["integer", "null"]
         target_status:
-          type: string
+          type: ["string", "null"]
     CombatTurnResult:
-      allOf:
-        - $ref: "#/components/schemas/CombatAttackResult"
-        - type: object
-          additionalProperties: false
-          properties:
-            combat_started:
-              type: boolean
-            combat_ended:
-              type: boolean
-            end_reason:
-              type: string
-            enemy_action:
-              anyOf:
-                - $ref: "#/components/schemas/CombatAttackResult"
-                - type: "null"
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+        success:
+          type: ["boolean", "null"]
+        outcome:
+          type: ["string", "null"]
+        actor:
+          type: ["string", "null"]
+        target:
+          type: ["string", "null"]
+        target_id:
+          type: ["string", "null"]
+        target_name:
+          type: ["string", "null"]
+        weapon:
+          type: ["string", "null"]
+        attack_roll:
+          type: ["integer", "null"]
+        attack_bonus:
+          type: ["integer", "null"]
+        attack_total:
+          type: ["integer", "null"]
+        target_ac:
+          type: ["integer", "null"]
+        critical:
+          type: ["boolean", "null"]
+        damage:
+          type: ["integer", "null"]
+        target_hp_before:
+          type: ["integer", "null"]
+        target_hp_after:
+          type: ["integer", "null"]
+        target_status:
+          type: ["string", "null"]
+        combat_started:
+          type: ["boolean", "null"]
+        combat_ended:
+          type: ["boolean", "null"]
+        end_reason:
+          type: ["string", "null"]
+        enemy_action:
+          anyOf:
+            - $ref: "#/components/schemas/CombatAttackResult"
+            - type: "null"
     GameState:
       type: object
+      description: Public state projection produced by the API serializers.
+      additionalProperties: false
       properties:
         location:
           type: string
@@ -332,9 +645,11 @@ components:
         combat:
           $ref: "#/components/schemas/GameCombat"
         player_combat_status:
-          type: ["string", "null"]
+          type: string
+          enum: [active, unconscious]
         turn_index:
           type: integer
+          minimum: 0
       required:
         - location
         - world
@@ -351,24 +666,29 @@ components:
     CampaignJournal:
       type: object
       description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.
+      additionalProperties: false
       properties:
         schema_version:
           type: integer
           enum: [1]
         discovered_locations:
           type: array
+          maxItems: 500
           items:
             $ref: "#/components/schemas/JournalLocation"
         known_npcs:
           type: array
+          maxItems: 500
           items:
             $ref: "#/components/schemas/JournalNpc"
         notable_events:
           type: array
+          maxItems: 200
           items:
             $ref: "#/components/schemas/JournalEvent"
         quests:
           type: array
+          maxItems: 100
           items:
             $ref: "#/components/schemas/CampaignQuest"
       required:
@@ -379,11 +699,14 @@ components:
         - quests
     JournalLocation:
       type: object
+      additionalProperties: false
       properties:
         location_id:
           type: string
+          maxLength: 160
         name:
           type: string
+          maxLength: 160
         environment:
           type: string
           enum: [tavern, forest, city, village, road, wilderness, dungeon, cave, castle, temple, ruins, unknown]
@@ -413,13 +736,17 @@ components:
         - visit_count
     JournalNpc:
       type: object
+      additionalProperties: false
       properties:
         npc_id:
           type: string
+          maxLength: 160
         name:
           type: string
+          maxLength: 160
         role:
           type: ["string", "null"]
+          maxLength: 160
         first_met_at:
           type: string
           format: date-time
@@ -434,8 +761,10 @@ components:
           minimum: 0
         last_known_location_id:
           type: ["string", "null"]
+          maxLength: 160
         last_known_location:
           type: ["string", "null"]
+          maxLength: 160
       required:
         - npc_id
         - name
@@ -448,6 +777,7 @@ components:
         - last_known_location
     JournalEvent:
       type: object
+      additionalProperties: false
       properties:
         event_id:
           type: string
@@ -471,14 +801,19 @@ components:
           minimum: 0
         summary:
           type: string
+          maxLength: 240
         location_id:
           type: ["string", "null"]
+          maxLength: 160
         location_name:
           type: ["string", "null"]
+          maxLength: 160
         related_npc_id:
           type: ["string", "null"]
+          maxLength: 160
         related_item:
           type: ["string", "null"]
+          maxLength: 160
       required:
         - event_id
         - event_type
@@ -491,21 +826,26 @@ components:
         - related_item
     CampaignQuest:
       type: object
+      additionalProperties: false
       properties:
         quest_id:
           type: string
           format: uuid
         title:
           type: string
+          maxLength: 160
         description:
           type: string
+          maxLength: 2000
         status:
           type: string
           enum: [active, completed, failed, cancelled]
         giver_npc_id:
           type: ["string", "null"]
+          maxLength: 160
         objectives:
           type: array
+          maxItems: 100
           items:
             $ref: "#/components/schemas/CampaignQuestObjective"
         created_at:
@@ -529,12 +869,14 @@ components:
         - completed_at
     CampaignQuestObjective:
       type: object
+      additionalProperties: false
       properties:
         objective_id:
           type: string
           format: uuid
         description:
           type: string
+          maxLength: 1000
         status:
           type: string
           enum: [active, completed, failed, cancelled]
@@ -544,10 +886,15 @@ components:
         - status
     GameWorldMetadata:
       type: object
-      description: Python-owned atmosphere metadata; never supplied by the browser.
+      description: >-
+        Python-owned atmosphere metadata; never supplied by the browser.
+        Environment falls back to unknown when location data cannot be matched;
+        time_of_day and weather default to day and clear when metadata is absent.
+      additionalProperties: false
       properties:
         environment:
           type: string
+          default: unknown
           enum:
             - tavern
             - forest
@@ -564,12 +911,15 @@ components:
         time_of_day:
           type: string
           enum: [dawn, day, evening, night]
+          default: day
         weather:
           type: string
           enum: [clear, rain, fog, snow, storm, unknown]
+          default: clear
       required: [environment, time_of_day, weather]
     GameLocation:
       type: object
+      additionalProperties: false
       properties:
         id:
           type: string
@@ -582,6 +932,7 @@ components:
       required: [id, name, type, description]
     GameCharacter:
       type: object
+      additionalProperties: false
       properties:
         name:
           type: string
@@ -633,6 +984,7 @@ components:
         - armor_class
     GameNpc:
       type: object
+      additionalProperties: false
       properties:
         id:
           type: string
@@ -667,6 +1019,7 @@ components:
         - combat_status
     GameFeature:
       type: object
+      additionalProperties: false
       properties:
         location:
           type: string
@@ -677,6 +1030,7 @@ components:
       required: [location, name, description]
     GameDoor:
       type: object
+      additionalProperties: false
       properties:
         id:
           type: string
@@ -695,6 +1049,9 @@ components:
       required: [id, name, location, description, open, locked, broken]
     GameCombat:
       type: object
+      description: >-
+        Current Python combat state. The public serializer copies this mapping;
+        additional fields may be present in valid legacy saves.
       properties:
         active:
           type: boolean
@@ -709,8 +1066,7 @@ components:
         participants:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            type: string
         target_id:
           type: ["string", "null"]
       additionalProperties: true
@@ -719,6 +1075,7 @@ components:
       properties:
         name:
           type: ["string", "null"]
+          description: Optional campaign name; if supplied, it must not be blank after trimming.
           minLength: 1
           maxLength: 100
         character:
@@ -728,22 +1085,26 @@ components:
       additionalProperties: false
     CharacterCreateInput:
       type: object
+      description: >-
+        Custom mode requires non-null name, race, and class. Random mode rejects
+        non-null custom fields; omitted or explicit null custom fields are allowed.
       properties:
         mode:
           type: string
           enum: [custom, random]
         name:
-          type: string
+          type: ["string", "null"]
           minLength: 1
           maxLength: 40
         race:
-          type: string
+          type: ["string", "null"]
         class:
-          type: string
+          type: ["string", "null"]
       required: [mode]
       additionalProperties: false
     CharacterCreationOptions:
       type: object
+      additionalProperties: false
       properties:
         races:
           type: array
@@ -756,6 +1117,7 @@ components:
       required: [races, classes]
     CampaignSummary:
       type: object
+      additionalProperties: false
       properties:
         campaign_id:
           type: string
@@ -797,6 +1159,7 @@ components:
         - location
     CampaignHistoryEntry:
       type: object
+      additionalProperties: false
       properties:
         player_message:
           type: string
@@ -808,6 +1171,7 @@ components:
       required: [player_message, narration, created_at]
     CampaignDetail:
       type: object
+      additionalProperties: false
       properties:
         campaign:
           $ref: "#/components/schemas/CampaignSummary"
@@ -820,6 +1184,7 @@ components:
       required: [campaign, state, history]
     CampaignSession:
       type: object
+      additionalProperties: false
       properties:
         campaign_id:
           type: string
@@ -836,4 +1201,75 @@ components:
           items:
             $ref: "#/components/schemas/CampaignHistoryEntry"
       required: [campaign_id, session_id, name, state, history]
+    ApiErrorDetail:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          enum:
+            - campaign_not_found
+            - campaign_unavailable
+            - campaign_not_active
+            - campaign_storage_unavailable
+            - campaign_error
+            - invalid_character
+            - unknown_session
+            - ollama_unavailable
+            - model_unavailable
+            - engine_error
+            - journal_error
+        message:
+          type: string
+      required: [code, message]
+    ApiErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        detail:
+          $ref: "#/components/schemas/ApiErrorDetail"
+      required: [detail]
+    RequestValidationIssue:
+      type: object
+      additionalProperties: false
+      properties:
+        loc:
+          type: array
+          items:
+            type: string
+        msg:
+          type: string
+        type:
+          type: string
+      required: [loc, msg, type]
+    RequestValidationError:
+      type: object
+      additionalProperties: false
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestValidationIssue"
+      required: [detail]
+  responses:
+    RequestValidationError:
+      description: Request fields or path parameters failed FastAPI validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RequestValidationError"
+    CampaignCreateValidationError:
+      description: Request validation failed or the requested character was invalid.
+      content:
+        application/json:
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/RequestValidationError"
+              - $ref: "#/components/schemas/ApiErrorResponse"
+    ApiError:
+      description: A controlled application error returned by FastAPI.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorResponse"
 

@@ -1,0 +1,2042 @@
+# AI-DND MASTER GAMEPLAY DEVELOPMENT PROGRAM
+# Sequential implementation with hard gates and protected engine boundaries
+
+This is the master development roadmap for the next major AI-DND development
+cycle.
+
+Execute the work IN ORDER.
+
+Do not implement later phases early.
+Do not combine phases just because their code touches the same files.
+Do not silently expand scope.
+
+The goal is to reduce manual handoffs while keeping the project safe.
+
+======================================================================
+CURRENT VERIFIED PROJECT BASELINE
+======================================================================
+
+Already completed:
+
+✅ FastAPI / browser integration
+✅ Full frontend integration
+✅ Persistent Campaign V1
+✅ Canonical Character Creation V1
+✅ World Metadata V1
+✅ Journal / Quest V1 infrastructure
+✅ Combat UX Polish
+
+A separate OpenAPI / FastAPI Contract Parity maintenance task was already
+started before this master roadmap.
+
+Do NOT redo that maintenance phase automatically.
+
+Current protected engine:
+
+ai-dnd/game.py
+
+Protected SHA-256 checkpoint:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+Core architectural invariant:
+
+PYTHON DECIDES REALITY.
+QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
+THE FRONTEND PRESENTS REALITY.
+
+This rule overrides convenience.
+
+======================================================================
+MASTER ROADMAP
+======================================================================
+
+Execute in this exact order:
+
+PREREQUISITE — Verify previously completed OpenAPI/FastAPI parity work
+
+PHASE 1 — Canonical Skill Checks V1
+
+PHASE 2 — Combat Result History Persistence
+
+PHASE 3 — Quest Outcomes V1 (#36)
+
+ENGINE APPROVAL CHECKPOINT
+
+PHASE 4 — Combat V3 Foundation
+
+PHASE 5 — Spells V1
+
+PHASE 6 — XP / Leveling V1
+
+Do not reorder these phases.
+
+======================================================================
+GLOBAL EXECUTION RULE
+======================================================================
+
+For every phase:
+
+A. INSPECT
+B. MAP CURRENT BEHAVIOR
+C. DEFINE MINIMAL CONTRACT
+D. IMPLEMENT
+E. TEST
+F. RUN REGRESSIONS
+G. VERIFY SAVE COMPATIBILITY
+H. VERIFY AUTHORITY BOUNDARIES
+I. RECORD CHECKPOINT
+J. CONTINUE ONLY IF GREEN
+
+Never begin implementation before understanding existing behavior.
+
+Never weaken an existing test merely to make a new feature pass.
+
+Never silently change an existing rule.
+
+Never describe a partial implementation as complete.
+
+======================================================================
+PHASE RESULT DEFINITIONS
+======================================================================
+
+PASS:
+
+- requested scope implemented
+- focused tests pass
+- regressions pass
+- save compatibility verified
+- authority boundaries preserved
+- required browser/API verification completed
+- no unexplained state mutation
+- checkpoint recorded
+
+BLOCKED:
+
+- architecture cannot safely support the requested behavior
+- engine contract is insufficient
+- migration cannot be made safely
+- protected engine modification is required before approval
+- canonical outcome cannot be derived without guessing
+
+FAIL:
+
+- tests fail
+- regression introduced
+- persistence corruption risk
+- session isolation failure
+- authority violation
+- unexplained canonical state mismatch
+
+PASS:
+continue.
+
+FAIL:
+STOP.
+
+BLOCKED by protected engine:
+follow the engine approval procedure below.
+
+======================================================================
+PREREQUISITE
+VERIFY OPENAPI / FASTAPI PARITY MAINTENANCE
+======================================================================
+
+The OpenAPI/FastAPI parity task was already submitted separately.
+
+Do NOT redo that maintenance work unless it is incomplete.
+
+Only verify:
+
+1. runtime FastAPI public routes match intended OpenAPI routes
+2. generated client is current
+3. route-parity tests exist and pass
+4. structured combat_result contract is represented
+5. Journal/world/character schemas match runtime behavior
+6. frontend/client typecheck passes
+
+If the previous maintenance work is PASS:
+
+record:
+
+OPENAPI_PARITY = VERIFIED
+
+and continue to Phase 1.
+
+If the previous maintenance task is still unfinished:
+
+STOP.
+
+Report exactly what remains.
+
+Do NOT mix parity repair into Skill Checks.
+
+======================================================================
+GLOBAL PROTECTED ENGINE RULE
+======================================================================
+
+During Phases 1–3:
+
+ai-dnd/game.py must remain frozen.
+
+Expected SHA:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+Prefer:
+
+- API adapters
+- validated serializers
+- session-layer extensions
+- campaign-envelope extensions
+- structured event/history layers
+- frontend presentation
+
+over touching the frozen engine.
+
+If Phases 1–3 genuinely require game.py modification:
+
+DO NOT EDIT IT.
+
+Instead:
+
+1. identify the missing engine capability
+2. identify exact affected functions/state
+3. specify proposed minimal engine change
+4. specify persistence impact
+5. specify migration requirements
+6. specify regression risks
+7. specify tests
+8. mark that requirement for the ENGINE APPROVAL CHECKPOINT
+
+If a phase can safely complete without the engine modification:
+complete the safe part.
+
+Do not fake unsupported functionality.
+
+======================================================================
+GLOBAL CANONICAL AUTHORITY RULES
+======================================================================
+
+The browser may NEVER author:
+
+- HP
+- max HP
+- AC
+- inventory
+- equipment state
+- combat state
+- initiative
+- combat round
+- attack result
+- damage
+- dice rolls
+- skill roll
+- skill DC
+- skill outcome
+- quest status
+- objective completion
+- XP
+- level
+- spell slot usage
+- spell result
+- world metadata
+- Journal state
+
+Qwen may NEVER directly author canonical:
+
+- rolls
+- damage
+- HP changes
+- skill success
+- quest completion
+- XP rewards
+- level-ups
+- spell resource consumption
+- world state
+
+Qwen may:
+
+- interpret natural-language intent
+- resolve semantic references
+- propose candidate intent where validated
+- narrate canonical outcomes
+
+Python/backend validation remains authoritative.
+
+======================================================================
+GLOBAL MODEL RULE
+======================================================================
+
+Current model remains:
+
+qwen3:8b
+
+Do not replace the model.
+
+Do not increase model-call count casually.
+
+Preserve existing call-limit safety.
+
+Do not expose:
+
+- Ollama bearer tokens
+- raw system prompts
+- secrets
+- internal engine objects
+- filesystem paths
+- stack traces
+
+Browser must not communicate directly with Ollama.
+
+======================================================================
+GLOBAL PERSISTENCE RULE
+======================================================================
+
+Every state-affecting phase must account for:
+
+- initial campaign save
+- autosave
+- explicit save
+- rollback
+- API restart
+- campaign resume
+- old campaign loading
+- campaign isolation
+- validation
+- corrupt save rejection
+- unsupported future-version rejection
+
+Do not create frontend-local canonical persistence.
+
+If campaign payload/schema changes:
+
+document:
+
+OLD VERSION
+NEW VERSION
+MIGRATION
+VALIDATION
+ROLLBACK
+LEGACY LOAD RESULT
+
+Never silently invalidate existing campaigns.
+
+======================================================================
+GLOBAL TEST RULE
+======================================================================
+
+At the end of each phase run all relevant focused tests.
+
+At major checkpoints also run the entire existing regression suite.
+
+Do not simply rely on historical test counts.
+
+Record CURRENT counts.
+
+At minimum preserve coverage for:
+
+- API
+- persistence
+- sessions
+- campaign isolation
+- character creation
+- world metadata
+- Journal
+- Combat V1
+- Combat V2
+- authoritative Combat V2
+- semantic intent
+- query grounding
+- narrator safety
+- migrations
+- frontend tests
+- typecheck
+- production build
+- git diff --check
+
+Use real qwen3:8b browser/API testing where the feature actually depends on
+model interpretation.
+
+Do not waste live model calls for deterministic serialization-only work.
+
+======================================================================
+PHASE 1
+CANONICAL SKILL CHECKS V1
+======================================================================
+
+GOAL:
+
+Turn the current narrow skill-check behavior into a reusable,
+Python-authoritative, structured Skill Check V1 system.
+
+Do NOT build saving throws yet.
+
+Do NOT build Combat V3.
+
+Do NOT add skill-tree progression.
+
+----------------------------------------------------------------------
+PHASE 1A — INSPECT EXISTING SKILL BEHAVIOR
+----------------------------------------------------------------------
+
+Before implementation inspect:
+
+- character ability scores
+- ability modifier helpers
+- proficiency bonus
+- skill proficiency storage
+- current skill mapping
+- current Stealth checks
+- current Investigation checks
+- current Athletics checks
+- any other existing checks
+- action_result fields
+- intent routing
+- dice/RNG helpers
+- rollback behavior
+- Qwen semantic intent path
+
+Do not create a second dice engine.
+
+Reuse existing Python behavior wherever possible.
+
+----------------------------------------------------------------------
+SUPPORTED SKILLS
+----------------------------------------------------------------------
+
+Target V1 candidates:
+
+- Perception
+- Investigation
+- Persuasion
+- Deception
+- Intimidation
+- Stealth
+- Athletics
+- Acrobatics
+- Insight
+- Survival
+
+Implement only skills that can map cleanly to current character data.
+
+Canonical ability mapping should be deterministic.
+
+Example expected mappings unless current engine already defines otherwise:
+
+Perception → Wisdom
+Insight → Wisdom
+Survival → Wisdom
+Investigation → Intelligence
+Persuasion → Charisma
+Deception → Charisma
+Intimidation → Charisma
+Stealth → Dexterity
+Acrobatics → Dexterity
+Athletics → Strength
+
+Do not invent hidden special modifiers.
+
+----------------------------------------------------------------------
+PYTHON OWNS
+----------------------------------------------------------------------
+
+Python/backend must own:
+
+- whether a skill check is required
+- skill identity
+- ability identity
+- proficiency eligibility
+- proficiency modifier
+- ability modifier
+- d20 roll
+- total
+- difficulty/DC
+- success/failure
+- canonical consequence
+
+Browser cannot submit any of these.
+
+Qwen cannot set them.
+
+----------------------------------------------------------------------
+DC POLICY
+----------------------------------------------------------------------
+
+Define a documented bounded V1 difficulty policy.
+
+Prefer a small deterministic scale such as:
+
+Very Easy
+Easy
+Medium
+Hard
+Very Hard
+
+mapped server-side to controlled numeric values.
+
+Do not accept arbitrary numeric DC from:
+
+- player message
+- frontend
+- raw Qwen output
+
+Qwen may help understand the attempted action.
+
+Python validates the actual check and difficulty.
+
+If existing game logic already owns a superior DC policy:
+reuse it.
+
+----------------------------------------------------------------------
+STRUCTURED RESULT
+----------------------------------------------------------------------
+
+Expose an allowlisted public result.
+
+Conceptually:
+
+skill_check_result:
+    skill
+    ability
+    d20
+    ability_modifier
+    proficiency_modifier
+    total_modifier
+    total
+    difficulty
+    dc
+    outcome
+    target/context if safely canonical
+
+Adapt naming to project conventions.
+
+Do not expose raw internal action_result.
+
+----------------------------------------------------------------------
+NATURAL 1 / NATURAL 20
+----------------------------------------------------------------------
+
+Do not automatically import combat critical rules into ability checks.
+
+Inspect current rule behavior.
+
+Use a documented V1 policy.
+
+If ability checks do NOT treat natural 1/20 as automatic failure/success:
+preserve that.
+
+Do not invent rules for visual drama.
+
+----------------------------------------------------------------------
+FRONTEND
+----------------------------------------------------------------------
+
+Add a restrained tabletop-style Skill Check result component.
+
+Example:
+
+PERCEPTION
+
+d20     14
+WIS     +2
+PROF    +2
+TOTAL   18
+
+SUCCESS
+
+The story/narration remains the visual hero.
+
+Do not turn the interface into an RPG stat console.
+
+Respect reduced-motion preferences.
+
+Do not display a roll before the server returns it.
+
+----------------------------------------------------------------------
+QWEN INTEGRATION
+----------------------------------------------------------------------
+
+Example:
+
+Player:
+“Kapının arkasında bir şey duyuyor muyum?”
+
+Qwen:
+understands observational intent
+
+Python:
+validates Perception check
+rolls
+calculates
+decides result
+
+Qwen:
+narrates the canonical result
+
+Not:
+
+Qwen:
+“You rolled 18 and succeeded.”
+
+without Python result.
+
+----------------------------------------------------------------------
+PHASE 1 TESTS
+----------------------------------------------------------------------
+
+Cover at minimum:
+
+1. proficient skill
+2. non-proficient skill
+3. correct ability mapping
+4. correct proficiency modifier
+5. canonical RNG roll
+6. server-owned DC
+7. supported difficulty
+8. malformed skill rejected
+9. unsupported skill rejected
+10. client cannot submit roll
+11. client cannot submit DC
+12. client cannot submit result
+13. Qwen text cannot overwrite result
+14. successful check serialization
+15. failed check serialization
+16. failed request rollback
+17. session isolation
+18. campaign isolation
+19. old campaigns still load
+20. frontend displays canonical result
+21. reduced motion
+22. no optimistic fake roll
+
+----------------------------------------------------------------------
+PHASE 1 LIVE TEST
+----------------------------------------------------------------------
+
+Using real qwen3:8b:
+
+1. open/resume campaign
+2. perform a natural-language Perception-like action
+3. verify structured canonical check
+4. perform another supported skill action
+5. verify narration agrees with result
+6. verify no frontend-generated roll
+7. save
+8. restart API if persistence behavior changed
+9. resume safely
+
+Do not delete owner campaigns.
+
+Use disposable test campaign data.
+
+----------------------------------------------------------------------
+PHASE 1 GATE
+----------------------------------------------------------------------
+
+PASS only if:
+
+- general Skill Check V1 works
+- Python owns result
+- API contract is structured
+- frontend presentation works
+- old behavior remains compatible
+- regressions pass
+- game.py unchanged
+
+If game.py modification is required:
+
+do not fake the phase.
+
+Add requirement to Engine Approval Package.
+
+======================================================================
+PHASE 2
+COMBAT RESULT HISTORY PERSISTENCE
+======================================================================
+
+GOAL:
+
+Fix the known issue where prior structured combat result cards disappear
+after campaign resume.
+
+Combat mechanics must remain unchanged.
+
+----------------------------------------------------------------------
+CURRENT BEHAVIOR TO PRESERVE
+----------------------------------------------------------------------
+
+Canonical combat state already persists:
+
+- active status
+- HP
+- target
+- initiative
+- round
+- participant state
+
+The missing piece is structured RESULT HISTORY.
+
+Do not modify combat rules.
+
+----------------------------------------------------------------------
+PERSISTED HISTORY
+----------------------------------------------------------------------
+
+Persist a safe, allowlisted structured combat event/result history.
+
+Never persist raw action_result dumps.
+
+Possible public fields where already canonical:
+
+- event/result ID
+- turn index
+- round
+- actor ID/name
+- target ID/name
+- attack d20
+- attack modifier
+- attack total
+- target AC
+- hit/miss
+- natural 1
+- natural 20
+- damage
+- resulting target HP
+- status
+- enemy retaliation result
+
+Use existing safe combat_result schema where possible.
+
+----------------------------------------------------------------------
+BOUNDED HISTORY
+----------------------------------------------------------------------
+
+Combat result history must be bounded.
+
+Choose and document a sensible limit after inspecting usage.
+
+For example:
+
+last 50 structured combat result entries
+
+or another justified bound.
+
+Do not allow unlimited save growth.
+
+----------------------------------------------------------------------
+HISTORY RULES
+----------------------------------------------------------------------
+
+Append only after a SUCCESSFUL authoritative turn.
+
+Failed turn:
+no history append.
+
+Failed autosave:
+rollback history together with canonical turn state.
+
+Never parse Qwen narration to recreate a missing result.
+
+----------------------------------------------------------------------
+PERSISTENCE
+----------------------------------------------------------------------
+
+Verify:
+
+- autosave
+- explicit save
+- API restart
+- resume
+- legacy campaign
+- active combat resume
+- completed combat history
+- campaign isolation
+- schema validation
+
+Legacy campaigns with no combat history:
+
+initialize safely with empty history.
+
+----------------------------------------------------------------------
+FRONTEND
+----------------------------------------------------------------------
+
+On resume:
+
+rehydrate validated structured combat cards.
+
+Do not fabricate visual rolls.
+
+Do not duplicate entries already held in current frontend memory.
+
+Use stable result/event IDs where practical.
+
+----------------------------------------------------------------------
+PHASE 2 TESTS
+----------------------------------------------------------------------
+
+At minimum:
+
+1. combat result persisted
+2. multiple results preserve order
+3. enemy retaliation persisted
+4. failed turn not persisted
+5. rollback removes failed append
+6. history bounded
+7. restart restores results
+8. active combat resume restores results
+9. completed combat history restores
+10. legacy save gets empty history
+11. invalid history rejected
+12. cross-campaign isolation
+13. duplicate rehydration prevented
+14. frontend renders restored cards
+15. raw internal fields not exposed
+
+----------------------------------------------------------------------
+PHASE 2 GATE
+----------------------------------------------------------------------
+
+PASS only if:
+
+- previous combat cards survive resume
+- combat mechanics are unchanged
+- legacy campaigns remain valid
+- regressions green
+- game.py unchanged
+
+======================================================================
+PHASE 3
+QUEST OUTCOMES V1 — #36
+======================================================================
+
+GOAL:
+
+Allow the existing Journal Quest Ledger to track real quest lifecycle changes
+ONLY when confirmed by explicit Python-owned outcomes.
+
+This must never become narration-driven quest inference.
+
+----------------------------------------------------------------------
+INSPECT FIRST
+----------------------------------------------------------------------
+
+Map current engine support for:
+
+- tasks
+- missions
+- objectives
+- world flags
+- NPC offers
+- canonical events
+- item delivery
+- enemy defeat
+- location arrival
+- dialogue outcomes
+- structured action_result events
+
+Determine exactly what is sufficient to prove:
+
+- quest offered
+- quest accepted
+- objective progress
+- quest completion
+- quest failure
+- quest cancellation
+
+----------------------------------------------------------------------
+CRITICAL QUEST RULE
+----------------------------------------------------------------------
+
+Qwen narration is NEVER proof that a quest exists.
+
+Player input is NEVER proof that a quest exists.
+
+Examples that must NOT independently create canonical state:
+
+NPC narration:
+“I have a task for you.”
+
+Player:
+“I accept the quest.”
+
+Narration:
+“You have completed the mission.”
+
+Unless Python emits/validates a structured canonical quest event,
+the quest ledger must not change.
+
+----------------------------------------------------------------------
+QUEST MODEL
+----------------------------------------------------------------------
+
+Use the existing Quest Ledger schema where possible.
+
+Canonical quest may include:
+
+quest_id
+title
+description
+giver_npc_id
+status
+objectives
+created_at
+updated_at
+completed_at
+
+Possible status:
+
+active
+completed
+failed
+cancelled
+
+Do not support a status the backend cannot prove.
+
+Objective:
+
+objective_id
+description
+status
+progress only if structurally supported
+
+----------------------------------------------------------------------
+QUEST ACCEPTANCE
+----------------------------------------------------------------------
+
+Quest acceptance requires:
+
+- a canonical quest definition
+- canonical giver/source
+- validated acceptance event
+
+Do not generate arbitrary quest mechanics from Qwen prose.
+
+----------------------------------------------------------------------
+OBJECTIVE PROGRESS
+----------------------------------------------------------------------
+
+Progress only from explicit canonical state changes.
+
+Examples:
+
+“Reach Forest”
+→ complete only when canonical location becomes Forest.
+
+“Defeat Bandit”
+→ complete only on canonical defeat event for the correct entity.
+
+“Obtain Item X”
+→ complete only when canonical inventory gains validated Item X.
+
+Do not use narration matching.
+
+----------------------------------------------------------------------
+QUEST COMPLETION
+----------------------------------------------------------------------
+
+Quest completion requires all required canonical conditions.
+
+Do not let browser send:
+
+status = completed
+
+Do not let Qwen award completion.
+
+----------------------------------------------------------------------
+IF FROZEN ENGINE IS INSUFFICIENT
+----------------------------------------------------------------------
+
+This is IMPORTANT.
+
+The current checkpoint previously found that the engine did not yet expose
+a complete structured quest lifecycle.
+
+If that is STILL true and proper Quest Outcomes V1 requires game.py changes:
+
+DO NOT MODIFY game.py.
+
+Do not fake the feature.
+
+Instead:
+
+1. finish any safe infrastructure that genuinely works
+2. keep unsupported quest transitions disabled
+3. prepare a precise QUEST ENGINE CONTRACT
+4. mark Phase 3:
+
+BLOCKED — ENGINE CONTRACT REQUIRED
+
+Then proceed ONLY to the Combat V3 DESIGN/MAPPING stage below so that one
+consolidated Engine Change Approval Package can be presented to the owner.
+
+Do NOT implement Combat V3 yet.
+
+----------------------------------------------------------------------
+QUEST PERSISTENCE TESTS
+----------------------------------------------------------------------
+
+Where implementation is supported, verify:
+
+- acceptance
+- objective progression
+- completion
+- failure if supported
+- persistence
+- restart
+- rollback
+- legacy resume
+- migration
+- campaign isolation
+- forged input rejection
+- narration non-inference
+
+----------------------------------------------------------------------
+PHASE 3 GATE
+----------------------------------------------------------------------
+
+Either:
+
+PASS — fully supported safe V1
+
+or:
+
+BLOCKED — ENGINE CONTRACT REQUIRED
+
+Never return a false PASS.
+
+======================================================================
+CONSOLIDATED ENGINE APPROVAL CHECKPOINT
+======================================================================
+
+Before any modification to ai-dnd/game.py, STOP implementation.
+
+This checkpoint should happen:
+
+- after Phase 3 if Quest Outcomes requires engine work
+OR
+- at the beginning of Combat V3 if Quest Outcomes completed without engine
+  changes
+
+Do not edit game.py yet.
+
+Produce ONE consolidated approval package.
+
+======================================================================
+ENGINE APPROVAL PACKAGE
+======================================================================
+
+Report:
+
+1. Current protected game.py SHA
+2. Completed phases since this roadmap started
+3. Current test totals
+4. Current save schema/version
+5. Current API contracts
+6. Current known issues
+
+Then map all proposed engine work required for:
+
+A. Quest Outcomes if blocked
+B. Combat V3
+C. Spells V1 anticipated foundations
+D. XP/Leveling V1 anticipated foundations
+
+Do not implement C/D yet, but avoid designing Combat V3 in a way that makes
+them impossible.
+
+----------------------------------------------------------------------
+PROPOSED ENGINE CHANGE MAP
+----------------------------------------------------------------------
+
+For every proposed modification identify:
+
+- file
+- class/function
+- existing responsibility
+- proposed new responsibility
+- new state fields
+- mutation rules
+- serialization implications
+- migration implications
+- backward compatibility
+- rollback semantics
+- API impact
+- frontend impact
+- tests
+
+----------------------------------------------------------------------
+SAVE MIGRATION PLAN
+----------------------------------------------------------------------
+
+Explicitly describe:
+
+CURRENT VERSION
+NEXT VERSION
+
+and:
+
+old campaign
+→ migration
+→ validated new state
+
+Confirm whether existing campaigns remain loadable.
+
+No silent save reset.
+
+----------------------------------------------------------------------
+OWNER DECISION
+----------------------------------------------------------------------
+
+At this point:
+
+STOP.
+
+Do not modify game.py.
+
+Do not start Combat V3 implementation.
+
+Do not start Spells.
+
+Do not start Leveling.
+
+Return:
+
+ENGINE CHANGE APPROVAL REQUIRED
+
+and wait for explicit owner approval.
+
+======================================================================
+AFTER EXPLICIT OWNER APPROVAL
+======================================================================
+
+When the owner explicitly approves the engine plan in a later turn:
+
+resume this same roadmap from Phase 4.
+
+Implement ONLY the approved bounded engine design.
+
+After first approved game.py modification:
+
+calculate NEW SHA.
+
+Preserve old SHA as historical checkpoint:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+Create a NEW protected checkpoint after Combat V3 is complete and green.
+
+======================================================================
+PHASE 4
+COMBAT V3 FOUNDATION
+======================================================================
+
+Combat V3 must be a BOUNDED foundation.
+
+Do NOT attempt to implement all D&D combat rules.
+
+----------------------------------------------------------------------
+V3 PRIMARY GOALS
+----------------------------------------------------------------------
+
+Target foundation:
+
+1. explicit canonical turn owner
+2. initiative order for multiple combatants
+3. multiple enemies
+4. explicit target selection
+5. canonical turn scheduler
+6. one primary action per actor turn
+7. round advancement
+8. legal/illegal action validation
+9. canonical defeat/unconscious removal/state
+10. persistence/resume
+11. extension points for future spells
+
+Do not add unnecessary tabletop complexity.
+
+----------------------------------------------------------------------
+V3 OUT OF SCOPE BY DEFAULT
+----------------------------------------------------------------------
+
+Unless specifically required by the approved design:
+
+- grid positioning
+- movement squares
+- opportunity attacks
+- reactions
+- bonus actions
+- legendary actions
+- lair actions
+- grappling subsystem
+- cover subsystem
+- complex conditions engine
+- concentration
+- full death-save system
+- encounter CR balancing
+- summons
+- mounted combat
+
+Do not scope-creep.
+
+----------------------------------------------------------------------
+TURN MODEL
+----------------------------------------------------------------------
+
+Python must know:
+
+- combat participants
+- initiative order
+- current actor
+- round
+- available primary action
+- target legality
+- defeat/unconscious status
+
+Frontend displays this state.
+
+Frontend does not advance turns.
+
+Qwen does not advance turns.
+
+----------------------------------------------------------------------
+MULTI-ENEMY
+----------------------------------------------------------------------
+
+Support more than one enemy safely.
+
+Each combatant requires stable identity.
+
+Do not use display names as sole identity.
+
+Target references must resolve to canonical IDs.
+
+Ambiguous natural-language target:
+ask/resolve safely.
+
+Never silently attack the wrong entity.
+
+----------------------------------------------------------------------
+PLAYER NATURAL-LANGUAGE ACTION
+----------------------------------------------------------------------
+
+Example:
+
+“I attack the goblin on the left.”
+
+Qwen:
+semantic reference assistance
+
+Python:
+resolves canonical target
+validates current turn
+resolves action
+updates state
+
+Qwen:
+narrates result
+
+----------------------------------------------------------------------
+ENEMY TURNS
+----------------------------------------------------------------------
+
+Enemy actions remain Python-owned.
+
+Do not ask Qwen to decide:
+
+- who enemy attacks
+- hit roll
+- damage
+- target HP
+
+Qwen may describe the already-resolved enemy action.
+
+----------------------------------------------------------------------
+COMBAT V3 API
+----------------------------------------------------------------------
+
+Return structured canonical information:
+
+- active
+- round
+- current_actor
+- initiative order
+- participants
+- player status
+- enemy statuses
+- action result
+- resulting turn owner
+- combat end state
+
+Allowlist public fields.
+
+Do not expose raw engine objects.
+
+----------------------------------------------------------------------
+COMBAT V3 FRONTEND
+----------------------------------------------------------------------
+
+Upgrade existing Combat UX.
+
+Reuse current design.
+
+Add only what new mechanics require:
+
+- multi-participant initiative list
+- current-turn highlight
+- multiple targets
+- participant HP/status
+- invalid-turn feedback
+- clear target ambiguity handling
+
+Do not turn it into an MMO interface.
+
+----------------------------------------------------------------------
+COMBAT V3 PERSISTENCE
+----------------------------------------------------------------------
+
+Critical:
+
+save during:
+
+- player's turn
+- enemy resolution boundary
+- multiple living enemies
+- round transition
+
+Restart API.
+
+Resume exact canonical combat state.
+
+No skipped/doubled turn.
+
+----------------------------------------------------------------------
+COMBAT V3 TESTS
+----------------------------------------------------------------------
+
+Include extensive deterministic coverage:
+
+- initiative ordering
+- tie behavior
+- current actor
+- invalid out-of-turn action
+- target identity
+- two enemies
+- three participants
+- enemy defeat
+- player unconscious
+- round rollover
+- combat completion
+- persistence
+- restart
+- rollback
+- migration from Combat V2 save
+- forged participant
+- detached target
+- session isolation
+- campaign isolation
+
+Preserve Combat V1/V2 compatibility tests where still applicable.
+
+----------------------------------------------------------------------
+COMBAT V3 GATE
+----------------------------------------------------------------------
+
+PASS only after:
+
+- approved engine design implemented
+- migrations pass
+- old campaigns load
+- full regression green
+- real browser combat performed
+- real qwen3:8b combat performed
+- NEW game.py SHA established
+- new checkpoint documented
+
+Only then continue to Spells V1.
+
+======================================================================
+PHASE 5
+SPELLS V1
+======================================================================
+
+GOAL:
+
+Add a SMALL, canonical spellcasting foundation.
+
+Do NOT implement the entire D&D spell catalogue.
+
+----------------------------------------------------------------------
+SPELL SYSTEM DESIGN
+----------------------------------------------------------------------
+
+Before code inspect:
+
+- caster classes
+- current class data
+- level
+- ability modifiers
+- Combat V3 action system
+- target model
+- current inventory/equipment assumptions
+
+Define:
+
+- spell ID
+- display name
+- allowed class
+- minimum level
+- casting ability
+- action cost
+- target type
+- resource/slot cost
+- canonical effect
+- persistence
+
+----------------------------------------------------------------------
+CURATED V1 SPELL SET
+----------------------------------------------------------------------
+
+Implement only a small representative set.
+
+Choose spells that prove core mechanics without pulling in unrelated systems.
+
+Prefer representation of these mechanic families:
+
+1. spell attack
+2. automatic direct effect
+3. healing
+4. saving-throw spell
+
+Example candidates:
+
+- Fire Bolt
+- Magic Missile
+- Cure Wounds
+- Sacred Flame
+
+Use these only if compatible with the approved rules/current class model.
+
+Do not blindly copy them if dependencies are missing.
+
+Do NOT include spells requiring major unsupported systems such as:
+
+- reactions
+- concentration
+- summons
+- complex AoE geometry
+- charm-control engine
+- teleportation engine
+
+unless specifically justified.
+
+----------------------------------------------------------------------
+SPELL AUTHORITY
+----------------------------------------------------------------------
+
+Python owns:
+
+- whether character can cast
+- known/available spell
+- spell resource
+- target legality
+- roll
+- save
+- damage
+- healing
+- resource consumption
+- canonical state effect
+
+Browser cannot submit successful spell result.
+
+Qwen cannot invent spell damage or available slots.
+
+----------------------------------------------------------------------
+SPELL RESOURCES
+----------------------------------------------------------------------
+
+Create a bounded resource model.
+
+Do not fake “unlimited spells” unless the spell is explicitly a cantrip.
+
+If spell slots are used:
+
+- canonical server state
+- persisted
+- validated
+- restored after restart
+
+Do not implement rest recovery unless clearly required by approved V1.
+
+If needed, keep rest mechanics deferred and provide controlled test reset
+utilities only in tests, not production gameplay.
+
+----------------------------------------------------------------------
+SPELL CASTING UX
+----------------------------------------------------------------------
+
+Natural language remains supported:
+
+“I cast Fire Bolt at the goblin.”
+
+Optional UI may show known spells.
+
+Any convenience button may only construct/send a normal action request.
+
+Frontend never directly invokes damage.
+
+----------------------------------------------------------------------
+SPELL RESULT
+----------------------------------------------------------------------
+
+Return safe structured spell result where useful:
+
+spell
+caster
+target
+attack/save type
+roll if applicable
+DC if applicable
+damage/healing
+resource consumed
+resulting state
+
+----------------------------------------------------------------------
+SPELL TESTS
+----------------------------------------------------------------------
+
+Cover:
+
+- valid caster
+- invalid class
+- invalid level
+- unsupported spell
+- target validation
+- spell attack
+- saving throw
+- heal
+- slot use
+- no-slot rejection
+- cantrip no-slot behavior
+- rollback
+- persistence
+- restart
+- migration
+- session isolation
+- Qwen cannot author effect
+- browser cannot author damage/healing
+
+----------------------------------------------------------------------
+SPELLS V1 GATE
+----------------------------------------------------------------------
+
+PASS only if:
+
+- bounded spell foundation works
+- Combat V3 remains stable
+- persistence works
+- old campaigns migrate
+- full regression green
+- live browser/model test passes
+- checkpoint updated
+
+Then continue.
+
+======================================================================
+PHASE 6
+XP / LEVELING V1
+======================================================================
+
+GOAL:
+
+Add a bounded canonical XP and level progression system.
+
+Do NOT pretend full class progression exists.
+
+----------------------------------------------------------------------
+ADVANCEMENT MODEL
+----------------------------------------------------------------------
+
+Use XP-based advancement for this V1 unless inspection proves that a safe
+existing milestone system already exists.
+
+Do not mix XP and milestone systems.
+
+----------------------------------------------------------------------
+XP AUTHORITY
+----------------------------------------------------------------------
+
+Python/backend owns XP.
+
+Qwen cannot grant XP because it narrated:
+
+“You gain 500 XP.”
+
+Browser cannot submit:
+
+xp = ...
+
+Canonical XP must come from validated server-owned outcomes.
+
+For V1, prefer XP sources that are objectively canonical.
+
+Example:
+
+- canonical enemy defeat
+- canonical quest completion if Quest Outcomes exists
+
+Do not award XP for arbitrary narration.
+
+----------------------------------------------------------------------
+XP REWARD REGISTRY
+----------------------------------------------------------------------
+
+If enemies currently lack canonical XP rewards:
+
+define a small validated server-owned reward registry/configuration.
+
+Do not let Qwen determine reward amount.
+
+Avoid arbitrary CR simulation unless actual engine data supports it.
+
+----------------------------------------------------------------------
+LEVEL THRESHOLDS
+----------------------------------------------------------------------
+
+Use an explicit validated level threshold table.
+
+Keep V1 bounded.
+
+If full high-level progression is not supported, explicitly limit the
+supported level range.
+
+For example:
+
+Levels 1–5
+
+if appropriate.
+
+Do not claim level 20 support without the required class systems.
+
+----------------------------------------------------------------------
+LEVEL-UP EFFECTS
+----------------------------------------------------------------------
+
+For V1, implement only effects that can be made canonical and correct.
+
+Potential universal effects:
+
+- level
+- XP
+- proficiency bonus changes
+- max HP increase
+
+Class-specific features must NOT magically appear if not implemented.
+
+Do not pretend:
+
+- subclass features
+- feats
+- ASIs
+- spell progression
+- extra attacks
+- class resources
+
+exist unless separately implemented.
+
+----------------------------------------------------------------------
+HP PROGRESSION
+----------------------------------------------------------------------
+
+Define a deterministic policy.
+
+Possible:
+
+- class hit die average + CON modifier
+or
+- an existing project-supported rule
+
+Python owns the calculation.
+
+Browser cannot choose HP gain.
+
+Document minimum behavior if CON penalties apply.
+
+----------------------------------------------------------------------
+SPELL / LEVEL INTEGRATION
+----------------------------------------------------------------------
+
+Do not automatically grant new spells unless the Spell V1 progression model
+supports it.
+
+If Spell V1 does not support spell acquisition by level:
+
+preserve existing spell access and report that limitation.
+
+Do not invent class features.
+
+----------------------------------------------------------------------
+LEVEL-UP PRESENTATION
+----------------------------------------------------------------------
+
+Frontend may show:
+
+LEVEL UP
+Level 1 → Level 2
+Max HP +X
+Proficiency changes if applicable
+
+Only after server-confirmed canonical level-up.
+
+No optimistic level animation.
+
+----------------------------------------------------------------------
+XP / LEVEL PERSISTENCE
+----------------------------------------------------------------------
+
+Verify:
+
+- XP survives save
+- level survives save
+- max HP survives save
+- API restart
+- resume
+- legacy campaign migration
+- rollback
+- no duplicate XP after retry/replay
+- campaign isolation
+
+Idempotency is important.
+
+A repeated processed event must not award XP twice.
+
+----------------------------------------------------------------------
+XP TESTS
+----------------------------------------------------------------------
+
+At minimum:
+
+1. canonical combat reward
+2. unsupported reward source rejected
+3. duplicate reward prevention
+4. exact threshold
+5. below threshold
+6. multi-level edge case policy
+7. level increment
+8. proficiency change when appropriate
+9. max HP change
+10. no browser XP mutation
+11. no Qwen XP mutation
+12. rollback
+13. persistence
+14. restart
+15. migration
+16. session isolation
+17. campaign isolation
+18. spell compatibility
+19. Combat V3 compatibility
+
+----------------------------------------------------------------------
+LEVELING V1 GATE
+----------------------------------------------------------------------
+
+PASS only if:
+
+- canonical XP flow works
+- duplicate reward protection exists
+- level-up is server-owned
+- persistence/migrations pass
+- existing game features remain stable
+- full regression green
+- real browser validation passes
+
+======================================================================
+PHASE CHECKPOINT FORMAT
+======================================================================
+
+After EACH completed phase record:
+
+PHASE:
+STATUS:
+
+GOAL:
+IMPLEMENTED:
+NOT IMPLEMENTED:
+FILES CREATED:
+FILES MODIFIED:
+API CHANGES:
+SCHEMA CHANGES:
+PERSISTENCE CHANGES:
+MIGRATION:
+FRONTEND CHANGES:
+QWEN ROLE:
+AUTHORITY REVIEW:
+FOCUSED TESTS:
+FULL REGRESSION:
+LIVE TEST:
+KNOWN ISSUES:
+GAME.PY SHA BEFORE:
+GAME.PY SHA AFTER:
+NEXT PHASE:
+
+Do not give vague summaries.
+
+======================================================================
+REAL BROWSER TEST POLICY
+======================================================================
+
+Use Chromium/actual browser for user-visible systems.
+
+Test through actual application flows.
+
+Do not directly mutate backend state to fake user success.
+
+Use disposable campaigns created for tests.
+
+Clean up ONLY test data that was created by this roadmap.
+
+IMPORTANT:
+
+There is an existing owner-created manual campaign named Cedric.
+
+Its provenance is known.
+
+Do NOT delete or alter it as cleanup unless explicitly requested.
+
+======================================================================
+ROLLBACK SAFETY
+======================================================================
+
+For all authoritative turns:
+
+canonical mutation
+→ validation
+→ journal/history updates
+→ persistence
+
+must remain atomic from the player's perspective.
+
+If a model/API/storage failure occurs:
+
+do not leave:
+
+- half XP
+- half quest progress
+- half combat result
+- consumed spell slot without spell
+- changed HP without committed turn
+- duplicate history event
+
+Preserve the last committed good campaign state.
+
+======================================================================
+IDEMPOTENCY
+======================================================================
+
+Any reward/progress event capable of being retried must have protection
+against duplicate application.
+
+Especially:
+
+- quest objective progress
+- quest completion
+- combat rewards
+- XP rewards
+- level transitions
+
+Use stable event IDs or another deterministic approach where appropriate.
+
+======================================================================
+IDENTITY
+======================================================================
+
+Prefer stable opaque canonical IDs for:
+
+- campaigns
+- runtime sessions
+- NPCs
+- combatants
+- quest records
+- objectives
+- structured events
+
+Do not rely on display names where identity matters.
+
+======================================================================
+LEGACY COMPATIBILITY
+======================================================================
+
+Do not break:
+
+- existing Cedric owner campaign
+- old campaigns lacking new fields
+- current level-1 characters
+- existing Combat V1/V2 state
+- current Journal
+- existing world metadata
+- current NPC memories
+
+If old saves require migration:
+
+test them.
+
+======================================================================
+NO SILENT API DRIFT
+======================================================================
+
+After any API-contract-affecting phase:
+
+- update OpenAPI
+- regenerate client
+- run route/schema parity checks
+- run typecheck
+
+Do not allow OpenAPI/runtime drift to reappear.
+
+======================================================================
+NO UNBOUNDED CONTEXT GROWTH
+======================================================================
+
+Do not inject:
+
+- full Journal
+- full combat history
+- full quest history
+- full campaign history
+
+into Qwen every turn.
+
+Use compact canonical context.
+
+Token growth must remain controlled.
+
+======================================================================
+NO SCOPE CREEP
+======================================================================
+
+Do NOT implement during this roadmap:
+
+- authentication
+- user accounts
+- multiplayer
+- public deployment
+- cloud-save architecture
+- campaign sharing
+- DM mode
+- factions
+- reputation
+- shops/economy
+- companions
+- AI portraits
+- full calendar
+- seasons
+- moon phases
+- procedural world generation
+- procedural campaign generation
+- full D&D 5e ruleset
+
+Those remain future work.
+
+======================================================================
+QUALITY RULE
+======================================================================
+
+Do not choose speed over architectural correctness.
+
+If a feature only works by:
+
+- trusting Qwen
+- trusting the browser
+- bypassing validation
+- weakening tests
+- duplicating canonical state
+- writing a second rule engine
+- parsing narration as mechanics
+
+do NOT implement it that way.
+
+Stop and report the architectural blocker instead.
+
+======================================================================
+FINAL MASTER REPORT
+======================================================================
+
+When the roadmap reaches an approval boundary or the final phase completes,
+produce a detailed report.
+
+Include:
+
+1. prerequisite verification result
+2. Skill Checks status
+3. Combat Result History status
+4. Quest Outcomes status
+5. engine approval status
+6. Combat V3 status
+7. Spells V1 status
+8. XP/Leveling status
+9. architecture changes
+10. persistence changes
+11. schema versions/migrations
+12. OpenAPI changes
+13. frontend changes
+14. Qwen behavior
+15. test totals
+16. real browser tests
+17. real qwen tests
+18. session isolation
+19. campaign isolation
+20. rollback behavior
+21. idempotency behavior
+22. known issues
+23. known limitations
+24. technical debt
+25. current game.py SHA
+26. historical engine SHA
+27. current protected checkpoint
+28. future recommended roadmap
+
+======================================================================
+IF STOPPED AT ENGINE APPROVAL
+======================================================================
+
+The final response must prominently state:
+
+ENGINE CHANGE APPROVAL REQUIRED
+
+Then provide:
+
+- what has been completed safely
+- why engine modification is now required
+- exact proposed changes
+- migration plan
+- test plan
+- risks
+- game.py current hash
+- whether existing campaigns will remain compatible
+
+Do not continue until explicit approval is received.
+
+======================================================================
+MOST IMPORTANT FINAL RULE
+======================================================================
+
+Never silently cross an authority boundary.
+
+Never silently modify the protected engine.
+
+Never trade save compatibility for convenience.
+
+Never use Qwen narration as proof of canonical game reality.
+
+PASS → checkpoint → next phase.
+
+FAIL → stop.
+
+ENGINE CHANGE REQUIRED → approval checkpoint.
+
+Maintain the AI-DND architecture:
+
+PYTHON DECIDES REALITY.
+QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
+THE FRONTEND PRESENTS REALITY.
