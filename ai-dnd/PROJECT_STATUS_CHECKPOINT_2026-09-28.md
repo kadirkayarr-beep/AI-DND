@@ -37,7 +37,7 @@ These are the current gameplay-roadmap statuses; they are separate from the earl
 | Phase 2 — Combat Result History Persistence | **PASS** | Validated structured results persist separately from transcript history, are bounded to 50 per campaign, and rehydrate after resume. Failed turns/autosaves do not append results. Combat mechanics and `game.py` were not changed. |
 | Phase 3 — Quest Outcomes V1 | **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** | The frozen engine emits no canonical quest acceptance, objective progression, completion, failure, or cancellation events. Keep the quest ledger empty; do not infer transitions from narration, player wording, or browser state. |
 
-**Approval stop:** `ai-dnd/game.py` SHA-256 remains `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`. The consolidated package is `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`. **ENGINE CHANGE APPROVAL REQUIRED.** Item #38 remains approved but deferred; its acceptance details were not found locally and no scope was invented.
+**Approval stop:** `ai-dnd/game.py` SHA-256 remains `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`. The consolidated package is `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md`. **ENGINE CHANGE APPROVAL REQUIRED.** Item #38 is approved but remains deferred until explicit engine approval; its confirmed scope is included in the package.
 
 ## 2. Architecture
 
@@ -377,7 +377,7 @@ Not ready for public users:
 - `ai-dnd/ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md` consolidates known engine changes.
 - Keep `ai-dnd/game.py` unchanged until explicit owner approval.
 - Do not begin Combat V3, Spells V1, or XP/Leveling V1.
-- Item #38 is approved but deferred; its local acceptance details are unknown.
+- Item #38 is approved but deferred. Its confirmed scope and acceptance criteria are included in the package; do not execute it before explicit engine approval.
 
 **SEPARATE BACKLOG**
 
