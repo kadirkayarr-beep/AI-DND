@@ -179,6 +179,9 @@ class SessionManager:
         with record.turn_lock:
             stored = store.get_campaign(campaign_id)
             needs_migration = (
+                stored.payload.get("engine_save", {}).get("version")
+                != game.SAVE_FORMAT_VERSION
+                or
                 "world_metadata" not in stored.payload
                 or "journal" not in stored.payload
                 or "narrative_memory" not in stored.payload
@@ -229,6 +232,21 @@ class SessionManager:
                 journal=record.journal,
                 narrative_memory=record.narrative_memory,
             )
+
+    def save_campaign_locked(self, record: ManagedSession) -> dict[str, Any]:
+        """Persist a campaign when the caller already holds its turn lock."""
+        if record.campaign_id is None:
+            raise CampaignNotActiveError("Campaign has no active session.")
+        set_session_world_metadata(
+            record.game_session,
+            getattr(record.game_session, "world_metadata", None),
+        )
+        return self._require_campaign_store().save_campaign(
+            record.campaign_id,
+            record.game_session,
+            journal=record.journal,
+            narrative_memory=record.narrative_memory,
+        )
 
     def autosave_turn(
         self,

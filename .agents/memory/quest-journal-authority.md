@@ -1,10 +1,10 @@
 ---
 name: Quest ledger authority
-description: Why the campaign quest ledger stays empty until the Python engine has structured quest lifecycle data.
+description: Python owns quest lifecycle; production definitions stay empty until owner-approved content exists.
 ---
 
-Do not infer quest creation, completion, or objective progress from Qwen narration or browser input. Keep the ledger empty until Python exposes structured, canonical quest outcomes.
+Python owns quest state and transitions. Only explicit server-validated commands accept, reject, or cancel quests; canonical location, defeat, and supported-item evidence advances objectives. Narration and browser text never create or change quest state. Keep the production quest catalog empty until owner-approved definitions are supplied.
 
-**Why:** Narration can be descriptive or contradictory, and the existing canonical engine state does not provide a reliable quest lifecycle source. The user explicitly chose a validated, persisted empty ledger for Quest V1 rather than narrative inference.
+**Why:** Narration can be descriptive or contradictory, so it cannot establish game outcomes. Quest mechanics now have structured engine authority, but no production definitions have been owner-approved; an empty catalog prevents unapproved content from appearing while preserving test-only server-owned fixtures.
 
-**How to apply:** Only add automatic quest updates when the Python engine owns explicit accepted quest and objective state transitions. Keep browser data read-only, then validate, persist, and serialize those structured outcomes through the API.
+**How to apply:** Keep the browser limited to rendering returned quest state and sending quest IDs for explicit commands. Validate and persist engine transitions through the API; add production quest definitions only after owner approval.

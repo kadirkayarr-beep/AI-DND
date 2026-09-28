@@ -9,6 +9,8 @@ delete process.env.REPL_ID;
 
 let vite;
 let renderCombatPanel;
+let renderSkillCheckResult;
+let renderQuestJournalSection;
 let mergeCombatHistory;
 
 before(async () => {
@@ -21,11 +23,19 @@ before(async () => {
   });
   const component = await vite.ssrLoadModule('/src/components/combat-panel.tsx');
   const history = await vite.ssrLoadModule('/src/lib/combat-history.ts');
+  const skillResult = await vite.ssrLoadModule('/src/components/skill-check-result.tsx');
+  const questJournal = await vite.ssrLoadModule('/src/components/quest-journal-section.tsx');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   mergeCombatHistory = history.mergeCombatHistory;
   renderCombatPanel = (state, entries = []) => renderToStaticMarkup(
     React.createElement(component.CombatPanel, { state, entries }),
+  );
+  renderSkillCheckResult = (result) => renderToStaticMarkup(
+    React.createElement(skillResult.SkillCheckResultCard, { result }),
+  );
+  renderQuestJournalSection = (props) => renderToStaticMarkup(
+    React.createElement(questJournal.QuestJournalSection, props),
   );
 });
 
@@ -106,6 +116,36 @@ test('inactive combat renders without invented round, target, or roll data', () 
   assert.doesNotMatch(html, /data-testid="combat-round"/);
   assert.doesNotMatch(html, /data-testid="combat-opponent"/);
   assert.doesNotMatch(html, /data-testid="combat-entry-/);
+});
+
+test('the existing skill result card renders all four newly routed skills', () => {
+  const cases = [
+    ['Persuasion', 'charisma'],
+    ['Deception', 'charisma'],
+    ['Acrobatics', 'dexterity'],
+    ['Survival', 'wisdom'],
+  ];
+
+  for (const [skill, ability] of cases) {
+    const result = {
+      skill,
+      ability,
+      d20: 12,
+      proficient: false,
+      ability_modifier: 1,
+      proficiency_modifier: 0,
+      total_modifier: 1,
+      total: 13,
+      difficulty: 'medium',
+      dc: 15,
+      outcome: 'failure',
+    };
+    const html = renderSkillCheckResult(result);
+
+    assert.match(html, /data-testid="skill-check-result"/);
+    assert.ok(html.includes(skill), `accessible label should include ${skill}`);
+    assert.ok(html.includes(skill.toLocaleUpperCase('tr-TR')), `card should display ${skill}`);
+  }
 });
 
 test('active panel displays only canonical HP, AC, round, target, and initiative order', () => {
@@ -220,4 +260,89 @@ test('result animation is brief and disabled for reduced motion', async () => {
   assert.match(css, /@keyframes combat-result-reveal/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.combat-result-die \{ animation: none; \}/);
+});
+
+test('quest journal remains empty and shows no commands without server offers', () => {
+  const html = renderQuestJournalSection({
+    quests: [],
+    offers: [],
+    knownNpcs: [],
+    onAccept() {},
+    onCancel() {},
+    acceptPending: false,
+    cancelPending: false,
+    hasError: false,
+  });
+
+  assert.match(html, /data-testid="empty-journal-quests"/);
+  assert.doesNotMatch(html, /button-accept-quest-/);
+  assert.doesNotMatch(html, /button-cancel-quest-/);
+});
+
+test('quest offers render server-owned giver, objectives, and both quest-ID commands', () => {
+  const html = renderQuestJournalSection({
+    quests: [],
+    offers: [{
+      quest_id: 'quest.forest',
+      title: 'The Forest Path',
+      description: 'Reach the forest.',
+      giver_npc_id: 'npc_mira',
+      objectives: [{
+        objective_id: 'visit-forest',
+        description: 'Visit the forest twice.',
+        kind: 'visit_location',
+        target: 'forest',
+        required_count: 2,
+      }],
+    }],
+    knownNpcs: [{ npc_id: 'npc_mira', name: 'Mira' }],
+    onAccept() {},
+    onCancel() {},
+    acceptPending: false,
+    cancelPending: false,
+    hasError: false,
+  });
+
+  assert.match(html, /The Forest Path/);
+  assert.match(html, /Reach the forest/);
+  assert.match(html, /Görevi veren: Mira/);
+  assert.match(html, /Visit the forest twice/);
+  assert.match(html, /visit_location · forest · 2/);
+  assert.match(html, /data-testid="button-accept-quest-quest\.forest"/);
+  assert.match(html, /data-testid="button-cancel-quest-quest\.forest"/);
+  assert.equal((html.match(/data-quest-id="quest\.forest"/g) ?? []).length, 2);
+});
+
+test('accepted quest progress and cancellation use canonical returned state', () => {
+  const html = renderQuestJournalSection({
+    quests: [{
+      quest_id: 'quest.forest',
+      title: 'The Forest Path',
+      description: 'Reach the forest.',
+      status: 'accepted',
+      giver_npc_id: 'npc_mira',
+      objectives: [{
+        objective_id: 'visit-forest',
+        description: 'Visit the forest twice.',
+        status: 'active',
+        progress: 1,
+        required_count: 2,
+      }],
+    }],
+    offers: [],
+    knownNpcs: [{ npc_id: 'npc_mira', name: 'Mira' }],
+    onAccept() {},
+    onCancel() {},
+    acceptPending: false,
+    cancelPending: false,
+    hasError: false,
+    commandNotice: 'Görev kabul edildi.',
+  });
+
+  assert.match(html, /Sürüyor/);
+  assert.match(html, /1\/2/);
+  assert.match(html, /data-testid="quest-command-outcome"/);
+  assert.match(html, /Görev kabul edildi/);
+  assert.match(html, /data-testid="button-cancel-accepted-quest-quest\.forest"/);
+  assert.match(html, /Görevi iptal et/);
 });

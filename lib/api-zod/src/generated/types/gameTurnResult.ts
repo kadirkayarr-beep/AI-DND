@@ -8,6 +8,7 @@
 import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
+import type { QuestOutcome } from './questOutcome';
 import type { SkillCheckResult } from './skillCheckResult';
 
 export interface GameTurnResult {
@@ -20,4 +21,5 @@ export interface GameTurnResult {
   combat_history_entry: CombatHistoryEntry | null;
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
+  quest_outcomes: QuestOutcome[];
 }

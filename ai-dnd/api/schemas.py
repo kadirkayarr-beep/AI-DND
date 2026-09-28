@@ -92,6 +92,69 @@ class SkillCheckResult(BaseModel):
     outcome: Literal["critical_success", "success", "failure", "critical_failure"]
 
 
+class QuestOutcome(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    event_id: str
+    quest_id: str
+    transition: Literal[
+        "accepted", "objective_progress", "objective_completed", "completed", "cancelled"
+    ]
+    objective_id: str | None = None
+    source_event_id: str
+    turn_index: int = Field(ge=0)
+
+
+class QuestObjectiveState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    objective_id: str = Field(min_length=1, max_length=120)
+    description: str = Field(min_length=1, max_length=1000)
+    status: Literal["active", "completed", "cancelled"]
+    progress: int = Field(ge=0)
+    required_count: int = Field(ge=1, le=1000)
+
+
+class QuestObjectiveOffer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    objective_id: str = Field(min_length=1, max_length=120)
+    description: str = Field(min_length=1, max_length=1000)
+    kind: Literal["visit_location", "defeat_entity", "acquire_item"]
+    target: str = Field(min_length=1, max_length=160)
+    required_count: int = Field(ge=1, le=1000)
+
+
+class QuestState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    quest_id: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=1, max_length=2000)
+    status: Literal["accepted", "completed", "cancelled"]
+    giver_npc_id: str | None = Field(default=None, max_length=120)
+    objectives: list[QuestObjectiveState]
+
+
+class QuestOffer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    quest_id: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=1, max_length=2000)
+    giver_npc_id: str | None = Field(default=None, max_length=120)
+    objectives: list[QuestObjectiveOffer]
+
+
+class QuestCommandResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    state: dict[str, Any]
+    quest: QuestState
+    outcome: QuestOutcome | None
+
+
 class TurnResponse(BaseModel):
     session_id: str
     narration: str
@@ -99,6 +162,7 @@ class TurnResponse(BaseModel):
     combat_result: CombatTurnResult | None = None
     combat_history_entry: CombatHistoryEntry | None = None
     skill_check_result: SkillCheckResult | None = None
+    quest_outcomes: list[QuestOutcome] = []
 
 
 class CharacterCreateInput(BaseModel):

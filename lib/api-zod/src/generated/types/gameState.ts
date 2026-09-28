@@ -14,6 +14,8 @@ import type { GameNpc } from './gameNpc';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
+import type { QuestOffer } from './questOffer';
+import type { QuestState } from './questState';
 
 /**
  * Public state projection produced by the API serializers.
@@ -32,4 +34,6 @@ export interface GameState {
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;
+  quests: QuestState[];
+  quest_offers?: QuestOffer[];
 }

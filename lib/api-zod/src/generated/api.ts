@@ -83,6 +83,38 @@ export const createGameSessionResponseStateJournalQuestsMax = 100;
 
 export const createGameSessionResponseStateTurnIndexMin = 0;
 
+export const createGameSessionResponseStateQuestsItemQuestIdMax = 120;
+
+export const createGameSessionResponseStateQuestsItemTitleMax = 160;
+
+export const createGameSessionResponseStateQuestsItemDescriptionMax = 2000;
+
+export const createGameSessionResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const createGameSessionResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const createGameSessionResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const createGameSessionResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const createGameSessionResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const createGameSessionResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const createGameSessionResponseStateQuestOffersItemTitleMax = 160;
+
+export const createGameSessionResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const createGameSessionResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const createGameSessionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const createGameSessionResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const createGameSessionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
 
 
 export const CreateGameSessionResponse = zod.object({
@@ -203,7 +235,34 @@ export const CreateGameSessionResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(createGameSessionResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(createGameSessionResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(createGameSessionResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(createGameSessionResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(createGameSessionResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(createGameSessionResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createGameSessionResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createGameSessionResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(createGameSessionResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(createGameSessionResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(createGameSessionResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(createGameSessionResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(createGameSessionResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(createGameSessionResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createGameSessionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createGameSessionResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(createGameSessionResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(createGameSessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -272,6 +331,38 @@ export const getGameSessionStateResponseJournalQuestsItemObjectivesMax = 100;
 export const getGameSessionStateResponseJournalQuestsMax = 100;
 
 export const getGameSessionStateResponseTurnIndexMin = 0;
+
+export const getGameSessionStateResponseQuestsItemQuestIdMax = 120;
+
+export const getGameSessionStateResponseQuestsItemTitleMax = 160;
+
+export const getGameSessionStateResponseQuestsItemDescriptionMax = 2000;
+
+export const getGameSessionStateResponseQuestsItemGiverNpcIdMax = 120;
+
+export const getGameSessionStateResponseQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const getGameSessionStateResponseQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const getGameSessionStateResponseQuestsItemObjectivesItemProgressMin = 0;
+
+export const getGameSessionStateResponseQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const getGameSessionStateResponseQuestOffersItemQuestIdMax = 120;
+
+export const getGameSessionStateResponseQuestOffersItemTitleMax = 160;
+
+export const getGameSessionStateResponseQuestOffersItemDescriptionMax = 2000;
+
+export const getGameSessionStateResponseQuestOffersItemGiverNpcIdMax = 120;
+
+export const getGameSessionStateResponseQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const getGameSessionStateResponseQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const getGameSessionStateResponseQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 
 
@@ -391,7 +482,34 @@ export const GetGameSessionStateResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(getGameSessionStateResponseTurnIndexMin)
+  "turn_index": zod.number().int().min(getGameSessionStateResponseTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(getGameSessionStateResponseQuestsItemQuestIdMax),
+  "title": zod.string().max(getGameSessionStateResponseQuestsItemTitleMax),
+  "description": zod.string().max(getGameSessionStateResponseQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(getGameSessionStateResponseQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getGameSessionStateResponseQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getGameSessionStateResponseQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(getGameSessionStateResponseQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(getGameSessionStateResponseQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(getGameSessionStateResponseQuestOffersItemQuestIdMax),
+  "title": zod.string().max(getGameSessionStateResponseQuestOffersItemTitleMax),
+  "description": zod.string().max(getGameSessionStateResponseQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(getGameSessionStateResponseQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getGameSessionStateResponseQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getGameSessionStateResponseQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(getGameSessionStateResponseQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -468,6 +586,38 @@ export const playGameTurnResponseStateJournalQuestsMax = 100;
 
 export const playGameTurnResponseStateTurnIndexMin = 0;
 
+export const playGameTurnResponseStateQuestsItemQuestIdMax = 120;
+
+export const playGameTurnResponseStateQuestsItemTitleMax = 160;
+
+export const playGameTurnResponseStateQuestsItemDescriptionMax = 2000;
+
+export const playGameTurnResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const playGameTurnResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const playGameTurnResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const playGameTurnResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const playGameTurnResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const playGameTurnResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const playGameTurnResponseStateQuestOffersItemTitleMax = 160;
+
+export const playGameTurnResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const playGameTurnResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const playGameTurnResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const playGameTurnResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
 export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
 
@@ -478,6 +628,16 @@ export const playGameTurnResponseSkillCheckResultOneD20Max = 20;
 export const playGameTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
 
 export const playGameTurnResponseSkillCheckResultOneDcMax = 30;
+
+export const playGameTurnResponseQuestOutcomesItemEventIdMax = 300;
+
+export const playGameTurnResponseQuestOutcomesItemQuestIdMax = 120;
+
+export const playGameTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
+
+export const playGameTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
+
+export const playGameTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
 
 
@@ -600,7 +760,34 @@ export const PlayGameTurnResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(playGameTurnResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(playGameTurnResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(playGameTurnResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(playGameTurnResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(playGameTurnResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(playGameTurnResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(playGameTurnResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(playGameTurnResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(playGameTurnResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(playGameTurnResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(playGameTurnResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(playGameTurnResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(playGameTurnResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(playGameTurnResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(playGameTurnResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(playGameTurnResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "action": zod.string().nullish(),
@@ -704,7 +891,619 @@ export const PlayGameTurnResponse = zod.object({
   "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
   "dc": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneDcMax),
   "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
-}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.')
+}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.'),
+  "quest_outcomes": zod.array(zod.object({
+  "event_id": zod.string().max(playGameTurnResponseQuestOutcomesItemEventIdMax),
+  "quest_id": zod.string().max(playGameTurnResponseQuestOutcomesItemQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(playGameTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(playGameTurnResponseQuestOutcomesItemSourceEventIdMax),
+  "turn_index": zod.number().int().min(playGameTurnResponseQuestOutcomesItemTurnIndexMin)
+}))
+})
+
+
+/**
+ * @summary Explicitly accept a server-owned quest offer
+ */
+export const acceptGameQuestPathQuestIdMax = 120;
+
+
+
+export const AcceptGameQuestParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "quest_id": zod.coerce.string().max(acceptGameQuestPathQuestIdMax)
+})
+
+export const acceptGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
+export const acceptGameQuestResponseStateWorldTimeOfDayDefault = `day`;
+export const acceptGameQuestResponseStateWorldWeatherDefault = `clear`;
+export const acceptGameQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const acceptGameQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const acceptGameQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const acceptGameQuestResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const acceptGameQuestResponseStateJournalKnownNpcsMax = 500;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const acceptGameQuestResponseStateJournalNotableEventsMax = 200;
+
+export const acceptGameQuestResponseStateJournalQuestsItemTitleMax = 160;
+
+export const acceptGameQuestResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const acceptGameQuestResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const acceptGameQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const acceptGameQuestResponseStateJournalQuestsMax = 100;
+
+export const acceptGameQuestResponseStateTurnIndexMin = 0;
+
+export const acceptGameQuestResponseStateQuestsItemQuestIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestsItemTitleMax = 160;
+
+export const acceptGameQuestResponseStateQuestsItemDescriptionMax = 2000;
+
+export const acceptGameQuestResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptGameQuestResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const acceptGameQuestResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const acceptGameQuestResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestOffersItemTitleMax = 160;
+
+export const acceptGameQuestResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const acceptGameQuestResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const acceptGameQuestResponseQuestQuestIdMax = 120;
+
+export const acceptGameQuestResponseQuestTitleMax = 160;
+
+export const acceptGameQuestResponseQuestDescriptionMax = 2000;
+
+export const acceptGameQuestResponseQuestGiverNpcIdMax = 120;
+
+export const acceptGameQuestResponseQuestObjectivesItemObjectiveIdMax = 120;
+
+export const acceptGameQuestResponseQuestObjectivesItemDescriptionMax = 1000;
+
+export const acceptGameQuestResponseQuestObjectivesItemProgressMin = 0;
+
+export const acceptGameQuestResponseQuestObjectivesItemRequiredCountMax = 1000;
+
+export const acceptGameQuestResponseOutcomeOneEventIdMax = 300;
+
+export const acceptGameQuestResponseOutcomeOneQuestIdMax = 120;
+
+export const acceptGameQuestResponseOutcomeOneObjectiveIdMax = 120;
+
+export const acceptGameQuestResponseOutcomeOneSourceEventIdMax = 300;
+
+export const acceptGameQuestResponseOutcomeOneTurnIndexMin = 0;
+
+
+
+export const AcceptGameQuestResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(acceptGameQuestResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(acceptGameQuestResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(acceptGameQuestResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(acceptGameQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(acceptGameQuestResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(acceptGameQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(acceptGameQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(acceptGameQuestResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(acceptGameQuestResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(acceptGameQuestResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(acceptGameQuestResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(acceptGameQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(acceptGameQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(acceptGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(acceptGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(acceptGameQuestResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(acceptGameQuestResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+})).max(acceptGameQuestResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(acceptGameQuestResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(acceptGameQuestResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptGameQuestResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(acceptGameQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(acceptGameQuestResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(acceptGameQuestResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string()
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "features": zod.array(zod.object({
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean().optional(),
+  "round": zod.number().int().optional(),
+  "initiative_order": zod.array(zod.string()).optional(),
+  "current_turn_index": zod.number().int().optional(),
+  "participants": zod.array(zod.string()).optional(),
+  "target_id": zod.string().nullish()
+}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "turn_index": zod.number().int().min(acceptGameQuestResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(acceptGameQuestResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(acceptGameQuestResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(acceptGameQuestResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptGameQuestResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptGameQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptGameQuestResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(acceptGameQuestResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(acceptGameQuestResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(acceptGameQuestResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(acceptGameQuestResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(acceptGameQuestResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(acceptGameQuestResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
+}).describe('Public state projection produced by the API serializers.'),
+  "quest": zod.object({
+  "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
+  "title": zod.string().max(acceptGameQuestResponseQuestTitleMax),
+  "description": zod.string().max(acceptGameQuestResponseQuestDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptGameQuestResponseQuestGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptGameQuestResponseQuestObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptGameQuestResponseQuestObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(acceptGameQuestResponseQuestObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(acceptGameQuestResponseQuestObjectivesItemRequiredCountMax)
+}))
+}),
+  "outcome": zod.union([zod.object({
+  "event_id": zod.string().max(acceptGameQuestResponseOutcomeOneEventIdMax),
+  "quest_id": zod.string().max(acceptGameQuestResponseOutcomeOneQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(acceptGameQuestResponseOutcomeOneObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(acceptGameQuestResponseOutcomeOneSourceEventIdMax),
+  "turn_index": zod.number().int().min(acceptGameQuestResponseOutcomeOneTurnIndexMin)
+}),zod.null()])
+})
+
+
+/**
+ * @summary Explicitly cancel an accepted quest
+ */
+export const cancelGameQuestPathQuestIdMax = 120;
+
+
+
+export const CancelGameQuestParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "quest_id": zod.coerce.string().max(cancelGameQuestPathQuestIdMax)
+})
+
+export const cancelGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
+export const cancelGameQuestResponseStateWorldTimeOfDayDefault = `day`;
+export const cancelGameQuestResponseStateWorldWeatherDefault = `clear`;
+export const cancelGameQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const cancelGameQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const cancelGameQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const cancelGameQuestResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const cancelGameQuestResponseStateJournalKnownNpcsMax = 500;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const cancelGameQuestResponseStateJournalNotableEventsMax = 200;
+
+export const cancelGameQuestResponseStateJournalQuestsItemTitleMax = 160;
+
+export const cancelGameQuestResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const cancelGameQuestResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const cancelGameQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const cancelGameQuestResponseStateJournalQuestsMax = 100;
+
+export const cancelGameQuestResponseStateTurnIndexMin = 0;
+
+export const cancelGameQuestResponseStateQuestsItemQuestIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestsItemTitleMax = 160;
+
+export const cancelGameQuestResponseStateQuestsItemDescriptionMax = 2000;
+
+export const cancelGameQuestResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelGameQuestResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const cancelGameQuestResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const cancelGameQuestResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestOffersItemTitleMax = 160;
+
+export const cancelGameQuestResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const cancelGameQuestResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const cancelGameQuestResponseQuestQuestIdMax = 120;
+
+export const cancelGameQuestResponseQuestTitleMax = 160;
+
+export const cancelGameQuestResponseQuestDescriptionMax = 2000;
+
+export const cancelGameQuestResponseQuestGiverNpcIdMax = 120;
+
+export const cancelGameQuestResponseQuestObjectivesItemObjectiveIdMax = 120;
+
+export const cancelGameQuestResponseQuestObjectivesItemDescriptionMax = 1000;
+
+export const cancelGameQuestResponseQuestObjectivesItemProgressMin = 0;
+
+export const cancelGameQuestResponseQuestObjectivesItemRequiredCountMax = 1000;
+
+export const cancelGameQuestResponseOutcomeOneEventIdMax = 300;
+
+export const cancelGameQuestResponseOutcomeOneQuestIdMax = 120;
+
+export const cancelGameQuestResponseOutcomeOneObjectiveIdMax = 120;
+
+export const cancelGameQuestResponseOutcomeOneSourceEventIdMax = 300;
+
+export const cancelGameQuestResponseOutcomeOneTurnIndexMin = 0;
+
+
+
+export const CancelGameQuestResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(cancelGameQuestResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(cancelGameQuestResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(cancelGameQuestResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(cancelGameQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(cancelGameQuestResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(cancelGameQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(cancelGameQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(cancelGameQuestResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(cancelGameQuestResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(cancelGameQuestResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(cancelGameQuestResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(cancelGameQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(cancelGameQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(cancelGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(cancelGameQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(cancelGameQuestResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(cancelGameQuestResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+})).max(cancelGameQuestResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(cancelGameQuestResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(cancelGameQuestResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelGameQuestResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(cancelGameQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(cancelGameQuestResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(cancelGameQuestResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string()
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "features": zod.array(zod.object({
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean().optional(),
+  "round": zod.number().int().optional(),
+  "initiative_order": zod.array(zod.string()).optional(),
+  "current_turn_index": zod.number().int().optional(),
+  "participants": zod.array(zod.string()).optional(),
+  "target_id": zod.string().nullish()
+}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "turn_index": zod.number().int().min(cancelGameQuestResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(cancelGameQuestResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(cancelGameQuestResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(cancelGameQuestResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelGameQuestResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelGameQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelGameQuestResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(cancelGameQuestResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(cancelGameQuestResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(cancelGameQuestResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(cancelGameQuestResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(cancelGameQuestResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(cancelGameQuestResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
+}).describe('Public state projection produced by the API serializers.'),
+  "quest": zod.object({
+  "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
+  "title": zod.string().max(cancelGameQuestResponseQuestTitleMax),
+  "description": zod.string().max(cancelGameQuestResponseQuestDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelGameQuestResponseQuestGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelGameQuestResponseQuestObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelGameQuestResponseQuestObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(cancelGameQuestResponseQuestObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(cancelGameQuestResponseQuestObjectivesItemRequiredCountMax)
+}))
+}),
+  "outcome": zod.union([zod.object({
+  "event_id": zod.string().max(cancelGameQuestResponseOutcomeOneEventIdMax),
+  "quest_id": zod.string().max(cancelGameQuestResponseOutcomeOneQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(cancelGameQuestResponseOutcomeOneObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(cancelGameQuestResponseOutcomeOneSourceEventIdMax),
+  "turn_index": zod.number().int().min(cancelGameQuestResponseOutcomeOneTurnIndexMin)
+}),zod.null()])
 })
 
 
@@ -812,6 +1611,38 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
 export const createCampaignResponseStateTurnIndexMin = 0;
+
+export const createCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const createCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const createCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const createCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const createCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const createCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const createCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const createCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const createCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const createCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const createCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const createCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const createCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const createCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const createCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -938,7 +1769,34 @@ export const CreateCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(createCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(createCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(createCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(createCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(createCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(createCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(createCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(createCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(createCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(createCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(createCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(createCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(createCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -1059,6 +1917,38 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const getCampaignResponseStateJournalQuestsMax = 100;
 
 export const getCampaignResponseStateTurnIndexMin = 0;
+
+export const getCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const getCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const getCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const getCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const getCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const getCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const getCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const getCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const getCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const getCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const getCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const getCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const getCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const getCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const getCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -1195,7 +2085,34 @@ export const GetCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(getCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(getCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(getCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(getCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(getCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(getCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(getCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(getCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(getCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(getCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(getCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(getCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(getCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -1316,6 +2233,38 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
 
 export const resumeCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const resumeCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const resumeCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resumeCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resumeCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resumeCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resumeCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resumeCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resumeCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resumeCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const resumeCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resumeCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resumeCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resumeCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resumeCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -1442,7 +2391,34 @@ export const ResumeCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(resumeCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(resumeCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resumeCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resumeCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resumeCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resumeCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resumeCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resumeCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resumeCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resumeCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resumeCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resumeCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resumeCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resumeCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resumeCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resumeCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resumeCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -1608,6 +2584,38 @@ export const createLegacySessionResponseStateJournalQuestsMax = 100;
 
 export const createLegacySessionResponseStateTurnIndexMin = 0;
 
+export const createLegacySessionResponseStateQuestsItemQuestIdMax = 120;
+
+export const createLegacySessionResponseStateQuestsItemTitleMax = 160;
+
+export const createLegacySessionResponseStateQuestsItemDescriptionMax = 2000;
+
+export const createLegacySessionResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const createLegacySessionResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const createLegacySessionResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const createLegacySessionResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const createLegacySessionResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const createLegacySessionResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const createLegacySessionResponseStateQuestOffersItemTitleMax = 160;
+
+export const createLegacySessionResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const createLegacySessionResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const createLegacySessionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const createLegacySessionResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const createLegacySessionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
 
 
 export const CreateLegacySessionResponse = zod.object({
@@ -1728,7 +2736,34 @@ export const CreateLegacySessionResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(createLegacySessionResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(createLegacySessionResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(createLegacySessionResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(createLegacySessionResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(createLegacySessionResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(createLegacySessionResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createLegacySessionResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createLegacySessionResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(createLegacySessionResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(createLegacySessionResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(createLegacySessionResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(createLegacySessionResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(createLegacySessionResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(createLegacySessionResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createLegacySessionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createLegacySessionResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(createLegacySessionResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(createLegacySessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -1798,6 +2833,38 @@ export const getLegacySessionStateResponseJournalQuestsItemObjectivesMax = 100;
 export const getLegacySessionStateResponseJournalQuestsMax = 100;
 
 export const getLegacySessionStateResponseTurnIndexMin = 0;
+
+export const getLegacySessionStateResponseQuestsItemQuestIdMax = 120;
+
+export const getLegacySessionStateResponseQuestsItemTitleMax = 160;
+
+export const getLegacySessionStateResponseQuestsItemDescriptionMax = 2000;
+
+export const getLegacySessionStateResponseQuestsItemGiverNpcIdMax = 120;
+
+export const getLegacySessionStateResponseQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const getLegacySessionStateResponseQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const getLegacySessionStateResponseQuestsItemObjectivesItemProgressMin = 0;
+
+export const getLegacySessionStateResponseQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const getLegacySessionStateResponseQuestOffersItemQuestIdMax = 120;
+
+export const getLegacySessionStateResponseQuestOffersItemTitleMax = 160;
+
+export const getLegacySessionStateResponseQuestOffersItemDescriptionMax = 2000;
+
+export const getLegacySessionStateResponseQuestOffersItemGiverNpcIdMax = 120;
+
+export const getLegacySessionStateResponseQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const getLegacySessionStateResponseQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const getLegacySessionStateResponseQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 
 
@@ -1917,7 +2984,34 @@ export const GetLegacySessionStateResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(getLegacySessionStateResponseTurnIndexMin)
+  "turn_index": zod.number().int().min(getLegacySessionStateResponseTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(getLegacySessionStateResponseQuestsItemQuestIdMax),
+  "title": zod.string().max(getLegacySessionStateResponseQuestsItemTitleMax),
+  "description": zod.string().max(getLegacySessionStateResponseQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(getLegacySessionStateResponseQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getLegacySessionStateResponseQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getLegacySessionStateResponseQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(getLegacySessionStateResponseQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(getLegacySessionStateResponseQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(getLegacySessionStateResponseQuestOffersItemQuestIdMax),
+  "title": zod.string().max(getLegacySessionStateResponseQuestOffersItemTitleMax),
+  "description": zod.string().max(getLegacySessionStateResponseQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(getLegacySessionStateResponseQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getLegacySessionStateResponseQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getLegacySessionStateResponseQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(getLegacySessionStateResponseQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -1995,6 +3089,38 @@ export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
 
+export const playLegacyTurnResponseStateQuestsItemQuestIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestsItemTitleMax = 160;
+
+export const playLegacyTurnResponseStateQuestsItemDescriptionMax = 2000;
+
+export const playLegacyTurnResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const playLegacyTurnResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const playLegacyTurnResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const playLegacyTurnResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestOffersItemTitleMax = 160;
+
+export const playLegacyTurnResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const playLegacyTurnResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
 
@@ -2005,6 +3131,16 @@ export const playLegacyTurnResponseSkillCheckResultOneD20Max = 20;
 export const playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
 
 export const playLegacyTurnResponseSkillCheckResultOneDcMax = 30;
+
+export const playLegacyTurnResponseQuestOutcomesItemEventIdMax = 300;
+
+export const playLegacyTurnResponseQuestOutcomesItemQuestIdMax = 120;
+
+export const playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
+
+export const playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
+
+export const playLegacyTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
 
 
@@ -2127,7 +3263,34 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(playLegacyTurnResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(playLegacyTurnResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(playLegacyTurnResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(playLegacyTurnResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(playLegacyTurnResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(playLegacyTurnResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(playLegacyTurnResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(playLegacyTurnResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(playLegacyTurnResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(playLegacyTurnResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(playLegacyTurnResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(playLegacyTurnResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(playLegacyTurnResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(playLegacyTurnResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "action": zod.string().nullish(),
@@ -2231,7 +3394,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
   "dc": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneDcMax),
   "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
-}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.')
+}),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.'),
+  "quest_outcomes": zod.array(zod.object({
+  "event_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemEventIdMax),
+  "quest_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax),
+  "turn_index": zod.number().int().min(playLegacyTurnResponseQuestOutcomesItemTurnIndexMin)
+}))
 })
 
 
@@ -2332,6 +3503,38 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const createLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const createLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const createLegacyCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const createLegacyCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const createLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const createLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const createLegacyCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const createLegacyCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const createLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -2458,7 +3661,34 @@ export const CreateLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(createLegacyCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(createLegacyCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(createLegacyCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(createLegacyCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(createLegacyCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(createLegacyCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(createLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(createLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -2580,6 +3810,38 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const getLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const getLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const getLegacyCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const getLegacyCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const getLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const getLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const getLegacyCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const getLegacyCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const getLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -2716,7 +3978,34 @@ export const GetLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(getLegacyCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(getLegacyCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(getLegacyCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(getLegacyCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(getLegacyCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(getLegacyCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(getLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(getLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -2838,6 +4127,38 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const resumeLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestsItemTitleMax = 160;
+
+export const resumeLegacyCampaignResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resumeLegacyCampaignResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resumeLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resumeLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemTitleMax = 160;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -2964,7 +4285,34 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullish()
 }).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
-  "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateTurnIndexMin)
+  "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resumeLegacyCampaignResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})).optional()
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),

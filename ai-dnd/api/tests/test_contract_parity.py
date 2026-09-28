@@ -235,7 +235,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC_TEXT)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 20)
+        self.assertEqual(len(documented_routes), 22)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -359,6 +359,9 @@ class ContractParityTests(unittest.TestCase):
     def test_public_state_world_and_combat_shapes_match_serializers(self):
         class SerializableSession:
             world_metadata = None
+
+            def quest_offers(self):
+                return []
 
             def serialize_game_state(self):
                 return {

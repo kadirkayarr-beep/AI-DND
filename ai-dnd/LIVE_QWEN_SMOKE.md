@@ -45,7 +45,16 @@ The complete UTF-8 JSON trace was emitted by `python ai-dnd/live_narration_smoke
 
 Architectural invariant: **PYTHON DECIDES REALITY. QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.**
 
-### Next planned stage — not implemented
+## Quest Outcomes V1 API smoke — 2026-09-29
+
+- Source tested: post-Phase-B `ai-dnd/game.py`, SHA-256 `b20c1635cbf81905185a784c8baebcb90dae41df646b6733a9ad2715226427c0`.
+- The artifact-owned FastAPI service was restarted after the code changes. The smoke used its shared-proxy HTTP route, authenticated `qwen3:8b`, and one disposable in-memory session; no campaign was created or changed.
+- Sequence: tavern travel, tavern exploration, presence, NPC greeting, NPC identity, and current-location query. All six turns returned HTTP 200, and each returned state matched the canonical state endpoint.
+- Result: **PASS**, zero smoke issues, **9 model calls across 6 turns**, maximum **2 per turn**. Workflow logs confirmed real `qwen3:8b` calls.
+- This general live smoke does not exercise quest lifecycle transitions. Those are covered by the deterministic engine and API persistence/isolation/rollback/narration tests. The production quest catalog intentionally remains empty pending owner-approved quest definitions.
+- The historical `CHECKPOINT_CURRENT.sha256` was not changed; the new protected major checkpoint remains due after Phase D.
+
+### Historical note — planned stage as of 2026-09-28
 
 ```text
 React/browser frontend
@@ -59,4 +68,4 @@ game.py rules engine
 authenticated Ollama qwen3:8b
 ```
 
-The existing Express/Postgres scaffold is not connected to the game. The Python API should import the engine directly; do not add a Node-to-Python subprocess bridge. No UI or Combat V3 work was started during this verification.
+This was the planned integration path before the browser frontend work; the React/Vite experience and FastAPI connection have since been implemented. The Express/Postgres scaffold remains separate from the game engine. Do not add a Node-to-Python subprocess bridge. Combat V3 remains a later approved phase.

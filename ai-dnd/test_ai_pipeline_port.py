@@ -1,6 +1,7 @@
 """Offline checks for the imported V10 intent, query and narration behavior."""
 import copy
 import unittest
+from unittest.mock import patch
 
 import game
 
@@ -47,6 +48,117 @@ class PipelinePortTests(unittest.TestCase):
         self.assertEqual(result["action"], "explore")
         self.assertNotIn("dice", result)
         self.assertEqual(before, self.session.world_state)
+
+    def test_four_missing_skill_routes_use_the_canonical_check(self):
+        cases = (
+            ("Onu bana güvenmeye ikna etmeye çalışıyorum.", "persuasion", "Persuasion", "charisma"),
+            ("Gromm'a yalan söyleyerek kendimi nöbetçi olarak tanıtıyorum.", "deception", "Deception", "charisma"),
+            ("İp üzerinde dengede yürüyorum.", "acrobatics", "Acrobatics", "dexterity"),
+            ("Ormandaki izleri takip ediyorum.", "survival", "Survival", "wisdom"),
+            ("Ormandaki hayvanın taze izlerini takip ederek hangi yöne gittiğini bulmaya çalışıyorum.", "survival", "Survival", "wisdom"),
+        )
+        self.session.character["modifiers"].update({
+            "charisma": 2, "dexterity": 2, "wisdom": 2,
+        })
+        self.session.character["proficiency_bonus"] = 2
+
+        for phrase, intent_name, skill, ability in cases:
+            with self.subTest(skill=skill, proficiency=True):
+                self.session.character["proficient_skills"] = [skill]
+                intent = self.session.validate_intent(
+                    self.session.normalize_intent({"intent": "unknown"}, phrase), phrase
+                )
+                self.assertEqual(intent["intent"], intent_name)
+                with patch("game.roll_d20", return_value=12) as roll:
+                    result = self.session.execute_intent(intent, phrase)
+                roll.assert_called_once_with()
+                self.assertEqual(result["action"], "skill_check")
+                self.assertEqual(result["skill"], skill)
+                self.assertEqual(result["ability"], ability)
+                self.assertEqual(result["modifier"], 2)
+                self.assertEqual(result["proficiency_bonus"], 2)
+                self.assertEqual(result["total"], 16)
+                self.assertEqual(result["dc"], game.DIFFICULTY_DC["medium"])
+                self.assertEqual(result["outcome"], "success")
+
+            with self.subTest(skill=skill, proficiency=False):
+                self.session.character["proficient_skills"] = []
+                intent = self.session.validate_intent(
+                    self.session.normalize_intent({"intent": "unknown"}, phrase), phrase
+                )
+                with patch("game.roll_d20", return_value=12) as roll:
+                    result = self.session.execute_intent(intent, phrase)
+                roll.assert_called_once_with()
+                self.assertEqual(result["skill"], skill)
+                self.assertEqual(result["ability"], ability)
+                self.assertEqual(result["proficiency_bonus"], 0)
+                self.assertEqual(result["total"], 14)
+                self.assertEqual(result["outcome"], "failure")
+
+    def test_semantic_skill_intents_cannot_author_mechanics(self):
+        cases = (
+            ("Muhafıza makul bir teklif sunarak geçiş izni istiyorum.", "persuasion", "Persuasion", "charisma"),
+            ("Muhafıza kendimi saray habercisi olarak tanıtıyorum.", "deception", "Deception", "charisma"),
+            ("Dar taş korkuluğun üzerinden zarifçe geçiyorum.", "acrobatics", "Acrobatics", "dexterity"),
+            ("Kırık dalları okuyarak ormandaki rotayı kestiriyorum.", "survival", "Survival", "wisdom"),
+        )
+        self.session.character["modifiers"].update({
+            "charisma": 0, "dexterity": 0, "wisdom": 0,
+        })
+        self.session.character["proficient_skills"] = []
+
+        for phrase, intent_name, skill, ability in cases:
+            with self.subTest(skill=skill):
+                semantic_result = {
+                    "intent": intent_name,
+                    "skill": "Perception",
+                    "ability": "wisdom",
+                    "dc": 1,
+                    "dice": 20,
+                    "outcome": "success",
+                }
+                intent = self.session.normalize_intent(semantic_result, phrase)
+                self.assertEqual(intent["intent"], intent_name)
+                for forbidden in ("skill", "ability", "dc", "dice", "outcome"):
+                    self.assertNotIn(forbidden, intent)
+                intent = self.session.validate_intent(intent, phrase)
+                with patch("game.roll_d20", return_value=12):
+                    result = self.session.execute_intent(intent, phrase)
+                self.assertEqual(result["skill"], skill)
+                self.assertEqual(result["ability"], ability)
+                self.assertEqual(result["dice"], 12)
+                self.assertEqual(result["dc"], game.DIFFICULTY_DC["medium"])
+                self.assertEqual(result["outcome"], "failure")
+
+    def test_invalid_or_ordinary_skill_intent_does_not_consume_rng(self):
+        for phrase, raw_intent, expected_intent in (
+            ("Gromm'a merhaba diyorum.", {"intent": "persuasion"}, "dialogue"),
+            ("Sessizce bekliyorum.", {"intent": ["persuasion"], "skill": "Persuasion"}, "unknown"),
+        ):
+            with self.subTest(phrase=phrase):
+                before_rng = self.session.rng.getstate()
+                intent = self.session.validate_intent(
+                    self.session.normalize_intent(raw_intent, phrase), phrase
+                )
+                self.assertEqual(intent["intent"], expected_intent)
+                result = self.session.execute_intent(intent, phrase)
+                self.assertNotIn("dice", result)
+                self.assertEqual(self.session.rng.getstate(), before_rng)
+
+    def test_skill_roll_isolated_to_the_owning_session(self):
+        other_session = game.create_session(seed=99)
+        other_rng = other_session.rng.getstate()
+        own_rng = self.session.rng.getstate()
+        phrase = "Onu bana güvenmeye ikna etmeye çalışıyorum."
+        intent = self.session.validate_intent(
+            self.session.normalize_intent({"intent": "unknown"}, phrase), phrase
+        )
+        with patch("game.roll_d20", wraps=game.roll_d20) as roll:
+            result = self.session.execute_intent(intent, phrase)
+        roll.assert_called_once_with()
+        self.assertEqual(result["skill"], "Persuasion")
+        self.assertNotEqual(self.session.rng.getstate(), own_rng)
+        self.assertEqual(other_session.rng.getstate(), other_rng)
 
     def test_narrator_does_not_invent_player_action(self):
         result = {"action": "travel", "status": "completed", "success": True}

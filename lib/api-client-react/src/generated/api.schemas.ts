@@ -338,6 +338,94 @@ export const GameStatePlayerCombatStatus = {
   unconscious: 'unconscious',
 } as const;
 
+export type QuestStateStatus = typeof QuestStateStatus[keyof typeof QuestStateStatus];
+
+
+export const QuestStateStatus = {
+  accepted: 'accepted',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type QuestObjectiveStatus = typeof QuestObjectiveStatus[keyof typeof QuestObjectiveStatus];
+
+
+export const QuestObjectiveStatus = {
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface QuestObjective {
+  /** @maxLength 120 */
+  objective_id: string;
+  /** @maxLength 1000 */
+  description: string;
+  status: QuestObjectiveStatus;
+  /** @minimum 0 */
+  progress: number;
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  required_count: number;
+}
+
+export interface QuestState {
+  /** @maxLength 120 */
+  quest_id: string;
+  /** @maxLength 160 */
+  title: string;
+  /** @maxLength 2000 */
+  description: string;
+  status: QuestStateStatus;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  giver_npc_id: string | null;
+  objectives: QuestObjective[];
+}
+
+export type QuestObjectiveOfferKind = typeof QuestObjectiveOfferKind[keyof typeof QuestObjectiveOfferKind];
+
+
+export const QuestObjectiveOfferKind = {
+  visit_location: 'visit_location',
+  defeat_entity: 'defeat_entity',
+  acquire_item: 'acquire_item',
+} as const;
+
+export interface QuestObjectiveOffer {
+  /** @maxLength 120 */
+  objective_id: string;
+  /** @maxLength 1000 */
+  description: string;
+  kind: QuestObjectiveOfferKind;
+  /** @maxLength 160 */
+  target: string;
+  /**
+     * @minimum 1
+     * @maximum 1000
+     */
+  required_count: number;
+}
+
+export interface QuestOffer {
+  /** @maxLength 120 */
+  quest_id: string;
+  /** @maxLength 160 */
+  title: string;
+  /** @maxLength 2000 */
+  description: string;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  giver_npc_id: string | null;
+  objectives: QuestObjectiveOffer[];
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -357,6 +445,8 @@ export interface GameState {
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;
+  quests: QuestState[];
+  quest_offers?: QuestOffer[];
 }
 
 export interface GameSession {
@@ -528,6 +618,34 @@ export interface SkillCheckResult {
   outcome: SkillCheckResultOutcome;
 }
 
+export type QuestOutcomeTransition = typeof QuestOutcomeTransition[keyof typeof QuestOutcomeTransition];
+
+
+export const QuestOutcomeTransition = {
+  accepted: 'accepted',
+  objective_progress: 'objective_progress',
+  objective_completed: 'objective_completed',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface QuestOutcome {
+  /** @maxLength 300 */
+  event_id: string;
+  /** @maxLength 120 */
+  quest_id: string;
+  transition: QuestOutcomeTransition;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  objective_id: string | null;
+  /** @maxLength 300 */
+  source_event_id: string;
+  /** @minimum 0 */
+  turn_index: number;
+}
+
 export interface GameTurnResult {
   session_id: string;
   narration: string;
@@ -538,6 +656,14 @@ export interface GameTurnResult {
   combat_history_entry: CombatHistoryEntry | null;
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
+  quest_outcomes: QuestOutcome[];
+}
+
+export interface QuestCommandResult {
+  session_id: string;
+  state: GameState;
+  quest: QuestState;
+  outcome: QuestOutcome | null;
 }
 
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];

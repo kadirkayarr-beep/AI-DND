@@ -32,6 +32,7 @@ import type {
   GameTurnInput,
   GameTurnResult,
   HealthResponse,
+  QuestCommandResult,
   RequestValidationErrorResponse
 } from './api.schemas';
 
@@ -377,6 +378,158 @@ export const usePlayGameTurn = <TError = ErrorType<ApiErrorResponse | RequestVal
         TContext
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
+    }
+
+export const getAcceptGameQuestUrl = (sessionId: string,
+    questId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/quests/${questId}/accept`
+}
+
+/**
+ * @summary Explicitly accept a server-owned quest offer
+ */
+export const acceptGameQuest = async (sessionId: string,
+    questId: string, options?: Parameters<typeof customFetch>[1]): Promise<QuestCommandResult> => {
+
+  return customFetch<QuestCommandResult>(getAcceptGameQuestUrl(sessionId,questId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcceptGameQuestMutationKey = () => ['acceptGameQuest'] as const;
+
+export const getAcceptGameQuestMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext> => {
+
+const mutationKey = getAcceptGameQuestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptGameQuest>>, AcceptGameQuestMutationVariables> = (props) => {
+          const {sessionId,questId} = props ?? {};
+
+          return  acceptGameQuest(sessionId,questId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptGameQuestMutationResult = NonNullable<Awaited<ReturnType<typeof acceptGameQuest>>>
+
+    export type AcceptGameQuestMutationError = ErrorType<ApiErrorResponse>
+    export type AcceptGameQuestMutationVariables = {sessionId: string;questId: string}
+
+    /**
+ * @summary Explicitly accept a server-owned quest offer
+ */
+export const useAcceptGameQuest = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptGameQuest>>,
+        TError,
+        AcceptGameQuestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAcceptGameQuestMutationOptions(options));
+    }
+
+export const getCancelGameQuestUrl = (sessionId: string,
+    questId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/quests/${questId}/cancel`
+}
+
+/**
+ * @summary Explicitly cancel an accepted quest
+ */
+export const cancelGameQuest = async (sessionId: string,
+    questId: string, options?: Parameters<typeof customFetch>[1]): Promise<QuestCommandResult> => {
+
+  return customFetch<QuestCommandResult>(getCancelGameQuestUrl(sessionId,questId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelGameQuestMutationKey = () => ['cancelGameQuest'] as const;
+
+export const getCancelGameQuestMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext> => {
+
+const mutationKey = getCancelGameQuestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelGameQuest>>, CancelGameQuestMutationVariables> = (props) => {
+          const {sessionId,questId} = props ?? {};
+
+          return  cancelGameQuest(sessionId,questId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelGameQuestMutationResult = NonNullable<Awaited<ReturnType<typeof cancelGameQuest>>>
+
+    export type CancelGameQuestMutationError = ErrorType<ApiErrorResponse>
+    export type CancelGameQuestMutationVariables = {sessionId: string;questId: string}
+
+    /**
+ * @summary Explicitly cancel an accepted quest
+ */
+export const useCancelGameQuest = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelGameQuest>>,
+        TError,
+        CancelGameQuestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelGameQuestMutationOptions(options));
     }
 
 export const getGetCharacterOptionsUrl = () => {

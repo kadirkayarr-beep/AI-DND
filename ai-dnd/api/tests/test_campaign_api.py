@@ -19,6 +19,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+import quest_catalog
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -576,14 +577,71 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(nonproficient["total_modifier"], 3)
         self.assertEqual(nonproficient["total"], 16)
 
+    async def test_four_new_skill_results_serialize_for_the_existing_client_contract(self):
+        created = await self.create_campaign()
+        session = self.manager.get(created["session_id"]).game_session
+        session.character["modifiers"].update({
+            "charisma": 1,
+            "dexterity": 1,
+            "wisdom": 1,
+        })
+        session.character["proficiency_bonus"] = 2
+
+        cases = (
+            ("Persuasion", "charisma", True),
+            ("Deception", "charisma", False),
+            ("Acrobatics", "dexterity", True),
+            ("Survival", "wisdom", False),
+        )
+        for skill, ability, proficient in cases:
+            with self.subTest(skill=skill):
+                session.character["proficient_skills"] = [skill] if proficient else []
+                proficiency_modifier = 2 if proficient else 0
+                total = 12 + 1 + proficiency_modifier
+                outcome = "success" if total >= 15 else "failure"
+
+                def skill_turn(_message):
+                    return {
+                        "narration": "A canonical skill result.",
+                        "action_result": {
+                            "action": "skill_check",
+                            "skill": skill,
+                            "ability": ability,
+                            "dice": 12,
+                            "modifier": 1,
+                            "proficiency_bonus": proficiency_modifier,
+                            "total": total,
+                            "dc": 15,
+                            "outcome": outcome,
+                            "success": outcome == "success",
+                            "status": "resolved",
+                        },
+                    }
+
+                session.run_player_turn = skill_turn
+                response = await self.http.post(
+                    f"/api/game/sessions/{created['session_id']}/turn",
+                    json={"message": f"I attempt {skill}."},
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                projected = response.json()["skill_check_result"]
+                self.assertEqual(projected["skill"], skill)
+                self.assertEqual(projected["ability"], ability)
+                self.assertEqual(projected["proficient"], proficient)
+                self.assertEqual(projected["proficiency_modifier"], proficiency_modifier)
+                self.assertEqual(projected["total"], total)
+                self.assertEqual(projected["outcome"], outcome)
+
     async def test_invalid_skill_check_projection_rolls_back_turn(self):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
         session = record.game_session
         before = copy.deepcopy(session.serialize_game_state())
+        before_rng = session.rng.getstate()
 
         def invalid_skill_turn(_message):
             session.character["current_hp"] -= 1
+            session.rng.randint(1, 20)
             return {
                 "narration": "This result must not be committed.",
                 "action_result": {
@@ -608,6 +666,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 500, response.text)
         self.assertEqual(response.json()["detail"]["code"], "engine_error")
         self.assertEqual(session.serialize_game_state(), before)
+        self.assertEqual(session.rng.getstate(), before_rng)
 
     async def test_turn_request_rejects_client_skill_mechanics(self):
         created = await self.create_campaign()
@@ -956,6 +1015,194 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         journal = response.json()["state"]["journal"]
         self.assertEqual(journal["quests"], [])
         self.assertEqual(journal["notable_events"], [])
+
+    async def test_quest_commands_are_server_owned_idempotent_and_campaign_scoped(self):
+        definition = {
+            "quest_id": "quest.api-test",
+            "title": "The Forest Path",
+            "description": "Reach the forest.",
+            "giver_npc_id": "npc.giver",
+            "offer_condition": {"type": "location_is", "target": "tavern"},
+            "objectives": [{
+                "objective_id": "visit-forest",
+                "description": "Visit the forest.",
+                "type": "visit_location",
+                "target": "forest",
+            }],
+        }
+        with patch.object(quest_catalog, "CATALOG", (definition,)):
+            first = await self.create_campaign()
+            second = await self.create_campaign()
+            first_id = first["session_id"]
+            self.manager.get(first_id).game_session.world_state["location"] = "tavern"
+            self.manager.get(second["session_id"]).game_session.world_state[
+                "location"
+            ] = "tavern"
+            quest_url = f"/api/game/sessions/{first_id}/quests/quest.api-test"
+            first_state = await self.http.get(f"/api/game/sessions/{first_id}/state")
+            self.assertEqual(first_state.status_code, 200, first_state.text)
+
+            self.assertEqual(
+                [item["quest_id"] for item in first_state.json()["quest_offers"]],
+                ["quest.api-test"],
+            )
+            self.assertEqual(first_state.json()["quests"], [])
+            self.assertEqual(first_state.json()["journal"]["quests"], [])
+
+            unavailable = await self.http.post(
+                f"/api/game/sessions/{first_id}/quests/unknown/accept"
+            )
+            self.assertEqual(unavailable.status_code, 404)
+
+            accepted = await self.http.post(
+                f"{quest_url}/accept",
+                json={
+                    "status": "completed",
+                    "quest_id": "forged",
+                    "objectives": [{"objective_id": "forged"}],
+                },
+            )
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+            accepted_body = accepted.json()
+            self.assertEqual(accepted_body["quest"]["quest_id"], "quest.api-test")
+            self.assertEqual(accepted_body["quest"]["status"], "accepted")
+            self.assertEqual(
+                accepted_body["quest"]["objectives"][0]["objective_id"],
+                "visit-forest",
+            )
+            self.assertEqual(accepted_body["outcome"]["transition"], "accepted")
+            self.assertEqual(accepted_body["state"]["quests"][0]["status"], "accepted")
+            self.assertEqual(accepted_body["state"]["quest_offers"], [])
+
+            repeated_accept = await self.http.post(f"{quest_url}/accept")
+            self.assertEqual(repeated_accept.status_code, 200, repeated_accept.text)
+            self.assertIsNone(repeated_accept.json()["outcome"])
+
+            second_state = await self.http.get(
+                f"/api/game/sessions/{second['session_id']}/state"
+            )
+            self.assertEqual(second_state.status_code, 200, second_state.text)
+            self.assertEqual(second_state.json()["quests"], [])
+            self.assertEqual(
+                [item["quest_id"] for item in second_state.json()["quest_offers"]],
+                ["quest.api-test"],
+            )
+
+            cancelled = await self.http.post(
+                f"{quest_url}/cancel",
+                json={"status": "completed", "progress": 999},
+            )
+            self.assertEqual(cancelled.status_code, 200, cancelled.text)
+            self.assertEqual(cancelled.json()["quest"]["status"], "cancelled")
+            self.assertEqual(
+                cancelled.json()["quest"]["objectives"][0]["status"], "cancelled"
+            )
+            self.assertEqual(cancelled.json()["outcome"]["transition"], "cancelled")
+
+            repeated_cancel = await self.http.post(f"{quest_url}/cancel")
+            self.assertEqual(repeated_cancel.status_code, 200, repeated_cancel.text)
+            self.assertIsNone(repeated_cancel.json()["outcome"])
+
+            resumed = await self.http.post(
+                f"/api/game/campaigns/{first['campaign_id']}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(resumed.json()["state"]["quests"][0]["status"], "cancelled")
+            self.assertEqual(resumed.json()["state"]["quest_offers"], [])
+
+    async def test_quest_offer_conditions_and_autosave_failure_roll_back(self):
+        definition = {
+            "quest_id": "quest.rollback-test",
+            "title": "Forest Path",
+            "description": "Reach the forest.",
+            "offer_condition": {"type": "location_is", "target": "forest"},
+            "objectives": [{
+                "objective_id": "visit-forest",
+                "description": "Visit the forest.",
+                "type": "visit_location",
+                "target": "forest",
+            }],
+        }
+        with patch.object(quest_catalog, "CATALOG", (definition,)):
+            created = await self.create_campaign()
+            session = self.manager.get(created["session_id"]).game_session
+            self.assertEqual(created["state"]["quest_offers"], [])
+
+            not_offerable = await self.http.post(
+                f"/api/game/sessions/{created['session_id']}/quests/"
+                "quest.rollback-test/accept"
+            )
+            self.assertEqual(not_offerable.status_code, 404)
+
+            session.world_state["location"] = "forest"
+            state = await self.http.get(
+                f"/api/game/sessions/{created['session_id']}/state"
+            )
+            self.assertEqual(
+                [item["quest_id"] for item in state.json()["quest_offers"]],
+                ["quest.rollback-test"],
+            )
+            before = copy.deepcopy(session.serialize_game_state())
+            world_ref = session.world_state
+            rng_state = session.rng.getstate()
+            saved_before = self.store.get_campaign(created["campaign_id"]).payload
+            with patch.object(
+                self.store,
+                "save_campaign",
+                side_effect=CampaignStorageError("database unavailable"),
+            ):
+                failed = await self.http.post(
+                    f"/api/game/sessions/{created['session_id']}/quests/"
+                    "quest.rollback-test/accept"
+                )
+
+            self.assertEqual(failed.status_code, 503)
+            self.assertNotIn("database unavailable", failed.text)
+            self.assertIs(session.world_state, world_ref)
+            self.assertEqual(session.serialize_game_state(), before)
+            self.assertEqual(session.rng.getstate(), rng_state)
+            self.assertEqual(
+                self.store.get_campaign(created["campaign_id"]).payload,
+                saved_before,
+            )
+
+    async def test_active_quest_is_not_completed_by_narration(self):
+        definition = {
+            "quest_id": "quest.narration-test",
+            "title": "Forest Path",
+            "description": "Reach the forest.",
+            "offer_condition": {"type": "location_is", "target": "tavern"},
+            "objectives": [{
+                "objective_id": "visit-forest",
+                "description": "Visit the forest.",
+                "type": "visit_location",
+                "target": "forest",
+            }],
+        }
+        with patch.object(quest_catalog, "CATALOG", (definition,)):
+            created = await self.create_campaign()
+            session = self.manager.get(created["session_id"]).game_session
+            session.world_state["location"] = "tavern"
+            accepted = await self.http.post(
+                f"/api/game/sessions/{created['session_id']}/quests/"
+                "quest.narration-test/accept"
+            )
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+
+            session.run_player_turn = lambda _message: {
+                "action_result": {},
+                "narration": "The quest is accepted and the objective is complete.",
+            }
+            turn = await self.http.post(
+                f"/api/game/sessions/{created['session_id']}/turn",
+                json={"message": "What happened?"},
+            )
+            self.assertEqual(turn.status_code, 200, turn.text)
+            self.assertEqual(turn.json()["quest_outcomes"], [])
+            self.assertEqual(turn.json()["state"]["quests"][0]["status"], "accepted")
+            self.assertEqual(
+                turn.json()["state"]["quests"][0]["objectives"][0]["progress"], 0
+            )
 
     async def test_journal_state_is_isolated_between_campaigns(self):
         first = await self.create_campaign()

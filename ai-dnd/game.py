@@ -10,6 +10,7 @@ import contextvars
 import functools
 import sys
 import types
+from quest_catalog import catalog as quest_catalog, find_quest
 
 
 def ollama_response_content(response):
@@ -810,6 +811,39 @@ def npc_ambiguity_response(resolution):
 def deterministic_check_for_action(player_input):
     """Map clear, known actions before consulting the model classifier."""
     text = player_input.casefold()
+    normalized_text = _normalize_turkish_typos(player_input)
+
+    if "?" not in player_input:
+        if re.search(
+            r"\b(?:ikna\s+etmeye\s+calis(?!m)\w*|ikna\s+ediyorum|ikna\s+edecegim|"
+            r"ikna\s+etmek\s+istiyorum|razi\s+etmeye\s+calis(?!m)\w*|"
+            r"inandirmaya\s+calis(?!m)\w*|guvenini\s+kazan\w*|pazarlik\s+yap\w*)\b",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Persuasion", "difficulty": "medium"}
+        if re.search(
+            r"\byalan\s+soyle(?!m)\w*|\b(?:kandir|aldat)(?!m)\w*|\bblof\s+yap(?!m)\w*",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Deception", "difficulty": "medium"}
+        if re.search(
+            r"\btakla\s+(?:atiyorum|atacagim|atmaya\s+calis(?!m)\w*|atmak\s+istiyorum)|"
+            r"\bdengede\s+(?:yuruyorum|ilerliyorum|kaliyorum|geciyorum)|"
+            r"\b(?:ip|halat)\s+uzerinde\s+(?:yuruyorum|ilerliyorum)|"
+            r"\bakrobatik\s+hareket\s+(?:yapiyorum|ediyorum)",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Acrobatics", "difficulty": "medium"}
+        if re.search(
+            r"\biz(?:leri|lerini)?\s+sur(?:uyorum|meye\s+calis(?!m)\w*)|"
+            r"\biz(?:leri|lerini)?\s+takip\s+(?:ediyorum|ederek|etmeye\s+calis(?!m)\w*)|"
+            r"\b(?:yolumu|yonumu)\s+bul(?:uyorum|maya\s+calis(?!m)\w*)|"
+            r"\byiyecek\s+ar(?:iyorum|amaya\s+calis(?!m)\w*)|"
+            r"\bbarinak\s+kurmaya\s+calis(?!m)\w*",
+            normalized_text,
+        ):
+            return {"action_type": "check", "skill": "Survival", "difficulty": "medium"}
+
     if any(token in text for token in ("gizlen", "saklan", "sessizce ilerle")):
         return {"action_type": "check", "skill": "Stealth", "difficulty": "medium"}
     if "tırman" in text or "tırmanmaya" in text:
@@ -1211,9 +1245,11 @@ world_state = {
     },
     "player_combat_status": "active",
     "player_knowledge": [],
+    "quests": [],
+    "quest_processed_event_ids": [],
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
-SAVE_FORMAT_VERSION = 1
+SAVE_FORMAT_VERSION = 2
 
 
 def _player_state_for_save():
@@ -1254,7 +1290,7 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
     if payload.get("format") != "ai-dnd-save":
         raise ValueError("Bu dosya AI-DND kayıt dosyası değil.")
-    if payload.get("version") != SAVE_FORMAT_VERSION:
+    if payload.get("version") not in (1, SAVE_FORMAT_VERSION):
         raise ValueError("Bu kayıt sürümü desteklenmiyor.")
 
     player = payload.get("player")
@@ -1282,6 +1318,10 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt NPC listesi geçersiz.")
     if not isinstance(saved_world["inventory"], list):
         raise ValueError("Kayıt envanteri geçersiz.")
+    if payload.get("version") == SAVE_FORMAT_VERSION and (
+        "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
+    ):
+        raise ValueError("Kayıt görev alanlarını içermiyor.")
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     for field in required_player - {"name", "race", "class", "proficient_skills"}:
@@ -1304,6 +1344,129 @@ def _validate_save_payload(payload):
     for key, default in INITIAL_WORLD_STATE.items():
         if key in saved_world and type(saved_world[key]) is not type(default):
             raise ValueError(f"Dünya alanı geçersiz: {key}")
+    quests = saved_world.get("quests", [])
+    processed = saved_world.get("quest_processed_event_ids", [])
+    if not isinstance(quests, list) or not isinstance(processed, list):
+        raise ValueError("Görev durumu geçersiz.")
+    if any(not isinstance(item, str) or not re.match(
+        r"^(location|defeat|item):[0-9]+:.+$", item
+    ) for item in processed):
+        raise ValueError("Görev olay kimliği geçersiz.")
+    if len(processed) != len(set(processed)):
+        raise ValueError("Görev olay kimliği yineleniyor.")
+    quest_ids = set()
+    for quest in quests:
+        quest_fields = {
+            "quest_id", "title", "description", "giver_npc_id", "status",
+            "objectives", "created_turn", "accepted_turn", "updated_turn",
+        }
+        if (
+            not isinstance(quest, dict)
+            or set(quest) != quest_fields
+            or not isinstance(quest.get("quest_id"), str)
+            or not quest["quest_id"].strip()
+            or len(quest["quest_id"]) > 120
+            or quest["quest_id"] in quest_ids
+            or not isinstance(quest.get("title"), str)
+            or not quest["title"].strip()
+            or len(quest["title"]) > 160
+            or not isinstance(quest.get("description"), str)
+            or not quest["description"].strip()
+            or len(quest["description"]) > 2000
+            or (
+                quest.get("giver_npc_id") is not None
+                and (
+                    not isinstance(quest["giver_npc_id"], str)
+                    or not quest["giver_npc_id"].strip()
+                    or len(quest["giver_npc_id"]) > 120
+                )
+            )
+            or not isinstance(quest.get("status"), str)
+            or quest.get("status") not in {"accepted", "completed", "cancelled"}
+        ):
+            raise ValueError("Kayıt görev durumu geçersiz.")
+        quest_ids.add(quest["quest_id"])
+        for turn_field in ("created_turn", "updated_turn"):
+            if type(quest.get(turn_field)) is not int or quest[turn_field] < 0:
+                raise ValueError("Kayıt görev turu geçersiz.")
+        accepted_turn = quest.get("accepted_turn")
+        if accepted_turn is not None and (
+            type(accepted_turn) is not int or accepted_turn < quest["created_turn"]
+        ):
+            raise ValueError("Kayıt görev kabul turu geçersiz.")
+        if (
+            quest["updated_turn"] < quest["created_turn"]
+            or (
+                quest["status"] in {"accepted", "completed"}
+                and accepted_turn is None
+            )
+        ):
+            raise ValueError("Kayıt görev zamanlaması tutarsız.")
+        if not isinstance(quest.get("objectives"), list):
+            raise ValueError("Kayıt görev hedefleri geçersiz.")
+        if not quest["objectives"]:
+            raise ValueError("Kayıt görevinin hedefi yok.")
+        objective_ids = set()
+        for objective in quest["objectives"]:
+            objective_fields = {
+                "objective_id", "description", "type", "target", "status",
+                "required_count", "progress",
+            }
+            if (
+                not isinstance(objective, dict)
+                or set(objective) != objective_fields
+                or not isinstance(objective.get("objective_id"), str)
+                or not objective["objective_id"].strip()
+                or len(objective["objective_id"]) > 120
+                or objective["objective_id"] in objective_ids
+                or not isinstance(objective.get("description"), str)
+                or not objective["description"].strip()
+                or len(objective["description"]) > 1000
+                or not isinstance(objective.get("target"), str)
+                or not objective["target"].strip()
+                or len(objective["target"]) > 160
+            ):
+                raise ValueError("Kayıt görev hedefi geçersiz.")
+            objective_ids.add(objective["objective_id"])
+            if (
+                not isinstance(objective["type"], str)
+                or objective["type"]
+                not in {"visit_location", "defeat_entity", "acquire_item"}
+            ):
+                raise ValueError("Kayıt görev hedef türü geçersiz.")
+            if objective["type"] == "acquire_item" and objective["target"] != "Kılıç":
+                raise ValueError("Kayıt eşya hedefi desteklenmiyor.")
+            if (
+                not isinstance(objective["status"], str)
+                or objective["status"] not in {"active", "completed", "cancelled"}
+            ):
+                raise ValueError("Kayıt görev hedef durumu geçersiz.")
+            if (
+                type(objective["required_count"]) is not int
+                or not 1 <= objective["required_count"] <= 1000
+            ):
+                raise ValueError("Kayıt görev hedef sayısı geçersiz.")
+            if type(objective["progress"]) is not int or not 0 <= objective["progress"] <= objective["required_count"]:
+                raise ValueError("Kayıt görev ilerlemesi geçersiz.")
+            if (
+                objective["status"] == "active"
+                and objective["progress"] >= objective["required_count"]
+            ) or (
+                objective["status"] == "completed"
+                and objective["progress"] != objective["required_count"]
+            ):
+                raise ValueError("Kayıt görev hedef ilerlemesi tutarsız.")
+        statuses = {item["status"] for item in quest["objectives"]}
+        if (
+            quest["status"] == "completed" and statuses != {"completed"}
+        ) or (
+            quest["status"] == "accepted"
+            and (statuses == {"completed"} or "cancelled" in statuses)
+        ) or (
+            quest["status"] == "cancelled"
+            and ("active" in statuses or statuses == {"completed"})
+        ):
+            raise ValueError("Kayıt görev durumu hedeflerle tutarsız.")
     for key in ("inventory", "ground_items", "player_knowledge"):
         if any(not isinstance(item, str) for item in saved_world.get(key, [])):
             raise ValueError(f"Dünya listesi geçersiz: {key}")
@@ -1355,6 +1518,8 @@ def load_game(path):
     saved_world.setdefault("ground_items", [])
     saved_world.setdefault("containers", [])
     saved_world.setdefault("player_knowledge", [])
+    saved_world.setdefault("quests", [])
+    saved_world.setdefault("quest_processed_event_ids", [])
 
     world_state.clear()
     world_state.update(saved_world)
@@ -2424,7 +2589,14 @@ def commit_location_change(location_id):
 INTENT_TYPES = {
     "narrative", "travel", "dialogue", "observe", "perception", "investigation",
     "stealth", "attack", "combat", "inventory", "interact", "door", "search",
-    "rest", "use_item", "unknown", "query", "explore",
+    "rest", "use_item", "unknown", "query", "explore", "persuasion", "deception",
+    "acrobatics", "survival",
+}
+SKILL_INTENT_TO_SKILL = {
+    "persuasion": "Persuasion",
+    "deception": "Deception",
+    "acrobatics": "Acrobatics",
+    "survival": "Survival",
 }
 INTENT_SCHEMA = {
     "type": "object",
@@ -2503,13 +2675,18 @@ def parse_player_intent(player_input):
     prompt = (
         "Oyuncunun yalnızca mevcut mesajındaki niyeti sınıflandır. Hikâye yazma, zar/DC/sonuç belirleme, "
         "dünya veya karakter state'i değiştirme. Sadece schema'daki JSON'u döndür. "
-        "intent değerleri: narrative, travel, query, explore, dialogue, observe, perception, investigation, stealth, attack, "
-        "combat, inventory, interact, door, search, rest, use_item, unknown. "
+        "intent değerleri: narrative, travel, query, explore, dialogue, observe, perception, investigation, stealth, "
+        "persuasion, deception, acrobatics, survival, attack, combat, inventory, interact, door, search, rest, use_item, unknown. "
         "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
         "Çevreye sıradan bakış explore_type=observe; ayrıntılı inceleme inspect; ipucu/nesne arama search olur. "
         "Bir konum adının veya 'var' kelimesinin geçmesi tek başına seyahat değildir. "
         "Kibar soru, selam veya duygu dialogue/narrative olur; kendiliğinden skill check değildir. "
         "Duyularla fark etme perception; sistemli inceleme investigation; saklanma stealth. "
+        "İkna/pazarlık persuasion; yalan, blöf veya yanıltma deception; denge/takla/akrobatik geçiş acrobatics; "
+        "iz sürme, doğada yön bulma veya yiyecek arama survival. Sıradan konuşma ve soruları skill check olarak etiketleme. "
+        "Doğada hayvan/ayak izlerini takip edip rota veya avın yönünü bulma survival'dır; yapıyı/nesneyi sistemli inceleme investigation, "
+        "gizli ipucu arama search olur. "
+        "Yalnızca intent seç; skill, ability, proficiency, DC, zar veya sonucu asla üretme. "
         "Yalnızca gerçekten seyahat etmeyi belirten eylem travel olur. 'X'e gitmek istiyorum' completion=intended; "
         "'X'e gidiyorum/ulaştım/girdim' completion=completed. Hedefi oyuncunun mesajından aynen çıkar; "
         "belirsizse target.reference boş kalsın. JSON alanları: intent, action, target={type,reference}, completion, confidence.\n\n"
@@ -2634,7 +2811,12 @@ def normalize_intent(raw_intent, player_input):
     deterministic = deterministic_check_for_action(player_input)
     if deterministic and deterministic.get("action_type") == "check":
         skill = deterministic.get("skill")
-        category = {"Stealth": "stealth", "Perception": "perception", "Investigation": "investigation"}.get(skill)
+        category = {
+            "Stealth": "stealth",
+            "Perception": "perception",
+            "Investigation": "investigation",
+            **{skill_name: intent_name for intent_name, skill_name in SKILL_INTENT_TO_SKILL.items()},
+        }.get(skill)
         if category:
             intent_type = category
         else:
@@ -2724,6 +2906,11 @@ def validate_intent(intent, player_input):
         if pending_followup and not reference:
             valid["target"] = {"type": "location", "reference": str(pending)}
         valid["completion"] = _travel_completion(player_input, valid.get("completion", "unclear"))
+    skill_intent = valid.get("intent")
+    if skill_intent in SKILL_INTENT_TO_SKILL and is_npc_dialogue_input(player_input):
+        deterministic = deterministic_check_for_action(player_input)
+        if not deterministic or deterministic.get("skill") != SKILL_INTENT_TO_SKILL[skill_intent]:
+            valid["intent"] = "dialogue"
     return valid
 
 
@@ -3928,6 +4115,7 @@ def execute_intent(intent, player_input, npc_target=None):
             "perception": "Perception",
             "investigation": "Investigation",
             "search": "Investigation",
+            **SKILL_INTENT_TO_SKILL,
         }.get(intent_type)
         if intent_type == "explore" and explore_type in {"inspect", "search"}:
             inferred_skill = "Investigation"
@@ -4069,6 +4257,7 @@ def run_player_turn(player_input, messages=None):
     world_state = _session().world_state
     if messages is None:
         messages = _session().messages
+    quest_world_before = copy.deepcopy(world_state)
     flags = world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
 
@@ -4092,6 +4281,11 @@ def run_player_turn(player_input, messages=None):
         print(json.dumps({key: value for key, value in action_result.items() if key != "direct_response"}, ensure_ascii=False, indent=2))
 
     if action_result.get("direct_response"):
+        quest_transitions = _session().evaluate_quest_events(
+            quest_world_before, action_result
+        )
+        if quest_transitions:
+            action_result["quest_outcomes"] = quest_transitions
         narration = action_result["direct_response"]
         if npc_target and (action_result or {}).get("action") != "attack":
             record_npc_interaction(npc_target, narration, player_input, npc_target)
@@ -4175,6 +4369,11 @@ def run_player_turn(player_input, messages=None):
         print(json.dumps(action_result.get("state_changes", []), ensure_ascii=False))
 
     narration = finalize_narration(packet.get("narration"), player_input, npc_target, action_result)
+    quest_transitions = _session().evaluate_quest_events(
+        quest_world_before, action_result
+    )
+    if quest_transitions:
+        action_result["quest_outcomes"] = quest_transitions
     return {"action_result": action_result, "narration": narration}
 
 
@@ -4244,6 +4443,194 @@ class GameSession:
         if callable(helper) and getattr(helper, "_session_bound", False):
             return functools.partial(helper, session=self)
         raise AttributeError(name)
+
+    def quest_offers(self):
+        world = self.world_state
+        known_quests = {item.get("quest_id") for item in world.get("quests", [])}
+        current_location = world.get("location")
+        offers = []
+        for definition in quest_catalog():
+            if definition["quest_id"] in known_quests:
+                continue
+            condition = definition.get("offer_condition")
+            if condition:
+                if condition["type"] == "location_is":
+                    if (
+                        condition["target"] != current_location
+                        or condition["target"] not in world.get("locations", {})
+                    ):
+                        continue
+                elif condition["type"] == "npc_present":
+                    if not any(
+                        npc.get("id") == condition["target"]
+                        and npc.get("location") == current_location
+                        for npc in world.get("npcs", [])
+                        if isinstance(npc, dict)
+                    ):
+                        continue
+            offers.append({
+                "quest_id": definition["quest_id"],
+                "title": definition["title"],
+                "description": definition["description"],
+                "giver_npc_id": definition.get("giver_npc_id"),
+                "objectives": [dict(item) for item in definition["objectives"]],
+            })
+        return offers
+
+    def _quest_record(self, definition, turn_index, status="accepted"):
+        return {
+            "quest_id": definition["quest_id"],
+            "title": definition["title"],
+            "description": definition["description"],
+            "giver_npc_id": definition.get("giver_npc_id"),
+            "status": status,
+            "objectives": [
+                {
+                    "objective_id": item["objective_id"],
+                    "description": item["description"],
+                    "type": item["type"],
+                    "target": item["target"],
+                    "status": "active" if status == "accepted" else "cancelled",
+                    "required_count": item.get("required_count", 1),
+                    "progress": 0,
+                }
+                for item in definition["objectives"]
+            ],
+            "created_turn": turn_index,
+            "accepted_turn": turn_index if status == "accepted" else None,
+            "updated_turn": turn_index,
+        }
+
+    def accept_quest(self, quest_id):
+        existing = next((item for item in self.world_state["quests"]
+                         if item.get("quest_id") == quest_id), None)
+        if existing is not None:
+            return {"transition": None, "quest": copy.deepcopy(existing)}
+        definition = next(
+            (item for item in self.quest_offers() if item["quest_id"] == quest_id),
+            None,
+        )
+        if definition is None:
+            raise ValueError("Quest is not available.")
+        turn = self.world_state.get("flags", {}).get("turn_index", 0)
+        record = self._quest_record(definition, turn)
+        self.world_state["quests"].append(record)
+        return {"transition": self._quest_transition(
+            "accepted", quest_id, None, f"command:accept:{quest_id}:{turn}", turn
+        ), "quest": copy.deepcopy(record)}
+
+    def cancel_quest(self, quest_id):
+        existing = next((item for item in self.world_state["quests"]
+                         if item.get("quest_id") == quest_id), None)
+        if existing is None:
+            definition = next(
+                (item for item in self.quest_offers() if item["quest_id"] == quest_id),
+                None,
+            )
+            if definition is None:
+                raise ValueError("Quest is not available.")
+            turn = self.world_state.get("flags", {}).get("turn_index", 0)
+            preview = self._quest_record(definition, turn, status="cancelled")
+            self.world_state["quests"].append(preview)
+            return {"transition": self._quest_transition(
+                "cancelled", quest_id, None, f"command:cancel:{quest_id}:{turn}", turn
+            ), "quest": preview}
+        if existing.get("status") == "cancelled":
+            return {"transition": None, "quest": copy.deepcopy(existing)}
+        if existing.get("status") == "completed":
+            return {"transition": None, "quest": copy.deepcopy(existing)}
+        turn = self.world_state.get("flags", {}).get("turn_index", 0)
+        existing["status"] = "cancelled"
+        existing["updated_turn"] = turn
+        for objective in existing.get("objectives", []):
+            if objective.get("status") == "active":
+                objective["status"] = "cancelled"
+        return {"transition": self._quest_transition(
+            "cancelled", quest_id, None, f"command:cancel:{quest_id}:{turn}", turn
+        ), "quest": copy.deepcopy(existing)}
+
+    @staticmethod
+    def _quest_transition(kind, quest_id, objective_id, source_id, turn):
+        return {
+            "event_id": f"quest:{kind}:{quest_id}:{source_id}",
+            "quest_id": quest_id,
+            "transition": kind,
+            "objective_id": objective_id,
+            "source_event_id": source_id,
+            "turn_index": turn,
+        }
+
+    def evaluate_quest_events(self, before_world, action_result):
+        """Consume only canonical before/after evidence; never narration."""
+        if not isinstance(action_result, dict):
+            return []
+        world = self.world_state
+        turn = world.get("flags", {}).get("turn_index", 0)
+        events = []
+        if (
+            before_world.get("location") != world.get("location")
+            and world.get("location") in world.get("locations", {})
+        ):
+            events.append(("visit_location", world.get("location"),
+                           f"location:{turn}:{world.get('location')}"))
+        before_npcs = {n.get("id"): n for n in before_world.get("npcs", [])
+                       if isinstance(n, dict)}
+        for npc in world.get("npcs", []):
+            npc_id = npc.get("id")
+            if not npc_id or npc_id not in before_npcs:
+                continue
+            was = before_npcs[npc_id]
+            defeated = (npc.get("combat_status") in {"unconscious", "defeated", "dead"}
+                        or npc.get("current_hp", 1) <= 0)
+            previously = (was.get("combat_status") in {"unconscious", "defeated", "dead"}
+                          or was.get("current_hp", 1) <= 0)
+            if defeated and not previously:
+                events.append(("defeat_entity", npc_id,
+                               f"defeat:{turn}:{npc_id}"))
+        before_items = before_world.get("inventory", [])
+        after_items = world.get("inventory", [])
+        for item in sorted(set(after_items) - set(before_items), key=str.casefold):
+            if item == "Kılıç":
+                events.append(("acquire_item", item, f"item:{turn}:{item}"))
+        transitions = []
+        processed = world.setdefault("quest_processed_event_ids", [])
+        for kind, target, source_id in events:
+            if source_id in processed:
+                continue
+            event_matched = False
+            for quest in world.get("quests", []):
+                if quest.get("status") != "accepted":
+                    continue
+                for objective in quest.get("objectives", []):
+                    if objective.get("status") != "active" or objective.get("type") != kind:
+                        continue
+                    if objective.get("target") != target:
+                        continue
+                    required = objective.get("required_count", 1)
+                    progress = objective.get("progress", 0) + 1
+                    objective["progress"] = min(required, progress)
+                    quest["updated_turn"] = turn
+                    event_matched = True
+                    if progress < required:
+                        transitions.append(self._quest_transition(
+                            "objective_progress", quest["quest_id"],
+                            objective["objective_id"], source_id, turn
+                        ))
+                        continue
+                    objective["status"] = "completed"
+                    transitions.append(self._quest_transition(
+                        "objective_completed", quest["quest_id"],
+                        objective["objective_id"], source_id, turn
+                    ))
+                    if all(item.get("status") == "completed"
+                           for item in quest["objectives"]):
+                        quest["status"] = "completed"
+                        transitions.append(self._quest_transition(
+                            "completed", quest["quest_id"], None, source_id, turn
+                        ))
+            if event_matched:
+                processed.append(source_id)
+        return transitions
 
 
 def _session():

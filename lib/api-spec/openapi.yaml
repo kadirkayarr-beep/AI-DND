@@ -95,6 +95,52 @@ paths:
           $ref: "#/components/responses/ApiError"
         "503":
           $ref: "#/components/responses/ApiError"
+  /game/sessions/{session_id}/quests/{quest_id}/accept:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema: {type: string, format: uuid}
+      - in: path
+        name: quest_id
+        required: true
+        schema: {type: string, maxLength: 120}
+    post:
+      operationId: acceptGameQuest
+      tags: [game]
+      summary: Explicitly accept a server-owned quest offer
+      responses:
+        "200":
+          description: Canonical quest state and transition
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/QuestCommandResult"}
+        "404": {$ref: "#/components/responses/ApiError"}
+        "500": {$ref: "#/components/responses/ApiError"}
+        "503": {$ref: "#/components/responses/ApiError"}
+  /game/sessions/{session_id}/quests/{quest_id}/cancel:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema: {type: string, format: uuid}
+      - in: path
+        name: quest_id
+        required: true
+        schema: {type: string, maxLength: 120}
+    post:
+      operationId: cancelGameQuest
+      tags: [game]
+      summary: Explicitly cancel an accepted quest
+      responses:
+        "200":
+          description: Canonical quest state and transition
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/QuestCommandResult"}
+        "404": {$ref: "#/components/responses/ApiError"}
+        "500": {$ref: "#/components/responses/ApiError"}
+        "503": {$ref: "#/components/responses/ApiError"}
   /game/character-options:
     get:
       operationId: getCharacterOptions
@@ -528,7 +574,81 @@ components:
             - $ref: "#/components/schemas/SkillCheckResult"
             - type: "null"
           description: Structured Python-owned skill-check result; null when no skill check occurred.
-      required: [session_id, narration, state, combat_result, combat_history_entry, skill_check_result]
+        quest_outcomes:
+          type: array
+          items: {$ref: "#/components/schemas/QuestOutcome"}
+      required: [session_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes]
+    QuestObjective:
+      type: object
+      additionalProperties: false
+      properties:
+        objective_id: {type: string, maxLength: 120}
+        description: {type: string, maxLength: 1000}
+        status: {type: string, enum: [active, completed, cancelled]}
+        progress: {type: integer, minimum: 0}
+        required_count: {type: integer, minimum: 1, maximum: 1000}
+      required: [objective_id, description, status, progress, required_count]
+    QuestObjectiveOffer:
+      type: object
+      additionalProperties: false
+      properties:
+        objective_id: {type: string, maxLength: 120}
+        description: {type: string, maxLength: 1000}
+        kind: {type: string, enum: [visit_location, defeat_entity, acquire_item]}
+        target: {type: string, maxLength: 160}
+        required_count: {type: integer, minimum: 1, maximum: 1000}
+      required: [objective_id, description, kind, target, required_count]
+    QuestOffer:
+      type: object
+      additionalProperties: false
+      properties:
+        quest_id: {type: string, maxLength: 120}
+        title: {type: string, maxLength: 160}
+        description: {type: string, maxLength: 2000}
+        giver_npc_id: {type: ["string", "null"], maxLength: 120}
+        objectives:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestObjectiveOffer"
+      required: [quest_id, title, description, giver_npc_id, objectives]
+    QuestState:
+      type: object
+      additionalProperties: false
+      properties:
+        quest_id: {type: string, maxLength: 120}
+        title: {type: string, maxLength: 160}
+        description: {type: string, maxLength: 2000}
+        status: {type: string, enum: [accepted, completed, cancelled]}
+        giver_npc_id: {type: ["string", "null"], maxLength: 120}
+        objectives:
+          type: array
+          items: {$ref: "#/components/schemas/QuestObjective"}
+      required: [quest_id, title, description, status, giver_npc_id, objectives]
+    QuestOutcome:
+      type: object
+      additionalProperties: false
+      properties:
+        event_id: {type: string, maxLength: 300}
+        quest_id: {type: string, maxLength: 120}
+        transition:
+          type: string
+          enum: [accepted, objective_progress, objective_completed, completed, cancelled]
+        objective_id: {type: ["string", "null"], maxLength: 120}
+        source_event_id: {type: string, maxLength: 300}
+        turn_index: {type: integer, minimum: 0}
+      required: [event_id, quest_id, transition, objective_id, source_event_id, turn_index]
+    QuestCommandResult:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id: {type: string, format: uuid}
+        state: {$ref: "#/components/schemas/GameState"}
+        quest: {$ref: "#/components/schemas/QuestState"}
+        outcome:
+          anyOf:
+            - $ref: "#/components/schemas/QuestOutcome"
+            - type: "null"
+      required: [session_id, state, quest, outcome]
     SkillCheckResult:
       type: object
       additionalProperties: false
@@ -722,6 +842,12 @@ components:
         turn_index:
           type: integer
           minimum: 0
+        quests:
+          type: array
+          items: {$ref: "#/components/schemas/QuestState"}
+        quest_offers:
+          type: array
+          items: {$ref: "#/components/schemas/QuestOffer"}
       required:
         - location
         - world
@@ -735,6 +861,9 @@ components:
         - combat
         - player_combat_status
         - turn_index
+        - quests
+        - quest_offers
+         - quest_offers
     CampaignJournal:
       type: object
       description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.

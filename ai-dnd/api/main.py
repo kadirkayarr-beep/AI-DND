@@ -46,6 +46,8 @@ from api.schemas import (
     SessionResponse,
     TurnRequest,
     TurnResponse,
+    QuestCommandResult,
+    QuestState,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -669,8 +671,86 @@ def create_app(
                 combat_result=combat_result,
                 combat_history_entry=combat_history_entry,
                 skill_check_result=skill_check_result,
+                quest_outcomes=(
+                    action_result.get("quest_outcomes", [])
+                    if isinstance(action_result, dict)
+                    else []
+                ),
             )
             return redact_sensitive_values(response.model_dump())
+
+    def _quest_command(session_id: str, quest_id: str, command: str) -> dict[str, Any]:
+        record = get_record(session_id)
+        with record.turn_lock:
+            session = record.game_session
+            snapshot = _capture_session(session)
+            try:
+                result = getattr(session, f"{command}_quest")(quest_id)
+            except ValueError as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=404,
+                    detail={"code": "quest_unavailable", "message": str(error)},
+                ) from None
+            try:
+                state = serialize_session_state(session, record.journal)
+                public_quest = QuestState.model_validate(
+                    {
+                    "quest_id": result["quest"]["quest_id"],
+                    "title": result["quest"]["title"],
+                    "description": result["quest"]["description"],
+                    "status": result["quest"]["status"],
+                    "giver_npc_id": result["quest"].get("giver_npc_id"),
+                    "objectives": [
+                        {
+                            "objective_id": item["objective_id"],
+                            "description": item["description"],
+                            "status": item["status"],
+                            "progress": item.get("progress", 0),
+                            "required_count": item.get("required_count", 1),
+                        }
+                        for item in result["quest"]["objectives"]
+                    ],
+                    }
+                )
+                response = QuestCommandResult(
+                    session_id=session_id,
+                    state=state,
+                    quest=public_quest,
+                    outcome=result["transition"],
+                )
+                if record.campaign_id is not None:
+                    manager.save_campaign_locked(record)
+                return redact_sensitive_values(response.model_dump())
+            except CampaignError as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise campaign_http_exception(error) from None
+            except Exception:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise
+
+    @application.post(
+        "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
+        response_model=QuestCommandResult,
+    )
+    def accept_quest(session_id: str, quest_id: str) -> dict[str, Any]:
+        return _quest_command(session_id, quest_id, "accept")
+
+    @application.post(
+        "/api/game/sessions/{session_id}/quests/{quest_id}/cancel",
+        response_model=QuestCommandResult,
+    )
+    def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:
+        return _quest_command(session_id, quest_id, "cancel")
 
     return application
 

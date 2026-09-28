@@ -41,10 +41,13 @@ import {
   useGetCampaigns,
   useGetCharacterOptions,
   useGetGameSessionState,
+  useAcceptGameQuest,
+  useCancelGameQuest,
   usePlayGameTurn,
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
+import { QuestJournalSection } from '@/components/quest-journal-section';
 import type { CampaignHistoryEntry, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
@@ -230,14 +233,27 @@ const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
   unknown: 'Türü bilinmiyor',
 };
 
-const JOURNAL_STATUS_LABELS: Record<string, string> = {
-  active: 'Sürüyor',
-  completed: 'Tamamlandı',
-  failed: 'Başarısız',
-  cancelled: 'İptal edildi',
-};
-
-function JournalPanel({ state }: { state: GameState }) {
+function JournalPanel({ state, sessionId }: { state: GameState; sessionId: string }) {
+  const queryClient = useQueryClient();
+  const [commandNotice, setCommandNotice] = useState<string | null>(null);
+  const acceptQuest = useAcceptGameQuest({
+    mutation: {
+      onSuccess: (result) => {
+        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        setCommandNotice(result.outcome ? 'Görev kabul edildi.' : 'Görev durumu değişmedi.');
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      },
+    },
+  });
+  const cancelQuest = useCancelGameQuest({
+    mutation: {
+      onSuccess: (result) => {
+        queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        setCommandNotice(result.outcome ? 'Görev iptal edildi.' : 'Görev durumu değişmedi.');
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      },
+    },
+  });
   const { journal } = state;
   const events = [...journal.notable_events].sort(
     (left, right) => left.turn_index - right.turn_index || left.created_at.localeCompare(right.created_at),
@@ -317,43 +333,22 @@ function JournalPanel({ state }: { state: GameState }) {
         ) : <div className="empty-line mt-3" data-testid="empty-journal-events">Henüz kaydedilmiş bir olay yok.</div>}
       </section>
 
-      <section className="journal-section" data-testid="section-journal-quests">
-        <div className="journal-section-heading">
-          <div><Kicker><ScrollText size={11} className="mr-1 inline" /> Kayıt defteri</Kicker><h3>Görevler</h3></div>
-          <span className="character-badge">{String(journal.quests.length).padStart(2, '0')}</span>
-        </div>
-        {journal.quests.length ? (
-          <div className="mt-3">
-            {journal.quests.map((quest) => {
-              const giver = quest.giver_npc_id
-                ? journal.known_npcs.find((npc) => npc.npc_id === quest.giver_npc_id)
-                : undefined;
-              return (
-                <article className="data-row journal-record" key={quest.quest_id} data-testid={`journal-quest-${quest.quest_id}`}>
-                  <div className="data-row-head"><span>{quest.title}</span><span className="status-pill">{JOURNAL_STATUS_LABELS[quest.status] ?? quest.status}</span></div>
-                  <p className="data-row-desc">{quest.description}</p>
-                  {giver && <div className="data-row-meta">Görevi veren: {giver.name}</div>}
-                  {quest.objectives.length > 0 && (
-                    <ul className="journal-objectives">
-                      {quest.objectives.map((objective) => (
-                        <li key={objective.objective_id} data-testid={`journal-objective-${objective.objective_id}`}>
-                          <span>{objective.description}</span>
-                          <span className="status-pill">{JOURNAL_STATUS_LABELS[objective.status] ?? objective.status}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        ) : <div className="empty-line mt-3" data-testid="empty-journal-quests">Henüz kayıtlı görev yok.</div>}
-      </section>
+      <QuestJournalSection
+        quests={state.quests ?? []}
+        offers={state.quest_offers ?? []}
+        knownNpcs={journal.known_npcs}
+        onAccept={(questId) => acceptQuest.mutate({ sessionId, questId })}
+        onCancel={(questId) => cancelQuest.mutate({ sessionId, questId })}
+        acceptPending={acceptQuest.isPending}
+        cancelPending={cancelQuest.isPending}
+        hasError={acceptQuest.isError || cancelQuest.isError}
+        commandNotice={commandNotice}
+      />
     </section>
   );
 }
 
-function WorldTabs({ state, activeTab, setActiveTab, combatEntries }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[] }) {
+function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string }) {
   const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'NPC’LER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -396,7 +391,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries }: { state: G
       <div role="tabpanel" id="world-panel-content" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
         {activeTab === 'npcs' && <PeoplePanel npcs={state.npcs} />}
-        {activeTab === 'journal' && <JournalPanel state={state} />}
+         {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
         {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} />}
       </div>
     </aside>
@@ -476,7 +471,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[] }) {
+function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries, sessionId }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -507,7 +502,7 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünya paneli'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Kanonik çevre'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -756,6 +751,25 @@ export default function GameBrowser() {
           setCombatEndNotice(null);
         }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
+          const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
+          const objective = quest?.objectives.find((item) => item.objective_id === outcome.objective_id);
+          const transition = {
+            accepted: 'görev kabul edildi',
+            objective_progress: 'görev hedefinde ilerleme kaydedildi',
+            objective_completed: 'görev hedefi tamamlandı',
+            completed: 'görev tamamlandı',
+            cancelled: 'görev iptal edildi',
+          }[outcome.transition] ?? 'görev durumu güncellendi';
+          return `${quest?.title ?? 'Görev'}: ${transition}${objective ? ` — ${objective.description}` : ''}.`;
+        });
+        if (outcomeMessages.length) {
+          setNotice({
+            tone: 'success',
+            title: 'Görev güncellendi',
+            detail: outcomeMessages.join(' '),
+          });
+        }
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
@@ -810,11 +824,11 @@ export default function GameBrowser() {
             <>
               <LeftColumn state={state} />
               <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} />
-              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />
+              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
         </main>
-        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} />}
+        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
           {sessionLabel} · yalnızca başarılı sunucu turları saklanır
         </div>

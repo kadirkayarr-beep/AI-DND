@@ -267,7 +267,47 @@ def serialize_session_state(
         world,
         getattr(session, "world_metadata", None),
     )
-
+    raw_quests = copy.deepcopy(world.get("quests", []))
+    quest_state = [
+        {
+            "quest_id": item.get("quest_id"),
+            "title": item.get("title"),
+            "description": item.get("description"),
+            "status": item.get("status"),
+            "giver_npc_id": item.get("giver_npc_id"),
+            "objectives": [
+                {
+                    "objective_id": objective.get("objective_id"),
+                    "description": objective.get("description"),
+                    "status": objective.get("status"),
+                    "progress": objective.get("progress", 0),
+                    "required_count": objective.get("required_count", 1),
+                }
+                for objective in item.get("objectives", [])
+            ],
+        }
+        for item in raw_quests
+        if isinstance(item, dict)
+    ]
+    offers = [
+        {
+            "quest_id": item["quest_id"],
+            "title": item["title"],
+            "description": item["description"],
+            "giver_npc_id": item.get("giver_npc_id"),
+            "objectives": [
+                {
+                    "objective_id": objective["objective_id"],
+                    "description": objective["description"],
+                    "kind": objective["type"],
+                    "target": objective["target"],
+                    "required_count": objective.get("required_count", 1),
+                }
+                for objective in item["objectives"]
+            ],
+        }
+        for item in session.quest_offers()
+    ]
     return {
         "location": copy.deepcopy(world.get("location")),
         "world": world_metadata,
@@ -285,6 +325,8 @@ def serialize_session_state(
             world.get("player_combat_status", "active")
         ),
         "turn_index": copy.deepcopy(flags.get("turn_index", 0)),
+        "quests": quest_state,
+        "quest_offers": offers,
     }
 
 
