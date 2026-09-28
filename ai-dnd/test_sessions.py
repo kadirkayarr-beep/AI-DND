@@ -527,6 +527,45 @@ class CompatibilityTests(unittest.TestCase):
                 path.write_text(json.dumps(before), encoding="utf-8")
                 game.load_game(path)
 
+    def test_default_save_preserves_explicit_sessions_and_held_references(self):
+        explicit_sessions = (
+            game.create_session(seed=137),
+            game.create_session(seed=251),
+        )
+        for index, session in enumerate(explicit_sessions, start=1):
+            session.character["name"] = f"ExplicitAdventure{index}"
+            session.character["current_hp"] = index * 3
+            session.world_state["location"] = f"explicit_location_{index}"
+            session.world_state["inventory"].append(f"Adventure {index} item")
+            session.recent_dm_narrations.append(
+                f"Adventure {index} narration"
+            )
+
+        held_references = [
+            (session.world_state, session.character, session.recent_dm_narrations)
+            for session in explicit_sessions
+        ]
+        snapshots = [
+            session.serialize_game_state() for session in explicit_sessions
+        ]
+        default_snapshot = game.serialize_game_state()
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "default-save.json"
+            self.assertEqual(game.save_game(path), path)
+            self.assertEqual(
+                json.loads(path.read_text(encoding="utf-8")),
+                default_snapshot,
+            )
+
+        for session, references, snapshot in zip(
+                explicit_sessions, held_references, snapshots):
+            with self.subTest(session=session):
+                self.assertIs(session.world_state, references[0])
+                self.assertIs(session.character, references[1])
+                self.assertIs(session.recent_dm_narrations, references[2])
+                self.assertEqual(session.serialize_game_state(), snapshot)
+
     def test_successful_default_load_preserves_other_adventures_and_held_references(self):
         default = game._DEFAULT_SESSION
         explicit_sessions = (
