@@ -1,0 +1,271 @@
+ADD NARRATIVE DIRECTOR RICH-PROSE CHANGE TO THE ENGINE APPROVAL PACKAGE
+
+Narrative Director V1 memory/continuity work is accepted as successful.
+
+However, Phase 3.5 is not fully complete because the current narrator contract
+still enforces approximately two short sentences per response.
+
+Add the following approval-gated change to the consolidated Engine Change
+Approval Package.
+
+==================================================
+NARRATIVE DIRECTOR — RICH PROSE CONTRACT CHANGE
+==================================================
+
+Goal:
+
+Remove the hard two-short-sentence narration ceiling and replace it with
+scene-adaptive narrative length WITHOUT weakening canonical safety.
+
+Do not simply make every response long.
+
+Required behavior:
+
+DIRECT QUERY
+Example:
+"What is in my inventory?"
+
+→ concise answer
+
+SMALL ACTION
+Example:
+"I open the door."
+
+→ approximately 1–2 short paragraphs when appropriate
+
+NORMAL STORY ACTION
+Example:
+"I enter the tavern and approach Kasim."
+
+→ typically 2–5 paragraphs
+
+IMPORTANT SCENE
+Examples:
+major discovery
+emotional NPC conversation
+combat aftermath
+important reveal
+
+→ may be longer when justified
+
+COMBAT ACTION
+
+→ mechanically concise but narratively vivid;
+do not restate every structured combat number in prose
+
+==================================================
+NARRATIVE FREEDOM
+==================================================
+
+Allow Qwen to create harmless narrative texture:
+
+- sensory detail
+- lighting
+- sound
+- smell
+- weather atmosphere
+- architecture
+- facial expressions
+- body language
+- pacing
+- minor anonymous background activity
+
+But it must NOT create canonical:
+
+- important NPCs
+- quests
+- inventory
+- money
+- damage
+- healing
+- spell effects
+- location changes
+- quest progress
+- XP
+- level
+- mechanical success/failure
+
+==================================================
+PLAYER AGENCY
+==================================================
+
+Do not narrate major player choices that were not requested.
+
+Never invent:
+
+- player dialogue
+- player beliefs
+- player decisions
+- attacks
+- movement
+- item use
+
+unless already established by the player's action or Python result.
+
+==================================================
+MEMORY INTEGRATION
+==================================================
+
+The richer narrator must consume the Narrative Director context already added:
+
+- canonical current state
+- recent turns
+- relevant NPC memory
+- relevant location continuity
+- unresolved threads
+- story summary
+- scene classification
+- anti-repetition context
+
+It must use memory naturally.
+
+Do not dump remembered facts as exposition.
+
+==================================================
+ANTI-REPETITION
+==================================================
+
+Preserve the new repetition/deduplication protections.
+
+Longer prose must NOT cause:
+
+- repeated tavern introductions
+- repeated NPC descriptions
+- repeated gestures
+- repeated metaphors
+- identical combat phrases
+- repeated paragraph openings
+- constant weather openings
+
+==================================================
+SAFETY
+==================================================
+
+Do NOT weaken:
+
+- canonical contradiction protection
+- narrator safety
+- player-action invention protection
+- two-call maximum
+- rollback behavior
+- structured-result authority
+
+Change narrative LENGTH/FREEDOM, not mechanical authority.
+
+==================================================
+PERFORMANCE
+==================================================
+
+Current verified context:
+
+- model window: 40,960 tokens
+- Narrative Director budget target: <=32,768 tokens
+
+Preserve generation headroom.
+
+Do not routinely fill the full model context.
+
+Measure output latency after increasing narration length.
+
+==================================================
+TESTS
+==================================================
+
+Add focused tests for:
+
+1. direct query stays concise
+2. ordinary story action may produce multiple paragraphs
+3. important scene may produce richer prose
+4. player action is not invented
+5. canonical state is not contradicted
+6. decorative details do not enter canonical state
+7. NPC long-term memory appears naturally
+8. repeated NPC meeting does not reintroduce them
+9. repeated location does not copy previous prose
+10. combat narration respects structured result
+11. skill-check narration respects canonical result
+12. quest state is not invented
+13. context/token budget remains bounded
+14. model-call limit remains <=2
+15. narrator fallback still works
+
+==================================================
+REAL QWEN QUALITY SMOKE
+==================================================
+
+Run a new real qwen3:8b smoke after the prose change.
+
+Use disposable data.
+
+At minimum include:
+
+- tavern entry
+- recurring NPC dialogue
+- location revisit
+- memory callback after many turns
+- exploration
+- direct inventory/state query
+- skill check
+- combat/aftermath if practical
+
+Report ACTUAL examples of:
+
+BEFORE:
+old short narration
+
+AFTER:
+new Narrative Director narration
+
+Evaluate:
+
+- richness
+- repetition
+- memory
+- player agency
+- contradictions
+- NPC consistency
+- scene pacing
+- latency
+
+The goal is not merely "more words".
+
+The goal is better storytelling.
+
+==================================================
+APPROVAL PACKAGE
+==================================================
+
+The consolidated engine approval package should now include:
+
+A. #38 missing skill routes
+   - Persuasion
+   - Deception
+   - Acrobatics
+   - Survival
+
+B. Quest Outcomes canonical engine contract
+
+C. Narrative Director rich-prose narrator contract
+
+D. Bounded Combat V3 foundation
+
+E. Spells V1 compatibility requirements
+
+F. XP / Leveling V1 compatibility requirements
+
+For the Narrative Director item specifically report:
+
+- exact file/function containing the two-sentence restriction
+- exact current rule
+- exact proposed replacement
+- whether game.py modification is actually required
+- safety implications
+- token implications
+- model-call implications
+- regression tests
+
+Do NOT implement the change yet.
+
+Return the revised package and remain at:
+
+ENGINE CHANGE APPROVAL REQUIRED

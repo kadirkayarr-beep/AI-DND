@@ -4,7 +4,7 @@
 **Decision requested:** Owner approval before any change to `ai-dnd/game.py`  
 **Current gate:** **ENGINE CHANGE APPROVAL REQUIRED**
 
-This is an approval proposal only: no engine change, including #38, Quest Outcomes, Combat V3, Spells V1, or XP/Leveling V1, is implemented here. The protected `game.py` file remains unchanged.
+This is an approval proposal only: no engine change, including #38, Quest Outcomes, the Narrative Director rich-prose contract, Combat V3, Spells V1, or XP/Leveling V1, is implemented here. The protected `game.py` file remains unchanged.
 
 ## 1. Verified current baseline
 
@@ -15,12 +15,12 @@ This is an approval proposal only: no engine change, including #38, Quest Outcom
 | Phase 1 — Skill Checks V1 | **PARTIAL — ENGINE ROUTING REQUIRED** | The safe typed `skill_check_result` contract, allowlist, generated client, result card, rollback coverage, and currently supported canonical routes remain. Missing engine routes: Persuasion, Deception, Acrobatics, and Survival. No adapter, narration, or model-output workaround was added. |
 | Phase 2 — Combat-result history persistence | **PASS** | Validated history is stored separately from transcript history, bounded to 50 results per campaign, and restored through campaign detail/resume. Failed turns and failed autosaves do not append results. |
 | Phase 3 — Quest Outcomes V1 | **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** | The frozen engine has no canonical quest acceptance, objective progression, completion, failure, or cancellation outcomes. The quest ledger remains empty; no quest state is inferred from Qwen narration, player wording, or browser state. |
-| Phase 3.5 — Narrative Director V1 | **PARTIAL — NARRATOR PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: a promise thread was retrieved after the recent window and after resume, quest memory stayed empty, and no turn exceeded two model calls. Authenticated metadata reports a 40,960-token context window; the packet is capped at 4,800 UTF-8 bytes and estimated total context at 32,768 tokens including an 8,192-token prompt reserve. The frozen narrator still limits every response to two short sentences, so richer scene-adaptive narration remains blocked; `game.py` was not edited. |
+| Phase 3.5 — Narrative Director V1 | **PARTIAL — RICH-PROSE PROMPT APPROVAL REQUIRED** | API-owned continuity memory is bounded, ID-scoped, validated in campaign-envelope v1, and committed only with successful autosaves; engine save v1 and SQLite schema v2 remain unchanged. The 15-turn real `qwen3:8b` smoke plus a post-resume turn passed: a promise thread was retrieved after the recent window and after resume, quest memory stayed empty, and no turn exceeded two model calls. Authenticated metadata reports a 40,960-token context window; the packet is capped at 4,800 UTF-8 bytes and estimated total context at 32,768 tokens including an 8,192-token reserve. Rich-prose behavior is now specified in §2.C only; the frozen narrator remains limited by its prompt, and `game.py` has not been edited. |
 
 ### Source and persistence versions
 
 - Protected `ai-dnd/game.py` SHA-256 before Phase 2: `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`.
-- SHA-256 after Phases 2–3: the same value. The file was not edited.
+- SHA-256 after Phases 2–3.5: the same value. The file was not edited.
 - Direct re-verification for this correction: **EXPECTED SHA:** `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`; **ACTUAL SHA:** `e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a`; **MATCH: YES**.
 - The differing SHA in my previous final response was a response typo only. The source file and the approval/checkpoint documents had the correct value; no engine change occurred.
 - Current SQLite schema version: **2**. Version 2 adds the separate combat-history table; the change is additive.
@@ -38,13 +38,14 @@ This is an approval proposal only: no engine change, including #38, Quest Outcom
 
 ### Verification completed
 
-- API suite: **84 passed, 0 failed**.
+- API suite: **108 passed, 0 failed**.
 - Portable deterministic gates: **17/17 passed**.
 - Frontend Combat panel tests: **6 passed**.
 - Workspace library/codegen typecheck and AI-DND experience typecheck: **passed**.
 - Production frontend build: **passed**; Vite emitted the existing non-blocking Tooltip sourcemap warning.
 - Phase 1 partial test result: supported structured skill-result, allowlist, rollback, and deterministic skill regressions passed within the API and deterministic suites. The four missing routes are intentionally unsupported and are not being counted as passing.
-- Current-hash live-Qwen smoke is general pipeline evidence; it does not exercise skill-check routing. The disposable restart/resume smoke verifies persistence, not missing Phase 1 routes.
+- The 15-turn authenticated real-Qwen continuity smoke plus one post-resume turn used disposable campaign storage and passed: an older promise thread was selected after the six-turn recent window and again after resume; quest memory stayed empty; 30 total model calls across 16 requests, with no request exceeding two. Estimated total context remained approximately 9,100–10,500 tokens against the 32,768-token budget. This validates existing continuity, not quality under the unapproved rich-prose contract.
+- Current-hash live-Qwen smoke is general pipeline evidence; it does not exercise skill-check routing. The separate disposable restart/resume smoke verifies combat-history persistence, not missing Phase 1 routes.
 - Live FastAPI restart/resume smoke with a disposable temporary campaign database: **passed**; one structured combat-history result was restored and the quest ledger remained empty.
 - `git diff --check`: passed.
 - The registered AI-DND experience and FastAPI workflows restarted successfully; the browser preview loaded.
@@ -58,6 +59,7 @@ This is an approval proposal only: no engine change, including #38, Quest Outcom
 - Runtime sessions remain process-local, and more than one FastAPI workflow is configured. Route gameplay through one canonical API instance.
 - The broader legacy OpenAPI/health-route naming discrepancy remains outside the Phase 2 persistence change.
 - The owner-confirmed **#38** scope and acceptance criteria are included below. It remains approved but deferred until explicit engine approval; do not execute it now or add scope beyond the confirmation.
+- The proposed engine package now has six items, A–F. Only #38 has previously confirmed scope; every engine change remains unimplemented until its required explicit approval.
 
 ## 2. Proposed engine change map
 
@@ -114,7 +116,28 @@ These are proposals for approval, not implementation instructions. Function name
 - **Live-model tests:** With disposable data and real `qwen3:8b`, narration such as “quest accepted” or “objective complete” must not mutate state; a separate explicit canonical command/action must be required. No owner campaign data.
 - **Risk:** High. The current engine lacks a definition source and typed action-event stream; acceptance and objective trigger rules must be approved before implementation.
 
-### C. Combat V3 — bounded canonical turn foundation
+### C. Narrative Director — rich-prose narrator contract (Phase 3.5)
+
+**Status:** Approval proposal only. The API-owned Narrative Director memory and continuity/resume behavior are implemented and verified; the engine narrator contract is not changed.
+
+- **Exact current restriction:** `ai-dnd/game.py`, `ask_dungeon_master()` (current line 3297), appends `Narration en fazla iki kısa cümle olsun.` to each narration request. The shared `system_prompt` (current line 3711) also says `Kısa ve doğal Türkçe anlat.` The literal two-sentence ceiling is in `ask_dungeon_master()`; harmonizing the shared style instruction is also required.
+- **Exact proposed replacement:** Replace the sentence ceiling and reconcile the terse-style instruction with this scene-adaptive instruction:
+
+  > Yanıt uzunluğunu eylemin ve sahnenin önemine göre ayarla: doğrudan sorulara özlü yanıt ver; küçük eylemlerde gerektiğinde 1–2 kısa paragraf, olağan hikâye eylemlerinde genellikle 2–5 paragraf yaz; önemli keşiflerde, duygusal NPC konuşmalarında, önemli açığa çıkışlarda ve savaş sonrası sahnelerde gerekirse daha uzun anlat. Savaş anlatımını mekanik olarak öz, anlatı olarak canlı tut ve yapılandırılmış sayısal sonuçları tekrarlama. Geçici duyusal/atmosferik ayrıntı ve isimsiz arka plan etkinliği ekleyebilirsin; bunları kalıcı dünya gerçeği yapma. Önemli NPC, görev veya ilerleme, envanter/eşya, para, hasar, iyileşme, büyü etkisi, konum değişikliği, XP, seviye ya da mekanik başarı/başarısızlık uydurma: bunları yalnızca Python'ın doğruladığı sonuç ve izinli world_updates belirler. Oyuncu adına yeni diyalog, inanç, karar, saldırı, hareket veya eşya kullanımını anlatma; yalnızca oyuncu eylemi veya Python sonucu tarafından kurulmuş olanı anlat. Narrative Director bağlamını doğal kullan, anıları döküm halinde sıralama; tekrar eden NPC/lokasyon girişleri, jestler, metaforlar, paragraf açılışları, savaş ifadeleri ve hava açılışlarından kaçın.
+
+- **Scene-length contract:** Direct queries remain concise. A small action may receive approximately 1–2 short paragraphs when appropriate. A normal story action usually receives 2–5 paragraphs. A major discovery, emotional NPC conversation, important reveal, or combat aftermath may be longer when justified; ordinary turns must not be padded.
+- **Narrative freedom:** Allow sensory detail, light/sound/smell/weather, architecture, facial expression, body language, pacing, and minor anonymous background activity as temporary presentation only. Do not create named/important canonical NPCs, quests, items, money, damage, healing, spell effects, location changes, XP, levels, or mechanical outcomes in free prose. Persistent entity/lore changes remain limited to the existing `world_updates` proposal path and Python's per-turn permission and validation rules.
+- **Player agency:** Do not invent player dialogue, beliefs, decisions, attacks, movement, or item use. Narrate only what the player actually requested or what the canonical Python result establishes.
+- **Narrative Director context:** Use canonical current state, recent turns, relevant NPC memory, location continuity, unresolved threads, story summary, scene classification, and anti-repetition context naturally. Do not dump remembered facts as exposition. Preserve stable-ID grounding and the separation between canonical state, player claims, and presentation-only continuity.
+- **Anti-repetition:** Preserve both the existing exact-repeat/fallback protections and the bounded Narrative Director repetition hints. Test repeated tavern/location introductions, NPC descriptions, gestures, metaphors, paragraph openings, combat phrases, and weather openings. Longer output must not weaken deduplication or cause a reused description to be treated as a canonical fact.
+- **Exact implementation boundary:** Editing `ai-dnd/game.py` is required to replace the literal sentence ceiling in `ask_dungeon_master()` and reconcile the shared `system_prompt`; the API memory adapter cannot override that engine-owned instruction. No change to `DM_RESPONSE_SCHEMA` (only `world_updates` and `narration`), engine save v1, campaign-envelope v1, or SQLite schema v2 is proposed. Keep `finalize_narration()` and `_narration_is_unsafe()` authoritative and intact; do not loosen mechanical contradiction, player-agency, lore, or fallback checks to admit longer text. If longer prose produces guard false positives, investigate narrowly and require dedicated regressions before proposing any guard change.
+- **Token and performance implications:** Authenticated `qwen3:8b` metadata reports a 40,960-token context window. Keep the Narrative Director's estimated total at or below 32,768 tokens, preserving the existing 8,192-token reserve; the continuity packet remains capped at 4,800 UTF-8 bytes. The current narration call uses `num_predict=700`; leave it bounded initially, measure completion length/truncation and end-to-end latency, and propose any cap adjustment only from disposable-smoke evidence. Do not routinely fill the context window.
+- **Model-call implications:** The proposal changes narration length/freedom, not call topology. Add no summarizer or extra model call; preserve the maximum of two model calls per turn and Python ownership of intent validation, mechanics, and structured results.
+- **Focused regression tests:** Direct query remains concise; ordinary action may produce multiple paragraphs; an important scene may produce richer prose; player action is not invented; canonical state is not contradicted; decorative texture does not enter canonical state; NPC memory is used naturally; repeated NPC meetings do not reintroduce them; location revisits do not copy old prose; combat narration follows structured results; skill-check narration follows canonical success/failure; no quest state is invented; context/token budget remains bounded; model calls remain at most two; and narrator fallback still works. Retain the existing deterministic engine and API suites.
+- **Real-Qwen quality smoke after approval:** Use disposable campaign data and real `qwen3:8b`. Include tavern entry, recurring NPC dialogue, location revisit, a memory callback after many turns, exploration, direct inventory/state query, a skill check, and combat/aftermath if practical. Report actual before/after narration excerpts and evaluate richness, repetition, memory, player agency, contradictions, NPC consistency, pacing, and latency. Do not claim the proposed prose quality is verified until this smoke runs after approval.
+- **Risk:** Medium-high. Longer output increases the chance of invented actions, accidental canon, validator false positives, repetition, truncation, and latency. The change must affect narrative length and temporary texture only; preserve all mechanical, schema, rollback, fallback, and call-count guarantees.
+
+### D. Combat V3 — bounded canonical turn foundation
 
 - **Existing functions/location:** `ensure_combat_state()` (`game.py:1413`), `resolve_combat_target()` (`:1625`), `resolve_attack()` (`:1666`), `start_combat()` (`:1778`), `resolve_enemy_attack()` (`:1810`), `end_combat()` (`:1847`), `advance_combat_turn()` (`:1856`), `execute_intent()` (`:3838`), `run_player_turn()` (`:4067`), `serialize_game_state()` (`:1239`), `load_game()` (`:1344`), and `GameSession` (`:4232`).
 - **Current responsibility:** Combat V1/V2 resolves a limited single-target exchange, attack/retaliation, and a small combat state. It does not own the requested multi-combatant scheduler with stable participant identities.
@@ -135,7 +158,7 @@ These are proposals for approval, not implementation instructions. Function name
 - **Explicitly out of scope:** Reactions, bonus actions, opportunity attacks, grid movement, concentration, a full condition system, summons, death saves, legendary actions, encounter balancing, and full D&D 5e combat. None is currently considered strictly necessary for this foundation.
 - **Risk:** High. The scheduler changes combat authority and save shape; turn-boundary, migration, rollback, and restart defects could skip/double actions or resume the wrong actor.
 
-### D. Anticipated compatibility requirements for Spells V1
+### E. Anticipated compatibility requirements for Spells V1
 
 This is an architecture constraint only; it is not a spell-system design or a proposed implementation.
 
@@ -145,7 +168,7 @@ This is an architecture constraint only; it is not a spell-system design or a pr
 - No spell catalogue, class/level rules, slot/resource fields, spell API schema, or frontend spell flow is proposed here.
 - **Risk if ignored:** an attack-only hard-coded scheduler could force a second turn system or client-side spell authority later.
 
-### E. Anticipated compatibility requirements for XP / Leveling V1
+### F. Anticipated compatibility requirements for XP / Leveling V1
 
 This is an architecture constraint only; it is not an XP/leveling design or a proposed implementation.
 
@@ -178,12 +201,12 @@ Old campaigns must remain loadable. The Quest state migrates to an explicit empt
 
 ## 4. Approval boundary
 
-Approval is required before changing `ai-dnd/game.py`. The owner-confirmed #38 scope is listed below; explicit engine approval is still required before implementing it. For Quest Outcomes and Combat V3, the owner must approve the definition/trigger source, state/version plan, and which proposed work is included. Until that approval:
+Approval is required before changing `ai-dnd/game.py`. The package contains six proposal items, A–F; only #38 has a previously confirmed scope, and even that implementation remains deferred pending explicit engine approval. For Quest Outcomes and Combat V3, the owner must approve the definition/trigger source, state/version plan, and which proposed work is included. The detailed Phase 3.5 rich-prose contract is in §2.C. Until the applicable explicit approval:
 
 - Keep Phase 1 visibly **PARTIAL — ENGINE ROUTING REQUIRED**.
 - Keep Phase 3 **PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED** and the quest ledger empty.
-- Require explicit owner approval before changing the Phase 3.5 narrator prompt contract: replace the fixed two-short-sentence limit with scene-adaptive, typically 2–5 paragraph narration while preserving Python authority, the structured response schema, validated world updates, fallback behavior, and model-call limits. This approval does not authorize implementation.
-- Do not implement Combat V3, Spells V1, or XP/Leveling V1.
+- Keep Phase 3.5 **PARTIAL — RICH-PROSE PROMPT APPROVAL REQUIRED**. The proposed replacement for the two-sentence ceiling and its safety, token, model-call, test, and live-smoke requirements are documented in §2.C; this package does not itself grant approval or authorize implementation.
+- Do not implement Quest Outcomes, Combat V3, Spells V1, or XP/Leveling V1 without approval of their respective scope.
 - Keep owner-confirmed item **#38** deferred until explicit engine approval; implement only its listed four routes and acceptance criteria afterward.
 - Preserve the protected SHA above and the owner’s campaign data.
 
