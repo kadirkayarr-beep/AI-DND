@@ -156,10 +156,11 @@ class SessionTests(unittest.TestCase):
         snapshots = [session.serialize_game_state() for session in sessions]
         rng_states = [session.rng.getstate() for session in sessions]
         messages = [copy.deepcopy(session.messages) for session in sessions]
-        world = self.a.world_state
-        character = self.a.character
-        history = self.a.recent_dm_narrations
-        held_contents = copy.deepcopy((world, character, history))
+        held = [
+            (session.world_state, session.character, session.recent_dm_narrations)
+            for session in sessions
+        ]
+        held_contents = copy.deepcopy(held)
 
         # Different valid player/world values expose a partial restore before
         # the invalid narration is rejected at the end of payload validation.
@@ -171,14 +172,14 @@ class SessionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Anlatı geçmişi geçersiz"):
                 self.a.load_game(path)
 
-        self.assertIs(world, self.a.world_state)
-        self.assertIs(character, self.a.character)
-        self.assertIs(history, self.a.recent_dm_narrations)
-        self.assertEqual((world, character, history), held_contents)
         self.assertIs(game._session(), game._DEFAULT_SESSION)
-        for session, snapshot, rng_state, message_history in zip(
-                sessions, snapshots, rng_states, messages):
+        for session, references, contents, snapshot, rng_state, message_history in zip(
+                sessions, held, held_contents, snapshots, rng_states, messages):
             with self.subTest(session=session):
+                self.assertIs(session.world_state, references[0])
+                self.assertIs(session.character, references[1])
+                self.assertIs(session.recent_dm_narrations, references[2])
+                self.assertEqual(references, contents)
                 self.assertEqual(session.serialize_game_state(), snapshot)
                 self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.messages, message_history)
