@@ -1,0 +1,813 @@
+CREATE A COMPLETE AI-DND PROJECT STATUS / CHECKPOINT REPORT
+
+I want a detailed, current, single-source-of-truth report for the entire AI-DND project.
+
+Do NOT implement new features.
+
+Do NOT modify code.
+
+Do NOT start the next phase.
+
+This task is documentation / inspection only.
+
+The purpose is to capture the exact current state of the project after the
+completed phases so that future work can continue without confusion.
+
+==================================================
+REPORT DATE
+==================================================
+
+Use the current project state as of:
+
+28 September 2026
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Produce a complete project checkpoint covering:
+
+- current architecture
+- completed phases
+- current gameplay capabilities
+- frontend capabilities
+- backend/API capabilities
+- persistence
+- character creation
+- world metadata
+- journal/quest state
+- combat state
+- AI/Qwen integration
+- test coverage
+- security/authority boundaries
+- known issues
+- known limitations
+- technical debt
+- backlog
+- deferred features
+- recommended next steps
+- suggested development order
+- protected invariants
+- frozen files/checkpoints
+
+This report should be detailed enough that another engineer could read it and
+understand exactly where the project currently stands.
+
+==================================================
+IMPORTANT RULES
+==================================================
+
+Do NOT guess.
+
+Verify the current repository/project state before writing the report.
+
+Inspect relevant code, tests, checkpoint files, API schema, frontend state,
+and persistence structure.
+
+Clearly separate:
+
+1. VERIFIED CURRENT BEHAVIOR
+2. KNOWN LIMITATIONS
+3. KNOWN ISSUES
+4. DEFERRED / BACKLOG ITEMS
+5. FUTURE RECOMMENDATIONS
+
+Do not describe planned features as if they already exist.
+
+==================================================
+SECTION 1 — EXECUTIVE SUMMARY
+==================================================
+
+Give a concise high-level summary:
+
+- overall project status
+- whether browser gameplay is functional
+- whether real qwen3:8b is connected
+- whether campaigns persist
+- whether character creation is canonical
+- whether world metadata is canonical
+- whether Journal works
+- current quest support level
+- current combat support level
+- whether public deployment exists
+- overall maturity level
+
+Example style:
+
+“AI-DND is currently a functional single-user browser-based AI tabletop RPG
+prototype with persistent campaigns, canonical Python-owned game state,
+real qwen3:8b narration, canonical character creation, world metadata,
+journal tracking, and Combat V2 presentation.”
+
+Only say this if verified.
+
+==================================================
+SECTION 2 — ARCHITECTURE
+==================================================
+
+Document the current architecture.
+
+Expected general flow:
+
+Browser / React
+    ↓
+FastAPI
+    ↓
+Session / Campaign layer
+    ↓
+GameSession
+    ↓
+game.py
+    ↓
+Ollama / qwen3:8b
+
+Explain:
+
+- frontend responsibility
+- FastAPI responsibility
+- campaign persistence responsibility
+- GameSession responsibility
+- game.py responsibility
+- qwen3:8b responsibility
+
+Include the key invariant:
+
+PYTHON DECIDES REALITY.
+QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
+THE FRONTEND PRESENTS REALITY.
+
+Verify that this invariant is still true.
+
+==================================================
+SECTION 3 — FROZEN ENGINE / CHECKPOINT
+==================================================
+
+Report:
+
+- current game.py path
+- current SHA-256
+- whether it changed during recent phases
+- whether it is still considered frozen/protected
+
+Expected SHA if still current:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+Verify it.
+
+Also mention relevant checkpoint documentation if present.
+
+==================================================
+SECTION 4 — COMPLETED DEVELOPMENT PHASES
+==================================================
+
+List each completed phase separately.
+
+For each phase include:
+
+- goal
+- what was implemented
+- what was deliberately NOT implemented
+- validation/tests
+- current status
+
+Expected phases to verify:
+
+1. FastAPI / browser integration
+2. Full frontend integration
+3. Persistent Campaign V1
+4. Canonical Character Creation V1
+5. World Metadata V1
+6. Journal / Quest V1
+7. Combat UX Polish
+
+Do not mark something complete unless verified.
+
+==================================================
+SECTION 5 — CURRENT GAMEPLAY CAPABILITIES
+==================================================
+
+List what the player can actually do today.
+
+Examples to verify:
+
+- create a campaign
+- create a character
+- resume a campaign
+- send natural-language actions
+- travel between locations
+- discover locations
+- encounter NPCs
+- converse with NPCs
+- NPC memory
+- inspect world
+- inventory handling
+- combat
+- save/resume during combat
+- journal discoveries
+- environment theme changes
+- weather/time metadata
+- mobile play
+
+Be specific.
+
+Do not list future features.
+
+==================================================
+SECTION 6 — CHARACTER SYSTEM
+==================================================
+
+Document current canonical character support:
+
+- name
+- races
+- classes
+- stat generation
+- skill proficiency generation
+- HP
+- AC
+- level
+- proficiency bonus
+- starting inventory
+- random character
+- custom character
+
+Also list unsupported character features:
+
+- manual stat assignment
+- rerolls if unsupported
+- equipment choice
+- portrait generation
+- leveling
+- subclasses
+- feats
+- spell selection
+
+Verify exact current behavior.
+
+==================================================
+SECTION 7 — CAMPAIGN PERSISTENCE
+==================================================
+
+Document:
+
+- storage technology
+- campaign ID behavior
+- session ID vs campaign ID
+- autosave behavior
+- explicit save behavior
+- restart/resume
+- atomic/transactional behavior
+- rollback on failed turn
+- migration support
+- corrupt-save handling
+- RNG persistence
+- turn history persistence
+- NPC memory persistence
+- combat persistence
+- world metadata persistence
+- journal persistence
+
+Also state:
+
+- single-user status
+- authentication status
+- multi-instance limitations
+
+==================================================
+SECTION 8 — WORLD MODEL / METADATA
+==================================================
+
+Document current canonical support for:
+
+- location
+- environment
+- time_of_day
+- weather
+
+List supported environment categories.
+
+List supported time-of-day values.
+
+List supported weather values.
+
+Explain:
+
+- how environment is derived
+- default time/weather behavior
+- whether real-world clock is used
+- whether Qwen can modify metadata
+- how frontend themes consume metadata
+
+==================================================
+SECTION 9 — JOURNAL / QUEST SYSTEM
+==================================================
+
+Document current Journal support:
+
+- discovered locations
+- known NPCs
+- notable events
+- persistence
+- restart continuity
+- campaign isolation
+
+Then clearly explain Quest V1 status.
+
+Important:
+
+If the quest ledger exists but automatic canonical quest acceptance/progression
+does NOT yet exist, state that explicitly.
+
+Mention deferred issue/proposal:
+
+#36 — Let the Journal track quests from confirmed game outcomes
+
+Explain why it is deferred if still true.
+
+Do not imply quests work if they do not.
+
+==================================================
+SECTION 10 — COMBAT SYSTEM
+==================================================
+
+Document current Combat V1 / V2 capabilities.
+
+Include:
+
+- combat activation
+- target validation
+- attack rolls
+- AC
+- HP
+- damage
+- initiative
+- rounds
+- enemy retaliation
+- nat 1
+- nat 20
+- unconscious/defeat handling
+- persistence during combat
+- browser Combat panel
+- mobile combat UI
+- structured combat API result
+- real Qwen narration
+
+Clearly separate:
+
+CURRENT COMBAT MECHANICS
+
+from:
+
+COMBAT UX PRESENTATION
+
+and from:
+
+NOT YET IMPLEMENTED COMBAT V3 FEATURES
+
+==================================================
+SECTION 11 — FRONTEND / DESIGN STATUS
+==================================================
+
+Document current browser experience.
+
+Include:
+
+- opening screen
+- character creation
+- adventure workspace
+- character panel
+- story feed
+- world panel
+- NPC panel
+- Journal
+- Combat panel
+- mobile drawers
+- responsive behavior
+
+Document current environment themes:
+
+- Tavern
+- Forest
+- City
+- Village
+- Road
+- Wilderness
+- Dungeon
+- Cave
+- Castle
+- Temple
+- Ruins
+
+If all are implemented in reusable theme form, say so.
+
+Explain:
+
+- dawn
+- day
+- evening
+- night
+- weather overlays
+- fallback behavior
+
+Do not claim a visual state is canonical if it is only presentation.
+
+==================================================
+SECTION 12 — QWEN / OLLAMA INTEGRATION
+==================================================
+
+Document:
+
+- current model
+- how it is reached
+- whether browser talks directly to Ollama
+- secret handling
+- model call behavior
+- maximum calls per turn if still relevant
+- narrator safety
+- semantic intent handling
+- NPC memory
+- real model smoke tests
+
+Mention the current local/tunnel development arrangement if still in use.
+
+State clearly whether this is suitable for production.
+
+==================================================
+SECTION 13 — API STATUS
+==================================================
+
+List the important current API capabilities.
+
+Examples:
+
+- health
+- session/campaign creation
+- campaign list
+- campaign detail
+- resume
+- save
+- turn
+- state
+- character options
+- journal
+- combat structured result
+
+Use actual current routes.
+
+Do not invent endpoints.
+
+Mention OpenAPI client generation status.
+
+==================================================
+SECTION 14 — TEST / VALIDATION STATUS
+==================================================
+
+Create a test matrix.
+
+Include current verified counts where available.
+
+Report:
+
+- API tests
+- deterministic engine gates
+- semantic tests
+- query-grounding tests
+- narrator-safety tests
+- session isolation
+- persistence tests
+- character creation tests
+- world metadata tests
+- journal tests
+- combat tests
+- frontend component tests
+- typecheck
+- production build
+- git diff/check
+
+Also mention any non-blocking warnings.
+
+If test counts differ from earlier phases, report the current counts only.
+
+==================================================
+SECTION 15 — KNOWN ISSUES
+==================================================
+
+Create a dedicated KNOWN ISSUES section.
+
+For each issue include:
+
+- issue
+- severity
+- user impact
+- current workaround
+- recommended fix
+- whether blocker or non-blocker
+
+Include known issues such as, if still true:
+
+- resumed combat does not show previous structured dice/result cards
+- tooltip sourcemap warning
+- travel intent phrasing can require more explicit wording
+- quest ledger remains empty without canonical quest outcomes
+- no authentication
+- no multi-instance persistence coordination
+- no public deployment
+- local Ollama/tunnel dependency for current dev environment
+
+Also search for additional current known issues.
+
+Do not hide problems.
+
+==================================================
+SECTION 16 — KNOWN LIMITATIONS
+==================================================
+
+Separate limitations from bugs.
+
+Examples:
+
+- single-user only
+- no authentication
+- no multiplayer
+- no public hosting
+- no full quest engine
+- no advanced combat/action economy
+- no spell system
+- no leveling
+- no economy/shop
+- no companion system
+- no faction/reputation
+- no full calendar
+- no seasons/moon phases
+- no AI portraits
+
+Only list what is actually unsupported.
+
+==================================================
+SECTION 17 — TECHNICAL DEBT
+==================================================
+
+Identify current technical debt.
+
+Examples to inspect:
+
+- large/frozen game.py
+- API adapter complexity
+- serialization duplication
+- frontend theme expansion
+- test fixture complexity
+- temporary dev infrastructure
+- save schema evolution
+- structured combat event history
+- quest outcome contract
+
+For each technical debt item:
+
+- what it is
+- risk
+- urgency
+- recommended future approach
+
+==================================================
+SECTION 18 — BACKLOG / DEFERRED ITEMS
+==================================================
+
+Create a backlog table.
+
+Include at minimum:
+
+- #36 Quest outcomes
+- Combat Result History Persistence
+- public deployment
+- authentication/account ownership
+- multi-instance coordination
+- AI portrait generation
+- advanced world time/calendar if still desired
+
+Add other verified deferred items.
+
+==================================================
+SECTION 19 — RECOMMENDED NEXT DEVELOPMENT ORDER
+==================================================
+
+Do NOT simply repeat old roadmap blindly.
+
+Based on the CURRENT project state, recommend the next development sequence.
+
+We previously discussed a possible order such as:
+
+6A. Canonical Skill Checks V1
+6B. Quest Outcomes V1
+6C. Combat V3
+6D. Spells V1
+6E. Leveling / XP V1
+
+Evaluate whether this is still the best order.
+
+Explain why.
+
+Also include prerequisites between systems.
+
+==================================================
+SECTION 20 — CANONICAL SKILL CHECKS PROPOSAL
+==================================================
+
+Since this is a likely next phase, include a scoped proposal for:
+
+Canonical Skill Checks V1
+
+Potential checks:
+
+- Perception
+- Investigation
+- Persuasion
+- Deception
+- Intimidation
+- Stealth
+- Athletics
+- Acrobatics
+- Insight
+- Survival
+
+Explain:
+
+- what Python should own
+- how DC should work
+- how Qwen should participate
+- what frontend should display
+- what not to implement yet
+
+This is a recommendation only.
+
+Do NOT implement it.
+
+==================================================
+SECTION 21 — FUTURE GAMEPLAY SYSTEMS
+==================================================
+
+List future systems that could be added later.
+
+Organize them into categories.
+
+Examples:
+
+CORE D&D:
+- skill checks
+- saving throws
+- spells
+- conditions
+- rests
+- leveling
+- XP
+- equipment stats
+- action economy
+
+WORLD:
+- quests
+- factions
+- reputation
+- economy
+- shops
+- travel
+- calendar
+- seasons
+- weather progression
+
+CHARACTERS:
+- subclasses
+- feats
+- backgrounds
+- character portraits
+- companions
+- party system
+
+CONTENT:
+- procedural dungeons
+- structured encounters
+- loot tables
+- handcrafted campaigns
+- lore codex
+
+PRODUCT:
+- accounts
+- cloud saves
+- multiplayer
+- campaign sharing
+- DM mode
+- public deployment
+
+Do not imply these currently exist.
+
+==================================================
+SECTION 22 — SECURITY / AUTHORITY REVIEW
+==================================================
+
+Confirm whether:
+
+- browser cannot set HP
+- browser cannot set AC
+- browser cannot set inventory
+- browser cannot set combat state
+- browser cannot set world metadata
+- browser cannot fabricate journal state
+- browser cannot mark quests complete
+- browser cannot directly access Ollama credentials
+
+Also document current trust assumptions.
+
+==================================================
+SECTION 23 — PRODUCTION READINESS
+==================================================
+
+Give a realistic assessment.
+
+Cover:
+
+- what is ready
+- what is not ready
+- what would be required before public users
+- local Ollama dependency
+- persistence ownership
+- authentication
+- rate limiting
+- observability
+- deployment
+- backups
+- security review
+
+Do NOT call it production-ready unless it actually is.
+
+==================================================
+SECTION 24 — PROTECTED INVARIANTS
+==================================================
+
+List rules future agents/developers should not violate.
+
+Examples:
+
+- game.py frozen unless explicitly approved
+- Python owns authoritative state
+- Qwen never directly owns game reality
+- frontend never calculates authoritative dice/results
+- no narration-based quest completion
+- no frontend-local canonical persistence
+- no direct browser -> Ollama communication
+- regression suite must pass before phase completion
+- SHA changes must be explicitly reported
+
+==================================================
+SECTION 25 — CURRENT ROADMAP CHECKPOINT
+==================================================
+
+End with a concise roadmap.
+
+Example structure:
+
+COMPLETED:
+✅ ...
+✅ ...
+
+NEXT:
+➡️ ...
+
+BACKLOG:
+○ ...
+
+LATER:
+○ ...
+
+Make the distinction very clear.
+
+==================================================
+FINAL OUTPUT FORMAT
+==================================================
+
+Write this as a clean technical project report.
+
+Use:
+
+- title
+- date
+- executive summary
+- numbered sections
+- status markers
+- tables where useful
+
+End with:
+
+A. CURRENT HEALTH
+B. TOP 5 RISKS
+C. TOP 5 NEXT ACTIONS
+D. RECOMMENDED NEXT PHASE
+E. DO NOT TOUCH / PROTECTED AREAS
+
+Also include a short “handoff summary” of no more than 15 lines that could be
+pasted into a new AI chat to continue the project with minimal lost context.
+
+Again:
+
+DO NOT MODIFY CODE.
+DO NOT IMPLEMENT FEATURES.
+DO NOT DEPLOY.
+THIS TASK IS REPORTING / CHECKPOINTING ONLY.
