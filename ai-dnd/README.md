@@ -77,9 +77,15 @@ through Ollama.
 
 The uploaded `CHECKPOINT_AI_PIPELINE_V10.md` records the validation of the
 original Codex source (`game.py` SHA-256 `67be354a…`) on the original Windows
-machine. The uploaded RAR remains in `attached_assets/`. Its standalone
+machine. The uploaded RAR remains in `attached_assets/`. A second uploaded
+archive contains the focused test scripts and live Ollama traces for that same
+source hash. Its standalone
 `game.py` was **not** copied over this project's session and save architecture:
 intent/query/exploration grounding and narration safeguards were adapted
-into the current engine. `test_ai_pipeline_port.py` covers these behaviors
-offline. The original checkpoint's 87 semantic tests and real-Ollama smoke
-transcript were not included in the archive, so they cannot be rerun here.
+into the current engine. `test_ai_pipeline_port.py` covers session-specific
+regressions; `test_ai_pipeline_semantics.py` runs the recovered 87 semantic,
+24 query-grounding, and 18 narration-safety checks against the current engine.
+The archived smoke traces are historical evidence, not proof that this engine
+was live-tested on the original machine. A separate nine-turn smoke against
+the current engine and configured Qwen service is recorded in the checkpoint
+addendum; its model output and fallback count varied between runs.

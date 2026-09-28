@@ -913,7 +913,7 @@ def _detect_query_type(player_input, npc_target=None):
         return "presence"
     asks_name = bool(re.search(r"\b(?:ad(?:i|in)|ism(?:i|in))\s+(?:ne|nedir)\b", text))
     location_query = any(_normalize_turkish_typos(phrase) in text for phrase in (
-        "neredeyim", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
+        "neredeyim", "nerdeyim", "nerdeyiz", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
     )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text))
     location_id = _location_reference_in_text(player_input)
     explicit_npcs = [

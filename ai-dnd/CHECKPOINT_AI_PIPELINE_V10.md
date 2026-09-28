@@ -48,3 +48,25 @@ Date: 2026-09-28
 PYTHON DECIDES REALITY. QWEN UNDERSTANDS INTENT AND DESCRIBES REALITY.
 
 No production code was changed during post-promotion validation. No Combat V3 work was started.
+
+## Follow-on archive review
+
+Date: 2026-09-28
+
+- A second uploaded archive contained the original semantic, query-grounding,
+  and narrator-safety scripts, plus live Qwen request logs and smoke transcripts.
+- Its V10 `game_pipeline_work.py` SHA-256 matches the production source above.
+- The archive's 87 semantic, 24 query-grounding, and 18 narrator-safety cases
+  were adapted to the current session-aware engine. All 129 checks pass offline.
+- This found and fixed recognition of the colloquial location queries
+  `nerdeyim` and `nerdeyiz`; matching remains query-specific rather than using
+  broad substring matches.
+- A separate nine-turn smoke against the current engine and configured
+  `qwen3:8b` service passed its intent, travel, location, NPC-identity,
+  presence, and observation checks. It used 14 model calls, with no more than
+  two per turn. Repeated runs produced different narration and fallback counts
+  (two and four), consistent with model-sampling variation. Fallbacks remain
+  guarded; this result is not a claim of deterministic narration.
+- The archived smoke traces also vary in fallback count. They document
+  historical runs of the hash-matched source and are not a substitute for
+  testing the current session-aware engine.
