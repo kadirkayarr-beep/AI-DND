@@ -205,7 +205,7 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.messages, message_history)
 
-    def test_invalid_default_load_preserves_explicit_sessions(self):
+    def test_invalid_default_load_preserves_all_sessions_and_held_references(self):
         default = game._DEFAULT_SESSION
         original_world = copy.deepcopy(default.world_state)
         original_character = copy.deepcopy(default.character)
@@ -235,35 +235,70 @@ class SessionTests(unittest.TestCase):
 
             sessions = (self.a, self.b, default)
             held = [
-                (session.world_state, session.character, session.recent_dm_narrations)
+                (
+                    session.world_state,
+                    session.character,
+                    session.recent_dm_narrations,
+                    session.messages,
+                    session.rng,
+                )
                 for session in sessions
             ]
-            held_contents = copy.deepcopy(held)
+            held_contents = [
+                tuple(copy.deepcopy(reference) for reference in references[:4])
+                for references in held
+            ]
             snapshots = [session.serialize_game_state() for session in sessions]
             rng_states = [session.rng.getstate() for session in sessions]
             messages = [copy.deepcopy(session.messages) for session in sessions]
 
-            # A different valid player/world would overwrite the default if load
-            # mutated state before rejecting the invalid narration.
-            payload = copy.deepcopy(snapshots[1])
-            payload["recent_dm_narrations"] = ["Replacement narration", None]
             with tempfile.TemporaryDirectory() as directory:
-                path = Path(directory) / "invalid-default.json"
-                path.write_text(json.dumps(payload), encoding="utf-8")
-                with self.assertRaisesRegex(ValueError, "Anlatı geçmişi geçersiz"):
-                    game.load_game(path)
+                cases = (
+                    ("missing", FileNotFoundError),
+                    ("malformed", json.JSONDecodeError),
+                    ("unsupported-version", ValueError),
+                    ("invalid-payload", ValueError),
+                )
+                for failure, error in cases:
+                    with self.subTest(failure=failure):
+                        path = Path(directory) / f"{failure}.json"
+                        if failure == "malformed":
+                            path.write_text("{broken", encoding="utf-8")
+                        elif failure == "unsupported-version":
+                            payload = copy.deepcopy(snapshots[1])
+                            payload["version"] = 999
+                            path.write_text(json.dumps(payload), encoding="utf-8")
+                        elif failure == "invalid-payload":
+                            # Valid world/player data exposes a partial restore
+                            # before validation rejects the narration history.
+                            payload = copy.deepcopy(snapshots[1])
+                            payload["recent_dm_narrations"] = [
+                                "Replacement narration", None
+                            ]
+                            path.write_text(json.dumps(payload), encoding="utf-8")
 
-            self.assertIs(game._session(), default)
-            for session, references, contents, snapshot, rng_state, message_history in zip(
-                    sessions, held, held_contents, snapshots, rng_states, messages):
-                with self.subTest(session=session):
-                    self.assertIs(session.world_state, references[0])
-                    self.assertIs(session.character, references[1])
-                    self.assertIs(session.recent_dm_narrations, references[2])
-                    self.assertEqual(references, contents)
-                    self.assertEqual(session.serialize_game_state(), snapshot)
-                    self.assertEqual(session.rng.getstate(), rng_state)
-                    self.assertEqual(session.messages, message_history)
+                        with self.assertRaises(error):
+                            game.load_game(path)
+
+                        self.assertIs(game._session(), default)
+                        for (session, references, contents, snapshot, rng_state,
+                             message_history) in zip(
+                                sessions, held, held_contents, snapshots,
+                                rng_states, messages):
+                            with self.subTest(session=session):
+                                self.assertIs(session.world_state, references[0])
+                                self.assertIs(session.character, references[1])
+                                self.assertIs(
+                                    session.recent_dm_narrations, references[2]
+                                )
+                                self.assertIs(session.messages, references[3])
+                                self.assertIs(session.rng, references[4])
+                                self.assertEqual(references[:4], contents)
+                                self.assertEqual(
+                                    session.serialize_game_state(), snapshot
+                                )
+                                self.assertEqual(session.rng.getstate(), rng_state)
+                                self.assertEqual(session.messages, message_history)
         finally:
             restore_default()
 
