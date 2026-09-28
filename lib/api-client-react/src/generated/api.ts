@@ -20,6 +20,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CampaignCreateInput,
+  CampaignDetail,
+  CampaignSession,
+  CampaignSummary,
   GameHealth,
   GameSession,
   GameState,
@@ -448,5 +452,395 @@ export const usePlayGameTurn = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
+    }
+
+export const getGetCampaignsUrl = () => {
+
+
+
+
+  return `/api/game/campaigns`
+}
+
+/**
+ * @summary List safe campaign metadata
+ */
+export const getCampaigns = async ( options?: Parameters<typeof customFetch>[1]): Promise<CampaignSummary[]> => {
+
+  return customFetch<CampaignSummary[]>(getGetCampaignsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCampaignsQueryKey = () => {
+    return [
+    `/api/game/campaigns`
+    ] as const;
+    }
+
+
+export const getGetCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCampaignsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCampaigns>>> = ({ signal }) => getCampaigns({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCampaignsQueryResult = NonNullable<Awaited<ReturnType<typeof getCampaigns>>>
+export type GetCampaignsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List safe campaign metadata
+ */
+
+export function useGetCampaigns<TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCampaignsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCampaignUrl = () => {
+
+
+
+
+  return `/api/game/campaigns`
+}
+
+/**
+ * @summary Create a campaign with an initial server-owned save
+ */
+export const createCampaign = async (campaignCreateInput: CampaignCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<CampaignSession> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CampaignSession>(getCreateCampaignUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(campaignCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCampaignMutationKey = () => ['createCampaign'] as const;
+
+export const getCreateCampaignMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext> => {
+
+const mutationKey = getCreateCampaignMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCampaign>>, CreateCampaignMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCampaign(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof createCampaign>>>
+    export type CreateCampaignMutationBody = BodyType<CampaignCreateInput>
+    export type CreateCampaignMutationError = ErrorType<unknown>
+    export type CreateCampaignMutationVariables = {data: BodyType<CampaignCreateInput>}
+
+    /**
+ * @summary Create a campaign with an initial server-owned save
+ */
+export const useCreateCampaign = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCampaign>>,
+        TError,
+        CreateCampaignMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCampaignMutationOptions(options));
+    }
+
+export const getGetCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/game/campaigns/${campaignId}`
+}
+
+/**
+ * @summary Read safe metadata, canonical UI state, and saved history
+ */
+export const getCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<CampaignDetail> => {
+
+  return customFetch<CampaignDetail>(getGetCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCampaignQueryKey = (campaignId: string,) => {
+    return [
+    `/api/game/campaigns/${campaignId}`
+    ] as const;
+    }
+
+
+export const getGetCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<unknown>>(campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCampaignQueryKey(campaignId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCampaign>>> = ({ signal }) => getCampaign(campaignId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: campaignId !== null && campaignId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCampaignQueryResult = NonNullable<Awaited<ReturnType<typeof getCampaign>>>
+export type GetCampaignQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read safe metadata, canonical UI state, and saved history
+ */
+
+export function useGetCampaign<TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<unknown>>(
+ campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCampaignQueryOptions(campaignId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getResumeCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/game/campaigns/${campaignId}/resume`
+}
+
+/**
+ * @summary Restore a campaign into a current runtime session
+ */
+export const resumeCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<CampaignSession> => {
+
+  return customFetch<CampaignSession>(getResumeCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResumeCampaignMutationKey = () => ['resumeCampaign'] as const;
+
+export const getResumeCampaignMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext> => {
+
+const mutationKey = getResumeCampaignMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resumeCampaign>>, ResumeCampaignMutationVariables> = (props) => {
+          const {campaignId} = props ?? {};
+
+          return  resumeCampaign(campaignId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResumeCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof resumeCampaign>>>
+
+    export type ResumeCampaignMutationError = ErrorType<unknown>
+    export type ResumeCampaignMutationVariables = {campaignId: string}
+
+    /**
+ * @summary Restore a campaign into a current runtime session
+ */
+export const useResumeCampaign = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resumeCampaign>>,
+        TError,
+        ResumeCampaignMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResumeCampaignMutationOptions(options));
+    }
+
+export const getSaveCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/game/campaigns/${campaignId}/save`
+}
+
+/**
+ * @summary Save the current server-side campaign session
+ */
+export const saveCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<CampaignSummary> => {
+
+  return customFetch<CampaignSummary>(getSaveCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSaveCampaignMutationKey = () => ['saveCampaign'] as const;
+
+export const getSaveCampaignMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext> => {
+
+const mutationKey = getSaveCampaignMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveCampaign>>, SaveCampaignMutationVariables> = (props) => {
+          const {campaignId} = props ?? {};
+
+          return  saveCampaign(campaignId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof saveCampaign>>>
+
+    export type SaveCampaignMutationError = ErrorType<unknown>
+    export type SaveCampaignMutationVariables = {campaignId: string}
+
+    /**
+ * @summary Save the current server-side campaign session
+ */
+export const useSaveCampaign = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveCampaign>>,
+        TError,
+        SaveCampaignMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveCampaignMutationOptions(options));
     }
 

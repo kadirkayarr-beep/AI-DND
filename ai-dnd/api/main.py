@@ -20,7 +20,24 @@ from api.ollama_adapter import (
     OllamaUnavailableError,
     RequiredModelUnavailableError,
 )
-from api.schemas import HealthResponse, SessionResponse, TurnRequest, TurnResponse
+from api.persistence.campaign_models import (
+    CampaignCorruptError,
+    CampaignError,
+    CampaignNotActiveError,
+    CampaignNotFoundError,
+    CampaignStorageError,
+)
+from api.persistence.campaign_store import CampaignStore
+from api.schemas import (
+    CampaignCreateRequest,
+    CampaignDetailResponse,
+    CampaignSessionResponse,
+    CampaignSummary,
+    HealthResponse,
+    SessionResponse,
+    TurnRequest,
+    TurnResponse,
+)
 from api.serializers import redact_sensitive_values, serialize_session_state
 from api.session_manager import SessionManager, UnknownSessionError
 
@@ -72,7 +89,7 @@ def create_app(
     session_manager: SessionManager | None = None,
     ollama_adapter: AuthenticatedOllamaAdapter | None | object = _UNSET,
 ) -> FastAPI:
-    manager = session_manager or SessionManager()
+    manager = session_manager or SessionManager(campaign_store=CampaignStore())
     adapter = (
         AuthenticatedOllamaAdapter.from_environment()
         if ollama_adapter is _UNSET
@@ -115,6 +132,47 @@ def create_app(
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
 
+    def campaign_http_exception(error: CampaignError) -> HTTPException:
+        if isinstance(error, CampaignNotFoundError):
+            return HTTPException(
+                status_code=404,
+                detail={
+                    "code": "campaign_not_found",
+                    "message": "Bu macera kaydı bulunamadı.",
+                },
+            )
+        if isinstance(error, CampaignCorruptError):
+            return HTTPException(
+                status_code=409,
+                detail={
+                    "code": "campaign_unavailable",
+                    "message": "Bu macera kaydı güvenli biçimde yüklenemedi.",
+                },
+            )
+        if isinstance(error, CampaignNotActiveError):
+            return HTTPException(
+                status_code=409,
+                detail={
+                    "code": "campaign_not_active",
+                    "message": "Bu macera için açık bir oturum bulunamadı.",
+                },
+            )
+        if isinstance(error, CampaignStorageError):
+            return HTTPException(
+                status_code=503,
+                detail={
+                    "code": "campaign_storage_unavailable",
+                    "message": "Macera kaydı şu anda güvenli biçimde saklanamıyor.",
+                },
+            )
+        return HTTPException(
+            status_code=500,
+            detail={
+                "code": "campaign_error",
+                "message": "Macera işlemi tamamlanamadı.",
+            },
+        )
+
     @application.get("/api/game/health", response_model=HealthResponse)
     @application.get("/api/health", response_model=HealthResponse)
     def health() -> HealthResponse:
@@ -129,6 +187,98 @@ def create_app(
             session_id=session_id,
             state=redact_sensitive_values(state),
         )
+
+    @application.get(
+        "/api/campaigns",
+        response_model=list[CampaignSummary],
+    )
+    @application.get(
+        "/api/game/campaigns",
+        response_model=list[CampaignSummary],
+    )
+    def list_campaigns() -> list[dict[str, Any]]:
+        try:
+            return redact_sensitive_values(manager.list_campaigns())
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.post(
+        "/api/campaigns",
+        response_model=CampaignSessionResponse,
+    )
+    @application.post(
+        "/api/game/campaigns",
+        response_model=CampaignSessionResponse,
+    )
+    def create_campaign(request: CampaignCreateRequest) -> dict[str, Any]:
+        try:
+            campaign_id, session_id, record, metadata = manager.create_campaign(
+                request.name
+            )
+            return redact_sensitive_values(
+                {
+                    "campaign_id": campaign_id,
+                    "session_id": session_id,
+                    "name": metadata["name"],
+                    "state": serialize_session_state(record.game_session),
+                    "history": [],
+                }
+            )
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.get(
+        "/api/campaigns/{campaign_id}",
+        response_model=CampaignDetailResponse,
+    )
+    @application.get(
+        "/api/game/campaigns/{campaign_id}",
+        response_model=CampaignDetailResponse,
+    )
+    def get_campaign(campaign_id: str) -> dict[str, Any]:
+        try:
+            return redact_sensitive_values(manager.get_campaign_detail(campaign_id))
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.post(
+        "/api/campaigns/{campaign_id}/resume",
+        response_model=CampaignSessionResponse,
+    )
+    @application.post(
+        "/api/game/campaigns/{campaign_id}/resume",
+        response_model=CampaignSessionResponse,
+    )
+    def resume_campaign(campaign_id: str) -> dict[str, Any]:
+        try:
+            session_id, _record, metadata, history, state = manager.resume_campaign(
+                campaign_id
+            )
+            return redact_sensitive_values(
+                {
+                    "campaign_id": campaign_id,
+                    "session_id": session_id,
+                    "name": metadata["name"],
+                    "state": state,
+                    "history": history,
+                }
+            )
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
+    @application.post(
+        "/api/campaigns/{campaign_id}/save",
+        response_model=CampaignSummary,
+    )
+    @application.post(
+        "/api/game/campaigns/{campaign_id}/save",
+        response_model=CampaignSummary,
+    )
+    def save_campaign(campaign_id: str) -> dict[str, Any]:
+        try:
+            return redact_sensitive_values(manager.save_campaign(campaign_id))
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
 
     @application.get(
         "/api/game/sessions/{session_id}/state",
@@ -269,6 +419,22 @@ def create_app(
                         "message": "The game turn returned an invalid response.",
                     },
                 ) from None
+
+            try:
+                manager.autosave_turn(record, request.message, narration)
+            except CampaignError as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Session rollback failed after persistence error (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                _logger.error(
+                    "Campaign autosave failed (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise campaign_http_exception(error) from None
 
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d)",

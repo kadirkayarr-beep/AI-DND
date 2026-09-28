@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './campaignCreateInput';
+export * from './campaignDetail';
+export * from './campaignHistoryEntry';
+export * from './campaignSession';
+export * from './campaignSummary';
 export * from './gameCharacter';
 export * from './gameCombat';
 export * from './gameCombatParticipantsItem';

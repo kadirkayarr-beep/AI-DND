@@ -20,7 +20,7 @@ import {
   MessageCircle,
   Plus,
   RefreshCw,
-  RotateCcw,
+  Save,
   ScrollText,
   Send,
   Shield,
@@ -31,17 +31,22 @@ import {
   X,
 } from 'lucide-react';
 import {
+  getGetCampaignsQueryKey,
   getGetGameHealthQueryKey,
   getGetGameSessionStateQueryKey,
-  useCreateGameSession,
+  useCreateCampaign,
   useGetGameHealth,
+  useGetCampaigns,
   useGetGameSessionState,
   usePlayGameTurn,
+  useResumeCampaign,
+  useSaveCampaign,
 } from '@workspace/api-client-react';
-import type { GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { CampaignHistoryEntry, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
+import { CampaignLibrary } from '@/components/campaign-library';
 
-const SESSION_KEY = 'ai-dnd-session-id';
+const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
@@ -57,9 +62,9 @@ function statusCode(error: unknown) {
 
 function friendlyError(error: unknown, fallback: string) {
   const code = statusCode(error);
-  if (code === 404) return 'Bu günlük sunucuda bulunamadı. Yeni bir macera açabilirsin.';
+  if (code === 404) return 'Bu macera kaydı bulunamadı.';
   if (code === 422) return 'Motor bu mesajı kabul etmedi. Bir iletinin 1–4000 karakter arasında olduğundan emin ol.';
-  if (code === 503) return 'Motor servisi şu an kullanılamıyor. Birkaç dakika sonra tekrar dene.';
+  if (code === 503) return 'Dungeon Master’a şu anda ulaşılamıyor.';
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'Bağlantı yok. İnternet bağlantını kontrol edip tekrar dene.';
   return fallback;
 }
@@ -135,7 +140,7 @@ function EngineHealth() {
   );
 }
 
-function OpeningScreen({ onCreate, onContinue, creating, notice, hasSession }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; hasSession: boolean }) {
+function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
     <main className="opening" data-testid="app-start">
       <div className="dnd-shell">
@@ -153,11 +158,11 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, hasSession }: {
               <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={onCreate}>
                 {creating ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />} {creating ? 'Dünya kuruluyor' : 'Yeni macera'}
               </button>
-              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={!hasSession} onClick={onContinue}>
-                <BookOpen size={14} /> Maceraya devam et
+              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={onContinue}>
+                {loadingCampaigns ? <RefreshCw size={14} className="animate-spin" /> : <BookOpen size={14} />} Maceraya devam et
               </button>
             </div>
-            {!hasSession && <div className="continue-note" data-testid="text-no-session">Devam etmek için bu tarayıcıda oluşturulmuş bir günlük gerekir.</div>}
+            {showNoCampaigns && !hasCampaigns && <div className="continue-note" data-testid="text-no-session">Henüz kayıtlı macera yok. Yeni maceranı sunucuya kaydedebilirsin.</div>}
             {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
             <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
           </section>
@@ -290,8 +295,8 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
   return <section className="story-column workspace-story" data-testid="panel-story"><div className="story-heading"><div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div><div><Kicker>Dungeon Master · sunucu anlatısı</Kicker><div className="story-meta mt-1">Başarılı turlar yerel olarak gösterilir</div></div><div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div></div><div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location"><MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div></div><Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />{notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}<div className="command-box"><form className="command-form" onSubmit={onSubmit}><label className="sr-only" htmlFor="player-message">Hamleni anlat</label><textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} /><button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">{sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}{sending ? 'Motor düşünüyor' : 'Gönder'}</button></form><div className="command-help"><span>Doğal dil · 1–4000 karakter · Python karar verir</span><span data-testid="text-message-count">{message.length} / 4000</span></div></div></section>;
 }
 
-function SessionHeader({ state, sessionId, onReset, onDrawer }: { state: GameState; sessionId: string; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>) => void }) {
-  return <header className="app-header"><div className="dnd-shell app-header-inner"><Brand /><div className="header-location"><MapPinned size={13} /><div className="header-location-copy"><span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span><small data-testid="text-neutral-atmosphere">Zaman / hava: kanonik kayıtta yok</small></div><span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span></div><div className="header-actions"><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button><div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">GÜNLÜK</span> #{sessionId.slice(0, 8)}</div><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button></div></div></header>;
+function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer }: { state: GameState; campaignId: string; onSave: () => void; saving: boolean; onReset: () => void; onDrawer: (drawer: Exclude<Drawer, null>) => void }) {
+  return <header className="app-header"><div className="dnd-shell app-header-inner"><Brand /><div className="header-location"><MapPinned size={13} /><div className="header-location-copy"><span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span><small data-testid="text-neutral-atmosphere">Otomatik kaydediliyor</small></div><span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span></div><div className="header-actions"><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button><button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button><div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span> #{campaignId.slice(0, 8)}</div><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button><button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button></div></div></header>;
 }
 
 function DrawerSheet({ drawer, state, entries, onClose, activeTab, setActiveTab }: { drawer: Drawer; state: GameState; entries: TranscriptEntry[]; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void }) {
@@ -341,15 +346,25 @@ function StateSkeleton() {
 export default function GameBrowser() {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState('');
-  const [phase, setPhase] = useState<'opening' | 'reveal' | 'adventure'>('opening');
+  const [campaignId, setCampaignId] = useState('');
+  const [phase, setPhase] = useState<'opening' | 'library' | 'reveal' | 'adventure'>('opening');
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [stale, setStale] = useState(false);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [activeTab, setActiveTab] = useState<WorldTab>('world');
   const [locationChanged, setLocationChanged] = useState(false);
-  const createSession = useCreateGameSession();
+  const [resumingCampaignId, setResumingCampaignId] = useState<string | null>(null);
+  const createCampaign = useCreateCampaign();
+  const resumeCampaign = useResumeCampaign();
+  const saveCampaign = useSaveCampaign();
+  const campaignsQuery = useGetCampaigns({
+    query: {
+      queryKey: getGetCampaignsQueryKey(),
+      retry: false,
+      refetchOnWindowFocus: true,
+    },
+  });
   const playTurn = usePlayGameTurn();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
@@ -379,12 +394,9 @@ export default function GameBrowser() {
   useEffect(() => {
     if (!sessionId || !stateQuery.isError) return;
     if (statusCode(stateQuery.error) === 404) {
-      window.localStorage.removeItem(SESSION_KEY);
-      window.localStorage.removeItem(`${TRANSCRIPT_KEY}${sessionId}`);
       setSessionId('');
-      setPhase('opening');
-      setStale(true);
-      setNotice({ tone: 'warning', title: 'Eski oturum bulunamadı', detail: 'Sunucu bu günlüğü artık tanımıyor. Yeni bir macera açabilirsin.' });
+      setPhase('library');
+      setNotice({ tone: 'warning', title: 'Oturum yeniden açılmalı', detail: 'Kayıtlı macerayı defterden seçerek güvenli biçimde sürdürebilirsin.' });
     }
   }, [sessionId, stateQuery.error, stateQuery.isError]);
 
@@ -401,34 +413,74 @@ export default function GameBrowser() {
 
   const reset = () => {
     setSessionId('');
+    setCampaignId('');
     setPhase('opening');
     setEntries([]);
     setMessage('');
     setNotice(null);
-    setStale(false);
+    setResumingCampaignId(null);
     setDrawer(null);
   };
 
   const handleCreate = () => {
     setNotice(null);
-    createSession.mutate(undefined, {
+    createCampaign.mutate({ data: {} }, {
       onSuccess: (created) => {
-        window.localStorage.setItem(SESSION_KEY, created.session_id);
+        setCampaignId(created.campaign_id);
+        window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);
         queryClient.setQueryData(getGetGameSessionStateQueryKey(created.session_id), created.state);
         window.localStorage.removeItem(`${TRANSCRIPT_KEY}${created.session_id}`);
         setEntries([]);
         setSessionId(created.session_id);
         setPhase('reveal');
-        setStale(false);
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => setNotice({ tone: 'error', title: 'Yeni macera açılamadı', detail: friendlyError(error, 'Sunucu yanıt vermedi.') }),
     });
   };
 
   const handleContinue = () => {
-    const stored = window.localStorage.getItem(SESSION_KEY);
-    if (stored) { setNotice(null); setStale(false); setSessionId(stored); setPhase('adventure'); }
-    else setNotice({ tone: 'warning', title: 'Devam edilecek günlük yok', detail: 'Önce yeni bir macera başlatmalısın.' });
+    setNotice(null);
+    setPhase('library');
+    void campaignsQuery.refetch();
+  };
+
+  const handleResume = (selectedCampaignId: string) => {
+    setNotice(null);
+    setResumingCampaignId(selectedCampaignId);
+    resumeCampaign.mutate({ campaignId: selectedCampaignId }, {
+      onSuccess: (resumed) => {
+        const transcript = resumed.history.flatMap((entry: CampaignHistoryEntry) => [
+          { kind: 'player' as const, text: entry.player_message },
+          { kind: 'narration' as const, text: entry.narration },
+        ]);
+        setCampaignId(resumed.campaign_id);
+        window.localStorage.setItem(LAST_CAMPAIGN_KEY, resumed.campaign_id);
+        window.localStorage.setItem(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
+        setEntries(transcript);
+        setSessionId(resumed.session_id);
+        setMessage('');
+        setPhase('adventure');
+        setResumingCampaignId(null);
+        queryClient.setQueryData(getGetGameSessionStateQueryKey(resumed.session_id), resumed.state);
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      },
+      onError: (error) => {
+        setResumingCampaignId(null);
+        setNotice({ tone: 'error', title: 'Macera açılamadı', detail: friendlyError(error, 'Bu macera güvenli biçimde yüklenemedi.') });
+      },
+    });
+  };
+
+  const handleSave = () => {
+    if (!campaignId || saveCampaign.isPending) return;
+    saveCampaign.mutate({ campaignId }, {
+      onSuccess: () => {
+        setNotice({ tone: 'success', title: 'Macera kaydedildi', detail: 'Kanonik dünya durumu sunucudaki kayıt defterine yazıldı.' });
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+      },
+      onError: (error) => setNotice({ tone: 'error', title: 'Kayıt tamamlanamadı', detail: friendlyError(error, 'Macera güvenli biçimde kaydedilemedi.') }),
+    });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -443,19 +495,20 @@ export default function GameBrowser() {
         window.localStorage.setItem(`${TRANSCRIPT_KEY}${sessionId}`, JSON.stringify(next));
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
         setMessage('');
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Motor şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Python motoru bu hamleyi kabul etmedi.') }),
     });
   };
 
-  const sessionLabel = useMemo(() => sessionId ? `#${sessionId.slice(0, 8)}` : 'yeni günlük', [sessionId]);
-  if (!sessionId && stale) return <main className="opening flex items-center" data-testid="app-stale-session"><div className="dnd-shell w-full"><div className="dnd-card mx-auto max-w-lg p-8 text-center"><div className="mx-auto grid h-12 w-12 place-items-center border border-[#9b7946]/60 text-[#c6a46d]"><RotateCcw size={20} /></div><h1 className="dnd-display mt-5 text-2xl text-[#eddfc5]">Bu günlük kapandı.</h1><p className="dnd-serif mt-3 text-lg text-[#a99a80]">Sunucu eski oturumu unutmuş. Yeni bir sayfa açabilirsin.</p><button className="dnd-button mt-6" type="button" data-testid="button-start-after-stale" onClick={() => { setStale(false); setNotice(null); }}><Plus size={14} /> Yeni günlük aç</button></div></div></main>;
-  if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createSession.isPending} notice={notice} hasSession={Boolean(window.localStorage.getItem(SESSION_KEY))} />;
+  const sessionLabel = useMemo(() => campaignId ? `#${campaignId.slice(0, 8)}` : 'yeni macera', [campaignId]);
+  if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} />;
+  if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
   if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={() => setPhase('adventure')} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="dnd-app" data-testid="app-session">
-        {state && <SessionHeader state={state} sessionId={sessionId} onReset={reset} onDrawer={setDrawer} />}
+        {state && <SessionHeader state={state} campaignId={campaignId} onSave={handleSave} saving={saveCampaign.isPending} onReset={reset} onDrawer={setDrawer} />}
         <main className="app-main workspace-grid">
           {stateQuery.isLoading ? (
             <>

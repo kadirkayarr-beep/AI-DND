@@ -92,6 +92,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameTurnResult"
+  /game/campaigns:
+    get:
+      operationId: getCampaigns
+      tags: [game]
+      summary: List safe campaign metadata
+      responses:
+        "200":
+          description: Persistent campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampaignSummary"
+    post:
+      operationId: createCampaign
+      tags: [game]
+      summary: Create a campaign with an initial server-owned save
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CampaignCreateInput"
+      responses:
+        "200":
+          description: Campaign, live session, and canonical state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSession"
+  /game/campaigns/{campaign_id}:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getCampaign
+      tags: [game]
+      summary: Read safe metadata, canonical UI state, and saved history
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+  /game/campaigns/{campaign_id}/resume:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resumeCampaign
+      tags: [game]
+      summary: Restore a campaign into a current runtime session
+      responses:
+        "200":
+          description: Resumed campaign and canonical state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSession"
+  /game/campaigns/{campaign_id}/save:
+    parameters:
+      - in: path
+        name: campaign_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: saveCampaign
+      tags: [game]
+      summary: Save the current server-side campaign session
+      responses:
+        "200":
+          description: Updated safe campaign metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignSummary"
 components:
   schemas:
     HealthStatus:
@@ -327,4 +415,94 @@ components:
         target_id:
           type: ["string", "null"]
       additionalProperties: true
+    CampaignCreateInput:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+          minLength: 1
+          maxLength: 100
+      additionalProperties: false
+    CampaignSummary:
+      type: object
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_played_at:
+          type: string
+          format: date-time
+        save_version:
+          type: integer
+        character_name:
+          type: string
+        character_race:
+          type: string
+        character_class:
+          type: string
+        character_level:
+          type: integer
+        location:
+          type: string
+      required:
+        - campaign_id
+        - name
+        - created_at
+        - updated_at
+        - last_played_at
+        - save_version
+        - character_name
+        - character_race
+        - character_class
+        - character_level
+        - location
+    CampaignHistoryEntry:
+      type: object
+      properties:
+        player_message:
+          type: string
+        narration:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required: [player_message, narration, created_at]
+    CampaignDetail:
+      type: object
+      properties:
+        campaign:
+          $ref: "#/components/schemas/CampaignSummary"
+        state:
+          $ref: "#/components/schemas/GameState"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignHistoryEntry"
+      required: [campaign, state, history]
+    CampaignSession:
+      type: object
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        state:
+          $ref: "#/components/schemas/GameState"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignHistoryEntry"
+      required: [campaign_id, session_id, name, state, history]
 

@@ -123,3 +123,46 @@ export interface GameTurnResult {
   state: GameState;
 }
 
+export interface CampaignCreateInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     * @nullable
+     */
+  name?: string | null;
+}
+
+export interface CampaignSummary {
+  campaign_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  last_played_at: string;
+  save_version: number;
+  character_name: string;
+  character_race: string;
+  character_class: string;
+  character_level: number;
+  location: string;
+}
+
+export interface CampaignHistoryEntry {
+  player_message: string;
+  narration: string;
+  created_at: string;
+}
+
+export interface CampaignDetail {
+  campaign: CampaignSummary;
+  state: GameState;
+  history: CampaignHistoryEntry[];
+}
+
+export interface CampaignSession {
+  campaign_id: string;
+  session_id: string;
+  name: string;
+  state: GameState;
+  history: CampaignHistoryEntry[];
+}
+

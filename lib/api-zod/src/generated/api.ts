@@ -254,3 +254,304 @@ export const PlayGameTurnResponse = zod.object({
 })
 
 
+/**
+ * @summary List safe campaign metadata
+ */
+export const GetCampaignsResponseItem = zod.object({
+  "campaign_id": zod.string().uuid(),
+  "name": zod.string(),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "last_played_at": zod.coerce.date(),
+  "save_version": zod.number().int(),
+  "character_name": zod.string(),
+  "character_race": zod.string(),
+  "character_class": zod.string(),
+  "character_level": zod.number().int(),
+  "location": zod.string()
+})
+export const GetCampaignsResponse = zod.array(GetCampaignsResponseItem)
+
+
+/**
+ * @summary Create a campaign with an initial server-owned save
+ */
+export const createCampaignBodyNameMax = 100;
+
+
+
+export const CreateCampaignBody = zod.object({
+  "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish()
+})
+
+export const CreateCampaignResponse = zod.object({
+  "campaign_id": zod.string().uuid(),
+  "session_id": zod.string().uuid(),
+  "name": zod.string(),
+  "state": zod.object({
+  "location": zod.string(),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string()
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "features": zod.array(zod.object({
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean().optional(),
+  "round": zod.number().int().optional(),
+  "initiative_order": zod.array(zod.string()).optional(),
+  "current_turn_index": zod.number().int().optional(),
+  "participants": zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+  "target_id": zod.string().nullish()
+}),
+  "player_combat_status": zod.string().nullable(),
+  "turn_index": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "player_message": zod.string(),
+  "narration": zod.string(),
+  "created_at": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Read safe metadata, canonical UI state, and saved history
+ */
+export const GetCampaignParams = zod.object({
+  "campaign_id": zod.coerce.string().uuid()
+})
+
+export const GetCampaignResponse = zod.object({
+  "campaign": zod.object({
+  "campaign_id": zod.string().uuid(),
+  "name": zod.string(),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "last_played_at": zod.coerce.date(),
+  "save_version": zod.number().int(),
+  "character_name": zod.string(),
+  "character_race": zod.string(),
+  "character_class": zod.string(),
+  "character_level": zod.number().int(),
+  "location": zod.string()
+}),
+  "state": zod.object({
+  "location": zod.string(),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string()
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "features": zod.array(zod.object({
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean().optional(),
+  "round": zod.number().int().optional(),
+  "initiative_order": zod.array(zod.string()).optional(),
+  "current_turn_index": zod.number().int().optional(),
+  "participants": zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+  "target_id": zod.string().nullish()
+}),
+  "player_combat_status": zod.string().nullable(),
+  "turn_index": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "player_message": zod.string(),
+  "narration": zod.string(),
+  "created_at": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Restore a campaign into a current runtime session
+ */
+export const ResumeCampaignParams = zod.object({
+  "campaign_id": zod.coerce.string().uuid()
+})
+
+export const ResumeCampaignResponse = zod.object({
+  "campaign_id": zod.string().uuid(),
+  "session_id": zod.string().uuid(),
+  "name": zod.string(),
+  "state": zod.object({
+  "location": zod.string(),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string()
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "features": zod.array(zod.object({
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean().optional(),
+  "round": zod.number().int().optional(),
+  "initiative_order": zod.array(zod.string()).optional(),
+  "current_turn_index": zod.number().int().optional(),
+  "participants": zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+  "target_id": zod.string().nullish()
+}),
+  "player_combat_status": zod.string().nullable(),
+  "turn_index": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "player_message": zod.string(),
+  "narration": zod.string(),
+  "created_at": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Save the current server-side campaign session
+ */
+export const SaveCampaignParams = zod.object({
+  "campaign_id": zod.coerce.string().uuid()
+})
+
+export const SaveCampaignResponse = zod.object({
+  "campaign_id": zod.string().uuid(),
+  "name": zod.string(),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "last_played_at": zod.coerce.date(),
+  "save_version": zod.number().int(),
+  "character_name": zod.string(),
+  "character_race": zod.string(),
+  "character_class": zod.string(),
+  "character_level": zod.number().int(),
+  "location": zod.string()
+})
+
+

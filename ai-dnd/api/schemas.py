@@ -33,3 +33,53 @@ class TurnResponse(BaseModel):
     session_id: str
     narration: str
     state: dict[str, Any]
+
+
+class CampaignCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def campaign_name_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Campaign name must not be blank.")
+        return cleaned
+
+
+class CampaignSummary(BaseModel):
+    campaign_id: str
+    name: str
+    created_at: str
+    updated_at: str
+    last_played_at: str
+    save_version: int
+    character_name: str
+    character_race: str
+    character_class: str
+    character_level: int
+    location: str
+
+
+class CampaignHistoryEntry(BaseModel):
+    player_message: str
+    narration: str
+    created_at: str
+
+
+class CampaignDetailResponse(BaseModel):
+    campaign: CampaignSummary
+    state: dict[str, Any]
+    history: list[CampaignHistoryEntry]
+
+
+class CampaignSessionResponse(BaseModel):
+    campaign_id: str
+    session_id: str
+    name: str
+    state: dict[str, Any]
+    history: list[CampaignHistoryEntry]
