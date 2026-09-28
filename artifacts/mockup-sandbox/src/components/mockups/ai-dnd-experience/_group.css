@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --background: 39 37% 95%;
+  --foreground: 221 26% 20%;
+  --border: 36 24% 84%;
+  --card: 39 45% 98%;
+  --sidebar: 215 28% 21%;
+  --sidebar-primary: 34 72% 56%;
+  --primary: 34 72% 47%;
+  --primary-foreground: 39 45% 98%;
+  --accent: 170 35% 34%;
+  --muted: 36 30% 91%;
+  --muted-foreground: 219 12% 45%;
+  --destructive: 5 63% 47%;
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-serif: 'Fraunces', serif;
+  --app-font-mono: 'IBM Plex Mono', monospace;
+  --radius: 0.75rem;
+}
+
+.journal-app {
+  min-height: 100vh;
+  color: hsl(var(--foreground));
+  background:
+    linear-gradient(hsl(36 24% 84% / 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(36 24% 84% / 0.14) 1px, transparent 1px),
+    hsl(var(--background));
+  background-size: 34px 34px;
+  font-family: var(--app-font-sans);
+}
+
+.journal-shell {
+  width: min(1420px, calc(100% - 32px));
+  margin-inline: auto;
+  padding: 24px 0 40px;
+}
+
+.journal-card {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card) / 0.92);
+  box-shadow: 0 18px 40px hsl(221 26% 20% / 0.06);
+}
+
+.journal-kicker {
+  color: hsl(var(--accent));
+  font-family: var(--app-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.journal-title {
+  color: hsl(var(--foreground));
+  font-family: var(--app-font-serif);
+  letter-spacing: -0.035em;
+}
+
+.journal-rule {
+  height: 1px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--border)), transparent);
+}
+
+.journal-texture {
+  position: relative;
+  overflow: hidden;
+}
+
+.journal-texture::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.journal-pulse {
+  animation: journal-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes journal-pulse {
+  0%, 100% { opacity: 0.48; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  .journal-shell {
+    width: min(100% - 20px, 680px);
+    padding-top: 14px;
+  }
+}
