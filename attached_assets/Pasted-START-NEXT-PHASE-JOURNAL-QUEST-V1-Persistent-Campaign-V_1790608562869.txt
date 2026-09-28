@@ -1,0 +1,714 @@
+START NEXT PHASE — JOURNAL / QUEST V1
+
+Persistent Campaign V1: PASS
+Canonical Character Creation V1: PASS
+World Metadata V1: PASS
+
+Do NOT start Combat UX Polish yet.
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Add a canonical campaign journal that survives save/load and presents:
+
+- discovered locations
+- known NPCs
+- notable events
+- quests/objectives where the current engine can support them canonically
+
+The journal must reflect REAL campaign state.
+
+The frontend must never invent:
+- quests
+- objectives
+- NPC knowledge
+- discovered locations
+- quest completion
+- rewards
+
+PYTHON remains authoritative.
+
+==================================================
+IMPORTANT SCOPE RULE
+==================================================
+
+First inspect whether the existing engine already has structured support for:
+
+- quests
+- objectives
+- missions/tasks
+- world flags
+- NPC quest offers
+- action-result events
+- completion signals
+
+If structured quest semantics already exist:
+reuse them.
+
+If they do NOT exist:
+
+DO NOT invent quest completion by reading Qwen prose.
+
+In that case:
+
+1. fully implement the canonical Journal V1
+2. implement the Quest Ledger schema/API/UI/persistence safely
+3. populate quests only when a validated backend source exists
+4. leave the quest list empty rather than fabricating quests
+
+Report clearly what quest automation is currently unsupported.
+
+Do NOT modify game.py merely to make the quest tab look populated.
+
+==================================================
+PHASE 0 — MAP CURRENT ENGINE
+==================================================
+
+Before implementation inspect:
+
+1. GameSession state
+2. world_state
+3. NPC records and IDs
+4. location records and IDs/names
+5. action_result structure
+6. world updates
+7. structured events
+8. world flags
+9. player/NPC memories
+10. existing message/turn history
+11. any quest/task/objective fields
+12. persistence schema
+13. API serializer
+14. current frontend Journal tab
+
+Return an internal implementation plan before making invasive changes.
+
+Prefer deriving journal entries from existing canonical state/events.
+
+==================================================
+JOURNAL MODEL
+==================================================
+
+Create a canonical server-side campaign journal.
+
+Suggested conceptual structure:
+
+journal:
+  discovered_locations: []
+  known_npcs: []
+  notable_events: []
+  quests: []
+
+Adapt to the existing project architecture.
+
+Do not duplicate full NPC/location objects unnecessarily.
+
+Prefer stable IDs plus safe display snapshots where possible.
+
+==================================================
+DISCOVERED LOCATIONS
+==================================================
+
+When the player canonically reaches/discovers a location, record it.
+
+Each entry may contain:
+
+- location_id if available
+- canonical name
+- environment
+- first_discovered_at
+- last_visited_at
+- visit_count
+
+Only record locations Python has actually established.
+
+Do NOT record a place merely because the player typed its name.
+
+Example:
+
+Player:
+"Waterdeep'e gidiyorum"
+
+If Python does NOT change location:
+do not add Waterdeep.
+
+If Python changes canonical location:
+record the location.
+
+==================================================
+KNOWN NPCS
+==================================================
+
+Record canonical NPCs the player has actually encountered.
+
+Possible safe fields:
+
+- npc_id
+- name
+- role if canonical
+- first_met_at
+- last_seen_at
+- last_known_location
+- relationship/status only if already canonical
+
+Use Python NPC IDs.
+
+Do not merge NPCs by display name if stable IDs exist.
+
+Do not invent:
+- relationships
+- attitudes
+- professions
+- history
+
+unless the engine already stores them.
+
+==================================================
+NOTABLE EVENTS
+==================================================
+
+Add a compact canonical event log.
+
+Examples of events that may be recorded when structured state supports them:
+
+- entered a new location
+- met a new NPC
+- combat started
+- enemy defeated
+- player became unconscious
+- important canonical item gained/lost
+- quest accepted/completed if supported
+- other structured engine events
+
+Do NOT save every narration paragraph as a journal event.
+
+The journal should be useful, not a transcript.
+
+Each event should have:
+
+- event_id
+- event_type
+- timestamp/turn index
+- short safe summary
+- related IDs when available
+
+Prefer deterministic summaries built from canonical data.
+
+Do not ask Qwen to rewrite the journal every turn.
+
+==================================================
+QUEST LEDGER
+==================================================
+
+Implement canonical quest storage.
+
+Suggested fields:
+
+quest_id
+title
+description
+status
+giver_npc_id
+objectives
+created_at
+updated_at
+completed_at
+
+Statuses:
+
+- active
+- completed
+- failed
+- cancelled
+
+Only implement statuses that can be supported safely.
+
+Each objective may contain:
+
+objective_id
+description
+status
+
+==================================================
+QUEST AUTHORITY
+==================================================
+
+CRITICAL:
+
+Qwen narration is NOT sufficient proof that:
+
+- a quest exists
+- an objective completed
+- an NPC gave a reward
+- a quest failed
+- the player discovered something
+
+Quest state changes require a validated Python/backend event.
+
+If the current engine does not emit quest lifecycle events:
+
+create the infrastructure but do not invent automatic quest lifecycle behavior.
+
+Document this as a known limitation.
+
+Do not parse free-form narration heuristically to decide quest completion.
+
+==================================================
+NO CLIENT AUTHORITY
+==================================================
+
+Browser may NOT send requests like:
+
+{
+  "quest_status": "completed"
+}
+
+or:
+
+{
+  "discovered_location": "Castle"
+}
+
+or:
+
+{
+  "known_npc": "Bob"
+}
+
+The browser is read-only for canonical journal state.
+
+Frontend may only request/display it.
+
+==================================================
+PERSISTENCE
+==================================================
+
+Journal and quest state must survive:
+
+- autosave
+- explicit save
+- browser close
+- API restart
+- campaign resume
+
+Integrate into the current Persistent Campaign V1 storage.
+
+Do not create browser-only journal persistence.
+
+If an older campaign has no journal:
+migrate safely to an empty journal.
+
+==================================================
+SESSION ISOLATION
+==================================================
+
+Every campaign has its own journal.
+
+Campaign A:
+NPC Kasım discovered
+
+must not make Kasım appear in Campaign B.
+
+Test isolation explicitly.
+
+==================================================
+API
+==================================================
+
+Expose journal through the existing campaign/canonical state where practical.
+
+Possible endpoint:
+
+GET /api/game/campaigns/{campaign_id}/journal
+
+or include a safe summary in existing state and use a dedicated endpoint for
+the full journal.
+
+Choose the cleanest architecture based on the current API.
+
+Browser must not receive unnecessary internal engine fields.
+
+==================================================
+FRONTEND JOURNAL
+==================================================
+
+Turn the existing JOURNAL tab into a real canonical interface.
+
+Use the approved fantasy visual design.
+
+Sections:
+
+QUESTS
+LOCATIONS
+PEOPLE
+CHRONICLE
+
+or Turkish equivalents:
+
+GÖREVLER
+KEŞFEDİLEN YERLER
+TANINAN KİŞİLER
+KRONİK
+
+Do not redesign the whole application.
+
+==================================================
+LOCATIONS UI
+==================================================
+
+Example:
+
+KEŞFEDİLEN YERLER
+
+Taverna
+Tavern · Son ziyaret: 3 tur önce
+
+Orman
+Forest · Şu an buradasın
+
+Use real metadata.
+
+No fake descriptions.
+
+==================================================
+NPC UI
+==================================================
+
+Example:
+
+TANINAN KİŞİLER
+
+KASIM
+Barmen
+Son görüldüğü yer: Taverna
+
+Use canonical server data only.
+
+==================================================
+CHRONICLE UI
+==================================================
+
+Show notable events in chronological order.
+
+Example:
+
+• Taverna keşfedildi.
+• Kasım ile tanışıldı.
+• Ormana doğru yola çıkıldı.
+• Bir çatışma başladı.
+
+Only display canonical recorded events.
+
+Avoid flooding the journal with every turn.
+
+==================================================
+QUEST UI
+==================================================
+
+If canonical quests exist:
+
+show:
+
+QUEST TITLE
+
+Giver:
+NPC
+
+Objectives:
+✓ completed objective
+○ active objective
+
+Status:
+ACTIVE / COMPLETED
+
+If no canonical quests exist:
+
+show a tasteful empty state:
+
+“Henüz kaydedilmiş bir görev yok.”
+
+Do NOT create demo quests in production state.
+
+==================================================
+CURRENT LOCATION / NPC INTEGRATION
+==================================================
+
+World Metadata V1 already provides canonical:
+
+- location
+- environment
+- time_of_day
+- weather
+
+Use this when recording location discoveries.
+
+NPC discoveries should use current canonical presence.
+
+==================================================
+TURN INTEGRATION
+==================================================
+
+After each SUCCESSFUL authoritative turn:
+
+1. run the existing game turn
+2. inspect canonical before/after state
+3. detect journal-worthy canonical changes
+4. update journal
+5. autosave campaign
+6. return canonical state
+
+Do not journal a failed/rolled-back turn.
+
+If persistence fails:
+preserve the last committed journal with the existing transaction/rollback
+behavior.
+
+==================================================
+DE-DUPLICATION
+==================================================
+
+Do not create:
+
+"Taverna discovered"
+"Taverna discovered"
+"Taverna discovered"
+
+on every visit.
+
+Discovery should be one canonical entry.
+
+Visits may update:
+
+last_visited_at
+visit_count
+
+NPC discovery should behave similarly.
+
+==================================================
+EVENT IDs
+==================================================
+
+Use stable opaque IDs for journal/quest records where necessary.
+
+Do not rely solely on display text for identity.
+
+==================================================
+TIME
+==================================================
+
+World Metadata V1 currently has time_of_day but not a full calendar.
+
+Do not invent dates/calendar chronology.
+
+Use:
+- turn number/index
+- created_at server timestamp
+- available canonical metadata
+
+where appropriate.
+
+Do not build calendar/seasons in this phase.
+
+==================================================
+NARRATOR
+==================================================
+
+Do not make Qwen authoritative over journal facts.
+
+If useful, Qwen may receive compact read-only information about ACTIVE
+canonical quests in future narration context.
+
+But do not inject the entire journal/history every turn.
+
+Avoid unnecessary token growth.
+
+Only add quest context if canonical quests actually exist.
+
+==================================================
+MIGRATION
+==================================================
+
+Existing campaigns without journal data must still load.
+
+Expected:
+
+old save
+-> empty journal initialized
+-> campaign continues
+-> future discoveries populate journal
+
+No save corruption.
+
+==================================================
+TESTS — JOURNAL
+==================================================
+
+Add tests for:
+
+1. new campaign gets valid journal structure
+2. starting location discovery recorded
+3. canonical travel records new location
+4. failed travel does NOT discover target
+5. revisiting location does not duplicate it
+6. visit metadata updates
+7. meeting canonical NPC records NPC
+8. same NPC does not duplicate
+9. NPC IDs remain stable
+10. notable structured event recorded
+11. failed turn does not journal event
+12. journal survives autosave
+13. journal survives explicit save
+14. journal survives server restart
+15. old campaign migrates with empty journal
+16. campaign journals remain isolated
+17. browser cannot inject discovered location
+18. browser cannot inject known NPC
+19. browser cannot inject journal event
+20. secrets do not appear in journal
+
+==================================================
+TESTS — QUESTS
+==================================================
+
+If current engine supports structured quests:
+
+test:
+
+21. canonical quest creation
+22. quest persistence
+23. objective progression
+24. quest completion
+25. invalid completion rejected
+26. Qwen prose alone cannot complete quest
+27. browser cannot mark quest completed
+28. giver NPC ID validity
+29. quest isolation between campaigns
+30. restart/resume continuity
+
+If automatic quest lifecycle is NOT supported by the current engine:
+
+test instead:
+
+21. empty canonical quest ledger works
+22. quest schema persists
+23. old saves migrate safely
+24. browser cannot fabricate quests
+25. narration text cannot fabricate quests
+
+Clearly report that automatic quest generation/progression remains future work.
+
+==================================================
+REAL BROWSER TEST
+==================================================
+
+Perform a real browser journey:
+
+1. Create new character/campaign
+2. Enter adventure
+3. Inspect Journal
+4. Verify starting location exists if canonically discovered
+5. Travel to Tavern through real Qwen/Python flow
+6. Journal should record Tavern only after canonical location changes
+7. Ask who is present
+8. Meet a canonical NPC
+9. Verify NPC appears in journal
+10. Travel to Forest
+11. Verify Forest discovery
+12. Save
+13. Stop API
+14. Restart API
+15. Resume campaign
+16. Verify discovered places/NPCs/events remain
+17. Continue one real Qwen turn
+18. Verify no journal duplication
+
+Use real qwen3:8b.
+
+No fake model.
+No fake parser.
+
+==================================================
+REGRESSION
+==================================================
+
+Run:
+
+- Journal/Quest tests
+- API tests
+- persistence tests
+- character creation tests
+- World Metadata tests
+- session isolation
+- Combat V1
+- Combat V2
+- authoritative Combat V2
+- regression
+- semantic
+- query-grounding
+- narrator-safety
+
+Verify frozen engine SHA.
+
+Expected:
+
+e971f4cade451828697ab7c49900b634a9cf1a6a1997aa8c733d2a13e0a9c24a
+
+If modifying game.py appears necessary:
+
+STOP and explain why before changing it.
+
+Do not silently modify game.py.
+
+==================================================
+DO NOT START
+==================================================
+
+Do NOT start:
+
+- Combat UX Polish
+- Combat V3
+- Spells
+- Skill Checks expansion
+- Leveling
+- Economy
+- Shops
+- Companions
+- Factions
+- full quest-generation engine
+- calendar
+- public deployment
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return:
+
+1. existing quest/journal capability mapping
+2. journal architecture
+3. discovered-location behavior
+4. known-NPC behavior
+5. notable-event behavior
+6. quest capability found in current engine
+7. quest implementation level
+8. persistence changes
+9. migration behavior
+10. API changes
+11. frontend changes
+12. browser journey result
+13. server restart result
+14. campaign isolation result
+15. real Qwen result
+16. Journal/Quest test result
+17. total API test result
+18. full deterministic engine result
+19. game.py SHA before
+20. game.py SHA after
+21. game.py unchanged YES/NO
+22. known limitations
+23. recommended next phase
+
+STOP after Journal / Quest V1.
+
+Do NOT start Combat UX Polish automatically.
