@@ -10,6 +10,8 @@
 
 ## Authoritative Deterministic Gates
 - `test_combat_v2_authoritative.py` - Combat V2: 24/24
+- `test_combat_v2.py` - V2 turn pipeline: 15 deterministic scenarios using session RNG
+- `test_combat_v2_fixed.py` - Compatibility command for the same 15 scenarios (not additional coverage)
 - `test_combat.py` - Combat V1: 10/10 (5/5 repeated deterministic runs)
 - `test_regression.py` - Regression: 22/22
 - `acceptance_test.py` - Acceptance: 20/20
@@ -22,8 +24,6 @@
 Moved to: `legacy_debug/`
 
 ## Deferred/Non-Release Diagnostics (still in root)
-- `test_combat_v2.py` - Early V2 prototype
-- `test_combat_v2_fixed.py` - Early V2 test iterations
 - `test_door_enter.py` - Door mechanics
 - `test_migration.py` - Migration test
 - `test_migration_harden.py` - Migration hardening
@@ -36,6 +36,7 @@ Moved to: `legacy_debug/`
 
 ## Expected Verified Results
 - **Combat V2**: 24/24 PASS
+- **Combat V2 turn pipeline**: 15/15 PASS via either historical command
 - **Combat V1**: 10/10 PASS (5/5 deterministic repeated runs)
 - **Regression**: 22/22 PASS
 - **Acceptance**: 20/20 PASS

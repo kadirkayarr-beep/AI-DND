@@ -11,6 +11,8 @@ TESTS = (
     "test_sessions.py",
     "test_persistence.py",
     "test_combat.py",
+    "test_combat_v2.py",
+    "test_combat_v2_fixed.py",
     "test_combat_v2_authoritative.py",
     "test_regression.py",
     "test_migration.py",

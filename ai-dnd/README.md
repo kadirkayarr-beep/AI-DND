@@ -53,7 +53,14 @@ and chat messages are not included in that format.
 python ai-dnd/run_tests.py
 ```
 
-The runner covers the portable deterministic gates. Live tests are separate:
+The runner covers the portable deterministic gates, including both historical
+V2 commands. `test_combat_v2.py` contains 15 turn-pipeline scenarios with fresh
+sessions, scripted initiative/attack/damage dice, and scoped model stubs.
+`test_combat_v2_fixed.py` is a compatibility entry point to that same suite,
+not an additional set of scenarios. The authoritative V2 suite remains separate.
+Initiative precedes attacks; a surviving exchange advances one round per command.
+
+Live tests are separate:
 
 ```bash
 python ai-dnd/acceptance_test.py
