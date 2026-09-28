@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 import game
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
+    MODEL_NAME,
     OllamaUnavailableError,
     RequiredModelUnavailableError,
 )
@@ -25,6 +26,12 @@ from api.session_manager import SessionManager, UnknownSessionError
 
 
 _logger = logging.getLogger("ai_dnd.api")
+_logger.setLevel(logging.INFO)
+if not _logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    _logger.addHandler(_handler)
+_logger.propagate = False
 _UNSET = object()
 
 
@@ -108,10 +115,12 @@ def create_app(
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
 
+    @application.get("/api/game/health", response_model=HealthResponse)
     @application.get("/api/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         return HealthResponse()
 
+    @application.post("/api/game/sessions", response_model=SessionResponse)
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
         session_id, record = manager.create()
@@ -122,6 +131,10 @@ def create_app(
         )
 
     @application.get(
+        "/api/game/sessions/{session_id}/state",
+        response_model=dict[str, Any],
+    )
+    @application.get(
         "/api/sessions/{session_id}/state",
         response_model=dict[str, Any],
     )
@@ -131,6 +144,10 @@ def create_app(
             state = serialize_session_state(record.game_session)
         return redact_sensitive_values(state)
 
+    @application.post(
+        "/api/game/sessions/{session_id}/turn",
+        response_model=TurnResponse,
+    )
     @application.post(
         "/api/sessions/{session_id}/turn",
         response_model=TurnResponse,
@@ -175,8 +192,9 @@ def create_app(
 
             snapshot = _capture_session(session)
             try:
-                with active_adapter.capture_model_failures() as model_failures:
-                    result = session.run_player_turn(request.message)
+                with active_adapter.capture_model_calls() as model_calls:
+                    with active_adapter.capture_model_failures() as model_failures:
+                        result = session.run_player_turn(request.message)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
@@ -217,6 +235,23 @@ def create_app(
                     },
                 ) from None
 
+            if len(model_calls) > 2:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception as error:
+                    _logger.critical(
+                        "Session rollback failed after model-call limit (error_type=%s)",
+                        type(error).__name__,
+                    )
+                _logger.error("Engine exceeded the per-turn model-call limit.")
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "engine_error",
+                        "message": "The game turn exceeded its model-call limit.",
+                    },
+                ) from None
+
             narration = result.get("narration") if isinstance(result, dict) else None
             if not isinstance(narration, str) or not narration.strip():
                 try:
@@ -235,6 +270,11 @@ def create_app(
                     },
                 ) from None
 
+            _logger.info(
+                "Game turn completed (model=%s, model_calls=%d)",
+                MODEL_NAME,
+                len(model_calls),
+            )
             response = TurnResponse(
                 session_id=session_id,
                 narration=narration,

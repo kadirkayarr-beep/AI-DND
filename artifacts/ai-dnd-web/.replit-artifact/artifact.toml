@@ -1,0 +1,51 @@
+kind = "web"
+previewPath = "/"
+title = "AI-DND Browser"
+description = "A Turkish-language browser interface for the AI-DND tabletop engine. Players create isolated sessions, send natural-language turns directly to the Python FastAPI adapter, and view server-confirmed narration and game state."
+version = "1.0.0"
+id = "artifacts/ai-dnd-web"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23540
+
+[services.development]
+run = "pnpm --filter @workspace/ai-dnd-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-dnd-web", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-dnd-web/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23540"
+BASE_PATH = "/"
+
+[[services]]
+name = "AI-DND FastAPI"
+paths = [ "/api/game" ]
+localPort = 8008
+
+[services.development]
+run = "cd ../../ai-dnd && python -m uvicorn api.main:app --host 0.0.0.0 --port \u0024{PORT:-8008}"
+
+[services.production.build]
+args = [ "uv", "sync", "--frozen", "--no-dev" ]
+
+[services.production.run]
+args = [ "uv", "run", "--frozen", "python", "-m", "uvicorn", "--app-dir", "ai-dnd", "api.main:app", "--host", "0.0.0.0", "--port", "8008" ]
+
+[services.production.run.env]
+PORT = "8008"
+
+[services.production.health.startup]
+path = "/api/game/health"
+
+[services.env]
+PORT = "8008"

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: game
+    description: Direct AI-DND game-session operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /game/health:
+    get:
+      operationId: getGameHealth
+      tags: [game]
+      summary: Check the AI-DND service
+      responses:
+        "200":
+          description: AI-DND service health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameHealth"
+  /game/sessions:
+    post:
+      operationId: createGameSession
+      tags: [game]
+      summary: Create a new isolated game session
+      responses:
+        "200":
+          description: New game session and its public state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameSession"
+  /game/sessions/{session_id}/state:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getGameSessionState
+      tags: [game]
+      summary: Read the canonical public state for a game session
+      responses:
+        "200":
+          description: Current public game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+  /game/sessions/{session_id}/turn:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: playGameTurn
+      tags: [game]
+      summary: Submit one player message to the Python game engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameTurnInput"
+      responses:
+        "200":
+          description: Engine-confirmed narration and updated public state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameTurnResult"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +101,230 @@ components:
           type: string
       required:
         - status
+    GameHealth:
+      type: object
+      properties:
+        status:
+          type: string
+        engine:
+          type: string
+        model:
+          type: string
+      required: [status, engine, model]
+    GameSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+        state:
+          $ref: "#/components/schemas/GameState"
+      required: [session_id, state]
+    GameTurnInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required: [message]
+    GameTurnResult:
+      type: object
+      properties:
+        session_id:
+          type: string
+        narration:
+          type: string
+        state:
+          $ref: "#/components/schemas/GameState"
+      required: [session_id, narration, state]
+    GameState:
+      type: object
+      properties:
+        location:
+          type: string
+        locations:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/GameLocation"
+        character:
+          $ref: "#/components/schemas/GameCharacter"
+        inventory:
+          type: array
+          items:
+            type: string
+        npcs:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameNpc"
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameFeature"
+        doors:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameDoor"
+        combat:
+          $ref: "#/components/schemas/GameCombat"
+        player_combat_status:
+          type: ["string", "null"]
+        turn_index:
+          type: integer
+      required:
+        - location
+        - locations
+        - character
+        - inventory
+        - npcs
+        - features
+        - doors
+        - combat
+        - player_combat_status
+        - turn_index
+    GameLocation:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+      required: [id, name, type, description]
+    GameCharacter:
+      type: object
+      properties:
+        name:
+          type: string
+        race:
+          type: string
+        class:
+          type: string
+        strength:
+          type: integer
+        dexterity:
+          type: integer
+        constitution:
+          type: integer
+        intelligence:
+          type: integer
+        wisdom:
+          type: integer
+        charisma:
+          type: integer
+        proficient_skills:
+          type: array
+          items:
+            type: string
+        level:
+          type: integer
+        proficiency_bonus:
+          type: integer
+        max_hp:
+          type: integer
+        current_hp:
+          type: integer
+        armor_class:
+          type: integer
+      required:
+        - name
+        - race
+        - class
+        - strength
+        - dexterity
+        - constitution
+        - intelligence
+        - wisdom
+        - charisma
+        - proficient_skills
+        - level
+        - proficiency_bonus
+        - max_hp
+        - current_hp
+        - armor_class
+    GameNpc:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        location:
+          type: string
+        appearance:
+          type: ["string", "null"]
+        relationship:
+          type: ["string", "null"]
+        max_hp:
+          type: ["integer", "null"]
+        current_hp:
+          type: ["integer", "null"]
+        armor_class:
+          type: ["integer", "null"]
+        combat_status:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - role
+        - location
+        - appearance
+        - relationship
+        - max_hp
+        - current_hp
+        - armor_class
+        - combat_status
+    GameFeature:
+      type: object
+      properties:
+        location:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+      required: [location, name, description]
+    GameDoor:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        open:
+          type: boolean
+        locked:
+          type: boolean
+        broken:
+          type: boolean
+      required: [id, name, location, description, open, locked, broken]
+    GameCombat:
+      type: object
+      properties:
+        active:
+          type: boolean
+        round:
+          type: integer
+        initiative_order:
+          type: array
+          items:
+            type: string
+        current_turn_index:
+          type: integer
+        participants:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        target_id:
+          type: ["string", "null"]
+      additionalProperties: true
 
