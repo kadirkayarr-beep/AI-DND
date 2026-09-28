@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/ai-dnd-experience/"
+title = "AI-DND Campaign Browser"
+description = "A standalone Turkish-language campaign browser for AI-DND, bringing the story-first Kül ve Kupa design to life with real sessions, server-confirmed narration, and authoritative character and world state from the existing FastAPI game adapter."
+version = "1.0.0"
+id = "artifacts/ai-dnd-experience"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/ai-dnd-experience/" ]
+localPort = 22785
+
+[services.development]
+run = "pnpm --filter @workspace/ai-dnd-experience run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-dnd-experience", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-dnd-experience/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22785"
+BASE_PATH = "/ai-dnd-experience/"
