@@ -1,0 +1,219 @@
+AMENDMENT TO MASTER ROADMAP — CONSOLIDATE ENGINE APPROVAL
+
+Your Phase 1 report is accepted as:
+
+PHASE 1 STATUS:
+PARTIAL — ENGINE ROUTING REQUIRED
+
+Do NOT mark Phase 1 PASS.
+
+Do NOT modify ai-dnd/game.py yet.
+
+The current safe Skill Check V1 work should remain in place:
+
+- validated structured skill_check_result
+- allowlisted API/OpenAPI contract
+- generated client
+- browser result card
+- rollback validation
+- currently supported canonical skill routes
+- successful API/regression/typecheck/live-Qwen verification
+
+Record the following missing engine capabilities for the later consolidated
+Engine Change Approval Package:
+
+- Persuasion routing
+- Deception routing
+- Acrobatics routing
+- Survival routing
+
+Do not fake those skills through API adapters, frontend logic, narration
+parsing, or arbitrary Qwen output.
+
+==================================================
+ROADMAP EXCEPTION
+==================================================
+
+We are intentionally making one controlled exception to the original
+"Phase PASS before next phase" rule.
+
+The purpose is to avoid repeatedly unfreezing game.py.
+
+You may now continue to Phase 2 and then Phase 3 ONLY under the following
+conditions:
+
+1. ai-dnd/game.py remains completely unchanged.
+2. No workaround may simulate missing engine capability.
+3. Phase 1 remains visibly PARTIAL, not PASS.
+4. Any additional engine requirements discovered in Phase 3 must be collected
+   into the same Engine Change Approval Package.
+5. You must stop before the first game.py edit.
+6. Combat V3 implementation must not begin before owner approval.
+
+==================================================
+PHASE 2 — CONTINUE NOW
+COMBAT RESULT HISTORY PERSISTENCE
+==================================================
+
+Proceed with Phase 2 exactly as defined in the master roadmap.
+
+Goal:
+
+Persist and rehydrate the existing validated/allowlisted structured
+combat_result history without changing combat mechanics.
+
+Expected:
+
+- successful authoritative combat results persist
+- retaliation results persist
+- failed/rolled-back turns do not append history
+- history is bounded
+- campaign isolation is preserved
+- old campaigns without history migrate safely
+- API restart/resume restores prior combat result cards
+- frontend does not reconstruct rolls from narration
+- game.py remains unchanged
+
+Run the full Phase 2 test gate.
+
+If Phase 2 requires game.py modification:
+STOP and add that requirement to the consolidated approval package.
+
+Do not edit game.py.
+
+==================================================
+PHASE 3 — AFTER PHASE 2
+QUEST OUTCOMES V1
+==================================================
+
+If Phase 2 passes, continue to Phase 3.
+
+Inspect and implement ONLY quest behavior that can be proven from existing
+canonical Python outcomes without modifying game.py.
+
+Never infer quests from:
+
+- Qwen narration
+- player wording
+- browser state
+
+If the frozen engine cannot safely provide:
+
+- quest acceptance
+- objective progression
+- completion
+- failure/cancellation
+
+then do not fake them.
+
+Complete any safe infrastructure that is genuinely useful, keep unsupported
+transitions disabled, and record the exact missing engine contract.
+
+Phase 3 may end as:
+
+PASS
+
+or:
+
+PARTIAL/BLOCKED — ENGINE CONTRACT REQUIRED
+
+Both are acceptable if reported truthfully.
+
+==================================================
+AFTER PHASE 3
+==================================================
+
+STOP.
+
+Do NOT implement Combat V3 yet.
+
+Prepare ONE consolidated:
+
+ENGINE CHANGE APPROVAL PACKAGE
+
+covering all engine modifications now known to be required.
+
+At minimum include:
+
+A. Skill Checks V1
+   - Persuasion routing
+   - Deception routing
+   - Acrobatics routing
+   - Survival routing
+
+B. Quest Outcomes V1
+   - any missing canonical quest lifecycle/event contract
+
+C. Combat V3
+   - proposed bounded Combat V3 foundation
+
+Also anticipate compatibility needs for:
+
+D. Spells V1
+E. XP / Leveling V1
+
+without implementing D/E yet.
+
+==================================================
+ENGINE APPROVAL PACKAGE MUST INCLUDE
+==================================================
+
+For every proposed game.py change provide:
+
+- exact existing function/class affected
+- reason the change is required
+- smallest proposed modification
+- new state fields, if any
+- mutation rules
+- RNG implications
+- save-format implications
+- schema/version implications
+- migration path
+- rollback semantics
+- API impact
+- frontend impact
+- session isolation impact
+- backwards compatibility
+- tests required
+
+Also report:
+
+- current protected game.py SHA
+- SHA verification after Phases 2–3
+- current API test count
+- deterministic gate result
+- frontend/typecheck/build result
+- Phase 1 partial test result
+- Phase 2 result
+- Phase 3 result
+- known issues
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not delete or modify the owner's Cedric campaign.
+
+Do not create a campaign-delete endpoint merely to simplify smoke testing.
+
+Where persistence/restart testing needs disposable persistent data, use an
+isolated temporary campaign database or another existing safe test mechanism
+rather than polluting the owner's development database.
+
+Do not modify gameplay merely to make a test easier.
+
+==================================================
+FINAL STOP CONDITION
+==================================================
+
+After Phase 2 and Phase 3 safe work:
+
+STOP and state clearly:
+
+ENGINE CHANGE APPROVAL REQUIRED
+
+Wait for owner approval before editing game.py.
+
+Do not begin Combat V3 implementation.
+Do not begin Spells V1.
+Do not begin XP / Leveling V1.
