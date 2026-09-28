@@ -2,3 +2,4 @@
 - [Turkish intent grounding](turkish-intent-grounding.md) — normalize text for matching, not for model input; keep Python authoritative when importing external pipeline work.
 - [Ollama live verification](ollama-live-verification.md) — the Replit Ollama proxy needs an explicit bearer header; historical smoke logs are not current-engine proof.
 - [Artifact service working directory](artifact-service-working-directory.md) — development service commands run from the artifact directory, not the workspace root.
+- [Shared API routes across artifacts](shared-api-routes.md) — verify sibling service reachability before adding duplicate routes or a second engine process.
