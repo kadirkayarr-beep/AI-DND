@@ -17,6 +17,7 @@ from api.persistence.campaign_models import (
 from api.persistence.campaign_serializer import restore_stored_campaign
 from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
+from api.world_metadata import set_session_world_metadata
 
 
 class UnknownSessionError(LookupError):
@@ -52,6 +53,7 @@ class SessionManager:
 
     def create(self) -> tuple[str, ManagedSession]:
         session = self._session_factory()
+        set_session_world_metadata(session)
         with self._registry_lock:
             session_id = self._new_session_id_locked()
             record = ManagedSession(game_session=session)
@@ -67,6 +69,7 @@ class SessionManager:
         session = self._session_factory()
         if character is not None:
             configure_character(session, **character)
+        set_session_world_metadata(session)
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(campaign_id, campaign_name, session)
@@ -136,6 +139,13 @@ class SessionManager:
             raise CampaignStorageError("Campaign runtime could not be created.")
         with record.turn_lock:
             stored = store.get_campaign(campaign_id)
+            if "world_metadata" not in stored.payload:
+                set_session_world_metadata(
+                    record.game_session,
+                    getattr(record.game_session, "world_metadata", None),
+                )
+                store.save_campaign(campaign_id, record.game_session)
+                stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
             state = serialize_session_state(record.game_session)
         return session_id, record, metadata, stored.history, state
@@ -148,6 +158,10 @@ class SessionManager:
         if record is None:
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
+            set_session_world_metadata(
+                record.game_session,
+                getattr(record.game_session, "world_metadata", None),
+            )
             return store.save_campaign(campaign_id, record.game_session)
 
     def autosave_turn(
@@ -159,6 +173,10 @@ class SessionManager:
         """Persist a successful turn; caller holds record.turn_lock."""
         if record.campaign_id is None:
             return None
+        set_session_world_metadata(
+            record.game_session,
+            getattr(record.game_session, "world_metadata", None),
+        )
         return self._require_campaign_store().save_campaign(
             record.campaign_id,
             record.game_session,

@@ -15,6 +15,55 @@ export interface GameHealth {
   model: string;
 }
 
+export type GameWorldMetadataEnvironment = typeof GameWorldMetadataEnvironment[keyof typeof GameWorldMetadataEnvironment];
+
+
+export const GameWorldMetadataEnvironment = {
+  tavern: 'tavern',
+  forest: 'forest',
+  city: 'city',
+  village: 'village',
+  road: 'road',
+  wilderness: 'wilderness',
+  dungeon: 'dungeon',
+  cave: 'cave',
+  castle: 'castle',
+  temple: 'temple',
+  ruins: 'ruins',
+  unknown: 'unknown',
+} as const;
+
+export type GameWorldMetadataTimeOfDay = typeof GameWorldMetadataTimeOfDay[keyof typeof GameWorldMetadataTimeOfDay];
+
+
+export const GameWorldMetadataTimeOfDay = {
+  dawn: 'dawn',
+  day: 'day',
+  evening: 'evening',
+  night: 'night',
+} as const;
+
+export type GameWorldMetadataWeather = typeof GameWorldMetadataWeather[keyof typeof GameWorldMetadataWeather];
+
+
+export const GameWorldMetadataWeather = {
+  clear: 'clear',
+  rain: 'rain',
+  fog: 'fog',
+  snow: 'snow',
+  storm: 'storm',
+  unknown: 'unknown',
+} as const;
+
+/**
+ * Python-owned atmosphere metadata; never supplied by the browser.
+ */
+export interface GameWorldMetadata {
+  environment: GameWorldMetadataEnvironment;
+  time_of_day: GameWorldMetadataTimeOfDay;
+  weather: GameWorldMetadataWeather;
+}
+
 export interface GameLocation {
   id: string;
   name: string;
@@ -92,6 +141,7 @@ export type GameStateLocations = {[key: string]: GameLocation};
 
 export interface GameState {
   location: string;
+  world: GameWorldMetadata;
   locations: GameStateLocations;
   character: GameCharacter;
   inventory: string[];

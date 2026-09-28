@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator
 
 import game
+from api.world_metadata import validate_world_metadata
 
 
 MODEL_NAME = "qwen3:8b"
@@ -18,6 +20,9 @@ _MODEL_FAILURES: ContextVar[list[str] | None] = ContextVar(
 _MODEL_CALLS: ContextVar[list[str] | None] = ContextVar(
     "ai_dnd_api_model_calls", default=None
 )
+_WORLD_METADATA_PROVIDER: ContextVar[
+    Callable[[], Mapping[str, str]] | None
+] = ContextVar("ai_dnd_api_world_metadata_provider", default=None)
 _logger = logging.getLogger("ai_dnd.api.ollama")
 _logger.setLevel(logging.INFO)
 if not _logger.handlers:
@@ -36,6 +41,57 @@ class OllamaUnavailableError(RuntimeError):
 class RequiredModelUnavailableError(RuntimeError):
     def __init__(self):
         super().__init__("Required model unavailable.")
+
+
+@contextmanager
+def canonical_world_metadata_context(
+    provider: Callable[[], Mapping[str, str]],
+) -> Iterator[None]:
+    """Bind Python-owned metadata to model calls for this turn only."""
+    token = _WORLD_METADATA_PROVIDER.set(provider)
+    try:
+        yield
+    finally:
+        _WORLD_METADATA_PROVIDER.reset(token)
+
+
+def _attach_world_metadata(kwargs: dict[str, Any]) -> dict[str, Any]:
+    provider = _WORLD_METADATA_PROVIDER.get()
+    messages = kwargs.get("messages")
+    if provider is None or not isinstance(messages, list):
+        return kwargs
+
+    metadata = validate_world_metadata(provider())
+    context = (
+        "SERVER-VALIDATED CANONICAL WORLD METADATA (read-only):\n"
+        f"environment={metadata['environment']}; "
+        f"time_of_day={metadata['time_of_day']}; "
+        f"weather={metadata['weather']}.\n"
+        "Describe the current atmosphere consistently with these values. "
+        "Narration or proposed lore must not change them; Python remains authoritative."
+    )
+    prepared = [
+        dict(message) if isinstance(message, Mapping) else message
+        for message in messages
+    ]
+    system_message = next(
+        (
+            message
+            for message in prepared
+            if isinstance(message, dict) and message.get("role") == "system"
+        ),
+        None,
+    )
+    if system_message is None:
+        prepared.insert(0, {"role": "system", "content": context})
+    else:
+        existing = system_message.get("content")
+        system_message["content"] = (
+            f"{existing}\n\n{context}" if isinstance(existing, str) else context
+        )
+    result = dict(kwargs)
+    result["messages"] = prepared
+    return result
 
 
 class AuthenticatedOllamaAdapter:
@@ -111,7 +167,7 @@ class AuthenticatedOllamaAdapter:
             calls.append(MODEL_NAME)
         _logger.info("Ollama chat request started (model=%s)", MODEL_NAME)
         try:
-            return self._client.chat(*args, **kwargs)
+            return self._client.chat(*args, **_attach_world_metadata(kwargs))
         except Exception as error:
             failures = _MODEL_FAILURES.get()
             if failures is not None:

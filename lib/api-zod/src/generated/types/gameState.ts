@@ -11,9 +11,11 @@ import type { GameDoor } from './gameDoor';
 import type { GameFeature } from './gameFeature';
 import type { GameNpc } from './gameNpc';
 import type { GameStateLocations } from './gameStateLocations';
+import type { GameWorldMetadata } from './gameWorldMetadata';
 
 export interface GameState {
   location: string;
+  world: GameWorldMetadata;
   locations: GameStateLocations;
   character: GameCharacter;
   inventory: string[];

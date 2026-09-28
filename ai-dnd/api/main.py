@@ -20,6 +20,7 @@ from api.ollama_adapter import (
     MODEL_NAME,
     OllamaUnavailableError,
     RequiredModelUnavailableError,
+    canonical_world_metadata_context,
 )
 from api.persistence.campaign_models import (
     CampaignCorruptError,
@@ -42,6 +43,10 @@ from api.schemas import (
 )
 from api.serializers import redact_sensitive_values, serialize_session_state
 from api.session_manager import SessionManager, UnknownSessionError
+from api.world_metadata import (
+    set_session_world_metadata,
+    world_metadata_for_state,
+)
 
 
 _logger = logging.getLogger("ai_dnd.api")
@@ -364,10 +369,19 @@ def create_app(
                 ) from None
 
             snapshot = _capture_session(session)
+            metadata_snapshot = dict(
+                getattr(session, "world_metadata", {})
+            )
             try:
-                with active_adapter.capture_model_calls() as model_calls:
-                    with active_adapter.capture_model_failures() as model_failures:
-                        result = session.run_player_turn(request.message)
+                with canonical_world_metadata_context(
+                    lambda: world_metadata_for_state(
+                        session.world_state,
+                        getattr(session, "world_metadata", None),
+                    )
+                ):
+                    with active_adapter.capture_model_calls() as model_calls:
+                        with active_adapter.capture_model_failures() as model_failures:
+                            result = session.run_player_turn(request.message)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
@@ -443,11 +457,13 @@ def create_app(
                     },
                 ) from None
 
+            set_session_world_metadata(session, metadata_snapshot)
             try:
                 manager.autosave_turn(record, request.message, narration)
             except CampaignError as error:
                 try:
                     _restore_session(session, snapshot)
+                    session.world_metadata = metadata_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after persistence error (error_type=%s)",

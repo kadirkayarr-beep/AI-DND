@@ -34,6 +34,11 @@ export const CreateGameSessionResponse = zod.object({
   "session_id": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -107,6 +112,11 @@ export const GetGameSessionStateParams = zod.object({
 
 export const GetGameSessionStateResponse = zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -190,6 +200,11 @@ export const PlayGameTurnResponse = zod.object({
   "narration": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -307,6 +322,11 @@ export const CreateCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -399,6 +419,11 @@ export const GetCampaignResponse = zod.object({
 }),
   "state": zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -481,6 +506,11 @@ export const ResumeCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown'])
+}).describe('Python-owned atmosphere metadata; never supplied by the browser.'),
   "locations": zod.record(zod.string(), zod.object({
   "id": zod.string(),
   "name": zod.string(),

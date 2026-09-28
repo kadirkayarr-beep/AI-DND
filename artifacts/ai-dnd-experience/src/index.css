@@ -300,8 +300,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .command-help { align-items: flex-start; flex-direction: column; }
 }
 
-/* Phase 2: the state is the table. Presentation changes with canonical location,
-   while time and weather intentionally remain neutral until the API supplies them. */
+/* Atmosphere is presentation-only and follows Python's canonical world metadata. */
 .environment-theme {
   min-height: 100dvh;
   --theme-wash: rgba(86, 78, 64, .08);

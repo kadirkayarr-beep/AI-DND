@@ -13,6 +13,11 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignValidationError,
 )
+from api.world_metadata import (
+    set_session_world_metadata,
+    validate_world_metadata,
+    world_metadata_for_state,
+)
 
 
 CAMPAIGN_FORMAT = "ai-dnd-campaign"
@@ -118,7 +123,7 @@ def _validate_rng_state(value: Any, error_type: type[Exception]) -> None:
 
 
 def serialize_campaign_payload(session: Any) -> dict[str, Any]:
-    """Keep the engine's versioned save intact and add only runtime RNG state."""
+    """Keep the engine save intact and persist API-owned RNG/world metadata."""
     try:
         engine_save = session.serialize_game_state()
         rng_state = session.rng.getstate()
@@ -129,11 +134,16 @@ def serialize_campaign_payload(session: Any) -> dict[str, Any]:
     serializable_rng = json.loads(
         json.dumps(rng_state, ensure_ascii=False, allow_nan=False)
     )
+    world_metadata = world_metadata_for_state(
+        engine_save.get("world_state", {}),
+        getattr(session, "world_metadata", None),
+    )
     payload = {
         "format": CAMPAIGN_FORMAT,
         "version": CAMPAIGN_FORMAT_VERSION,
         "engine_save": engine_save,
         "rng_state": serializable_rng,
+        "world_metadata": world_metadata,
     }
     validate_campaign_payload(payload, CampaignValidationError)
     ensure_no_configured_secrets(payload)
@@ -150,11 +160,17 @@ def validate_campaign_payload(
         raise error_type("Campaign save format is unsupported.")
     if payload.get("version") != CAMPAIGN_FORMAT_VERSION:
         raise error_type("Campaign save version is unsupported.")
-    if set(payload) != {"format", "version", "engine_save", "rng_state"}:
+    required_fields = {"format", "version", "engine_save", "rng_state"}
+    if set(payload) not in (
+        required_fields,
+        required_fields | {"world_metadata"},
+    ):
         raise error_type("Campaign save fields are invalid.")
 
     _validate_engine_save(payload["engine_save"], error_type)
     _validate_rng_state(payload["rng_state"], error_type)
+    if "world_metadata" in payload:
+        validate_world_metadata(payload["world_metadata"], error_type)
     ensure_no_configured_secrets(payload)
 
 
@@ -223,6 +239,10 @@ def restore_campaign_session(session: Any, payload: dict[str, Any]) -> None:
             temporary_path = Path(handle.name)
         session.load_game(temporary_path)
         session.rng.setstate(_tuple_tree(payload["rng_state"]))
+        set_session_world_metadata(
+            session,
+            payload.get("world_metadata"),
+        )
     except Exception:
         raise CampaignCorruptError(
             "Campaign could not be restored safely."

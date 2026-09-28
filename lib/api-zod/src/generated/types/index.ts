@@ -27,4 +27,8 @@ export * from './gameState';
 export * from './gameStateLocations';
 export * from './gameTurnInput';
 export * from './gameTurnResult';
+export * from './gameWorldMetadata';
+export * from './gameWorldMetadataEnvironment';
+export * from './gameWorldMetadataTimeOfDay';
+export * from './gameWorldMetadataWeather';
 export * from './healthStatus';

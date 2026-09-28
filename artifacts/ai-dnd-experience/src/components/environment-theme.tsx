@@ -22,7 +22,7 @@ type EnvironmentTheme = {
   family: EnvironmentFamily;
   time: ThemeTime;
   weather: ThemeWeather;
-  source: 'canonical-location' | 'neutral-default';
+  source: 'canonical-world' | 'neutral-default';
 };
 
 const ThemeContext = createContext<EnvironmentTheme>({
@@ -32,30 +32,35 @@ const ThemeContext = createContext<EnvironmentTheme>({
   source: 'neutral-default',
 });
 
-function familyForState(state?: GameState): EnvironmentFamily {
-  const current = state?.locations?.[state.location];
-  const text = `${state?.location ?? ''} ${current?.name ?? ''} ${current?.type ?? ''}`.toLocaleLowerCase('tr-TR');
-  if (/taverna|han|meyhane|inn|tavern/.test(text)) return 'tavern';
-  if (/orman|forest|koru|woods/.test(text)) return 'forest';
-  if (/şehir|sehir|city|kent|başkent|capital/.test(text)) return 'city';
-  if (/köy|koy|village|mezra|hamlet/.test(text)) return 'village';
-  if (/yol|road|patika|travel|geçit|gecit/.test(text)) return 'road';
-  if (/vahşi|vahsi|wilderness|kır|kir|bozkır|bozkir/.test(text)) return 'wilderness';
-  if (/zindan|dungeon/.test(text)) return 'dungeon';
-  if (/mağara|magara|cave|kovuk/.test(text)) return 'cave';
-  if (/kale|castle|hisar|fortress/.test(text)) return 'castle';
-  if (/tapınak|tapinak|temple|manastır|manastir/.test(text)) return 'temple';
-  if (/harabe|ruins|yıkıntı|yikinti/.test(text)) return 'ruins';
-  return 'neutral';
+function familyForEnvironment(environment?: string): EnvironmentFamily {
+  switch (environment) {
+    case 'tavern':
+    case 'forest':
+    case 'city':
+    case 'village':
+    case 'road':
+    case 'wilderness':
+    case 'dungeon':
+    case 'cave':
+    case 'castle':
+    case 'temple':
+    case 'ruins':
+      return environment;
+    default:
+      return 'neutral';
+  }
 }
 
 export function EnvironmentThemeProvider({ state, children }: { state?: GameState; children: ReactNode }) {
-  const theme = useMemo<EnvironmentTheme>(() => ({
-    family: familyForState(state),
-    time: 'neutral',
-    weather: 'neutral',
-    source: state?.location ? 'canonical-location' : 'neutral-default',
-  }), [state]);
+  const theme = useMemo<EnvironmentTheme>(() => {
+    const world = state?.world;
+    return {
+      family: familyForEnvironment(world?.environment),
+      time: world?.time_of_day ?? 'neutral',
+      weather: world?.weather === 'unknown' ? 'neutral' : world?.weather ?? 'neutral',
+      source: world ? 'canonical-world' : 'neutral-default',
+    };
+  }, [state]);
 
   return (
     <ThemeContext.Provider value={theme}>

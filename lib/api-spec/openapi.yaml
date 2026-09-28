@@ -242,6 +242,8 @@ components:
       properties:
         location:
           type: string
+        world:
+          $ref: "#/components/schemas/GameWorldMetadata"
         locations:
           type: object
           additionalProperties:
@@ -272,6 +274,7 @@ components:
           type: integer
       required:
         - location
+        - world
         - locations
         - character
         - inventory
@@ -281,6 +284,32 @@ components:
         - combat
         - player_combat_status
         - turn_index
+    GameWorldMetadata:
+      type: object
+      description: Python-owned atmosphere metadata; never supplied by the browser.
+      properties:
+        environment:
+          type: string
+          enum:
+            - tavern
+            - forest
+            - city
+            - village
+            - road
+            - wilderness
+            - dungeon
+            - cave
+            - castle
+            - temple
+            - ruins
+            - unknown
+        time_of_day:
+          type: string
+          enum: [dawn, day, evening, night]
+        weather:
+          type: string
+          enum: [clear, rain, fog, snow, storm, unknown]
+      required: [environment, time_of_day, weather]
     GameLocation:
       type: object
       properties:

@@ -7,6 +7,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from api.world_metadata import world_metadata_for_state
+
 
 _PLAYER_FIELDS = (
     "name",
@@ -84,9 +86,14 @@ def serialize_session_state(session: Any) -> dict[str, Any]:
         if isinstance(raw_locations, Mapping)
         and isinstance(record, Mapping)
     } if isinstance(raw_locations, Mapping) else {}
+    world_metadata = world_metadata_for_state(
+        world,
+        getattr(session, "world_metadata", None),
+    )
 
     return {
         "location": copy.deepcopy(world.get("location")),
+        "world": world_metadata,
         "locations": locations,
         "character": _project_fields(player, _PLAYER_FIELDS),
         "inventory": copy.deepcopy(world.get("inventory", [])),
