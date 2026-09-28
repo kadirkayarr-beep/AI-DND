@@ -26,6 +26,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+from api.persistence.campaign_serializer import restore_stored_campaign
 from api.persistence.campaign_store import CampaignStore
 
 
@@ -220,6 +221,46 @@ def run_smoke() -> dict[str, Any]:
                 persisted_before_restart = CampaignStore(database_path).get_campaign(
                     campaign_id
                 )
+                # Seed one safe synthetic result in this temporary smoke database.
+                # This makes the process-restart assertion independent of Qwen's
+                # choice to route the preceding natural-language turns to combat.
+                turn_index = persisted_before_restart.payload["engine_save"][
+                    "world_state"
+                ].get("flags", {}).get("turn_index", 0)
+                combat_history_entry = {
+                    "event_id": str(uuid.uuid4()),
+                    "turn_index": turn_index,
+                    "result": {
+                        "action": "attack",
+                        "status": "resolved",
+                        "success": True,
+                        "outcome": "hit",
+                        "attack_roll": 12,
+                        "attack_bonus": 2,
+                        "attack_total": 14,
+                        "target_ac": 12,
+                        "damage": 2,
+                    },
+                }
+                restored_session = game.create_session()
+                restored_journal = restore_stored_campaign(
+                    restored_session,
+                    persisted_before_restart,
+                )
+                CampaignStore(database_path).save_campaign(
+                    campaign_id,
+                    restored_session,
+                    journal=restored_journal,
+                    combat_history_entry=combat_history_entry,
+                )
+                persisted_before_restart = CampaignStore(database_path).get_campaign(
+                    campaign_id
+                )
+                if persisted_before_restart.combat_history != [combat_history_entry]:
+                    raise RuntimeError(
+                        "The temporary campaign database did not retain the "
+                        "structured combat history fixture."
+                    )
                 saved_engine_state = persisted_before_restart.payload["engine_save"]
                 saved_npcs = saved_engine_state["world_state"]["npcs"]
                 memory_npc = next(
@@ -230,9 +271,25 @@ def run_smoke() -> dict[str, Any]:
                     raise RuntimeError(
                         f"Qwen dialogue did not create player-attributed memory for {npc_name}."
                     )
-                state_before_restart = client.get(
+                detail_before_restart = client.get(
                     f"{base_url}/api/campaigns/{campaign_id}"
-                ).json()["state"]
+                ).json()
+                state_before_restart = detail_before_restart["state"]
+                combat_history_before_restart = detail_before_restart["combat_history"]
+                if (
+                    len(combat_history_before_restart) != 1
+                    or combat_history_before_restart[0].get("event_id")
+                    != combat_history_entry["event_id"]
+                    or combat_history_before_restart[0].get("turn_index")
+                    != combat_history_entry["turn_index"]
+                    or combat_history_before_restart[0].get("result", {}).get(
+                        "attack_roll"
+                    )
+                    != combat_history_entry["result"]["attack_roll"]
+                ):
+                    raise RuntimeError(
+                        "The API did not expose the stored structured combat history."
+                    )
                 if state_before_restart["journal"]["quests"]:
                     raise RuntimeError(
                         "Narration unexpectedly populated the unsupported quest ledger."
@@ -275,6 +332,10 @@ def run_smoke() -> dict[str, Any]:
                     raise RuntimeError("Resume changed the stable campaign ID.")
                 if resumed["state"] != state_before_restart:
                     raise RuntimeError("Public canonical state changed across restart.")
+                if resumed["combat_history"] != combat_history_before_restart:
+                    raise RuntimeError(
+                        "Structured combat history changed across API restart."
+                    )
 
                 persisted_after_restart = CampaignStore(database_path).get_campaign(
                     campaign_id
@@ -374,6 +435,7 @@ def run_smoke() -> dict[str, Any]:
                     "npc_name": npc_name,
                     "npc_memory_survived_restart": True,
                     "combat_active": bool(resumed["state"]["combat"].get("active")),
+                    "combat_history_count": len(resumed["combat_history"]),
                     "history_entries_after_resume": len(resumed["history"]),
                 }
         finally:

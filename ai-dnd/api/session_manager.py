@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+import copy
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -19,7 +20,10 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
-from api.persistence.campaign_store import CampaignStore
+from api.persistence.campaign_store import (
+    MAX_COMBAT_HISTORY_ENTRIES,
+    CampaignStore,
+)
 from api.serializers import serialize_session_state
 from api.world_metadata import set_session_world_metadata
 
@@ -34,6 +38,7 @@ class ManagedSession:
     turn_lock: threading.Lock = field(default_factory=threading.Lock)
     campaign_id: str | None = None
     journal: dict[str, Any] = field(default_factory=empty_campaign_journal)
+    combat_history: list[dict[str, Any]] = field(default_factory=list)
 
 
 class SessionManager:
@@ -116,6 +121,7 @@ class SessionManager:
             "campaign": stored.metadata,
             "state": serialize_session_state(session, journal),
             "history": stored.history,
+            "combat_history": stored.combat_history,
         }
 
     def resume_campaign(
@@ -178,6 +184,7 @@ class SessionManager:
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
             state = serialize_session_state(record.game_session, record.journal)
+            record.combat_history = copy.deepcopy(stored.combat_history)
         return session_id, record, metadata, stored.history, state
 
     def save_campaign(self, campaign_id: str) -> dict[str, Any]:
@@ -203,15 +210,17 @@ class SessionManager:
         record: ManagedSession,
         player_message: str,
         narration: str,
+        combat_history_entry: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """Persist a successful turn; caller holds record.turn_lock."""
         if record.campaign_id is None:
+            self._remember_combat_entry(record, combat_history_entry)
             return None
         set_session_world_metadata(
             record.game_session,
             getattr(record.game_session, "world_metadata", None),
         )
-        return self._require_campaign_store().save_campaign(
+        metadata = self._require_campaign_store().save_campaign(
             record.campaign_id,
             record.game_session,
             turn_entry={
@@ -219,7 +228,26 @@ class SessionManager:
                 "narration": narration,
             },
             journal=record.journal,
+            combat_history_entry=combat_history_entry,
         )
+        self._remember_combat_entry(record, combat_history_entry)
+        return metadata
+
+    @staticmethod
+    def _remember_combat_entry(
+        record: ManagedSession,
+        entry: dict[str, Any] | None,
+    ) -> None:
+        if entry is None:
+            return
+        if any(
+            existing.get("event_id") == entry["event_id"]
+            for existing in record.combat_history
+        ):
+            return
+        record.combat_history = (
+            [*record.combat_history, copy.deepcopy(entry)]
+        )[-MAX_COMBAT_HISTORY_ENTRIES:]
 
     def _require_campaign_store(self) -> CampaignStore:
         if self._campaign_store is None:

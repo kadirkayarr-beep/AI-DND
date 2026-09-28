@@ -468,6 +468,9 @@ export const playGameTurnResponseStateJournalQuestsMax = 100;
 
 export const playGameTurnResponseStateTurnIndexMin = 0;
 
+export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
+
 export const playGameTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playGameTurnResponseSkillCheckResultOneD20Max = 20;
@@ -642,6 +645,53 @@ export const PlayGameTurnResponse = zod.object({
   "target_status": zod.string().nullish()
 }),zod.null()]).optional()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
+  "combat_history_entry": zod.union([zod.object({
+  "event_id": zod.string().uuid().regex(playGameTurnResponseCombatHistoryEntryOneEventIdRegExp),
+  "turn_index": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
+}),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "skill": zod.string().min(1).max(playGameTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -762,6 +812,9 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
 export const createCampaignResponseStateTurnIndexMin = 0;
+
+export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -891,6 +944,53 @@ export const CreateCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(createCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(createCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 
@@ -959,6 +1059,9 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const getCampaignResponseStateJournalQuestsMax = 100;
 
 export const getCampaignResponseStateTurnIndexMin = 0;
+
+export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -1098,6 +1201,53 @@ export const GetCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(getCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(getCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 
@@ -1166,6 +1316,9 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
 
 export const resumeCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -1295,6 +1448,53 @@ export const ResumeCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(resumeCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(resumeCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 
@@ -1795,6 +1995,9 @@ export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
+
 export const playLegacyTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playLegacyTurnResponseSkillCheckResultOneD20Max = 20;
@@ -1969,6 +2172,53 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_status": zod.string().nullish()
 }),zod.null()]).optional()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
+  "combat_history_entry": zod.union([zod.object({
+  "event_id": zod.string().uuid().regex(playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp),
+  "turn_index": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
+}),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
   "skill": zod.string().min(1).max(playLegacyTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
@@ -2082,6 +2332,9 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const createLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -2211,6 +2464,53 @@ export const CreateLegacyCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(createLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 
@@ -2280,6 +2580,9 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const getLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -2419,6 +2722,53 @@ export const GetLegacyCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(getLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 
@@ -2488,6 +2838,9 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
 
 export const resumeLegacyCampaignResponseStateTurnIndexMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
 
 
@@ -2617,6 +2970,53 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
+})),
+  "combat_history": zod.array(zod.object({
+  "event_id": zod.string().uuid().regex(resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
+  "turn_index": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
+  "result": zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish(),
+  "combat_started": zod.boolean().nullish(),
+  "combat_ended": zod.boolean().nullish(),
+  "end_reason": zod.string().nullish(),
+  "enemy_action": zod.union([zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+}),zod.null()]).optional()
+})
 }))
 })
 

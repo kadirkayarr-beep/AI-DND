@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import copy
 import os
+import uuid
 from collections.abc import Mapping
 from typing import Any
 
 import game
 from pydantic import ValidationError
-from api.schemas import SkillCheckResult
+from api.schemas import CombatHistoryEntry, CombatTurnResult, SkillCheckResult
 from api.world_metadata import world_metadata_for_state
 from api.campaign_journal import empty_campaign_journal
 
@@ -86,6 +87,10 @@ class SkillCheckResultSerializationError(ValueError):
     """Raised when a canonical engine skill-check result fails validation."""
 
 
+class CombatResultSerializationError(ValueError):
+    """Raised when a canonical engine combat result fails validation."""
+
+
 def _project_fields(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
@@ -118,7 +123,38 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
             enemy_action,
             _COMBAT_ATTACK_FIELDS,
         )
-    return projected
+    try:
+        validated = CombatTurnResult.model_validate(projected, strict=True)
+    except ValidationError:
+        raise CombatResultSerializationError(
+            "Invalid combat result."
+        ) from None
+    return validated.model_dump(exclude_unset=True)
+
+
+def serialize_combat_history_entry(
+    combat_result: dict[str, Any] | None,
+    session: Any,
+) -> dict[str, Any] | None:
+    """Wrap a validated engine result in a stable server-generated event ID."""
+    if combat_result is None:
+        return None
+    try:
+        snapshot = session.serialize_game_state()
+        flags = snapshot.get("world_state", {}).get("flags", {})
+        turn_index = flags.get("turn_index")
+        if type(turn_index) is not int or turn_index < 0:
+            raise ValueError("Invalid canonical turn index.")
+        entry = CombatHistoryEntry(
+            event_id=str(uuid.uuid4()),
+            turn_index=turn_index,
+            result=combat_result,
+        )
+    except (AttributeError, TypeError, ValueError, ValidationError):
+        raise CombatResultSerializationError(
+            "Invalid combat history entry."
+        ) from None
+    return entry.model_dump(exclude_unset=True)
 
 
 def serialize_skill_check_result(

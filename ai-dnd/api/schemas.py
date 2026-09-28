@@ -59,6 +59,16 @@ class CombatTurnResult(CombatAttackResult):
     enemy_action: CombatAttackResult | None = None
 
 
+class CombatHistoryEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    event_id: str = Field(
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    )
+    turn_index: int = Field(ge=0)
+    result: CombatTurnResult
+
+
 class SkillCheckResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -87,6 +97,7 @@ class TurnResponse(BaseModel):
     narration: str
     state: dict[str, Any]
     combat_result: CombatTurnResult | None = None
+    combat_history_entry: CombatHistoryEntry | None = None
     skill_check_result: SkillCheckResult | None = None
 
 
@@ -171,6 +182,7 @@ class CampaignDetailResponse(BaseModel):
     campaign: CampaignSummary
     state: dict[str, Any]
     history: list[CampaignHistoryEntry]
+    combat_history: list[CombatHistoryEntry]
 
 
 class CampaignSessionResponse(BaseModel):
@@ -179,3 +191,4 @@ class CampaignSessionResponse(BaseModel):
     name: str
     state: dict[str, Any]
     history: list[CampaignHistoryEntry]
+    combat_history: list[CombatHistoryEntry]

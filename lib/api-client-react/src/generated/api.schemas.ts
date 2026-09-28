@@ -460,6 +460,14 @@ export interface CombatTurnResult {
   enemy_action?: CombatAttackResult | null;
 }
 
+export interface CombatHistoryEntry {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
+  event_id: string;
+  /** @minimum 0 */
+  turn_index: number;
+  result: CombatTurnResult;
+}
+
 export type SkillCheckResultAbility = typeof SkillCheckResultAbility[keyof typeof SkillCheckResultAbility];
 
 
@@ -526,6 +534,8 @@ export interface GameTurnResult {
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */
   combat_result: CombatTurnResult | null;
+  /** Stable server-owned ID and validated result for durable combat history. */
+  combat_history_entry: CombatHistoryEntry | null;
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
 }
@@ -595,6 +605,7 @@ export interface CampaignDetail {
   campaign: CampaignSummary;
   state: GameState;
   history: CampaignHistoryEntry[];
+  combat_history: CombatHistoryEntry[];
 }
 
 export interface CampaignSession {
@@ -603,6 +614,7 @@ export interface CampaignSession {
   name: string;
   state: GameState;
   history: CampaignHistoryEntry[];
+  combat_history: CombatHistoryEntry[];
 }
 
 export type ApiErrorDetailCode = typeof ApiErrorDetailCode[keyof typeof ApiErrorDetailCode];

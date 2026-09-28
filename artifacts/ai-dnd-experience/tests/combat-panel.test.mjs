@@ -9,6 +9,7 @@ delete process.env.REPL_ID;
 
 let vite;
 let renderCombatPanel;
+let mergeCombatHistory;
 
 before(async () => {
   const { createServer } = await import('vite');
@@ -19,8 +20,10 @@ before(async () => {
     logLevel: 'silent',
   });
   const component = await vite.ssrLoadModule('/src/components/combat-panel.tsx');
+  const history = await vite.ssrLoadModule('/src/lib/combat-history.ts');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
+  mergeCombatHistory = history.mergeCombatHistory;
   renderCombatPanel = (state, entries = []) => renderToStaticMarkup(
     React.createElement(component.CombatPanel, { state, entries }),
   );
@@ -139,7 +142,7 @@ test('structured critical and retaliation results show returned rolls, modifiers
       target_id: 'npc_bandit',
     },
   });
-  const html = renderCombatPanel(state, [{ id: 6, result: criticalExchange }]);
+  const html = renderCombatPanel(state, [{ id: '6', turnIndex: 6, result: criticalExchange }]);
 
   assert.match(html, /data-testid="combat-entry-6-roll">[\s\S]*?<strong>20<\/strong>/);
   assert.match(html, /data-testid="combat-entry-6-bonus">[\s\S]*?<strong>4<\/strong>/);
@@ -159,7 +162,8 @@ test('structured critical and retaliation results show returned rolls, modifiers
 
 test('ended state follows Python result while active canonical state takes precedence', () => {
   const endedEntry = {
-    id: 7,
+    id: '7',
+    turnIndex: 7,
     result: {
       ...criticalExchange,
       combat_started: false,
@@ -183,6 +187,29 @@ test('ended state follows Python result while active canonical state takes prece
   }), [endedEntry]);
   assert.match(activeHtml, /data-testid="combat-player"/);
   assert.doesNotMatch(activeHtml, /data-testid="combat-ended-state"/);
+});
+
+test('resumed combat history renders returned cards once per stable event ID', () => {
+  const event = {
+    event_id: '00000000-0000-4000-8000-000000000006',
+    turn_index: 6,
+    result: criticalExchange,
+  };
+  const restored = mergeCombatHistory([event, event, null, {
+    event_id: '',
+    turn_index: 7,
+    result: criticalExchange,
+  }]);
+  const html = renderCombatPanel(makeState(), restored);
+
+  assert.equal(restored.length, 1);
+  assert.equal(restored[0].id, event.event_id);
+  assert.match(html, /data-testid="combat-log-entry-00000000-0000-4000-8000-000000000006"/);
+  assert.match(html, /data-testid="combat-entry-00000000-0000-4000-8000-000000000006-roll">[\s\S]*?<strong>20<\/strong>/);
+
+  const appended = mergeCombatHistory([event], restored);
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].turnIndex, 6);
 });
 
 test('result animation is brief and disabled for reduced motion', async () => {

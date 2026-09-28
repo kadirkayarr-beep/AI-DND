@@ -7,10 +7,12 @@
  */
 import type { CampaignHistoryEntry } from './campaignHistoryEntry';
 import type { CampaignSummary } from './campaignSummary';
+import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { GameState } from './gameState';
 
 export interface CampaignDetail {
   campaign: CampaignSummary;
   state: GameState;
   history: CampaignHistoryEntry[];
+  combat_history: CombatHistoryEntry[];
 }

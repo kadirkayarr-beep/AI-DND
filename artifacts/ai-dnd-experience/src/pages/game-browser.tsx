@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
+import { mergeCombatHistory } from '@/lib/combat-history';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -560,7 +561,6 @@ export default function GameBrowser() {
   const previousCombatActive = useRef<boolean | null>(null);
 
   useEffect(() => {
-    setCombatEntries([]);
     setCombatEndNotice(null);
     if (!sessionId) { setEntries([]); return; }
     try {
@@ -681,7 +681,7 @@ export default function GameBrowser() {
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, resumed.campaign_id);
         window.localStorage.setItem(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
         setEntries(transcript);
-        setCombatEntries([]);
+        setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
         setActiveTab('world');
         previousCombatActive.current = null;
@@ -732,11 +732,14 @@ export default function GameBrowser() {
           JSON.stringify(next.map(({ kind, text }) => ({ kind, text }))),
         );
         const combatResult = result.combat_result;
+        const combatHistoryEntry = result.combat_history_entry;
+        if (combatHistoryEntry) {
+          setCombatEntries((current) => mergeCombatHistory(
+            [combatHistoryEntry],
+            current,
+          ));
+        }
         if (combatResult) {
-          setCombatEntries((current) => [
-            ...current,
-            { id: result.state.turn_index, result: combatResult },
-          ].slice(-8));
           if (combatResult.combat_ended) {
             const endReason = combatResult.end_reason;
             setCombatEndNotice(

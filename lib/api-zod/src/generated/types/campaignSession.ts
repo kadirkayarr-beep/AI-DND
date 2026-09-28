@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CampaignHistoryEntry } from './campaignHistoryEntry';
+import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { GameState } from './gameState';
 
 export interface CampaignSession {
@@ -14,4 +15,5 @@ export interface CampaignSession {
   name: string;
   state: GameState;
   history: CampaignHistoryEntry[];
+  combat_history: CombatHistoryEntry[];
 }

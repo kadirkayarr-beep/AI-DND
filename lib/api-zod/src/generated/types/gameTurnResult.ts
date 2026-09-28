@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
 import type { SkillCheckResult } from './skillCheckResult';
@@ -15,6 +16,8 @@ export interface GameTurnResult {
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */
   combat_result: CombatTurnResult | null;
+  /** Stable server-owned ID and validated result for durable combat history. */
+  combat_history_entry: CombatHistoryEntry | null;
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
 }

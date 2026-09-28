@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import os
 import random
+import uuid
 from copy import deepcopy
 from typing import Any
 
 import game
+from pydantic import ValidationError
 
 from api.campaign_journal import (
     empty_campaign_journal,
@@ -18,6 +20,7 @@ from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignValidationError,
 )
+from api.schemas import CombatTurnResult
 from api.world_metadata import (
     set_session_world_metadata,
     validate_world_metadata,
@@ -42,7 +45,10 @@ def _walk_strings(value: Any):
             yield from _walk_strings(child)
 
 
-def ensure_no_configured_secrets(value: Any) -> None:
+def ensure_no_configured_secrets(
+    value: Any,
+    error_type: type[Exception] = CampaignValidationError,
+) -> None:
     """Reject persistence of exact configured Ollama connection values."""
     configured = [
         os.environ[key]
@@ -50,7 +56,7 @@ def ensure_no_configured_secrets(value: Any) -> None:
         if os.environ.get(key)
     ]
     if any(secret in text for text in _walk_strings(value) for secret in configured):
-        raise CampaignValidationError(
+        raise error_type(
             "Sensitive connection data cannot be stored in a campaign."
         )
 
@@ -226,6 +232,70 @@ def validate_history_entry(entry: Any) -> dict[str, str]:
         "narration": entry["narration"],
         "created_at": entry["created_at"],
     }
+
+
+_COMBAT_RESULT_MAX_BYTES = 16 * 1024
+
+
+def _validated_combat_result(
+    value: Any,
+    error_type: type[Exception],
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or value.get("action") != "attack":
+        raise error_type("Campaign combat history is invalid.")
+    try:
+        validated = CombatTurnResult.model_validate(value, strict=True)
+        result = validated.model_dump(exclude_unset=True)
+        encoded = json.dumps(
+            result,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (ValidationError, TypeError, ValueError, OverflowError):
+        raise error_type("Campaign combat history is invalid.") from None
+    if len(encoded) > _COMBAT_RESULT_MAX_BYTES:
+        raise error_type("Campaign combat history is too large.")
+    ensure_no_configured_secrets(result, error_type)
+    return result
+
+
+def _validate_combat_history_entry(
+    entry: Any,
+    error_type: type[Exception],
+) -> dict[str, Any]:
+    if (
+        not isinstance(entry, dict)
+        or set(entry) != {"event_id", "turn_index", "result"}
+        or not isinstance(entry.get("event_id"), str)
+        or type(entry.get("turn_index")) is not int
+        or entry["turn_index"] < 0
+    ):
+        raise error_type("Campaign combat history is invalid.")
+    event_id = entry["event_id"]
+    try:
+        parsed_id = uuid.UUID(event_id)
+    except (ValueError, TypeError, AttributeError):
+        raise error_type("Campaign combat history is invalid.") from None
+    if parsed_id.version != 4 or str(parsed_id) != event_id:
+        raise error_type("Campaign combat history is invalid.")
+    normalized = {
+        "event_id": event_id,
+        "turn_index": entry["turn_index"],
+        "result": _validated_combat_result(entry["result"], error_type),
+    }
+    ensure_no_configured_secrets(normalized, error_type)
+    return normalized
+
+
+def serialize_combat_history_entry(entry: Any) -> dict[str, Any]:
+    """Validate a server-created combat-history entry before it is stored."""
+    return _validate_combat_history_entry(entry, CampaignValidationError)
+
+
+def validate_combat_history_entry(entry: Any) -> dict[str, Any]:
+    """Validate a persisted combat-history entry and fail closed on corruption."""
+    return _validate_combat_history_entry(entry, CampaignCorruptError)
 
 
 def restore_campaign_session(session: Any, payload: dict[str, Any]) -> dict[str, Any]:

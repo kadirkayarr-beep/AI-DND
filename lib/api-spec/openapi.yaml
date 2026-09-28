@@ -518,12 +518,17 @@ components:
             - $ref: "#/components/schemas/CombatTurnResult"
             - type: "null"
           description: Structured combat outcome returned by Python; null for non-combat turns.
+        combat_history_entry:
+          anyOf:
+            - $ref: "#/components/schemas/CombatHistoryEntry"
+            - type: "null"
+          description: Stable server-owned ID and validated result for durable combat history.
         skill_check_result:
           anyOf:
             - $ref: "#/components/schemas/SkillCheckResult"
             - type: "null"
           description: Structured Python-owned skill-check result; null when no skill check occurred.
-      required: [session_id, narration, state, combat_result, skill_check_result]
+      required: [session_id, narration, state, combat_result, combat_history_entry, skill_check_result]
     SkillCheckResult:
       type: object
       additionalProperties: false
@@ -662,6 +667,20 @@ components:
           anyOf:
             - $ref: "#/components/schemas/CombatAttackResult"
             - type: "null"
+    CombatHistoryEntry:
+      type: object
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        turn_index:
+          type: integer
+          minimum: 0
+        result:
+          $ref: "#/components/schemas/CombatTurnResult"
+      required: [event_id, turn_index, result]
     GameState:
       type: object
       description: Public state projection produced by the API serializers.
@@ -1234,7 +1253,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CampaignHistoryEntry"
-      required: [campaign, state, history]
+        combat_history:
+          type: array
+          items:
+            $ref: "#/components/schemas/CombatHistoryEntry"
+      required: [campaign, state, history, combat_history]
     CampaignSession:
       type: object
       additionalProperties: false
@@ -1253,7 +1276,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CampaignHistoryEntry"
-      required: [campaign_id, session_id, name, state, history]
+        combat_history:
+          type: array
+          items:
+            $ref: "#/components/schemas/CombatHistoryEntry"
+      required: [campaign_id, session_id, name, state, history, combat_history]
     ApiErrorDetail:
       type: object
       additionalProperties: false

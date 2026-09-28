@@ -28,6 +28,21 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
 
+def combat_entry(turn_index=0, result_overrides=None):
+    result = {
+        "action": "attack",
+        "status": "resolved",
+        "success": True,
+        "attack_roll": 12,
+    }
+    result.update(result_overrides or {})
+    return {
+        "event_id": str(uuid.uuid4()),
+        "turn_index": turn_index,
+        "result": result,
+    }
+
+
 class CampaignPersistenceTests(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -81,7 +96,19 @@ class CampaignPersistenceTests(unittest.TestCase):
             record,
             "Mira'ya adım Arven diyorum.",
             "Mira başıyla selam verir.",
+            combat_history_entry=combat_entry(
+                result_overrides={
+                    "enemy_action": {
+                        "action": "enemy_attack",
+                        "attack_roll": 9,
+                        "success": False,
+                    }
+                }
+            ),
         )
+        expected_combat_history = self.store.get_campaign(
+            campaign_id
+        ).combat_history
 
         restarted_manager = SessionManager(
             campaign_store=CampaignStore(self.database_path)
@@ -105,6 +132,8 @@ class CampaignPersistenceTests(unittest.TestCase):
         self.assertEqual(restored.world_state["combat"]["round"], 2)
         self.assertEqual(history[0]["player_message"], "Mira'ya adım Arven diyorum.")
         self.assertEqual(history[0]["narration"], "Mira başıyla selam verir.")
+        self.assertEqual(resumed.combat_history, expected_combat_history)
+        self.assertEqual(len(resumed.combat_history), 1)
         self.assertEqual(metadata["campaign_id"], campaign_id)
 
     def test_campaign_ids_are_opaque_and_campaigns_are_isolated(self):
@@ -212,6 +241,119 @@ class CampaignPersistenceTests(unittest.TestCase):
                 "UPDATE campaigns SET payload_json = ?, save_version = 999 "
                 "WHERE campaign_id = ?",
                 (json.dumps(payload), campaign_id),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        with self.assertRaises(CampaignCorruptError):
+            self.store.get_campaign(campaign_id)
+
+    def test_v1_database_migrates_to_empty_combat_history(self):
+        campaign_id, _, _, _ = self.create_campaign("Legacy campaign")
+        connection = sqlite3.connect(self.database_path)
+        try:
+            connection.execute("DROP TABLE campaign_combat_history")
+            connection.execute("PRAGMA user_version = 1")
+            connection.commit()
+        finally:
+            connection.close()
+
+        migrated_store = CampaignStore(self.database_path)
+        stored = migrated_store.get_campaign(campaign_id)
+        connection = sqlite3.connect(self.database_path)
+        try:
+            database_version = connection.execute(
+                "PRAGMA user_version"
+            ).fetchone()[0]
+        finally:
+            connection.close()
+
+        self.assertEqual(database_version, 2)
+        self.assertEqual(stored.combat_history, [])
+        self.assertEqual(stored.metadata["name"], "Legacy campaign")
+
+    def test_combat_history_is_bounded_isolated_and_not_duplicated_by_save(self):
+        first_id, _, first_record, _ = self.create_campaign("First")
+        second_id, _, _, _ = self.create_campaign("Second")
+
+        for index in range(53):
+            self.manager.autosave_turn(
+                first_record,
+                f"Attack {index}",
+                f"Resolved result {index}",
+                combat_history_entry=combat_entry(index),
+            )
+
+        stored = self.store.get_campaign(first_id)
+        self.assertEqual(len(stored.combat_history), 50)
+        self.assertEqual(
+            [entry["turn_index"] for entry in stored.combat_history],
+            list(range(3, 53)),
+        )
+        self.assertEqual(self.store.get_campaign(second_id).combat_history, [])
+
+        self.manager.save_campaign(first_id)
+        self.assertEqual(
+            self.store.get_campaign(first_id).combat_history,
+            stored.combat_history,
+        )
+
+        restarted_manager = SessionManager(
+            campaign_store=CampaignStore(self.database_path)
+        )
+        _, resumed, _, _, _ = restarted_manager.resume_campaign(first_id)
+        self.assertEqual(resumed.combat_history, stored.combat_history)
+
+    def test_completed_combat_result_survives_resume(self):
+        campaign_id, _, record, _ = self.create_campaign("Completed combat")
+        completed_entry = combat_entry(
+            4,
+            {
+                "combat_started": True,
+                "combat_ended": True,
+                "end_reason": "target_defeated",
+            },
+        )
+        self.manager.autosave_turn(
+            record,
+            "Finish the fight",
+            "The opponent falls.",
+            combat_history_entry=completed_entry,
+        )
+
+        restarted_manager = SessionManager(
+            campaign_store=CampaignStore(self.database_path)
+        )
+        _, resumed, _, _, _ = restarted_manager.resume_campaign(campaign_id)
+        self.assertEqual(resumed.combat_history, [completed_entry])
+
+    def test_corrupt_combat_history_is_rejected(self):
+        campaign_id, _, record, _ = self.create_campaign()
+        self.manager.autosave_turn(
+            record,
+            "Attack",
+            "The attack resolves.",
+            combat_history_entry=combat_entry(),
+        )
+        connection = sqlite3.connect(self.database_path)
+        try:
+            connection.execute(
+                """
+                UPDATE campaign_combat_history
+                SET result_json = ?
+                WHERE campaign_id = ?
+                """,
+                (
+                    json.dumps(
+                        {
+                            "action": "attack",
+                            "attack_roll": 12,
+                            "direct_response": "private engine field",
+                        }
+                    ),
+                    campaign_id,
+                ),
             )
             connection.commit()
         finally:

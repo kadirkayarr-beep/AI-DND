@@ -43,9 +43,11 @@ from api.schemas import (
     TurnResponse,
 )
 from api.serializers import (
+    CombatResultSerializationError,
     SkillCheckResultSerializationError,
     redact_sensitive_values,
     serialize_combat_result,
+    serialize_combat_history_entry,
     serialize_skill_check_result,
     serialize_session_state,
 )
@@ -255,6 +257,7 @@ def create_app(
                         record.journal,
                     ),
                     "history": [],
+                    "combat_history": [],
                 }
             )
         except CharacterCreationError as error:
@@ -289,7 +292,7 @@ def create_app(
     )
     def resume_campaign(campaign_id: str) -> dict[str, Any]:
         try:
-            session_id, _record, metadata, history, state = manager.resume_campaign(
+            session_id, record, metadata, history, state = manager.resume_campaign(
                 campaign_id
             )
             return redact_sensitive_values(
@@ -299,6 +302,7 @@ def create_app(
                     "name": metadata["name"],
                     "state": state,
                     "history": history,
+                    "combat_history": record.combat_history,
                 }
             )
         except CampaignError as error:
@@ -482,6 +486,11 @@ def create_app(
                     action_result,
                     session,
                 )
+                combat_result = serialize_combat_result(action_result)
+                combat_history_entry = serialize_combat_history_entry(
+                    combat_result,
+                    session,
+                )
                 presence_location_id = None
                 if (
                     isinstance(action_result, dict)
@@ -513,6 +522,7 @@ def create_app(
                     ),
                     presence_location_id=presence_location_id,
                 )
+                state = serialize_session_state(session, record.journal)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
@@ -534,6 +544,17 @@ def create_app(
                             "message": "The skill-check result could not be verified safely.",
                         },
                     ) from None
+                if isinstance(error, CombatResultSerializationError):
+                    _logger.error(
+                        "Engine returned an invalid combat result or history entry."
+                    )
+                    raise HTTPException(
+                        status_code=500,
+                        detail={
+                            "code": "engine_error",
+                            "message": "The combat result could not be verified safely.",
+                        },
+                    ) from None
                 _logger.error(
                     "Campaign journal update failed (error_type=%s)",
                     type(error).__name__,
@@ -546,7 +567,12 @@ def create_app(
                     },
                 ) from None
             try:
-                manager.autosave_turn(record, request.message, narration)
+                manager.autosave_turn(
+                    record,
+                    request.message,
+                    narration,
+                    combat_history_entry=combat_history_entry,
+                )
             except CampaignError as error:
                 try:
                     _restore_session(session, snapshot)
@@ -571,8 +597,9 @@ def create_app(
             response = TurnResponse(
                 session_id=session_id,
                 narration=narration,
-                state=serialize_session_state(session, record.journal),
-                combat_result=serialize_combat_result(action_result),
+                state=state,
+                combat_result=combat_result,
+                combat_history_entry=combat_history_entry,
                 skill_check_result=skill_check_result,
             )
             return redact_sensitive_values(response.model_dump())

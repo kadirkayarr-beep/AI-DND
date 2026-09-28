@@ -25,14 +25,17 @@ from api.persistence.campaign_models import (
 )
 from api.persistence.campaign_validation import (
     CAMPAIGN_FORMAT_VERSION,
+    serialize_combat_history_entry,
     serialize_campaign_payload,
     serialize_history_entry,
+    validate_combat_history_entry,
     validate_campaign_payload,
     validate_history_entry,
 )
 
 
-_DATABASE_SCHEMA_VERSION = 1
+_DATABASE_SCHEMA_VERSION = 2
+MAX_COMBAT_HISTORY_ENTRIES = 50
 
 
 def _now() -> str:
@@ -134,6 +137,30 @@ class CampaignStore:
                     PRAGMA user_version = 1;
                     """
                 )
+                current_version = 1
+            if current_version == 1:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    connection.execute(
+                        """
+                        CREATE TABLE campaign_combat_history (
+                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)
+                                ON DELETE CASCADE,
+                            sequence INTEGER NOT NULL CHECK (sequence > 0),
+                            event_id TEXT NOT NULL,
+                            turn_index INTEGER NOT NULL CHECK (turn_index >= 0),
+                            result_json TEXT NOT NULL,
+                            created_at TEXT NOT NULL,
+                            PRIMARY KEY (campaign_id, sequence),
+                            UNIQUE (campaign_id, event_id)
+                        )
+                        """
+                    )
+                    connection.execute("PRAGMA user_version = 2")
+                    connection.commit()
+                except Exception:
+                    connection.rollback()
+                    raise
             self._validate_schema(connection)
         except CampaignStorageError:
             raise
@@ -158,9 +185,18 @@ class CampaignStore:
             str(row["name"])
             for row in connection.execute("PRAGMA table_info(campaign_history)").fetchall()
         }
+        combat_history_columns = {
+            str(row["name"])
+            for row in connection.execute(
+                "PRAGMA table_info(campaign_combat_history)"
+            ).fetchall()
+        }
         if not expected.issubset(columns) or not {
             "campaign_id", "sequence", "player_message", "narration", "created_at"
-        }.issubset(history_columns):
+        }.issubset(history_columns) or not {
+            "campaign_id", "sequence", "event_id", "turn_index", "result_json",
+            "created_at",
+        }.issubset(combat_history_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
 
     @staticmethod
@@ -267,6 +303,7 @@ class CampaignStore:
         session: Any,
         turn_entry: dict[str, str] | None = None,
         journal: dict[str, Any] | None = None,
+        combat_history_entry: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
         if journal is None:
@@ -277,6 +314,10 @@ class CampaignStore:
             turn_entry = serialize_history_entry(
                 turn_entry.get("player_message"),
                 turn_entry.get("narration"),
+            )
+        if combat_history_entry is not None:
+            combat_history_entry = serialize_combat_history_entry(
+                combat_history_entry
             )
         payload_json = json.dumps(
             payload,
@@ -333,6 +374,54 @@ class CampaignStore:
                             turn_entry["player_message"],
                             turn_entry["narration"],
                             now,
+                        ),
+                    )
+                if combat_history_entry is not None:
+                    next_sequence = int(
+                        connection.execute(
+                            """
+                            SELECT COALESCE(MAX(sequence), 0) + 1
+                            FROM campaign_combat_history WHERE campaign_id = ?
+                            """,
+                            (campaign_id,),
+                        ).fetchone()[0]
+                    )
+                    result_json = json.dumps(
+                        combat_history_entry["result"],
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        allow_nan=False,
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO campaign_combat_history (
+                            campaign_id, sequence, event_id, turn_index,
+                            result_json, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            campaign_id,
+                            next_sequence,
+                            combat_history_entry["event_id"],
+                            combat_history_entry["turn_index"],
+                            result_json,
+                            now,
+                        ),
+                    )
+                    connection.execute(
+                        """
+                        DELETE FROM campaign_combat_history
+                        WHERE campaign_id = ? AND sequence NOT IN (
+                            SELECT sequence FROM campaign_combat_history
+                            WHERE campaign_id = ?
+                            ORDER BY sequence DESC
+                            LIMIT ?
+                        )
+                        """,
+                        (
+                            campaign_id,
+                            campaign_id,
+                            MAX_COMBAT_HISTORY_ENTRIES,
                         ),
                     )
                 row = connection.execute(
@@ -422,6 +511,41 @@ class CampaignStore:
                     validate_history_entry(dict(history_row))
                     for history_row in history_rows
                 ]
+                combat_rows = connection.execute(
+                    """
+                    SELECT sequence, event_id, turn_index, result_json, created_at
+                    FROM campaign_combat_history
+                    WHERE campaign_id = ?
+                    ORDER BY sequence ASC
+                    """,
+                    (campaign_id,),
+                ).fetchall()
+                if len(combat_rows) > MAX_COMBAT_HISTORY_ENTRIES:
+                    raise CampaignCorruptError(
+                        "Campaign combat history exceeds the supported limit."
+                    )
+                combat_history = []
+                for combat_row in combat_rows:
+                    if (
+                        type(combat_row["sequence"]) is not int
+                        or combat_row["sequence"] < 1
+                        or not isinstance(combat_row["created_at"], str)
+                        or not combat_row["created_at"].strip()
+                    ):
+                        raise CampaignCorruptError(
+                            "Campaign combat history is invalid."
+                        )
+                    combat_history.append(
+                        validate_combat_history_entry(
+                            {
+                                "event_id": str(combat_row["event_id"]),
+                                "turn_index": combat_row["turn_index"],
+                                "result": json.loads(
+                                    str(combat_row["result_json"])
+                                ),
+                            }
+                        )
+                    )
             except CampaignCorruptError:
                 raise
             except (json.JSONDecodeError, TypeError, ValueError, KeyError):
@@ -432,6 +556,7 @@ class CampaignStore:
                 metadata=self._metadata(row),
                 payload=payload,
                 history=history,
+                combat_history=combat_history,
             )
         except (CampaignNotFoundError, CampaignCorruptError):
             raise

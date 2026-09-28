@@ -25,6 +25,7 @@ export * from './characterCreateInput';
 export * from './characterCreateInputMode';
 export * from './characterCreationOptions';
 export * from './combatAttackResult';
+export * from './combatHistoryEntry';
 export * from './combatTurnResult';
 export * from './gameCharacter';
 export * from './gameCombat';

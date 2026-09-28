@@ -432,6 +432,53 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("direct_response", result)
         self.assertNotIn("state_changes", result)
         self.assertNotIn("direct_response", result["enemy_action"])
+        history_entry = response.json()["combat_history_entry"]
+        self.assertEqual(history_entry["result"], result)
+        self.assertRegex(
+            history_entry["event_id"],
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        )
+        self.assertEqual(history_entry["turn_index"], response.json()["state"]["turn_index"])
+        self.assertNotIn("direct_response", history_entry["result"])
+        self.assertNotIn("state_changes", history_entry["result"])
+
+        detail = await self.http.get(
+            f"/api/game/campaigns/{created['campaign_id']}"
+        )
+        self.assertEqual(detail.status_code, 200, detail.text)
+        self.assertEqual(detail.json()["combat_history"], [history_entry])
+        resumed = await self.http.post(
+            f"/api/game/campaigns/{created['campaign_id']}/resume"
+        )
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        self.assertEqual(resumed.json()["combat_history"], [history_entry])
+
+    async def test_engine_failure_does_not_append_campaign_combat_history(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        saved_before = self.store.get_campaign(created["campaign_id"]).payload
+
+        def fail_after_mutation(_message):
+            record.game_session.character["current_hp"] = 0
+            record.game_session.world_state["inventory"].clear()
+            raise RuntimeError("private engine failure")
+
+        record.game_session.run_player_turn = fail_after_mutation
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "I attack."},
+        )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            self.store.get_campaign(created["campaign_id"]).payload,
+            saved_before,
+        )
+        self.assertEqual(
+            self.store.get_campaign(created["campaign_id"]).combat_history,
+            [],
+        )
+        self.assertEqual(record.combat_history, [])
 
     async def test_skill_check_turn_returns_only_allowlisted_canonical_result(self):
         created = await self.create_campaign()
@@ -657,7 +704,15 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         def mutate_then_succeed(_message):
             session.character["current_hp"] -= 2
             session.world_state["inventory"].append("Uncommitted")
-            return {"narration": "This turn will not be committed."}
+            return {
+                "narration": "This turn will not be committed.",
+                "action_result": {
+                    "action": "attack",
+                    "status": "resolved",
+                    "success": True,
+                    "attack_roll": 14,
+                },
+            }
 
         session.run_player_turn = mutate_then_succeed
         with patch.object(
@@ -680,6 +735,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             self.store.get_campaign(created["campaign_id"]).payload,
             saved_before,
+        )
+        self.assertEqual(
+            self.store.get_campaign(created["campaign_id"]).combat_history,
+            [],
+        )
+        self.assertEqual(
+            self.manager.get(created["session_id"]).combat_history,
+            [],
         )
 
     async def test_create_rejects_client_supplied_canonical_state(self):

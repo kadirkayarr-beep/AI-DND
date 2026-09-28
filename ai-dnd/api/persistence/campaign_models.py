@@ -39,3 +39,4 @@ class StoredCampaign:
     metadata: dict[str, Any]
     payload: dict[str, Any]
     history: list[dict[str, str]]
+    combat_history: list[dict[str, Any]]

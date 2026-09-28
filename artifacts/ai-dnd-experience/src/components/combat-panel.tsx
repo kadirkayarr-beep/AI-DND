@@ -2,7 +2,8 @@ import type { CombatTurnResult, GameNpc, GameState } from '@workspace/api-client
 import './combat-panel.css';
 
 export interface CombatLogEntry {
-  id: number;
+  id: string;
+  turnIndex: number;
   result: CombatTurnResult;
 }
 
@@ -177,7 +178,7 @@ function AttackReadout({
   enemy = false,
 }: {
   result: AttackResult;
-  entryId: number;
+  entryId: string;
   heading: string;
   enemy?: boolean;
 }) {
@@ -267,7 +268,7 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
 
   return (
     <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
-      <div className="combat-entry-index" aria-hidden="true">{String(entry.id).padStart(2, '0')}</div>
+      <div className="combat-entry-index" aria-hidden="true">{String(entry.turnIndex).padStart(2, '0')}</div>
       <div className="combat-entry-body">
         {result.combat_started && <div className="combat-event combat-event-started" data-testid={`combat-log-entry-${entry.id}-started`}>ÇATIŞMA BAŞLADI</div>}
         <AttackReadout result={result} entryId={entry.id} heading={heading} />
