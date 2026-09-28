@@ -1,1 +1,165 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap');
+
+.dnd-frame {
+  --ink: #382f26;
+  --muted: #756b5e;
+  --line: rgba(119, 94, 59, .36);
+  --gold: #9a7442;
+  --accent: #794239;
+  --panel: rgba(242, 231, 207, .78);
+  --panel-deep: rgba(230, 215, 185, .74);
+  --story: rgba(248, 240, 222, .94);
+  color: var(--ink);
+  min-height: 100dvh;
+  isolation: isolate;
+  position: relative;
+}
+
+.dnd-frame::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: .24;
+  background-image: repeating-linear-gradient(0deg, transparent 0 5px, rgba(75, 58, 37, .025) 6px);
+}
+
+.dnd-opening {
+  --ink: #eee4ce;
+  --muted: #bdad91;
+  --line: rgba(201, 170, 117, .36);
+  --gold: #c19b62;
+  --accent: #7b4337;
+  background:
+    radial-gradient(ellipse at 72% 43%, rgba(210, 173, 118, .23), transparent 31%),
+    linear-gradient(114deg, #252a2b 0%, #444b49 44%, #6c6c62 71%, #373936 100%);
+}
+
+.dnd-opening::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .28;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(102deg, transparent 0 62px, rgba(215, 220, 208, .24) 63px, transparent 64px),
+    linear-gradient(180deg, rgba(22, 29, 31, .05), rgba(22, 20, 17, .72));
+  mask-image: linear-gradient(90deg, transparent 5%, #000 40%, #000 95%);
+}
+
+.dnd-creation {
+  background:
+    radial-gradient(ellipse at 50% 4%, rgba(255, 250, 232, .86), transparent 48%),
+    linear-gradient(135deg, #d8ccb0, #c8b996 55%, #b5a47f);
+}
+
+.dnd-day {
+  --ink: #373a38;
+  --muted: #6b706c;
+  --line: rgba(88, 99, 96, .28);
+  --gold: #8d744e;
+  --accent: #765046;
+  --panel: rgba(234, 235, 225, .91);
+  --panel-deep: rgba(222, 225, 216, .94);
+  --story: rgba(247, 246, 235, .97);
+  background:
+    radial-gradient(ellipse at 49% 0%, rgba(237, 233, 209, .92), transparent 40%),
+    linear-gradient(142deg, #9da9a7 0%, #b3b8ad 47%, #8e9997 100%);
+}
+
+.dnd-evening {
+  --ink: #e9dec6;
+  --muted: #ad9c7e;
+  --line: rgba(179, 142, 86, .34);
+  --gold: #c49b5d;
+  --accent: #874c3c;
+  --panel: rgba(47, 39, 31, .93);
+  --panel-deep: rgba(57, 45, 34, .95);
+  --story: rgba(48, 40, 32, .96);
+  background:
+    radial-gradient(ellipse at 50% 2%, rgba(188, 129, 68, .28), transparent 39%),
+    linear-gradient(145deg, #48443b 0%, #665442 44%, #373832 100%);
+}
+
+.dnd-frame .dnd-display { font-family: 'Cinzel', Georgia, serif; }
+.dnd-frame .dnd-literary { font-family: 'Cormorant Garamond', Georgia, serif; }
+.dnd-frame .dnd-sans { font-family: 'DM Sans', sans-serif; }
+
+.dnd-frame .dnd-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), var(--line), transparent);
+}
+
+.dnd-frame .dnd-smallcap {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.dnd-frame .dnd-surface {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+.dnd-frame .dnd-story-surface {
+  background: var(--story);
+  border-color: var(--line);
+}
+
+.dnd-frame .dnd-panel-deep {
+  background: var(--panel-deep);
+}
+
+.dnd-frame .dnd-ornament {
+  border-color: var(--line);
+}
+
+.dnd-frame .dnd-focus {
+  color: var(--ink);
+}
+
+.dnd-frame .dnd-secondary {
+  color: var(--muted);
+}
+
+.dnd-frame .dnd-accent {
+  color: var(--gold);
+}
+
+.dnd-frame .dnd-entry {
+  background: linear-gradient(135deg, #84483a, #59332d);
+  color: #f5e8ce;
+  border: 1px solid rgba(204, 165, 103, .72);
+}
+
+.dnd-frame .dnd-entry:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.dnd-frame .dnd-card-shadow {
+  box-shadow: 0 24px 70px rgba(37, 32, 24, .18);
+}
+
+.dnd-evening .dnd-card-shadow {
+  box-shadow: 0 24px 70px rgba(24, 18, 12, .36);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dnd-frame .dnd-reveal {
+    animation: dnd-rise .7s both cubic-bezier(.2, .75, .25, 1);
+  }
+  .dnd-frame .dnd-reveal-delay {
+    animation: dnd-rise .8s .12s both cubic-bezier(.2, .75, .25, 1);
+  }
+}
+
+@keyframes dnd-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
