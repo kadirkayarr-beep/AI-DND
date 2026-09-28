@@ -1,5 +1,6 @@
 """Offline contracts for independent adventures and the legacy default adapter."""
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 import random
 import json
@@ -34,6 +35,23 @@ class SessionTests(unittest.TestCase):
         session.world_state["npcs"].append(npc)
         return npc
 
+    @contextmanager
+    def rolls(self, session, *expected):
+        """Require every scripted die to be consumed by its owning adventure."""
+        remaining = iter(expected)
+
+        def randint(low, high):
+            roll = next(remaining, None)
+            self.assertIsNotNone(roll, f"Unexpected d{high} roll")
+            sides, value = roll
+            self.assertEqual((low, high), (1, sides))
+            self.assertTrue(low <= value <= high)
+            return value
+
+        with patch.object(session.rng, "randint", side_effect=randint):
+            yield
+            self.assertIsNone(next(remaining, None), "Unused scripted dice")
+
     def test_inventory_memory_and_narration_are_independent(self):
         npc_a, npc_b = self.npc(self.a), self.npc(self.b)
         before_b = self.b.serialize_game_state()
@@ -54,8 +72,12 @@ class SessionTests(unittest.TestCase):
         self.npc(self.a)
         self.npc(self.b)
         before_b = self.b.serialize_game_state()
+        rng_b = self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
         hp_before = self.a.character["current_hp"]
-        with patch.object(game, "roll_d20", return_value=20):
+        with self.rolls(self.a, (20, 20), (20, 20), (20, 20),
+                        (8, 4), (8, 5), (20, 20), (6, 2), (6, 3)), \
+             self.rolls(self.b), self.rolls(game._DEFAULT_SESSION):
             result = game.execute_intent(
                 {"intent": "attack"}, "Gromm'a saldır", session=self.a)
         self.assertGreater(result["damage"], 0)
@@ -64,6 +86,8 @@ class SessionTests(unittest.TestCase):
         self.assertNotEqual(self.a.world_state["combat"],
                             self.b.world_state["combat"])
         self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
     def test_rng_streams_are_independent_and_not_module_random(self):
         control = random.Random(17)
@@ -112,13 +136,35 @@ class SessionTests(unittest.TestCase):
 
     def test_nested_session_and_exception_restore_context(self):
         enemy = self.npc(self.a)
-        def nested_roll():
+        rng_b = self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+
+        def nested_roll(low, high):
+            self.assertEqual((low, high), (1, 20))
+            self.assertIs(game._session(), self.a)
             self.b.character["current_hp"] = 7
             game.known_character_answer("HP", session=self.b)
+            self.assertIs(game._session(), self.a)
             raise RuntimeError("dice failed")
-        with patch.object(game, "roll_d20", side_effect=nested_roll):
-            with self.assertRaisesRegex(RuntimeError, "dice failed"):
-                game.resolve_enemy_attack(enemy, session=self.a)
+
+        with patch.object(self.a.rng, "randint", side_effect=nested_roll) as dice, \
+             self.rolls(self.b), self.rolls(game._DEFAULT_SESSION):
+            # Exercise both a default caller and a different active adventure.
+            for caller in (game._DEFAULT_SESSION, self.b):
+                with self.subTest(caller=caller):
+                    token = game._ACTIVE_SESSION.set(caller)
+                    try:
+                        with self.assertRaisesRegex(RuntimeError, "dice failed"):
+                            game.resolve_enemy_attack(enemy, session=self.a)
+                        self.assertIs(game._session(), caller)
+                        self.assertEqual(game.serialize_game_state(),
+                                         caller.serialize_game_state())
+                    finally:
+                        game._ACTIVE_SESSION.reset(token)
+            self.assertEqual(dice.call_args_list, [unittest.mock.call(1, 20)] * 2)
+        self.assertIs(game._session(), game._DEFAULT_SESSION)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
         self.assertEqual(self.b.character["current_hp"], 7)
         self.assertEqual(self.a.character["current_hp"],
                          self.a.character["max_hp"])
