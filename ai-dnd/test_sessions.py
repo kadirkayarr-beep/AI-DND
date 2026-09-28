@@ -194,6 +194,68 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(session.rng.getstate(), rng_state)
                 self.assertEqual(session.messages, message_history)
 
+    def test_invalid_default_load_preserves_explicit_sessions(self):
+        default = game._DEFAULT_SESSION
+        original_world = copy.deepcopy(default.world_state)
+        original_character = copy.deepcopy(default.character)
+        original_narrations = copy.deepcopy(default.recent_dm_narrations)
+        original_messages = copy.deepcopy(default.messages)
+        original_rng = default.rng.getstate()
+
+        def restore_default():
+            default.world_state.clear()
+            default.world_state.update(original_world)
+            default.character.clear()
+            default.character.update(original_character)
+            default.recent_dm_narrations[:] = original_narrations
+            default.messages[:] = original_messages
+            default.rng.setstate(original_rng)
+
+        try:
+            for session, name, hp in ((self.a, "First", 3),
+                                      (self.b, "Second", 7),
+                                      (default, "Default", 11)):
+                self.npc(session)
+                session.character.update(name=name, current_hp=hp)
+                session.world_state["inventory"].append(f"{name} item")
+                session.recent_dm_narrations.append(f"{name} narration")
+                session.messages.append({"role": "user", "content": name})
+                session.roll_d20()
+
+            sessions = (self.a, self.b, default)
+            held = [
+                (session.world_state, session.character, session.recent_dm_narrations)
+                for session in sessions
+            ]
+            held_contents = copy.deepcopy(held)
+            snapshots = [session.serialize_game_state() for session in sessions]
+            rng_states = [session.rng.getstate() for session in sessions]
+            messages = [copy.deepcopy(session.messages) for session in sessions]
+
+            # A different valid player/world would overwrite the default if load
+            # mutated state before rejecting the invalid narration.
+            payload = copy.deepcopy(snapshots[1])
+            payload["recent_dm_narrations"] = ["Replacement narration", None]
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / "invalid-default.json"
+                path.write_text(json.dumps(payload), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "Anlatı geçmişi geçersiz"):
+                    game.load_game(path)
+
+            self.assertIs(game._session(), default)
+            for session, references, contents, snapshot, rng_state, message_history in zip(
+                    sessions, held, held_contents, snapshots, rng_states, messages):
+                with self.subTest(session=session):
+                    self.assertIs(session.world_state, references[0])
+                    self.assertIs(session.character, references[1])
+                    self.assertIs(session.recent_dm_narrations, references[2])
+                    self.assertEqual(references, contents)
+                    self.assertEqual(session.serialize_game_state(), snapshot)
+                    self.assertEqual(session.rng.getstate(), rng_state)
+                    self.assertEqual(session.messages, message_history)
+        finally:
+            restore_default()
+
     def test_save_load_conscious_player_clears_unconscious_status(self):
         self.a.character["current_hp"] = 3
         self.a.world_state["player_combat_status"] = "active"
