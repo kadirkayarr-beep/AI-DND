@@ -36,7 +36,7 @@ class SessionTests(unittest.TestCase):
         return npc
 
     @contextmanager
-    def rolls(self, session, *expected):
+    def rolls(self, session, *expected, barrier=None):
         """Require every scripted die to be consumed by its owning adventure."""
         remaining = iter(expected)
 
@@ -46,6 +46,9 @@ class SessionTests(unittest.TestCase):
             sides, value = roll
             self.assertEqual((low, high), (1, sides))
             self.assertTrue(low <= value <= high)
+            self.assertIs(game._session(), session)
+            if barrier is not None and sides == 20:
+                barrier.wait(timeout=5)
             return value
 
         with patch.object(session.rng, "randint", side_effect=randint):
@@ -176,11 +179,12 @@ class SessionTests(unittest.TestCase):
         self.b.character["armor_class"] = 0
         self.a.character["current_hp"] = 11
         self.b.character["current_hp"] = 12
+        enemies[1].update(damage_die=6, damage_dice=1, damage_modifier=1)
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
         barrier = threading.Barrier(2)
-        def simultaneous_roll():
-            barrier.wait(timeout=5)
-            return 15
-        with patch.object(game, "roll_d20", side_effect=simultaneous_roll):
+        with self.rolls(self.a, (20, 7), barrier=barrier), \
+             self.rolls(self.b, (20, 15), (6, 4), barrier=barrier), \
+             self.rolls(game._DEFAULT_SESSION):
             with ThreadPoolExecutor(max_workers=2) as pool:
                 futures = [pool.submit(game.resolve_enemy_attack, npc,
                                        session=session)
@@ -188,8 +192,14 @@ class SessionTests(unittest.TestCase):
                 results = [future.result(timeout=10) for future in futures]
         self.assertFalse(results[0]["success"])
         self.assertTrue(results[1]["success"])
+        self.assertEqual([result["attack_roll"] for result in results], [7, 15])
+        self.assertEqual([result["damage"] for result in results], [0, 5])
+        self.assertEqual([result["target_ac"] for result in results], [100, 0])
+        self.assertEqual([result["target_hp_before"] for result in results],
+                         [11, 12])
         self.assertEqual(self.a.character["current_hp"], 11)
-        self.assertLess(self.b.character["current_hp"], 12)
+        self.assertEqual(self.b.character["current_hp"], 7)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
 class CompatibilityTests(unittest.TestCase):
