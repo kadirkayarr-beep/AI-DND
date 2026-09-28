@@ -92,6 +92,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameTurnResult"
+  /game/character-options:
+    get:
+      operationId: getCharacterOptions
+      tags: [game]
+      summary: Read race and class choices supported by the Python engine
+      responses:
+        "200":
+          description: Canonical character creation options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterCreationOptions"
   /game/campaigns:
     get:
       operationId: getCampaigns
@@ -422,7 +434,39 @@ components:
           type: ["string", "null"]
           minLength: 1
           maxLength: 100
+        character:
+          oneOf:
+            - $ref: "#/components/schemas/CharacterCreateInput"
+            - type: "null"
       additionalProperties: false
+    CharacterCreateInput:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [custom, random]
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        race:
+          type: string
+        class:
+          type: string
+      required: [mode]
+      additionalProperties: false
+    CharacterCreationOptions:
+      type: object
+      properties:
+        races:
+          type: array
+          items:
+            type: string
+        classes:
+          type: array
+          items:
+            type: string
+      required: [races, classes]
     CampaignSummary:
       type: object
       properties:

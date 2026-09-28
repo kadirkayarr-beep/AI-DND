@@ -123,6 +123,25 @@ export interface GameTurnResult {
   state: GameState;
 }
 
+export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];
+
+
+export const CharacterCreateInputMode = {
+  custom: 'custom',
+  random: 'random',
+} as const;
+
+export interface CharacterCreateInput {
+  mode: CharacterCreateInputMode;
+  /**
+     * @minLength 1
+     * @maxLength 40
+     */
+  name?: string;
+  race?: string;
+  class?: string;
+}
+
 export interface CampaignCreateInput {
   /**
      * @minLength 1
@@ -130,6 +149,12 @@ export interface CampaignCreateInput {
      * @nullable
      */
   name?: string | null;
+  character?: CharacterCreateInput | null;
+}
+
+export interface CharacterCreationOptions {
+  races: string[];
+  classes: string[];
 }
 
 export interface CampaignSummary {

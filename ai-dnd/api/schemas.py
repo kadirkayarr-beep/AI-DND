@@ -2,7 +2,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class HealthResponse(BaseModel):
@@ -35,10 +35,51 @@ class TurnResponse(BaseModel):
     state: dict[str, Any]
 
 
+class CharacterCreateInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    mode: Literal["custom", "random"]
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    race: str | None = None
+    character_class: str | None = Field(default=None, alias="class")
+
+    @field_validator("name")
+    @classmethod
+    def character_name_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Character name must not be blank.")
+        return cleaned
+
+    @model_validator(mode="after")
+    def fields_must_match_creation_mode(self) -> "CharacterCreateInput":
+        if self.mode == "custom":
+            if self.name is None or self.race is None or self.character_class is None:
+                raise ValueError(
+                    "Custom character creation requires a name, race, and class."
+                )
+        elif any(
+            value is not None
+            for value in (self.name, self.race, self.character_class)
+        ):
+            raise ValueError(
+                "Random character creation does not accept custom character fields."
+            )
+        return self
+
+
+class CharacterCreationOptions(BaseModel):
+    races: list[str]
+    classes: list[str]
+
+
 class CampaignCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
+    character: CharacterCreateInput | None = None
 
     @field_validator("name")
     @classmethod

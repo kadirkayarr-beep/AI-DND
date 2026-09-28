@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 import game
 
+from api.character_creation import configure_character
 from api.persistence.campaign_models import (
     CampaignNotActiveError,
     CampaignStorageError,
@@ -60,9 +61,12 @@ class SessionManager:
     def create_campaign(
         self,
         name: str | None = None,
+        character: dict[str, Any] | None = None,
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
         store = self._require_campaign_store()
         session = self._session_factory()
+        if character is not None:
+            configure_character(session, **character)
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(campaign_id, campaign_name, session)

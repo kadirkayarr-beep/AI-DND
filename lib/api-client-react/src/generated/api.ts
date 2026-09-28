@@ -24,6 +24,7 @@ import type {
   CampaignDetail,
   CampaignSession,
   CampaignSummary,
+  CharacterCreationOptions,
   GameHealth,
   GameSession,
   GameState,
@@ -453,6 +454,83 @@ export const usePlayGameTurn = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getPlayGameTurnMutationOptions(options));
     }
+
+export const getGetCharacterOptionsUrl = () => {
+
+
+
+
+  return `/api/game/character-options`
+}
+
+/**
+ * @summary Read race and class choices supported by the Python engine
+ */
+export const getCharacterOptions = async ( options?: Parameters<typeof customFetch>[1]): Promise<CharacterCreationOptions> => {
+
+  return customFetch<CharacterCreationOptions>(getGetCharacterOptionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCharacterOptionsQueryKey = () => {
+    return [
+    `/api/game/character-options`
+    ] as const;
+    }
+
+
+export const getGetCharacterOptionsQueryOptions = <TData = Awaited<ReturnType<typeof getCharacterOptions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCharacterOptionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCharacterOptions>>> = ({ signal }) => getCharacterOptions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCharacterOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCharacterOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getCharacterOptions>>>
+export type GetCharacterOptionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read race and class choices supported by the Python engine
+ */
+
+export function useGetCharacterOptions<TData = Awaited<ReturnType<typeof getCharacterOptions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCharacterOptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetCampaignsUrl = () => {
 

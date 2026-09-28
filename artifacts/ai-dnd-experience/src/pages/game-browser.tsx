@@ -32,19 +32,22 @@ import {
 } from 'lucide-react';
 import {
   getGetCampaignsQueryKey,
+  getGetCharacterOptionsQueryKey,
   getGetGameHealthQueryKey,
   getGetGameSessionStateQueryKey,
   useCreateCampaign,
   useGetGameHealth,
   useGetCampaigns,
+  useGetCharacterOptions,
   useGetGameSessionState,
   usePlayGameTurn,
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
-import type { CampaignHistoryEntry, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { CampaignHistoryEntry, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
+import { CharacterCreationScreen } from '@/components/character-creation-screen';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -347,7 +350,8 @@ export default function GameBrowser() {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState('');
   const [campaignId, setCampaignId] = useState('');
-  const [phase, setPhase] = useState<'opening' | 'library' | 'reveal' | 'adventure'>('opening');
+  const [phase, setPhase] = useState<'opening' | 'library' | 'creation' | 'reveal' | 'adventure'>('opening');
+  const [creationReturnPhase, setCreationReturnPhase] = useState<'opening' | 'library'>('opening');
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -363,6 +367,13 @@ export default function GameBrowser() {
       queryKey: getGetCampaignsQueryKey(),
       retry: false,
       refetchOnWindowFocus: true,
+    },
+  });
+  const characterOptionsQuery = useGetCharacterOptions({
+    query: {
+      queryKey: getGetCharacterOptionsQueryKey(),
+      enabled: phase === 'creation',
+      retry: false,
     },
   });
   const playTurn = usePlayGameTurn();
@@ -424,7 +435,13 @@ export default function GameBrowser() {
 
   const handleCreate = () => {
     setNotice(null);
-    createCampaign.mutate({ data: {} }, {
+    setCreationReturnPhase(phase === 'library' ? 'library' : 'opening');
+    setPhase('creation');
+  };
+
+  const handleCreateCharacter = (character: CharacterCreateInput) => {
+    setNotice(null);
+    createCampaign.mutate({ data: { character } }, {
       onSuccess: (created) => {
         setCampaignId(created.campaign_id);
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);
@@ -435,7 +452,13 @@ export default function GameBrowser() {
         setPhase('reveal');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({ tone: 'error', title: 'Yeni macera açılamadı', detail: friendlyError(error, 'Sunucu yanıt vermedi.') }),
+      onError: (error) => setNotice({
+        tone: 'error',
+        title: 'Karakter oluşturulamadı',
+        detail: statusCode(error) === 422
+          ? 'İsim, ırk veya sınıfı kontrol et; motor yalnızca listelenen seçenekleri kabul eder.'
+          : friendlyError(error, 'Sunucu yanıt vermedi.'),
+      }),
     });
   };
 
@@ -503,6 +526,18 @@ export default function GameBrowser() {
 
   const sessionLabel = useMemo(() => campaignId ? `#${campaignId.slice(0, 8)}` : 'yeni macera', [campaignId]);
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} />;
+  if (phase === 'creation') return (
+    <CharacterCreationScreen
+      options={characterOptionsQuery.data}
+      loadingOptions={characterOptionsQuery.isLoading}
+      optionsError={characterOptionsQuery.error}
+      creating={createCampaign.isPending}
+      notice={notice}
+      onBack={() => { setPhase(creationReturnPhase); setNotice(null); }}
+      onCreate={handleCreateCharacter}
+      onRetryOptions={() => void characterOptionsQuery.refetch()}
+    />
+  );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
   if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={() => setPhase('adventure')} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (

@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import game
+from api.character_creation import CharacterCreationError
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
     MODEL_NAME,
@@ -29,6 +30,7 @@ from api.persistence.campaign_models import (
 )
 from api.persistence.campaign_store import CampaignStore
 from api.schemas import (
+    CharacterCreationOptions,
     CampaignCreateRequest,
     CampaignDetailResponse,
     CampaignSessionResponse,
@@ -178,6 +180,17 @@ def create_app(
     def health() -> HealthResponse:
         return HealthResponse()
 
+    @application.get(
+        "/api/game/character-options",
+        response_model=CharacterCreationOptions,
+    )
+    @application.get(
+        "/api/character-options",
+        response_model=CharacterCreationOptions,
+    )
+    def character_creation_options() -> dict[str, list[str]]:
+        return {"races": list(game.RACES), "classes": list(game.CLASSES)}
+
     @application.post("/api/game/sessions", response_model=SessionResponse)
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
@@ -213,7 +226,12 @@ def create_app(
     def create_campaign(request: CampaignCreateRequest) -> dict[str, Any]:
         try:
             campaign_id, session_id, record, metadata = manager.create_campaign(
-                request.name
+                request.name,
+                character=(
+                    request.character.model_dump()
+                    if request.character is not None
+                    else None
+                ),
             )
             return redact_sensitive_values(
                 {
@@ -224,6 +242,11 @@ def create_app(
                     "history": [],
                 }
             )
+        except CharacterCreationError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "invalid_character", "message": str(error)},
+            ) from None
         except CampaignError as error:
             raise campaign_http_exception(error) from None
 

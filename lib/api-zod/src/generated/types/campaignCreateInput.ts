@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CharacterCreateInput } from './characterCreateInput';
 
 export interface CampaignCreateInput {
   /**
@@ -13,4 +14,5 @@ export interface CampaignCreateInput {
      * @nullable
      */
   name?: string | null;
+  character?: CharacterCreateInput | null;
 }

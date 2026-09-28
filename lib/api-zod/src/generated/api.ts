@@ -255,6 +255,15 @@ export const PlayGameTurnResponse = zod.object({
 
 
 /**
+ * @summary Read race and class choices supported by the Python engine
+ */
+export const GetCharacterOptionsResponse = zod.object({
+  "races": zod.array(zod.string()),
+  "classes": zod.array(zod.string())
+})
+
+
+/**
  * @summary List safe campaign metadata
  */
 export const GetCampaignsResponseItem = zod.object({
@@ -278,10 +287,18 @@ export const GetCampaignsResponse = zod.array(GetCampaignsResponseItem)
  */
 export const createCampaignBodyNameMax = 100;
 
+export const createCampaignBodyCharacterOneNameMax = 40;
+
 
 
 export const CreateCampaignBody = zod.object({
-  "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish()
+  "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish(),
+  "character": zod.union([zod.object({
+  "mode": zod.enum(['custom', 'random']),
+  "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).optional(),
+  "race": zod.string().optional(),
+  "class": zod.string().optional()
+}),zod.null()]).optional()
 })
 
 export const CreateCampaignResponse = zod.object({
