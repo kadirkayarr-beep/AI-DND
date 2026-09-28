@@ -244,6 +244,74 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
+    def test_overlapping_knockout_does_not_incapacitate_other_sessions(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.a.character.update(armor_class=10, current_hp=3)
+        self.b.character.update(armor_class=12, current_hp=18)
+        for enemy in enemies:
+            enemy.update(attack_bonus=0, damage_die=6,
+                         damage_dice=1, damage_modifier=1)
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        attack_barrier = threading.Barrier(2)
+        damage_barrier = threading.Barrier(2)
+        with self.rolls(self.a, (20, 15), (6, 5),
+                        barrier=attack_barrier, damage_barrier=damage_barrier), \
+             self.rolls(self.b, (20, 16), (6, 2),
+                        barrier=attack_barrier, damage_barrier=damage_barrier), \
+             self.rolls(game._DEFAULT_SESSION):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(game.resolve_enemy_attack, npc,
+                                       session=session)
+                           for npc, session in zip(enemies, (self.a, self.b))]
+                results = [future.result(timeout=10) for future in futures]
+            self.assertEqual([result["success"] for result in results],
+                             [True, True])
+            self.assertEqual([result["damage"] for result in results], [6, 3])
+            self.assertEqual([result["target_hp_before"] for result in results],
+                             [3, 18])
+            self.assertEqual([result["target_hp_after"] for result in results],
+                             [0, 15])
+            self.assertEqual([result["target_status"] for result in results],
+                             ["unconscious", "active"])
+            self.assertEqual(self.a.character["current_hp"], 0)
+            self.assertEqual(self.b.character["current_hp"], 15)
+            self.assertEqual(self.a.world_state["player_combat_status"],
+                             "unconscious")
+            self.assertEqual(self.b.world_state["player_combat_status"], "active")
+            before_a = self.a.serialize_game_state()
+            before_b = self.b.serialize_game_state()
+            rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+            # Both scripts are exhausted: any further roll fails immediately.
+            follow_up = game.resolve_enemy_attack(enemies[0], session=self.a)
+            self.assertFalse(follow_up["success"])
+            self.assertEqual(follow_up["outcome"], "player_unconscious")
+            self.assertEqual(follow_up["damage"], 0)
+            self.assertEqual(self.a.serialize_game_state(), before_a)
+            self.assertEqual(self.b.serialize_game_state(), before_b)
+            self.assertEqual(self.a.rng.getstate(), rng_a)
+            self.assertEqual(self.b.rng.getstate(), rng_b)
+            self.assertEqual(game.serialize_game_state(), self.default_before)
+        # B must still accept attacks after A's knockout has fully committed.
+        with self.rolls(self.a), \
+             self.rolls(self.b, (20, 17), (6, 4)), \
+             self.rolls(game._DEFAULT_SESSION):
+            conscious_attack = game.resolve_enemy_attack(enemies[1],
+                                                         session=self.b)
+        self.assertTrue(conscious_attack["success"])
+        self.assertEqual(conscious_attack["outcome"], "hit")
+        self.assertEqual(conscious_attack["attack_roll"], 17)
+        self.assertEqual(conscious_attack["damage"], 5)
+        self.assertEqual(conscious_attack["target_hp_before"], 15)
+        self.assertEqual(conscious_attack["target_hp_after"], 10)
+        self.assertEqual(conscious_attack["target_status"], "active")
+        self.assertEqual(self.b.character["current_hp"], 10)
+        self.assertEqual(self.b.world_state["player_combat_status"], "active")
+        self.assertEqual(self.a.serialize_game_state(), before_a)
+        self.assertEqual(self.a.rng.getstate(), rng_a)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()
