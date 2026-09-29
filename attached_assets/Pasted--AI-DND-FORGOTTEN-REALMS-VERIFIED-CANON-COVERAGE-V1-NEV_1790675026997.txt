@@ -1,0 +1,2043 @@
+# AI-DND — FORGOTTEN REALMS VERIFIED CANON COVERAGE V1
+# NEVERWINTER FIRST REGIONAL PACK
+# DATA-DRIVEN MULTI-REGION FOUNDATION
+# VERIFIED SOURCES ONLY — NO MODEL-MEMORY CANON
+
+This is the first real production lore-content phase after
+Forgotten Realms Lore Integration V1.
+
+The engine/lore integration baseline is now:
+
+game.py SHA-256:
+1347d741417006d1a17eca9a2636db720a741f9efa0d199b0c1fd4dba91965f6
+
+Checkpoint report:
+FORGOTTEN_REALMS_LORE_INTEGRATION_V1_CHECKPOINT_REPORT.md
+
+Treat this as the current protected baseline.
+
+============================================================
+PHASE GOAL
+============================================================
+
+Build the FIRST high-quality verified Forgotten Realms regional coverage pack.
+
+Initial region:
+
+NEVERWINTER AND ITS IMMEDIATE RELEVANT SURROUNDINGS
+
+However:
+
+NEVERWINTER MUST NOT BECOME A HARDCODED GLOBAL STARTING REGION.
+
+It is only:
+
+THE FIRST INSTALLED VERIFIED REGION PACK.
+
+The architecture must support future packs such as:
+
+- Waterdeep
+- Baldur's Gate
+- Icewind Dale
+- Cormyr
+- Dalelands
+- Moonshae Isles
+- other verified Forgotten Realms regions
+
+without redesigning the engine.
+
+============================================================
+CORE WORLD RULE
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+
+LORE AUTHORITY DECIDES SETTING REALITY.
+
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+
+VERIFIED SOURCE PACKS PROVIDE OFFICIAL SETTING FACTS.
+
+QWEN USES VERIFIED CONTEXT AND TELLS THE STORY.
+
+QWEN DOES NOT AUTHOR FORGOTTEN REALMS CANON.
+
+============================================================
+CRITICAL NON-HARDCODING RULE
+============================================================
+
+Do NOT write logic like:
+
+if forgotten_realms:
+    start_location = "Neverwinter"
+
+Do NOT make Neverwinter a special engine concept.
+
+Everything must use generic identifiers such as:
+
+setting_id
+region_pack_id
+region_id
+starting_location_id
+lore_entity_id
+
+or equivalent project-native structures.
+
+Neverwinter must be DATA.
+
+Not ENGINE LOGIC.
+
+============================================================
+FUTURE STARTING-REGION SELECTION
+============================================================
+
+Design the system now so future campaign creation can support:
+
+Choose Setting:
+Forgotten Realms
+
+Choose Starting Region:
+- Neverwinter Region
+- Waterdeep Region
+- Baldur's Gate Region
+- etc.
+
+Choose Starting Location:
+- locations available within the selected installed region pack
+
+For V1:
+
+only the verified Neverwinter pack may be available.
+
+That is acceptable.
+
+But the API/data model must already support multiple installed packs.
+
+============================================================
+STARTING LOCATION POLICY
+============================================================
+
+Do NOT permanently force one starting location.
+
+The regional pack should declare which canonical locations are:
+
+startable = true
+
+or equivalent.
+
+For V1, if verified source data supports it, Neverwinter city may be the
+first/default selectable starting location.
+
+But this must be defined by DATA.
+
+Not hardcoded Python behavior.
+
+Future packs must be able to provide their own startable locations.
+
+============================================================
+UNAVAILABLE REGION BEHAVIOR
+============================================================
+
+If a region does not have an installed VERIFIED pack:
+
+do not pretend it has coverage.
+
+Return something equivalent to:
+
+NOT_INSTALLED
+NOT_VERIFIED
+COVERAGE_UNAVAILABLE
+
+Do NOT ask Qwen to fill the missing region from memory.
+
+============================================================
+SOURCE AUTHORITY
+============================================================
+
+Use ONLY verified and owner-authorized sources.
+
+High-priority official source families include, where actually accessible:
+
+- Forgotten Realms: Adventures in Faerûn
+- Forgotten Realms: Heroes of Faerûn
+- Sword Coast Adventurer's Guide
+- relevant official Forgotten Realms adventures/sourcebooks
+- official Wizards of the Coast / D&D Beyond setting resources
+
+Older official material may supplement gaps when:
+
+- it remains compatible
+- temporal context is known
+- newer material has not superseded it
+
+Do not blindly treat old-edition information as current.
+
+============================================================
+VERY IMPORTANT SOURCE ACCESS RULE
+============================================================
+
+A source being known to exist does NOT mean this workspace has permission
+or technical access to its full contents.
+
+Before populating production lore:
+
+inventory exactly what authoritative source material is actually available.
+
+Classify each source:
+
+ACCESSIBLE_VERIFIED
+OWNER_PROVIDED
+METADATA_ONLY
+INACCESSIBLE
+UNAUTHORIZED_FOR_INGESTION
+
+Do NOT bypass paywalls.
+
+Do NOT scrape protected books.
+
+Do NOT fabricate missing source contents.
+
+Do NOT reconstruct unavailable books from Qwen memory.
+
+============================================================
+MODEL MEMORY IS NOT A SOURCE
+============================================================
+
+Absolutely prohibited:
+
+"Qwen knows Neverwinter, so ask it for 500 lore facts."
+
+Also prohibited:
+
+"Use model knowledge to fill missing details."
+
+Model-pretraining knowledge may help recognize a query,
+but may never create VERIFIED_CANON data.
+
+Every production official fact requires provenance.
+
+============================================================
+COPYRIGHT SAFETY
+============================================================
+
+Do NOT copy full sourcebook passages into the repository.
+
+Do NOT store pages of sourcebook prose.
+
+Store NORMALIZED FACTS.
+
+Example:
+
+entity:
+  Neverwinter
+
+relationship:
+  located_in -> verified parent region
+
+provenance:
+  source_id
+  chapter/section/reference
+
+Not:
+
+a copied paragraph from the book.
+
+============================================================
+FIRST ACTION — SOURCE INVENTORY
+============================================================
+
+Before adding lore facts:
+
+produce a source inventory.
+
+Report:
+
+1. source title
+2. publisher
+3. edition/currentness
+4. accessibility
+5. relevant Neverwinter coverage
+6. whether actual lore facts can legally/technically be extracted
+7. whether only metadata is available
+8. whether owner material is required
+
+If sufficient source content is NOT available:
+
+DO NOT FAKE THE PACK.
+
+Build the pack architecture and return:
+
+VERIFIED SOURCE MATERIAL REQUIRED
+
+with exactly what material the owner should provide.
+
+That is a valid outcome.
+
+============================================================
+PACK ARCHITECTURE
+============================================================
+
+Introduce generic regional lore packs.
+
+Conceptually:
+
+forgotten_realms/
+    manifest
+    regions/
+        neverwinter/
+            pack_manifest
+            entities
+            geography
+            factions
+            religion
+            people
+            history
+            rumors
+            venues
+            sources
+
+Actual filesystem structure may follow existing project conventions.
+
+Do not overengineer.
+
+============================================================
+REGIONAL PACK MANIFEST
+============================================================
+
+Each pack should have metadata equivalent to:
+
+pack_id
+setting_id
+region_id
+display_name
+version
+coverage_status
+source_ids
+starting_location_ids
+verified_fact_count
+known_gaps
+build_date
+schema_version
+
+Example conceptually:
+
+pack_id:
+fr-region-neverwinter-v1
+
+setting:
+forgotten_realms
+
+coverage:
+VERIFIED_PARTIAL
+
+Do NOT claim COMPLETE unless it truly is.
+
+============================================================
+REGIONAL PACK INDEPENDENCE
+============================================================
+
+A future Waterdeep pack must be installable without editing Neverwinter data.
+
+A future Baldur's Gate pack must be installable without engine changes.
+
+The registry should discover/load packs generically.
+
+============================================================
+PACK REGISTRY
+============================================================
+
+Create or extend a registry capable of:
+
+list_installed_region_packs()
+
+get_region_pack(pack_id)
+
+list_startable_regions()
+
+list_startable_locations(region_id)
+
+resolve_canon_entity(...)
+
+retrieve_region_lore(...)
+
+or architecture-equivalent functions.
+
+Do not expose unnecessary internal data publicly.
+
+============================================================
+COVERAGE STATUS
+============================================================
+
+Support explicit states such as:
+
+VERIFIED
+VERIFIED_PARTIAL
+UNVERIFIED
+NOT_INSTALLED
+LEGACY_UNBOUND
+
+Unknown coverage must never masquerade as verified coverage.
+
+============================================================
+NEVERWINTER V1 COVERAGE TARGET
+============================================================
+
+The first pack should be intentionally SMALL BUT DEEP.
+
+Do NOT attempt all of Faerûn.
+
+Focus on:
+
+Neverwinter
++
+directly relevant nearby geography/content required for believable play.
+
+The goal is:
+
+QUALITY > ENTITY COUNT.
+
+============================================================
+TARGET CONTENT DOMAINS
+============================================================
+
+Where sources support them, populate:
+
+1. regional identity
+2. canonical geography
+3. settlements
+4. districts where verified
+5. landmarks
+6. important public venues
+7. roads/routes
+8. nearby wilderness
+9. nearby settlements directly relevant to travel
+10. factions
+11. religion/deities relevant to the area
+12. public customs/culture
+13. canonical NPCs where useful
+14. historical context
+15. regional threats where publicly appropriate
+16. rumors/legends
+17. common knowledge
+18. specialist knowledge
+19. hidden/DM knowledge classification
+20. aliases
+
+Do not force every category to contain data.
+
+An empty verified category is better than fabricated data.
+
+============================================================
+DO NOT CREATE A LORE DUMP
+============================================================
+
+We are not building:
+
+"every Neverwinter fact ever published."
+
+Build enough verified interconnected facts to support actual gameplay.
+
+Prioritize facts likely to affect:
+
+- walking around
+- talking to locals
+- travel
+- religion
+- faction discussion
+- navigation
+- rumors
+- quest context
+- historical references
+- environmental narration
+
+============================================================
+ENTITY SCHEMA
+============================================================
+
+Use existing Lore Authority schema where possible.
+
+Every official entity should support at minimum:
+
+entity_id
+entity_type
+canonical_name
+aliases
+setting_id
+region_ids
+origin = OFFICIAL_CANON
+source_provenance
+temporal_scope
+knowledge_visibility
+
+Do not identify entities only by display name.
+
+============================================================
+STABLE IDS
+============================================================
+
+IDs must remain stable across:
+
+- saves
+- API restarts
+- pack updates
+- campaign resumes
+
+Never use array position/index as canonical identity.
+
+============================================================
+CANON VS PROCEDURAL
+============================================================
+
+Official pack:
+
+origin = OFFICIAL_CANON
+
+Generated local person/place:
+
+origin = PROCEDURAL_CAMPAIGN
+
+Temporary prose:
+
+origin = NARRATIVE_TEXTURE
+
+Never silently promote:
+
+PROCEDURAL_CAMPAIGN
+→ OFFICIAL_CANON
+
+============================================================
+GEOGRAPHY GRAPH
+============================================================
+
+Build a verified geography graph for covered entities.
+
+Relations may include:
+
+located_in
+contains
+near
+connected_to
+north_of
+south_of
+east_of
+west_of
+road_to
+coastal_to
+district_of
+
+Only populate relations actually supported.
+
+============================================================
+NO FAKE PRECISION
+============================================================
+
+Do not invent:
+
+exact coordinates
+exact distances
+exact populations
+exact travel times
+
+unless authoritative source data provides them and the project's epoch makes
+them applicable.
+
+============================================================
+TRAVEL COMPATIBILITY
+============================================================
+
+The geography graph must support future travel between regional packs.
+
+Example future architecture:
+
+Neverwinter pack
+↕
+Sword Coast shared geography
+↕
+Waterdeep pack
+
+Do not build each region as an isolated universe.
+
+But do NOT populate unverified connecting geography just to make the graph
+look complete.
+
+============================================================
+SHARED ENTITIES
+============================================================
+
+Some entities belong above one regional pack.
+
+Examples conceptually:
+
+Toril
+Faerûn
+Sword Coast
+large factions
+major deities
+
+Do not duplicate these into every pack as separate canonical identities.
+
+Use shared canonical IDs.
+
+Regional packs may reference shared entities.
+
+============================================================
+FACTIONS
+============================================================
+
+Where verified, include factions relevant to Neverwinter.
+
+Store:
+
+faction_id
+canonical_name
+aliases
+public_description facts
+known regional presence
+relationships where source-supported
+knowledge visibility
+source provenance
+
+Do NOT invent:
+
+secret membership
+secret leadership
+hidden motives
+
+unless a source supports it and knowledge gating prevents spoilers.
+
+============================================================
+FACTION LORE ≠ FACTION GAMEPLAY
+============================================================
+
+Do NOT build reputation systems.
+
+Do NOT build faction points.
+
+Do NOT build joining mechanics.
+
+This phase contains faction SETTING DATA only.
+
+============================================================
+DEITIES / RELIGION
+============================================================
+
+Use shared canonical deity identities.
+
+Regional data may reference:
+
+commonly relevant worship
+verified temples
+public religious presence
+regional traditions
+
+Do not invent a deity merely because a cleric scene needs one.
+
+============================================================
+CANONICAL NPCS
+============================================================
+
+Include official NPCs only where:
+
+- verified
+- relevant
+- useful to coverage
+
+Do not fill the region with famous NPC cameos.
+
+Store official baseline separately from campaign mutable state.
+
+============================================================
+CAMPAIGN CHANGES TO CANON NPCS
+============================================================
+
+Official source says baseline.
+
+Campaign engine says what happens afterward.
+
+If gameplay later changes a canon NPC:
+
+do not edit the lore pack.
+
+Create/use campaign override.
+
+============================================================
+CANONICAL VENUES
+============================================================
+
+Where sources verify appropriate:
+
+store canonical public venues and landmarks.
+
+Narrative Director should prefer known canon venues when directly relevant.
+
+But:
+
+do not force famous places into every scene.
+
+Procedural minor locations remain permitted.
+
+============================================================
+PROCEDURAL GAP FILLING
+============================================================
+
+Even inside Neverwinter coverage, canon will not define every:
+
+house
+shopkeeper
+alley
+room
+merchant
+traveler
+stable
+
+Permit safe procedural creation.
+
+But generated content must remain:
+
+PROCEDURAL_CAMPAIGN
+
+and be anchored to the correct canonical parent when possible.
+
+============================================================
+MAJOR ENTITY PROTECTION
+============================================================
+
+Qwen may NOT procedurally create:
+
+new major city
+new kingdom
+new major faction
+new major deity
+new famous historical event
+new canonical ruler
+new major planar realm
+
+and pass it off as Forgotten Realms canon.
+
+============================================================
+RUMORS AND LEGENDS
+============================================================
+
+Never flatten rumors into facts.
+
+Store claim types such as:
+
+OBJECTIVE_FACT
+PUBLIC_BELIEF
+RUMOR
+LEGEND
+HISTORICAL_FACT
+SECRET
+
+Narration should preserve this distinction.
+
+============================================================
+EXAMPLE
+============================================================
+
+If lore data says:
+
+claim_type = RUMOR
+
+Narration may say:
+
+"Some sailors claim..."
+
+It must NOT say:
+
+"It is unquestionably true that..."
+
+============================================================
+KNOWLEDGE VISIBILITY
+============================================================
+
+Every lore fact should have an appropriate visibility class.
+
+At minimum:
+
+COMMON
+REGIONAL
+SPECIALIST
+DISCOVERABLE
+DM_SECRET
+
+Do not inject hidden DM facts into normal narrator context.
+
+============================================================
+PLAYER KNOWLEDGE
+============================================================
+
+Player does not automatically know every fact in the pack.
+
+Track knowledge references using existing campaign lore integration.
+
+Learning may occur from:
+
+- entering/discovering locations
+- NPC dialogue
+- successful engine-confirmed checks
+- quest revelations
+- explicit canonical discovery
+
+============================================================
+NPC KNOWLEDGE
+============================================================
+
+NPCs do not automatically know the entire pack.
+
+Knowledge must remain:
+
+NPC-ID scoped
+role-aware
+location-aware
+expertise-aware
+
+Do not allow a random laborer to become an omniscient lore encyclopedia.
+
+============================================================
+SETTING EPOCH
+============================================================
+
+Determine the campaign baseline epoch ONLY from verified current source data.
+
+Do NOT guess the Forgotten Realms year.
+
+Record:
+
+setting_epoch_id
+baseline date/year if reliably established
+source
+assumptions
+
+If exact date cannot be safely verified:
+
+use an explicitly bounded era rather than inventing precision.
+
+============================================================
+TEMPORAL FACTS
+============================================================
+
+Facts should be able to represent:
+
+historical
+current_at_epoch
+valid_from
+valid_until
+unknown_time
+
+This matters for:
+
+rulers
+NPC status
+factions
+settlements
+historical events
+
+============================================================
+SOURCE CONFLICTS
+============================================================
+
+Use the existing canon conflict policy.
+
+Do NOT silently choose the version Qwen prefers.
+
+When source facts conflict:
+
+consider:
+- chronology
+- source tier
+- current edition status
+- explicit supersession
+- campaign epoch
+
+If unresolved:
+
+CANON_CONFLICT_UNRESOLVED
+
+============================================================
+SOURCE PROVENANCE
+============================================================
+
+Every production official fact must include traceable provenance.
+
+At minimum:
+
+source_id
+source title mapping
+section/chapter/reference if available
+
+Do NOT require storing source text.
+
+============================================================
+FACT REVIEW STATUS
+============================================================
+
+Support:
+
+VERIFIED
+REVIEW_REQUIRED
+REJECTED
+
+Only VERIFIED facts enter production narration as official canon.
+
+============================================================
+EXTRACTED FACTS
+============================================================
+
+If source ingestion tooling extracts structured facts automatically:
+
+initial status should NOT automatically be VERIFIED.
+
+Use something like:
+
+EXTRACTED_UNREVIEWED
+
+until deterministic/manual verification occurs.
+
+============================================================
+OWNER-AUTHORIZED SOURCE MATERIAL
+============================================================
+
+If the workspace lacks sufficient full official source content:
+
+STOP lore population at the verified limit.
+
+Report exactly which source material would materially improve Neverwinter
+coverage.
+
+The owner can then provide/upload authorized material.
+
+Do not compensate with model memory.
+
+============================================================
+DO NOT ASK QWEN TO VERIFY QWEN
+============================================================
+
+Do not:
+
+1. ask Qwen for lore
+2. ask Qwen whether that lore sounds right
+3. mark it verified
+
+That is not verification.
+
+============================================================
+OFFICIAL WEB MATERIAL
+============================================================
+
+Publicly accessible official Wizards/D&D Beyond material may be used as
+source material where appropriate.
+
+Store facts conservatively.
+
+Retain URLs/source IDs or equivalent provenance metadata.
+
+Do not scrape huge copyrighted compendiums.
+
+============================================================
+SOURCE PACK BUILD REPORT
+============================================================
+
+Generate counts:
+
+sources inspected
+sources usable
+sources inaccessible
+verified entities
+verified facts
+geography relations
+factions
+deities/religion references
+canon NPCs
+venues/landmarks
+rumors/legends
+historical facts
+knowledge-gated facts
+unresolved conflicts
+
+============================================================
+HONEST COVERAGE REPORTING
+============================================================
+
+Do not report:
+
+"Neverwinter fully complete"
+
+unless there is extraordinary evidence.
+
+Prefer:
+
+NEVERWINTER VERIFIED COVERAGE V1
+status = VERIFIED_PARTIAL
+
+with known gaps listed.
+
+============================================================
+STARTING REGION API
+============================================================
+
+Add/extend a server-authoritative way to discover available starts.
+
+Conceptually:
+
+GET /api/game/settings
+
+or
+
+GET /api/game/start-options
+
+returning:
+
+Forgotten Realms
+  installed regions:
+    Neverwinter
+      verified
+      startable locations: [...]
+
+Use current API conventions.
+
+Do not create redundant endpoints unnecessarily.
+
+============================================================
+STARTING REGION AUTHORITY
+============================================================
+
+Frontend sends:
+
+selected region ID
+selected start location ID
+
+Server validates:
+
+- pack installed
+- region verified/startable
+- location belongs to region
+- location is marked startable
+
+Frontend cannot invent IDs.
+
+============================================================
+FUTURE MULTI-REGION TEST
+============================================================
+
+Even though production contains one region:
+
+create synthetic TEST fixtures with at least two fake regional packs.
+
+Example:
+
+TEST_REGION_A
+TEST_REGION_B
+
+Verify:
+
+- registry discovers both
+- start options contain both
+- selecting A does not use B data
+- campaigns persist selected region
+- region IDs survive restart
+- no Neverwinter-specific code is required
+
+This test is MANDATORY.
+
+============================================================
+PACK REMOVAL SAFETY
+============================================================
+
+Consider what happens if:
+
+campaign references region pack X
+
+but pack X is no longer installed.
+
+Do not crash or silently substitute another region.
+
+Return explicit:
+
+BOUND_PACK_UNAVAILABLE
+
+or equivalent controlled state.
+
+============================================================
+CAMPAIGN SETTING BINDING
+============================================================
+
+A new Forgotten Realms campaign should persist:
+
+setting_id
+region_pack_id
+starting_region_id
+starting_location_id
+canon_mode
+setting_epoch
+
+or equivalent.
+
+This binding must survive restart/resume.
+
+============================================================
+NO SILENT LEGACY MIGRATION
+============================================================
+
+Existing generic campaigns remain whatever current migration policy defines.
+
+Do not retroactively turn old campaigns into Neverwinter campaigns.
+
+============================================================
+CURRENT CAMPAIGN START FLOW
+============================================================
+
+Inspect existing character creation/campaign creation flow first.
+
+Integrate start selection cleanly.
+
+Do not redesign the frontend unnecessarily.
+
+============================================================
+FRONTEND V1
+============================================================
+
+If safe and compatible:
+
+add a simple Setting / Starting Region / Starting Location selector during
+campaign creation.
+
+For V1 it may visually show:
+
+SETTING
+Forgotten Realms
+
+REGION
+Neverwinter
+
+STARTING LOCATION
+[verified startable choices]
+
+Even if only one production region exists.
+
+This is intentional.
+
+It proves the UX is data-driven.
+
+============================================================
+FUTURE UX
+============================================================
+
+Later:
+
+REGION:
+Neverwinter
+Waterdeep
+Baldur's Gate
+...
+
+should require only new data packs.
+
+Not frontend architecture rewrites.
+
+============================================================
+DO NOT BUILD A MAP UI
+============================================================
+
+No map interface yet.
+
+No giant Lore Codex.
+
+No region encyclopedia.
+
+Focus on campaign start + lore authority.
+
+============================================================
+LORE RETRIEVAL
+============================================================
+
+Integrate the verified Neverwinter pack with the existing request-scoped lore
+context.
+
+Relevant selection should consider:
+
+current region
+current location
+nearby canonical entities
+player-mentioned entity
+present NPC
+active quest context
+scene type
+known lore
+relevant faction/religion
+
+============================================================
+LORE SUB-BUDGET
+============================================================
+
+Keep retrieval bounded.
+
+Do not send the entire pack to Qwen.
+
+Record:
+
+selected fact count
+estimated tokens
+retrieval latency
+
+Stay within existing Narrative Director context budget.
+
+============================================================
+RETRIEVAL QUALITY
+============================================================
+
+Prioritize:
+
+CURRENT LOCATION
+>
+DIRECTLY MENTIONED ENTITY
+>
+LOCAL RELATION
+>
+ACTIVE CONTEXT
+>
+REGIONAL BACKGROUND
+
+Do not inject distant unrelated famous lore.
+
+============================================================
+ORGANIC NARRATION
+============================================================
+
+Neverwinter should FEEL like Forgotten Realms.
+
+It should not sound like:
+
+"According to the database..."
+
+or:
+
+"Neverwinter lore fact #37 says..."
+
+Canon should appear through:
+
+- place descriptions
+- signs
+- religion
+- architecture where verified
+- NPC references
+- local customs
+- factions
+- history
+- landmarks
+- rumors
+
+when relevant.
+
+============================================================
+NO FAN-SERVICE SPAM
+============================================================
+
+Do not make every random NPC mention:
+
+Drizzt
+Elminster
+major factions
+famous heroes
+
+unless context actually warrants it.
+
+============================================================
+DIRECT LORE QUERY
+============================================================
+
+For questions such as:
+
+"What is this city?"
+
+"Who are the Harpers?"
+
+the game may provide more direct verified lore.
+
+But must respect:
+
+player knowledge
+spoiler rules
+coverage limits
+
+============================================================
+UNKNOWN ENTITY TEST
+============================================================
+
+Player says:
+
+"I travel to the mighty city of Veloria nearby."
+
+If Veloria is not verified:
+
+do NOT invent:
+
+"Veloria is a famous city east of Neverwinter..."
+
+Instead preserve uncertainty.
+
+Major unknown entity:
+UNVERIFIED_MAJOR_ENTITY
+
+============================================================
+INVENTED DEITY TEST
+============================================================
+
+Player says:
+
+"I pray to Zarthon, god of the crimson moon."
+
+Do not register Zarthon as a Forgotten Realms god.
+
+Player can SAY the name.
+
+The world does not automatically confirm the claim.
+
+============================================================
+PLAYER FALSE-CLAIM TEST
+============================================================
+
+Player:
+
+"I am the rightful king of Neverwinter."
+
+This is a player statement.
+
+It is NOT a setting-state mutation.
+
+Do not rewrite canonical governance.
+
+============================================================
+PROCEDURAL NPC TEST
+============================================================
+
+Game generates an ordinary local cobbler.
+
+Expected:
+
+procedural NPC
+stable procedural ID if persisted
+canonical parent location
+NOT official canon
+NOT added to source registry
+
+============================================================
+PROCEDURAL SHOP TEST
+============================================================
+
+Game needs an ordinary minor shop.
+
+Allowed where policy permits.
+
+Expected:
+
+PROCEDURAL_CAMPAIGN
+
+not:
+
+OFFICIAL_CANON
+
+============================================================
+CANON LANDMARK TEST
+============================================================
+
+If the player explicitly seeks a verified canonical landmark:
+
+retrieval should favor the canonical entity.
+
+Do not replace it with a procedurally invented famous equivalent.
+
+============================================================
+REVISIT TEST
+============================================================
+
+Visit verified location.
+
+Have campaign event there.
+
+Leave.
+
+Return later.
+
+Narration should combine:
+
+official baseline lore
++
+campaign continuity
+
+without modifying static lore.
+
+============================================================
+CAMPAIGN BRANCH TEST
+============================================================
+
+Where a mutable canonical fact changes through legitimate engine play:
+
+campaign override becomes runtime truth.
+
+Official pack remains unchanged.
+
+Another campaign still receives original baseline.
+
+============================================================
+SAME-NAME TEST
+============================================================
+
+Mandatory:
+
+canon entity named X
+
+procedural entity also named X
+
+They remain distinct.
+
+Also test two canonical aliases resolving ambiguously.
+
+Never choose by display name alone.
+
+============================================================
+QUEST INTEGRATION
+============================================================
+
+Quest Outcomes may consume engine-confirmed events associated with lore IDs.
+
+Lore must NOT complete quests.
+
+Lore context is not gameplay authority.
+
+============================================================
+SKILL CHECK INTEGRATION
+============================================================
+
+Skill checks may reveal knowledge only through engine-confirmed results.
+
+Qwen narration alone cannot mark secret lore discovered.
+
+============================================================
+COMBAT INTEGRATION
+============================================================
+
+Combat may affect campaign state for a canon NPC/entity only from structured
+engine results.
+
+Narration cannot kill/move/change a canon NPC independently.
+
+============================================================
+NARRATIVE SAFETY REGRESSION
+============================================================
+
+The recent Narrative Safety Calibration is protected.
+
+Verify that rich local lore does NOT cause a return to excessive false-positive
+fallbacks.
+
+Lore proper nouns and verified environmental details should not automatically
+trigger narrator rejection.
+
+============================================================
+LORE SAFETY REASON CODES
+============================================================
+
+Exercise reason codes such as:
+
+LORE_MAJOR_ENTITY_UNVERIFIED
+LORE_GEOGRAPHY_CONTRADICTION
+LORE_FACTION_CONTRADICTION
+LORE_DEITY_UNVERIFIED
+LORE_SECRET_LEAK
+LORE_CROSS_SETTING_CONTAMINATION
+
+or current equivalents.
+
+============================================================
+CROSS-SETTING GUARD
+============================================================
+
+Test attempts to introduce unrelated setting canon:
+
+Eberron
+Greyhawk
+Dragonlance
+Skyrim
+generic fantasy kingdoms
+
+They must not become Neverwinter/Forgotten Realms canon.
+
+============================================================
+PACK VALIDATION
+============================================================
+
+Before a regional pack can load as VERIFIED:
+
+validate:
+
+- unique pack_id
+- valid schema
+- recognized setting
+- stable entity IDs
+- valid source IDs
+- no official facts without provenance
+- valid parent relations
+- aliases valid
+- no duplicate IDs
+- startable locations valid
+- start location belongs to pack/region
+- no procedural entity marked official
+- no unresolved invalid references
+
+============================================================
+PACK FAILURE
+============================================================
+
+A malformed pack should fail safely.
+
+Do not partially load half the region and silently continue.
+
+Report explicit validation errors.
+
+============================================================
+PACK VERSIONING
+============================================================
+
+Give regional packs their own version.
+
+Future Neverwinter updates must be able to add/fix lore without changing
+engine save format unnecessarily.
+
+============================================================
+SAVE DESIGN
+============================================================
+
+Campaigns should store REFERENCES, not the complete pack.
+
+Persist:
+
+pack ID
+pack version/binding where necessary
+entity IDs
+discovered fact IDs
+campaign overrides
+procedural content
+
+Do not duplicate static canon facts into every save.
+
+============================================================
+PACK UPDATE BEHAVIOR
+============================================================
+
+Think carefully about a campaign created with pack v1 and loaded under pack v2.
+
+Do not let corrections silently erase campaign history.
+
+At minimum document the V1 compatibility policy.
+
+Do not build a huge migration framework unless actually needed.
+
+============================================================
+SOURCE TEST FIXTURES
+============================================================
+
+Do not put copyrighted paragraphs into tests.
+
+Use normalized facts.
+
+============================================================
+MANDATORY TEST GROUP A — MULTI-REGION ARCHITECTURE
+============================================================
+
+1. production Neverwinter pack registers
+2. synthetic Region A registers
+3. synthetic Region B registers
+4. list regions works generically
+5. selecting A uses only A
+6. selecting B uses only B
+7. no Neverwinter-specific branching
+8. start selection persists
+9. restart preserves selection
+10. missing pack fails explicitly
+
+============================================================
+MANDATORY TEST GROUP B — SOURCE AUTHORITY
+============================================================
+
+11. official fact requires provenance
+12. model-memory fact rejected
+13. unreviewed extraction not production canon
+14. procedural fact cannot become official
+15. unknown source rejected
+16. inaccessible source metadata does not imply lore access
+17. conflicting source fact enters conflict policy
+
+============================================================
+MANDATORY TEST GROUP C — START LOCATION
+============================================================
+
+18. valid startable canonical location accepted
+19. non-startable location rejected
+20. fake location ID rejected
+21. location outside selected region rejected
+22. frontend cannot override canonical location properties
+23. start binding survives resume
+
+============================================================
+MANDATORY TEST GROUP D — CANON/PROCEDURAL
+============================================================
+
+24. canon location remains official
+25. procedural NPC remains procedural
+26. procedural location remains procedural
+27. procedural shop anchored correctly
+28. invented major city not created
+29. invented deity not created
+30. narrative texture not persisted
+31. procedural/canon same-name identity isolated
+
+============================================================
+MANDATORY TEST GROUP E — KNOWLEDGE
+============================================================
+
+32. common lore available
+33. regional lore contextually available
+34. undiscovered secret withheld
+35. successful supported discovery unlocks lore
+36. failed check does not unlock lore
+37. NPC knowledge scoped
+38. same-name NPC knowledge isolated
+39. discovery survives restart
+
+============================================================
+MANDATORY TEST GROUP F — NARRATION
+============================================================
+
+40. verified local lore appears naturally
+41. no encyclopedia dump
+42. unrelated famous lore omitted
+43. procedural NPC can coexist with canon venue
+44. rumor presented as rumor
+45. secret not leaked
+46. revisit combines canon + campaign memory
+47. false player claim does not rewrite lore
+48. invented city remains unverified
+49. invented deity remains unverified
+50. Narrative Safety remains functional
+
+============================================================
+MANDATORY TEST GROUP G — GAMEPLAY BRIDGES
+============================================================
+
+51. quest transition must be engine-confirmed
+52. skill discovery must be engine-confirmed
+53. combat change must be engine-confirmed
+54. lore_claim cannot mutate state alone
+55. failed turn does not persist lore change
+56. autosave rollback remains atomic
+
+============================================================
+MANDATORY TEST GROUP H — CAMPAIGN ISOLATION
+============================================================
+
+57. campaign A override does not affect B
+58. campaign A procedural NPC absent from B
+59. official static registry shared read-only
+60. campaign restart preserves only its own overrides
+
+============================================================
+SOURCE COVERAGE QUALITY BAR
+============================================================
+
+Do not optimize for a large fact count.
+
+A smaller graph where every fact has:
+
+identity
+type
+relationship
+visibility
+temporal scope
+provenance
+
+is preferred.
+
+============================================================
+INITIAL CONTENT TARGET
+============================================================
+
+Do not impose an arbitrary minimum if source access is insufficient.
+
+If verified sources permit, aim for enough connected data to support a
+convincing real gameplay smoke.
+
+Do NOT invent facts merely to hit a number.
+
+============================================================
+REAL QWEN3:8B NEVERWINTER SMOKE
+============================================================
+
+Only after deterministic tests pass:
+
+restart services.
+
+Use authenticated real qwen3:8b.
+
+Use disposable campaign data.
+
+Target 15–20 turns if practical.
+
+Start from a VERIFIED start location declared by the pack.
+
+Include:
+
+1. begin new Forgotten Realms campaign
+2. verify region/location binding
+3. describe current location
+4. ask local geography question
+5. interact with minor procedural NPC
+6. ask about a verified faction
+7. ask about religion/deity
+8. seek verified location/landmark
+9. make a false setting claim
+10. invent a fake major city
+11. invent a fake god
+12. revisit earlier location
+13. exercise narrative long-term memory
+14. make a skill check tied to lore discovery
+15. discuss quest context
+16. combat if naturally testable
+17. aftermath
+18. restart API
+19. resume campaign
+20. verify region/lore continuity
+
+Maximum model calls:
+
+<= 2 per turn.
+
+============================================================
+LIVE SMOKE RECORDING
+============================================================
+
+For every turn record:
+
+player input
+scene type
+current region ID
+current canonical location ID
+retrieved lore entity IDs
+verified facts selected
+player-known facts
+procedural facts
+model-call count
+lore_claims
+rejected lore claims
+narrator safety action
+lore safety action
+
+Do not expose secrets/tokens.
+
+============================================================
+LIVE QUALITY REVIEW
+============================================================
+
+Manually evaluate:
+
+Does it feel specifically like Forgotten Realms?
+
+Does it feel specifically like the covered region?
+
+Is it still natural storytelling?
+
+Does it avoid dumping lore?
+
+Does procedural content fit around canon?
+
+Does it avoid inventing major facts?
+
+Does it respect uncertainty?
+
+Does it preserve campaign events?
+
+============================================================
+NO GENERIC-FANTASY ESCAPE
+============================================================
+
+If verified local information exists:
+
+Qwen should use it where relevant.
+
+Do not allow retrieval to succeed but narration to repeatedly ignore every
+regional fact and fall back to generic medieval-fantasy prose.
+
+However:
+
+do not require named lore references every turn.
+
+Natural balance matters.
+
+============================================================
+PERFORMANCE
+============================================================
+
+Measure:
+
+pack load time
+entity resolution latency
+retrieval latency
+context token contribution
+overall narration latency
+
+Regional pack lookup should not require scanning every fact every turn.
+
+============================================================
+DO NOT ADD VECTOR DB
+============================================================
+
+Not needed for V1.
+
+Use deterministic structured retrieval/indexing.
+
+============================================================
+NO EXTRA MODEL CALL
+============================================================
+
+Lore coverage must NOT create a third model call.
+
+Existing <=2 turn ceiling remains.
+
+============================================================
+REGRESSION GATE
+============================================================
+
+Run all relevant existing suites:
+
+- 17 deterministic engine gates or current equivalent
+- Forgotten Realms Lore Authority
+- Lore Integration
+- Narrative Safety
+- Narrative Director
+- semantic intent
+- query grounding
+- narrator safety
+- Skill Checks
+- Quest Outcomes
+- Combat V3
+- combat compatibility
+- persistence
+- save/load
+- migration
+- session isolation
+- campaign isolation
+- API tests
+- frontend tests
+- OpenAPI parity if API changed
+- generated client if API changed
+- TypeScript typecheck
+- production builds
+- Python compilation
+- git diff --check
+
+Do not weaken existing tests.
+
+============================================================
+CURRENT GAME.PY PROTECTION
+============================================================
+
+Before implementation:
+
+verify:
+
+1347d741417006d1a17eca9a2636db720a741f9efa0d199b0c1fd4dba91965f6
+
+against current ai-dnd/game.py.
+
+If it differs unexpectedly:
+
+STOP and report.
+
+Prefer no game.py changes during source-pack population.
+
+If broader game.py modification becomes necessary:
+
+STOP.
+
+Return:
+
+ENGINE APPROVAL REQUIRED
+
+with exact minimal proposed changes.
+
+============================================================
+CHECKPOINT
+============================================================
+
+After successful V1:
+
+record current game.py SHA.
+
+Create/report a named logical checkpoint:
+
+FORGOTTEN_REALMS_NEVERWINTER_CANON_PACK_V1
+
+Even if Replit workspace checkpoint naming itself is automatic.
+
+Do not overwrite old reports/manifests.
+
+============================================================
+DO NOT START AFTER PASS
+============================================================
+
+Do NOT automatically start:
+
+Waterdeep pack
+Baldur's Gate pack
+Spells V1
+XP / Leveling
+faction gameplay
+economy
+companions
+multiplayer
+deployment
+Lore Codex
+
+STOP after the Neverwinter coverage report.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return a detailed report containing:
+
+1. baseline game.py SHA verification
+2. source inventory
+3. source accessibility classification
+4. owner-provided sources used
+5. official web sources used
+6. inaccessible sources
+7. pack architecture
+8. pack ID
+9. pack version
+10. coverage status
+11. setting epoch
+12. startable regions
+13. startable locations
+14. proof Neverwinter is not hardcoded
+15. synthetic multi-region test result
+16. entity count by type
+17. verified fact count
+18. geography relation count
+19. faction count
+20. deity/religion references
+21. canonical NPC count
+22. venue/landmark count
+23. rumor/legend count
+24. historical fact count
+25. secret/gated fact count
+26. provenance coverage
+27. unreviewed/rejected fact count
+28. unresolved source conflicts
+29. known coverage gaps
+30. canon/procedural behavior
+31. player-knowledge behavior
+32. NPC-knowledge behavior
+33. start-selection API
+34. frontend start-selection behavior
+35. campaign setting binding
+36. persistence result
+37. restart/resume result
+38. campaign isolation
+39. retrieval algorithm
+40. average lore facts retrieved
+41. lore context token usage
+42. retrieval latency
+43. Narrative Director integration
+44. Narrative Safety result
+45. lore safety reason-code results
+46. cross-setting tests
+47. Skill Check integration
+48. Quest integration
+49. Combat integration
+50. deterministic test totals
+51. API test total
+52. semantic/query/safety totals
+53. frontend tests
+54. typecheck/build
+55. qwen3:8b live-smoke turn count
+56. model-call count
+57. canon hallucinations found
+58. invented major entities blocked
+59. spoiler leaks found
+60. generic-fantasy drift observations
+61. BEFORE/AFTER narrative examples
+62. performance results
+63. current game.py SHA
+64. whether game.py changed
+65. checkpoint/report created
+66. known limitations
+67. source material still needed
+68. recommendation for expanding to the NEXT regional pack
+69. readiness for Spells V1
+
+============================================================
+PASS CONDITION
+============================================================
+
+PASS only if:
+
+- Neverwinter is a DATA PACK, not engine logic
+- future multi-region selection is proven
+- start location selection is data-driven
+- every official production fact is source-backed
+- no canon is created from model memory
+- unknown facts remain unknown
+- procedural content remains procedural
+- major invented setting entities are blocked
+- secrets remain gated
+- campaign canon can diverge safely from baseline
+- static lore remains immutable
+- regional retrieval works
+- lore appears naturally in narration
+- model calls remain <=2
+- persistence/restart passes
+- campaign isolation passes
+- existing gameplay regressions remain green
+- source coverage is reported honestly
+
+============================================================
+ULTIMATE V1 GOAL
+============================================================
+
+We are NOT trying to build all of Forgotten Realms today.
+
+We are proving that ONE region can be:
+
+deep,
+verified,
+source-traceable,
+interactive,
+narratively alive,
+and mechanically safe.
+
+Neverwinter is merely the first installed pack.
+
+Tomorrow another region should be possible by adding DATA.
+
+Not rewriting the engine.
+
+TODAY:
+Neverwinter.
+
+LATER:
+Waterdeep.
+Baldur's Gate.
+Icewind Dale.
+Cormyr.
+And eventually much more of Faerûn.
+
+PYTHON DECIDES GAME REALITY.
+
+LORE AUTHORITY DECIDES SETTING REALITY.
+
+VERIFIED PACKS PROVIDE CANON.
+
+CAMPAIGN EVENTS CREATE THE PLAYER'S TIMELINE.
+
+QWEN TELLS THE STORY.
