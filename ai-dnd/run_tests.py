@@ -12,6 +12,7 @@ TESTS = (
     "test_ai_pipeline_semantics.py",
     "test_startup.py",
     "test_sessions.py",
+    "test_playable_living_world.py",
     "test_persistence.py",
     "test_combat.py",
     "test_combat_v2.py",

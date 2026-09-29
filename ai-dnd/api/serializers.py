@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import game
+import living_world
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -59,7 +60,7 @@ _SHOP_FIELDS = (
     "tags",
     "shopkeeper_id",
 )
-_FEATURE_FIELDS = ("location", "name", "description")
+_FEATURE_FIELDS = ("id", "location", "name", "description")
 _DOOR_FIELDS = (
     "id",
     "name",
@@ -69,7 +70,9 @@ _DOOR_FIELDS = (
     "locked",
     "broken",
 )
-_LOCATION_FIELDS = ("id", "name", "type", "description")
+_LOCATION_FIELDS = (
+    "id", "name", "type", "description", "parent_location_id", "exit_location_id"
+)
 _COMBAT_ATTACK_FIELDS = (
     "action",
     "status",
@@ -385,6 +388,9 @@ def serialize_session_state(
     ]
     return {
         "location": copy.deepcopy(world.get("location")),
+        "scene": living_world.public_scene_projection(
+            world, flags.get("turn_index", 0)
+        ),
         "world": world_metadata,
         "journal": copy.deepcopy(
             journal if journal is not None else empty_campaign_journal()

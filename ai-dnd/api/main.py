@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import inspect
 import json
 import logging
 import tempfile
@@ -137,6 +138,7 @@ def _lore_context_for_turn(
     session: Any,
     player_message: str,
     target_id: str | None,
+    scene_plan: dict[str, Any] | None = None,
     registry: Any = PRODUCTION_REGISTRY,
 ) -> dict[str, Any]:
     state = getattr(record, "lore_authority", CampaignLoreState.legacy_unbound())
@@ -148,6 +150,18 @@ def _lore_context_for_turn(
 
     world = session.world_state
     location = world.get("location")
+    planned_location = (
+        scene_plan.get("lore_location_id")
+        if isinstance(scene_plan, dict)
+        else None
+    )
+    current_location_id = planned_location or state.current_location_entity_id
+    current_location = registry.entity(current_location_id)
+    if (
+        current_location is None
+        or current_location.entity_type.value != "CANONICAL_LOCATION"
+    ):
+        current_location_id = state.current_location_entity_id
     present_npc_ids = {
         entity_id
         for npc in world.get("npcs", [])
@@ -177,7 +191,7 @@ def _lore_context_for_turn(
         and quest_id
     }
     return registry.retrieve_lore_context(
-        current_location_id=state.current_location_entity_id,
+        current_location_id=current_location_id,
         player_message=player_message,
         mentioned_entity_ids=mentioned,
         present_npc_ids=present_npc_ids,
@@ -638,11 +652,16 @@ def create_app(
                 session, "lore_authority_context", None
             )
             try:
+                scene_plan = session.plan_living_world_turn(
+                    narrative_player_message,
+                    target_id=request.target_id,
+                )
                 lore_context = _lore_context_for_turn(
                     record,
                     session,
                     narrative_player_message,
                     request.target_id,
+                    scene_plan=scene_plan,
                 )
                 lore_diagnostics = lore_context.get("diagnostics", {})
                 _logger.info(
@@ -664,13 +683,14 @@ def create_app(
                     ):
                         with active_adapter.capture_model_calls() as model_calls:
                             with active_adapter.capture_model_failures() as model_failures:
-                                if request.target_id is None:
-                                    result = session.run_player_turn(request.message)
-                                else:
-                                    result = session.run_player_turn(
-                                        request.message,
-                                        target_id=request.target_id,
-                                    )
+                                run_turn = session.run_player_turn
+                                run_parameters = inspect.signature(run_turn).parameters
+                                run_kwargs = {}
+                                if "scene_plan" in run_parameters:
+                                    run_kwargs["scene_plan"] = scene_plan
+                                if request.target_id is not None:
+                                    run_kwargs["target_id"] = request.target_id
+                                result = run_turn(request.message, **run_kwargs)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)

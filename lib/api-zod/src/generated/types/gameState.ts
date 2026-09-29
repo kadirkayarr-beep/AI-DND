@@ -11,6 +11,7 @@ import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
 import type { GameFeature } from './gameFeature';
 import type { GameNpc } from './gameNpc';
+import type { GameScene } from './gameScene';
 import type { GameShop } from './gameShop';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
@@ -23,6 +24,7 @@ import type { QuestState } from './questState';
  */
 export interface GameState {
   location: string;
+  scene: GameScene | null;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;
@@ -37,5 +39,5 @@ export interface GameState {
   /** @minimum 0 */
   turn_index: number;
   quests: QuestState[];
-  quest_offers?: QuestOffer[];
+  quest_offers: QuestOffer[];
 }

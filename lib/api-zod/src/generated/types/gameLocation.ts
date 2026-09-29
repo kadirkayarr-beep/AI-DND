@@ -11,4 +11,6 @@ export interface GameLocation {
   name: string;
   type: string;
   description: string;
+  parent_location_id: string | null;
+  exit_location_id: string | null;
 }

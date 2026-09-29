@@ -7,6 +7,7 @@
  */
 
 export interface GameFeature {
+  id: string;
   location: string;
   name: string;
   description: string;

@@ -32,6 +32,61 @@ export interface HealthResponse {
   model: HealthResponseModel;
 }
 
+export interface GameScenePlayerPosition {
+  location_id: string;
+  kind: string;
+  target_id: string | null;
+}
+
+export interface GameSceneNpc {
+  id: string;
+  name: string;
+  role: string;
+  appearance: string;
+}
+
+export interface GameSceneFeature {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export type GameSceneReferentLifecycle = typeof GameSceneReferentLifecycle[keyof typeof GameSceneReferentLifecycle];
+
+
+export const GameSceneReferentLifecycle = {
+  presented: 'presented',
+  promoted: 'promoted',
+} as const;
+
+export interface GameSceneReferent {
+  id: string;
+  kind: string | null;
+  description: string;
+  source_turn: number | null;
+  lifecycle: GameSceneReferentLifecycle;
+  promoted_npc_id: string | null;
+}
+
+export interface GameScene {
+  id: string;
+  location_id: string;
+  parent_location_id: string | null;
+  kind: string | null;
+  /** @minimum 0 */
+  visit_revision: number;
+  /** @minimum 0 */
+  activity_revision: number;
+  last_activity: string | null;
+  player_position: GameScenePlayerPosition;
+  /** @maxItems 12 */
+  npcs: GameSceneNpc[];
+  /** @maxItems 24 */
+  features: GameSceneFeature[];
+  /** @maxItems 6 */
+  referents: GameSceneReferent[];
+}
+
 export type GameWorldMetadataEnvironment = typeof GameWorldMetadataEnvironment[keyof typeof GameWorldMetadataEnvironment];
 
 
@@ -261,6 +316,8 @@ export interface GameLocation {
   name: string;
   type: string;
   description: string;
+  parent_location_id: string | null;
+  exit_location_id: string | null;
 }
 
 export interface GameCharacter {
@@ -313,6 +370,7 @@ export interface GameShop {
 }
 
 export interface GameFeature {
+  id: string;
   location: string;
   name: string;
   description: string;
@@ -491,6 +549,7 @@ export type GameStateLocations = {[key: string]: GameLocation};
  */
 export interface GameState {
   location: string;
+  scene: GameScene | null;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;
@@ -505,7 +564,7 @@ export interface GameState {
   /** @minimum 0 */
   turn_index: number;
   quests: QuestState[];
-  quest_offers?: QuestOffer[];
+  quest_offers: QuestOffer[];
 }
 
 export interface GameSession {

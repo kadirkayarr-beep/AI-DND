@@ -205,15 +205,73 @@ function InventoryPanel({ items }: { items: string[] }) {
 
 function WorldPanel({ state }: { state: GameState }) {
   const locations = Object.values(state.locations);
-  return <section className="state-panel" data-testid="panel-world"><div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Kamuya açık dünya</Kicker><h2>Çevre</h2></div></div><div className="location-current" data-testid="text-current-location"><small><MapPinned size={11} className="mr-1 inline" /> Şu anki konum</small>{state.locations[state.location]?.name ?? state.location}</div><div className="mt-3 grid gap-2">{locations.length ? locations.map((location) => <div className="data-row" key={location.id} data-testid={`location-${location.id}`}><div className="data-row-head"><span>{location.name}</span>{location.id === state.location && <Check size={14} className="text-[#c09a61]" />}</div><div className="data-row-meta">{location.type}</div><div className="data-row-desc">{location.description}</div></div>) : <div className="empty-line">Motor konum kaydetmedi.</div>}</div></section>;
+  const scene = state.scene;
+  return <section className="state-panel" data-testid="panel-world">
+    <div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Kamuya açık dünya</Kicker><h2>Çevre</h2></div></div>
+    <div className="location-current" data-testid="text-current-location"><small><MapPinned size={11} className="mr-1 inline" /> Şu anki konum</small>{state.locations[state.location]?.name ?? state.location}</div>
+    {scene && <div className="data-row mt-3" data-testid={`scene-${scene.id}`}>
+      <div className="data-row-head"><span>Şu anki sahne</span><span className="status-pill">{scene.kind ?? 'çevre'}</span></div>
+      <div className="data-row-meta">Ziyaret {scene.visit_revision} · hareketlilik {scene.activity_revision} · {scene.player_position.kind}</div>
+      <div className="data-row-desc">{scene.last_activity ?? 'Sahne sakin; çevredeki ayrıntılar değişmedi.'}</div>
+    </div>}
+    <div className="mt-3 grid gap-2">{locations.length ? locations.map((location) => <div className="data-row" key={location.id} data-testid={`location-${location.id}`}>
+      <div className="data-row-head"><span>{location.name}</span>{location.id === state.location && <Check size={14} className="text-[#c09a61]" />}</div>
+      <div className="data-row-meta">{location.type}</div>
+      <div className="data-row-desc">{location.description}</div>
+      {(location.parent_location_id || location.exit_location_id) && <div className="subtle-text mt-2">
+        {location.parent_location_id && <>Yakınında: {state.locations[location.parent_location_id]?.name ?? location.parent_location_id}</>}
+        {location.parent_location_id && location.exit_location_id && ' · '}
+        {location.exit_location_id && <>Dışarı çıkış: {state.locations[location.exit_location_id]?.name ?? location.exit_location_id}</>}
+      </div>}
+    </div>) : <div className="empty-line">Yakında başka bir yer görünmüyor.</div>}</div>
+  </section>;
 }
 
-function PeoplePanel({ npcs }: { npcs: GameNpc[] }) {
-  return <section className="state-panel" data-testid="panel-npcs"><div className="flex items-end justify-between"><div><Kicker><Users size={12} className="mr-1 inline" /> Karşılaşılanlar</Kicker><h2>Kişiler</h2></div><span className="character-badge">{String(npcs.length).padStart(2, '0')}</span></div><div className="mt-4">{npcs.length ? npcs.map((npc) => <div className="data-row" key={npc.id} data-testid={`npc-${npc.id}`}><div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status}</span>}</div><div className="data-row-meta">{npc.role} · {npc.location}</div>{npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}{(npc.relationship || npc.current_hp !== null || npc.armor_class !== null) && <div className="mt-3 flex flex-wrap gap-3 border-t border-[#4b3926] pt-2 font-mono text-[9px] text-[#83745e]">{npc.relationship && <span>İlişki: {npc.relationship}</span>}{npc.current_hp !== null && npc.max_hp !== null && <span>Can: {npc.current_hp}/{npc.max_hp}</span>}{npc.armor_class !== null && <span>Zırh: {npc.armor_class}</span>}</div>}</div>) : <div className="empty-line">Bu bölgede tanınan kişi yok.</div>}</div></section>;
+function PeoplePanel({ state }: { state: GameState }) {
+  const scenePeople = state.scene?.npcs ?? [];
+  const sceneIds = new Set(scenePeople.map((npc) => npc.id));
+  const otherPeople = state.npcs.filter((npc) => !sceneIds.has(npc.id));
+  const referents = state.scene?.referents ?? [];
+  return <section className="state-panel" data-testid="panel-npcs">
+    <div className="flex items-end justify-between"><div><Kicker><Users size={12} className="mr-1 inline" /> Karşılaşılanlar</Kicker><h2>Kişiler</h2></div><span className="character-badge">{String(scenePeople.length + otherPeople.length).padStart(2, '0')}</span></div>
+    <div className="mt-4">
+      <Kicker>Yakınında</Kicker>
+      {scenePeople.length ? scenePeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`scene-npc-${npc.id}`}>
+        <div className="data-row-head"><span>{npc.name}</span><span className="status-pill">{npc.role}</span></div>
+        {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
+      </div>) : <div className="empty-line mt-2">Şu an yakında tanıdık biri görünmüyor.</div>}
+    </div>
+    {referents.length > 0 && <div className="mt-4">
+      <Kicker>Arka plandaki hareketlilik</Kicker>
+      {referents.map((referent) => <div className="data-row mt-2" key={referent.id} data-testid={`scene-referent-${referent.id}`}>
+        <div className="data-row-head"><span>{referent.kind ?? 'Bir kişi'}</span><span className="status-pill">{referent.lifecycle === 'promoted' ? 'tanıştın' : 'uzakta'}</span></div>
+        <div className="data-row-desc">{referent.description}</div>
+      </div>)}
+    </div>}
+    {otherPeople.length > 0 && <div className="mt-4">
+      <Kicker>Diğer karşılaştıkların</Kicker>
+      {otherPeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`npc-${npc.id}`}>
+        <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status}</span>}</div>
+        <div className="data-row-meta">{npc.role} · {state.locations[npc.location]?.name ?? npc.location}</div>
+        {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
+      </div>)}
+    </div>}
+  </section>;
 }
 
 function DetailsPanel({ state }: { state: GameState }) {
-  return <section className="state-panel" data-testid="panel-details"><Kicker><DoorOpen size={12} className="mr-1 inline" /> İncelenebilir</Kicker><h2>Ayrıntılar</h2><div className="mt-4">{state.doors.length ? state.doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}><div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-[#bc7062]" /> : <KeyRound size={14} className="text-[#c09a61]" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div><div className="data-row-desc">{door.description}</div></div>) : <div className="empty-line">Kapı veya geçit kaydedilmedi.</div>}</div><Rule /><div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{state.features.length ? state.features.map((feature, index) => <div className="border-l border-[#866942] pl-3" key={`${feature.name}-${index}`} data-testid={`feature-${index}`}><div className="font-serif text-[17px] text-[#d1c2a6]">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div></div>) : <div className="empty-line">Motor çevre özelliği kaydetmedi.</div>}</div></div></section>;
+  const features = state.scene?.features ?? state.features;
+  return <section className="state-panel" data-testid="panel-details">
+    <Kicker><DoorOpen size={12} className="mr-1 inline" /> İncelenebilir</Kicker><h2>Ayrıntılar</h2>
+    <div className="mt-4">{state.doors.length ? state.doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}>
+      <div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-[#bc7062]" /> : <KeyRound size={14} className="text-[#c09a61]" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div>
+      <div className="data-row-desc">{door.description}</div>
+    </div>) : <div className="empty-line">Bu bölgede kapı veya geçit görünmüyor.</div>}</div>
+    <Rule />
+    <div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{features.length ? features.map((feature) => <div className="border-l border-[#866942] pl-3" key={feature.id} data-testid={`feature-${feature.id}`}>
+      <div className="font-serif text-[17px] text-[#d1c2a6]">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div>
+    </div>) : <div className="empty-line">Burada belirgin bir çevre ayrıntısı görünmüyor.</div>}</div></div>
+  </section>;
 }
 
 function LeftColumn({ state }: { state: GameState }) {
@@ -392,7 +450,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
       </div>
       <div role="tabpanel" id="world-panel-content" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
-        {activeTab === 'npcs' && <PeoplePanel npcs={state.npcs} />}
+  {activeTab === 'npcs' && <PeoplePanel state={state} />}
          {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
         {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} />}
       </div>
@@ -401,8 +459,8 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
 }
 
 function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry[]; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void }) {
-  if (!entries.length) return <div className="empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya, sunucunun onayladığı bir yanıtla karşılık verecek.</div>;
-  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen · yerel kayıt</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Yerel anlatı kaydı · kanonik dünya durumu sağ panelde</div></div>;
+  if (!entries.length) return <div className="empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya seçiminin ardından karşılık verecek.</div>;
+  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Sahne, kişiler ve öykü notları sağ panelde</div></div>;
 }
 
 function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice, combatTargetId, setCombatTargetId }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null; combatTargetId: string; setCombatTargetId: (value: string) => void }) {

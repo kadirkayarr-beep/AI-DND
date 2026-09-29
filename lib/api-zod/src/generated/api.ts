@@ -25,6 +25,16 @@ export const GetGameHealthResponse = zod.object({
 /**
  * @summary Create a new isolated game session
  */
+export const createGameSessionResponseStateSceneOneVisitRevisionMin = 0;
+
+export const createGameSessionResponseStateSceneOneActivityRevisionMin = 0;
+
+export const createGameSessionResponseStateSceneOneNpcsMax = 12;
+
+export const createGameSessionResponseStateSceneOneFeaturesMax = 24;
+
+export const createGameSessionResponseStateSceneOneReferentsMax = 6;
+
 export const createGameSessionResponseStateWorldEnvironmentDefault = `unknown`;
 export const createGameSessionResponseStateWorldTimeOfDayDefault = `day`;
 export const createGameSessionResponseStateWorldWeatherDefault = `clear`;
@@ -130,6 +140,39 @@ export const CreateGameSessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(createGameSessionResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(createGameSessionResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(createGameSessionResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(createGameSessionResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(createGameSessionResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createGameSessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createGameSessionResponseStateWorldTimeOfDayDefault),
@@ -189,7 +232,9 @@ export const CreateGameSessionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -232,6 +277,7 @@ export const CreateGameSessionResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -296,7 +342,7 @@ export const CreateGameSessionResponse = zod.object({
   "target": zod.string().max(createGameSessionResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(createGameSessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -307,6 +353,16 @@ export const CreateGameSessionResponse = zod.object({
 export const GetGameSessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
+
+export const getGameSessionStateResponseSceneOneVisitRevisionMin = 0;
+
+export const getGameSessionStateResponseSceneOneActivityRevisionMin = 0;
+
+export const getGameSessionStateResponseSceneOneNpcsMax = 12;
+
+export const getGameSessionStateResponseSceneOneFeaturesMax = 24;
+
+export const getGameSessionStateResponseSceneOneReferentsMax = 6;
 
 export const getGameSessionStateResponseWorldEnvironmentDefault = `unknown`;
 export const getGameSessionStateResponseWorldTimeOfDayDefault = `day`;
@@ -411,6 +467,39 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCou
 
 export const GetGameSessionStateResponse = zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(getGameSessionStateResponseSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(getGameSessionStateResponseSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(getGameSessionStateResponseSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(getGameSessionStateResponseSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(getGameSessionStateResponseSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getGameSessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getGameSessionStateResponseWorldTimeOfDayDefault),
@@ -470,7 +559,9 @@ export const GetGameSessionStateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -513,6 +604,7 @@ export const GetGameSessionStateResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -577,7 +669,7 @@ export const GetGameSessionStateResponse = zod.object({
   "target": zod.string().max(getGameSessionStateResponseQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -598,6 +690,16 @@ export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
+
+export const playGameTurnResponseStateSceneOneVisitRevisionMin = 0;
+
+export const playGameTurnResponseStateSceneOneActivityRevisionMin = 0;
+
+export const playGameTurnResponseStateSceneOneNpcsMax = 12;
+
+export const playGameTurnResponseStateSceneOneFeaturesMax = 24;
+
+export const playGameTurnResponseStateSceneOneReferentsMax = 6;
 
 export const playGameTurnResponseStateWorldEnvironmentDefault = `unknown`;
 export const playGameTurnResponseStateWorldTimeOfDayDefault = `day`;
@@ -726,6 +828,39 @@ export const PlayGameTurnResponse = zod.object({
   "narration": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(playGameTurnResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(playGameTurnResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(playGameTurnResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(playGameTurnResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(playGameTurnResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playGameTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playGameTurnResponseStateWorldTimeOfDayDefault),
@@ -785,7 +920,9 @@ export const PlayGameTurnResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -828,6 +965,7 @@ export const PlayGameTurnResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -892,7 +1030,7 @@ export const PlayGameTurnResponse = zod.object({
   "target": zod.string().max(playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "action": zod.string().nullish(),
@@ -1070,6 +1208,16 @@ export const AcceptGameQuestParams = zod.object({
   "quest_id": zod.coerce.string().max(acceptGameQuestPathQuestIdMax)
 })
 
+export const acceptGameQuestResponseStateSceneOneVisitRevisionMin = 0;
+
+export const acceptGameQuestResponseStateSceneOneActivityRevisionMin = 0;
+
+export const acceptGameQuestResponseStateSceneOneNpcsMax = 12;
+
+export const acceptGameQuestResponseStateSceneOneFeaturesMax = 24;
+
+export const acceptGameQuestResponseStateSceneOneReferentsMax = 6;
+
 export const acceptGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
 export const acceptGameQuestResponseStateWorldTimeOfDayDefault = `day`;
 export const acceptGameQuestResponseStateWorldWeatherDefault = `clear`;
@@ -1201,6 +1349,39 @@ export const AcceptGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(acceptGameQuestResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(acceptGameQuestResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(acceptGameQuestResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(acceptGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(acceptGameQuestResponseStateWorldTimeOfDayDefault),
@@ -1260,7 +1441,9 @@ export const AcceptGameQuestResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -1303,6 +1486,7 @@ export const AcceptGameQuestResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -1367,7 +1551,7 @@ export const AcceptGameQuestResponse = zod.object({
   "target": zod.string().max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -1405,6 +1589,16 @@ export const CancelGameQuestParams = zod.object({
   "session_id": zod.coerce.string().uuid(),
   "quest_id": zod.coerce.string().max(cancelGameQuestPathQuestIdMax)
 })
+
+export const cancelGameQuestResponseStateSceneOneVisitRevisionMin = 0;
+
+export const cancelGameQuestResponseStateSceneOneActivityRevisionMin = 0;
+
+export const cancelGameQuestResponseStateSceneOneNpcsMax = 12;
+
+export const cancelGameQuestResponseStateSceneOneFeaturesMax = 24;
+
+export const cancelGameQuestResponseStateSceneOneReferentsMax = 6;
 
 export const cancelGameQuestResponseStateWorldEnvironmentDefault = `unknown`;
 export const cancelGameQuestResponseStateWorldTimeOfDayDefault = `day`;
@@ -1537,6 +1731,39 @@ export const CancelGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(cancelGameQuestResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(cancelGameQuestResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(cancelGameQuestResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(cancelGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(cancelGameQuestResponseStateWorldTimeOfDayDefault),
@@ -1596,7 +1823,9 @@ export const CancelGameQuestResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -1639,6 +1868,7 @@ export const CancelGameQuestResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -1703,7 +1933,7 @@ export const CancelGameQuestResponse = zod.object({
   "target": zod.string().max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -1812,6 +2042,16 @@ export const CreateCampaignBody = zod.object({
   "starting_location_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneStartingLocationIdMax)
 }),zod.null()]).optional()
 })
+
+export const createCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const createCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const createCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const createCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const createCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const createCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const createCampaignResponseStateWorldTimeOfDayDefault = `day`;
@@ -1923,6 +2163,39 @@ export const CreateCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(createCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(createCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(createCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(createCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(createCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createCampaignResponseStateWorldTimeOfDayDefault),
@@ -1982,7 +2255,9 @@ export const CreateCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -2025,6 +2300,7 @@ export const CreateCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -2089,7 +2365,7 @@ export const CreateCampaignResponse = zod.object({
   "target": zod.string().max(createCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -2177,6 +2453,16 @@ export const CreateCampaignResponse = zod.object({
 export const GetCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
+
+export const getCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const getCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const getCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const getCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const getCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const getCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const getCampaignResponseStateWorldTimeOfDayDefault = `day`;
@@ -2298,6 +2584,39 @@ export const GetCampaignResponse = zod.object({
 }),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(getCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(getCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(getCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(getCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(getCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getCampaignResponseStateWorldTimeOfDayDefault),
@@ -2357,7 +2676,9 @@ export const GetCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -2400,6 +2721,7 @@ export const GetCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -2464,7 +2786,7 @@ export const GetCampaignResponse = zod.object({
   "target": zod.string().max(getCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -2552,6 +2874,16 @@ export const GetCampaignResponse = zod.object({
 export const ResumeCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
+
+export const resumeCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resumeCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const resumeCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const resumeCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const resumeCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const resumeCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const resumeCampaignResponseStateWorldTimeOfDayDefault = `day`;
@@ -2663,6 +2995,39 @@ export const ResumeCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resumeCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resumeCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resumeCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeCampaignResponseStateWorldTimeOfDayDefault),
@@ -2722,7 +3087,9 @@ export const ResumeCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -2765,6 +3132,7 @@ export const ResumeCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -2829,7 +3197,7 @@ export const ResumeCampaignResponse = zod.object({
   "target": zod.string().max(resumeCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -2985,6 +3353,16 @@ export const GetLegacyCharacterOptionsResponse = zod.object({
  * Compatibility alias for /game/sessions. Prefer the /game route family for new clients.
  * @summary Legacy session-creation alias
  */
+export const createLegacySessionResponseStateSceneOneVisitRevisionMin = 0;
+
+export const createLegacySessionResponseStateSceneOneActivityRevisionMin = 0;
+
+export const createLegacySessionResponseStateSceneOneNpcsMax = 12;
+
+export const createLegacySessionResponseStateSceneOneFeaturesMax = 24;
+
+export const createLegacySessionResponseStateSceneOneReferentsMax = 6;
+
 export const createLegacySessionResponseStateWorldEnvironmentDefault = `unknown`;
 export const createLegacySessionResponseStateWorldTimeOfDayDefault = `day`;
 export const createLegacySessionResponseStateWorldWeatherDefault = `clear`;
@@ -3090,6 +3468,39 @@ export const CreateLegacySessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(createLegacySessionResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(createLegacySessionResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(createLegacySessionResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacySessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacySessionResponseStateWorldTimeOfDayDefault),
@@ -3149,7 +3560,9 @@ export const CreateLegacySessionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -3192,6 +3605,7 @@ export const CreateLegacySessionResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -3256,7 +3670,7 @@ export const CreateLegacySessionResponse = zod.object({
   "target": zod.string().max(createLegacySessionResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(createLegacySessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -3268,6 +3682,16 @@ export const CreateLegacySessionResponse = zod.object({
 export const GetLegacySessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
+
+export const getLegacySessionStateResponseSceneOneVisitRevisionMin = 0;
+
+export const getLegacySessionStateResponseSceneOneActivityRevisionMin = 0;
+
+export const getLegacySessionStateResponseSceneOneNpcsMax = 12;
+
+export const getLegacySessionStateResponseSceneOneFeaturesMax = 24;
+
+export const getLegacySessionStateResponseSceneOneReferentsMax = 6;
 
 export const getLegacySessionStateResponseWorldEnvironmentDefault = `unknown`;
 export const getLegacySessionStateResponseWorldTimeOfDayDefault = `day`;
@@ -3372,6 +3796,39 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredC
 
 export const GetLegacySessionStateResponse = zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(getLegacySessionStateResponseSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(getLegacySessionStateResponseSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(getLegacySessionStateResponseSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacySessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacySessionStateResponseWorldTimeOfDayDefault),
@@ -3431,7 +3888,9 @@ export const GetLegacySessionStateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -3474,6 +3933,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -3538,7 +3998,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "target": zod.string().max(getLegacySessionStateResponseQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -3560,6 +4020,16 @@ export const PlayLegacyTurnBody = zod.object({
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
+
+export const playLegacyTurnResponseStateSceneOneVisitRevisionMin = 0;
+
+export const playLegacyTurnResponseStateSceneOneActivityRevisionMin = 0;
+
+export const playLegacyTurnResponseStateSceneOneNpcsMax = 12;
+
+export const playLegacyTurnResponseStateSceneOneFeaturesMax = 24;
+
+export const playLegacyTurnResponseStateSceneOneReferentsMax = 6;
 
 export const playLegacyTurnResponseStateWorldEnvironmentDefault = `unknown`;
 export const playLegacyTurnResponseStateWorldTimeOfDayDefault = `day`;
@@ -3688,6 +4158,39 @@ export const PlayLegacyTurnResponse = zod.object({
   "narration": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(playLegacyTurnResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(playLegacyTurnResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(playLegacyTurnResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playLegacyTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playLegacyTurnResponseStateWorldTimeOfDayDefault),
@@ -3747,7 +4250,9 @@ export const PlayLegacyTurnResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -3790,6 +4295,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -3854,7 +4360,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "target": zod.string().max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "action": zod.string().nullish(),
@@ -4074,6 +4580,16 @@ export const CreateLegacyCampaignBody = zod.object({
 }),zod.null()]).optional()
 })
 
+export const createLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const createLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const createLegacyCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const createLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const createLegacyCampaignResponseStateSceneOneReferentsMax = 6;
+
 export const createLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const createLegacyCampaignResponseStateWorldTimeOfDayDefault = `day`;
 export const createLegacyCampaignResponseStateWorldWeatherDefault = `clear`;
@@ -4184,6 +4700,39 @@ export const CreateLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(createLegacyCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(createLegacyCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(createLegacyCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -4243,7 +4792,9 @@ export const CreateLegacyCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -4286,6 +4837,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -4350,7 +4902,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "target": zod.string().max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -4439,6 +4991,16 @@ export const CreateLegacyCampaignResponse = zod.object({
 export const GetLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
+
+export const getLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const getLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const getLegacyCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const getLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const getLegacyCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const getLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const getLegacyCampaignResponseStateWorldTimeOfDayDefault = `day`;
@@ -4560,6 +5122,39 @@ export const GetLegacyCampaignResponse = zod.object({
 }),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(getLegacyCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(getLegacyCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(getLegacyCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -4619,7 +5214,9 @@ export const GetLegacyCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -4662,6 +5259,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -4726,7 +5324,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "target": zod.string().max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -4815,6 +5413,16 @@ export const GetLegacyCampaignResponse = zod.object({
 export const ResumeLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
+
+export const resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
+
+export const resumeLegacyCampaignResponseStateSceneOneNpcsMax = 12;
+
+export const resumeLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
+
+export const resumeLegacyCampaignResponseStateSceneOneReferentsMax = 6;
 
 export const resumeLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;
 export const resumeLegacyCampaignResponseStateWorldTimeOfDayDefault = `day`;
@@ -4926,6 +5534,39 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "state": zod.object({
   "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resumeLegacyCampaignResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resumeLegacyCampaignResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resumeLegacyCampaignResponseStateSceneOneReferentsMax)
+}),zod.null()]),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -4985,7 +5626,9 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "type": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
 })),
   "character": zod.object({
   "name": zod.string(),
@@ -5028,6 +5671,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
+  "id": zod.string(),
   "location": zod.string(),
   "name": zod.string(),
   "description": zod.string()
@@ -5092,7 +5736,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "target": zod.string().max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax),
   "required_count": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
 }))
-})).optional()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),

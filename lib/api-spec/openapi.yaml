@@ -849,6 +849,10 @@ components:
       properties:
         location:
           type: string
+        scene:
+          anyOf:
+            - $ref: "#/components/schemas/GameScene"
+            - type: "null"
         world:
           $ref: "#/components/schemas/GameWorldMetadata"
         journal:
@@ -895,6 +899,7 @@ components:
           items: {$ref: "#/components/schemas/QuestOffer"}
       required:
         - location
+        - scene
         - world
         - journal
         - locations
@@ -909,7 +914,6 @@ components:
         - turn_index
         - quests
         - quest_offers
-         - quest_offers
     CampaignJournal:
       type: object
       description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.
@@ -1176,7 +1180,21 @@ components:
           type: string
         description:
           type: string
-      required: [id, name, type, description]
+        parent_location_id:
+          anyOf:
+            - type: string
+            - type: "null"
+        exit_location_id:
+          anyOf:
+            - type: string
+            - type: "null"
+      required:
+        - id
+        - name
+        - type
+        - description
+        - parent_location_id
+        - exit_location_id
     GameCharacter:
       type: object
       additionalProperties: false
@@ -1274,13 +1292,137 @@ components:
       type: object
       additionalProperties: false
       properties:
+        id:
+          type: string
         location:
           type: string
         name:
           type: string
         description:
           type: string
-      required: [location, name, description]
+      required: [id, location, name, description]
+    GameScene:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        location_id:
+          type: string
+        parent_location_id:
+          anyOf:
+            - type: string
+            - type: "null"
+        kind:
+          anyOf:
+            - type: string
+            - type: "null"
+        visit_revision:
+          type: integer
+          minimum: 0
+        activity_revision:
+          type: integer
+          minimum: 0
+        last_activity:
+          anyOf:
+            - type: string
+            - type: "null"
+        player_position:
+          $ref: "#/components/schemas/GameScenePlayerPosition"
+        npcs:
+          type: array
+          maxItems: 12
+          items:
+            $ref: "#/components/schemas/GameSceneNpc"
+        features:
+          type: array
+          maxItems: 24
+          items:
+            $ref: "#/components/schemas/GameSceneFeature"
+        referents:
+          type: array
+          maxItems: 6
+          items:
+            $ref: "#/components/schemas/GameSceneReferent"
+      required:
+        - id
+        - location_id
+        - parent_location_id
+        - kind
+        - visit_revision
+        - activity_revision
+        - last_activity
+        - player_position
+        - npcs
+        - features
+        - referents
+    GameScenePlayerPosition:
+      type: object
+      additionalProperties: false
+      properties:
+        location_id:
+          type: string
+        kind:
+          type: string
+        target_id:
+          anyOf:
+            - type: string
+            - type: "null"
+      required: [location_id, kind, target_id]
+    GameSceneNpc:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        appearance:
+          type: string
+      required: [id, name, role, appearance]
+    GameSceneFeature:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+      required: [id, name, description]
+    GameSceneReferent:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        kind:
+          anyOf:
+            - type: string
+            - type: "null"
+        description:
+          type: string
+        source_turn:
+          anyOf:
+            - type: integer
+            - type: "null"
+        lifecycle:
+          type: string
+          enum: [presented, promoted]
+        promoted_npc_id:
+          anyOf:
+            - type: string
+            - type: "null"
+      required:
+        - id
+        - kind
+        - description
+        - source_turn
+        - lifecycle
+        - promoted_npc_id
     GameShop:
       type: object
       additionalProperties: false
