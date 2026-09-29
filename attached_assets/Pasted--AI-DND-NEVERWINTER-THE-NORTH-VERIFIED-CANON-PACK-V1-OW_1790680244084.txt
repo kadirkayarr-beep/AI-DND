@@ -1,0 +1,970 @@
+# AI-DND — NEVERWINTER / THE NORTH VERIFIED CANON PACK V1
+# OWNER-SUPPLIED 2025 SOURCE INGESTION
+# CURRENT CANON BASELINE: 1501 DR
+# NORMALIZED FACTS ONLY — NO SOURCEBOOK PROSE IN REPOSITORY
+
+We now have owner-supplied source files available directly in this workspace:
+
+1. Forgotten Realms - Heroes of Faerun.pdf
+   Full source: 218 pages
+
+2. Forgotten Realms - Adventures in Faerûn-1-200.pdf
+
+3. Forgotten Realms - Adventures in Faerûn-201-437.pdf
+
+The two Adventures in Faerûn PDFs are two parts of the same complete book.
+
+These source files are now the basis for the first production Forgotten
+Realms regional canon pack.
+
+Do NOT use Qwen/model memory to fill gaps.
+
+Do NOT use fan wikis, Reddit, forums, YouTube, or unofficial sources.
+
+Do NOT copy long sourcebook passages into the repository.
+
+Extract normalized, structured facts with provenance.
+
+========================================================
+PROTECTED ENGINE BASELINE
+========================================================
+
+Current protected game.py SHA-256:
+
+1347d741417006d1a17eca9a2636db720a741f9efa0d199b0c1fd4dba91965f6
+
+Verify this before implementation.
+
+This phase should preferably NOT modify game.py.
+
+If broader game.py changes are required:
+
+STOP and request ENGINE APPROVAL REQUIRED.
+
+========================================================
+IMPORTANT CANON CORRECTION
+========================================================
+
+Do NOT model Neverwinter's primary canonical parent as:
+
+Sword Coast Region
+
+The 2025 Heroes of Faerûn regional taxonomy treats:
+
+THE NORTH
+
+and
+
+SWORD COAST
+
+as separate regional entries.
+
+Neverwinter is covered under:
+
+THE NORTH.
+
+Therefore the initial production pack should conceptually be:
+
+Forgotten Realms
+→ The North
+→ Neverwinter
+
+Neverwinter can still have geographical/trade relationships with the broader
+western coast and nearby Sword Coast locations where sources support them.
+
+Do not erase those relationships.
+
+But the canonical region binding for this V1 must follow the current source.
+
+========================================================
+CURRENT SETTING EPOCH
+========================================================
+
+Heroes of Faerûn explicitly establishes:
+
+PRESENT = 1501 DR
+
+Year name:
+
+YEAR OF THE SHINING MYTHAL
+
+Use this as the current official baseline epoch.
+
+Conceptually:
+
+setting_epoch_id = fr-1501-dr
+
+year_dr = 1501
+
+year_name = Year of the Shining Mythal
+
+status = CURRENT_OFFICIAL_BASELINE
+
+Do not invent a different campaign year.
+
+Later campaigns may support custom epochs, but V1 current canon is 1501 DR.
+
+========================================================
+SOURCE PRECEDENCE
+========================================================
+
+Primary current setting authority:
+
+SOURCE_FR_HEROES_2025
+Forgotten Realms: Heroes of Faerûn
+
+Secondary current authority:
+
+SOURCE_FR_ADVENTURES_2025
+Forgotten Realms: Adventures in Faerûn
+
+Heroes of Faerûn should take precedence for:
+
+- current Faerûn regional taxonomy
+- current timeline / epoch
+- The North
+- Neverwinter's current baseline
+- current factions
+- gods/religion
+- current geographic relationships
+
+Adventures in Faerûn should supplement:
+
+- adventure/location corroboration
+- Phandelver/Phandalin relationships
+- current setting references
+- adventure-specific material
+
+Adventure events must NOT automatically become ordinary public setting facts.
+
+========================================================
+PRIMARY HEROES OF FAERÛN PAGE TARGETS
+========================================================
+
+Inspect the FULL PDF, not only these pages.
+
+But these are high-priority extraction zones:
+
+Pages 57–60:
+Time in the Realms
+Calendar
+Realms Timeline
+Current year / epoch
+Currency
+
+Pages 62–64:
+Regions of the Realms
+regional taxonomy
+regional languages
+
+Pages 87–91:
+THE NORTH
+The North overview
+regional geography
+Lords' Alliance relationship
+High Road
+Neverwinter
+Phandalin
+regional life/threats
+
+Pages 95–99:
+SWORD COAST
+Use to establish the boundary and relationship between
+The North and Sword Coast.
+Do not merge the two regions.
+
+Pages 116 onward:
+Gods of Faerûn
+Use only facts actually needed for shared setting authority or
+Neverwinter-relevant lore.
+Do not ingest the entire pantheon merely to increase fact count.
+
+Pages approximately 183–216:
+Factions of the Realms
+
+Pay particular attention to:
+
+Emerald Enclave
+Harpers
+Lords' Alliance
+Red Wizards
+Zhentarim
+
+The Lords' Alliance section is especially relevant to Neverwinter.
+
+Do NOT infer a faction's local Neverwinter presence unless the sources
+actually support it.
+
+========================================================
+PRIMARY NEVERWINTER FACTS TO VERIFY
+========================================================
+
+Do not blindly copy this list.
+
+Re-read the source and independently verify each fact before ingestion.
+
+Expected source-backed candidates include:
+
+Neverwinter:
+- official canonical city
+- located in The North
+- known as the City of Skilled Hands
+
+Neverwinter historical/current state:
+- known historically for master crafters, fine goods, and lavish gardens
+- Neverwinter River is associated with year-round warmth
+- Neverwinter River flows from Mount Hotenow
+- Mount Hotenow erupted
+- a great chasm to the Underdark opened
+- Neverwinter was nearly destroyed
+- current baseline states the volcano's wrath has spent
+- current baseline states the chasm is sealed
+- current baseline states the city is rebuilding
+
+Current authority:
+- Lord Dagult Neverember
+- current baseline associates his rule/protection with Neverwinter
+
+Lords' Alliance:
+- Neverwinter is a member settlement
+- alliance relationship must be represented with stable IDs
+
+High Road:
+- route begins in Luskan
+- passes through Neverwinter
+- continues south toward Waterdeep
+- continues as the Trade Way at Waterdeep where source-supported
+
+Do not add anything not actually verified.
+
+========================================================
+PHANDALIN / PHANDELVER
+========================================================
+
+Current source support places Phandalin in the wider Neverwinter-area graph.
+
+Heroes of Faerûn describes Phandalin as a frontier settlement.
+
+Adventures in Faerûn identifies the Phandelver region as near Neverwinter.
+
+Other current text establishes Phandalin south of Neverwinter.
+
+For V1:
+
+Phandalin may be represented as a canonical nearby settlement with limited
+coverage.
+
+Do NOT pretend we possess deep Phandalin coverage from these files.
+
+Do NOT import complete Phandelver lore from model memory.
+
+If deeper coverage is required, report:
+
+PHANDELVER SOURCE PACK REQUIRED.
+
+========================================================
+NEARBY GEOGRAPHY
+========================================================
+
+Inspect the official The North map carefully.
+
+Potential canonical entities around Neverwinter include map-labelled
+locations such as:
+
+- Neverwinter Wood
+- Mount Hotenow
+- Port Llast
+- Helm's Hold
+- Thundertree
+- Leilon
+- Phandalin
+- Icespire Peak
+- Old Owl Well
+- Conyberry
+- Triboar
+- Sword Mountains
+
+However:
+
+MAP PRESENCE ALONE DOES NOT GIVE PERMISSION TO INVENT DESCRIPTION.
+
+A map label can establish:
+
+- canonical identity
+- broad geographic placement
+- road connectivity where visually/source-supported
+- relative direction where safely supported
+
+It cannot establish unsupported:
+
+- government
+- population
+- current NPCs
+- shops
+- quests
+- secret history
+
+Create low-detail canonical entities where appropriate.
+
+========================================================
+DM MAP / SPOILER SAFETY
+========================================================
+
+Some maps and adventure pages contain DM-facing information.
+
+Distinguish:
+
+PLAYER_SAFE_GEOGRAPHY
+
+from:
+
+DM_ONLY_POI
+
+and:
+
+ADVENTURE_SECRET.
+
+Do not reveal hidden dungeon locations, villains, secret entrances,
+adventure solutions, or encounter details merely because they appear on
+a DM map.
+
+Knowledge visibility must survive ingestion.
+
+========================================================
+ADVENTURES IN FAERÛN — USE POLICY
+========================================================
+
+Use Adventures in Faerûn as a secondary source.
+
+Important:
+
+The book contains Neverwinter-related adventure material,
+including Silk and Suffering.
+
+Adventure-specific facts can contain:
+
+- villains
+- kidnappings
+- hidden tunnels
+- encounter locations
+- ritual details
+- captive NPCs
+- secret enemies
+
+These are NOT normal public world facts.
+
+Classify them appropriately as:
+
+DM_SECRET
+ADVENTURE_SECRET
+DISCOVERABLE_SECRET
+
+or exclude them from the regional starter pack.
+
+Do NOT let an ordinary Neverwinter citizen or narrator automatically know
+these facts.
+
+========================================================
+THE TENEBROUS STONE
+========================================================
+
+Do NOT include The Tenebrous Stone in the Neverwinter V1 pack.
+
+It is set in Helmsdale in Damara and is not part of this regional coverage.
+
+Do not start a Damara pack.
+
+Do not ingest it during this phase.
+
+========================================================
+PACK IDENTITY
+========================================================
+
+Use generic data-driven IDs.
+
+Conceptually:
+
+setting_id:
+forgotten_realms
+
+region_id:
+fr:region:the_north
+
+pack_id:
+fr:pack:the_north:neverwinter:v1
+
+starting_location_id:
+fr:city:neverwinter
+
+Adapt to existing project conventions.
+
+Neverwinter is data.
+
+Never hardcode it in engine logic.
+
+========================================================
+V1 STARTING LOCATION
+========================================================
+
+For production V1:
+
+make Neverwinter the first verified startable location.
+
+But starting-location selection MUST remain generic/data-driven.
+
+Future packs must be able to add:
+
+Waterdeep
+Baldur's Gate
+Icewind Dale
+Cormyr
+etc.
+
+without engine redesign.
+
+The current UI can show only one installed start location.
+
+That is fine.
+
+The architecture must still prove multi-region support using synthetic test
+packs.
+
+========================================================
+FACT MODEL
+========================================================
+
+Each verified official fact needs equivalent fields:
+
+fact_id
+subject_id
+predicate
+object_id_or_value
+claim_type
+source_id
+source_page
+source_section
+authority_tier
+temporal_scope
+visibility
+review_status
+
+For current Neverwinter facts use temporal scope such as:
+
+CURRENT_AT_1501_DR
+
+Historical facts must remain historical.
+
+Example:
+
+Mount Hotenow eruption
+= HISTORICAL_FACT
+
+Neverwinter rebuilding
+= CURRENT_AT_1501_DR
+
+Do not collapse these.
+
+========================================================
+PROVENANCE GRANULARITY
+========================================================
+
+Use page-level provenance at minimum.
+
+Preferred:
+
+source_id
+PDF page number
+section heading
+
+Example conceptually:
+
+SOURCE_FR_HEROES_2025
+page 90
+The North / Neverwinter
+
+Never store the whole source paragraph.
+
+========================================================
+NO COPYRIGHTED PROSE STORE
+========================================================
+
+Do not copy sourcebook paragraphs into:
+
+JSON
+YAML
+SQLite
+tests
+prompts
+frontend
+
+Store short normalized facts only.
+
+Narration must be newly generated from structured facts.
+
+========================================================
+INITIAL REGION GRAPH
+========================================================
+
+Build enough structured geography to support gameplay around Neverwinter.
+
+At minimum, where verified:
+
+Faerûn
+→ contains
+The North
+
+The North
+→ contains
+Neverwinter
+
+Mount Hotenow
+→ related geographically to
+Neverwinter River
+
+Neverwinter River
+→ related to
+Neverwinter
+
+High Road
+→ connects
+Luskan
+Neverwinter
+Waterdeep
+
+Phandalin
+→ south_of / near
+Neverwinter
+
+Use only relationship types supported by source evidence.
+
+Do not invent exact distances.
+
+========================================================
+LORDS' ALLIANCE
+========================================================
+
+Create/reuse a stable canonical faction ID.
+
+Represent:
+
+Neverwinter
+→ MEMBER_OF
+Lords' Alliance
+
+or equivalent.
+
+Use the current faction chapter to populate the faction's verified general
+identity.
+
+Do NOT implement faction reputation gameplay.
+
+Faction lore only.
+
+========================================================
+OTHER FACTIONS
+========================================================
+
+Harpers, Zhentarim, Emerald Enclave, Red Wizards and others may be created as
+shared verified setting entities from Heroes of Faerûn.
+
+However:
+
+do not attach them to Neverwinter specifically unless source evidence
+supports the relationship.
+
+Global existence != local presence.
+
+This rule is mandatory.
+
+========================================================
+RELIGION
+========================================================
+
+Do not invent a Neverwinter patron deity.
+
+Do not infer regional popularity from generic deity descriptions.
+
+Gods of Faerûn may provide shared canonical deity entities,
+but a deity becomes Neverwinter-relevant only when a source establishes the
+relationship or gameplay legitimately introduces that deity.
+
+An intentionally sparse regional religion field is acceptable.
+
+========================================================
+CANONICAL NPCS
+========================================================
+
+For the initial Neverwinter pack, prioritize only clearly verified current
+NPCs that matter to the baseline.
+
+Lord Dagult Neverember is expected to qualify.
+
+Do not fill the city with famous NPCs merely because they exist somewhere
+in Forgotten Realms sources.
+
+Official baseline facts and campaign mutable facts must remain separate.
+
+========================================================
+PROCEDURAL CITY LIFE
+========================================================
+
+The sources do not define every:
+
+inn
+merchant
+alley
+guard
+laborer
+shop
+house
+traveler
+
+Continue allowing procedural local fiction for these gaps.
+
+Procedural content must remain:
+
+PROCEDURAL_CAMPAIGN
+
+not:
+
+OFFICIAL_CANON.
+
+It should be canon-compatible and anchored to Neverwinter.
+
+========================================================
+CURRENT VS HISTORICAL CONTRADICTION TESTS
+========================================================
+
+Mandatory examples:
+
+"Neverwinter is currently destroyed."
+Expected:
+REJECT / HISTORICALLY MISSCOPED
+
+"The chasm is currently open."
+Expected:
+REJECT based on current 1501 DR source.
+
+"Neverwinter is rebuilding."
+Expected:
+SUPPORTED.
+
+"Lord Dagult Neverember currently rules/protects Neverwinter."
+Expected:
+SUPPORTED according to current source.
+
+"Neverwinter's canonical region is the Sword Coast region."
+Expected:
+Do not bind as primary region.
+Current regional taxonomy places it under THE NORTH.
+
+========================================================
+ROUTE TESTS
+========================================================
+
+Test:
+
+Luskan
+→ High Road
+→ Neverwinter
+→ Waterdeep
+
+Do not invent travel duration.
+
+Do not invent mileage not supported by the source.
+
+========================================================
+PLAYER CLAIM TEST
+========================================================
+
+Player:
+
+"Neverwinter is ruled by King Zarthos."
+
+Expected:
+
+player statement may remain dialogue/claim
+
+but canonical world state is NOT changed.
+
+========================================================
+FAKE CITY TEST
+========================================================
+
+Player:
+
+"I travel east to the great city of Veloria."
+
+If no verified canonical entity exists:
+
+UNVERIFIED_MAJOR_LOCATION
+
+Do not create it as Forgotten Realms canon.
+
+========================================================
+FAKE GOD TEST
+========================================================
+
+Player:
+
+"I pray to Zarthon, god of the Crimson Moon."
+
+Do not canonize the deity.
+
+Player speech is not world truth.
+
+========================================================
+ADVENTURE SPOILER TEST
+========================================================
+
+Ask a normal Neverwinter citizen about hidden adventure villains/events.
+
+Expected:
+
+DM/adventure secrets remain inaccessible unless legitimately discovered.
+
+Do not leak Silk and Suffering plot facts.
+
+========================================================
+MAP VISIBILITY TEST
+========================================================
+
+Facts available only on a DM-facing map must not automatically become
+player knowledge.
+
+Test at least:
+
+public geographic entity
+versus
+hidden dungeon/POI.
+
+========================================================
+NARRATIVE QUALITY
+========================================================
+
+Narration should use current verified facts naturally.
+
+Example behavior:
+
+Neverwinter should feel like a recovering northern city with its real
+regional and geographic context.
+
+Do not produce encyclopedia paragraphs every turn.
+
+Do not force Lord Neverember, Mount Hotenow, or the Lords' Alliance into
+irrelevant scenes.
+
+Use lore when contextually relevant.
+
+========================================================
+MULTI-REGION FUTURE SAFETY
+========================================================
+
+Production has only one installed pack for now.
+
+Still run synthetic test packs:
+
+TEST_REGION_A
+TEST_REGION_B
+
+Prove:
+
+- installed pack discovery is generic
+- starting region/location selection is generic
+- no `if Neverwinter` engine shortcut exists
+- campaigns remain bound to selected pack
+- restart preserves selection
+
+========================================================
+SAVE / PERSISTENCE
+========================================================
+
+Persist references only:
+
+setting_id
+region_pack_id
+region_id
+starting_location_id
+setting_epoch
+known_lore_ids
+campaign_overrides
+procedural entity IDs
+
+Do not copy official static facts into each campaign save.
+
+========================================================
+NO GAME.PY EXPANSION
+========================================================
+
+Prefer zero game.py changes.
+
+The previous lore integration already created the required bridge.
+
+If a new engine change appears necessary:
+
+STOP.
+
+Explain exactly why.
+
+Do not broaden scope.
+
+========================================================
+TEST GATE
+========================================================
+
+Run:
+
+- lore source validation
+- provenance tests
+- current/historical temporal tests
+- geography graph tests
+- regional taxonomy tests
+- faction tests
+- spoiler visibility tests
+- map visibility tests
+- procedural/canon isolation
+- same-name identity tests
+- campaign override tests
+- multi-region synthetic tests
+- campaign persistence
+- restart/resume
+- session isolation
+- campaign isolation
+- Narrative Director
+- Narrative Safety
+- Skill Checks
+- Quest Outcomes
+- Combat V3
+- API tests
+- frontend tests
+- typecheck
+- builds
+- Python compile
+- git diff --check
+
+Do not weaken existing tests.
+
+========================================================
+LIVE QWEN SMOKE
+========================================================
+
+After deterministic tests pass:
+
+restart services.
+
+Use real authenticated qwen3:8b.
+
+Use disposable campaign data.
+
+Start in Neverwinter.
+
+Test approximately 15–20 turns including:
+
+- initial Neverwinter description
+- question about current city state
+- question about regional geography
+- question about Lord Neverember
+- question about Lords' Alliance
+- travel intent on the High Road
+- question about Phandalin
+- fake current ruler claim
+- fake major city
+- fake deity
+- procedural local NPC
+- procedural minor shop
+- return to a prior place
+- long-term narrative memory
+- Skill Check
+- quest discussion
+- combat if practical
+- aftermath
+- restart
+- resume
+
+Maximum:
+
+2 model calls per turn.
+
+========================================================
+EXPECTED INITIAL COVERAGE STATUS
+========================================================
+
+Do NOT call this:
+
+COMPLETE NEVERWINTER.
+
+Use:
+
+VERIFIED_PARTIAL
+
+unless the actual extraction demonstrates much deeper supported coverage.
+
+The current sources provide a strong CURRENT CANON FRAME,
+but they do not describe every street, district, venue, religion, and NPC in
+Neverwinter.
+
+Procedural local fiction must fill safe gaps.
+
+========================================================
+FINAL REPORT
+========================================================
+
+Report:
+
+1. baseline game.py SHA
+2. exact source files and hashes
+3. source page ranges used
+4. current setting epoch
+5. region taxonomy result
+6. why Neverwinter is bound to The North
+7. pack ID/version
+8. extracted entity count
+9. extracted fact count
+10. source provenance coverage
+11. current facts
+12. historical facts
+13. map-derived facts
+14. DM-secret facts
+15. rejected facts
+16. unresolved facts
+17. Neverwinter entities
+18. nearby geography entities
+19. route relations
+20. Lords' Alliance integration
+21. other shared faction entities
+22. deity/religion result
+23. canonical NPCs
+24. procedural gap policy
+25. startable locations
+26. proof start selection is data-driven
+27. synthetic multi-region results
+28. lore retrieval result
+29. token/context cost
+30. narrator safety result
+31. qwen live smoke result
+32. model calls
+33. hallucinations detected
+34. spoiler leaks detected
+35. current/historical contradictions detected
+36. restart/resume
+37. campaign isolation
+38. API tests
+39. frontend tests
+40. current game.py SHA
+41. whether game.py changed
+42. coverage gaps
+43. recommended next SOURCE PACK
+
+Stop after the report.
+
+Do NOT start:
+
+Spells V1
+XP/Leveling
+Waterdeep
+Baldur's Gate
+Phandelver deep coverage
+faction gameplay
+another region
+
+without owner approval.
