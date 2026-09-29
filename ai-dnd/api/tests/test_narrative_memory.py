@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -147,6 +148,35 @@ class NarrativeMemoryTests(unittest.TestCase):
         self.assertEqual(memory["unresolved_threads"], [])
         self.assertLessEqual(len(memory["recent_turns"]), MAX_RECENT_TURNS)
 
+    def test_generated_narration_is_not_saved_as_recallable_continuity(self):
+        memory = self.turn(
+            empty_narrative_memory(),
+            "Etrafıma bakıyorum.",
+            "A merchant named Elara offers silverwork in a busy market.",
+            turn=1,
+        )
+
+        self.assertEqual(
+            memory["recent_turns"][-1]["narration"],
+            "[presentation omitted from continuity]",
+        )
+        self.assertTrue(all(
+            item.get("authority") != "temporary_narrative_texture"
+            for entries in memory["location_continuity"].values()
+            for item in entries
+        ))
+        packet, _ = build_narrative_context(
+            memory,
+            {"location_id": "tavern"},
+            "Etrafıma bakıyorum.",
+        )
+        continuity = packet["relevant_continuity"]
+        self.assertTrue(all(
+            "narration" not in turn
+            for turn in continuity["recent_turns"]
+        ))
+        self.assertNotIn("Elara", json.dumps(packet, ensure_ascii=False))
+
     def test_thread_deduplication_and_resolution(self):
         memory = self.turn(empty_narrative_memory(), "Sembolü sonra araştıracağım.", "Bir iz.", turn=1)
         memory = self.turn(memory, "Sembolü sonra araştıracağım.", "Aynı iz.", turn=2)
@@ -257,7 +287,7 @@ class NarrativeMemoryTests(unittest.TestCase):
         self.assertTrue(memory["story_summary"]["current_arc"])
         self.assertNotIn("treasure", str(memory["story_summary"]).lower())
 
-    def test_safe_location_texture_retrieves_but_risky_claims_do_not(self):
+    def test_generated_location_texture_is_not_retrieved_as_memory(self):
         npc = [{"id": "npc_a", "name": "Kasim", "role": "bartender", "location": "tavern"}]
         memory = self.turn(
             empty_narrative_memory(),
@@ -275,7 +305,7 @@ class NarrativeMemoryTests(unittest.TestCase):
         )
         excerpts = memory["location_continuity"]["tavern"]
         texts = [item["text"] for item in excerpts]
-        self.assertTrue(any("Rain taps" in text for text in texts))
+        self.assertFalse(any("Rain taps" in text for text in texts))
         self.assertTrue(all(item["authority"] != "canonical" for item in excerpts))
         self.assertFalse(any("treasure" in text.lower() for text in texts))
         self.assertFalse(any("Kasim" in text for text in texts))
@@ -295,7 +325,9 @@ class NarrativeMemoryTests(unittest.TestCase):
         for turn in range(1, 30):
             memory = self.turn(memory, f"Bakış {turn}.", "Rain taps the windows. Kasim pauses.", turn=turn)
         fingerprint = memory["repetition_fingerprint"]
-        self.assertIn("Rain taps the windows", fingerprint["recent_openings"])
+        self.assertEqual(fingerprint["recent_openings"], [])
+        self.assertEqual(fingerprint["recent_closings"], [])
+        self.assertEqual(fingerprint["recent_phrases"], [])
         self.assertLessEqual(len(fingerprint["recent_openings"]), 12)
         self.assertLessEqual(len(fingerprint["recent_phrases"]), 12)
 

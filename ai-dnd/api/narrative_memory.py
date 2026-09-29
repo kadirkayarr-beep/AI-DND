@@ -49,28 +49,6 @@ _MECHANICAL_RE = re.compile(
     r"completed?|tamamlandı|healed?|iyileşti|öldü|dead|death)\b",
     re.IGNORECASE,
 )
-_TEXTURE_ALLOW_RE = re.compile(
-    r"\b(?:rain|rainfall|wind|breeze|fire|flame|candle|smoke|"
-    r"light|shadow|warm|cool|cold|quiet|silent|crackle|creak|"
-    r"floorboard|window|wood|distant|echo|scent|smell|"
-    r"yağmur|rüzgâr|rüzgar|ateş|alev|mum|duman|ışık|gölge|"
-    r"sıcak|serin|soğuk|sessiz|çıtır|çıtırtı|gıcırtı|tahta|"
-    r"pencere|uzak|yankı|koku)\b",
-    re.IGNORECASE,
-)
-_TEXTURE_DENY_RE = re.compile(
-    r"\b(?:treasure|gold|coin|sword|weapon|armor|potion|item|"
-    r"key|door|chest|secret|quest|mission|spell|damage|hp|health|"
-    r"level|xp|experience|inventory|locked|unlocked|trap|"
-    r"guard|merchant|bandit|stranger|man|woman|person|npc|"
-    r"treasure|hazine|altın|kılıç|silah|zırh|iksir|eşya|"
-    r"anahtar|kapı|sandık|sır|görev|büyü|hasar|can|seviye|"
-    r"envanter|kilitli|tuzak|muhafız|tüccar|haydut|yabancı|"
-    r"öldü|ölüm|yaralı|yaralandı|saldır|aldı|verdi|buldu|"
-    r"girdi|çıktı|açtı|kapattı|düşündü|konuştu|söyledi|"
-    r"dead|death|injur|attack|took|gave|found|entered|opened)\b",
-    re.IGNORECASE,
-)
 _THREAD_STOPWORDS = {
     "a", "an", "and", "ask", "again", "i", "ill", "later", "of", "the",
     "to", "will", "you", "about", "it", "bir", "bu", "da", "de", "daha",
@@ -299,15 +277,6 @@ def _stable_id(*parts: str) -> str:
     return "thread_" + hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()[:20]
 
 
-def _fingerprint(text: str) -> tuple[str, str]:
-    sentences = [item.strip() for item in re.split(r"[.!?。！？]+", text) if item.strip()]
-    first = sentences[0][:MAX_TOPIC] if sentences else text[:MAX_TOPIC]
-    last = sentences[-1][:MAX_TOPIC] if sentences else first
-    words = re.findall(r"\w+", text.casefold(), flags=re.UNICODE)
-    phrase = " ".join(words[:5])[:MAX_TOPIC]
-    return first, last if last else phrase
-
-
 def _thread_terms(text: str) -> set[str]:
     """Return deterministic content terms, including light Turkish stems."""
     terms: set[str] = set()
@@ -347,24 +316,6 @@ def _summary_record(
     }
 
 
-def _safe_texture_excerpts(narration: str, npc_names: set[str]) -> list[str]:
-    """Keep only clearly atmospheric sentences; fail closed otherwise."""
-    excerpts: list[str] = []
-    for sentence in re.split(r"(?<=[.!?。！？])\s+", narration.strip()):
-        candidate = sentence.strip()
-        if not candidate or len(candidate) > MAX_TEXT:
-            continue
-        lowered = candidate.casefold()
-        if not _TEXTURE_ALLOW_RE.search(candidate) or _TEXTURE_DENY_RE.search(candidate):
-            continue
-        if any(name and name.casefold() in lowered for name in npc_names):
-            continue
-        excerpts.append(candidate)
-        if len(excerpts) == 2:
-            break
-    return excerpts
-
-
 def update_narrative_memory(
     memory: dict[str, Any] | None,
     *,
@@ -378,6 +329,16 @@ def update_narrative_memory(
     """Apply one committed turn to a fresh bounded memory value."""
     base = empty_narrative_memory() if memory is None else copy.deepcopy(memory)
     validate_narrative_memory(base)
+    base["repetition_fingerprint"] = copy.deepcopy(
+        empty_narrative_memory()["repetition_fingerprint"]
+    )
+    base["recent_turns"] = [
+        {
+            **turn,
+            "narration": "[presentation omitted from continuity]",
+        }
+        for turn in base["recent_turns"]
+    ]
     if not _text(player_message, 4000) or not _text(narration, 4000):
         raise ValueError("Narrative turn text is invalid.")
     if not isinstance(world_state_before, dict) or not isinstance(world_state_after, dict):
@@ -391,11 +352,17 @@ def update_narrative_memory(
     turn = _turn_index(world_state_after)
     base["recent_turns"].append({
         "player": player_message.strip()[:MAX_TEXT],
-        "narration": narration.strip()[:MAX_TEXT],
+        "narration": "[presentation omitted from continuity]",
         "turn_index": turn,
         "authority": "presentation",
     })
     base["recent_turns"] = base["recent_turns"][-MAX_RECENT_TURNS:]
+    for location_id, entries in list(base["location_continuity"].items()):
+        base["location_continuity"][location_id] = [
+            item
+            for item in entries
+            if item.get("authority") != "temporary_narrative_texture"
+        ][-MAX_LOCATION_FACTS:]
 
     npcs = _canonical_npcs(world_state_after)
     npc_id = action.get("npc_id") or action.get("target_id")
@@ -451,20 +418,6 @@ def update_narrative_memory(
             "location_id": location_id,
             "authority": "canonical_reference",
         }
-        npc_names = {
-            str(npc.get("name", "")).strip()
-            for npc in npcs.values()
-            if isinstance(npc.get("name"), str)
-        }
-        for excerpt in _safe_texture_excerpts(narration, npc_names):
-            if not any(item["text"] == excerpt for item in continuity):
-                continuity.append({
-                    "text": excerpt,
-                    "turn_index": turn,
-                    "importance": "low",
-                    "authority": "temporary_narrative_texture",
-                    "source": "narrator_allowlisted_texture",
-                })
         base["location_continuity"][location_id] = continuity[:MAX_LOCATION_FACTS]
 
     if _PROMISE_RE.search(player_message):
@@ -601,17 +554,6 @@ def update_narrative_memory(
         if item["status"] == "open"
     ][-MAX_THREADS:]
 
-    first, last = _fingerprint(narration)
-    fingerprint = base["repetition_fingerprint"]
-    for key, item in (("recent_openings", first), ("recent_closings", last)):
-        if item and item not in fingerprint[key]:
-            fingerprint[key].append(item)
-            fingerprint[key] = fingerprint[key][-MAX_FINGERPRINTS:]
-    words = re.findall(r"\w+", narration.casefold(), flags=re.UNICODE)
-    phrase = " ".join(words[:5])[:MAX_TOPIC]
-    if phrase and phrase not in fingerprint["recent_phrases"]:
-        fingerprint["recent_phrases"].append(phrase)
-        fingerprint["recent_phrases"] = fingerprint["recent_phrases"][-MAX_FINGERPRINTS:]
     validate_narrative_memory(base)
     return base
 
@@ -687,7 +629,10 @@ def build_narrative_context(
         if entity_id in memory["npc_interactions"]
     }
     relevant_locations = {
-        entity_id: memory["location_continuity"].get(entity_id, [])
+        entity_id: [
+            item for item in memory["location_continuity"].get(entity_id, [])
+            if item.get("authority") != "temporary_narrative_texture"
+        ]
         for entity_id in selected_locations
         if entity_id in memory["location_continuity"]
     }
@@ -704,7 +649,14 @@ def build_narrative_context(
         "player_action": player_message[:MAX_TEXT],
         "action_result": copy.deepcopy(action),
         "relevant_continuity": {
-            "recent_turns": memory["recent_turns"][-MAX_RECENT_TURNS:],
+            "recent_turns": [
+                {
+                    "player": turn["player"],
+                    "turn_index": turn["turn_index"],
+                    "authority": "unverified_player_claim",
+                }
+                for turn in memory["recent_turns"][-MAX_RECENT_TURNS:]
+            ],
             "story_summary": memory["story_summary"],
             "npcs": {entity_id: npc_records[entity_id] for entity_id in selected_npcs},
             "npc_interactions": relevant_interactions,

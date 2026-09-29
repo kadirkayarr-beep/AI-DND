@@ -4441,6 +4441,746 @@ def _lore_claims_are_supported(lore_claims, lore_context):
     return True
 
 
+def _lore_guard_text(value):
+    text = str(value or "").casefold().translate(
+        str.maketrans({
+            "ı": "i", "ğ": "g", "ü": "u", "ş": "s", "ö": "o", "ç": "c",
+        })
+    )
+    text = re.sub(r"['’](?:s|[a-z]{1,5})\b", " ", text)
+    return " ".join(re.findall(r"[a-z0-9]+", text))
+
+
+def _lore_fact_records(lore_context, lore_claims):
+    if not isinstance(lore_context, dict) or not isinstance(lore_claims, list):
+        return []
+    sections = lore_context.get("sections", {})
+    if not isinstance(sections, dict):
+        return []
+    records = []
+    for section_name in (
+        "official_forgotten_realms_lore",
+        "campaign_canon",
+        "player_known_lore",
+        "npc_known_lore",
+    ):
+        items = sections.get(section_name, [])
+        for item in items if isinstance(items, list) else []:
+            if (
+                isinstance(item, dict)
+                and (item.get("fact_id") or item.get("override_id")) in lore_claims
+            ):
+                records.append(item)
+    return records
+
+
+def _lore_entity_names(lore_context, world_state):
+    names_by_id = {}
+    known_phrases = set()
+    known_tokens = set()
+
+    def add_name(entity_id, name):
+        if not isinstance(name, str) or not name.strip():
+            return
+        normalized = _lore_guard_text(name)
+        if not normalized:
+            return
+        known_phrases.add(normalized)
+        if isinstance(entity_id, str) and entity_id:
+            names_by_id.setdefault(entity_id, set()).add(normalized)
+        for token in normalized.split():
+            if len(token) >= 4 and token not in {
+                "city", "town", "river", "mount", "mountain", "region",
+                "road", "north", "south", "east", "west",
+            }:
+                known_tokens.add(token)
+
+    sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
+    verified_entities = (
+        sections.get("verified_entities", []) if isinstance(sections, dict) else []
+    )
+    for entity in verified_entities if isinstance(verified_entities, list) else []:
+        if not isinstance(entity, dict):
+            continue
+        entity_id = entity.get("entity_id")
+        add_name(entity_id, entity.get("canonical_name"))
+        for alias in entity.get("aliases", []):
+            add_name(entity_id, alias)
+
+    if isinstance(world_state, dict):
+        for location_id, location in world_state.get("locations", {}).items():
+            if isinstance(location, dict):
+                add_name(location_id, location.get("name"))
+                for alias in location.get("aliases", []):
+                    add_name(location_id, alias)
+        for collection in ("npcs", "features"):
+            for entity in world_state.get(collection, []):
+                if not isinstance(entity, dict):
+                    continue
+                entity_id = entity.get("id") or entity.get("feature_id")
+                add_name(entity_id, entity.get("name"))
+                for alias in entity.get("aliases", []):
+                    add_name(entity_id, alias)
+
+    return names_by_id, known_phrases, known_tokens
+
+
+_LORE_ENTITY_TITLE_RE = re.compile(
+    r"\b(?:king|queen|monarch|emperor|empress|deity|god|goddess|"
+    r"city|town|village|river|mountain|region|kingdom|ruler|"
+    r"kral|kraliçe|hükümdar|imparator|tanrı|tanrıça|şehir|kasaba|"
+    r"nehir|dağ|bölge|krallık)\s+(?:of\s+)?"
+    r"([A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*"
+    r"(?:\s+[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*){0,2})"
+)
+_LORE_PROPER_NAME_RE = re.compile(
+    r"\b[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*"
+    r"(?:\s+[A-ZÇĞİÖŞÜ][A-Za-z0-9ÇĞİÖŞÜçğıöşü'’\-]*){0,2}\b"
+)
+_LORE_ENTITY_FOLLOWING_CUE_RE = re.compile(
+    r"\b(?:is|was|became|rules?|ruled|lives?|located|founded|"
+    r"known as|called|named|merchant|trader|shopkeeper|innkeeper|"
+    r"deity|god|goddess|city|town|kingdom|ruler|"
+    r"adlı|isimli|denilen|olarak bilinen|şehri|kasabası|nehri|"
+    r"yaşar|yönetir|hükmeder|tanrısı|tanrıçası)\b",
+    re.IGNORECASE,
+)
+_LORE_SENTENCE_START_WORDS = {
+    "how", "why", "what", "who", "whom", "where", "when", "which", "whose",
+    "does", "do", "did", "is", "are", "was", "were", "has", "have", "had",
+    "can", "could", "should", "would", "will", "may", "might", "tell",
+    "a", "an", "and", "as", "at", "before", "but", "during", "for",
+    "from", "here", "however", "in", "it", "near", "next", "one", "on",
+    "recent", "several", "some", "the", "then", "there", "this", "today",
+    "when", "while", "with", "after", "bir", "bu", "bölgede", "birkaç",
+    "gece", "gün", "halk", "insanlar", "ışık", "karanlık", "kentin",
+    "loş", "market", "ortam", "ortalık", "pazar", "rüzgar", "rüzgâr",
+    "sabah", "sessizlik", "sokak", "sonra", "şehir", "şehrin", "taverna",
+    "uzakta", "yağmur", "yakınlarda", "yerel", "akşam", "büyük", "sıcak",
+}
+
+
+def _is_registered_lore_name(candidate, known_phrases, known_tokens):
+    normalized = _lore_guard_text(candidate)
+    if not normalized:
+        return True
+    if normalized in known_phrases or normalized in known_tokens:
+        return True
+    words = normalized.split()
+    while words and words[0] in {
+        "king", "queen", "monarch", "emperor", "empress", "lord", "lady",
+        "city", "town", "village", "river", "mountain", "region", "kingdom",
+        "ruler", "the", "of", "kral", "kraliçe", "hükümdar", "şehir",
+        "kasaba", "nehir", "dağ", "bölge", "krallık",
+    }:
+        words.pop(0)
+    stripped = " ".join(words)
+    if stripped in known_phrases or stripped in known_tokens:
+        return True
+    return bool(words) and all(
+        word in known_tokens or word in known_phrases for word in words
+    )
+
+
+def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
+    for match in _LORE_ENTITY_TITLE_RE.finditer(sentence):
+        if not _is_registered_lore_name(
+            match.group(0), known_phrases, known_tokens
+        ):
+            return True
+
+    for match in _LORE_PROPER_NAME_RE.finditer(sentence):
+        candidate = match.group(0)
+        if _is_registered_lore_name(candidate, known_phrases, known_tokens):
+            continue
+        prefix = sentence[:match.start()]
+        at_sentence_start = not prefix.strip(" \t\r\n\"'“‘([{")
+        if at_sentence_start:
+            first_word = _lore_guard_text(candidate.split()[0])
+            if first_word in _LORE_SENTENCE_START_WORDS:
+                remaining = candidate.split()[1:]
+                if not remaining:
+                    continue
+                candidate = " ".join(remaining)
+                if _is_registered_lore_name(
+                    candidate, known_phrases, known_tokens
+                ):
+                    continue
+            suffix = sentence[match.end():match.end() + 72]
+            if not _LORE_ENTITY_FOLLOWING_CUE_RE.search(suffix):
+                continue
+        return True
+    return False
+
+
+_LORE_UNSUPPORTED_DETAIL_PATTERNS = (
+    (
+        re.compile(
+            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"
+            r"eleven|twelve|bir|iki|üç|uc|dört|dort|beş|bes|altı|alti|"
+            r"yedi|sekiz|dokuz|on)\s*(?:miles?|mi|kilometers?|kilometres?|"
+            r"km|meters?|metres?|yards?|leagues?|mil|kilometre|metre|"
+            r"hours?|days?|saat|gün|gun)\b"
+            r"|\b(?:few|several|short)\s+(?:miles?|days?|hours?|"
+            r"gün|gun|saat)\b",
+            re.IGNORECASE,
+        ),
+        "distance",
+    ),
+    (
+        re.compile(
+            r"\b(?:council|elected|election|tax(?:es)?|laws?|senate|"
+            r"legislature|govern(?:ance|ed|s|ment)?|policy|policies|"
+            r"administration|government|hükümet|yönetim|yönetir|"
+            r"seçim|vergi|kanun|yasa|meclis|konsey|liderlik|politika)\b",
+            re.IGNORECASE,
+        ),
+        "governance",
+    ),
+    (
+        re.compile(
+            r"\b(?:silver|metalworking|smithing|blacksmith|jewel(?:ry)?|"
+            r"weapon.?smith|armou?rer|shipbuilding|pottery|weaving|"
+            r"glassblow\w*|gümüş|gumus|demircilik|demirci|kuyum\w*|"
+            r"silah ustası|zırh|zirh|seramik|dokuma|cam işçiliği|"
+            r"cam isçiligi)\b",
+            re.IGNORECASE,
+        ),
+        "craft_specialization",
+    ),
+    (
+        re.compile(
+            r"\b(?:fall of|rise of|collapse of|conquered|founded|"
+            r"destroyed by|histor(?:y|ical)|history|recent calamities|"
+            r"recent disasters|recent catastrophes|after the eruption|"
+            r"tarih|yıkılışı|yikilisi|kuruluşu|kurulusu|fethedil|"
+            r"çöküş|cokus|felaket)\b",
+            re.IGNORECASE,
+        ),
+        "history",
+    ),
+    (
+        re.compile(
+            r"\b(?:because of|due to|thanks to|caused by|resulted from|"
+            r"as a result|attributed to|led(?: by| to)?|responsible for|"
+            r"directed(?: by)?|managed(?: by)?|oversaw|"
+            r"under (?:the )?leadership of|efforts? of|helped rebuild|"
+            r"sayesinde|nedeniyle|sebebiyle|yol açtı|yol acti|"
+            r"katkı sağladı|katki sagladi)\b",
+            re.IGNORECASE,
+        ),
+        "causal_attribution",
+    ),
+    (
+        re.compile(
+            r"\b(?:junction|intersection|confluence|crosses|connects? to|"
+            r"meets|joins|road to|route to|leads? to|north of|south of|"
+            r"east of|west of|direct route|kavşak|kavsak|birleşir|"
+            r"birlesir|bağlanır|baglanir|yol ayrımı|yol ayrimi|"
+            r"kuzeyinde|güneyinde|guneyinde|doğusunda|dogusunda|"
+            r"batısında|batisinda)\b",
+            re.IGNORECASE,
+        ),
+        "geographic_relation",
+    ),
+    (
+        re.compile(
+            r"\b(?:tirelessly|bustling|crowded|flourishing|prosperous|"
+            r"recent calamities|recent disasters|son felaketler|"
+            r"yoğun biçimde|yogun bicimde|canla başla|canla basla)\b",
+            re.IGNORECASE,
+        ),
+        "unsupported_setting_state",
+    ),
+    (
+        re.compile(
+            r"\b(?:most important|largest|important city|major city|"
+            r"en önemli şehir\w*|en onemli sehir\w*|en büyük şehir\w*|"
+            r"en buyuk sehir\w*|kuzeyin merkezi|center of the north)\b",
+            re.IGNORECASE,
+        ),
+        "unsupported_city_prominence",
+    ),
+    (
+        re.compile(
+            r"\b(?:neighborhood\w*|district\w*|ward\w*|quarter\w*|"
+            r"mahalle\w*|semt\w*|destroy\w*|devastat\w*|demolish\w*|"
+            r"damag\w*|ruin\w*|yıkım\w*|yikim\w*|yıkıl\w*|yikil\w*|"
+            r"tahrip\w*|yok ol\w*)\b",
+            re.IGNORECASE,
+        ),
+        "unsupported_urban_damage_detail",
+    ),
+    (
+        re.compile(
+            r"\b(?:newly built buildings?|new buildings?|modern technolog\w*|"
+            r"old architecture|older architecture|new construction|"
+            r"yeni yapılan binalar?|yeni yapilan binalar?|"
+            r"modern teknoloj\w*|eski mimari\w*|"
+            r"eski taşlar?|eski taslar?|ahşap ve demir|"
+            r"ahsap ve demir|wood and iron)\b",
+            re.IGNORECASE,
+        ),
+        "unsupported_built_environment_detail",
+    ),
+    (
+        re.compile(
+            r"\b(?:econom\w*|economy|population|citizens?|"
+            r"ekonomi\w*|ekonomisi\w*|ekonomisini\w*|halkını zorla\w*|"
+            r"halkini zorla\w*|people.{0,30}(?:struggle|suffer)|"
+            r"(?:struggle|suffer).{0,30}people)\b",
+            re.IGNORECASE,
+        ),
+        "unsupported_social_or_economic_state",
+    ),
+)
+_LORE_RULER_TITLE_RE = re.compile(
+    r"\b(?:king|queen|monarch|emperor|empress|kingdom|kral|kraliçe|"
+    r"hükümdar|imparator|imparatoriçe)\b",
+    re.IGNORECASE,
+)
+_LORE_ENTITY_RELATION_RE = re.compile(
+    r"\b(?:because of|due to|thanks to|caused by|resulted from|"
+    r"as a result|attributed to|led(?: by| to)?|responsible for|"
+    r"directed(?: by)?|managed(?: by)?|oversaw|"
+    r"under (?:the )?leadership of|efforts? of|helped rebuild|"
+    r"junction|intersection|confluence|"
+    r"crosses|connects? to|meets|joins|road to|route to|leads? to|"
+    r"kavşak|kavsak|birleşir|birlesir|bağlanır|baglanir|"
+    r"sayesinde|nedeniyle|sebebiyle|katkı sağladı|katki sagladi)\b",
+    re.IGNORECASE,
+)
+_LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
+    r"\b(?:road|route|path|way|distance|miles?|kilometers?|kilometres?|"
+    r"how far|how many\s+(?:miles?|kilometers?|kilometres?|meters?|metres?)|"
+    r"far from|on the road|"
+    r"yol|rota|guzergah|uzaklik|kac mil|kac kilometre|ne kadar uzak|arasi)\b",
+    re.IGNORECASE,
+)
+_UNVERIFIED_LORE_RESPONSE = (
+    "Bu iddia doğrulanmış lore veya kampanya kayıtlarıyla "
+    "desteklenmiyor; UNVERIFIED olarak kalıyor ve gerçek kabul edilmiyor."
+)
+
+
+def _narration_has_unsupported_lore_claim(
+    narration, lore_claims, lore_context, world_state
+):
+    if not isinstance(narration, str) or not narration.strip():
+        return False
+    facts = _lore_fact_records(lore_context, lore_claims)
+    evidence_parts = []
+    for fact in facts:
+        evidence_parts.extend(
+            str(fact.get(key, ""))
+            for key in (
+                "fact_id", "subject_id", "predicate", "object_id_or_value",
+                "notes",
+            )
+        )
+    evidence = _lore_guard_text(" ".join(evidence_parts))
+    names_by_id, known_phrases, known_tokens = _lore_entity_names(
+        lore_context, world_state
+    )
+    for fact in facts:
+        for field in ("subject_id", "object_id_or_value"):
+            value = fact.get(field)
+            if isinstance(value, str) and value in names_by_id:
+                for name in names_by_id[value]:
+                    evidence_parts.append(name)
+    evidence = _lore_guard_text(" ".join(evidence_parts))
+    cited_relations = {
+        (
+            fact.get("subject_id"),
+            fact.get("object_id_or_value"),
+            _lore_guard_text(" ".join(
+                str(fact.get(key, ""))
+                for key in ("predicate", "object_id_or_value", "notes")
+            )),
+        )
+        for fact in facts
+    }
+
+    for sentence in re.split(r"(?<=[.!?。！？])\s+", narration):
+        if _has_unregistered_narrative_entity(
+            sentence, known_phrases, known_tokens
+        ):
+            return True
+        normalized_sentence = _lore_guard_text(sentence)
+        for pattern, _reason in _LORE_UNSUPPORTED_DETAIL_PATTERNS:
+            for match in pattern.finditer(sentence):
+                if _lore_guard_text(match.group(0)) not in evidence:
+                    return True
+
+        for match in _LORE_RULER_TITLE_RE.finditer(sentence):
+            title = _lore_guard_text(match.group(0))
+            prior = _lore_guard_text(sentence[max(0, match.start() - 18):match.start()])
+            negated = bool(re.search(r"\b(?:not|isnt|is not|değil|degil)\b", prior))
+            if title in {"kingdom", "krallik"} and negated and "not a realm" in evidence:
+                continue
+            if title not in evidence:
+                return True
+
+        if _LORE_ENTITY_RELATION_RE.search(sentence):
+            mentioned_ids = {
+                entity_id
+                for entity_id, names in names_by_id.items()
+                if any(
+                    re.search(
+                        rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])",
+                        normalized_sentence,
+                    )
+                    for name in names
+                )
+            }
+            if len(mentioned_ids) >= 2:
+                linked = any(
+                    (left in mentioned_ids and right in mentioned_ids)
+                    or (
+                        isinstance(right, str)
+                        and right in mentioned_ids
+                        and left in mentioned_ids
+                    )
+                    for left, right, _ in cited_relations
+                )
+                has_outcome_evidence = any(
+                    any(
+                        token in normalized_sentence
+                        for token in relation_text.split()
+                        if len(token) >= 5
+                    )
+                    for _, _, relation_text in cited_relations
+                )
+                if not linked or not has_outcome_evidence:
+                    return True
+    return False
+
+
+def _supported_lore_question_response(player_input, lore_context, world_state):
+    """Return a loaded fact verbatim for a narrowly matched factual question."""
+    if not isinstance(player_input, str) or not player_input.strip():
+        return None
+    if "?" not in player_input and not re.match(
+        r"^\s*(?:who|what|where|when|why|how|which|whose|"
+        r"is|are|was|were|does|do|did|can|could|should|would|will|"
+        r"kim|ne|nerede|hangi|neden|nasıl|nasil|mi|mı|mu|mü)\b",
+        player_input,
+        re.IGNORECASE,
+    ):
+        return None
+
+    normalized_input = _lore_guard_text(player_input)
+    names_by_id, _, _ = _lore_entity_names(lore_context, world_state)
+    mentioned_ids = {
+        entity_id
+        for entity_id, names in names_by_id.items()
+        if any(
+            re.search(
+                rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])",
+                normalized_input,
+            )
+            for name in names
+        )
+    }
+    if not mentioned_ids:
+        return None
+
+    sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
+    facts = []
+    for section_name in (
+        "official_forgotten_realms_lore",
+        "campaign_canon",
+        "player_known_lore",
+    ):
+        items = sections.get(section_name, []) if isinstance(sections, dict) else []
+        facts.extend(item for item in items if isinstance(item, dict))
+    canonical_names = {
+        entity["entity_id"]: entity["canonical_name"]
+        for entity in sections.get("verified_entities", [])
+        if isinstance(entity, dict)
+        and isinstance(entity.get("entity_id"), str)
+        and isinstance(entity.get("canonical_name"), str)
+        and entity["canonical_name"].strip()
+    } if isinstance(sections, dict) else {}
+    if isinstance(world_state, dict):
+        for location_id, location in world_state.get("locations", {}).items():
+            if isinstance(location, dict) and isinstance(location.get("name"), str):
+                canonical_names.setdefault(location_id, location["name"])
+        for collection in ("npcs", "features"):
+            for entity in world_state.get(collection, []):
+                if not isinstance(entity, dict) or not isinstance(entity.get("name"), str):
+                    continue
+                entity_id = entity.get("id") or entity.get("feature_id")
+                if isinstance(entity_id, str):
+                    canonical_names.setdefault(entity_id, entity["name"])
+
+    def entity_name(entity_id):
+        if isinstance(entity_id, str) and entity_id in canonical_names:
+            return canonical_names[entity_id]
+        names = names_by_id.get(entity_id, set())
+        return min(names, key=lambda name: (len(name), name)) if names else None
+
+    is_turkish = bool(
+        re.search(r"[çğıöşüÇĞİÖŞÜ]", player_input)
+        or re.search(
+            r"\b(?:mi|mu|olarak|devam|yonet|hukumdar|gercekten|"
+            r"yeniden|insaat)\b",
+            normalized_input,
+        )
+    )
+
+    distance_question = bool(re.search(
+        r"\b(?:distance|how far|how many\s+(?:miles?|kilometers?|"
+        r"kilometres?|meters?|metres?)|miles?|kilometers?|"
+        r"kilometres?|meters?|metres?|kac mil|kac kilometre|"
+        r"ne kadar uzak|uzaklik)\b",
+        normalized_input,
+    ))
+    lord_question = bool(re.search(
+        r"\b(?:rule\w*|lord\w*|leader\w*|lead\w*|"
+        r"hukumdar\w*|yonet\w*)\b",
+        normalized_input,
+    ))
+    route_continuation_question = bool(re.search(
+        r"\b(?:contin\w*|devam\w*)\b",
+        normalized_input,
+    ))
+    political_form_question = bool(re.search(
+        r"\b(?:realm|kingdom|country|nation|krallik|ulke|devlet)\b",
+        normalized_input,
+    ))
+    rebuilding_question = bool(re.search(
+        r"\b(?:rebuild\w*|reconstruction|yeniden insa|insaat)\b",
+        normalized_input,
+    ))
+
+    for fact in facts:
+        subject_id = fact.get("subject_id")
+        object_id = fact.get("object_id_or_value")
+        predicate = str(fact.get("predicate", ""))
+        notes = fact.get("notes")
+        notes = notes.strip() if isinstance(notes, str) else ""
+        if (
+            predicate in {"current_lord_id", "current_lord"}
+            and lord_question
+            and subject_id in mentioned_ids
+            and (
+                object_id in mentioned_ids
+                or re.search(r"\b(?:who|whose|kim)\b", normalized_input)
+            )
+        ):
+            if notes:
+                return notes
+            subject_name = entity_name(subject_id)
+            object_name = entity_name(object_id)
+            if (
+                object_name is None
+                and predicate == "current_lord"
+                and isinstance(object_id, str)
+                and ":" not in object_id
+            ):
+                object_name = object_id.replace("_", " ")
+            if subject_name and object_name:
+                if is_turkish:
+                    return f"{subject_name} kentinin güncel Lordu {object_name}."
+                return (
+                    f"{object_name} is the current Lord of {subject_name}."
+                )
+        if (
+            predicate == "continues_as"
+            and not distance_question
+            and route_continuation_question
+            and subject_id in mentioned_ids
+            and object_id in mentioned_ids
+        ):
+            if notes:
+                return notes
+            subject_name = entity_name(subject_id)
+            object_name = entity_name(object_id)
+            if subject_name and object_name:
+                if is_turkish:
+                    return f"{subject_name}, {object_name} olarak devam eder."
+                return f"{subject_name} continues as {object_name}."
+        if (
+            predicate == "political_form"
+            and political_form_question
+            and subject_id in mentioned_ids
+        ):
+            subject_name = entity_name(subject_id)
+            if object_id == "settlement_coalition_not_a_realm" and subject_name:
+                if is_turkish:
+                    return (
+                        f"{subject_name}, yerleşim koalisyonudur; "
+                        "bir realm değildir."
+                    )
+                display_name = (
+                    subject_name
+                    if subject_name.casefold().startswith("the ")
+                    else f"The {subject_name}"
+                )
+                return (
+                    f"{display_name} is a settlement coalition, not a realm."
+                )
+            if notes and not re.search(
+                r"\b(?:normalized|institutional form)\b",
+                _lore_guard_text(notes),
+            ):
+                return notes
+        if (
+            predicate == "current_status"
+            and rebuilding_question
+            and subject_id in mentioned_ids
+        ):
+            subject_name = entity_name(subject_id)
+            if subject_name and object_id in {"rebuilding", "under_reconstruction"}:
+                if is_turkish:
+                    return f"{subject_name} yeniden inşa ediliyor."
+                return f"{subject_name} is rebuilding."
+            if notes:
+                return notes
+    return None
+
+
+def _player_question_has_unverified_lore_claim(
+    player_input,
+    lore_context,
+    world_state,
+):
+    if not isinstance(player_input, str) or not player_input.strip():
+        return False
+    if "?" not in player_input and not re.match(
+        r"^\s*(?:who|what|where|when|why|how|which|whose|"
+        r"is|are|was|were|does|do|did|can|could|should|would|will|"
+        r"kim|ne|nerede|hangi|neden|nasıl|nasil|"
+        r"mi|mı|mu|mü)\b",
+        player_input,
+        re.IGNORECASE,
+    ):
+        return False
+
+    names_by_id, known_phrases, known_tokens = _lore_entity_names(
+        lore_context, world_state
+    )
+    if _has_unregistered_narrative_entity(
+        player_input,
+        known_phrases,
+        known_tokens,
+    ):
+        return True
+
+    sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
+    facts = []
+    evidence_parts = []
+    for section_name in (
+        "official_forgotten_realms_lore",
+        "campaign_canon",
+        "player_known_lore",
+        "npc_known_lore",
+    ):
+        items = sections.get(section_name, []) if isinstance(sections, dict) else []
+        for item in items if isinstance(items, list) else []:
+            if isinstance(item, dict):
+                facts.append(item)
+                evidence_parts.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "fact_id", "subject_id", "predicate",
+                        "object_id_or_value", "notes",
+                    )
+                )
+    evidence = _lore_guard_text(" ".join(evidence_parts))
+    for pattern, _reason in _LORE_UNSUPPORTED_DETAIL_PATTERNS:
+        for match in pattern.finditer(player_input):
+            if _lore_guard_text(match.group(0)) not in evidence:
+                return True
+
+    normalized_input = _lore_guard_text(player_input)
+    if _LORE_ROUTE_DISTANCE_QUERY_RE.search(normalized_input):
+        mentioned_ids = {
+            entity_id
+            for entity_id, names in names_by_id.items()
+            if any(
+                re.search(
+                    rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])",
+                    normalized_input,
+                )
+                for name in names
+            )
+        }
+        distance_question = bool(re.search(
+            r"\b(?:distance|how far|how many\s+(?:miles?|kilometers?|"
+            r"kilometres?|meters?|metres?)|miles?|kilometers?|"
+            r"kilometres?|meters?|metres?|kac mil|kac kilometre|"
+            r"ne kadar uzak|uzaklik)\b",
+            normalized_input,
+        ))
+        if distance_question and len(mentioned_ids) == 1:
+            current_location_id = (
+                world_state.get("location")
+                if isinstance(world_state, dict)
+                else None
+            )
+            if isinstance(current_location_id, str) and current_location_id in names_by_id:
+                mentioned_ids.add(current_location_id)
+
+        if distance_question:
+            if len(mentioned_ids) == 1:
+                current_location_id = (
+                    world_state.get("location")
+                    if isinstance(world_state, dict)
+                    else None
+                )
+                if (
+                    isinstance(current_location_id, str)
+                    and current_location_id in names_by_id
+                ):
+                    mentioned_ids.add(current_location_id)
+
+            def fact_has_requested_distance(fact):
+                fact_text = _lore_guard_text(" ".join(
+                    str(fact.get(key, ""))
+                    for key in (
+                        "predicate", "object_id_or_value", "notes",
+                    )
+                ))
+                if not re.search(
+                    r"\b\d+\s*(?:miles?|mi|kilometers?|kilometres?|"
+                    r"km|meters?|metres?|yards?|leagues?|mil|kilometre|metre)\b",
+                    fact_text,
+                ):
+                    return False
+                endpoints = {
+                    fact.get("subject_id"),
+                    fact.get("object_id_or_value"),
+                }
+                if len(mentioned_ids) >= 2 and mentioned_ids.issubset(endpoints):
+                    return True
+                if len(mentioned_ids) >= 2:
+                    return all(
+                        any(
+                            re.search(
+                                rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])",
+                                fact_text,
+                            )
+                            for name in names_by_id.get(entity_id, set())
+                        )
+                        for entity_id in mentioned_ids
+                    )
+                return bool(mentioned_ids & endpoints)
+
+            if not any(fact_has_requested_distance(fact) for fact in facts):
+                return True
+        elif len(mentioned_ids) >= 2:
+            has_supported_pair = any(
+                fact.get("subject_id") in mentioned_ids
+                and fact.get("object_id_or_value") in mentioned_ids
+                for fact in facts
+            )
+            if not has_supported_pair:
+                return True
+    return False
+
+
 DM_RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -4911,6 +5651,9 @@ def finalize_narration(
         "scene_type": _narration_scene_type(action_result),
     }
     handling = "python_fallback" if fallback_reason_code else "accepted"
+    if fallback_reason_code == "UNVERIFIED_LORE_CLAIM":
+        narration = _UNVERIFIED_LORE_RESPONSE
+        handling = "python_fallback"
     if not isinstance(narration, str) or not narration.strip():
         narration = _fallback_for_action_result(player_input, action_result)
         if not decision["reason_code"]:
@@ -4961,6 +5704,25 @@ def finalize_narration(
     if historical_claim and not history_target:
         resolution = resolve_npc_reference(player_input)
         history_target = resolution.get("npc") if resolution.get("status") == "found" else None
+    if historical_claim and (
+        not isinstance(history_target, dict)
+        or not isinstance(history_target.get("id"), str)
+        or not any(
+            isinstance(npc, dict) and npc.get("id") == history_target.get("id")
+            for npc in _session().world_state.get("npcs", [])
+        )
+    ):
+        narration = (
+            "Bu geçmiş NPC konuşmasını doğrulayabileceğim kayıtlı bir NPC kimliği "
+            "yok. Önceki konuşma iddiası UNVERIFIED olarak kalıyor."
+        )
+        decision = {
+            "reason_code": "NPC_MEMORY_UNVERIFIED_NO_STABLE_ID",
+            "trigger_span": None,
+            "scene_type": _narration_scene_type(action_result),
+        }
+        handling = "python_memory_response"
+        history_target = None
     if historical_claim and history_target:
         supported_name = None
         if _is_historical_player_name_query(player_input):
@@ -5807,6 +6569,33 @@ def run_player_turn(player_input, messages=None, target_id=None):
             )
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
+    if _player_question_has_unverified_lore_claim(
+        player_input,
+        lore_context,
+        world_state,
+    ):
+        action_result = {
+            "action": "dialogue",
+            "status": "unverified",
+            "success": False,
+            "state_changes": [],
+        }
+        return finish_turn(action_result, _UNVERIFIED_LORE_RESPONSE)
+
+    supported_lore_response = _supported_lore_question_response(
+        player_input,
+        lore_context,
+        world_state,
+    )
+    if supported_lore_response:
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_loaded_lore",
+            "success": True,
+            "state_changes": [],
+        }
+        return finish_turn(action_result, supported_lore_response)
+
     raw_intent = parse_player_intent(player_input)
     normalized_intent = normalize_intent(raw_intent, player_input)
     validated_intent = validate_intent(normalized_intent, player_input)
@@ -5873,6 +6662,8 @@ def run_player_turn(player_input, messages=None, target_id=None):
     )
     is_assertion = is_player_world_assertion(player_input)
     proposal_snapshot = _world_snapshot()
+    proposal_world_state = copy.deepcopy(world_state)
+    proposal_action_result = copy.deepcopy(action_result)
 
     # Location proposals are validated and committed before the player location changes.
     location_updates = validate_world_updates(
@@ -5920,6 +6711,24 @@ def run_player_turn(player_input, messages=None, target_id=None):
         flags["last_npc_id"] = created_npcs[0].get("id")
         flags["active_npc_id"] = created_npcs[0].get("id")
         flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+
+    if packet.get("valid_response") and _narration_has_unsupported_lore_claim(
+        packet.get("narration"),
+        packet.get("lore_claims", []),
+        lore_context,
+        world_state,
+    ):
+        world_state.clear()
+        world_state.update(proposal_world_state)
+        action_result.clear()
+        action_result.update(proposal_action_result)
+        packet = {
+            "narration": None,
+            "world_updates": {},
+            "lore_claims": [],
+            "valid_response": False,
+            "fallback_reason_code": "UNVERIFIED_LORE_CLAIM",
+        }
 
     proposal_changes = _changed_state_fields(proposal_snapshot)
     action_result["state_changes"] = list(dict.fromkeys(action_result.get("state_changes", []) + proposal_changes))

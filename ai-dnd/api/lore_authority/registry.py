@@ -30,6 +30,37 @@ from .models import (
 MAX_RETRIEVED_FACTS = 64
 MAX_CONTEXT_BYTES = 12 * 1024
 MAX_CANDIDATES = 400
+MAX_FACTS_PER_SUBJECT = 6
+
+_QUERY_STOP_WORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "but", "by", "do", "for",
+    "from", "how", "in", "is", "it", "of", "on", "or", "the", "to", "was",
+    "what", "when", "where", "who", "why", "with", "you", "your",
+    "acaba", "ama", "bir", "bu", "da", "de", "diye", "ile", "için", "icin",
+    "mi", "mı", "mu", "mü", "ne", "neden", "nerede", "olan", "olarak",
+    "ve", "ya", "yani",
+}
+_QUERY_SYNONYMS = {
+    "king": {"lord"},
+    "queen": {"lord"},
+    "monarch": {"lord"},
+    "ruler": {"lord"},
+    "kingdom": {"realm"},
+    "kraliçe": {"lord"},
+    "kral": {"lord"},
+    "hükümdar": {"lord"},
+    "hukumdar": {"lord"},
+    "route": {"road"},
+    "safety": {"safe"},
+    "distance": {"miles", "kilometers", "km"},
+    "craft": {"crafts", "goods"},
+}
+_BROAD_LORE_QUERY_RE = re.compile(
+    r"\b(?:describe|overview|tell me(?: more)? about|what about|what is known|what do you know|"
+    r"give me (?:a )?(?:summary|description)|hakkında|hakkinda|anlat|"
+    r"genel bilgi|tasvir et)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -56,6 +87,23 @@ class LoreClaimValidation:
 def normalize_name(value: str) -> str:
     """Normalize for exact alias matching only; never fuzzy-match canon names."""
     return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+
+def _query_terms(value: str | None) -> set[str]:
+    if not isinstance(value, str) or not value.strip():
+        return set()
+    terms = {
+        token
+        for token in re.findall(r"[a-z0-9çğıöşü]+", normalize_name(value))
+        if len(token) > 2 and token not in _QUERY_STOP_WORDS
+    }
+    for token in tuple(terms):
+        terms.update(_QUERY_SYNONYMS.get(token, ()))
+    return terms
+
+
+def _is_broad_lore_query(value: str | None) -> bool:
+    return isinstance(value, str) and bool(_BROAD_LORE_QUERY_RE.search(value))
 
 
 def _authorized_source(source: SourceManifest) -> bool:
@@ -392,6 +440,7 @@ class LoreRegistry:
         self,
         *,
         current_location_id: str | None = None,
+        player_message: str | None = None,
         mentioned_entity_ids: Iterable[str] = (),
         present_npc_ids: Iterable[str] = (),
         active_quest_fact_ids: Iterable[str] = (),
@@ -407,6 +456,8 @@ class LoreRegistry:
         if not 256 <= max_bytes <= MAX_CONTEXT_BYTES:
             raise ValueError("max_bytes is outside the supported range.")
         state = campaign_state or CampaignLoreState.legacy_unbound()
+        query_terms = _query_terms(player_message)
+        broad_query = _is_broad_lore_query(player_message)
         mentioned_ids = set(mentioned_entity_ids)
         quest_fact_ids = set(active_quest_fact_ids)
         quest_subject_ids = set(active_quest_subject_ids)
@@ -422,15 +473,27 @@ class LoreRegistry:
         )
         region_scopes = self._region_scope_values(region_ids)
         geography_ids = set(self.geography_ancestors(all_context_ids))
-        for entity_id in tuple(geography_ids):
-            for edge in self._incoming_edges.get(entity_id, ()):
-                if edge.predicate in {
-                    Relationship.PART_OF,
-                    Relationship.LOCATED_IN,
-                    Relationship.DISTRICT_OF,
-                }:
-                    geography_ids.add(edge.subject_id)
         candidates: dict[str, tuple[int, LoreFact]] = {}
+
+        def add_candidate(
+            fact: LoreFact,
+            rank: int,
+            *,
+            explicit_subject: bool = False,
+            force: bool = False,
+        ) -> None:
+            relevance = self._fact_relevance_score(fact, query_terms)
+            if (
+                player_message is not None
+                and not relevance
+                and not force
+                and not (broad_query and explicit_subject)
+            ):
+                return
+            previous = candidates.get(fact.fact_id)
+            if previous is None or rank < previous[0]:
+                candidates[fact.fact_id] = (rank, fact)
+
         for entity_id in all_context_ids:
             for fact in self._facts_by_subject.get(entity_id, ()):
                 rank = _retrieval_rank(
@@ -441,18 +504,28 @@ class LoreRegistry:
                     quest=fact.fact_id in quest_fact_ids,
                 )
                 if rank is not None:
-                    candidates[fact.fact_id] = (rank, fact)
-        for entity_id in geography_ids - explicit_ids:
-            for fact in self._facts_by_subject.get(entity_id, ()):
-                if fact.reality_layer is LoreLayer.OFFICIAL_SETTING_CANON:
-                    candidates[fact.fact_id] = (2, fact)
+                    add_candidate(
+                        fact,
+                        rank,
+                        explicit_subject=(
+                            entity_id in mentioned_ids
+                            or entity_id in present_ids
+                            or (broad_query and entity_id == current_location_id)
+                        ),
+                    )
         for fact_id in quest_fact_ids:
             fact = self._facts.get(fact_id)
             if fact is not None:
-                candidates.setdefault(fact.fact_id, (6, fact))
-        for region_scope in region_scopes:
-            for fact in self._facts_by_region.get(region_scope, ()):
-                candidates.setdefault(fact.fact_id, (7, fact))
+                add_candidate(fact, 6, explicit_subject=True, force=True)
+        if player_message is not None and query_terms:
+            for fact in self._facts.values():
+                if fact.region_scope and fact.region_scope not in region_scopes:
+                    continue
+                if fact.visibility is VisibilityScope.REGIONAL_KNOWLEDGE:
+                    if fact.region_scope not in region_scopes:
+                        continue
+                if self._fact_relevance_score(fact, query_terms):
+                    add_candidate(fact, 7)
         if len(candidates) > MAX_CANDIDATES:
             candidates = dict(
                 sorted(candidates.items(), key=lambda item: (item[1][0], item[0]))[
@@ -465,11 +538,11 @@ class LoreRegistry:
         for fact_id in campaign_known:
             fact = self._facts.get(fact_id)
             if fact is not None and fact.subject_id in (geography_ids | all_context_ids):
-                candidates.setdefault(fact_id, (4, fact))
+                add_candidate(fact, 4, explicit_subject=True)
         for fact_id in npc_known:
             fact = self._facts.get(fact_id)
             if fact is not None and fact.subject_id in (geography_ids | all_context_ids):
-                candidates.setdefault(fact_id, (4, fact))
+                add_candidate(fact, 4, explicit_subject=True)
         allowed: list[tuple[int, LoreFact]] = []
         withheld_secret_count = 0
         for rank, fact in candidates.values():
@@ -521,6 +594,15 @@ class LoreRegistry:
                 )
                 selected.append((rank, fact))
         selected.sort(key=lambda item: (item[0], item[1].fact_id))
+        subject_counts: dict[str, int] = {}
+        bounded_selected: list[tuple[int, LoreFact]] = []
+        for rank, fact in selected:
+            count = subject_counts.get(fact.subject_id, 0)
+            if count >= MAX_FACTS_PER_SUBJECT:
+                continue
+            subject_counts[fact.subject_id] = count + 1
+            bounded_selected.append((rank, fact))
+        selected = bounded_selected
         selected = selected[:max_facts]
 
         official = [fact.to_dict() for _, fact in selected]
@@ -556,6 +638,25 @@ class LoreRegistry:
             for entity_id in all_context_ids
             if entity_id not in self._entities
         )[:32]
+        relevant_entity_ids = set(geography_ids | all_context_ids)
+        for _, fact in selected:
+            relevant_entity_ids.add(fact.subject_id)
+            if isinstance(fact.object_id_or_value, str):
+                if fact.object_id_or_value in self._entities:
+                    relevant_entity_ids.add(fact.object_id_or_value)
+        verified_entities = [
+            {
+                "entity_id": entity.entity_id,
+                "entity_type": entity.entity_type.value,
+                "canonical_name": entity.canonical_name,
+                "aliases": list(entity.aliases),
+            }
+            for entity in (
+                self._entities[entity_id]
+                for entity_id in sorted(relevant_entity_ids)
+                if entity_id in self._entities
+            )
+        ][:MAX_CANDIDATES]
         packet: dict[str, Any] = {
             "authority_boundary": {
                 "official_lore_is_not_campaign_history": True,
@@ -570,6 +671,7 @@ class LoreRegistry:
                 "player_known_lore": player_known,
                 "npc_known_lore": npc_known_facts,
                 "procedural_local_content": relevant_procedural,
+                "verified_entities": verified_entities,
                 "unknown_or_unloaded": [
                     {
                         "entity_id": entity_id,
@@ -581,6 +683,9 @@ class LoreRegistry:
             "diagnostics": {
                 "registry_fact_count": self.fact_count,
                 "selected_fact_count": len(official),
+                "selected_fact_ids": [
+                    item["fact_id"] for item in official if "fact_id" in item
+                ],
                 "withheld_secret_count": withheld_secret_count,
                 "unresolved_conflicts": unresolved_conflicts,
                 "coverage_status": (
@@ -593,6 +698,40 @@ class LoreRegistry:
         }
         _trim_packet(packet, max_bytes)
         return packet
+
+    def _fact_relevance_terms(self, fact: LoreFact) -> set[str]:
+        parts = [fact.predicate.replace("_", " ")]
+        value = fact.object_id_or_value
+        if isinstance(value, str):
+            parts.append(value.replace("_", " ").replace(":", " "))
+            referenced = self._entities.get(value)
+            if referenced is not None:
+                parts.extend((referenced.canonical_name, *referenced.aliases))
+        return _query_terms(" ".join(parts))
+
+    def _fact_relevance_score(
+        self,
+        fact: LoreFact,
+        query_terms: set[str],
+    ) -> int:
+        subject = self._entities.get(fact.subject_id)
+        subject_terms = (
+            _query_terms(" ".join((subject.canonical_name, *subject.aliases)))
+            if subject is not None
+            else set()
+        )
+        query_specific_terms = query_terms - subject_terms
+        structured_matches = (
+            query_specific_terms & self._fact_relevance_terms(fact)
+        )
+        if structured_matches:
+            return len(structured_matches)
+
+        # Notes often mention nearby entities or other setting context. Require
+        # more than a single shared note term when the structured fact itself
+        # does not match, so one place-name cannot pull in unrelated facts.
+        note_matches = query_specific_terms & _query_terms(fact.notes)
+        return len(note_matches) if len(note_matches) >= 2 else 0
 
     def source_coverage(self) -> dict[str, Any]:
         categories = {
@@ -784,6 +923,7 @@ def _trim_packet(packet: dict[str, Any], max_bytes: int) -> None:
     while len(json.dumps(packet, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > max_bytes:
         removed = False
         for key in (
+            "verified_entities",
             "procedural_local_content",
             "npc_known_lore",
             "campaign_canon",
@@ -800,6 +940,11 @@ def _trim_packet(packet: dict[str, Any], max_bytes: int) -> None:
         packet["diagnostics"]["selected_fact_count"] = len(
             sections["official_forgotten_realms_lore"]
         )
+        packet["diagnostics"]["selected_fact_ids"] = [
+            item["fact_id"]
+            for item in sections["official_forgotten_realms_lore"]
+            if "fact_id" in item
+        ]
 
 
 def default_lore_registry() -> LoreRegistry:

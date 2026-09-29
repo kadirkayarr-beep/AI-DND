@@ -1,6 +1,7 @@
 """Deterministic regression corpus for narration safety calibration."""
 import copy
 import unittest
+from unittest.mock import patch
 
 import game
 from api.narrative_memory import _scene_type
@@ -47,6 +48,10 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         return self.session._narration_safety_decision(
             narration, player_input, npc_target, action_result
         )
+
+    def finalize_narration(self, *args, **kwargs):
+        with patch.object(game, "_session", return_value=self.session):
+            return game.finalize_narration(*args, **kwargs)
 
     def test_temporary_texture_corpus_is_not_rejected_as_unregistered_canon(self):
         cases = (
@@ -350,7 +355,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
                 "text": "Daha önce adımı Arven olarak sana söylemiştim.",
             },
         ]
-        output = self.session.finalize_narration(
+        output = self.finalize_narration(
             'Gromm, gözlerini kadehe çevirir. "Arven dediğin kişiyi duydum. '
             "Sana adını söylemen gerekirdi.\"",
             "Gromm, daha önce sana adımı söylemiş miydim?",
@@ -372,7 +377,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             "text": "Gromm, benim adım Arven. Kendimi tanıtıyorum.",
         }]
         self.gromm["memory"] = []
-        output = self.session.finalize_narration(
+        output = self.finalize_narration(
             "Gromm gülümser. 'Evet, Arven; adını daha önce söylemiştin.'",
             query,
             npc_target=self.gromm,
@@ -391,7 +396,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             "speaker": "player",
             "text": "Gromm, benim adım Arven. Kendimi tanıtıyorum.",
         }]
-        output = self.session.finalize_narration(
+        output = self.finalize_narration(
             "Gromm başını hafifçe eğer.",
             query,
             npc_target=self.gromm,
@@ -425,7 +430,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         for player_input, claims in unsupported_cases:
             with self.subTest(player_input=player_input, claims=claims):
                 self.gromm["memory"] = []
-                output = self.session.finalize_narration(
+                output = self.finalize_narration(
                     "Gromm, 'Evet, Arven ve başka sırları da anlattım,' diye yanıt verir.",
                     player_input,
                     npc_target=self.gromm,
@@ -438,8 +443,24 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
                 )
                 self.assertNotIn("Arven", output)
 
+    def test_historical_claim_without_a_stable_npc_id_stays_unverified(self):
+        self.session.world_state["npcs"] = []
+        output = self.finalize_narration(
+            "Elara smiles. 'Yes, you told me your name was Mira.'",
+            "Elara, daha önce sana adımı söylemiş miydim?",
+            npc_target=None,
+            action_result={"action": "dialogue", "status": "resolved"},
+        )
+
+        self.assertIn("UNVERIFIED", output)
+        self.assertEqual(
+            self.session.last_narration_safety["reason_code"],
+            "NPC_MEMORY_UNVERIFIED_NO_STABLE_ID",
+        )
+        self.assertEqual(self.session.world_state["npcs"], [])
+
     def test_safe_sentence_is_preserved_when_one_agency_sentence_is_removed(self):
-        output = self.session.finalize_narration(
+        output = self.finalize_narration(
             "Gromm kaşını kaldırır. Sen kılıcını savurursun. Yağmur pencereye vurur.",
             "Etrafıma bakıyorum.",
             action_result={"action": "explore", "status": "resolved", "explore_type": "observe"},
@@ -452,7 +473,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
 
     def test_unrepairable_agency_violation_uses_python_fallback_reason(self):
         before = copy.deepcopy(self.session.world_state)
-        output = self.session.finalize_narration(
+        output = self.finalize_narration(
             "Kılıcını savurursun.",
             "Etrafıma bakıyorum.",
             action_result={"action": "explore", "status": "resolved", "explore_type": "observe"},

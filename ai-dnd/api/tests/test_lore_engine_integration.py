@@ -213,5 +213,289 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
 
 
+    def test_narration_claim_guard_fails_closed_on_unverified_lore(self):
+        context = game._empty_lore_authority_context()
+        context["sections"]["official_forgotten_realms_lore"] = [
+            {
+                "fact_id": "fact:neverwinter:status",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "current_status",
+                "object_id_or_value": "rebuilding",
+                "notes": "Neverwinter is rebuilding.",
+            },
+            {
+                "fact_id": "fact:neverwinter:lord",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "current_lord_id",
+                "object_id_or_value": "fr:person:dagult",
+                "notes": "Dagult Neverember is the current Lord of Neverwinter.",
+            },
+            {
+                "fact_id": "fact:alliance:form",
+                "subject_id": "fr:faction:lords_alliance",
+                "predicate": "political_form",
+                "object_id_or_value": "settlement_coalition_not_a_realm",
+                "notes": "The Lords' Alliance is a settlement coalition, not a realm.",
+            },
+            {
+                "fact_id": "fact:neverwinter:crafts",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "known_for",
+                "object_id_or_value": "master_crafts_and_fine_goods",
+                "notes": "Known for master crafts and fine goods.",
+            },
+            {
+                "fact_id": "fact:highroad:route",
+                "subject_id": "fr:road:high_road",
+                "predicate": "continues_as",
+                "object_id_or_value": "fr:road:trade_way",
+                "notes": "The High Road continues as the Trade Way.",
+            },
+        ]
+        context["sections"]["verified_entities"] = [
+            {"entity_id": "fr:city:neverwinter", "canonical_name": "Neverwinter", "aliases": []},
+            {"entity_id": "fr:city:phandalin", "canonical_name": "Phandalin", "aliases": []},
+            {"entity_id": "fr:person:dagult", "canonical_name": "Dagult Neverember", "aliases": ["Dagult"]},
+            {"entity_id": "fr:faction:lords_alliance", "canonical_name": "Lords' Alliance", "aliases": []},
+            {"entity_id": "fr:road:high_road", "canonical_name": "High Road", "aliases": []},
+            {"entity_id": "fr:road:trade_way", "canonical_name": "Trade Way", "aliases": []},
+            {"entity_id": "fr:river:neverwinter", "canonical_name": "River Neverwinter", "aliases": []},
+        ]
+        world_state = {"locations": {}, "npcs": [], "features": []}
+
+        def rejected(text, fact_ids):
+            return game._narration_has_unsupported_lore_claim(
+                text, fact_ids, context, world_state
+            )
+
+        unsupported_city_expansion = (
+            "Neverwinter, kuzeyin en önemli şehirlerinden biri olarak, büyük "
+            "yıkımların ardından yeniden inşa edilmektedir. Şehir sınırları "
+            "içindeki bazı mahalleler tamamen yok olmuştur; diğerleri ise "
+            "kısmen tahrip edilmiş durumda ve onarım sürecindedir. Yeni "
+            "yapılan binalar, eski mimari öğelerle birlikte modern "
+            "teknolojilerin etkisiyle şekillenmiştir. Bazı yerlerde eski "
+            "taşlar hâlâ göze çarparken, yeni yapılı olanlarda ahşap ve demir "
+            "kullanılmıştır. Bu yeniden inşa süreci hem şehrin ekonomisini "
+            "hem de halkını zorlamaktadır; Neverwinter kuzeyin merkezi "
+            "olmaya devam eder."
+        )
+        self.assertFalse(
+            game._narration_has_unsupported_lore_claim(
+                "Neverwinter is rebuilding.",
+                ["fact:neverwinter:status"],
+                context,
+                world_state,
+            )
+        )
+        self.assertTrue(
+            rejected(
+                unsupported_city_expansion,
+                ["fact:neverwinter:status"],
+            )
+        )
+
+        for question in (
+            "Is Phandalin on the road from Neverwinter, and how many miles away is it?",
+            "Does King Vharion rule Neverwinter?",
+            "What is the history of the Silver Marches, and how did they fall?",
+            "Elara, did I introduce myself to you?",
+            "Is Neverwinter known for silver and metalworking?",
+        ):
+            with self.subTest(question=question):
+                self.assertTrue(
+                    game._player_question_has_unverified_lore_claim(
+                        question,
+                        context,
+                        world_state,
+                    )
+                )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "How is Neverwinter rebuilding?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "High Road, Trade Way olarak mı devam ediyor?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "Does Dagult Neverember rule Neverwinter?",
+                context,
+                world_state,
+            )
+        )
+        self.assertTrue(
+            game._player_question_has_unverified_lore_claim(
+                "How many miles are between High Road and Trade Way?",
+                context,
+                world_state,
+            )
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "Does Dagult Neverember rule Neverwinter?",
+                context,
+                world_state,
+            ),
+            "Dagult Neverember is the current Lord of Neverwinter.",
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "High Road, Trade Way olarak mı devam ediyor?",
+                context,
+                world_state,
+            ),
+            "The High Road continues as the Trade Way.",
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "Is the Lords’ Alliance a realm?",
+                context,
+                world_state,
+            ),
+            "The Lords' Alliance is a settlement coalition, not a realm.",
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "Neverwinter gerçekten yeniden inşa ediliyor mu?",
+                context,
+                world_state,
+            ),
+            "Neverwinter yeniden inşa ediliyor.",
+        )
+        lore_facts = context["sections"]["official_forgotten_realms_lore"]
+        lord_fact = next(
+            item for item in lore_facts
+            if item["predicate"] == "current_lord_id"
+        )
+        route_fact = next(
+            item for item in lore_facts
+            if item["predicate"] == "continues_as"
+        )
+        form_fact = next(
+            item for item in lore_facts
+            if item["predicate"] == "political_form"
+        )
+        status_fact = next(
+            item for item in lore_facts
+            if item["predicate"] == "current_status"
+        )
+        original_notes = {
+            id(item): item.get("notes")
+            for item in (lord_fact, route_fact, form_fact, status_fact)
+        }
+        try:
+            lord_fact["notes"] = ""
+            route_fact["notes"] = ""
+            form_fact["notes"] = "Normalized institutional form."
+            status_fact["notes"] = "Do not reinterpret this as fully restored."
+            self.assertEqual(
+                game._supported_lore_question_response(
+                    "Does Dagult Neverember rule Neverwinter?",
+                    context,
+                    world_state,
+                ),
+                "Dagult Neverember is the current Lord of Neverwinter.",
+            )
+            self.assertEqual(
+                game._supported_lore_question_response(
+                    "High Road, Trade Way olarak mı devam ediyor?",
+                    context,
+                    world_state,
+                ),
+                "High Road, Trade Way olarak devam eder.",
+            )
+            self.assertEqual(
+                game._supported_lore_question_response(
+                    "Is the Lords’ Alliance a realm?",
+                    context,
+                    world_state,
+                ),
+                "The Lords' Alliance is a settlement coalition, not a realm.",
+            )
+            self.assertEqual(
+                game._supported_lore_question_response(
+                    "Neverwinter gerçekten yeniden inşa ediliyor mu?",
+                    context,
+                    world_state,
+                ),
+                "Neverwinter yeniden inşa ediliyor.",
+            )
+        finally:
+            for item in (lord_fact, route_fact, form_fact, status_fact):
+                item["notes"] = original_notes[id(item)]
+        self.assertIsNone(
+            game._supported_lore_question_response(
+                "How many miles are between High Road and Trade Way?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "What does the Lords' Alliance do, and is it a kingdom?",
+                context,
+                world_state,
+            )
+        )
+
+        self.assertFalse(
+            rejected(
+                "Neverwinter is rebuilding.",
+                ["fact:neverwinter:status"],
+            )
+        )
+        self.assertFalse(
+            rejected(
+                "The Lords' Alliance is not a kingdom.",
+                ["fact:alliance:form"],
+            )
+        )
+        unsupported = (
+            (
+                "The road to Phandalin is 40 miles from Neverwinter.",
+                ["fact:highroad:route"],
+            ),
+            (
+                "King Vharion rules Neverwinter.",
+                ["fact:neverwinter:lord"],
+            ),
+            (
+                "The Silver Marches fell in an ancient war.",
+                ["fact:neverwinter:status"],
+            ),
+            (
+                "Neverwinter specializes in silver and metalworking.",
+                ["fact:neverwinter:crafts"],
+            ),
+            (
+                "The Lords' Alliance is led by an elected council that sets laws.",
+                ["fact:alliance:form"],
+            ),
+            (
+                "A merchant named Elara waits in the market.",
+                ["fact:neverwinter:status"],
+            ),
+            (
+                "Dagult Neverember directed Neverwinter's rebuilding.",
+                ["fact:neverwinter:lord", "fact:neverwinter:status"],
+            ),
+            (
+                "The High Road meets River Neverwinter at a junction.",
+                ["fact:highroad:route"],
+            ),
+        )
+        for narration, fact_ids in unsupported:
+            with self.subTest(narration=narration):
+                self.assertTrue(rejected(narration, fact_ids))
+
+
 if __name__ == "__main__":
     unittest.main()

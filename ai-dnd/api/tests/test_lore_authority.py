@@ -553,5 +553,135 @@ class LoreAuthorityTests(unittest.TestCase):
         )
 
 
+    def test_lore_retrieval_is_query_relevant_and_reports_selected_fact_ids(self):
+        city_facts = [
+            fact(
+                f"fact:city:{index}",
+                "city:neverwinter",
+                predicate,
+                value,
+                visibility="REGIONAL_KNOWLEDGE",
+                region_scope="region:north",
+            )
+            for index, (predicate, value) in enumerate([
+                ("current_status", "Rebuilding"),
+                ("known_as", "City of Skilled Hands"),
+                ("known_for", "master crafts and fine goods"),
+                ("nearby_landmark", "Mount Hotenow"),
+                ("river", "River Neverwinter"),
+                ("current_lord", "Dagult Neverember"),
+                ("history", "a chasm opened to the Underdark"),
+                ("trade", "northern trade"),
+            ])
+        ]
+        road_safety = fact(
+            "fact:high-road:safety",
+            "road:high",
+            "safety_status",
+            "restored",
+            visibility="REGIONAL_KNOWLEDGE",
+            region_scope="region:north",
+        )
+        road_safety["notes"] = "High Road safety was restored near Neverwinter."
+        registry = verified_registry(
+            entities=[
+                entity("world:test", "Forgotten Realms"),
+                entity("region:north", "The North"),
+                entity("city:neverwinter", "Neverwinter"),
+                entity("road:high", "High Road"),
+                entity("faction:alliance", "Lords' Alliance"),
+            ],
+            facts=city_facts + [road_safety] + [
+                fact(
+                    "fact:high-road",
+                    "road:high",
+                    "route_role",
+                    "major trade route",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+                fact(
+                    "fact:alliance",
+                    "faction:alliance",
+                    "purpose",
+                    "safety and prosperity",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+            ],
+        )
+        state = CampaignLoreState.from_mapping({
+            "binding_status": "BOUND",
+            "setting_profile": "TEST_SETTING",
+            "world_id": "world:test",
+            "epoch_id": "epoch:test",
+            "region_id": "region:north",
+            "current_location_entity_id": "city:neverwinter",
+            "starting_location_entity_id": "city:neverwinter",
+            "region_pack_id": "test:pack",
+            "player_known_fact_ids": [],
+            "npc_known_fact_ids": {},
+            "campaign_overrides": [],
+            "procedural_entity_refs": [],
+            "lore_discoveries": [],
+        })
+
+        focused = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="How is Neverwinter rebuilding?",
+            mentioned_entity_ids={"city:neverwinter"},
+            campaign_state=state,
+        )
+        focused_ids = focused["diagnostics"]["selected_fact_ids"]
+        self.assertEqual(focused_ids, ["fact:city:0"])
+        self.assertEqual(focused["diagnostics"]["selected_fact_count"], 1)
+
+        lord_query = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="Does Dagult Neverember rule Neverwinter?",
+            mentioned_entity_ids={"city:neverwinter"},
+            campaign_state=state,
+        )
+        self.assertEqual(
+            lord_query["diagnostics"]["selected_fact_ids"],
+            ["fact:city:5"],
+        )
+
+        route_query = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="High Road, Trade Way olarak mı devam ediyor?",
+            mentioned_entity_ids={"road:high"},
+            campaign_state=state,
+        )
+        self.assertIn(
+            "fact:high-road",
+            route_query["diagnostics"]["selected_fact_ids"],
+        )
+
+        broad = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="What is known about Neverwinter?",
+            mentioned_entity_ids={"city:neverwinter"},
+            campaign_state=state,
+        )
+        broad_ids = broad["diagnostics"]["selected_fact_ids"]
+        self.assertLessEqual(len(broad_ids), 6)
+        self.assertTrue(all(fact_id.startswith("fact:city:") for fact_id in broad_ids))
+        self.assertEqual(
+            set(broad_ids),
+            {
+                item["fact_id"]
+                for item in broad["sections"]["official_forgotten_realms_lore"]
+            },
+        )
+        self.assertIn(
+            "Neverwinter",
+            {
+                item["canonical_name"]
+                for item in broad["sections"]["verified_entities"]
+            },
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

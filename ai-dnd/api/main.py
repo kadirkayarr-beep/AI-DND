@@ -141,7 +141,10 @@ def _lore_context_for_turn(
 ) -> dict[str, Any]:
     state = getattr(record, "lore_authority", CampaignLoreState.legacy_unbound())
     if state.binding_status is not BindingStatus.BOUND:
-        return registry.retrieve_lore_context(campaign_state=state)
+        return registry.retrieve_lore_context(
+            campaign_state=state,
+            player_message=player_message,
+        )
 
     world = session.world_state
     location = world.get("location")
@@ -175,6 +178,7 @@ def _lore_context_for_turn(
     }
     return registry.retrieve_lore_context(
         current_location_id=state.current_location_entity_id,
+        player_message=player_message,
         mentioned_entity_ids=mentioned,
         present_npc_ids=present_npc_ids,
         active_quest_subject_ids=quest_subject_ids,
@@ -632,6 +636,13 @@ def create_app(
                     session,
                     narrative_player_message,
                     request.target_id,
+                )
+                lore_diagnostics = lore_context.get("diagnostics", {})
+                _logger.info(
+                    "Lore retrieval turn=%s selected_fact_count=%s selected_fact_ids=%s",
+                    session.world_state.get("flags", {}).get("turn_index", 0) + 1,
+                    lore_diagnostics.get("selected_fact_count", 0),
+                    lore_diagnostics.get("selected_fact_ids", []),
                 )
                 session.lore_authority_context = lore_context
                 with narrative_turn_context(

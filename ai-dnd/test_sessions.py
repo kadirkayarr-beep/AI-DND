@@ -119,6 +119,58 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(self.a.recent_dm_narrations)
         self.assertEqual(self.b.serialize_game_state(), before_b)
 
+    def test_unverified_lore_claim_rolls_back_narrator_proposals(self):
+        self.a.world_state["location"] = "tavern"
+        self.a.world_state["locations"]["tavern"] = {"name": "Taverna"}
+        before_npcs = copy.deepcopy(self.a.world_state["npcs"])
+        before_locations = copy.deepcopy(self.a.world_state["locations"])
+        before_features = copy.deepcopy(self.a.world_state["features"])
+        before_events = copy.deepcopy(self.a.world_state["events"])
+        with patch.object(
+            game, "parse_player_intent", return_value={"intent": "unknown"}
+        ), patch.object(game, "should_generate_npcs", return_value=True), patch.object(
+            game,
+            "ask_dungeon_master",
+            return_value={
+                "narration": "King Vharion rules Neverwinter.",
+                "world_updates": {
+                    "create_npcs": [{
+                        "name": "Elara",
+                        "role": "merchant",
+                        "location": "tavern",
+                    }],
+                    "events": ["A new market opens."],
+                },
+                "lore_claims": [],
+                "valid_response": True,
+            },
+        ):
+            result = self.a.run_player_turn("Bir tüccar arıyorum.")
+
+        self.assertIn("UNVERIFIED", result["narration"])
+        self.assertEqual(self.a.world_state["npcs"], before_npcs)
+        self.assertEqual(self.a.world_state["locations"], before_locations)
+        self.assertEqual(self.a.world_state["features"], before_features)
+        self.assertEqual(self.a.world_state["events"], before_events)
+
+    def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
+        before = copy.deepcopy(self.a.world_state)
+        with patch.object(
+            game,
+            "parse_player_intent",
+            side_effect=AssertionError("Unsupported lore questions must be caught before intent parsing."),
+        ), patch.object(
+            game,
+            "ask_dungeon_master",
+            side_effect=AssertionError("Unsupported lore question must fail closed."),
+        ):
+            result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
+
+        self.assertIn("UNVERIFIED", result["narration"])
+        after = copy.deepcopy(self.a.world_state)
+        before["flags"]["turn_index"] = after["flags"]["turn_index"]
+        self.assertEqual(after, before)
+
     def test_save_load_preserves_ownership_and_references(self):
         self.npc(self.a)
         self.a.character["current_hp"] = 3
