@@ -1,0 +1,97 @@
+#42 is approved, with these scope corrections.
+
+This is now the blocker for Neverwinter Canon Pack V1.
+
+Goal:
+Stop unsupported Forgotten Realms details and unsupported narrative entities
+from becoming established facts or false continuity.
+
+Do NOT start another region, Spells, XP, economy, or shop systems.
+
+Required fixes:
+
+1. Unsupported lore assertions
+- If geography, distance, history, ruler, faction relationship, deity, or
+  named-setting detail is not supported by loaded verified facts/campaign canon,
+  narration must not state it as established truth.
+- The model may express uncertainty or use a safe generic formulation.
+- Add regressions for:
+  - invented route/distance to Phandalin
+  - King Vharion
+  - unsupported Silver Marches history
+  - unsupported craft specialization
+  - unsupported governance details
+
+2. Named procedural entities
+- A named NPC/shop/location introduced only by narration must NOT become
+  persistent, addressable, or recallable.
+- If the engine has not registered a stable procedural entity ID, the narrator
+  may only use it as ephemeral texture or must avoid creating a durable named
+  entity.
+- Do NOT build an economy/shop transaction system in this phase.
+
+3. NPC continuity
+- NPC recall requires a real stable NPC ID.
+- Player-name recall additionally requires an explicit player disclosure tied
+  to that NPC ID.
+- Generated narration alone never creates recallable memory.
+- Add a regression for the Elara failure from turn 18.
+
+4. Retrieval relevance
+- Do not retrieve all 20 regional facts every turn.
+- Tighten lore retrieval so current-location facts are bounded and directly
+  relevant to the player message / mentioned entity / scene.
+- Preserve enough Neverwinter context for natural narration, but avoid injecting
+  unrelated High Road, faction, history, or geography facts into every turn.
+- Report per-turn fact selection before/after.
+
+5. Safe handling of unknowns
+- For invented major city/deity/ruler/history claims, explicitly keep them
+  UNVERIFIED rather than silently accepting them.
+- Safe fallback or uncertainty is acceptable.
+- Player statements remain claims, not world truth.
+
+6. State integrity
+- Rejected narration claims must not alter:
+  lore authority
+  campaign canon
+  NPC memory
+  quest state
+  world state
+  procedural entity registry
+
+7. No extra model calls
+- Preserve <=2 model calls per turn.
+
+8. Prefer no game.py changes.
+- Work in narrative_director.py, narrative_memory.py,
+  lore_authority/registry.py, API integration, and tests where possible.
+- If game.py changes become genuinely necessary, stop and request approval.
+
+After deterministic regressions pass, rerun the same style of authenticated
+Neverwinter qwen3:8b smoke with disposable data.
+
+The retry must specifically test:
+- unsupported Phandalin route/distance
+- invented ruler
+- unsupported regional history
+- fake major city
+- fake deity
+- procedural merchant/NPC handling
+- NPC-ID continuity
+- explicit player-name disclosure
+- revisit/memory
+- restart/resume
+
+Do not add more lore facts to make the test easier.
+
+PASS only if there are:
+- zero unsupported setting facts presented as established truth
+- zero false NPC continuity
+- zero narration-only entities treated as persistent
+- no state mutations from rejected claims
+- <=2 model calls per turn
+- all regressions green
+
+If PASS, rerun the Neverwinter Canon Pack V1 final smoke.
+Do not create the final canon checkpoint until that smoke passes.
