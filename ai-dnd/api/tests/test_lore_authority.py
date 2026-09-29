@@ -207,6 +207,36 @@ class LoreAuthorityTests(unittest.TestCase):
         self.assertEqual(result.status, ResolutionStatus.AMBIGUOUS)
         self.assertEqual(result.entity_ids, ("city:a", "city:b"))
 
+    def test_mentioned_entity_ids_extracts_only_registered_aliases(self):
+        registry = verified_registry(
+            entities=[
+                entity(
+                    "city:waterdeep",
+                    "Waterdeep",
+                    entity_type="CITY",
+                    aliases=["City of Splendors"],
+                    source_id="source:current",
+                ),
+                entity(
+                    "city:outside",
+                    "Outside City",
+                    entity_type="CITY",
+                    aliases=["Waterdeep"],
+                    source_id="source:current",
+                ),
+            ]
+        )
+
+        self.assertEqual(
+            registry.mentioned_entity_ids("What is known of Waterdeep?"),
+            ("city:outside", "city:waterdeep"),
+        )
+        self.assertEqual(
+            registry.mentioned_entity_ids("I heard of the City of Splendors."),
+            ("city:waterdeep",),
+        )
+        self.assertEqual(registry.mentioned_entity_ids("Waterdeepish"), ())
+
     def test_player_knowledge_filters_secrets_and_respects_regions(self):
         facts = [
             fact("fact:common", "world:test", "common_custom", "Known"),

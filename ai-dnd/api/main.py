@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import logging
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,14 @@ from fastapi.responses import JSONResponse
 import game
 from api.campaign_journal import update_campaign_journal
 from api.character_creation import CharacterCreationError
+from api.lore_authority import (
+    BindingStatus,
+    CampaignCanonOverride,
+    CampaignLoreState,
+    EngineActionEvidence,
+    PRODUCTION_REGISTRY,
+    apply_campaign_override,
+)
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
     MODEL_NAME,
@@ -105,6 +115,186 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     finally:
         if save_path is not None:
             save_path.unlink(missing_ok=True)
+
+
+def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
+    if not isinstance(npc, dict):
+        return None
+    for candidate in (npc.get("lore_entity_id"), npc.get("id")):
+        if not isinstance(candidate, str):
+            continue
+        entity = registry.entity(candidate)
+        if entity is not None and entity.entity_type.value == "CANONICAL_NPC":
+            return candidate
+    return None
+
+
+def _lore_context_for_turn(
+    record: Any,
+    session: Any,
+    player_message: str,
+    target_id: str | None,
+    registry: Any = PRODUCTION_REGISTRY,
+) -> dict[str, Any]:
+    state = getattr(record, "lore_authority", CampaignLoreState.legacy_unbound())
+    if state.binding_status is not BindingStatus.BOUND:
+        return registry.retrieve_lore_context(campaign_state=state)
+
+    world = session.world_state
+    location = world.get("location")
+    present_npc_ids = {
+        entity_id
+        for npc in world.get("npcs", [])
+        if isinstance(npc, dict) and npc.get("location") == location
+        for entity_id in [_lore_entity_reference(registry, npc)]
+        if entity_id is not None
+    }
+    target_npc_id = None
+    if isinstance(target_id, str):
+        target_npc = next(
+            (
+                npc for npc in world.get("npcs", [])
+                if isinstance(npc, dict) and npc.get("id") == target_id
+            ),
+            None,
+        )
+        target_npc_id = _lore_entity_reference(registry, target_npc)
+    mentioned = registry.mentioned_entity_ids(
+        player_message,
+        region_scope=state.region_id,
+    )
+    quest_subject_ids = {
+        "quest:" + hashlib.sha256(quest_id.encode("utf-8")).hexdigest()[:32]
+        for quest in world.get("quests", [])
+        if isinstance(quest, dict)
+        and isinstance(quest_id := quest.get("quest_id"), str)
+        and quest_id
+    }
+    return registry.retrieve_lore_context(
+        current_location_id=state.current_location_entity_id,
+        mentioned_entity_ids=mentioned,
+        present_npc_ids=present_npc_ids,
+        active_quest_subject_ids=quest_subject_ids,
+        campaign_state=state,
+        target_npc_id=target_npc_id,
+        include_dm_secrets=False,
+    )
+
+
+def _procedural_entity_refs(world_state: Any) -> set[str]:
+    if not isinstance(world_state, dict):
+        return set()
+    refs = {
+        str(entity.get("id", location_id))
+        for location_id, entity in world_state.get("locations", {}).items()
+        if isinstance(entity, dict)
+        and entity.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+    }
+    refs.update(
+        npc["id"]
+        for npc in world_state.get("npcs", [])
+        if isinstance(npc, dict)
+        and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and isinstance(npc.get("id"), str)
+    )
+    return refs
+
+
+def _stage_engine_lore_state(
+    state: CampaignLoreState,
+    evidence: Any,
+    action_result: Any,
+    before_world: Any,
+    after_world: Any,
+) -> CampaignLoreState:
+    if evidence is None:
+        return state
+    required_keys = {
+        "authority",
+        "action_id",
+        "turn_index",
+        "quest_outcomes",
+        "procedural_entity_ids",
+    }
+    if not isinstance(evidence, dict) or set(evidence) != required_keys:
+        raise ValueError("Engine lore evidence has an invalid shape.")
+    turn_index = after_world.get("flags", {}).get("turn_index")
+    action_id = f"turn:{turn_index}"
+    if (
+        evidence["authority"] != "python_engine"
+        or type(turn_index) is not int
+        or evidence["turn_index"] != turn_index
+        or evidence["action_id"] != action_id
+    ):
+        raise ValueError("Engine lore evidence does not match the committed turn.")
+    outcomes = evidence["quest_outcomes"]
+    expected_outcomes = (
+        action_result.get("quest_outcomes", [])
+        if isinstance(action_result, dict)
+        else []
+    )
+    if not isinstance(outcomes, list) or outcomes != expected_outcomes:
+        raise ValueError("Engine quest evidence does not match the action result.")
+    before_refs = _procedural_entity_refs(before_world)
+    after_refs = _procedural_entity_refs(after_world)
+    expected_refs = after_refs - before_refs
+    supplied_refs = evidence["procedural_entity_ids"]
+    if (
+        not isinstance(supplied_refs, list)
+        or any(not isinstance(item, str) for item in supplied_refs)
+        or set(supplied_refs) != expected_refs
+        or len(supplied_refs) != len(expected_refs)
+    ):
+        raise ValueError("Engine procedural-entity evidence does not match world state.")
+
+    updated = state
+    if expected_refs:
+        updated = replace(
+            updated,
+            procedural_entity_refs=tuple(
+                dict.fromkeys((*updated.procedural_entity_refs, *sorted(expected_refs)))
+            ),
+        )
+    if updated.binding_status is BindingStatus.BOUND:
+        action_evidence = EngineActionEvidence(
+            action_id=action_id,
+            turn_index=turn_index,
+            authority="python_engine",
+        )
+        for outcome in outcomes:
+            if (
+                not isinstance(outcome, dict)
+                or outcome.get("transition")
+                not in {"objective_progress", "objective_completed", "completed"}
+                or outcome.get("turn_index") != turn_index
+                or not isinstance(outcome.get("quest_id"), str)
+                or not isinstance(outcome.get("event_id"), str)
+            ):
+                raise ValueError("Engine quest transition is invalid.")
+            event_digest = hashlib.sha256(
+                outcome["event_id"].encode("utf-8")
+            ).hexdigest()[:32]
+            quest_digest = hashlib.sha256(
+                outcome["quest_id"].encode("utf-8")
+            ).hexdigest()[:32]
+            override = CampaignCanonOverride.from_mapping({
+                "override_id": f"quest_event:{event_digest}",
+                "subject_id": f"quest:{quest_digest}",
+                "predicate": "quest_transition",
+                "object_id_or_value": outcome["transition"],
+                "source_action_id": action_id,
+                "created_turn": turn_index,
+                "notes": (
+                    f"Python-confirmed quest {outcome['quest_id']} "
+                    f"transition: {outcome['transition']}."
+                ),
+            })
+            updated = apply_campaign_override(
+                updated,
+                override,
+                evidence=action_evidence,
+            )
+    return CampaignLoreState.from_mapping(updated.to_dict())
 
 
 def create_app(
@@ -398,10 +588,25 @@ def create_app(
                 getattr(session, "world_metadata", {})
             )
             journal_snapshot = copy.deepcopy(record.journal)
+            lore_authority_snapshot = getattr(
+                record,
+                "lore_authority",
+                CampaignLoreState.legacy_unbound(),
+            )
             narrative_player_message = redact_sensitive_values(
                 request.message
             )
+            previous_lore_context = getattr(
+                session, "lore_authority_context", None
+            )
             try:
+                lore_context = _lore_context_for_turn(
+                    record,
+                    session,
+                    narrative_player_message,
+                    request.target_id,
+                )
+                session.lore_authority_context = lore_context
                 with narrative_turn_context(
                     record.narrative_memory,
                     narrative_player_message,
@@ -440,6 +645,14 @@ def create_app(
                         "message": "The game turn could not be completed.",
                     },
                 ) from None
+            finally:
+                session.lore_authority_context = previous_lore_context
+
+            engine_evidence = (
+                result.pop("_engine_event_evidence", None)
+                if isinstance(result, dict)
+                else None
+            )
 
             if model_failures:
                 try:
@@ -502,6 +715,35 @@ def create_app(
                 if isinstance(result, dict)
                 else None
             )
+            try:
+                staged_lore_authority = _stage_engine_lore_state(
+                    lore_authority_snapshot,
+                    engine_evidence,
+                    action_result,
+                    snapshot["save"].get("world_state", {}),
+                    session.world_state,
+                )
+            except Exception as error:
+                try:
+                    _restore_session(session, snapshot)
+                    session.world_metadata = metadata_snapshot
+                    record.journal = journal_snapshot
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Session rollback failed after lore-evidence error (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                _logger.error(
+                    "Engine lore evidence failed validation (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "engine_error",
+                        "message": "Campaign lore evidence could not be verified.",
+                    },
+                ) from None
             try:
                 staged_narrative_memory = update_narrative_memory(
                     record.narrative_memory,
@@ -624,6 +866,7 @@ def create_app(
                         "message": "The campaign journal could not be updated safely.",
                     },
                 ) from None
+            record.lore_authority = staged_lore_authority
             try:
                 manager.autosave_turn(
                     record,
@@ -633,6 +876,7 @@ def create_app(
                     narrative_memory=staged_narrative_memory,
                 )
             except CampaignError as error:
+                record.lore_authority = lore_authority_snapshot
                 try:
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
@@ -647,6 +891,28 @@ def create_app(
                     type(error).__name__,
                 )
                 raise campaign_http_exception(error) from None
+            except Exception as error:
+                record.lore_authority = lore_authority_snapshot
+                try:
+                    _restore_session(session, snapshot)
+                    session.world_metadata = metadata_snapshot
+                    record.journal = journal_snapshot
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Session rollback failed after unexpected persistence error (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                _logger.error(
+                    "Campaign autosave failed (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "persistence_error",
+                        "message": "The campaign turn could not be saved safely.",
+                    },
+                ) from None
 
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",

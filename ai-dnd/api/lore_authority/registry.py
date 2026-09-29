@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -214,6 +215,27 @@ class LoreRegistry:
             status = ResolutionStatus.UNKNOWN_UNLOADED
         return EntityResolution(status, query, tuple(sorted(candidates)))
 
+    def mentioned_entity_ids(
+        self,
+        text: str,
+        *,
+        region_scope: str | None = None,
+    ) -> tuple[str, ...]:
+        """Find exact, registered aliases mentioned in player text."""
+        if not isinstance(text, str) or not text.strip():
+            return ()
+        normalized = normalize_name(text)
+        mentioned: set[str] = set()
+        for alias, candidates in self._aliases.items():
+            if not re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", normalized):
+                continue
+            for entity_id in candidates:
+                entity = self._entities[entity_id]
+                if region_scope and entity.region_scope not in {None, region_scope}:
+                    continue
+                mentioned.add(entity_id)
+        return tuple(sorted(mentioned))
+
     def related_edges(
         self,
         entity_id: str,
@@ -338,6 +360,7 @@ class LoreRegistry:
         mentioned_entity_ids: Iterable[str] = (),
         present_npc_ids: Iterable[str] = (),
         active_quest_fact_ids: Iterable[str] = (),
+        active_quest_subject_ids: Iterable[str] = (),
         campaign_state: CampaignLoreState | None = None,
         target_npc_id: str | None = None,
         include_dm_secrets: bool = False,
@@ -351,6 +374,7 @@ class LoreRegistry:
         state = campaign_state or CampaignLoreState.legacy_unbound()
         mentioned_ids = set(mentioned_entity_ids)
         quest_fact_ids = set(active_quest_fact_ids)
+        quest_subject_ids = set(active_quest_subject_ids)
         explicit_ids = set(mentioned_ids)
         if current_location_id:
             explicit_ids.add(current_location_id)
@@ -472,7 +496,7 @@ class LoreRegistry:
             )
             if fact.fact_id in {item.fact_id for _, item in selected}
         ]
-        relevant_subjects = geography_ids | all_context_ids
+        relevant_subjects = geography_ids | all_context_ids | quest_subject_ids
         npc_known_ids = set(npc_known)
         npc_known_facts = [
             self._facts[fact_id].to_dict()
