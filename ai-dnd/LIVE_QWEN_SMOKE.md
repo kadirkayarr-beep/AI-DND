@@ -69,3 +69,13 @@ authenticated Ollama qwen3:8b
 ```
 
 This was the planned integration path before the browser frontend work; the React/Vite experience and FastAPI connection have since been implemented. The Express/Postgres scaffold remains separate from the game engine. Do not add a Node-to-Python subprocess bridge. Combat V3 remains a later approved phase.
+
+## Phase C — Narrative Director V1 live smoke — 2026-09-29
+
+- Source tested: current `ai-dnd/game.py`, SHA-256 `be99d1e0f99482715ecff124ebca7d4023baed6129d9378dd1b72e418e4818a4`.
+- Authenticated preflight from the Replit workspace: **PASS**; `qwen3:8b` was listed. The test used the authenticated client, real model calls, and a disposable in-memory `GameSession`; no campaign was created or changed.
+- Result: **PASS**, 11 turns, **21 model calls**, maximum **2 per turn**, and zero reported issues.
+- Maximum prompt evaluation: 3,298 tokens; maximum output evaluation: 393 tokens; maximum Narrative Director estimated total: 10,517 tokens; reserved output cap: 700.
+- The return visit restored the tavern. The old-memory callback selected relevant NPC-interaction context. Its final narration did not explicitly mention the player's name.
+- Eight narrations were replaced by the existing safety fallback. The smoke reported no state/routing, call-limit, token-budget, continuity-selection, or narration issues.
+- The historical `CHECKPOINT_CURRENT.sha256` remains unchanged. The Phase D major engine checkpoint is recorded separately in `MAJOR_ENGINE_CHECKPOINT_PHASE_D_2026-09-29.md`.

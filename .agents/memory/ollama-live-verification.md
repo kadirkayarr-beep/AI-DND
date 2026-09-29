@@ -11,6 +11,12 @@ Historical model traces can differ in generated prose and fallback count even wh
 
 **How to apply:** For future live checks, make the authenticated client explicit, keep state in a disposable `GameSession`, and report only sanitized per-turn outcomes, call counts, and fallback totals.
 
+A successful Ollama preflight from a user's Windows or other machine does not verify the Replit workspace's own bearer secret. The workspace smoke must authenticate successfully from the environment where it runs.
+
+**Why:** A Windows preflight succeeded while the Replit workspace still received HTTP 401 until its `OLLAMA_PROXY_TOKEN` secret was refreshed.
+
+**How to apply:** After external connectivity is restored, run the authenticated preflight from Replit. If it returns 401, refresh the Replit secret through the secure Secrets flow; never request or copy the token in chat.
+
 For FastAPI workflow checks, custom INFO loggers need their own stream handler to make sanitized model-call counts visible in workflow output. A successful HTTP response alone does not prove the model was called.
 
 **Why:** Uvicorn's workflow showed access logs but suppressed the adapter's model-call records until the API loggers wrote directly to the workflow stream.
