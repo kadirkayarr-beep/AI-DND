@@ -24,6 +24,7 @@ from api.narrative_memory import (
     empty_narrative_memory,
     validate_narrative_memory,
 )
+from api.lore_authority.models import CampaignLoreState
 from api.schemas import CombatTurnResult
 from api.world_metadata import (
     set_session_world_metadata,
@@ -141,8 +142,9 @@ def serialize_campaign_payload(
     session: Any,
     journal: dict[str, Any] | None = None,
     narrative_memory: dict[str, Any] | None = None,
+    lore_authority: CampaignLoreState | dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Keep the engine save intact and persist API-owned RNG/world metadata."""
+    """Keep the engine save intact and persist API-owned campaign metadata."""
     try:
         engine_save = session.serialize_game_state()
         rng_state = session.rng.getstate()
@@ -165,6 +167,16 @@ def serialize_campaign_payload(
         else empty_narrative_memory(),
         CampaignValidationError,
     )
+    try:
+        lore_state = (
+            CampaignLoreState.from_mapping(lore_authority.to_dict())
+            if isinstance(lore_authority, CampaignLoreState)
+            else CampaignLoreState.from_mapping(lore_authority)
+        )
+    except (TypeError, ValueError):
+        raise CampaignValidationError(
+            "Campaign Lore Authority state is invalid."
+        ) from None
     payload = {
         "format": CAMPAIGN_FORMAT,
         "version": CAMPAIGN_FORMAT_VERSION,
@@ -173,6 +185,7 @@ def serialize_campaign_payload(
         "world_metadata": world_metadata,
         "journal": journal_payload,
         "narrative_memory": narrative_memory_payload,
+        "lore_authority": lore_state.to_dict(),
     }
     validate_campaign_payload(payload, CampaignValidationError)
     ensure_no_configured_secrets(payload)
@@ -194,6 +207,7 @@ def validate_campaign_payload(
         "world_metadata",
         "journal",
         "narrative_memory",
+        "lore_authority",
     }
     if not required_fields.issubset(payload) or not set(payload).issubset(
         allowed_fields
@@ -208,6 +222,11 @@ def validate_campaign_payload(
         validate_campaign_journal(payload["journal"], error_type)
     if "narrative_memory" in payload:
         validate_narrative_memory(payload["narrative_memory"], error_type)
+    if "lore_authority" in payload:
+        try:
+            CampaignLoreState.from_mapping(payload["lore_authority"])
+        except (TypeError, ValueError):
+            raise error_type("Campaign Lore Authority state is invalid.") from None
     ensure_no_configured_secrets(payload)
 
 

@@ -15,6 +15,7 @@ from api.campaign_journal import (
     empty_campaign_journal,
 )
 from api.character_creation import configure_character
+from api.lore_authority.models import CampaignLoreState
 from api.persistence.campaign_models import (
     CampaignNotActiveError,
     CampaignStorageError,
@@ -44,6 +45,9 @@ class ManagedSession:
     journal: dict[str, Any] = field(default_factory=empty_campaign_journal)
     combat_history: list[dict[str, Any]] = field(default_factory=list)
     narrative_memory: dict[str, Any] = field(default_factory=empty_narrative_memory)
+    lore_authority: CampaignLoreState = field(
+        default_factory=CampaignLoreState.legacy_unbound
+    )
 
 
 class SessionManager:
@@ -90,6 +94,9 @@ class SessionManager:
             getattr(session, "world_metadata", None),
         )
         narrative_memory = empty_narrative_memory()
+        # No authorized starter pack or owner-approved launch location is
+        # installed yet, so do not silently bind this campaign to canon.
+        lore_authority = CampaignLoreState.legacy_unbound()
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(
@@ -98,6 +105,7 @@ class SessionManager:
             session,
             journal=journal,
             narrative_memory=narrative_memory,
+            lore_authority=lore_authority,
         )
         with self._registry_lock:
             session_id = self._new_session_id_locked()
@@ -106,6 +114,7 @@ class SessionManager:
                 campaign_id=campaign_id,
                 journal=journal,
                 narrative_memory=narrative_memory,
+                lore_authority=lore_authority,
             )
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
@@ -151,6 +160,9 @@ class SessionManager:
             stored = store.get_campaign(campaign_id)
             session = self._session_factory()
             journal = restore_stored_campaign(session, stored)
+            lore_authority = CampaignLoreState.from_mapping(
+                stored.payload.get("lore_authority")
+            )
             with self._registry_lock:
                 active_id = self._campaign_sessions.get(campaign_id)
                 record = self._sessions.get(active_id) if active_id else None
@@ -166,6 +178,7 @@ class SessionManager:
                                 empty_narrative_memory(),
                             )
                         ),
+                        lore_authority=lore_authority,
                     )
                     self._sessions[session_id] = record
                     self._campaign_sessions[campaign_id] = session_id
@@ -185,6 +198,10 @@ class SessionManager:
                 "world_metadata" not in stored.payload
                 or "journal" not in stored.payload
                 or "narrative_memory" not in stored.payload
+                or "lore_authority" not in stored.payload
+            )
+            record.lore_authority = CampaignLoreState.from_mapping(
+                stored.payload.get("lore_authority")
             )
             record.narrative_memory = validate_narrative_memory(
                 stored.payload.get(
@@ -207,6 +224,7 @@ class SessionManager:
                     record.game_session,
                     journal=record.journal,
                     narrative_memory=record.narrative_memory,
+                    lore_authority=record.lore_authority,
                 )
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
@@ -231,6 +249,7 @@ class SessionManager:
                 record.game_session,
                 journal=record.journal,
                 narrative_memory=record.narrative_memory,
+                lore_authority=record.lore_authority,
             )
 
     def save_campaign_locked(self, record: ManagedSession) -> dict[str, Any]:
@@ -246,6 +265,7 @@ class SessionManager:
             record.game_session,
             journal=record.journal,
             narrative_memory=record.narrative_memory,
+            lore_authority=record.lore_authority,
         )
 
     def autosave_turn(
@@ -280,6 +300,7 @@ class SessionManager:
             journal=record.journal,
             combat_history_entry=combat_history_entry,
             narrative_memory=candidate_memory,
+            lore_authority=record.lore_authority,
         )
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)

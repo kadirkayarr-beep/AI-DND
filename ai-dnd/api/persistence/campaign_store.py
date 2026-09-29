@@ -15,6 +15,7 @@ from typing import Any, Iterator
 import game
 
 from api.campaign_journal import empty_campaign_journal
+from api.lore_authority.models import CampaignLoreState
 from api.persistence.campaign_models import (
     CampaignCorruptError,
     CampaignIdConflictError,
@@ -248,12 +249,14 @@ class CampaignStore:
         session: Any,
         journal: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
+        lore_authority: CampaignLoreState | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
         payload = serialize_campaign_payload(
             session,
             journal,
             narrative_memory,
+            lore_authority,
         )
         if not isinstance(name, str) or not name.strip() or len(name.strip()) > 100:
             raise CampaignValidationError("Campaign name is invalid.")
@@ -310,18 +313,22 @@ class CampaignStore:
         journal: dict[str, Any] | None = None,
         combat_history_entry: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
+        lore_authority: CampaignLoreState | dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
-        if journal is None or narrative_memory is None:
+        if journal is None or narrative_memory is None or lore_authority is None:
             current = self.get_campaign(campaign_id)
             if journal is None:
                 journal = current.payload.get("journal", empty_campaign_journal())
             if narrative_memory is None:
                 narrative_memory = current.payload.get("narrative_memory")
+            if lore_authority is None:
+                lore_authority = current.payload.get("lore_authority")
         payload = serialize_campaign_payload(
             session,
             journal,
             narrative_memory,
+            lore_authority,
         )
         if turn_entry is not None:
             turn_entry = serialize_history_entry(
