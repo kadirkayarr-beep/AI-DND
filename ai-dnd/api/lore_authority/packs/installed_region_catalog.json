@@ -1,0 +1,20 @@
+{
+  "packs": [
+    {
+      "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+      "setting_id": "forgotten_realms",
+      "setting_name": "Forgotten Realms",
+      "world_id": "fr:world:forgotten_realms",
+      "epoch_id": "fr:epoch:1501_dr",
+      "region_id": "fr:region:the_north",
+      "region_name": "The North",
+      "coverage_status": "VERIFIED_PARTIAL",
+      "starting_locations": [
+        {
+          "entity_id": "fr:city:neverwinter",
+          "name": "Neverwinter"
+        }
+      ]
+    }
+  ]
+}

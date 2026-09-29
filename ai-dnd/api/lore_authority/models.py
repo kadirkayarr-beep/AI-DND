@@ -365,6 +365,7 @@ class LoreFact:
     notes: str
     reality_layer: LoreLayer
     review_status: ReviewStatus
+    temporal_scope: str | None = None
 
     @classmethod
     def from_mapping(cls, value: Any) -> "LoreFact":
@@ -387,6 +388,7 @@ class LoreFact:
                 "reality_layer",
                 "review_status",
             },
+            optional={"temporal_scope"},
             label="Lore fact",
         )
         value_field = data["object_id_or_value"]
@@ -425,6 +427,9 @@ class LoreFact:
             review_status=_enum(
                 ReviewStatus, data["review_status"], "Lore fact review_status"
             ),
+            temporal_scope=_optional_text(
+                data.get("temporal_scope"), "Lore fact temporal_scope", 80
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -444,6 +449,7 @@ class LoreFact:
             "notes": self.notes,
             "reality_layer": self.reality_layer.value,
             "review_status": self.review_status.value,
+            "temporal_scope": self.temporal_scope,
         }
 
 
@@ -582,6 +588,8 @@ class CampaignLoreState:
     epoch_id: str | None = None
     region_id: str | None = None
     current_location_entity_id: str | None = None
+    region_pack_id: str | None = None
+    starting_location_entity_id: str | None = None
     player_known_fact_ids: tuple[str, ...] = ()
     npc_known_fact_ids: tuple[tuple[str, tuple[str, ...]], ...] = ()
     campaign_overrides: tuple[CampaignCanonOverride, ...] = ()
@@ -611,6 +619,7 @@ class CampaignLoreState:
                 "procedural_entity_refs",
                 "lore_discoveries",
             },
+            optional={"region_pack_id", "starting_location_entity_id"},
             label="Campaign Lore Authority state",
         )
         status = _enum(
@@ -627,6 +636,21 @@ class CampaignLoreState:
             if data["current_location_entity_id"] is None
             else _id(data["current_location_entity_id"], "Campaign current_location_entity_id")
         )
+        region_pack_id = (
+            None
+            if data.get("region_pack_id") is None
+            else _id(data["region_pack_id"], "Campaign region_pack_id")
+        )
+        starting_location_id = (
+            None
+            if data.get("starting_location_entity_id") is None
+            else _id(
+                data["starting_location_entity_id"],
+                "Campaign starting_location_entity_id",
+            )
+        )
+        if status is BindingStatus.BOUND and starting_location_id is None:
+            starting_location_id = location_id
         player_ids = _campaign_id_list(
             data["player_known_fact_ids"],
             "Campaign player_known_fact_ids",
@@ -670,7 +694,15 @@ class CampaignLoreState:
         ):
             raise ValueError("A bound campaign requires a complete explicit lore binding.")
         if status is not BindingStatus.BOUND and any(
-            (profile, world_id, epoch_id, region_id, location_id)
+            (
+                profile,
+                world_id,
+                epoch_id,
+                region_id,
+                location_id,
+                region_pack_id,
+                starting_location_id,
+            )
         ):
             raise ValueError("A legacy campaign cannot have a canon location binding.")
         return cls(
@@ -680,6 +712,8 @@ class CampaignLoreState:
             epoch_id=epoch_id,
             region_id=region_id,
             current_location_entity_id=location_id,
+            region_pack_id=region_pack_id,
+            starting_location_entity_id=starting_location_id,
             player_known_fact_ids=player_ids,
             npc_known_fact_ids=tuple(sorted(npc_ids)),
             campaign_overrides=overrides,
@@ -695,6 +729,8 @@ class CampaignLoreState:
             "epoch_id": self.epoch_id,
             "region_id": self.region_id,
             "current_location_entity_id": self.current_location_entity_id,
+            "region_pack_id": self.region_pack_id,
+            "starting_location_entity_id": self.starting_location_entity_id,
             "player_known_fact_ids": list(self.player_known_fact_ids),
             "npc_known_fact_ids": {
                 npc_id: list(fact_ids) for npc_id, fact_ids in self.npc_known_fact_ids

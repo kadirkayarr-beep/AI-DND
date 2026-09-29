@@ -44,6 +44,7 @@ def bind_campaign(
     epoch_id: str,
     region_id: str,
     starting_location_id: str,
+    region_pack_id: str | None = None,
     registry: "LoreRegistry",
     owner_approved: bool,
 ) -> CampaignLoreState:
@@ -84,6 +85,8 @@ def bind_campaign(
             epoch_id=epoch_id,
             region_id=region_id,
             current_location_entity_id=starting_location_id,
+            region_pack_id=region_pack_id,
+            starting_location_entity_id=starting_location_id,
         ).to_dict()
     )
 
