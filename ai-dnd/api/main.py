@@ -23,7 +23,9 @@ from api.lore_authority import (
     CampaignCanonOverride,
     CampaignLoreState,
     EngineActionEvidence,
+    InvalidCampaignStartError,
     PRODUCTION_REGISTRY,
+    PRODUCTION_START_CATALOG,
     apply_campaign_override,
 )
 from api.ollama_adapter import (
@@ -50,6 +52,7 @@ from api.schemas import (
     CharacterCreationOptions,
     CampaignCreateRequest,
     CampaignDetailResponse,
+    CampaignStartOptionsResponse,
     CampaignSessionResponse,
     CampaignSummary,
     HealthResponse,
@@ -403,6 +406,17 @@ def create_app(
     def character_creation_options() -> dict[str, list[str]]:
         return {"races": list(game.RACES), "classes": list(game.CLASSES)}
 
+    @application.get(
+        "/api/game/campaign-start-options",
+        response_model=CampaignStartOptionsResponse,
+    )
+    @application.get(
+        "/api/campaign-start-options",
+        response_model=CampaignStartOptionsResponse,
+    )
+    def campaign_start_options() -> dict[str, Any]:
+        return PRODUCTION_START_CATALOG.to_response()
+
     @application.post("/api/game/sessions", response_model=SessionResponse)
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
@@ -444,6 +458,11 @@ def create_app(
                     if request.character is not None
                     else None
                 ),
+                campaign_start=(
+                    request.campaign_start.model_dump()
+                    if request.campaign_start is not None
+                    else None
+                ),
             )
             return redact_sensitive_values(
                 {
@@ -462,6 +481,14 @@ def create_app(
             raise HTTPException(
                 status_code=422,
                 detail={"code": "invalid_character", "message": str(error)},
+            ) from None
+        except InvalidCampaignStartError:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_campaign_start",
+                    "message": "The selected campaign start is not available.",
+                },
             ) from None
         except CampaignError as error:
             raise campaign_http_exception(error) from None

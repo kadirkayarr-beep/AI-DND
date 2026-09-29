@@ -141,6 +141,18 @@ paths:
         "404": {$ref: "#/components/responses/ApiError"}
         "500": {$ref: "#/components/responses/ApiError"}
         "503": {$ref: "#/components/responses/ApiError"}
+  /game/campaign-start-options:
+    get:
+      operationId: getCampaignStartOptions
+      tags: [game]
+      summary: List campaign starts from installed verified setting packs
+      responses:
+        "200":
+          description: Verified campaign start options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignStartOptionsResponse"
   /game/character-options:
     get:
       operationId: getCharacterOptions
@@ -294,6 +306,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+  /campaign-start-options:
+    get:
+      operationId: getLegacyCampaignStartOptions
+      tags: [game]
+      summary: Legacy campaign-start-options alias
+      description: Compatibility alias for /game/campaign-start-options. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Verified campaign start options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignStartOptionsResponse"
   /character-options:
     get:
       operationId: getLegacyCharacterOptions
@@ -1363,6 +1388,81 @@ components:
           oneOf:
             - $ref: "#/components/schemas/CharacterCreateInput"
             - type: "null"
+        campaign_start:
+          oneOf:
+            - $ref: "#/components/schemas/CampaignStartSelection"
+            - type: "null"
+      additionalProperties: false
+    CampaignStartSelection:
+      type: object
+      properties:
+        setting_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        region_pack_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        region_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        starting_location_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+      required: [setting_id, region_pack_id, region_id, starting_location_id]
+      additionalProperties: false
+    CampaignStartLocationOption:
+      type: object
+      properties:
+        entity_id:
+          type: string
+        name:
+          type: string
+      required: [entity_id, name]
+      additionalProperties: false
+    CampaignStartRegionOption:
+      type: object
+      properties:
+        region_pack_id:
+          type: string
+        region_id:
+          type: string
+        name:
+          type: string
+        epoch_id:
+          type: string
+        coverage_status:
+          type: string
+        starting_locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignStartLocationOption"
+      required: [region_pack_id, region_id, name, epoch_id, coverage_status, starting_locations]
+      additionalProperties: false
+    CampaignStartSettingOption:
+      type: object
+      properties:
+        setting_id:
+          type: string
+        name:
+          type: string
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignStartRegionOption"
+      required: [setting_id, name, regions]
+      additionalProperties: false
+    CampaignStartOptionsResponse:
+      type: object
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignStartSettingOption"
+      required: [settings]
       additionalProperties: false
     CharacterCreateInput:
       type: object

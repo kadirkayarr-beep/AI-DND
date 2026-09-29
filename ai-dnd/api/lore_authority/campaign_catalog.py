@@ -11,6 +11,10 @@ _ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$")
 _STARTABLE_COVERAGE = {"VERIFIED", "VERIFIED_PARTIAL"}
 
 
+class InvalidCampaignStartError(ValueError):
+    """A request selected a start location that is not in a verified pack."""
+
+
 def _text(value: Any, label: str, limit: int = 160) -> str:
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
         raise ValueError(f"Campaign start catalog {label} is invalid.")
@@ -168,7 +172,9 @@ class CampaignStartCatalog:
     ) -> tuple[CampaignStartPack, StartingLocationOption]:
         pack = self._by_pack_id.get(region_pack_id)
         if pack is None or pack.setting_id != setting_id or pack.region_id != region_id:
-            raise ValueError("Campaign start selection is not an installed verified option.")
+            raise InvalidCampaignStartError(
+                "Campaign start selection is not an installed verified option."
+            )
         location = next(
             (
                 item
@@ -178,5 +184,7 @@ class CampaignStartCatalog:
             None,
         )
         if location is None:
-            raise ValueError("Campaign start selection is not an installed verified option.")
+            raise InvalidCampaignStartError(
+                "Campaign start selection is not an installed verified option."
+            )
         return pack, location

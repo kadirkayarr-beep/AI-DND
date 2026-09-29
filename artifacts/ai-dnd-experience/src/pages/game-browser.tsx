@@ -33,12 +33,14 @@ import {
 } from 'lucide-react';
 import {
   getGetCampaignsQueryKey,
+  getGetCampaignStartOptionsQueryKey,
   getGetCharacterOptionsQueryKey,
   getGetGameHealthQueryKey,
   getGetGameSessionStateQueryKey,
   useCreateCampaign,
   useGetGameHealth,
   useGetCampaigns,
+  useGetCampaignStartOptions,
   useGetCharacterOptions,
   useGetGameSessionState,
   useAcceptGameQuest,
@@ -48,7 +50,7 @@ import {
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { QuestJournalSection } from '@/components/quest-journal-section';
-import type { CampaignHistoryEntry, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
+import type { CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
@@ -81,7 +83,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand" data-testid="brand-ai-dnd">
       <div className="brand-mark"><Compass size={17} strokeWidth={1.3} /></div>
-      {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Solo campaign · Sword Coast</div></div>}
+      {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Solo campaign · Forgotten Realms</div></div>}
     </div>
   );
 }
@@ -158,7 +160,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
         </header>
         <div className="opening-grid">
           <section className="opening-copy dnd-enter">
-            <div className="opening-eyebrow"><Kicker>Kapılar açılıyor · 1492 DR</Kicker></div>
+            <div className="opening-eyebrow"><Kicker>Kapılar açılıyor · 1501 DR</Kicker></div>
             <h1 className="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
             <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
             <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
@@ -579,6 +581,13 @@ export default function GameBrowser() {
       retry: false,
     },
   });
+  const campaignStartOptionsQuery = useGetCampaignStartOptions({
+    query: {
+      queryKey: getGetCampaignStartOptionsQueryKey(),
+      enabled: phase === 'creation',
+      retry: false,
+    },
+  });
   const playTurn = usePlayGameTurn();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
@@ -663,9 +672,12 @@ export default function GameBrowser() {
     setPhase('creation');
   };
 
-  const handleCreateCharacter = (character: CharacterCreateInput) => {
+  const handleCreateCharacter = (
+    character: CharacterCreateInput,
+    campaignStart: CampaignStartSelection,
+  ) => {
     setNotice(null);
-    createCampaign.mutate({ data: { character } }, {
+    createCampaign.mutate({ data: { character, campaign_start: campaignStart } }, {
       onSuccess: (created) => {
         setCampaignId(created.campaign_id);
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);
@@ -682,7 +694,7 @@ export default function GameBrowser() {
       },
       onError: (error) => setNotice({
         tone: 'error',
-        title: 'Karakter oluşturulamadı',
+        title: 'Kampanya oluşturulamadı',
         detail: statusCode(error) === 422
           ? 'İsim, ırk veya sınıfı kontrol et; motor yalnızca listelenen seçenekleri kabul eder.'
           : friendlyError(error, 'Sunucu yanıt vermedi.'),
@@ -824,13 +836,17 @@ export default function GameBrowser() {
   if (phase === 'creation') return (
     <CharacterCreationScreen
       options={characterOptionsQuery.data}
+      startOptions={campaignStartOptionsQuery.data}
       loadingOptions={characterOptionsQuery.isLoading}
+      loadingStartOptions={campaignStartOptionsQuery.isLoading}
       optionsError={characterOptionsQuery.error}
+      startOptionsError={campaignStartOptionsQuery.error}
       creating={createCampaign.isPending}
       notice={notice}
       onBack={() => { setPhase(creationReturnPhase); setNotice(null); }}
       onCreate={handleCreateCharacter}
       onRetryOptions={() => void characterOptionsQuery.refetch()}
+      onRetryStartOptions={() => void campaignStartOptionsQuery.refetch()}
     />
   );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;

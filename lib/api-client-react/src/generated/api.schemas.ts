@@ -753,6 +753,29 @@ export interface CharacterCreateInput {
   class?: string | null;
 }
 
+export interface CampaignStartSelection {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  setting_id: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  region_pack_id: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  region_id: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  starting_location_id: string;
+}
+
 export interface CampaignCreateInput {
   /**
      * Optional campaign name; if supplied, it must not be blank after trimming.
@@ -762,6 +785,31 @@ export interface CampaignCreateInput {
      */
   name?: string | null;
   character?: CharacterCreateInput | null;
+  campaign_start?: CampaignStartSelection | null;
+}
+
+export interface CampaignStartLocationOption {
+  entity_id: string;
+  name: string;
+}
+
+export interface CampaignStartRegionOption {
+  region_pack_id: string;
+  region_id: string;
+  name: string;
+  epoch_id: string;
+  coverage_status: string;
+  starting_locations: CampaignStartLocationOption[];
+}
+
+export interface CampaignStartSettingOption {
+  setting_id: string;
+  name: string;
+  regions: CampaignStartRegionOption[];
+}
+
+export interface CampaignStartOptionsResponse {
+  settings: CampaignStartSettingOption[];
 }
 
 export interface CharacterCreationOptions {

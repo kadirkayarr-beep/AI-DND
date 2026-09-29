@@ -235,7 +235,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC_TEXT)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 22)
+        self.assertEqual(len(documented_routes), 24)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),

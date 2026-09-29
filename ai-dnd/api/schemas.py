@@ -250,11 +250,66 @@ class CharacterCreationOptions(BaseModel):
     classes: list[str]
 
 
+class CampaignStartSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    setting_id: str = Field(min_length=1, max_length=128)
+    region_pack_id: str = Field(min_length=1, max_length=128)
+    region_id: str = Field(min_length=1, max_length=128)
+    starting_location_id: str = Field(min_length=1, max_length=128)
+
+    @field_validator(
+        "setting_id",
+        "region_pack_id",
+        "region_id",
+        "starting_location_id",
+    )
+    @classmethod
+    def selection_ids_must_not_be_blank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Campaign start selections must not be blank.")
+        return cleaned
+
+
+class CampaignStartLocationOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    entity_id: str
+    name: str
+
+
+class CampaignStartRegionOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    region_pack_id: str
+    region_id: str
+    name: str
+    epoch_id: str
+    coverage_status: str
+    starting_locations: list[CampaignStartLocationOption]
+
+
+class CampaignStartSettingOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    setting_id: str
+    name: str
+    regions: list[CampaignStartRegionOption]
+
+
+class CampaignStartOptionsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    settings: list[CampaignStartSettingOption]
+
+
 class CampaignCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     character: CharacterCreateInput | None = None
+    campaign_start: CampaignStartSelection | None = None
 
     @field_validator("name")
     @classmethod

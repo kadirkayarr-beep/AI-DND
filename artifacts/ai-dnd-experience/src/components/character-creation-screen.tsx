@@ -10,39 +10,64 @@ import {
   Shield,
   Sparkles,
 } from 'lucide-react';
-import type { CharacterCreateInput, CharacterCreationOptions } from '@workspace/api-client-react';
+import type {
+  CampaignStartOptionsResponse,
+  CampaignStartSelection,
+  CharacterCreateInput,
+  CharacterCreationOptions,
+} from '@workspace/api-client-react';
 import './character-creation-screen.css';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
 
 type CharacterCreationScreenProps = {
   options?: CharacterCreationOptions;
+  startOptions?: CampaignStartOptionsResponse;
   loadingOptions: boolean;
+  loadingStartOptions: boolean;
   optionsError: unknown;
+  startOptionsError: unknown;
   creating: boolean;
   notice: Notice | null;
   onBack: () => void;
-  onCreate: (character: CharacterCreateInput) => void;
+  onCreate: (character: CharacterCreateInput, campaignStart: CampaignStartSelection) => void;
   onRetryOptions: () => void;
+  onRetryStartOptions: () => void;
 };
 
 const abilityLabels = ['KUV', 'ÇEV', 'DAY', 'ZEK', 'BİL', 'KAR'];
 
 export function CharacterCreationScreen({
   options,
+  startOptions,
   loadingOptions,
+  loadingStartOptions,
   optionsError,
+  startOptionsError,
   creating,
   notice,
   onBack,
   onCreate,
   onRetryOptions,
+  onRetryStartOptions,
 }: CharacterCreationScreenProps) {
   const [mode, setMode] = useState<'custom' | 'random'>('custom');
   const [name, setName] = useState('Cedric');
   const [race, setRace] = useState('Elf');
   const [characterClass, setCharacterClass] = useState('Wizard');
+  const [settingId, setSettingId] = useState('');
+  const [regionPackId, setRegionPackId] = useState('');
+  const [startingLocationId, setStartingLocationId] = useState('');
   const hasOptions = Boolean(options?.races.length && options.classes.length);
+  const settings = startOptions?.settings ?? [];
+  const selectedSetting = settings.find((item) => item.setting_id === settingId) ?? settings[0];
+  const selectedRegion = selectedSetting?.regions.find(
+    (item) => item.region_pack_id === regionPackId,
+  ) ?? selectedSetting?.regions[0];
+  const selectedLocation = selectedRegion?.starting_locations.find(
+    (item) => item.entity_id === startingLocationId,
+  ) ?? selectedRegion?.starting_locations[0];
+  const hasCampaignStart = Boolean(selectedSetting && selectedRegion && selectedLocation);
 
   useEffect(() => {
     if (!options) return;
@@ -50,14 +75,39 @@ export function CharacterCreationScreen({
     if (!options.classes.includes(characterClass)) setCharacterClass(options.classes[0] ?? '');
   }, [characterClass, options, race]);
 
+  useEffect(() => {
+    if (selectedSetting && selectedSetting.setting_id !== settingId) {
+      setSettingId(selectedSetting.setting_id);
+    }
+    if (selectedRegion && selectedRegion.region_pack_id !== regionPackId) {
+      setRegionPackId(selectedRegion.region_pack_id);
+    }
+    if (selectedLocation && selectedLocation.entity_id !== startingLocationId) {
+      setStartingLocationId(selectedLocation.entity_id);
+    }
+  }, [
+    regionPackId,
+    selectedLocation,
+    selectedRegion,
+    selectedSetting,
+    settingId,
+    startingLocationId,
+  ]);
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!hasOptions || creating) return;
+    if (!hasOptions || !hasCampaignStart || !selectedSetting || !selectedRegion || !selectedLocation || creating) return;
+    const campaignStart: CampaignStartSelection = {
+      setting_id: selectedSetting.setting_id,
+      region_pack_id: selectedRegion.region_pack_id,
+      region_id: selectedRegion.region_id,
+      starting_location_id: selectedLocation.entity_id,
+    };
     if (mode === 'random') {
-      onCreate({ mode: 'random' });
+      onCreate({ mode: 'random' }, campaignStart);
       return;
     }
-    onCreate({ mode: 'custom', name: name.trim(), race, class: characterClass });
+    onCreate({ mode: 'custom', name: name.trim(), race, class: characterClass }, campaignStart);
   };
 
   const skillCount = characterClass === 'Rogue' ? 4 : 2;
@@ -68,7 +118,7 @@ export function CharacterCreationScreen({
         <header className="cc-header">
           <div className="cc-brand" aria-label="AI Dungeon Master">
             <span className="cc-brand-mark"><Compass size={17} strokeWidth={1.3} /></span>
-            <span><strong>AI DUNGEON MASTER</strong><small>Solo campaign · Sword Coast</small></span>
+            <span><strong>AI DUNGEON MASTER</strong><small>Solo campaign · {selectedRegion?.name ?? 'Kanonik başlangıç yeri'}</small></span>
           </div>
           <div className="cc-header-caption"><span /> <span>Gün ışığında karakter kaydı</span></div>
           <button type="button" className="cc-back" onClick={onBack} data-testid="button-back-character-creation">
@@ -97,6 +147,86 @@ export function CharacterCreationScreen({
             </aside>
 
             <section className="cc-form-panel">
+              <section className="cc-start-section" aria-labelledby="campaign-start-heading">
+                <div className="cc-start-title-row">
+                  <div>
+                    <span className="cc-label">Kampanya ayarı</span>
+                    <h2 className="cc-start-heading" id="campaign-start-heading">Başlangıç yerini seç</h2>
+                  </div>
+                  {selectedRegion && (
+                    <span className="cc-start-status">
+                      {selectedRegion.coverage_status === 'VERIFIED_PARTIAL' ? 'Kısmi kaynak kapsamı' : 'Kaynaklar doğrulandı'}
+                    </span>
+                  )}
+                </div>
+                <div className="cc-start-fields">
+                  <label className="cc-field">
+                    <span className="cc-label">Dünya</span>
+                    <span className="cc-select-wrap">
+                      <select
+                        className="cc-input cc-literary"
+                        value={selectedSetting?.setting_id ?? ''}
+                        onChange={(event) => {
+                          setSettingId(event.target.value);
+                          setRegionPackId('');
+                          setStartingLocationId('');
+                        }}
+                        disabled={loadingStartOptions || !settings.length || creating}
+                        data-testid="select-campaign-setting"
+                      >
+                        {settings.map((item) => <option value={item.setting_id} key={item.setting_id}>{item.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </span>
+                  </label>
+                  <label className="cc-field">
+                    <span className="cc-label">Bölge</span>
+                    <span className="cc-select-wrap">
+                      <select
+                        className="cc-input cc-literary"
+                        value={selectedRegion?.region_pack_id ?? ''}
+                        onChange={(event) => {
+                          setRegionPackId(event.target.value);
+                          setStartingLocationId('');
+                        }}
+                        disabled={loadingStartOptions || !selectedSetting?.regions.length || creating}
+                        data-testid="select-campaign-region"
+                      >
+                        {selectedSetting?.regions.map((item) => <option value={item.region_pack_id} key={item.region_pack_id}>{item.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </span>
+                  </label>
+                  <label className="cc-field">
+                    <span className="cc-label">Başlangıç</span>
+                    <span className="cc-select-wrap">
+                      <select
+                        className="cc-input cc-literary"
+                        value={selectedLocation?.entity_id ?? ''}
+                        onChange={(event) => setStartingLocationId(event.target.value)}
+                        disabled={loadingStartOptions || !selectedRegion?.starting_locations.length || creating}
+                        data-testid="select-campaign-location"
+                      >
+                        {selectedRegion?.starting_locations.map((item) => <option value={item.entity_id} key={item.entity_id}>{item.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </span>
+                  </label>
+                </div>
+                {loadingStartOptions && <div className="cc-feedback" role="status">Onaylı başlangıç yerleri yükleniyor…</div>}
+                {Boolean(startOptionsError) && (
+                  <div className="cc-feedback cc-error" role="alert" data-testid="error-campaign-start-options">
+                    Başlangıç yerleri yüklenemedi.
+                    <button type="button" onClick={onRetryStartOptions} disabled={loadingStartOptions}>Tekrar dene</button>
+                  </div>
+                )}
+                {!loadingStartOptions && !startOptionsError && !hasCampaignStart && (
+                  <div className="cc-feedback cc-error" role="alert" data-testid="error-no-campaign-start">
+                    Kullanılabilir, doğrulanmış bir başlangıç yeri bulunmuyor.
+                  </div>
+                )}
+              </section>
+
               <div className="cc-mode-row">
                 <div className="cc-mode-switch" role="group" aria-label="Karakter oluşturma yöntemi">
                   <button
@@ -230,7 +360,7 @@ export function CharacterCreationScreen({
 
               <div className="cc-footer">
                 <span>Karakter, kampanya kaydı oluşturulurken sunucuya kaydedilir.</span>
-                <button className="cc-entry" type="submit" disabled={!hasOptions || loadingOptions || creating || (mode === 'custom' && !name.trim())} data-testid="button-create-character">
+                <button className="cc-entry" type="submit" disabled={!hasOptions || loadingOptions || loadingStartOptions || !hasCampaignStart || creating || (mode === 'custom' && !name.trim())} data-testid="button-create-character">
                   {creating ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />}
                   {creating ? 'Kayıt oluşturuluyor' : 'Macerayı aç'}
                 </button>

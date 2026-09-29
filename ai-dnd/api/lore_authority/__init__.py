@@ -1,7 +1,7 @@
 """Forgotten Realms canon authority package.
 
-The production registry is intentionally empty until authorized, reviewed
-source data is supplied. Test fixtures must be opt-in and remain test-only.
+The production registry is built from the installed, explicitly reviewed
+owner-provided source pack. Test fixtures remain opt-in and test-only.
 """
 
 from .campaign_state import (
@@ -10,6 +10,12 @@ from .campaign_state import (
     bind_campaign,
     grant_npc_knowledge,
     record_player_discovery,
+)
+from .campaign_catalog import (
+    CampaignStartCatalog,
+    CampaignStartPack,
+    InvalidCampaignStartError,
+    StartingLocationOption,
 )
 from .ingestion import (
     IngestionPack,
@@ -46,19 +52,26 @@ from .registry import (
     retrieve_lore_context,
     validate_lore_claim,
 )
-
-PRODUCTION_REGISTRY = default_lore_registry()
+from .pack_loader import (
+    EXTRACTED_PACK,
+    PRODUCTION_REGISTRY,
+    PRODUCTION_START_CATALOG,
+    REVIEWED_PACK,
+)
 
 __all__ = [
     "BindingStatus",
     "CampaignCanonOverride",
     "CampaignLoreState",
+    "CampaignStartCatalog",
+    "CampaignStartPack",
     "ClaimType",
     "ConflictResolution",
     "EngineActionEvidence",
     "EntityResolution",
     "EntityType",
     "IngestionPack",
+    "InvalidCampaignStartError",
     "LoreClaimValidation",
     "LoreEdge",
     "LoreEntity",
@@ -66,12 +79,16 @@ __all__ = [
     "LoreLayer",
     "LoreRegistry",
     "PRODUCTION_REGISTRY",
+    "PRODUCTION_START_CATALOG",
     "Relationship",
     "ResolutionStatus",
     "ReviewStatus",
     "SourceManifest",
     "SourceTier",
+    "StartingLocationOption",
     "VisibilityScope",
+    "EXTRACTED_PACK",
+    "REVIEWED_PACK",
     "apply_campaign_override",
     "bind_campaign",
     "build_reviewed_registry",

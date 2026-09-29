@@ -15,7 +15,17 @@ from api.campaign_journal import (
     empty_campaign_journal,
 )
 from api.character_creation import configure_character
-from api.lore_authority.models import CampaignLoreState
+from api.lore_authority import (
+    PRODUCTION_REGISTRY,
+    PRODUCTION_START_CATALOG,
+    bind_campaign,
+)
+from api.lore_authority.campaign_catalog import (
+    CampaignStartCatalog,
+    InvalidCampaignStartError,
+)
+from api.lore_authority.models import CampaignLoreState, EntityType
+from api.lore_authority.registry import LoreRegistry
 from api.persistence.campaign_models import (
     CampaignNotActiveError,
     CampaignStorageError,
@@ -57,9 +67,15 @@ class SessionManager:
         self,
         session_factory: Callable[[], Any] | None = None,
         campaign_store: CampaignStore | None = None,
+        campaign_start_catalog: CampaignStartCatalog | None = None,
+        lore_registry: LoreRegistry | None = None,
     ):
         self._session_factory = session_factory or game.create_session
         self._campaign_store = campaign_store
+        self._campaign_start_catalog = (
+            campaign_start_catalog or PRODUCTION_START_CATALOG
+        )
+        self._lore_registry = lore_registry or PRODUCTION_REGISTRY
         self._sessions: dict[str, ManagedSession] = {}
         self._campaign_sessions: dict[str, str] = {}
         self._registry_lock = threading.RLock()
@@ -83,20 +99,47 @@ class SessionManager:
         self,
         name: str | None = None,
         character: dict[str, Any] | None = None,
+        campaign_start: dict[str, str] | None = None,
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
         store = self._require_campaign_store()
         session = self._session_factory()
         if character is not None:
             configure_character(session, **character)
+        narrative_memory = empty_narrative_memory()
+        lore_authority = CampaignLoreState.legacy_unbound()
+        if campaign_start is not None:
+            try:
+                pack, location = self._campaign_start_catalog.resolve(
+                    setting_id=campaign_start["setting_id"],
+                    region_pack_id=campaign_start["region_pack_id"],
+                    region_id=campaign_start["region_id"],
+                    starting_location_id=campaign_start["starting_location_id"],
+                )
+                lore_authority = bind_campaign(
+                    lore_authority,
+                    setting_profile=pack.setting_id,
+                    world_id=pack.world_id,
+                    epoch_id=pack.epoch_id,
+                    region_id=pack.region_id,
+                    starting_location_id=location.entity_id,
+                    region_pack_id=pack.region_pack_id,
+                    registry=self._lore_registry,
+                    owner_approved=True,
+                )
+                self._install_canonical_start_location(
+                    session,
+                    location.entity_id,
+                )
+            except (KeyError, ValueError):
+                raise InvalidCampaignStartError(
+                    "Campaign start selection is not an installed verified option."
+                ) from None
+        # Resolve environment and journal only after the selected place is active.
         set_session_world_metadata(session)
         journal = create_initial_campaign_journal(
             session.world_state,
             getattr(session, "world_metadata", None),
         )
-        narrative_memory = empty_narrative_memory()
-        # No authorized starter pack or owner-approved launch location is
-        # installed yet, so do not silently bind this campaign to canon.
-        lore_authority = CampaignLoreState.legacy_unbound()
         campaign_id = str(uuid.uuid4())
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(
@@ -119,6 +162,60 @@ class SessionManager:
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
         return campaign_id, session_id, record, metadata
+
+    def _install_canonical_start_location(
+        self,
+        session: Any,
+        entity_id: str,
+    ) -> None:
+        """Register a verified city in the engine's existing location map."""
+        entity = self._lore_registry.entity(entity_id)
+        if entity is None or entity.entity_type not in {
+            EntityType.CITY,
+            EntityType.TOWN,
+            EntityType.VILLAGE,
+            EntityType.DISTRICT,
+            EntityType.LANDMARK,
+            EntityType.INN_TAVERN,
+            EntityType.TEMPLE,
+        }:
+            raise InvalidCampaignStartError(
+                "Campaign start location is not a verified location entity."
+            )
+        world_state = getattr(session, "world_state", None)
+        if not isinstance(world_state, dict):
+            raise InvalidCampaignStartError(
+                "The game session does not expose a compatible world state."
+            )
+        locations = world_state.get("locations")
+        if not isinstance(locations, dict):
+            raise InvalidCampaignStartError(
+                "The game session location registry is invalid."
+            )
+
+        engine_location_types = {
+            EntityType.CITY: "city",
+            EntityType.TOWN: "town",
+            EntityType.VILLAGE: "village",
+            EntityType.DISTRICT: "city",
+            EntityType.LANDMARK: "landmark",
+            EntityType.INN_TAVERN: "tavern",
+            EntityType.TEMPLE: "temple",
+        }
+        canonical_location = {
+            "id": entity.entity_id,
+            "name": entity.canonical_name,
+            "type": engine_location_types[entity.entity_type],
+            "aliases": list(entity.aliases),
+            "description": "",
+        }
+        existing = locations.get(entity.entity_id)
+        if existing is not None and existing != canonical_location:
+            raise InvalidCampaignStartError(
+                "The engine location conflicts with the verified catalog."
+            )
+        locations[entity.entity_id] = canonical_location
+        world_state["location"] = entity.entity_id
 
     def get(self, session_id: str) -> ManagedSession:
         with self._registry_lock:

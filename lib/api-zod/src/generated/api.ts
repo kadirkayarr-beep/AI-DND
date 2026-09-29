@@ -1681,6 +1681,28 @@ export const CancelGameQuestResponse = zod.object({
 
 
 /**
+ * @summary List campaign starts from installed verified setting packs
+ */
+export const GetCampaignStartOptionsResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "setting_id": zod.string(),
+  "name": zod.string(),
+  "regions": zod.array(zod.object({
+  "region_pack_id": zod.string(),
+  "region_id": zod.string(),
+  "name": zod.string(),
+  "epoch_id": zod.string(),
+  "coverage_status": zod.string(),
+  "starting_locations": zod.array(zod.object({
+  "entity_id": zod.string(),
+  "name": zod.string()
+}))
+}))
+}))
+})
+
+
+/**
  * @summary Read race and class choices supported by the Python engine
  */
 export const GetCharacterOptionsResponse = zod.object({
@@ -1715,6 +1737,14 @@ export const createCampaignBodyNameMax = 100;
 
 export const createCampaignBodyCharacterOneNameMax = 40;
 
+export const createCampaignBodyCampaignStartOneSettingIdMax = 128;
+
+export const createCampaignBodyCampaignStartOneRegionPackIdMax = 128;
+
+export const createCampaignBodyCampaignStartOneRegionIdMax = 128;
+
+export const createCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
+
 
 
 export const CreateCampaignBody = zod.object({
@@ -1724,7 +1754,13 @@ export const CreateCampaignBody = zod.object({
   "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
   "class": zod.string().nullish()
-}).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional()
+}).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+  "campaign_start": zod.union([zod.object({
+  "setting_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneSettingIdMax),
+  "region_pack_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionPackIdMax),
+  "region_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionIdMax),
+  "starting_location_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneStartingLocationIdMax)
+}),zod.null()]).optional()
 })
 
 export const createCampaignResponseStateWorldEnvironmentDefault = `unknown`;
@@ -2833,6 +2869,29 @@ export const GetLegacyHealthResponse = zod.object({
 
 
 /**
+ * Compatibility alias for /game/campaign-start-options. Prefer the /game route family for new clients.
+ * @summary Legacy campaign-start-options alias
+ */
+export const GetLegacyCampaignStartOptionsResponse = zod.object({
+  "settings": zod.array(zod.object({
+  "setting_id": zod.string(),
+  "name": zod.string(),
+  "regions": zod.array(zod.object({
+  "region_pack_id": zod.string(),
+  "region_id": zod.string(),
+  "name": zod.string(),
+  "epoch_id": zod.string(),
+  "coverage_status": zod.string(),
+  "starting_locations": zod.array(zod.object({
+  "entity_id": zod.string(),
+  "name": zod.string()
+}))
+}))
+}))
+})
+
+
+/**
  * Compatibility alias for /game/character-options. Prefer the /game route family for new clients.
  * @summary Legacy character-options alias
  */
@@ -3879,6 +3938,14 @@ export const createLegacyCampaignBodyNameMax = 100;
 
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
+export const createLegacyCampaignBodyCampaignStartOneSettingIdMax = 128;
+
+export const createLegacyCampaignBodyCampaignStartOneRegionPackIdMax = 128;
+
+export const createLegacyCampaignBodyCampaignStartOneRegionIdMax = 128;
+
+export const createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
+
 
 
 export const CreateLegacyCampaignBody = zod.object({
@@ -3888,7 +3955,13 @@ export const CreateLegacyCampaignBody = zod.object({
   "name": zod.string().min(1).max(createLegacyCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
   "class": zod.string().nullish()
-}).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional()
+}).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
+  "campaign_start": zod.union([zod.object({
+  "setting_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneSettingIdMax),
+  "region_pack_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionPackIdMax),
+  "region_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionIdMax),
+  "starting_location_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax)
+}),zod.null()]).optional()
 })
 
 export const createLegacyCampaignResponseStateWorldEnvironmentDefault = `unknown`;

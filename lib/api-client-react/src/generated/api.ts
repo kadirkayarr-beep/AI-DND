@@ -25,6 +25,7 @@ import type {
   CampaignCreateValidationErrorResponse,
   CampaignDetail,
   CampaignSession,
+  CampaignStartOptionsResponse,
   CampaignSummary,
   CharacterCreationOptions,
   GameSession,
@@ -531,6 +532,83 @@ export const useCancelGameQuest = <TError = ErrorType<ApiErrorResponse>,
       > => {
       return useMutation(getCancelGameQuestMutationOptions(options));
     }
+
+export const getGetCampaignStartOptionsUrl = () => {
+
+
+
+
+  return `/api/game/campaign-start-options`
+}
+
+/**
+ * @summary List campaign starts from installed verified setting packs
+ */
+export const getCampaignStartOptions = async ( options?: Parameters<typeof customFetch>[1]): Promise<CampaignStartOptionsResponse> => {
+
+  return customFetch<CampaignStartOptionsResponse>(getGetCampaignStartOptionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCampaignStartOptionsQueryKey = () => {
+    return [
+    `/api/game/campaign-start-options`
+    ] as const;
+    }
+
+
+export const getGetCampaignStartOptionsQueryOptions = <TData = Awaited<ReturnType<typeof getCampaignStartOptions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaignStartOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCampaignStartOptionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCampaignStartOptions>>> = ({ signal }) => getCampaignStartOptions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCampaignStartOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCampaignStartOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getCampaignStartOptions>>>
+export type GetCampaignStartOptionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List campaign starts from installed verified setting packs
+ */
+
+export function useGetCampaignStartOptions<TData = Awaited<ReturnType<typeof getCampaignStartOptions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaignStartOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCampaignStartOptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetCharacterOptionsUrl = () => {
 
@@ -1065,6 +1143,84 @@ export function useGetLegacyHealth<TData = Awaited<ReturnType<typeof getLegacyHe
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetLegacyHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLegacyCampaignStartOptionsUrl = () => {
+
+
+
+
+  return `/api/campaign-start-options`
+}
+
+/**
+ * Compatibility alias for /game/campaign-start-options. Prefer the /game route family for new clients.
+ * @summary Legacy campaign-start-options alias
+ */
+export const getLegacyCampaignStartOptions = async ( options?: Parameters<typeof customFetch>[1]): Promise<CampaignStartOptionsResponse> => {
+
+  return customFetch<CampaignStartOptionsResponse>(getGetLegacyCampaignStartOptionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLegacyCampaignStartOptionsQueryKey = () => {
+    return [
+    `/api/campaign-start-options`
+    ] as const;
+    }
+
+
+export const getGetLegacyCampaignStartOptionsQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLegacyCampaignStartOptionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>> = ({ signal }) => getLegacyCampaignStartOptions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLegacyCampaignStartOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>>
+export type GetLegacyCampaignStartOptionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Legacy campaign-start-options alias
+ */
+
+export function useGetLegacyCampaignStartOptions<TData = Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaignStartOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLegacyCampaignStartOptionsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
