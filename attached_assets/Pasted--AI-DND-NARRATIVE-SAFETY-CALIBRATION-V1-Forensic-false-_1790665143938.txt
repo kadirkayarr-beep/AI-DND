@@ -1,0 +1,1020 @@
+# AI-DND — NARRATIVE SAFETY CALIBRATION V1
+# Forensic false-positive reduction after the Phase-D major engine checkpoint
+
+This is a focused quality/safety calibration phase.
+
+Do NOT start Forgotten Realms Canon Authority yet.
+Do NOT start Spells V1.
+Do NOT start XP / Leveling V1.
+Do NOT expand Combat V3.
+
+The newly created Phase-D major engine checkpoint is the protected baseline.
+
+Use:
+
+ai-dnd/CHECKPOINT_MAJOR_PHASE_D_20260929.sha256
+
+as the current protected engine reference.
+
+Also preserve the historical pre-engine checkpoint:
+
+ai-dnd/CHECKPOINT_CURRENT.sha256
+
+Do not overwrite either checkpoint.
+
+==================================================
+CURRENT VERIFIED PROBLEM
+==================================================
+
+The authenticated Phase-C/Phase-D live qwen3:8b smoke completed:
+
+- 11 turns
+- 21 model calls
+- maximum 2 model calls per turn
+- no reported canonical gameplay failures
+
+However:
+
+8 narrations were replaced by the narrator safety fallback.
+
+This is too high for the intended product experience.
+
+The goal of this phase is NOT:
+
+"disable safety so Qwen can say anything."
+
+The goal is:
+
+KEEP MECHANICAL SAFETY STRICT
+WHILE REDUCING FALSE POSITIVES AGAINST HARMLESS STORYTELLING.
+
+The game should be able to write vivid fiction without being allowed to
+rewrite canonical game reality.
+
+==================================================
+CORE PRINCIPLE
+==================================================
+
+PYTHON DECIDES REALITY.
+
+QWEN MAY DECORATE REALITY.
+
+QWEN MAY NOT REWRITE REALITY.
+
+Narrative safety must understand the difference.
+
+==================================================
+PHASE 0 — DO NOT PATCH YET
+==================================================
+
+Before changing code, perform a forensic audit.
+
+Inspect:
+
+- current narrator safety functions
+- fallback logic
+- contradiction checks
+- player-action invention checks
+- entity checks
+- NPC-name checks
+- location checks
+- inventory checks
+- combat checks
+- quest checks
+- world metadata checks
+- memory-related safety
+- narrative texture handling
+- ask_dungeon_master()
+- system_prompt
+- Narrative Director context
+- scene classifier
+- live smoke logs
+- narrator replacement reasons if currently recorded
+
+Do not guess why the 8 replacements happened.
+
+Identify the actual triggering rule for each one.
+
+==================================================
+FORENSIC FALLBACK REPORT — MANDATORY
+==================================================
+
+For EACH of the 8 replaced narrations, report:
+
+1. turn number
+2. player input
+3. scene type
+4. canonical state relevant to that turn
+5. original Qwen narration, sanitized if needed
+6. exact safety rule that triggered
+7. exact phrase/span that triggered it
+8. whether the trigger was:
+
+   TRUE POSITIVE
+   FALSE POSITIVE
+   AMBIGUOUS
+
+9. what canonical harm would have occurred if accepted
+10. whether a narrower safety rule could have allowed the harmless parts
+
+Do NOT change code until this classification exists.
+
+==================================================
+SAFETY TAXONOMY
+==================================================
+
+Create an explicit distinction between:
+
+A. HARD CANONICAL VIOLATION
+B. PLAYER-AGENCY VIOLATION
+C. SOFT / HARMLESS NARRATIVE TEXTURE
+D. AMBIGUOUS NARRATIVE CLAIM
+
+==================================================
+A. HARD CANONICAL VIOLATION
+==================================================
+
+Examples:
+
+- changing HP
+- inventing damage
+- inventing healing
+- changing inventory
+- granting/removing gold
+- changing quest status
+- completing objectives
+- creating spell effects
+- awarding XP
+- changing level
+- changing combat target/result
+- changing location canonically
+- inventing canonical weather change
+- resurrecting defeated entities
+- moving canonical NPCs contrary to server state
+- inventing important canonical items
+- inventing important named NPCs as established reality
+
+These should remain STRICTLY blocked or safely replaced.
+
+==================================================
+B. PLAYER-AGENCY VIOLATION
+==================================================
+
+Examples:
+
+Qwen says:
+
+"You draw your sword."
+
+when the player did not.
+
+"You agree to the bargain."
+
+when the player did not.
+
+"You tell Kasim your real name."
+
+when the player did not.
+
+"You decide he is lying."
+
+without canonical support.
+
+These should remain blocked or minimally repaired.
+
+==================================================
+C. HARMLESS NARRATIVE TEXTURE
+==================================================
+
+Examples:
+
+- a floorboard creaks
+- candlelight flickers
+- rain taps against glass
+- smoke curls above the hearth
+- a distant patron laughs
+- Kasim wipes a glass
+- boots leave wet marks
+- a chair scrapes somewhere behind the player
+- wind carries the smell of pine
+- an NPC raises an eyebrow
+- a room feels warm
+- distant bells ring
+
+These are generally NOT canonical game-state mutations.
+
+They should normally be allowed.
+
+Narrative safety must not treat every descriptive noun or verb as a new
+canonical world object.
+
+==================================================
+D. AMBIGUOUS NARRATIVE CLAIM
+==================================================
+
+Examples:
+
+"Kasim seems nervous."
+
+"The alley looks recently disturbed."
+
+"The barkeep glances toward the cellar."
+
+These MAY be harmless presentation,
+but they can sometimes imply information.
+
+Define a safe policy.
+
+Prefer:
+
+allow subjective/perceptual texture
+
+unless it establishes a mechanical or secret fact as objectively true.
+
+Example:
+
+Allowed:
+
+"Kasim's fingers tighten briefly around the glass."
+
+Not automatically allowed as fact:
+
+"Kasim is secretly a Zhentarim spy."
+
+==================================================
+CANONICAL ASSERTION VS LITERARY DESCRIPTION
+==================================================
+
+Implement or improve a distinction between:
+
+CANONICAL ASSERTION
+
+and:
+
+LITERARY DESCRIPTION.
+
+For example:
+
+"The rain begins."
+
+could imply a canonical weather change.
+
+But:
+
+"Rain patters against the windows."
+
+is harmless if canonical weather is already rain.
+
+Similarly:
+
+"A guard named Halric approaches you and offers a quest."
+
+introduces significant canonical entities/state.
+
+But:
+
+"A few anonymous guards pass at the far end of the street."
+
+can be harmless background texture.
+
+Safety needs context.
+
+==================================================
+KNOWN ENTITY HANDLING
+==================================================
+
+Do not loosen identity rules.
+
+Stable IDs remain authoritative.
+
+A safety calibration must NOT cause:
+
+- two same-name NPCs to merge
+- unknown NPC memory to become canonical
+- procedural background figures to become persistent entities
+- canonical NPC location to change because narration said so
+
+Narrative texture can mention anonymous background people,
+but cannot silently promote them into canonical entities.
+
+==================================================
+NPC GESTURES AND EXPRESSIONS
+==================================================
+
+A recurring NPC must be allowed to:
+
+- smile
+- frown
+- look away
+- raise an eyebrow
+- sigh
+- pause
+- speak softly
+- wipe a glass
+- fold their arms
+
+without every gesture being interpreted as canonical state mutation.
+
+These gestures are narrative continuity unless the engine explicitly stores
+them as mechanics.
+
+==================================================
+PLAYER SENSORY EXPERIENCE
+==================================================
+
+Narrator may safely describe:
+
+- what the player sees
+- hears
+- smells
+- feels physically from already-canonical conditions
+
+But may not decide:
+
+- what the player believes
+- what the player chooses
+- who the player trusts
+- what moral conclusion the player reaches
+
+==================================================
+SAFETY SHOULD BE MINIMAL
+==================================================
+
+When a response contains one unsafe clause and several safe paragraphs,
+avoid replacing the entire narration if a narrower deterministic repair is
+possible.
+
+Investigate a tiered safety model.
+
+Possible conceptual levels:
+
+LEVEL 0 — ACCEPT
+No violation.
+
+LEVEL 1 — ACCEPT WITH SAFE NORMALIZATION
+Minor harmless wording issue.
+
+LEVEL 2 — REMOVE / REWRITE ONLY UNSAFE CLAIM
+If a deterministic safe repair can preserve the rest.
+
+LEVEL 3 — FULL FALLBACK
+Use only for serious or structurally unsafe output.
+
+Do NOT implement unsafe free-form rewriting if it requires unbounded extra
+model calls.
+
+Prefer deterministic or tightly bounded repairs.
+
+==================================================
+NO HIDDEN THIRD MODEL CALL
+==================================================
+
+Current maximum:
+
+2 model calls per turn.
+
+Preserve it.
+
+Do not solve false positives by adding:
+
+generate
+→ safety reject
+→ regenerate
+→ safety reject
+→ regenerate again
+
+No hidden third call.
+
+If a rewrite strategy uses Qwen,
+it must remain inside the existing 2-call ceiling.
+
+Prefer prevention and deterministic post-processing over retries.
+
+==================================================
+CONTEXT-AWARE SAFETY
+==================================================
+
+Safety validation must receive enough authoritative context to distinguish
+contradiction from valid prose.
+
+Relevant context may include:
+
+- current location
+- environment
+- time_of_day
+- weather
+- present NPC IDs
+- current canonical target
+- combat state
+- inventory
+- quest state
+- skill result
+- current action
+- narrative memory
+- known scene type
+
+Do not compare narration against an incomplete snapshot and then punish
+correct prose.
+
+==================================================
+SCENE-AWARE SAFETY
+==================================================
+
+Different scene types permit different harmless texture.
+
+EXPLORATION:
+more environment description
+
+DIALOGUE:
+more gestures, expressions, pauses, vocal tone
+
+COMBAT:
+more motion/impact imagery, strictly bound to structured outcome
+
+AFTERMATH:
+more emotional/environmental description
+
+DIRECT QUERY:
+very little decorative prose
+
+Do not apply identical literary expectations to every scene.
+
+==================================================
+COMBAT SAFETY
+==================================================
+
+Combat remains especially strict.
+
+Canonical structured combat result owns:
+
+- actor
+- target
+- roll
+- hit/miss
+- damage
+- HP
+- status
+- current turn
+- initiative
+- round
+
+Qwen may dramatize the result.
+
+Example:
+
+Canonical:
+MISS
+
+Allowed:
+
+"The blade whistles past the goblin's shoulder and bites into empty air."
+
+Not allowed:
+
+"The blade cuts deeply into the goblin."
+
+==================================================
+SKILL CHECK SAFETY
+==================================================
+
+Structured skill_check_result remains authority.
+
+Canonical:
+
+FAILURE
+
+Allowed:
+
+"The tracks blur into the churned mud until you can no longer distinguish
+their direction."
+
+Not allowed:
+
+"You identify the exact path the bandits took."
+
+unless Python outcome supports it.
+
+==================================================
+QUEST SAFETY
+==================================================
+
+Quest Outcomes V1 is now canonical.
+
+Narrator may discuss an ACTIVE quest.
+
+Narrator may NOT:
+
+- create quest
+- accept quest
+- progress objective
+- complete quest
+- cancel quest
+
+unless canonical Python state already contains that transition.
+
+==================================================
+NARRATIVE MEMORY SAFETY
+==================================================
+
+Narrative memory is context, not canonical mechanics.
+
+Safety must distinguish:
+
+"we previously discussed the caravan"
+
+from:
+
+"the caravan quest is complete."
+
+Memory callbacks should not trigger false positives simply because they refer
+to old events.
+
+==================================================
+OLD MEMORY CALLBACK ISSUE
+==================================================
+
+The live smoke selected relevant old-memory context,
+but the final narration did not explicitly repeat the player's name.
+
+Do NOT treat this as a failure by itself.
+
+The quality requirement is:
+
+correct memory used naturally.
+
+Not:
+
+the narrator must quote names or facts verbatim.
+
+Verify semantic continuity.
+
+==================================================
+ANTI-REPETITION MUST SURVIVE
+==================================================
+
+Do not fix safety by making narration generic again.
+
+Preserve:
+
+- long-term memory
+- scene-adaptive prose
+- anti-repetition
+- NPC voice continuity
+- location continuity
+- thread retrieval
+- story summary
+
+Narrator safety should not collapse every creative response into the same
+safe sentence template.
+
+==================================================
+DETERMINISTIC SAFETY TEST CORPUS
+==================================================
+
+Create a substantial fixed safety corpus.
+
+At minimum include categories:
+
+--------------------------------------------------
+ALLOWED TEXTURE
+--------------------------------------------------
+
+1. fireplace crackles
+2. rain against window
+3. anonymous crowd movement
+4. NPC eyebrow movement
+5. mundane architecture
+6. environmental smells
+7. distant sounds
+8. body-language detail
+9. varied speech tone
+10. harmless weather-consistent prose
+
+Expected:
+ALLOW
+
+--------------------------------------------------
+CANONICAL VIOLATIONS
+--------------------------------------------------
+
+11. invented HP change
+12. invented inventory gain
+13. invented gold
+14. invented quest completion
+15. invented XP
+16. invented level-up
+17. invented spell effect
+18. contradictory location
+19. contradictory weather
+20. wrong combat target
+21. wrong damage
+22. resurrect defeated NPC
+23. invent canonical important NPC
+24. invent important item reward
+
+Expected:
+BLOCK / REPAIR
+
+--------------------------------------------------
+PLAYER AGENCY VIOLATIONS
+--------------------------------------------------
+
+25. invented player attack
+26. invented player dialogue
+27. invented agreement
+28. invented belief
+29. invented movement
+
+Expected:
+BLOCK / REPAIR
+
+--------------------------------------------------
+AMBIGUOUS CASES
+--------------------------------------------------
+
+30. "Kasim seems nervous."
+31. "The room feels watched."
+32. "Something about the alley seems wrong."
+33. "Kasim glances toward the cellar."
+34. "A distant traveler watches you."
+
+Define expected policy explicitly.
+
+==================================================
+FALSE-POSITIVE REGRESSION SUITE
+==================================================
+
+Add regression fixtures based on the actual eight live-smoke replacements.
+
+For every confirmed false positive:
+
+create a deterministic test.
+
+Once fixed, it must never silently regress.
+
+For every confirmed true positive:
+
+create a deterministic safety test proving it still blocks.
+
+==================================================
+SAME-NAME ENTITY TESTS
+==================================================
+
+Keep same-name safety.
+
+Two NPCs:
+
+Arin A
+Arin B
+
+Narration referring to Arin A must not be treated as valid for Arin B.
+
+Calibration cannot weaken entity identity.
+
+==================================================
+LONG NARRATION TEST
+==================================================
+
+Test 3–5 paragraph valid narration.
+
+It should NOT be rejected merely because:
+
+- it contains more nouns
+- it contains more environmental detail
+- it mentions harmless background activity
+- it contains varied gestures
+
+Longer prose must not inherently increase fallback probability.
+
+==================================================
+FALLBACK OBSERVABILITY
+==================================================
+
+Improve development diagnostics.
+
+Every fallback should expose an internal reason code such as:
+
+CANONICAL_HP_CONTRADICTION
+CANONICAL_LOCATION_CONTRADICTION
+INVENTED_PLAYER_ACTION
+UNKNOWN_IMPORTANT_ENTITY
+QUEST_STATE_CONTRADICTION
+COMBAT_RESULT_CONTRADICTION
+
+Do not expose raw internal prompts or secrets to the browser.
+
+But test/dev logs should make fallback reasons inspectable.
+
+Avoid generic:
+
+"narration rejected"
+
+when a specific reason is known.
+
+==================================================
+FALSE POSITIVE METRICS
+==================================================
+
+For the deterministic corpus report:
+
+TRUE POSITIVES
+TRUE NEGATIVES
+FALSE POSITIVES
+FALSE NEGATIVES
+
+The critical requirement:
+
+ZERO known mechanical false negatives.
+
+A mechanical contradiction must not pass just to reduce fallback count.
+
+Also target:
+
+ZERO known false positives in the deterministic harmless-texture fixture set.
+
+==================================================
+LIVE QWEN CALIBRATION SMOKE
+==================================================
+
+After deterministic calibration passes:
+
+restart the API.
+
+Run authenticated real qwen3:8b smoke with disposable data.
+
+Do not touch Cedric.
+
+Use at least 12–15 meaningful narrative turns if practical.
+
+Include:
+
+- tavern / rich environment scene
+- recurring NPC
+- dialogue
+- memory callback
+- repeated location
+- exploration
+- direct query
+- Skill Check
+- quest-related discussion
+- combat
+- combat aftermath
+
+Record for EVERY turn:
+
+- scene type
+- model calls
+- accepted narration
+- repaired narration
+- full fallback
+- fallback/repair reason
+- canonical contradiction yes/no
+- player-agency violation yes/no
+
+==================================================
+LIVE SUCCESS CRITERIA
+==================================================
+
+The previous baseline was:
+
+8 full fallbacks / 11 narrations.
+
+This is NOT acceptable as the long-term storytelling baseline.
+
+Do NOT optimize blindly toward zero fallback.
+
+Success requires:
+
+- substantial reduction in unjustified fallbacks
+- no new mechanical safety regressions
+- rich prose still works
+- memory continuity works
+- player agency remains protected
+- maximum 2 calls per turn
+
+For any remaining fallback:
+
+explain why it was a TRUE safety violation.
+
+A representative live smoke should ideally contain no unjustified full
+fallbacks.
+
+Do not mark PASS merely because the numerical fallback count decreased.
+
+==================================================
+BEFORE / AFTER REVIEW
+==================================================
+
+Provide at least 5 sanitized examples.
+
+For each:
+
+PLAYER INPUT
+
+CANONICAL CONTEXT
+
+BEFORE CALIBRATION
+Qwen output / fallback behavior
+
+WHY IT TRIGGERED
+
+AFTER CALIBRATION
+
+WHY THE NEW RESULT IS SAFE
+
+Include:
+
+- environment description
+- recurring NPC dialogue
+- memory callback
+- skill check
+- combat
+
+==================================================
+PERFORMANCE
+==================================================
+
+Measure:
+
+- safety validation overhead
+- narration latency
+- memory/context overhead
+- model call count
+
+Do not introduce expensive external services.
+
+No vector DB.
+
+No additional network dependency.
+
+==================================================
+PERSISTENCE
+==================================================
+
+Safety calibration should not create new canonical persistence unless
+strictly necessary.
+
+Do not create a second memory/history layer.
+
+Preserve:
+
+- engine state
+- narrative memory
+- Journal
+- quest state
+- combat history
+- current campaign persistence
+
+==================================================
+ENGINE CHECKPOINT RULE
+==================================================
+
+Current major Phase-D checkpoint is now the protected baseline.
+
+Before modification:
+
+read and verify:
+
+ai-dnd/CHECKPOINT_MAJOR_PHASE_D_20260929.sha256
+
+Record the actual current game.py SHA.
+
+After calibration:
+
+record the new SHA if game.py changed.
+
+Do NOT overwrite the Phase-D checkpoint.
+
+If this calibration changes game.py and passes:
+
+create a NEW named post-calibration checkpoint.
+
+Example conceptually:
+
+CHECKPOINT_NARRATIVE_SAFETY_V1_20260929.sha256
+
+and a corresponding report.
+
+Do not silently replace historical manifests.
+
+==================================================
+REGRESSION GATE
+==================================================
+
+Run all relevant:
+
+- narrator safety
+- Narrative Director
+- semantic intent
+- query grounding
+- Skill Checks
+- Quest Outcomes
+- Combat V1/V2 compatibility
+- Combat V3
+- campaign persistence
+- migrations
+- session isolation
+- campaign isolation
+- API tests
+- frontend tests
+- typecheck
+- production build
+- Python compile
+- git diff --check
+
+No weakened tests.
+
+==================================================
+DO NOT START
+==================================================
+
+Do NOT start:
+
+- Forgotten Realms Canon Authority V1
+- Spells V1
+- XP / Leveling
+- factions
+- lore database
+- public deployment
+- auth
+- multiplayer
+
+This phase is ONLY:
+
+NARRATIVE SAFETY CALIBRATION.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return a detailed report with:
+
+1. original fallback architecture
+2. eight-fallback forensic analysis
+3. true positives found
+4. false positives found
+5. ambiguous cases found
+6. exact safety rules modified
+7. exact safety rules preserved
+8. tiered repair/fallback behavior
+9. canonical assertion vs literary texture handling
+10. player-agency handling
+11. NPC gesture handling
+12. memory callback handling
+13. Skill Check safety
+14. Quest safety
+15. Combat safety
+16. same-name identity safety
+17. fallback reason-code system
+18. deterministic corpus metrics
+19. focused test totals
+20. full API total
+21. deterministic engine gates
+22. frontend test result
+23. typecheck/build result
+24. real qwen3:8b smoke result
+25. total turns
+26. total model calls
+27. accepted narrations
+28. repaired narrations
+29. full fallbacks
+30. reason for every remaining fallback
+31. contradictions observed
+32. player-agency violations observed
+33. BEFORE/AFTER examples
+34. latency impact
+35. known issues
+36. remaining limitations
+37. Phase-D baseline SHA
+38. post-calibration SHA
+39. checkpoint files created
+40. recommended next phase
+
+==================================================
+PASS CONDITION
+==================================================
+
+PASS only if:
+
+- mechanical authority remains strict
+- canonical contradictions still fail
+- player-agency violations still fail
+- harmless literary texture normally passes
+- long rich prose normally passes
+- Narrative Director memory remains functional
+- false-positive fallback behavior is materially improved
+- model calls remain <=2
+- regressions stay green
+
+The goal is not a reckless narrator.
+
+The goal is a narrator that understands the difference between:
+
+FICTIONAL DESCRIPTION
+
+and
+
+GAME-STATE MUTATION.
+
+PYTHON DECIDES WHAT IS TRUE.
+QWEN DECIDES HOW THAT TRUTH FEELS TO EXPERIENCE.
