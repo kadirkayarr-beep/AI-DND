@@ -196,7 +196,17 @@ class PipelinePortTests(unittest.TestCase):
             return {
                 "message": {
                     "content": json.dumps(
-                        {"world_updates": {}, "narration": "Şu an Taverna'dasın."},
+                        {
+                            "world_updates": {
+                                "create_locations": [],
+                                "create_npcs": [],
+                                "update_npcs": [],
+                                "create_features": [],
+                                "events": [],
+                            },
+                            "narration": "Şu an Taverna'dasın.",
+                            "lore_claims": [],
+                        },
                         ensure_ascii=False,
                     )
                 }
@@ -222,8 +232,10 @@ class PipelinePortTests(unittest.TestCase):
         self.assertEqual(captured["format"], game.DM_RESPONSE_SCHEMA)
         self.assertEqual(
             set(game.DM_RESPONSE_SCHEMA["properties"]),
-            {"world_updates", "narration"},
+            {"world_updates", "narration", "lore_claims"},
         )
+        self.assertIn("create_shops", game.WORLD_UPDATE_SCHEMA["properties"])
+        self.assertNotIn("create_shops", game.WORLD_UPDATE_SCHEMA["required"])
         self.assertEqual(captured["options"]["num_predict"], 700)
 
     def test_multi_paragraph_temporary_texture_stays_noncanonical_and_deduplicated(self):

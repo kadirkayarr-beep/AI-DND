@@ -583,15 +583,33 @@ class LoreAuthorityTests(unittest.TestCase):
             region_scope="region:north",
         )
         road_safety["notes"] = "High Road safety was restored near Neverwinter."
+        current_year = fact(
+            "fact:world:current-year",
+            "world:test",
+            "current_dr_year",
+            1501,
+            visibility="REGIONAL_KNOWLEDGE",
+            region_scope="region:north",
+        )
         registry = verified_registry(
             entities=[
                 entity("world:test", "Forgotten Realms"),
                 entity("region:north", "The North"),
+                entity("region:sword-coast", "Sword Coast"),
                 entity("city:neverwinter", "Neverwinter"),
                 entity("road:high", "High Road"),
+                entity("road:trade", "Trade Way"),
                 entity("faction:alliance", "Lords' Alliance"),
             ],
-            facts=city_facts + [road_safety] + [
+            facts=city_facts + [road_safety, current_year] + [
+                fact(
+                    "fact:north:sword-coast",
+                    "region:north",
+                    "distinct_from_region",
+                    "region:sword-coast",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
                 fact(
                     "fact:high-road",
                     "road:high",
@@ -601,10 +619,26 @@ class LoreAuthorityTests(unittest.TestCase):
                     region_scope="region:north",
                 ),
                 fact(
+                    "fact:high-road:continues",
+                    "road:high",
+                    "continues_as",
+                    "road:trade",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+                fact(
                     "fact:alliance",
                     "faction:alliance",
                     "purpose",
                     "safety and prosperity",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+                fact(
+                    "fact:city:alliance",
+                    "city:neverwinter",
+                    "member_of",
+                    "faction:alliance",
                     visibility="REGIONAL_KNOWLEDGE",
                     region_scope="region:north",
                 ),
@@ -649,13 +683,95 @@ class LoreAuthorityTests(unittest.TestCase):
 
         route_query = registry.retrieve_lore_context(
             current_location_id="city:neverwinter",
-            player_message="High Road, Trade Way olarak mı devam ediyor?",
+            player_message="How does the High Road continue as the Trade Way?",
             mentioned_entity_ids={"road:high"},
             campaign_state=state,
         )
         self.assertIn(
-            "fact:high-road",
+            "fact:high-road:continues",
             route_query["diagnostics"]["selected_fact_ids"],
+        )
+        for wording in (
+            "What road does the High Road connect to?",
+            "Does the High Road become the Trade Way?",
+        ):
+            with self.subTest(wording=wording):
+                variant = registry.retrieve_lore_context(
+                    current_location_id="city:neverwinter",
+                    player_message=wording,
+                    mentioned_entity_ids={"road:high"},
+                    campaign_state=state,
+                )
+                self.assertIn(
+                    "fact:high-road:continues",
+                    variant["diagnostics"]["selected_fact_ids"],
+                )
+
+        alliance_query = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message=(
+                "Is Neverwinter a member of the Lords' Alliance, and what is "
+                "the Alliance's stated purpose?"
+            ),
+            mentioned_entity_ids={"city:neverwinter", "faction:alliance"},
+            campaign_state=state,
+        )
+        alliance_fact_ids = set(alliance_query["diagnostics"]["selected_fact_ids"])
+        self.assertIn("fact:city:alliance", alliance_fact_ids)
+        self.assertIn("fact:alliance", alliance_fact_ids)
+        self.assertIn(
+            "membership",
+            alliance_query["diagnostics"]["query_intents"],
+        )
+        self.assertIn("purpose", alliance_query["diagnostics"]["query_intents"])
+
+        region_relation_query = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="Is The North the same region as the Sword Coast?",
+            mentioned_entity_ids={"region:north", "region:sword-coast"},
+            campaign_state=state,
+        )
+        self.assertIn(
+            "fact:north:sword-coast",
+            region_relation_query["diagnostics"]["selected_fact_ids"],
+        )
+        self.assertIn(
+            "distinct_relation",
+            region_relation_query["diagnostics"]["query_intents"],
+        )
+
+        status_variant = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="What was Neverwinter's condition in 1501 DR?",
+            mentioned_entity_ids={"city:neverwinter"},
+            campaign_state=state,
+        )
+        self.assertIn(
+            "fact:city:0",
+            status_variant["diagnostics"]["selected_fact_ids"],
+        )
+        self.assertIn(
+            "fact:world:current-year",
+            status_variant["diagnostics"]["selected_fact_ids"],
+        )
+        self.assertIn(
+            "current_status",
+            status_variant["diagnostics"]["query_intents"],
+        )
+
+        region_overview = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            player_message="What is The North?",
+            mentioned_entity_ids={"region:north"},
+            campaign_state=state,
+        )
+        self.assertEqual(
+            region_overview["diagnostics"]["selected_fact_ids"],
+            ["fact:north:sword-coast"],
+        )
+        self.assertEqual(
+            region_overview["diagnostics"]["query_intents"],
+            ["overview"],
         )
 
         broad = registry.retrieve_lore_context(
@@ -665,8 +781,11 @@ class LoreAuthorityTests(unittest.TestCase):
             campaign_state=state,
         )
         broad_ids = broad["diagnostics"]["selected_fact_ids"]
-        self.assertLessEqual(len(broad_ids), 6)
+        self.assertLessEqual(len(broad_ids), 4)
         self.assertTrue(all(fact_id.startswith("fact:city:") for fact_id in broad_ids))
+        self.assertIn("fact:city:1", broad_ids)
+        self.assertIn("fact:city:0", broad_ids)
+        self.assertNotIn("fact:city:6", broad_ids)
         self.assertEqual(
             set(broad_ids),
             {

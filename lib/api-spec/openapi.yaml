@@ -867,6 +867,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/GameNpc"
+        shops:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameShop"
         features:
           type: array
           items:
@@ -897,6 +901,7 @@ components:
         - character
         - inventory
         - npcs
+        - shops
         - features
         - doors
         - combat
@@ -1240,6 +1245,12 @@ components:
           type: ["string", "null"]
         relationship:
           type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        shop_id:
+          type: ["string", "null"]
         max_hp:
           type: ["integer", "null"]
         current_hp:
@@ -1270,6 +1281,25 @@ components:
         description:
           type: string
       required: [location, name, description]
+    GameShop:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        shopkeeper_id:
+          type: string
+      required: [id, name, description, location, tags, shopkeeper_id]
     GameDoor:
       type: object
       additionalProperties: false

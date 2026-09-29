@@ -217,6 +217,12 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         context = game._empty_lore_authority_context()
         context["sections"]["official_forgotten_realms_lore"] = [
             {
+                "fact_id": "fact:forgotten-realms:year",
+                "subject_id": "fr:world:forgotten_realms",
+                "predicate": "current_dr_year",
+                "object_id_or_value": 1501,
+            },
+            {
                 "fact_id": "fact:neverwinter:status",
                 "subject_id": "fr:city:neverwinter",
                 "predicate": "current_status",
@@ -250,6 +256,18 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 "predicate": "continues_as",
                 "object_id_or_value": "fr:road:trade_way",
                 "notes": "The High Road continues as the Trade Way.",
+            },
+            {
+                "fact_id": "fact:alliance:purpose",
+                "subject_id": "fr:faction:lords_alliance",
+                "predicate": "purpose",
+                "object_id_or_value": "settlement_safety_and_prosperity",
+            },
+            {
+                "fact_id": "fact:neverwinter:alliance",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "member_of",
+                "object_id_or_value": "fr:faction:lords_alliance",
             },
         ]
         context["sections"]["verified_entities"] = [
@@ -301,6 +319,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
             "What is the history of the Silver Marches, and how did they fall?",
             "Elara, did I introduce myself to you?",
             "Is Neverwinter known for silver and metalworking?",
+            "Does the High Road connect to Phandalin?",
         ):
             with self.subTest(question=question):
                 self.assertTrue(
@@ -320,6 +339,20 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         self.assertFalse(
             game._player_question_has_unverified_lore_claim(
                 "High Road, Trade Way olarak mı devam ediyor?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "What is Neverwinter's current condition in 1501 DR?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "What does the High Road connect to?",
                 context,
                 world_state,
             )
@@ -348,6 +381,14 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             game._supported_lore_question_response(
+                "What is Dagult Neverember's current role in Neverwinter?",
+                context,
+                world_state,
+            ),
+            "Dagult Neverember is the current Lord of Neverwinter.",
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
                 "High Road, Trade Way olarak mı devam ediyor?",
                 context,
                 world_state,
@@ -364,11 +405,91 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             game._supported_lore_question_response(
+                "Is Neverwinter a member of the Lords' Alliance, and what is "
+                "the Alliance's stated purpose?",
+                context,
+                world_state,
+            ),
+            "Neverwinter is a member of the Lords' Alliance. The stated purpose "
+            "of the Lords' Alliance includes settlement safety and prosperity.",
+        )
+        region_context = game._empty_lore_authority_context()
+        region_context["sections"]["official_forgotten_realms_lore"] = [
+            {
+                "fact_id": "fact:north:sword-coast",
+                "subject_id": "fr:region:the_north",
+                "predicate": "distinct_from_region",
+                "object_id_or_value": "fr:region:sword_coast",
+            },
+        ]
+        region_context["sections"]["verified_entities"] = [
+            {
+                "entity_id": "fr:region:the_north",
+                "canonical_name": "The North",
+                "aliases": [],
+            },
+            {
+                "entity_id": "fr:region:sword_coast",
+                "canonical_name": "Sword Coast",
+                "aliases": [],
+            },
+        ]
+        region_world_state = {"locations": {}, "npcs": [], "features": []}
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "Is The North the same region as the Sword Coast?",
+                region_context,
+                region_world_state,
+            ),
+            "The North is distinct from the Sword Coast.",
+        )
+        self.assertIsNone(
+            game._supported_lore_question_response(
+                "Does King Vharion rule Neverwinter?",
+                context,
+                world_state,
+            )
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
                 "Neverwinter gerçekten yeniden inşa ediliyor mu?",
                 context,
                 world_state,
             ),
             "Neverwinter yeniden inşa ediliyor.",
+        )
+        overview_response = game._supported_lore_question_response(
+            "Describe Neverwinter.",
+            context,
+            world_state,
+        )
+        self.assertIn("master crafts and fine goods", overview_response)
+        self.assertIn("Neverwinter is rebuilding.", overview_response)
+        self.assertIn("Dagult Neverember is the current Lord", overview_response)
+        self.assertNotIn("Phandalin", overview_response)
+        self.assertNotIn("Silver Marches", overview_response)
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "What is Neverwinter's current condition in 1501 DR?",
+                context,
+                world_state,
+            ),
+            "As of 1501 DR, Neverwinter is rebuilding.",
+        )
+        self.assertEqual(
+            game._supported_lore_question_response(
+                "How does the High Road continue?",
+                context,
+                world_state,
+            ),
+            "The High Road continues as the Trade Way.",
+        )
+        self.assertIsNone(
+            game._supported_lore_question_response(
+                "Does the High Road connect to Phandalin?",
+                context,
+                world_state,
+            )
         )
         lore_facts = context["sections"]["official_forgotten_realms_lore"]
         lord_fact = next(

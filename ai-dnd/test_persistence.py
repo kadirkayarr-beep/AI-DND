@@ -18,6 +18,18 @@ class PersistenceTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "adventure.json"
 
     def test_round_trip_preserves_references(self):
+        self.session.world_state["location"] = "tavern"
+        created_shop = self.session.create_shop_from_proposal({
+            "name": "Green Lantern",
+            "description": "A small timber storefront with a painted green sign.",
+            "shopkeeper": {
+                "name": "Mira",
+                "personality": "Patient and observant.",
+                "appearance": "A short-haired human in a plain apron.",
+            },
+        })
+        shop_id = created_shop["shop"]["id"]
+        shopkeeper_id = created_shop["shopkeeper"]["id"]
         expected = self.session.serialize_game_state()
         world = self.session.world_state
         self.session.save_game(self.path)
@@ -26,6 +38,18 @@ class PersistenceTests(unittest.TestCase):
         self.session.recent_dm_narrations.clear()
         self.assertEqual(self.session.load_game(self.path), expected)
         self.assertIs(world, self.session.world_state)
+        shop = self.session.world_state["shops"][0]
+        shopkeeper = self.session.world_state["npcs"][0]
+        self.assertEqual(shop["id"], shop_id)
+        self.assertEqual(shop["shopkeeper_id"], shopkeeper_id)
+        self.assertEqual(shop["tags"], ["campaign_local", "shop"])
+        self.assertEqual(shopkeeper["id"], shopkeeper_id)
+        self.assertEqual(shopkeeper["shop_id"], shop_id)
+        self.assertEqual(
+            shopkeeper["tags"],
+            ["campaign_local", "shopkeeper", f"shop:{shop_id}"],
+        )
+        self.assertEqual(self.session.world_state["next_shop_number"], 2)
 
     def test_invalid_payload_does_not_mutate_session(self):
         original = self.session.serialize_game_state()

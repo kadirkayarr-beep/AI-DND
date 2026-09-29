@@ -31,6 +31,7 @@ MAX_RETRIEVED_FACTS = 64
 MAX_CONTEXT_BYTES = 12 * 1024
 MAX_CANDIDATES = 400
 MAX_FACTS_PER_SUBJECT = 6
+MAX_OVERVIEW_FACTS_PER_SUBJECT = 4
 
 _QUERY_STOP_WORDS = {
     "a", "an", "and", "are", "as", "at", "be", "but", "by", "do", "for",
@@ -56,11 +57,69 @@ _QUERY_SYNONYMS = {
     "craft": {"crafts", "goods"},
 }
 _BROAD_LORE_QUERY_RE = re.compile(
-    r"\b(?:describe|overview|tell me(?: more)? about|what about|what is known|what do you know|"
-    r"give me (?:a )?(?:summary|description)|hakkında|hakkinda|anlat|"
-    r"genel bilgi|tasvir et)\b",
+    r"\b(?:describe\w*|overview|summary|tell\s+me(?:\s+more)?\s+about|"
+    r"what\s+(?:is|are)\b|what\s+about|what\s+is\s+known(?:\s+about)?|"
+    r"what\s+do\s+you\s+know(?:\s+about)?|give\s+me\s+(?:a\s+)?"
+    r"(?:summary|description)|hakkında|hakkinda|anlat\w*|"
+    r"genel\s+bilgi|tasvir\w*)\b",
     re.IGNORECASE,
 )
+_CURRENT_STATUS_QUERY_RE = re.compile(
+    r"\b(?:status|condition\w*|state|situation|rebuild\w*|"
+    r"reconstruct\w*|reconstruction|under\s+construction|"
+    r"durum\w*|koşul\w*|kosul\w*|yeniden\s+inşa|yeniden\s+insa)\b",
+    re.IGNORECASE,
+)
+_ROUTE_CONTINUATION_QUERY_RE = re.compile(
+    r"\b(?:continu\w*|connect\w*|becom\w*|turn\w*|lead\w*|join\w*|"
+    r"extend\w*|devam\w*|bağlan\w*|baglan\w*|dönüş\w*|donus\w*)\b",
+    re.IGNORECASE,
+)
+_MEMBERSHIP_QUERY_RE = re.compile(
+    r"\b(?:member(?:ship)?|belong\w*|part of|üye\w*|uye\w*)\b",
+    re.IGNORECASE,
+)
+_PURPOSE_QUERY_RE = re.compile(
+    r"\b(?:purpose|goal\w*|aim\w*|amaç\w*|amac\w*|hedef\w*)\b",
+    re.IGNORECASE,
+)
+_DISTINCT_RELATION_QUERY_RE = re.compile(
+    r"\b(?:same|identical|distinct|different|aynı|ayni|farklı|farkli)\b",
+    re.IGNORECASE,
+)
+_OVERVIEW_PREDICATE_PRIORITY = {
+    "known_as": 0,
+    "known_for": 1,
+    "current_status": 2,
+    "current_lord_id": 3,
+    "current_lord": 3,
+    "political_form": 4,
+    "member_of": 5,
+    "distinct_from_region": 5,
+    "route_role": 5,
+    "safety_status": 6,
+    "continues_as": 7,
+}
+
+
+def _query_intents(value: str | None) -> frozenset[str]:
+    if not isinstance(value, str) or not value.strip():
+        return frozenset()
+    text = normalize_name(value)
+    intents: set[str] = set()
+    if _BROAD_LORE_QUERY_RE.search(text):
+        intents.add("overview")
+    if _CURRENT_STATUS_QUERY_RE.search(text):
+        intents.add("current_status")
+    if _ROUTE_CONTINUATION_QUERY_RE.search(text):
+        intents.add("route_continuation")
+    if _MEMBERSHIP_QUERY_RE.search(text):
+        intents.add("membership")
+    if _PURPOSE_QUERY_RE.search(text):
+        intents.add("purpose")
+    if _DISTINCT_RELATION_QUERY_RE.search(text):
+        intents.add("distinct_relation")
+    return frozenset(intents)
 
 
 @dataclass(frozen=True)
@@ -103,7 +162,14 @@ def _query_terms(value: str | None) -> set[str]:
 
 
 def _is_broad_lore_query(value: str | None) -> bool:
-    return isinstance(value, str) and bool(_BROAD_LORE_QUERY_RE.search(value))
+    return "overview" in _query_intents(value)
+
+
+def _overview_fact_priority(fact: LoreFact) -> int:
+    return _OVERVIEW_PREDICATE_PRIORITY.get(
+        fact.predicate.casefold(),
+        len(_OVERVIEW_PREDICATE_PRIORITY) + 20,
+    )
 
 
 def _authorized_source(source: SourceManifest) -> bool:
@@ -457,7 +523,8 @@ class LoreRegistry:
             raise ValueError("max_bytes is outside the supported range.")
         state = campaign_state or CampaignLoreState.legacy_unbound()
         query_terms = _query_terms(player_message)
-        broad_query = _is_broad_lore_query(player_message)
+        query_intents = _query_intents(player_message)
+        broad_query = "overview" in query_intents
         mentioned_ids = set(mentioned_entity_ids)
         quest_fact_ids = set(active_quest_fact_ids)
         quest_subject_ids = set(active_quest_subject_ids)
@@ -481,15 +548,36 @@ class LoreRegistry:
             *,
             explicit_subject: bool = False,
             force: bool = False,
+            allow_intent_match: bool = False,
         ) -> None:
             relevance = self._fact_relevance_score(fact, query_terms)
+            intent_relevance = (
+                self._fact_intent_relevance_score(fact, query_intents)
+                if allow_intent_match
+                else 0
+            )
             if (
                 player_message is not None
                 and not relevance
+                and not intent_relevance
                 and not force
                 and not (broad_query and explicit_subject)
             ):
                 return
+            if broad_query and explicit_subject:
+                predicate = fact.predicate.casefold()
+                focused_fact_requested = (
+                    ("membership" in query_intents and predicate == "member_of")
+                    or ("purpose" in query_intents and predicate == "purpose")
+                    or (
+                        "distinct_relation" in query_intents
+                        and predicate == "distinct_from_region"
+                    )
+                )
+                if focused_fact_requested:
+                    rank = -100
+                else:
+                    rank = rank * 100 + _overview_fact_priority(fact)
             previous = candidates.get(fact.fact_id)
             if previous is None or rank < previous[0]:
                 candidates[fact.fact_id] = (rank, fact)
@@ -504,28 +592,50 @@ class LoreRegistry:
                     quest=fact.fact_id in quest_fact_ids,
                 )
                 if rank is not None:
+                    default_overview_subject = (
+                        broad_query
+                        and not mentioned_ids
+                        and entity_id == current_location_id
+                    )
                     add_candidate(
                         fact,
                         rank,
                         explicit_subject=(
                             entity_id in mentioned_ids
                             or entity_id in present_ids
-                            or (broad_query and entity_id == current_location_id)
+                            or default_overview_subject
+                        ),
+                        allow_intent_match=(
+                            entity_id in mentioned_ids
+                            or entity_id in present_ids
+                            or (
+                                entity_id == current_location_id
+                                and not mentioned_ids
+                            )
                         ),
                     )
         for fact_id in quest_fact_ids:
             fact = self._facts.get(fact_id)
             if fact is not None:
                 add_candidate(fact, 6, explicit_subject=True, force=True)
-        if player_message is not None and query_terms:
+        requested_years = (
+            set(re.findall(r"(?<!\d)\d{4}(?!\d)", normalize_name(player_message)))
+            if isinstance(player_message, str)
+            else set()
+        )
+        if player_message is not None and (query_terms or requested_years):
             for fact in self._facts.values():
                 if fact.region_scope and fact.region_scope not in region_scopes:
                     continue
                 if fact.visibility is VisibilityScope.REGIONAL_KNOWLEDGE:
                     if fact.region_scope not in region_scopes:
                         continue
-                if self._fact_relevance_score(fact, query_terms):
-                    add_candidate(fact, 7)
+                specific_year_match = (
+                    fact.predicate in {"current_dr_year", "present_year_dr"}
+                    and str(fact.object_id_or_value) in requested_years
+                )
+                if self._fact_relevance_score(fact, query_terms) or specific_year_match:
+                    add_candidate(fact, 7, force=specific_year_match)
         if len(candidates) > MAX_CANDIDATES:
             candidates = dict(
                 sorted(candidates.items(), key=lambda item: (item[1][0], item[0]))[
@@ -598,7 +708,12 @@ class LoreRegistry:
         bounded_selected: list[tuple[int, LoreFact]] = []
         for rank, fact in selected:
             count = subject_counts.get(fact.subject_id, 0)
-            if count >= MAX_FACTS_PER_SUBJECT:
+            subject_limit = (
+                MAX_OVERVIEW_FACTS_PER_SUBJECT
+                if broad_query
+                else MAX_FACTS_PER_SUBJECT
+            )
+            if count >= subject_limit:
                 continue
             subject_counts[fact.subject_id] = count + 1
             bounded_selected.append((rank, fact))
@@ -686,6 +801,7 @@ class LoreRegistry:
                 "selected_fact_ids": [
                     item["fact_id"] for item in official if "fact_id" in item
                 ],
+                "query_intents": sorted(query_intents),
                 "withheld_secret_count": withheld_secret_count,
                 "unresolved_conflicts": unresolved_conflicts,
                 "coverage_status": (
@@ -732,6 +848,38 @@ class LoreRegistry:
         # does not match, so one place-name cannot pull in unrelated facts.
         note_matches = query_specific_terms & _query_terms(fact.notes)
         return len(note_matches) if len(note_matches) >= 2 else 0
+
+    @staticmethod
+    def _fact_intent_relevance_score(
+        fact: LoreFact,
+        query_intents: Iterable[str],
+    ) -> int:
+        predicate = fact.predicate.casefold()
+        intents = set(query_intents)
+        score = 0
+        if "current_status" in intents and (
+            predicate == "current_status" or predicate.endswith("_status")
+        ):
+            score += 2
+        if "route_continuation" in intents and predicate in {
+            "continues_as",
+            "connects_to",
+            "leads_to",
+            "joins",
+            "turns_into",
+            "extends_to",
+        }:
+            score += 2
+        if "membership" in intents and predicate == "member_of":
+            score += 2
+        if "purpose" in intents and predicate == "purpose":
+            score += 2
+        if (
+            "distinct_relation" in intents
+            and predicate == "distinct_from_region"
+        ):
+            score += 2
+        return score
 
     def source_coverage(self) -> dict[str, Any]:
         categories = {

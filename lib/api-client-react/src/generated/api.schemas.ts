@@ -290,6 +290,9 @@ export interface GameNpc {
   appearance: string | null;
   /** @nullable */
   relationship: string | null;
+  tags?: string[];
+  /** @nullable */
+  shop_id?: string | null;
   /** @nullable */
   max_hp: number | null;
   /** @nullable */
@@ -298,6 +301,15 @@ export interface GameNpc {
   armor_class: number | null;
   /** @nullable */
   combat_status: string | null;
+}
+
+export interface GameShop {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  tags: string[];
+  shopkeeper_id: string;
 }
 
 export interface GameFeature {
@@ -485,6 +497,7 @@ export interface GameState {
   character: GameCharacter;
   inventory: string[];
   npcs: GameNpc[];
+  shops: GameShop[];
   features: GameFeature[];
   doors: GameDoor[];
   combat: GameCombat;

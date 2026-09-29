@@ -42,6 +42,7 @@ export * from './gameFeature';
 export * from './gameLocation';
 export * from './gameNpc';
 export * from './gameSession';
+export * from './gameShop';
 export * from './gameState';
 export * from './gameStateLocations';
 export * from './gameStatePlayerCombatStatus';

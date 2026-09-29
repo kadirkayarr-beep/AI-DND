@@ -11,6 +11,7 @@ import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
 import type { GameFeature } from './gameFeature';
 import type { GameNpc } from './gameNpc';
+import type { GameShop } from './gameShop';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
@@ -28,6 +29,7 @@ export interface GameState {
   character: GameCharacter;
   inventory: string[];
   npcs: GameNpc[];
+  shops: GameShop[];
   features: GameFeature[];
   doors: GameDoor[];
   combat: GameCombat;

@@ -374,6 +374,7 @@ class ContractParityTests(unittest.TestCase):
                         "flags": {"turn_index": 2},
                         "inventory": [],
                         "npcs": [],
+            "shops": [],
                         "features": [],
                         "doors": [],
                         "combat": {

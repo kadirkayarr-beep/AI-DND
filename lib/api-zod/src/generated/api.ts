@@ -216,10 +216,20 @@ export const CreateGameSessionResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -487,10 +497,20 @@ export const GetGameSessionStateResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -792,10 +812,20 @@ export const PlayGameTurnResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -1257,10 +1287,20 @@ export const AcceptGameQuestResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -1583,10 +1623,20 @@ export const CancelGameQuestResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -1959,10 +2009,20 @@ export const CreateCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -2324,10 +2384,20 @@ export const GetCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -2679,10 +2749,20 @@ export const ResumeCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -3096,10 +3176,20 @@ export const CreateLegacySessionResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -3368,10 +3458,20 @@ export const GetLegacySessionStateResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -3674,10 +3774,20 @@ export const PlayLegacyTurnResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -4160,10 +4270,20 @@ export const CreateLegacyCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -4526,10 +4646,20 @@ export const GetLegacyCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),
@@ -4882,10 +5012,20 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "location": zod.string(),
   "appearance": zod.string().nullable(),
   "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
   "max_hp": zod.number().int().nullable(),
   "current_hp": zod.number().int().nullable(),
   "armor_class": zod.number().int().nullable(),
   "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
 })),
   "features": zod.array(zod.object({
   "location": zod.string(),

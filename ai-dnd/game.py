@@ -1222,6 +1222,8 @@ world_state = {
     },
     "next_location_number": 1,
     "npcs": [],
+    "shops": [],
+    "next_shop_number": 1,
     "inventory": ["Macera çantası", "Kılıç"],
     "ground_items_by_location": {},
     "ground_items": [],
@@ -1636,6 +1638,8 @@ def load_game(path):
     saved_world.setdefault("ground_items_by_location", {})
     saved_world.setdefault("ground_items", [])
     saved_world.setdefault("containers", [])
+    saved_world.setdefault("shops", [])
+    saved_world.setdefault("next_shop_number", 1)
     saved_world.setdefault("player_knowledge", [])
     saved_world.setdefault("quests", [])
     saved_world.setdefault("quest_processed_event_ids", [])
@@ -2041,10 +2045,234 @@ def create_npc_from_ai(proposal):
         "id": generate_npc_id(),
         **validated,
         "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [],
     }
     ensure_npc_combat_stats(npc)
     world_state["npcs"].append(npc)
     return npc
+
+
+_SHOP_ECONOMY_PATTERN = re.compile(
+    r"\b(?:prices?|pricing|costs?|gold|coins?|copper|silver|gp|stock|"
+    r"inventory|buy|buys|buying|purchase|sell|sells|selling|for sale|"
+    r"transaction|transactions|fiyat(?:lar|ı|lari|lari)?|altın|gümüş|bakır|"
+    r"stok|satın al|satış|satışlar|alım|takas|envanter)\b",
+    re.IGNORECASE,
+)
+_SHOP_TRANSACTION_REQUEST_PATTERN = re.compile(
+    r"\b(?:prices?|pricing|costs?|buy|buys|buying|purchase|sell|sells|"
+    r"selling|for sale|stock|transaction|transactions|fiyat(?:lar|ı|lari)?|"
+    r"ücret(?:ler|i)?|altın|gümüş|bakır|stok|satın al|satış|alım|takas)\b",
+    re.IGNORECASE,
+)
+_SHOP_ENTITY_QUERY_PATTERN = re.compile(
+    r"\b(?:shop(?:keeper)?s?|store(?:front)?s?|stalls?|merchant|trader|"
+    r"vendor|trading post|d[uü]k?k[aâ]n|ma[gğ]aza|tezg[aâ]h|"
+    r"t[uü]ccar|sat[iı]c[iı]|esnaf)\b",
+    re.IGNORECASE,
+)
+_SHOP_CREATION_ACTION_PATTERN = re.compile(
+    r"\b(?:create|open|set\s+up|establish|build|add|start|make|"
+    r"kur\w*|aç\w*|oluştur\w*|ekle\w*)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_shopkeeper_role(role):
+    if not isinstance(role, str):
+        return False
+    return bool(re.search(
+        r"\b(?:shopkeeper|shop\s+keeper|merchant|trader|vendor|"
+        r"shop\s+owner|store\s+owner|tüccar|tüccar|satıcı|satici|"
+        r"dükkan\s+sahibi|dukkan\s+sahibi)\b",
+        role.casefold(),
+    ))
+
+
+def _campaign_has_shopkeeper():
+    world_state = _session().world_state
+    for npc in world_state.get("npcs", []):
+        if not isinstance(npc, dict):
+            continue
+        tags = npc.get("tags", [])
+        if (
+            npc.get("shop_id")
+            or (isinstance(tags, list) and any(
+                isinstance(tag, str) and tag.casefold() == "shopkeeper"
+                for tag in tags
+            ))
+            or _is_shopkeeper_role(npc.get("role"))
+        ):
+            return True
+    return False
+
+
+def _explicit_campaign_shop_request(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = player_input.casefold()
+    if re.search(
+        r"\b(?:don't|dont|do not|never|not|no need to|açma|kurma|"
+        r"oluşturma|ekleme|bulma|arama)\b",
+        text,
+    ):
+        return False
+    entity = (
+        r"(?:shop(?:keeper)?s?|store(?:front)?s?|stall|stalls|merchant|"
+        r"trader|vendor|trading post|d[uü]k?k[aâ]n|ma[gğ]aza|"
+        r"tezg[aâ]h|t[uü]ccar|sat[iı]c[iı]|esnaf)"
+    )
+    create_action = (
+        r"(?:create|open|set\s+up|establish|build|add|start|make|get|"
+        r"want|would\s+like|need|kur\w*|aç\w*|oluştur\w*|ekle\w*|"
+        r"inşa\s+et\w*|istiyorum)"
+    )
+    find_action = (
+        r"(?:find|look\s+for|search\s+for|locate|meet|introduce\s+me\s+to|"
+        r"find\s+me|ara\w*|bul\w*|tanış\w*|karşılaş\w*)"
+    )
+    return bool(
+        re.search(rf"\b{create_action}\b.{{0,64}}\b{entity}\b", text)
+        or re.search(rf"\b{entity}\b.{{0,64}}\b{create_action}\b", text)
+        or re.search(rf"\b{find_action}\b.{{0,64}}\b{entity}\b", text)
+        or re.search(rf"\b{entity}\b.{{0,64}}\b{find_action}\b", text)
+    )
+
+
+def _shop_economy_request(player_input):
+    return isinstance(player_input, str) and bool(
+        _SHOP_TRANSACTION_REQUEST_PATTERN.search(player_input)
+    )
+
+
+def _explicit_campaign_shop_negative_request(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = player_input.casefold()
+    has_shop = bool(_SHOP_ENTITY_QUERY_PATTERN.search(text))
+    has_english_negative = bool(re.search(
+        r"\b(?:never|don't|dont|do not|no need to|not)\b.{0,80}"
+        r"\b(?:create|open|set\s+up|establish|build|add|start|make)\b",
+        text,
+    ))
+    has_turkish_negative = bool(re.search(
+        r"\b(?:açma|acma|kurma|oluşturma|olusturma|ekleme)\b",
+        text,
+    ))
+    return has_shop and (has_english_negative or has_turkish_negative)
+
+
+def _shop_presence_question(player_input):
+    return bool(
+        isinstance(player_input, str)
+        and _SHOP_ENTITY_QUERY_PATTERN.search(player_input)
+        and "?" in player_input
+    )
+
+
+def generate_shop_id():
+    world_state = _session().world_state
+    number = max(1, int(world_state.get("next_shop_number", 1)))
+    existing = {
+        shop.get("id")
+        for shop in world_state.get("shops", [])
+        if isinstance(shop, dict)
+    }
+    while f"shop_{number:03d}" in existing:
+        number += 1
+    world_state["next_shop_number"] = number + 1
+    return f"shop_{number:03d}"
+
+
+def validate_shop_proposal(proposal):
+    world_state = _session().world_state
+    if (
+        not isinstance(proposal, dict)
+        or world_state.get("shops")
+        or _campaign_has_shopkeeper()
+    ):
+        return None
+
+    name = _clean_world_text(proposal.get("name"), 60)
+    description = _clean_world_text(proposal.get("description", ""), 200) or ""
+    keeper_proposal = proposal.get("shopkeeper")
+    if not name or not isinstance(keeper_proposal, dict):
+        return None
+    if _SHOP_ECONOMY_PATTERN.search(description):
+        return None
+
+    keeper_name = _clean_world_text(keeper_proposal.get("name"), 40)
+    if (
+        not keeper_name
+        or not re.fullmatch(r"[\w .’'-]+", keeper_name, flags=re.UNICODE)
+        or "_" in keeper_name
+        or keeper_name.casefold() == _session().character["name"].casefold()
+        or any(
+            npc.get("name", "").casefold() == keeper_name.casefold()
+            for npc in world_state.get("npcs", [])
+            if isinstance(npc, dict)
+        )
+    ):
+        return None
+
+    location = world_state.get("location")
+    if location not in world_state.get("locations", {}):
+        return None
+    if len(world_state.get("npcs", [])) >= 60 or len(active_npcs(location)) >= 6:
+        return None
+
+    keeper_personality = _clean_world_text(
+        keeper_proposal.get("personality", ""), 180
+    ) or ""
+    keeper_appearance = _clean_world_text(
+        keeper_proposal.get("appearance", ""), 180
+    ) or ""
+    if any(
+        _SHOP_ECONOMY_PATTERN.search(value)
+        for value in (keeper_personality, keeper_appearance)
+    ):
+        return None
+
+    return {
+        "name": name,
+        "description": description,
+        "location": location,
+        "shopkeeper": {
+            "name": keeper_name,
+            "personality": keeper_personality,
+            "appearance": keeper_appearance,
+        },
+    }
+
+
+def create_shop_from_proposal(proposal):
+    world_state = _session().world_state
+    validated = validate_shop_proposal(proposal)
+    if not validated:
+        return None
+
+    shopkeeper = create_npc_from_ai({
+        **validated["shopkeeper"],
+        "role": "Shopkeeper",
+        "location": validated["location"],
+    })
+    if not shopkeeper:
+        return None
+
+    shop_id = generate_shop_id()
+    shop = {
+        "id": shop_id,
+        "name": validated["name"],
+        "description": validated["description"],
+        "location": validated["location"],
+        "tags": ["campaign_local", "shop"],
+        "shopkeeper_id": shopkeeper["id"],
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+    }
+    shopkeeper["tags"] = ["campaign_local", "shopkeeper", f"shop:{shop_id}"]
+    shopkeeper["shop_id"] = shop_id
+    world_state["shops"].append(shop)
+    return {"shop": shop, "shopkeeper": shopkeeper}
 
 
 def ensure_npc_combat_stats(npc):
@@ -2528,12 +2756,24 @@ def _combat_narration(result):
 
 
 
-def validate_world_updates(updates, allow_new_npcs=False, allow_new_features=False, allow_new_locations=False):
+def validate_world_updates(
+    updates,
+    allow_new_npcs=False,
+    allow_new_features=False,
+    allow_new_locations=False,
+    allow_new_shops=False,
+):
     """Whitelist narrative state updates; mechanical state is never accepted here."""
     world_state = _session().world_state
     if not isinstance(updates, dict):
-        return {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [], "events": []}
-    result = {"create_locations": [], "create_npcs": [], "update_npcs": [], "create_features": [], "events": []}
+        return {
+            "create_locations": [], "create_npcs": [], "update_npcs": [],
+            "create_features": [], "create_shops": [], "events": [],
+        }
+    result = {
+        "create_locations": [], "create_npcs": [], "update_npcs": [],
+        "create_features": [], "create_shops": [], "events": [],
+    }
 
     if allow_new_locations and isinstance(updates.get("create_locations"), list):
         for proposal in updates["create_locations"][:2]:
@@ -2544,8 +2784,14 @@ def validate_world_updates(updates, allow_new_npcs=False, allow_new_features=Fal
     if allow_new_npcs and isinstance(updates.get("create_npcs"), list):
         for proposal in updates["create_npcs"][:2]:
             validated = validate_npc_proposal(proposal)
-            if validated:
+            if validated and not _is_shopkeeper_role(validated["role"]):
                 result["create_npcs"].append(validated)
+
+    if allow_new_shops and isinstance(updates.get("create_shops"), list):
+        for proposal in updates["create_shops"][:1]:
+            validated = validate_shop_proposal(proposal)
+            if validated:
+                result["create_shops"].append(validated)
 
     if isinstance(updates.get("update_npcs"), list):
         existing_by_id = {npc.get("id"): npc for npc in world_state["npcs"]}
@@ -2582,7 +2828,16 @@ def validate_world_updates(updates, allow_new_npcs=False, allow_new_features=Fal
             if location != world_state["location"] or not name or "\n" in name:
                 continue
             item_terms = ("kahve", "bira", "şarap", "içecek", "yemek", "kadeh", "bardak", "tabak", "kavanoz", "potion", "iksir", "makine")
-            if any(term in f"{name} {description}".casefold() for term in item_terms):
+            shop_terms = (
+                "shop", "store", "market", "stall", "merchant", "shopkeeper",
+                "trading post", "dükkan", "dukkan", "mağaza", "magaza",
+                "tezgah", "tüccar", "satıcı", "satici", "esnaf",
+            )
+            combined_text = f"{name} {description}".casefold()
+            if (
+                any(term in combined_text for term in item_terms)
+                or any(term in combined_text for term in shop_terms)
+            ):
                 continue
             key = (location, name.casefold())
             if key in existing_features or len(location_features(location)) >= 16:
@@ -2610,6 +2865,11 @@ def merge_world_updates(updates):
         npc = create_npc_from_ai(proposal)
         if npc and npc not in created:
             created.append(npc)
+    for proposal in updates.get("create_shops", []):
+        created_shop = create_shop_from_proposal(proposal)
+        shopkeeper = created_shop.get("shopkeeper") if created_shop else None
+        if shopkeeper and shopkeeper not in created:
+            created.append(shopkeeper)
     for update in updates.get("update_npcs", []):
         npc = next((item for item in world_state["npcs"] if item.get("id") == update.get("id")), None)
         if not npc:
@@ -2888,12 +3148,25 @@ def build_world_context(npc_target=None):
         "npcs": [
             {key: npc.get(key) for key in (
                 "id", "name", "role", "personality", "appearance", "relationship",
-                "knowledge", "backstory",
+                "knowledge", "backstory", "tags", "shop_id",
                 "current_hp", "max_hp", "armor_class", "combat_status"
             ) if npc.get(key) not in (None, "", [])}
             | {"reality_layer": npc.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
             | {"verified_npc_memory": _format_npc_memory(npc.get("memory", []))}
             for npc in npcs[:8]
+        ],
+        "shops": [
+            {
+                key: shop.get(key)
+                for key in (
+                    "id", "name", "description", "location", "tags",
+                    "shopkeeper_id",
+                )
+                if shop.get(key) not in (None, "", [])
+            }
+            | {"reality_layer": shop.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
+            for shop in world_state.get("shops", [])
+            if isinstance(shop, dict) and shop.get("location") == world_state["location"]
         ],
         "active_npc_id": world_state.get("flags", {}).get("active_npc_id"),
         "current_npc_target": {"id": npc_target.get("id"), "name": npc_target.get("name"), "role": npc_target.get("role")} if npc_target else None,
@@ -4363,6 +4636,28 @@ WORLD_UPDATE_SCHEMA = {
                 "additionalProperties": False,
             },
         },
+        "create_shops": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "shopkeeper": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "personality": {"type": "string"},
+                            "appearance": {"type": "string"},
+                        },
+                        "required": ["name"],
+                        "additionalProperties": False,
+                    },
+                },
+                "required": ["name", "shopkeeper"],
+                "additionalProperties": False,
+            },
+        },
         "events": {"type": "array", "items": {"type": "string"}},
     },
     "required": ["create_locations", "create_npcs", "update_npcs", "create_features", "events"],
@@ -4513,7 +4808,7 @@ def _lore_entity_names(lore_context, world_state):
                 add_name(location_id, location.get("name"))
                 for alias in location.get("aliases", []):
                     add_name(location_id, alias)
-        for collection in ("npcs", "features"):
+        for collection in ("npcs", "features", "shops"):
             for entity in world_state.get(collection, []):
                 if not isinstance(entity, dict):
                     continue
@@ -4557,6 +4852,7 @@ _LORE_SENTENCE_START_WORDS = {
     "loş", "market", "ortam", "ortalık", "pazar", "rüzgar", "rüzgâr",
     "sabah", "sessizlik", "sokak", "sonra", "şehir", "şehrin", "taverna",
     "uzakta", "yağmur", "yakınlarda", "yerel", "akşam", "büyük", "sıcak",
+    "ben", "benim", "adım", "ismim",
 }
 
 
@@ -4583,7 +4879,22 @@ def _is_registered_lore_name(candidate, known_phrases, known_tokens):
 
 
 def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
+    normalized_sentence = _lore_guard_text(sentence)
+    contains_dr_year = bool(
+        re.search(r"\b(?:dr\s*\d{4}|\d{4}\s*dr)\b", normalized_sentence)
+    )
+
+    def is_date_marker(candidate):
+        if not contains_dr_year:
+            return False
+        normalized_candidate = _lore_guard_text(candidate).strip()
+        return normalized_candidate == "dr" or bool(
+            re.fullmatch(r"(?:dr\s*)?\d{4}(?:\s*dr)?", normalized_candidate)
+        )
+
     for match in _LORE_ENTITY_TITLE_RE.finditer(sentence):
+        if is_date_marker(match.group(0)):
+            continue
         if not _is_registered_lore_name(
             match.group(0), known_phrases, known_tokens
         ):
@@ -4591,10 +4902,15 @@ def _has_unregistered_narrative_entity(sentence, known_phrases, known_tokens):
 
     for match in _LORE_PROPER_NAME_RE.finditer(sentence):
         candidate = match.group(0)
+        if is_date_marker(candidate):
+            continue
         if _is_registered_lore_name(candidate, known_phrases, known_tokens):
             continue
         prefix = sentence[:match.start()]
-        at_sentence_start = not prefix.strip(" \t\r\n\"'“‘([{")
+        sentence_prefix = re.split(r"[.!?]\s*", prefix)[-1]
+        at_sentence_start = not sentence_prefix.strip(
+            " \t\r\n\"'“‘([{"
+        )
         if at_sentence_start:
             first_word = _lore_guard_text(candidate.split()[0])
             if first_word in _LORE_SENTENCE_START_WORDS:
@@ -4857,10 +5173,17 @@ def _narration_has_unsupported_lore_claim(
 
 
 def _supported_lore_question_response(player_input, lore_context, world_state):
-    """Return a loaded fact verbatim for a narrowly matched factual question."""
+    """Answer only from loaded, structured facts matched to a query intent."""
     if not isinstance(player_input, str) or not player_input.strip():
         return None
-    if "?" not in player_input and not re.match(
+    is_overview_request = bool(re.search(
+        r"\b(?:describe\w*|overview|summary|tell me(?: more)? about|"
+        r"what is|what are|what about|what is known|what do you know|"
+        r"genel bilgi|tasvir|hakkinda|anlat)\b",
+        _lore_guard_text(player_input),
+        re.IGNORECASE,
+    ))
+    if not is_overview_request and "?" not in player_input and not re.match(
         r"^\s*(?:who|what|where|when|why|how|which|whose|"
         r"is|are|was|were|does|do|did|can|could|should|would|will|"
         r"kim|ne|nerede|hangi|neden|nasıl|nasil|mi|mı|mu|mü)\b",
@@ -4870,7 +5193,36 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
         return None
 
     normalized_input = _lore_guard_text(player_input)
-    names_by_id, _, _ = _lore_entity_names(lore_context, world_state)
+    diagnostics = lore_context.get("diagnostics", {}) if isinstance(lore_context, dict) else {}
+    query_intents = {
+        intent
+        for intent in diagnostics.get("query_intents", [])
+        if isinstance(intent, str)
+    } if isinstance(diagnostics, dict) else set()
+    if is_overview_request:
+        query_intents.add("overview")
+    if re.search(
+        r"\b(?:status|condition\w*|state|situation|rebuild\w*|"
+        r"reconstruct\w*|reconstruction|under construction|durum\w*|"
+        r"kosul\w*|yeniden insa)\b",
+        normalized_input,
+    ):
+        query_intents.add("current_status")
+    if re.search(
+        r"\b(?:continu\w*|connect\w*|becom\w*|turn\w*|lead\w*|"
+        r"join\w*|extend\w*|devam\w*|baglan\w*|donus\w*)\b",
+        normalized_input,
+    ):
+        query_intents.add("route_continuation")
+    names_by_id, known_phrases, known_tokens = _lore_entity_names(
+        lore_context, world_state
+    )
+    if _has_unregistered_narrative_entity(
+        player_input,
+        known_phrases,
+        known_tokens,
+    ):
+        return None
     mentioned_ids = {
         entity_id
         for entity_id, names in names_by_id.items()
@@ -4929,6 +5281,174 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
         )
     )
 
+    overview_priority = {
+        "known_as": 0,
+        "known_for": 1,
+        "current_status": 2,
+        "current_lord_id": 3,
+        "current_lord": 3,
+        "political_form": 4,
+        "member_of": 5,
+        "distinct_from_region": 5,
+        "route_role": 5,
+        "safety_status": 6,
+        "continues_as": 7,
+    }
+
+    def display_fact_value(value):
+        if isinstance(value, str):
+            verified_name = entity_name(value)
+            if verified_name:
+                return verified_name
+            if value in canonical_names:
+                return canonical_names[value]
+            if ":" in value:
+                return None
+            return value.replace("_", " ")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return str(value)
+        return None
+
+    def loaded_year_mentioned():
+        match = re.search(r"\b(\d{4})\b", normalized_input)
+        if not match:
+            return None
+        for year_fact in facts:
+            if (
+                year_fact.get("predicate") in {"current_dr_year", "present_year_dr"}
+                and str(year_fact.get("object_id_or_value")) == match.group(1)
+            ):
+                return match.group(1)
+        return None
+
+    def render_loaded_fact(fact, include_year=False):
+        predicate = str(fact.get("predicate", "")).casefold()
+        subject_name = entity_name(fact.get("subject_id"))
+        value = fact.get("object_id_or_value")
+        value_name = display_fact_value(value)
+        if not subject_name or not value_name:
+            return None
+        if predicate in {"current_status"} or predicate.endswith("_status"):
+            if is_turkish:
+                if value in {"rebuilding", "under_reconstruction"}:
+                    sentence = f"{subject_name} yeniden inşa ediliyor."
+                else:
+                    sentence = f"{subject_name} için güncel durum: {value_name}."
+                year = loaded_year_mentioned() if include_year else None
+                return f"{year} DR itibarıyla {sentence}" if year else sentence
+            if predicate == "current_status" and value == "rebuilding":
+                sentence = f"{subject_name} is rebuilding."
+            else:
+                sentence = f"{subject_name}'s status is {value_name}."
+            year = loaded_year_mentioned() if include_year else None
+            return f"As of {year} DR, {sentence}" if year else sentence
+        if predicate == "known_as":
+            return f"{subject_name} is known as {value_name}."
+        if predicate == "known_for":
+            return f"{subject_name} is known for {value_name}."
+        if predicate in {"current_lord_id", "current_lord"}:
+            return f"{value_name} is the current Lord of {subject_name}."
+        if predicate == "member_of":
+            if is_turkish:
+                return f"{subject_name}, {value_name} üyesidir."
+            alliance_name = (
+                value_name
+                if value_name.casefold().startswith("the ")
+                else f"the {value_name}"
+            )
+            return f"{subject_name} is a member of {alliance_name}."
+        if predicate == "distinct_from_region":
+            if is_turkish:
+                return f"{subject_name} ve {value_name} ayrı bölgelerdir."
+            region_name = (
+                value_name
+                if value_name.casefold().startswith("the ")
+                else f"the {value_name}"
+            )
+            return f"{subject_name} is distinct from {region_name}."
+        if predicate == "purpose":
+            if is_turkish:
+                purpose = (
+                    "yerleşimlerin güvenliği ve refahı"
+                    if value == "settlement_safety_and_prosperity"
+                    else value_name
+                )
+                return f"{subject_name} için belirtilen amaç {purpose}."
+            organization_name = (
+                subject_name
+                if subject_name.casefold().startswith("the ")
+                else f"the {subject_name}"
+            )
+            return (
+                f"The stated purpose of {organization_name} includes "
+                f"{value_name}."
+            )
+        if predicate == "continues_as":
+            if is_turkish:
+                return f"{subject_name}, {value_name} olarak devam eder."
+            return f"{subject_name} continues as {value_name}."
+        if predicate == "route_role":
+            return f"{subject_name} is a {value_name}."
+        if predicate == "safety_status":
+            return f"{subject_name}'s safety status is {value_name}."
+        if predicate == "political_form":
+            if value == "settlement_coalition_not_a_realm":
+                return f"{subject_name} is a settlement coalition, not a realm."
+            return f"{subject_name}'s political form is {value_name}."
+        return None
+
+    if "current_status" in query_intents:
+        status_facts = [
+            fact
+            for fact in facts
+            if (
+                str(fact.get("predicate", "")).casefold() == "current_status"
+                or str(fact.get("predicate", "")).casefold().endswith("_status")
+            )
+            and fact.get("subject_id") in mentioned_ids
+        ]
+        status_facts.sort(
+            key=lambda fact: (
+                0 if fact.get("predicate") == "current_status" else 1,
+                str(fact.get("fact_id", "")),
+            )
+        )
+        for fact in status_facts:
+            response = render_loaded_fact(fact, include_year=True)
+            if response:
+                return response
+
+    if "route_continuation" in query_intents:
+        route_facts = [
+            fact
+            for fact in facts
+            if fact.get("predicate") in {
+                "continues_as",
+                "connects_to",
+                "leads_to",
+                "joins",
+                "turns_into",
+                "extends_to",
+            }
+            and fact.get("subject_id") in mentioned_ids
+            and (
+                len(mentioned_ids) <= 1
+                or mentioned_ids.issubset(
+                    {
+                        fact.get("subject_id"),
+                        fact.get("object_id_or_value"),
+                    }
+                )
+            )
+        ]
+        for fact in route_facts:
+            notes = fact.get("notes")
+            if isinstance(notes, str) and notes.strip():
+                return notes.strip()
+            response = render_loaded_fact(fact)
+            if response:
+                return response
+
     distance_question = bool(re.search(
         r"\b(?:distance|how far|how many\s+(?:miles?|kilometers?|"
         r"kilometres?|meters?|metres?)|miles?|kilometers?|"
@@ -4937,7 +5457,7 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
         normalized_input,
     ))
     lord_question = bool(re.search(
-        r"\b(?:rule\w*|lord\w*|leader\w*|lead\w*|"
+        r"\b(?:rule\w*|lord\w*|leader\w*|lead\w*|role\w*|position\w*|"
         r"hukumdar\w*|yonet\w*)\b",
         normalized_input,
     ))
@@ -4949,10 +5469,59 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
         r"\b(?:realm|kingdom|country|nation|krallik|ulke|devlet)\b",
         normalized_input,
     ))
+    membership_question = bool(re.search(
+        r"\b(?:member(?:ship)?|belong\w*|part of|üye\w*|uye\w*)\b",
+        normalized_input,
+    ))
+    purpose_question = bool(re.search(
+        r"\b(?:purpose|goal\w*|aim\w*|amaç\w*|amac\w*|hedef\w*)\b",
+        normalized_input,
+    ))
+    distinct_relation_question = bool(re.search(
+        r"\b(?:same|identical|distinct|different|aynı|ayni|farklı|farkli)\b",
+        normalized_input,
+    ))
     rebuilding_question = bool(re.search(
         r"\b(?:rebuild\w*|reconstruction|yeniden insa|insaat)\b",
         normalized_input,
     ))
+
+    if membership_question or purpose_question:
+        membership_statements = []
+        purpose_statements = []
+        for fact in facts:
+            predicate = str(fact.get("predicate", "")).casefold()
+            if (
+                membership_question
+                and predicate == "member_of"
+                and fact.get("subject_id") in mentioned_ids
+                and fact.get("object_id_or_value") in mentioned_ids
+            ):
+                statement = render_loaded_fact(fact)
+                if statement and statement not in membership_statements:
+                    membership_statements.append(statement)
+            if (
+                purpose_question
+                and predicate == "purpose"
+                and fact.get("subject_id") in mentioned_ids
+            ):
+                statement = render_loaded_fact(fact)
+                if statement and statement not in purpose_statements:
+                    purpose_statements.append(statement)
+        focused_statements = membership_statements + purpose_statements
+        if focused_statements:
+            return " ".join(focused_statements)
+
+    if distinct_relation_question:
+        for fact in facts:
+            if (
+                fact.get("predicate") == "distinct_from_region"
+                and fact.get("subject_id") in mentioned_ids
+                and fact.get("object_id_or_value") in mentioned_ids
+            ):
+                response = render_loaded_fact(fact)
+                if response:
+                    return response
 
     for fact in facts:
         subject_id = fact.get("subject_id")
@@ -5038,6 +5607,27 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
                 return f"{subject_name} is rebuilding."
             if notes:
                 return notes
+
+    if "overview" in query_intents:
+        overview_facts = [
+            fact
+            for fact in facts
+            if fact.get("subject_id") in mentioned_ids
+            and fact.get("predicate") in overview_priority
+        ]
+        overview_facts.sort(
+            key=lambda fact: (
+                overview_priority.get(fact.get("predicate"), 99),
+                str(fact.get("fact_id", "")),
+            )
+        )
+        statements = []
+        for fact in overview_facts[:4]:
+            statement = render_loaded_fact(fact)
+            if statement and statement not in statements:
+                statements.append(statement)
+        if statements:
+            return " ".join(statements)
     return None
 
 
@@ -5068,6 +5658,18 @@ def _player_question_has_unverified_lore_claim(
     ):
         return True
 
+    normalized_input = _lore_guard_text(player_input)
+    mentioned_ids = {
+        entity_id
+        for entity_id, names in names_by_id.items()
+        if any(
+            re.search(
+                rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])",
+                normalized_input,
+            )
+            for name in names
+        )
+    }
     sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
     facts = []
     evidence_parts = []
@@ -5089,12 +5691,45 @@ def _player_question_has_unverified_lore_claim(
                     )
                 )
     evidence = _lore_guard_text(" ".join(evidence_parts))
+    route_intent = bool(re.search(
+        r"\b(?:continu\w*|connect\w*|becom\w*|turn\w*|lead\w*|"
+        r"join\w*|extend\w*|road to|route to|devam\w*|baglan\w*|"
+        r"donus\w*)\b",
+        normalized_input,
+    ))
+
+    def has_loaded_route_relation():
+        if not route_intent:
+            return False
+        route_predicates = {
+            "continues_as",
+            "connects_to",
+            "leads_to",
+            "joins",
+            "turns_into",
+            "extends_to",
+        }
+        for fact in facts:
+            if fact.get("predicate") not in route_predicates:
+                continue
+            subject_id = fact.get("subject_id")
+            if subject_id not in mentioned_ids:
+                continue
+            if len(mentioned_ids) <= 1:
+                return True
+            endpoints = {subject_id, fact.get("object_id_or_value")}
+            if mentioned_ids.issubset(endpoints):
+                return True
+        return False
+
     for pattern, _reason in _LORE_UNSUPPORTED_DETAIL_PATTERNS:
         for match in pattern.finditer(player_input):
-            if _lore_guard_text(match.group(0)) not in evidence:
-                return True
+            if _lore_guard_text(match.group(0)) in evidence:
+                continue
+            if _reason == "geographic_relation" and has_loaded_route_relation():
+                continue
+            return True
 
-    normalized_input = _lore_guard_text(player_input)
     if _LORE_ROUTE_DISTANCE_QUERY_RE.search(normalized_input):
         mentioned_ids = {
             entity_id
@@ -5193,6 +5828,32 @@ DM_RESPONSE_SCHEMA = {
 }
 
 
+def _dm_response_schema_for_turn(allow_new_shops=False):
+    if not allow_new_shops:
+        return DM_RESPONSE_SCHEMA
+
+    schema = copy.deepcopy(DM_RESPONSE_SCHEMA)
+    world_updates = schema["properties"]["world_updates"]
+    properties = world_updates["properties"]
+    required = list(world_updates["required"])
+    if "create_shops" not in required:
+        required.append("create_shops")
+    world_updates["required"] = required
+
+    properties["create_shops"]["minItems"] = 1
+    properties["create_shops"]["maxItems"] = 1
+    for field in (
+        "create_locations",
+        "create_npcs",
+        "update_npcs",
+        "create_features",
+        "events",
+    ):
+        properties[field]["maxItems"] = 0
+    schema["properties"]["lore_claims"]["maxItems"] = 0
+    return schema
+
+
 def ask_dungeon_master(
     messages,
     player_input,
@@ -5204,6 +5865,7 @@ def ask_dungeon_master(
     allow_new_locations=False,
     return_details=False,
     lore_context=None,
+    allow_new_shops=False,
 ):
     """Request one structured narration turn; apply only Python-validated lore updates."""
     world_state = _session().world_state
@@ -5259,7 +5921,19 @@ def ask_dungeon_master(
         f"create_locations izinli={'evet' if allow_new_locations else 'hayır'}; "
         f"create_npcs izinli={'evet' if allow_new_npcs else 'hayır'}; "
         f"create_features izinli={'evet' if allow_new_features else 'hayır'}; "
+        f"create_shops izinli={'evet' if allow_new_shops else 'hayır'}; "
         f"bu tura yeni lokasyona giriş mi={'evet' if world_entry else 'hayır'}."
+    )
+    shop_creation_guidance = (
+        " Oyuncu bu tur açıkça bir kampanya içi yerel dükkân veya tüccar istedi. "
+        "world_updates.create_shops içinde tam bir kayıt ve yalnızca bir shopkeeper öner. "
+        "create_npcs, create_locations, update_npcs, create_features ve events alanları boş "
+        "dizi olsun; lore_claims de boş dizi olsun. Dükkân sahibini create_npcs içine koyma "
+        "ve hiçbir kimlik veya lore ID'si üretme; konumu, kimlikleri ve etiketleri Python "
+        "atayacak. Dükkânı ve kişiyi yalnızca yerel kurgu olarak betimle; ürün, stok, fiyat, "
+        "para, alışveriş, satın alma veya satış ayrıntısı ekleme."
+        if allow_new_shops
+        else " Bu tur yeni dükkân veya dükkân sahibi oluşturma; create_shops boş dizi olsun."
     )
     if world_entry and allow_new_npcs and not active_npcs():
         update_permissions += " Bu lokasyonda NPC kaydı yok; sahneye uygunsa bir özgün NPC oluştur."
@@ -5281,6 +5955,8 @@ def ask_dungeon_master(
         "Yeni konum, NPC veya kalıcı çevre ayrıntısı oluşturacaksan bunu aynı yanıttaki world_updates içinde öner; "
         "create_locations yalnızca Python henüz bilinmeyen bir seyahat hedefi için izin verdiyse kullanılır; "
         "location ID üretme, bunu Python yapar. "
+        "Yeni dükkân yalnızca Python create_shops izni verdiğinde önerilebilir; "
+        "dükkânı narration ile tek başına var etme. "
         "onaylanmadan narration içinde kullanma. Yeni NPC'ler için her gerekli alanı doldur, mevcut NPC'nin ID'sini koru. "
         "NPC kişiliğini, görünüşünü, rolünü, bilgisini ve sınırlı belleğini tutarlı kullan. "
         "Yeni NPC role alanı kısa, doğal ve okunabilir Türkçe bir meslek/toplumsal rol isim tamlaması olsun; "
@@ -5300,7 +5976,7 @@ def ask_dungeon_master(
         "Söylenti, inanç ve efsaneleri nesnel gerçek gibi değil, bağlamdaki claim_type ve görünürlükle "
         "uyumlu biçimde aktar. Yeni NPC, konum ve özellikler yalnızca procedural local fiction'dır; "
         "events yalnızca narrative texture'dır. "
-        f"{npc_dialogue_guidance} {update_permissions} {outcome_guidance} "
+        f"{npc_dialogue_guidance} {shop_creation_guidance} {update_permissions} {outcome_guidance} "
         f"{travel_guidance} {scene_guidance} Türkçe ve tutarlı yaz. "
         "Yanıt uzunluğunu eylemin ve sahnenin önemine göre ayarla: doğrudan sorulara özlü yanıt ver; "
         "küçük eylemlerde gerektiğinde 1–2 kısa paragraf, olağan hikâye eylemlerinde genellikle 2–5 paragraf kullan; "
@@ -5321,7 +5997,7 @@ def ask_dungeon_master(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            format=DM_RESPONSE_SCHEMA,
+            format=_dm_response_schema_for_turn(allow_new_shops),
             think=False,
             options={"temperature": 0.35, "num_predict": 700, "repeat_penalty": 1.15, "repeat_last_n": 128},
         )
@@ -5641,6 +6317,7 @@ def finalize_narration(
     action_result=None,
     fallback_reason_code=None,
     supported_player_claims=None,
+    target_id=None,
 ):
     """Sanitize narration after Python has applied every validated proposal and state change."""
     session = _session()
@@ -5701,7 +6378,7 @@ def finalize_narration(
         (action_result or {}).get("action") != "attack"
         and is_npc_historical_claim(player_input)
     )
-    if historical_claim and not history_target:
+    if historical_claim and not history_target and target_id is None:
         resolution = resolve_npc_reference(player_input)
         history_target = resolution.get("npc") if resolution.get("status") == "found" else None
     if historical_claim and (
@@ -6075,6 +6752,7 @@ def _world_snapshot():
             for location_id, location in world_state.get("locations", {}).items()
         )),
         "npcs": tuple(json.dumps(npc, ensure_ascii=False, sort_keys=True) for npc in world_state.get("npcs", [])),
+        "shops": tuple(json.dumps(shop, ensure_ascii=False, sort_keys=True) for shop in world_state.get("shops", [])),
         "features": tuple(json.dumps(feature, ensure_ascii=False, sort_keys=True) for feature in world_state.get("features", [])),
         "events": tuple(json.dumps(event, ensure_ascii=False, sort_keys=True) for event in world_state.get("events", [])),
     }
@@ -6096,6 +6774,7 @@ def _changed_state_fields(before):
         "pending_destination": "flags.pending_destination",
         "locations": "world.locations",
         "npcs": "world.npcs",
+        "shops": "world.shops",
         "features": "world.features",
         "events": "world.events",
     }
@@ -6500,11 +7179,35 @@ def run_player_turn(player_input, messages=None, target_id=None):
             and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
             and isinstance(npc.get("id"), str)
         )
+        ids.update(
+            str(shop["id"])
+            for shop in world_state.get("shops", [])
+            if isinstance(shop, dict)
+            and shop.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+            and isinstance(shop.get("id"), str)
+        )
         return ids
 
     procedural_ids_before = procedural_entity_ids()
 
-    def finish_turn(action_result, narration, quest_outcomes=None):
+    def finish_turn(
+        action_result,
+        narration,
+        quest_outcomes=None,
+        *,
+        safety_reason_code=None,
+        safety_handling="accepted",
+        record_safety=True,
+    ):
+        if record_safety:
+            _record_narration_safety(
+                {
+                    "reason_code": safety_reason_code,
+                    "trigger_span": None,
+                    "scene_type": _narration_scene_type(action_result),
+                },
+                safety_handling,
+            )
         result = {"action_result": action_result, "narration": narration}
         if injected_lore_context is not None:
             result["_engine_event_evidence"] = {
@@ -6559,6 +7262,27 @@ def run_player_turn(player_input, messages=None, target_id=None):
             }
             return finish_turn(result, result["direct_response"])
         npc_target = None
+        if (
+            not combat["active"]
+            and (
+                _explicit_player_name_disclosure(player_input) is not None
+                or _is_historical_player_name_query(player_input)
+            )
+        ):
+            npc_target = next(
+                (
+                    npc
+                    for npc in active_npcs()
+                    if isinstance(npc, dict) and npc.get("id") == target_id
+                ),
+                None,
+            )
+            if npc_target is not None:
+                flags["last_npc_id"] = npc_target["id"]
+                flags["active_npc_id"] = npc_target["id"]
+                flags["active_npc_until_turn"] = (
+                    flags.get("turn_index", 0) + 6
+                )
     else:
         npc_resolution = resolve_npc_reference(player_input)
         if npc_resolution["status"] == "ambiguous":
@@ -6569,18 +7293,143 @@ def run_player_turn(player_input, messages=None, target_id=None):
             )
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
-    if _player_question_has_unverified_lore_claim(
-        player_input,
-        lore_context,
-        world_state,
+    shop_request = target_id is None and _explicit_campaign_shop_request(player_input)
+    if shop_request and (
+        world_state.get("shops") or _campaign_has_shopkeeper()
     ):
         action_result = {
-            "action": "dialogue",
-            "status": "unverified",
+            "action": "shop_setup",
+            "status": "limit_reached",
             "success": False,
             "state_changes": [],
         }
-        return finish_turn(action_result, _UNVERIFIED_LORE_RESPONSE)
+        if world_state.get("shops"):
+            message = "Bu kampanyadaki tek yerel dükkân zaten kurulu; ikinci bir dükkân veya dükkân sahibi eklenmedi."
+        else:
+            message = "Bu kampanyada zaten kayıtlı bir dükkân sahibi var; ikinci bir dükkân sahibi oluşturulmadı."
+        return finish_turn(action_result, message)
+
+    if world_state.get("shops") and _shop_economy_request(player_input):
+        action_result = {
+            "action": "shop_economy",
+            "status": "unsupported",
+            "success": False,
+            "state_changes": [],
+        }
+        message = (
+            "Bu kampanyada dükkân ekonomisi uygulanmıyor: stok, fiyat, para veya "
+            "alışveriş sistemi yok. Envanter ve para değişmedi."
+        )
+        return finish_turn(
+            action_result,
+            message,
+            safety_reason_code="SHOP_ECONOMY_NOT_SUPPORTED",
+            safety_handling="python_fallback",
+        )
+
+    if _explicit_campaign_shop_negative_request(player_input):
+        action_result = {
+            "action": "shop_setup",
+            "status": "explicitly_declined",
+            "success": True,
+            "state_changes": [],
+        }
+        message = (
+            "Anlaşıldı. Yeni bir dükkân veya dükkâncı eklemedim; "
+            "mevcut kampanya durumu değişmedi."
+        )
+        return finish_turn(
+            action_result,
+            message,
+            safety_reason_code="SHOP_CREATION_EXPLICITLY_DECLINED",
+            safety_handling="python_fallback",
+        )
+
+    if _shop_presence_question(player_input):
+        current_location = world_state.get("location")
+        local_shops = [
+            shop
+            for shop in world_state.get("shops", [])
+            if isinstance(shop, dict)
+            and shop.get("location") == current_location
+        ]
+        local_shopkeepers = []
+        for npc in world_state.get("npcs", []):
+            if not isinstance(npc, dict) or npc.get("location") != current_location:
+                continue
+            tags = npc.get("tags", [])
+            if (
+                npc.get("shop_id")
+                or _is_shopkeeper_role(npc.get("role"))
+                or (
+                    isinstance(tags, list)
+                    and any(
+                        isinstance(tag, str)
+                        and tag.casefold() == "shopkeeper"
+                        for tag in tags
+                    )
+                )
+            ):
+                local_shopkeepers.append(npc)
+
+        if local_shops:
+            names = ", ".join(
+                str(shop.get("name") or "Dükkân") for shop in local_shops
+            )
+            message = f"Bu konumda kampanyaya kayıtlı dükkân: {names}."
+        elif local_shopkeepers:
+            names = ", ".join(
+                str(npc.get("name") or "Dükkâncı")
+                for npc in local_shopkeepers
+            )
+            message = (
+                f"Bu konumda kayıtlı dükkâncı var ({names}), ancak ona bağlı "
+                "kampanya dükkânı bulunmuyor."
+            )
+        else:
+            message = (
+                "Bu konumda kampanyaya kayıtlı bir dükkân veya dükkâncı yok."
+            )
+        action_result = {
+            "action": "shop_inquiry",
+            "status": "answered_from_campaign_state",
+            "success": True,
+            "state_changes": [],
+        }
+        return finish_turn(action_result, message)
+
+    disclosed_name = _explicit_player_name_disclosure(player_input)
+    if (
+        disclosed_name
+        and isinstance(npc_target, dict)
+        and isinstance(npc_target.get("id"), str)
+        and not combat["active"]
+    ):
+        safe_name = re.sub(
+            r"[^A-Za-zÇĞİÖŞÜçğıöşü'’-]", "", disclosed_name
+        ).strip("'’-")
+        if safe_name:
+            npc_name = str(npc_target.get("name") or "Kişi")
+            narration = (
+                f'{npc_name}, “Memnun oldum, {safe_name}. '
+                'Adını hatırlayacağım,” diye yanıt verir.'
+            )
+            action_result = {
+                "action": "dialogue",
+                "status": "player_name_disclosed",
+                "success": True,
+                "npc_id": npc_target["id"],
+                "state_changes": ["npcs.memory"],
+            }
+            record_npc_interaction(
+                npc_target, narration, player_input, npc_target
+            )
+            return finish_turn(
+                action_result,
+                narration,
+                safety_reason_code="NPC_MEMORY_EXPLICIT_PLAYER_NAME",
+                safety_handling="python_memory_response",
+            )
 
     supported_lore_response = _supported_lore_question_response(
         player_input,
@@ -6596,15 +7445,43 @@ def run_player_turn(player_input, messages=None, target_id=None):
         }
         return finish_turn(action_result, supported_lore_response)
 
-    raw_intent = parse_player_intent(player_input)
-    normalized_intent = normalize_intent(raw_intent, player_input)
-    validated_intent = validate_intent(normalized_intent, player_input)
+    if _player_question_has_unverified_lore_claim(
+        player_input,
+        lore_context,
+        world_state,
+    ):
+        action_result = {
+            "action": "dialogue",
+            "status": "unverified",
+            "success": False,
+            "state_changes": [],
+        }
+        return finish_turn(
+            action_result,
+            _UNVERIFIED_LORE_RESPONSE,
+            safety_reason_code="UNVERIFIED_LORE_CLAIM",
+            safety_handling="python_fallback",
+        )
+
+    if shop_request:
+        validated_intent = {"intent_type": "narrative"}
+    else:
+        raw_intent = parse_player_intent(player_input)
+        normalized_intent = normalize_intent(raw_intent, player_input)
+        validated_intent = validate_intent(normalized_intent, player_input)
     if DEBUG_MODE:
         print("[INTENT]")
         print(json.dumps(validated_intent, ensure_ascii=False, indent=2))
 
     previous_location = world_state.get("location")
-    if target_id is None:
+    if shop_request:
+        action_result = {
+            "action": "shop_setup",
+            "status": "requested",
+            "success": True,
+            "state_changes": [],
+        }
+    elif target_id is None:
         action_result = execute_intent(validated_intent, player_input, npc_target)
     else:
         action_result = execute_intent(
@@ -6631,8 +7508,17 @@ def run_player_turn(player_input, messages=None, target_id=None):
     proposed_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
     allow_new_locations = bool(action_result.get("proposal_required"))
     expected_location_change = proposed_entry or world_state.get("location") != previous_location
-    allow_new_npcs = should_generate_npcs(player_input, expected_location_change) and not is_player_world_assertion(player_input)
-    allow_new_features = should_generate_features(player_input, expected_location_change) and not is_player_world_assertion(player_input)
+    allow_new_npcs = (
+        not shop_request
+        and should_generate_npcs(player_input, expected_location_change)
+        and not is_player_world_assertion(player_input)
+    )
+    allow_new_features = (
+        not shop_request
+        and should_generate_features(player_input, expected_location_change)
+        and not is_player_world_assertion(player_input)
+    )
+    allow_new_shops = bool(shop_request)
     packet = ask_dungeon_master(
         messages,
         player_input,
@@ -6644,10 +7530,25 @@ def run_player_turn(player_input, messages=None, target_id=None):
         allow_new_locations=allow_new_locations,
         return_details=True,
         lore_context=lore_context,
+        allow_new_shops=allow_new_shops,
     )
     packet = packet if isinstance(packet, dict) else {"narration": None, "world_updates": {}, "valid_response": False}
     claims = packet.get("lore_claims", [])
-    if not _lore_claims_are_supported(claims, lore_context):
+    narration_text = packet.get("narration")
+    shop_economy_claim = (
+        (shop_request or bool(world_state.get("shops")))
+        and isinstance(narration_text, str)
+        and bool(_SHOP_ECONOMY_PATTERN.search(narration_text))
+    )
+    if shop_economy_claim and not shop_request:
+        packet = {
+            "narration": None,
+            "world_updates": {},
+            "lore_claims": [],
+            "valid_response": False,
+            "fallback_reason_code": "SHOP_ECONOMY_NOT_SUPPORTED",
+        }
+    elif not _lore_claims_are_supported(claims, lore_context):
         packet = {
             "narration": None,
             "world_updates": {},
@@ -6660,7 +7561,9 @@ def run_player_turn(player_input, messages=None, target_id=None):
         if packet.get("valid_response", True)
         else {}
     )
-    is_assertion = is_player_world_assertion(player_input)
+    if shop_request and isinstance(raw_updates, dict):
+        raw_updates = {"create_shops": raw_updates.get("create_shops", [])}
+    is_assertion = is_player_world_assertion(player_input) and not shop_request
     proposal_snapshot = _world_snapshot()
     proposal_world_state = copy.deepcopy(world_state)
     proposal_action_result = copy.deepcopy(action_result)
@@ -6705,14 +7608,43 @@ def run_player_turn(player_input, messages=None, target_id=None):
         raw_updates,
         allow_new_npcs=allow_new_npcs and not is_assertion,
         allow_new_features=allow_new_features and not is_assertion,
+        allow_new_shops=allow_new_shops and not is_assertion,
     )
+    if shop_request and not validated_updates.get("create_shops"):
+        action_result.update(
+            success=False,
+            status="proposal_rejected",
+            direct_response=(
+                "Bu tur için doğrulanmış bir dükkân ve dükkân sahibi kaydı alınmadı; "
+                "dünya durumuna hiçbir dükkân eklenmedi."
+            ),
+        )
+        return finish_turn(action_result, action_result["direct_response"])
+
     created_npcs = merge_world_updates(validated_updates) if not is_assertion else []
+    if shop_request and not world_state.get("shops"):
+        action_result.update(
+            success=False,
+            status="creation_failed",
+            direct_response=(
+                "Dükkân ve dükkân sahibi doğrulaması tamamlanamadı; dünya durumuna "
+                "hiçbir dükkân eklenmedi."
+            ),
+        )
+        return finish_turn(action_result, action_result["direct_response"])
     if len(created_npcs) == 1:
         flags["last_npc_id"] = created_npcs[0].get("id")
         flags["active_npc_id"] = created_npcs[0].get("id")
         flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
 
-    if packet.get("valid_response") and _narration_has_unsupported_lore_claim(
+    if shop_request:
+        action_result.update(success=True, status="created")
+        packet["narration"] = (
+            "Bu kampanyada mevcut konumda tek bir yerel dükkân ve onu işleten "
+            "bir dükkâncı kaydedildi."
+        )
+        packet["lore_claims"] = []
+    elif packet.get("valid_response") and _narration_has_unsupported_lore_claim(
         packet.get("narration"),
         packet.get("lore_claims", []),
         lore_context,
@@ -6745,13 +7677,19 @@ def run_player_turn(player_input, messages=None, target_id=None):
         npc_target,
         action_result,
         fallback_reason_code=packet.get("fallback_reason_code"),
+        target_id=target_id,
     )
     quest_transitions = _session().evaluate_quest_events(
         quest_world_before, action_result
     )
     if quest_transitions:
         action_result["quest_outcomes"] = quest_transitions
-    return finish_turn(action_result, narration, quest_transitions)
+    return finish_turn(
+        action_result,
+        narration,
+        quest_transitions,
+        record_safety=False,
+    )
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

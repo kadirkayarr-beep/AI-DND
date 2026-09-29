@@ -15,6 +15,9 @@ export interface GameNpc {
   appearance: string | null;
   /** @nullable */
   relationship: string | null;
+  tags?: string[];
+  /** @nullable */
+  shop_id?: string | null;
   /** @nullable */
   max_hp: number | null;
   /** @nullable */

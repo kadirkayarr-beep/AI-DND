@@ -204,6 +204,13 @@ def _procedural_entity_refs(world_state: Any) -> set[str]:
         and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         and isinstance(npc.get("id"), str)
     )
+    refs.update(
+        shop["id"]
+        for shop in world_state.get("shops", [])
+        if isinstance(shop, dict)
+        and shop.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and isinstance(shop.get("id"), str)
+    )
     return refs
 
 

@@ -78,6 +78,25 @@ class CampaignPersistenceTests(unittest.TestCase):
                 "combat_status": "active",
             }
         )
+        created_shop = session.create_shop_from_proposal({
+            "name": "Green Lantern",
+            "description": "A small timber storefront with a painted green sign.",
+            "shopkeeper": {
+                "name": "Tavren",
+                "personality": "Patient and observant.",
+                "appearance": "A short-haired human in a plain apron.",
+            },
+        })
+        shop = created_shop["shop"]
+        shopkeeper = created_shop["shopkeeper"]
+        shopkeeper_id = shopkeeper["id"]
+        session.record_npc_interaction(
+            shopkeeper,
+            "Memnun oldum, Arven.",
+            "Merhaba Tavren, benim adım Arven.",
+            shopkeeper,
+        )
+        expected_shopkeeper_memory = copy.deepcopy(shopkeeper["memory"])
         with patch.object(session.rng, "randint", side_effect=[20, 1]):
             session.start_combat(session.world_state["npcs"][0])
         session._mark_combat_action_used("player")
@@ -119,6 +138,17 @@ class CampaignPersistenceTests(unittest.TestCase):
         self.assertEqual(restored.character["current_hp"], expected_save["player"]["current_hp"])
         self.assertIn("Torch", restored.world_state["inventory"])
         self.assertEqual(restored.world_state["location"], "tavern")
+        restored_shop = restored.world_state["shops"][0]
+        restored_shopkeeper = next(
+            npc for npc in restored.world_state["npcs"]
+            if npc.get("id") == shopkeeper_id
+        )
+        self.assertEqual(restored_shop["id"], shop["id"])
+        self.assertEqual(restored_shop["shopkeeper_id"], shopkeeper_id)
+        self.assertEqual(restored_shopkeeper["id"], shopkeeper_id)
+        self.assertEqual(restored_shopkeeper["shop_id"], restored_shop["id"])
+        self.assertEqual(restored_shopkeeper["memory"], expected_shopkeeper_memory)
+        self.assertEqual(restored.world_state["next_shop_number"], 2)
         self.assertEqual(
             restored.world_state["npcs"][0]["memory"],
             expected_save["world_state"]["npcs"][0]["memory"],

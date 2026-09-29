@@ -44,10 +44,20 @@ _NPC_FIELDS = (
     "location",
     "appearance",
     "relationship",
+    "tags",
+    "shop_id",
     "max_hp",
     "current_hp",
     "armor_class",
     "combat_status",
+)
+_SHOP_FIELDS = (
+    "id",
+    "name",
+    "description",
+    "location",
+    "tags",
+    "shopkeeper_id",
 )
 _FEATURE_FIELDS = ("location", "name", "description")
 _DOOR_FIELDS = (
@@ -383,6 +393,7 @@ def serialize_session_state(
         "character": _project_fields(player, _PLAYER_FIELDS),
         "inventory": copy.deepcopy(world.get("inventory", [])),
         "npcs": _project_list(world.get("npcs"), _NPC_FIELDS),
+        "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),
         "doors": _project_list(world.get("doors"), _DOOR_FIELDS),
         "combat": serialize_combat_state(world.get("combat", {})),
