@@ -10,7 +10,12 @@ from typing import Any
 
 import game
 from pydantic import ValidationError
-from api.schemas import CombatHistoryEntry, CombatTurnResult, SkillCheckResult
+from api.schemas import (
+    CombatHistoryEntry,
+    CombatStateProjection,
+    CombatTurnResult,
+    SkillCheckResult,
+)
 from api.world_metadata import world_metadata_for_state
 from api.campaign_journal import empty_campaign_journal
 
@@ -61,6 +66,7 @@ _COMBAT_ATTACK_FIELDS = (
     "success",
     "outcome",
     "actor",
+    "actor_name",
     "target",
     "target_id",
     "target_name",
@@ -80,6 +86,8 @@ _COMBAT_TURN_FIELDS = (
     "combat_started",
     "combat_ended",
     "end_reason",
+    "current_actor_id",
+    "turn_owner",
 )
 
 
@@ -123,6 +131,13 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
             enemy_action,
             _COMBAT_ATTACK_FIELDS,
         )
+    enemy_actions = action_result.get("enemy_actions")
+    if isinstance(enemy_actions, list):
+        projected["enemy_actions"] = [
+            _project_fields(item, _COMBAT_ATTACK_FIELDS)
+            for item in enemy_actions
+            if isinstance(item, Mapping)
+        ]
     try:
         validated = CombatTurnResult.model_validate(projected, strict=True)
     except ValidationError:
@@ -130,6 +145,56 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
             "Invalid combat result."
         ) from None
     return validated.model_dump(exclude_unset=True)
+
+
+def serialize_combat_state(value: Any) -> dict[str, Any]:
+    """Expose only the public scheduler fields and canonical combatant status."""
+    combat = value if isinstance(value, Mapping) else {}
+    current_actor_id = combat.get("current_actor_id")
+    participants = combat.get("participants")
+    records = combat.get("participant_records")
+    projected = {
+        "active": combat.get("active", False),
+        "status": combat.get(
+            "status",
+            "active" if combat.get("active") is True else "ended",
+        ),
+        "round": combat.get("round", 0),
+        "initiative_order": copy.deepcopy(combat.get("initiative_order", [])),
+        "current_turn_index": combat.get("current_turn_index", 0),
+        "current_actor_id": current_actor_id,
+        "turn_owner": current_actor_id,
+        "participants": copy.deepcopy(
+            participants if isinstance(participants, list) else []
+        ),
+        "participant_records": [
+            {
+                **_project_fields(
+                    record,
+                    (
+                        "id",
+                        "kind",
+                        "name",
+                        "current_hp",
+                        "max_hp",
+                        "armor_class",
+                        "status",
+                        "primary_action_available",
+                    ),
+                ),
+                "is_current_actor": record.get("id") == current_actor_id,
+            }
+            for record in (records if isinstance(records, list) else [])
+            if isinstance(record, Mapping)
+        ],
+        "target_id": combat.get("target_id"),
+        "end_reason": combat.get("end_reason"),
+    }
+    try:
+        validated = CombatStateProjection.model_validate(projected, strict=True)
+    except ValidationError:
+        raise ValueError("Invalid combat state projection.") from None
+    return validated.model_dump()
 
 
 def serialize_combat_history_entry(
@@ -320,7 +385,7 @@ def serialize_session_state(
         "npcs": _project_list(world.get("npcs"), _NPC_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),
         "doors": _project_list(world.get("doors"), _DOOR_FIELDS),
-        "combat": copy.deepcopy(world.get("combat", {})),
+        "combat": serialize_combat_state(world.get("combat", {})),
         "player_combat_status": copy.deepcopy(
             world.get("player_combat_status", "active")
         ),

@@ -19,6 +19,8 @@ export interface CombatTurnResult {
   /** @nullable */
   actor?: string | null;
   /** @nullable */
+  actor_name?: string | null;
+  /** @nullable */
   target?: string | null;
   /** @nullable */
   target_id?: string | null;
@@ -50,5 +52,11 @@ export interface CombatTurnResult {
   combat_ended?: boolean | null;
   /** @nullable */
   end_reason?: string | null;
+  /** @nullable */
+  current_actor_id?: string | null;
+  /** @nullable */
+  turn_owner?: string | null;
   enemy_action?: CombatAttackResult | null;
+  /** @nullable */
+  enemy_actions?: CombatAttackResult[] | null;
 }

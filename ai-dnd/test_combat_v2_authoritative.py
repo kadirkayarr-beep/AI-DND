@@ -1,8 +1,11 @@
-"""Authoritative V2 exchange contract. No Ollama service or random rolls required."""
+"""Authoritative Combat V3 scheduler contract; no Ollama service is required."""
 import copy
 import contextlib
 import io
+import json
 import game
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -75,13 +78,27 @@ class CombatV2(unittest.TestCase):
         self.start(10, 12)
         self.assertEqual(self.w['combat']['initiative_order'][0], 'player')
 
-    def test_C_npc_initiative_higher_still_one_exchange(self):
-        with self.rolls((20, 2), (20, 18), (20, 1), (20, 1)):
-            result = self.attack()
+    def test_C_npc_initiative_higher_owns_the_first_turn(self):
+        self.start(2, 18)
         self.assertEqual(self.w['combat']['initiative_order'], [self.npc['id'], 'player'])
-        self.assertEqual(result['enemy_action']['outcome'], 'miss')
+        before = self.session.serialize_game_state()
+        rng_before = self.session.rng.getstate()
+        with self.rolls():
+            result = self.attack()
+        self.assertEqual(result['outcome'], 'out_of_turn')
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+        with self.rolls((20, 1)):
+            enemy_actions = game._resolve_enemy_turns_until_player(session=self.session)
+        self.assertEqual(enemy_actions[0]['outcome'], 'miss')
+        self.assertEqual(self.w['combat']['current_actor_id'], 'player')
+        with self.rolls((20, 1), (20, 1)):
+            result = self.attack()
+        self.assertEqual(result['outcome'], 'miss')
+        self.assertEqual(result['enemy_actions'][0]['outcome'], 'miss')
         self.assertEqual(self.w['combat']['round'], 2)
-        self.assertEqual(self.w['combat']['current_turn_index'], 1)
+        self.assertEqual(self.w['combat']['current_actor_id'], 'player')
 
     def test_D_enemy_normal_hit(self):
         with self.rolls((20, 15), (6, 4), (6, 5)):
@@ -163,14 +180,15 @@ class CombatV2(unittest.TestCase):
         self.start()
         for index in (-1, 100, None, 'bad'):
             self.w['combat']['current_turn_index'] = index
-            self.session.advance_combat_turn()
-            self.assertIn(self.w['combat']['current_turn_index'], (0, 1))
+            with self.assertRaises(ValueError):
+                self.session.advance_combat_turn()
+            self.w['combat']['current_turn_index'] = 0
 
     def test_M_active_empty_order(self):
         self.w['combat'] = {'active': True, 'initiative_order': [], 'current_turn_index': 99}
-        self.session.advance_combat_turn()
-        self.assertFalse(self.w['combat']['active'])
-        self.assertEqual(self.session.advance_combat_turn(), (False, None, False))
+        with self.assertRaises(ValueError):
+            self.session.advance_combat_turn()
+        self.assertTrue(self.w['combat']['active'])
 
     def test_N_wrong_location(self):
         self.npc['location'] = 'forest'
@@ -211,9 +229,9 @@ class CombatV2(unittest.TestCase):
         self.assertTrue(self.w['combat']['active'])
         result = self.session.execute_intent({'intent': 'travel', 'target': {'reference': 'forest'},
                                               'completion': 'completed'}, 'ormana gidiyorum')
-        self.assertEqual(self.w['location'], 'forest')
-        self.assertFalse(self.w['combat']['active'])
-        self.assertEqual(result['end_reason'], 'location_changed')
+        self.assertEqual(self.w['location'], 'tavern')
+        self.assertTrue(self.w['combat']['active'])
+        self.assertEqual(result['outcome'], 'unsupported_combat_action')
 
     def test_R_incapacitated(self):
         for hp, status in [(0, 'active'), (10, 'unconscious')]:
@@ -237,13 +255,15 @@ class CombatV2(unittest.TestCase):
         before = copy.deepcopy(self.w)
         player = [self.session.character[k] for k in ('current_hp', 'max_hp', 'armor_class')]
         fields = ['combat', 'round', 'initiative_order', 'current_turn_index', 'participants',
-                  'target_id', 'player_combat_status', 'current_hp', 'max_hp', 'armor_class']
+                  'schema_version', 'status', 'current_actor_id', 'turn_owner',
+                  'participant_records', 'actions_used', 'end_reason', 'target_id',
+                  'player_combat_status', 'current_hp', 'max_hp', 'armor_class']
         self.session.merge_world_updates(self.session.validate_world_updates(dict.fromkeys(fields, 999)))
         self.assertEqual(self.w, before)
         self.assertEqual([self.session.character[k] for k in ('current_hp', 'max_hp', 'armor_class')], player)
 
     def test_U_final_snapshot(self):
-        with self.rolls((20, 2), (20, 18), (20, 1), (20, 15), (6, 2), (6, 3)):
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (6, 2), (6, 3)):
             result = self.attack()
         self.assert_snapshot(result)
         self.assertIn('player.current_hp', result['state_changes'])
@@ -317,7 +337,7 @@ class CombatV2(unittest.TestCase):
             (20, 14), (8, 4), (20, 12), (6, 2), (6, 3),
             (20, 1), (20, 1),
         ) as dice_a, self.rolls(
-            (20, 2), (20, 18),
+            (20, 18), (20, 2),
             (20, 20), (8, 7), (8, 8), (20, 15), (6, 5), (6, 6),
             (20, 1), (20, 1), session=other,
         ) as dice_b:
@@ -332,8 +352,8 @@ class CombatV2(unittest.TestCase):
             before_a = self.session.serialize_game_state()
             init_b = other.start_combat(other_npc)
             self.assertEqual((init_b['player_initiative'], init_b['npc_initiative']),
-                             (4, 18))
-            self.assertEqual(init_b['initiative_order'], [other_npc['id'], 'player'])
+                             (20, 2))
+            self.assertEqual(init_b['initiative_order'], ['player', other_npc['id']])
             self.assertEqual((dice_a.call_count, dice_b.call_count), (2, 2))
             self.assertEqual(self.session.serialize_game_state(), before_a)
 
@@ -366,6 +386,151 @@ class CombatV2(unittest.TestCase):
 
         self.assertEqual((self.npc['current_hp'], self.session.character['current_hp']), (94, 22))
         self.assertEqual((other_npc['current_hp'], other.character['current_hp']), (83, 16))
+
+    def test_V3_multiple_enemies_and_stable_initiative_ties(self):
+        self.session.character['dexterity_mod'] = 0
+        self.npc['hostile'] = True
+        archer = {
+            'id': 'npc_alpha', 'name': 'Archer', 'role': 'enemy',
+            'location': 'tavern', 'max_hp': 50, 'current_hp': 50,
+            'armor_class': 10, 'combat_status': 'active', 'hostile': True,
+            'attack_bonus': 0, 'damage_die': 6, 'damage_dice': 1,
+            'damage_modifier': 0, 'memory': [],
+        }
+        self.w['npcs'].append(archer)
+
+        with self.rolls(
+            (20, 10), (20, 10), (20, 10),
+            (20, 15), (8, 3),
+            (20, 1), (20, 1),
+        ):
+            result = self.session.execute_intent(
+                {'intent': 'attack'},
+                "Sentinel'a kılıcımla saldırıyorum",
+                self.npc,
+                target_id=archer['id'],
+            )
+
+        combat = result['combat']
+        self.assertEqual(combat['initiative_order'], ['player', 'npc_alpha', 'npc_test'])
+        self.assertEqual([action['actor'] for action in result['enemy_actions']],
+                         ['npc_alpha', 'npc_test'])
+        self.assertEqual(result['target_id'], archer['id'])
+        self.assertEqual(archer['current_hp'], 45)
+        self.assertEqual(combat['round'], 2)
+        self.assertEqual(combat['current_actor_id'], 'player')
+        self.assertEqual(combat['actions_used'], [])
+        self.assertTrue(all(record['primary_action_available']
+                            for record in combat['participant_records']))
+
+    def test_V3_rejects_forged_and_nonparticipant_targets_without_rolls(self):
+        other = dict(self.npc, id='npc_other', name='Other')
+        self.w['npcs'].append(other)
+        self.start()
+        before = self.session.serialize_game_state()
+        rng_before = self.session.rng.getstate()
+
+        with self.rolls():
+            nonparticipant = self.session.execute_intent(
+                {'intent': 'attack'}, "Sentinel'a kılıcımla saldırıyorum",
+                self.npc, target_id='npc_other',
+            )
+        self.assertEqual(nonparticipant['outcome'], 'target_mismatch')
+        self.assertEqual(self.session.serialize_game_state(), before)
+
+        with self.rolls():
+            forged = self.session.execute_intent(
+                {'intent': 'attack'}, "Sentinel'a kılıcımla saldırıyorum",
+                self.npc, target_id='npc_forged',
+            )
+        self.assertIn(forged['outcome'], ('no_target', 'invalid_target'))
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_V3_unsupported_combat_actions_do_not_change_the_turn(self):
+        self.start()
+        before = self.session.serialize_game_state()
+        result = self.session.execute_intent(
+            {'intent': 'explore'}, 'Çatışma sırasında etrafı araştırıyorum'
+        )
+        self.assertEqual(result['outcome'], 'unsupported_combat_action')
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.w['combat']['current_actor_id'], 'player')
+
+    def test_V3_legacy_turn_boundary_migrates_without_losing_cursor(self):
+        self.w['combat'] = {
+            'active': True,
+            'round': 4,
+            'initiative_order': [self.npc['id'], 'player'],
+            'current_turn_index': 1,
+            'participants': [self.npc['id'], 'player'],
+            'target_id': self.npc['id'],
+        }
+        combat = self.session.ensure_combat_state()
+        self.assertEqual(combat['schema_version'], 3)
+        self.assertEqual(combat['round'], 4)
+        self.assertEqual(combat['initiative_order'], [self.npc['id'], 'player'])
+        self.assertEqual(combat['current_turn_index'], 1)
+        self.assertEqual(combat['current_actor_id'], 'player')
+        self.assertTrue(combat['active'])
+
+    def test_V3_legacy_active_state_without_boundary_fails_visibly(self):
+        self.w['combat'] = {
+            'active': True,
+            'round': 4,
+            'initiative_order': [self.npc['id'], 'player'],
+            'participants': [self.npc['id'], 'player'],
+            'target_id': self.npc['id'],
+        }
+        with self.assertRaisesRegex(ValueError, 'turn boundary'):
+            self.session.ensure_combat_state()
+        self.assertTrue(self.w['combat']['active'])
+
+    def test_V3_midround_engine_save_resumes_exact_scheduler_state(self):
+        self.start()
+        self.session._mark_combat_action_used('player')
+        self.session.advance_combat_turn()
+        expected = self.session.serialize_game_state()
+        self.assertEqual(expected['world_state']['combat']['current_actor_id'], self.npc['id'])
+        self.assertEqual(expected['world_state']['combat']['actions_used'], ['player'])
+        self.assertFalse(
+            expected['world_state']['combat']['participant_records'][0]['primary_action_available']
+        )
+
+        resumed = game.create_session(seed=999)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'combat-save.json'
+            self.session.save_game(path)
+            resumed.load_game(path)
+        self.assertEqual(resumed.serialize_game_state(), expected)
+
+    def test_V3_failed_legacy_load_restores_state_and_references(self):
+        before = self.session.serialize_game_state()
+        character_ref = self.session.character
+        world_ref = self.session.world_state
+        rng_before = self.session.rng.getstate()
+        legacy = copy.deepcopy(before)
+        legacy['version'] = 2
+        legacy['player']['name'] = 'Forged Name'
+        legacy['world_state']['combat'] = {
+            'active': True,
+            'round': 2,
+            'initiative_order': ['player', 'npc_missing'],
+            'current_turn_index': 0,
+            'participants': ['player', 'npc_missing'],
+            'target_id': 'npc_missing',
+        }
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'bad-legacy-save.json'
+            path.write_text(json.dumps(legacy), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'target'):
+                self.session.load_game(path)
+
+        self.assertIs(self.session.character, character_ref)
+        self.assertIs(self.session.world_state, world_ref)
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
 
 
 if __name__ == '__main__':

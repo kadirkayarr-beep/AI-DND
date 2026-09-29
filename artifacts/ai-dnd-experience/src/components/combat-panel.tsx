@@ -1,4 +1,4 @@
-import type { CombatTurnResult, GameNpc, GameState } from '@workspace/api-client-react';
+import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
 import './combat-panel.css';
 
 export interface CombatLogEntry {
@@ -37,6 +37,8 @@ function outcomeLabel(value: string | undefined): string | undefined {
     no_weapon: 'Uygun silah yok',
     ambiguous_target: 'Hedef belirsiz',
     player_unconscious: 'Oyuncu bilinçsiz',
+    enemy_turn_resolved: 'Rakip sırası çözüldü',
+    out_of_turn: 'Sıra sende değil',
   };
   return labels[value] ?? value;
 }
@@ -115,38 +117,44 @@ function StatusLine({ value, testId }: { value: string | null | undefined; testI
 }
 
 function CombatantCard({
+  participantId,
   kind,
   name,
   currentHp,
   maxHp,
   armorClass,
   status,
+  isCurrentActor,
 }: {
+  participantId: string;
   kind: 'player' | 'opponent';
   name: string;
   currentHp: number | null | undefined;
   maxHp: number | null | undefined;
   armorClass: number | null | undefined;
   status?: string | null;
+  isCurrentActor: boolean;
 }) {
   const isPlayer = kind === 'player';
+  const testPrefix = isPlayer ? 'combat-player' : `combat-opponent-${participantId}`;
 
   return (
-    <article className={`combat-combatant combat-combatant-${kind}`} data-testid={`combat-${kind}`}>
+    <article className={`combat-combatant combat-combatant-${kind} ${isCurrentActor ? 'combat-combatant-current' : ''}`} data-testid={testPrefix}>
       <div className="combat-combatant-heading">
-        <span className="combat-overline">{isPlayer ? 'YOLCU' : 'AKTİF HEDEF'}</span>
+        <span className="combat-overline">{isPlayer ? 'YOLCU' : isCurrentActor ? 'SIRADAKİ RAKİP' : 'RAKİP'}</span>
         <span className="combat-combatant-mark" aria-hidden="true">{isPlayer ? 'P' : 'T'}</span>
       </div>
-      <h3 data-testid={`combat-${kind}-name`}>{name}</h3>
-      <HealthMetric current={currentHp} maximum={maxHp} testId={`combat-${kind}-hp`} />
+      <h3 data-testid={`${testPrefix}-name`}>{name}</h3>
+      {isCurrentActor && <span className="combat-current-actor" data-testid={`combat-current-actor-${participantId}`}>SIRA ONDA</span>}
+      <HealthMetric current={currentHp} maximum={maxHp} testId={`${testPrefix}-hp`} />
       <div className="combat-combatant-metrics">
         {hasValue(armorClass) && (
-          <div className="combat-small-metric" data-testid={`combat-${kind}-ac`}>
+          <div className="combat-small-metric" data-testid={`${testPrefix}-ac`}>
             <span>ZIRH</span>
             <strong>{armorClass}</strong>
           </div>
         )}
-        <StatusLine value={status} testId={`combat-${kind}-status`} />
+        <StatusLine value={status} testId={`${testPrefix}-status`} />
       </div>
     </article>
   );
@@ -251,7 +259,7 @@ function InitiativeStrip({ state }: { state: GameState }) {
       </div>
       <ol className="combat-initiative-list" data-testid="combat-initiative">
         {order.map((participant, index) => (
-          <li className="combat-initiative-item" key={`${participant}-${index}`} data-testid={`combat-initiative-${index}`}>
+          <li className={`combat-initiative-item ${state.combat.current_actor_id === participant ? 'combat-initiative-current' : ''}`} key={`${participant}-${index}`} data-testid={`combat-initiative-${index}`} aria-current={state.combat.current_actor_id === participant ? 'step' : undefined}>
             <span className="combat-initiative-index">{String(index + 1).padStart(2, '0')}</span>
             <span>{participantName(participant, state)}</span>
           </li>
@@ -263,6 +271,11 @@ function InitiativeStrip({ state }: { state: GameState }) {
 
 function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const result = entry.result;
+  const enemyActions = result.enemy_actions?.length
+    ? result.enemy_actions
+    : result.enemy_action
+      ? [result.enemy_action]
+      : [];
   const target = result.target_name ? ` · ${result.target_name}` : '';
   const heading = result.action ? `${actionLabel(result.action)}${target}` : result.target_name ?? 'Yapılan hamle';
 
@@ -272,14 +285,15 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
       <div className="combat-entry-body">
         {result.combat_started && <div className="combat-event combat-event-started" data-testid={`combat-log-entry-${entry.id}-started`}>ÇATIŞMA BAŞLADI</div>}
         <AttackReadout result={result} entryId={entry.id} heading={heading} />
-        {result.enemy_action && (
+        {enemyActions.map((enemyAction, index) => (
           <AttackReadout
-            result={result.enemy_action}
-            entryId={entry.id}
-            heading={result.enemy_action.target_name ? `Karşı hamle · ${result.enemy_action.target_name}` : 'Düşmanın karşı hamlesi'}
+            key={`${entry.id}-enemy-${index}`}
+            result={enemyAction}
+            entryId={`${entry.id}-enemy-${index}`}
+            heading={`${enemyAction.actor_name ?? 'Rakip'} · ${enemyAction.target_name ?? 'oyuncu'}`}
             enemy
           />
-        )}
+        ))}
         {result.combat_ended && (
           <div className="combat-event combat-event-ended" data-testid={`combat-log-entry-${entry.id}-ended`}>
             <span>ÇATIŞMA SONA ERDİ</span>
@@ -295,9 +309,10 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
   const active = Boolean(state.combat.active);
   const latest = entries[entries.length - 1]?.result;
   const ended = !active && latest?.combat_ended === true;
-  const opponent: GameNpc | undefined = state.combat.target_id
-    ? state.npcs.find((npc) => npc.id === state.combat.target_id)
-    : undefined;
+  const combatants = state.combat.participant_records ?? [];
+  const currentActorName = combatants.find(
+    (participant) => participant.id === state.combat.current_actor_id,
+  )?.name;
 
   return (
     <section className="combat-panel" data-testid="panel-combat">
@@ -323,26 +338,22 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
           <div className="combat-round-line">
             <span>ÇATIŞMA AKTİF</span>
             {typeof state.combat.round === 'number' && <strong data-testid="combat-round">Tur {state.combat.round}</strong>}
+            {currentActorName && <strong data-testid="combat-turn-owner">Sıra: {currentActorName}</strong>}
           </div>
           <div className="combat-combatants">
-            <CombatantCard
-              kind="player"
-              name={state.character.name}
-              currentHp={state.character.current_hp}
-              maxHp={state.character.max_hp}
-              armorClass={state.character.armor_class}
-              status={state.player_combat_status}
-            />
-            {opponent && (
+            {combatants.map((participant) => (
               <CombatantCard
-                kind="opponent"
-                name={opponent.name}
-                currentHp={opponent.current_hp}
-                maxHp={opponent.max_hp}
-                armorClass={opponent.armor_class}
-                status={opponent.combat_status}
+                key={participant.id}
+                participantId={participant.id}
+                kind={participant.kind === 'player' ? 'player' : 'opponent'}
+                name={participant.name}
+                currentHp={participant.current_hp}
+                maxHp={participant.max_hp}
+                armorClass={participant.armor_class}
+                status={participant.status}
+                isCurrentActor={participant.is_current_actor}
               />
-            )}
+            ))}
           </div>
           <InitiativeStrip state={state} />
         </>

@@ -5,17 +5,26 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CombatParticipantState } from './combatParticipantState';
+import type { GameCombatStatus } from './gameCombatStatus';
 
 /**
- * Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.
+ * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
-  active?: boolean;
-  round?: number;
-  initiative_order?: string[];
-  current_turn_index?: number;
-  participants?: string[];
+  active: boolean;
+  status: GameCombatStatus;
+  round: number;
+  initiative_order: string[];
+  current_turn_index: number;
   /** @nullable */
-  target_id?: string | null;
-  [key: string]: unknown;
- }
+  current_actor_id: string | null;
+  /** @nullable */
+  turn_owner: string | null;
+  participants: string[];
+  participant_records: CombatParticipantState[];
+  /** @nullable */
+  target_id: string | null;
+  /** @nullable */
+  end_reason: string | null;
+}

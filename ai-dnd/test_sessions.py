@@ -149,7 +149,7 @@ class SessionTests(unittest.TestCase):
             message_histories = [copy.deepcopy(session.messages) for session in sessions]
             rng_states = [session.rng.getstate() for session in sessions]
             self.assertEqual(self.a.load_game(path), expected)
-        self.assertEqual(expected["version"], 2)
+        self.assertEqual(expected["version"], 3)
         for session, references, history, rng_state, snapshot in zip(
                 sessions, held, message_histories, rng_states, snapshots):
             with self.subTest(session=session):

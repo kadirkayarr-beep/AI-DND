@@ -403,8 +403,16 @@ function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry
   return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen · yerel kayıt</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Yerel anlatı kaydı · kanonik dünya durumu sağ panelde</div></div>;
 }
 
-function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null }) {
+function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice, combatTargetId, setCombatTargetId }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null; combatTargetId: string; setCombatTargetId: (value: string) => void }) {
   const location = state.locations[state.location];
+  const combatTargets = state.combat.participant_records.filter(
+    (participant) => participant.kind === 'npc'
+      && participant.status === 'active'
+      && participant.current_hp > 0,
+  );
+  const currentActor = state.combat.participant_records.find(
+    (participant) => participant.id === state.combat.current_actor_id,
+  );
   return (
     <section className="story-column workspace-story" data-testid="panel-story">
       <div className="story-heading">
@@ -421,10 +429,33 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
           <div><strong>ÇATIŞMA SONA ERDİ</strong><span>{combatEndNotice}</span></div>
         </div>
       )}
+      {state.combat.active && currentActor && currentActor.id !== 'player' && (
+        <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
+          Sıra {currentActor.name}'de. Bu gönderim rakibin hamlesini çözer; ardından kendi hamleni yeniden gönder.
+        </div>
+      )}
       <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       <div className="command-box">
         <form className="command-form" onSubmit={onSubmit}>
+          {state.combat.active && combatTargets.length > 0 && (
+            <label className="command-target-label" htmlFor="combat-target-select">
+              <span>Çatışma hedefi <small>· boş bırakılırsa mesajdaki ad kullanılır</small></span>
+              <select
+                id="combat-target-select"
+                className="command-target-select"
+                value={combatTargetId}
+                onChange={(event) => setCombatTargetId(event.target.value)}
+                disabled={sending}
+                data-testid="select-combat-target"
+              >
+                <option value="">Mesajımdaki hedef</option>
+                {combatTargets.map((participant) => (
+                  <option value={participant.id} key={participant.id}>{participant.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
           <textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
@@ -524,6 +555,7 @@ export default function GameBrowser() {
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
+  const [combatTargetId, setCombatTargetId] = useState('');
   const [message, setMessage] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
@@ -557,6 +589,7 @@ export default function GameBrowser() {
 
   useEffect(() => {
     setCombatEndNotice(null);
+    setCombatTargetId('');
     if (!sessionId) { setEntries([]); return; }
     try {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
@@ -710,7 +743,13 @@ export default function GameBrowser() {
     const trimmed = message.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
-    playTurn.mutate({ sessionId, data: { message: trimmed } }, {
+    playTurn.mutate({
+      sessionId,
+      data: {
+        message: trimmed,
+        ...(combatTargetId ? { target_id: combatTargetId } : {}),
+      },
+    }, {
       onSuccess: (result) => {
         const next = [
           ...entries,
@@ -746,6 +785,9 @@ export default function GameBrowser() {
             );
           } else {
             setCombatEndNotice(null);
+          }
+          if (combatResult.outcome !== 'enemy_turn_resolved' || combatResult.combat_ended) {
+            setCombatTargetId('');
           }
         } else {
           setCombatEndNotice(null);
@@ -823,7 +865,7 @@ export default function GameBrowser() {
           ) : state ? (
             <>
               <LeftColumn state={state} />
-              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} />
+              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} combatTargetId={combatTargetId} setCombatTargetId={setCombatTargetId} />
               <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}

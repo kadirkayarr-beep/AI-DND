@@ -236,6 +236,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .command-form { display: flex; align-items: flex-end; gap: 12px; }
 .command-input { width: 100%; min-height: 92px; resize: vertical; border: 0; border-bottom: 1px solid #705735; background: transparent; color: #e5d9c2; font-family: var(--app-font-serif); font-size: 21px; line-height: 1.35; outline: none; }
 .command-input::placeholder { color: #776a56; }
+.command-target-label { display: flex; min-width: 190px; flex-direction: column; gap: 7px; color: #b69a6c; font-size: 9px; letter-spacing: .08em; }
+.command-target-label small { color: #776a56; font-size: 8px; letter-spacing: 0; }
+.command-target-select { width: 100%; border: 1px solid #705735; background: #17120d; padding: 9px 10px; color: #e5d9c2; font-size: 12px; letter-spacing: 0; }
+.command-target-select:focus-visible { outline: 2px solid #c09a61; outline-offset: 2px; }
+.command-combat-turn-note { margin: 0 0 12px; border-left: 2px solid #b67958; background: rgba(76, 39, 30, .28); padding: 10px 12px; color: #d6b9a0; font-size: 11px; line-height: 1.55; }
 .command-help { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; color: #776a56; font-size: 9px; letter-spacing: .08em; }
 .state-column { min-width: 0; }
 .state-panel { margin-bottom: 15px; border: 1px solid rgba(77, 58, 38, .86); background: rgba(23, 18, 14, .84); padding: 18px; }
@@ -296,6 +301,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   .session-chip { padding: 7px 8px; font-size: 8px; }
   .app-main { padding-top: 25px; }
   .command-form { display: block; }
+  .command-target-label { margin-bottom: 12px; }
   .command-form .dnd-button { margin-top: 12px; }
   .command-help { align-items: flex-start; flex-direction: column; }
 }

@@ -414,7 +414,13 @@ def create_app(
                     ):
                         with active_adapter.capture_model_calls() as model_calls:
                             with active_adapter.capture_model_failures() as model_failures:
-                                result = session.run_player_turn(request.message)
+                                if request.target_id is None:
+                                    result = session.run_player_turn(request.message)
+                                else:
+                                    result = session.run_player_turn(
+                                        request.message,
+                                        target_id=request.target_id,
+                                    )
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)

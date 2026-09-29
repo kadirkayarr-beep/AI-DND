@@ -44,6 +44,7 @@ after(async () => {
 });
 
 function makeState(overrides = {}) {
+  const { combat: combatOverrides = {}, ...stateOverrides } = overrides;
   return {
     character: {
       name: 'Arven',
@@ -54,10 +55,17 @@ function makeState(overrides = {}) {
     player_combat_status: 'active',
     combat: {
       active: false,
+      status: 'ended',
       round: 0,
       initiative_order: [],
       current_turn_index: 0,
+      current_actor_id: null,
+      turn_owner: null,
+      participants: [],
+      participant_records: [],
       target_id: null,
+      end_reason: null,
+      ...combatOverrides,
     },
     npcs: [{
       id: 'npc_bandit',
@@ -66,9 +74,76 @@ function makeState(overrides = {}) {
       max_hp: 12,
       armor_class: 13,
       combat_status: 'active',
+    }, {
+      id: 'npc_wolf',
+      name: 'Wolf',
+      current_hp: 8,
+      max_hp: 8,
+      armor_class: 12,
+      combat_status: 'active',
     }],
+    ...stateOverrides,
+  };
+}
+
+const combatantRecords = {
+  player: {
+    id: 'player',
+    kind: 'player',
+    name: 'Arven',
+    current_hp: 12,
+    max_hp: 14,
+    armor_class: 15,
+    status: 'active',
+    primary_action_available: true,
+  },
+  npc_bandit: {
+    id: 'npc_bandit',
+    kind: 'npc',
+    name: 'Bandit',
+    current_hp: 2,
+    max_hp: 12,
+    armor_class: 13,
+    status: 'active',
+    primary_action_available: true,
+  },
+  npc_wolf: {
+    id: 'npc_wolf',
+    kind: 'npc',
+    name: 'Wolf',
+    current_hp: 8,
+    max_hp: 8,
+    armor_class: 12,
+    status: 'active',
+    primary_action_available: true,
+  },
+};
+
+function activeCombat(overrides = {}) {
+  const combat = {
+    active: true,
+    status: 'active',
+    round: 1,
+    initiative_order: ['player', 'npc_bandit'],
+    current_turn_index: 0,
+    current_actor_id: 'player',
+    turn_owner: 'player',
+    participants: ['player', 'npc_bandit'],
+    participant_records: [],
+    target_id: 'npc_bandit',
+    end_reason: null,
     ...overrides,
   };
+  const customRecords = new Map(
+    (overrides.participant_records ?? []).map((record) => [record.id, record]),
+  );
+  combat.turn_owner = combat.current_actor_id;
+  combat.participant_records = combat.participants.map((id) => ({
+    ...combatantRecords[id],
+    ...customRecords.get(id),
+    is_current_actor: id === combat.current_actor_id,
+  }));
+  return combat;
 }
 
 const criticalExchange = {
@@ -89,6 +164,46 @@ const criticalExchange = {
   target_status: 'active',
   combat_started: true,
   combat_ended: false,
+  enemy_actions: [
+    {
+      action: 'enemy_attack',
+      actor: 'npc_bandit',
+      actor_name: 'Bandit',
+      success: false,
+      outcome: 'miss',
+      target_id: 'player',
+      target_name: 'Arven',
+      weapon: 'Dagger',
+      attack_roll: 1,
+      attack_bonus: 2,
+      attack_total: 3,
+      target_ac: 15,
+      critical: false,
+      damage: 0,
+      target_hp_before: 12,
+      target_hp_after: 12,
+      target_status: 'active',
+    },
+    {
+      action: 'enemy_attack',
+      actor: 'npc_wolf',
+      actor_name: 'Wolf',
+      success: true,
+      outcome: 'hit',
+      target_id: 'player',
+      target_name: 'Arven',
+      weapon: 'Bite',
+      attack_roll: 15,
+      attack_bonus: 3,
+      attack_total: 18,
+      target_ac: 15,
+      critical: false,
+      damage: 4,
+      target_hp_before: 12,
+      target_hp_after: 8,
+      target_status: 'active',
+    },
+  ],
   enemy_action: {
     action: 'enemy_attack',
     success: false,
@@ -150,37 +265,39 @@ test('the existing skill result card renders all four newly routed skills', () =
 
 test('active panel displays only canonical HP, AC, round, target, and initiative order', () => {
   const state = makeState({
-    combat: {
-      active: true,
+    combat: activeCombat({
       round: 2,
       initiative_order: ['npc_bandit', 'player'],
       current_turn_index: 0,
+      current_actor_id: 'npc_bandit',
+      participants: ['player', 'npc_bandit'],
       target_id: 'npc_bandit',
-    },
+    }),
   });
   const html = renderCombatPanel(state);
 
   assert.match(html, /data-testid="combat-player-hp"[^>]*>[\s\S]*?12 \/ 14/);
   assert.match(html, /data-testid="combat-player-ac"[^>]*>[\s\S]*?15/);
-  assert.match(html, /data-testid="combat-opponent-name">Bandit/);
-  assert.match(html, /data-testid="combat-opponent-hp"[^>]*>[\s\S]*?2 \/ 12/);
-  assert.match(html, /data-testid="combat-opponent-ac"[^>]*>[\s\S]*?13/);
+  assert.match(html, /data-testid="combat-opponent-npc_bandit-name">Bandit/);
+  assert.match(html, /data-testid="combat-opponent-npc_bandit-hp"[^>]*>[\s\S]*?2 \/ 12/);
+  assert.match(html, /data-testid="combat-opponent-npc_bandit-ac"[^>]*>[\s\S]*?13/);
   assert.match(html, /data-testid="combat-round">Tur 2/);
   assert.match(html, /data-testid="combat-initiative-0"[^>]*>[\s\S]*?Bandit/);
   assert.match(html, /data-testid="combat-initiative-1"[^>]*>[\s\S]*?Arven/);
+  assert.match(html, /Sıra: Bandit/);
   assert.doesNotMatch(html, /Sıra indeksi/);
   assert.doesNotMatch(html, /Atış toplamı: \d+/);
 });
 
-test('structured critical and retaliation results show returned rolls, modifiers, and damage', () => {
+test('structured critical and multi-enemy results show returned rolls, modifiers, and damage', () => {
   const state = makeState({
-    combat: {
-      active: true,
+    combat: activeCombat({
       round: 1,
-      initiative_order: ['player', 'npc_bandit'],
+      initiative_order: ['player', 'npc_bandit', 'npc_wolf'],
       current_turn_index: 0,
+      participants: ['player', 'npc_bandit', 'npc_wolf'],
       target_id: 'npc_bandit',
-    },
+    }),
   });
   const html = renderCombatPanel(state, [{ id: '6', turnIndex: 6, result: criticalExchange }]);
 
@@ -192,10 +309,15 @@ test('structured critical and retaliation results show returned rolls, modifiers
   assert.match(html, /İSABET/);
   assert.match(html, /DOĞAL 20/);
   assert.match(html, /data-testid="combat-entry-6-damage"[^>]*>[\s\S]*?7/);
-  assert.match(html, /data-testid="combat-entry-6-enemy-roll">[\s\S]*?<strong>1<\/strong>/);
-  assert.match(html, /data-testid="combat-entry-6-enemy-total">[\s\S]*?<strong>3<\/strong>/);
+  assert.match(html, /data-testid="combat-entry-6-enemy-0-enemy-roll">[\s\S]*?<strong>1<\/strong>/);
+  assert.match(html, /data-testid="combat-entry-6-enemy-0-enemy-total">[\s\S]*?<strong>3<\/strong>/);
+  assert.match(html, /data-testid="combat-entry-6-enemy-1-enemy-roll">[\s\S]*?<strong>15<\/strong>/);
+  assert.match(html, /data-testid="combat-entry-6-enemy-1-enemy-total">[\s\S]*?<strong>18<\/strong>/);
+  assert.match(html, /Bandit/);
+  assert.match(html, /Wolf/);
   assert.match(html, /ISKA/);
   assert.match(html, /DOĞAL 1/);
+  assert.match(html, /data-testid="combat-entry-6-enemy-1-enemy-damage"[^>]*>[\s\S]*?4/);
   assert.match(html, /data-testid="combat-log-entry-6-started"/);
   assert.doesNotMatch(html, /critical_hit/);
 });
@@ -217,13 +339,12 @@ test('ended state follows Python result while active canonical state takes prece
   assert.match(endedHtml, /data-testid="combat-log-entry-7-ended"/);
 
   const activeHtml = renderCombatPanel(makeState({
-    combat: {
-      active: true,
+    combat: activeCombat({
       round: 3,
       initiative_order: ['player', 'npc_bandit'],
       current_turn_index: 0,
       target_id: 'npc_bandit',
-    },
+    }),
   }), [endedEntry]);
   assert.match(activeHtml, /data-testid="combat-player"/);
   assert.doesNotMatch(activeHtml, /data-testid="combat-ended-state"/);

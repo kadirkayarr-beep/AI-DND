@@ -15,4 +15,10 @@ export interface GameTurnInput {
      * @maxLength 4000
      */
   message: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     * @nullable
+     */
+  target_id?: string | null;
 }

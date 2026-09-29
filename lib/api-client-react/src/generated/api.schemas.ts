@@ -316,19 +316,65 @@ export interface GameDoor {
   broken: boolean;
 }
 
+export type GameCombatStatus = typeof GameCombatStatus[keyof typeof GameCombatStatus];
+
+
+export const GameCombatStatus = {
+  active: 'active',
+  ended: 'ended',
+} as const;
+
+export type CombatParticipantStateKind = typeof CombatParticipantStateKind[keyof typeof CombatParticipantStateKind];
+
+
+export const CombatParticipantStateKind = {
+  player: 'player',
+  npc: 'npc',
+} as const;
+
+export interface CombatParticipantState {
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  id: string;
+  kind: CombatParticipantStateKind;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /** @minimum 0 */
+  current_hp: number;
+  /** @minimum 1 */
+  max_hp: number;
+  /** @minimum 0 */
+  armor_class: number;
+  status: string;
+  primary_action_available: boolean;
+  is_current_actor: boolean;
+}
+
 /**
- * Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.
+ * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
-  active?: boolean;
-  round?: number;
-  initiative_order?: string[];
-  current_turn_index?: number;
-  participants?: string[];
+  active: boolean;
+  status: GameCombatStatus;
+  round: number;
+  initiative_order: string[];
+  current_turn_index: number;
   /** @nullable */
-  target_id?: string | null;
-  [key: string]: unknown;
- }
+  current_actor_id: string | null;
+  /** @nullable */
+  turn_owner: string | null;
+  participants: string[];
+  participant_records: CombatParticipantState[];
+  /** @nullable */
+  target_id: string | null;
+  /** @nullable */
+  end_reason: string | null;
+}
 
 export type GameStatePlayerCombatStatus = typeof GameStatePlayerCombatStatus[keyof typeof GameStatePlayerCombatStatus];
 
@@ -463,6 +509,12 @@ export interface GameTurnInput {
      * @maxLength 4000
      */
   message: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     * @nullable
+     */
+  target_id?: string | null;
 }
 
 export interface CombatAttackResult {
@@ -476,6 +528,8 @@ export interface CombatAttackResult {
   outcome?: string | null;
   /** @nullable */
   actor?: string | null;
+  /** @nullable */
+  actor_name?: string | null;
   /** @nullable */
   target?: string | null;
   /** @nullable */
@@ -516,6 +570,8 @@ export interface CombatTurnResult {
   /** @nullable */
   actor?: string | null;
   /** @nullable */
+  actor_name?: string | null;
+  /** @nullable */
   target?: string | null;
   /** @nullable */
   target_id?: string | null;
@@ -547,7 +603,13 @@ export interface CombatTurnResult {
   combat_ended?: boolean | null;
   /** @nullable */
   end_reason?: string | null;
+  /** @nullable */
+  current_actor_id?: string | null;
+  /** @nullable */
+  turn_owner?: string | null;
   enemy_action?: CombatAttackResult | null;
+  /** @nullable */
+  enemy_actions?: CombatAttackResult[] | null;
 }
 
 export interface CombatHistoryEntry {

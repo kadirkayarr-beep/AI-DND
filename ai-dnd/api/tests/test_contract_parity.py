@@ -495,10 +495,11 @@ class ContractParityTests(unittest.TestCase):
         )
         self.assertEqual(
             _property_names("CombatTurnResult"),
-            set(_COMBAT_TURN_FIELDS) | {"enemy_action"},
+            set(_COMBAT_TURN_FIELDS) | {"enemy_action", "enemy_actions"},
         )
         for schema_name in ("CombatAttackResult", "CombatTurnResult"):
-            for field_name in _property_names(schema_name) - {"enemy_action"}:
+            optional_nested = {"enemy_action", "enemy_actions"}
+            for field_name in _property_names(schema_name) - optional_nested:
                 with self.subTest(schema=schema_name, field=field_name):
                     self.assertIn(
                         '"null"',
@@ -507,6 +508,10 @@ class ContractParityTests(unittest.TestCase):
         self.assertIn(
             'type: "null"',
             _property_block("CombatTurnResult", "enemy_action"),
+        )
+        self.assertIn(
+            '"null"',
+            _property_block("CombatTurnResult", "enemy_actions"),
         )
 
         projected = serialize_combat_result(
@@ -521,16 +526,32 @@ class ContractParityTests(unittest.TestCase):
                     "attack_roll": 8,
                     "private_state": "must not be returned",
                 },
+                "enemy_actions": [
+                    {
+                        "action": "attack",
+                        "actor": "npc_guard",
+                        "actor_name": "Guard",
+                        "attack_roll": 9,
+                        "private_state": "must not be returned",
+                    }
+                ],
             }
         )
         self.assertIsNotNone(projected)
         self.assertEqual(
             set(projected or {}),
-            {"action", "status", "attack_roll", "combat_started", "enemy_action"},
+            {
+                "action", "status", "attack_roll", "combat_started",
+                "enemy_action", "enemy_actions",
+            },
         )
         self.assertEqual(
             set((projected or {})["enemy_action"]),
             {"action", "attack_roll"},
+        )
+        self.assertEqual(
+            set((projected or {})["enemy_actions"][0]),
+            {"action", "actor", "actor_name", "attack_roll"},
         )
 
     def test_error_schemas_and_runtime_error_envelopes_match(self):

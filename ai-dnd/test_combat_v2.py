@@ -88,11 +88,15 @@ class CombatV2Turns(unittest.TestCase):
         self.assertEqual(result["combat"]["current_turn_index"], 0)
 
     def test_initiative_npc_higher(self):
-        # Even with NPC-first metadata, the player can end combat before retaliation.
+        # A resumed NPC turn resolves first; the unspent player command can be retried.
         self.npc["current_hp"] = 1
         with self.rolls((20, 2), (20, 18)):
             self.session.start_combat(self.npc)
         self.assertEqual(self.world["combat"]["initiative_order"], ["npc_001", "player"])
+        with self.rolls((20, 1)):
+            pending = self.turn()
+        self.assertEqual(pending["outcome"], "enemy_turn_resolved")
+        self.assertEqual(self.world["combat"]["current_actor_id"], "player")
         with self.rolls((20, 15), (8, 4)):
             result = self.turn()
         self.assertEqual(result["end_reason"], "target_defeated")

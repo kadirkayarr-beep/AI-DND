@@ -1236,12 +1236,18 @@ world_state = {
     },
     "next_npc_number": 1,
     "combat": {
+        "schema_version": 3,
         "active": False,
+        "status": "ended",
         "round": 0,
         "initiative_order": [],
         "current_turn_index": 0,
+        "current_actor_id": None,
         "participants": [],
+        "participant_records": [],
+        "actions_used": [],
         "target_id": None,
+        "end_reason": None,
     },
     "player_combat_status": "active",
     "player_knowledge": [],
@@ -1249,7 +1255,7 @@ world_state = {
     "quest_processed_event_ids": [],
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
-SAVE_FORMAT_VERSION = 2
+SAVE_FORMAT_VERSION = 3
 
 
 def _player_state_for_save():
@@ -1285,12 +1291,123 @@ def serialize_game_state():
     }
 
 
+def _validate_combat_v3_payload(combat):
+    """Validate the persisted scheduler without normalizing or discarding it."""
+    if not isinstance(combat, dict) or combat.get("schema_version") != 3:
+        raise ValueError("Kayıt çatışma sürümü geçersiz.")
+    if type(combat.get("active")) is not bool:
+        raise ValueError("Kayıt çatışma durumu geçersiz.")
+    expected_status = "active" if combat["active"] else "ended"
+    if combat.get("status") != expected_status:
+        raise ValueError("Kayıt çatışma durumu geçersiz.")
+
+    round_number = combat.get("round")
+    order = combat.get("initiative_order")
+    actor_index = combat.get("current_turn_index")
+    actor_id = combat.get("current_actor_id")
+    participants = combat.get("participants")
+    records = combat.get("participant_records")
+    actions_used = combat.get("actions_used")
+    target_id = combat.get("target_id")
+    if (
+        type(round_number) is not int
+        or not isinstance(order, list)
+        or not isinstance(participants, list)
+        or not isinstance(records, list)
+        or type(actor_index) is not int
+        or not isinstance(actions_used, list)
+    ):
+        raise ValueError("Kayıt çatışma sırası geçersiz.")
+    if any(not isinstance(item, str) or not item for item in order + participants + actions_used):
+        raise ValueError("Kayıt çatışma katılımcısı geçersiz.")
+    if len(set(order)) != len(order) or len(set(participants)) != len(participants):
+        raise ValueError("Kayıt çatışma katılımcısı yineleniyor.")
+    if not set(actions_used).issubset(set(participants)):
+        raise ValueError("Kayıt çatışma eylem kullanımı geçersiz.")
+    if target_id is not None and (
+        not isinstance(target_id, str) or target_id not in participants
+    ):
+        raise ValueError("Kayıt çatışma hedefi geçersiz.")
+
+    if not combat["active"]:
+        if (
+            round_number != 0
+            or order
+            or participants
+            or records
+            or actor_index != 0
+            or actor_id is not None
+            or actions_used
+            or target_id is not None
+        ):
+            raise ValueError("Pasif çatışma kaydı tutarsız.")
+        if combat.get("end_reason") is not None and not isinstance(
+            combat.get("end_reason"), str
+        ):
+            raise ValueError("Kayıt çatışma sonlandırma nedeni geçersiz.")
+        return
+
+    if (
+        round_number < 1
+        or len(order) < 2
+        or "player" not in participants
+        or set(order) != set(participants)
+        or len(order) != len(participants)
+        or type(actor_index) is not int
+        or not 0 <= actor_index < len(order)
+        or actor_id != order[actor_index]
+        or target_id is None
+        or len(records) != len(participants)
+    ):
+        raise ValueError("Kayıt etkin çatışma sırası tutarsız.")
+    if combat.get("end_reason") is not None:
+        raise ValueError("Etkin çatışmanın sonlandırma nedeni olamaz.")
+
+    record_ids = []
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("Kayıt çatışma katılımcı verisi geçersiz.")
+        participant_id = record.get("id")
+        kind = record.get("kind")
+        name = record.get("name")
+        initiative = record.get("initiative")
+        current_hp = record.get("current_hp")
+        max_hp = record.get("max_hp")
+        armor_class = record.get("armor_class")
+        participant_status = record.get("status")
+        action_available = record.get("primary_action_available")
+        if (
+            not isinstance(participant_id, str)
+            or participant_id not in participants
+            or kind not in ("player", "npc")
+            or (participant_id == "player") != (kind == "player")
+            or not isinstance(name, str)
+            or not name.strip()
+            or (initiative is not None and type(initiative) is not int)
+            or type(current_hp) is not int
+            or type(max_hp) is not int
+            or type(armor_class) is not int
+            or current_hp < 0
+            or max_hp < 1
+            or current_hp > max_hp
+            or armor_class < 0
+            or participant_status not in ("active", "unconscious", "defeated", "dead")
+            or type(action_available) is not bool
+            or action_available != (participant_id not in actions_used)
+        ):
+            raise ValueError("Kayıt çatışma katılımcı verisi geçersiz.")
+        record_ids.append(participant_id)
+    if len(set(record_ids)) != len(record_ids) or set(record_ids) != set(participants):
+        raise ValueError("Kayıt çatışma katılımcı listesi tutarsız.")
+
+
 def _validate_save_payload(payload):
     if not isinstance(payload, dict):
         raise ValueError("Kayıt dosyası bir JSON nesnesi olmalı.")
     if payload.get("format") != "ai-dnd-save":
         raise ValueError("Bu dosya AI-DND kayıt dosyası değil.")
-    if payload.get("version") not in (1, SAVE_FORMAT_VERSION):
+    version = payload.get("version")
+    if version not in (1, 2, SAVE_FORMAT_VERSION):
         raise ValueError("Bu kayıt sürümü desteklenmiyor.")
 
     player = payload.get("player")
@@ -1318,10 +1435,12 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt NPC listesi geçersiz.")
     if not isinstance(saved_world["inventory"], list):
         raise ValueError("Kayıt envanteri geçersiz.")
-    if payload.get("version") == SAVE_FORMAT_VERSION and (
+    if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
         raise ValueError("Kayıt görev alanlarını içermiyor.")
+    if version == SAVE_FORMAT_VERSION:
+        _validate_combat_v3_payload(saved_world.get("combat"))
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     for field in required_player - {"name", "race", "class", "proficient_skills"}:
@@ -1521,28 +1640,40 @@ def load_game(path):
     saved_world.setdefault("quests", [])
     saved_world.setdefault("quest_processed_event_ids", [])
 
-    world_state.clear()
-    world_state.update(saved_world)
     character = _session().character
-    for field in ("name", "race", "class"):
-        character[field] = str(player[field])
-    for field in ("strength", "dexterity", "constitution", "intelligence",
-                  "wisdom", "charisma", "level", "proficiency_bonus",
-                  "max_hp", "current_hp", "armor_class"):
-        character[field] = int(player[field])
-    character["proficient_skills"] = list(player["proficient_skills"])
-    character["modifiers"] = {
-        ability: get_modifier(character[ability])
-        for ability in ("strength", "dexterity", "constitution",
-                        "intelligence", "wisdom", "charisma")
-    }
-    for ability, modifier in character["modifiers"].items():
-        character[f"{ability}_mod"] = modifier
-    recent_dm_narrations.clear()
-    recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
-    _normalize_ground_items()
-    ensure_combat_state()
-    return serialize_game_state()
+    previous_world = copy.deepcopy(world_state)
+    previous_character = copy.deepcopy(character)
+    previous_narrations = list(recent_dm_narrations)
+    try:
+        world_state.clear()
+        world_state.update(saved_world)
+        for field in ("name", "race", "class"):
+            character[field] = str(player[field])
+        for field in ("strength", "dexterity", "constitution", "intelligence",
+                      "wisdom", "charisma", "level", "proficiency_bonus",
+                      "max_hp", "current_hp", "armor_class"):
+            character[field] = int(player[field])
+        character["proficient_skills"] = list(player["proficient_skills"])
+        character["modifiers"] = {
+            ability: get_modifier(character[ability])
+            for ability in ("strength", "dexterity", "constitution",
+                            "intelligence", "wisdom", "charisma")
+        }
+        for ability, modifier in character["modifiers"].items():
+            character[f"{ability}_mod"] = modifier
+        recent_dm_narrations.clear()
+        recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
+        _normalize_ground_items()
+        ensure_combat_state()
+        return serialize_game_state()
+    except Exception:
+        world_state.clear()
+        world_state.update(previous_world)
+        character.clear()
+        character.update(previous_character)
+        recent_dm_narrations.clear()
+        recent_dm_narrations.extend(previous_narrations)
+        raise
 
 
 def _current_door():
@@ -1575,34 +1706,191 @@ def _normalize_ground_items():
         world_state["ground_items"] = []
 
 
-def ensure_combat_state():
-    """Normalize legacy encounter data without reviving an incapacitated player."""
+def _combat_defaults(end_reason=None):
+    return {
+        "schema_version": 3,
+        "active": False,
+        "status": "ended",
+        "round": 0,
+        "initiative_order": [],
+        "current_turn_index": 0,
+        "current_actor_id": None,
+        "participants": [],
+        "participant_records": [],
+        "actions_used": [],
+        "target_id": None,
+        "end_reason": end_reason,
+    }
+
+
+def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
+    """Build a detached, canonical participant projection for persisted combat."""
+    session = _session()
+    if participant_id == "player":
+        character = session.character
+        current_hp = int(character.get("current_hp", 0))
+        max_hp = int(character.get("max_hp", max(1, current_hp)))
+        status = session.world_state.get("player_combat_status", "active")
+        return {
+            "id": "player",
+            "kind": "player",
+            "name": str(character.get("name", "Player")),
+            "initiative": initiative,
+            "current_hp": max(0, min(current_hp, max_hp)),
+            "max_hp": max(1, max_hp),
+            "armor_class": max(0, int(character.get("armor_class", 0))),
+            "status": status if status in ("active", "unconscious") else "active",
+            "primary_action_available": participant_id not in actions_used,
+        }
+
+    npc = next(
+        (item for item in session.world_state.get("npcs", [])
+         if isinstance(item, dict) and item.get("id") == participant_id),
+        None,
+    )
+    if npc is None or npc.get("location") != session.world_state.get("location"):
+        raise ValueError("Active combat participant is missing from the current location.")
+    ensure_npc_enemy_stats(npc)
+    current_hp = int(npc.get("current_hp", 0))
+    max_hp = int(npc.get("max_hp", max(1, current_hp)))
+    status = npc.get("combat_status", "active")
+    if status not in ("active", "unconscious", "defeated", "dead"):
+        raise ValueError("Active combat participant has an invalid status.")
+    return {
+        "id": participant_id,
+        "kind": "npc",
+        "name": str(npc.get("name", participant_id)),
+        "initiative": initiative,
+        "current_hp": max(0, min(current_hp, max_hp)),
+        "max_hp": max(1, max_hp),
+        "armor_class": max(0, int(npc.get("armor_class", 0))),
+        "status": status,
+        "primary_action_available": participant_id not in actions_used,
+    }
+
+
+def _migrate_legacy_combat_state(legacy):
+    """Map a known two-participant V1/V2 encounter, rejecting ambiguous active data."""
+    if not isinstance(legacy, dict) or legacy.get("active") is not True:
+        return _combat_defaults()
+    if legacy.get("schema_version") not in (None, 1, 2):
+        raise ValueError("Unsupported legacy combat save version.")
+
+    order = legacy.get("initiative_order")
+    index = legacy.get("current_turn_index")
+    round_number = legacy.get("round")
+    legacy_participants = legacy.get("participants")
+    target_id = legacy.get("target_id")
+    if not isinstance(target_id, str) or not target_id:
+        candidates = [
+            item for item in (legacy_participants if isinstance(legacy_participants, list) else [])
+            if isinstance(item, str) and item != "player"
+        ]
+        candidates.extend(
+            item for item in (order if isinstance(order, list) else [])
+            if isinstance(item, str) and item != "player"
+        )
+        candidates = list(dict.fromkeys(candidates))
+        if len(candidates) == 1:
+            target_id = candidates[0]
+    if (
+        not isinstance(order, list)
+        or len(order) != 2
+        or any(not isinstance(actor, str) or not actor for actor in order)
+        or len(set(order)) != 2
+        or set(order) != {"player", target_id}
+        or type(index) is not int
+        or not 0 <= index < len(order)
+        or type(round_number) is not int
+        or round_number < 1
+        or (
+            legacy_participants is not None
+            and (
+                not isinstance(legacy_participants, list)
+                    or any(
+                        not isinstance(item, str) or not item
+                        for item in legacy_participants
+                    )
+                or set(legacy_participants) != set(order)
+                or len(legacy_participants) != len(order)
+            )
+        )
+    ):
+        raise ValueError(
+            "Active legacy combat is missing a valid participant identity or turn boundary."
+        )
+
     world_state = _session().world_state
-    defaults = {"active": False, "round": 0, "initiative_order": [],
-                "current_turn_index": 0, "participants": [], "target_id": None}
+    npc = next(
+        (item for item in world_state.get("npcs", [])
+         if isinstance(item, dict) and item.get("id") == target_id),
+        None,
+    )
+    if npc is None or npc.get("location") != world_state.get("location"):
+        raise ValueError(
+            "Active legacy combat target is missing from the saved location."
+        )
+    state = _combat_defaults()
+    state.update({
+        "active": True,
+        "status": "active",
+        "round": round_number,
+        "initiative_order": list(order),
+        "current_turn_index": index,
+        "current_actor_id": order[index],
+        "participants": list(order),
+        "actions_used": [],
+        "target_id": target_id,
+        "end_reason": None,
+    })
+    state["participant_records"] = [
+        _combat_record_for_actor(
+            participant_id,
+            initiative=None,
+            actions_used=state["actions_used"],
+        )
+        for participant_id in state["participants"]
+    ]
+    return state
+
+
+def _sync_combat_participant_records(combat):
+    records = []
+    initiative_by_id = {
+        record.get("id"): record.get("initiative")
+        for record in combat.get("participant_records", [])
+        if isinstance(record, dict)
+    }
+    for participant_id in combat["participants"]:
+        records.append(_combat_record_for_actor(
+            participant_id,
+            initiative=initiative_by_id.get(participant_id),
+            actions_used=combat["actions_used"],
+        ))
+    combat["participant_records"] = records
+
+
+def ensure_combat_state():
+    """Migrate known legacy combat and strictly preserve active scheduler state."""
+    world_state = _session().world_state
     combat = world_state.get("combat")
-    if not isinstance(combat, dict):
-        combat = {}
+    if isinstance(combat, dict) and combat.get("schema_version") not in (None, 1, 2, 3):
+        raise ValueError("Unsupported combat save version.")
+    if not isinstance(combat, dict) or combat.get("schema_version") != 3:
+        combat = _migrate_legacy_combat_state(combat)
         world_state["combat"] = combat
-    for key, value in defaults.items():
-        combat.setdefault(key, value)
-    order = combat.get("initiative_order")
-    valid_order = (isinstance(order, list) and len(order) == 2
-                   and all(isinstance(actor, str) for actor in order)
-                   and "player" in order and combat.get("target_id") in order
-                   and combat.get("target_id") != "player")
-    if combat.get("active") is not True or not valid_order:
-        combat.clear()
-        combat.update(defaults)
     else:
-        combat["participants"] = ["player", combat["target_id"]]
-        if type(combat.get("round")) is not int or combat["round"] < 1:
-            combat["round"] = 1
-        index = combat.get("current_turn_index")
-        if type(index) is not int or not 0 <= index < len(order):
-            combat["current_turn_index"] = order.index("player")
+        _validate_combat_v3_payload(combat)
+
     if world_state.get("player_combat_status") not in ("active", "unconscious"):
-        world_state["player_combat_status"] = "unconscious" if _session().character.get("current_hp", 1) <= 0 else "active"
+        world_state["player_combat_status"] = (
+            "unconscious"
+            if _session().character.get("current_hp", 1) <= 0
+            else "active"
+        )
+    if combat["active"]:
+        _sync_combat_participant_records(combat)
+        _validate_combat_v3_payload(combat)
     return combat
 
 
@@ -1787,37 +2075,31 @@ def roll_damage(damage_die, damage_dice, ability_mod):
     return total + ability_mod
 
 
-def resolve_combat_target(player_input, npc_target=None):
+def resolve_combat_target(player_input, npc_target=None, target_id=None):
     """Resolve the combat target from player input or current NPC target.
     
     Validates that the target is a canonical NPC from world_state["npcs"]
     and is in the current location. Rejects forged/detached NPC dicts.
     """
-    # If explicit NPC target from reference resolution, validate it
     world_state = _session().world_state
-    if npc_target:
-        # Validate it's a canonical NPC from world_state
-        target_id = npc_target.get("id")
-        if not target_id:
+    requested_id = target_id
+    if requested_id is None and npc_target:
+        requested_id = npc_target.get("id")
+    if requested_id is not None:
+        if not isinstance(requested_id, str) or not requested_id:
             return None
-        
-        # Find canonical NPC by ID
         canonical_npc = next(
-            (npc for npc in world_state.get("npcs", []) if npc.get("id") == target_id),
+            (npc for npc in world_state.get("npcs", [])
+             if isinstance(npc, dict) and npc.get("id") == requested_id),
             None
         )
         if not canonical_npc:
             return None  # Not a registered NPC
-        
-        # Check location matches current location
         if canonical_npc.get("location") != world_state.get("location"):
             return None
-        
-        # Return canonical NPC (not the passed dict)
         ensure_npc_combat_stats(canonical_npc)
         return canonical_npc
-    
-    # Try to resolve NPC reference from player input
+
     resolution = resolve_npc_reference(player_input)
     if resolution["status"] == "found":
         ensure_npc_combat_stats(resolution["npc"])
@@ -1929,6 +2211,90 @@ def roll_initiative_player():
     return roll_initiative(_session().character["dexterity_mod"])
 
 
+def _combat_participant_can_act(combat, participant_id):
+    record = next(
+        (item for item in combat.get("participant_records", [])
+         if item.get("id") == participant_id),
+        None,
+    )
+    return bool(
+        record
+        and record.get("status") == "active"
+        and type(record.get("current_hp")) is int
+        and record["current_hp"] > 0
+    )
+
+
+def _mark_combat_action_used(participant_id):
+    combat = ensure_combat_state()
+    if participant_id not in combat["participants"]:
+        raise ValueError("Combat action actor is not a participant.")
+    if participant_id not in combat["actions_used"]:
+        combat["actions_used"].append(participant_id)
+    _sync_combat_participant_records(combat)
+    _validate_combat_v3_payload(combat)
+
+
+def _combat_end_if_decided():
+    combat = ensure_combat_state()
+    world_state = _session().world_state
+    if (
+        _session().character.get("current_hp", 0) <= 0
+        or world_state.get("player_combat_status") == "unconscious"
+    ):
+        return end_combat("player_defeated")
+    has_active_enemy = any(
+        participant_id != "player"
+        and _combat_participant_can_act(combat, participant_id)
+        for participant_id in combat["participants"]
+    )
+    if not has_active_enemy:
+        return end_combat("target_defeated")
+    return None
+
+
+def _resolve_enemy_turns_until_player():
+    """Resolve pending NPC turns with Python rules until control returns to player."""
+    actions = []
+    combat = ensure_combat_state()
+    limit = max(1, len(combat["initiative_order"]) * 2)
+    steps = 0
+    while combat["active"] and combat["current_actor_id"] != "player":
+        steps += 1
+        if steps > limit:
+            raise RuntimeError("Combat scheduler failed to return control to player.")
+        actor_id = combat["current_actor_id"]
+        if not _combat_participant_can_act(combat, actor_id):
+            advanced, _, _ = advance_combat_turn()
+            if not advanced:
+                break
+            combat = ensure_combat_state()
+            ended = _combat_end_if_decided()
+            if ended:
+                break
+            continue
+        npc = next(
+            (item for item in _session().world_state.get("npcs", [])
+             if isinstance(item, dict) and item.get("id") == actor_id),
+            None,
+        )
+        if npc is None:
+            raise ValueError("Current combat actor is missing from canonical state.")
+        action = resolve_enemy_attack(npc)
+        if action.get("outcome") == "invalid_target":
+            raise ValueError("Current combat actor could not resolve a legal action.")
+        _mark_combat_action_used(actor_id)
+        actions.append(action)
+        ended = _combat_end_if_decided()
+        if ended:
+            break
+        advanced, _, _ = advance_combat_turn()
+        if not advanced:
+            break
+        combat = ensure_combat_state()
+    return actions
+
+
 def find_weapon_in_inventory(weapon_name):
     """Find a specific weapon in inventory by name/aliases."""
     world_state = _session().world_state
@@ -1941,34 +2307,95 @@ def find_weapon_in_inventory(weapon_name):
 
 
 def start_combat(player_target_npc):
-    """Initialize combat state between player and target NPC."""
+    """Initialize a canonical initiative scheduler for the target and local hostiles."""
     world_state = _session().world_state
     ensure_combat_state()
-    
-    # Roll initiatives
-    player_init = roll_initiative_player()
-    npc_init = roll_initiative_npc()
-    
-    # Determine turn order (player wins ties)
-    if player_init >= npc_init:
-        initiative_order = ["player", player_target_npc.get("id")]
-    else:
-        initiative_order = [player_target_npc.get("id"), "player"]
-    
+    target = resolve_combat_target("", player_target_npc)
+    if not target:
+        raise ValueError("Combat target is not a canonical local NPC.")
+    target_id = target["id"]
+
+    enemies = []
+    for npc in world_state.get("npcs", []):
+        if not isinstance(npc, dict) or npc.get("location") != world_state.get("location"):
+            continue
+        if npc.get("id") != target_id and not (
+            npc.get("hostile") is True
+            or npc.get("combat_role") in ("enemy", "hostile")
+        ):
+            continue
+        ensure_npc_enemy_stats(npc)
+        if npc.get("combat_status") == "active" and npc.get("current_hp", 0) > 0:
+            enemies.append(npc)
+    if not any(npc.get("id") == target_id for npc in enemies):
+        raise ValueError("Combat target is not able to fight.")
+
+    participant_npc_ids = [npc.get("id") for npc in enemies]
+    if (
+        any(
+            not isinstance(participant_id, str)
+            or not participant_id
+            or participant_id == "player"
+            for participant_id in participant_npc_ids
+        )
+        or len(set(participant_npc_ids)) != len(participant_npc_ids)
+    ):
+        raise ValueError("Combat participants require unique stable IDs.")
+
+    participant_ids = ["player", *[npc["id"] for npc in enemies]]
+    initiatives = {"player": roll_initiative_player()}
+    for npc in enemies:
+        modifier = npc.get("initiative_modifier", 0)
+        if type(modifier) is not int:
+            modifier = 0
+        initiatives[npc["id"]] = roll_initiative(modifier)
+    initiative_order = sorted(
+        participant_ids,
+        key=lambda participant_id: (
+            -initiatives[participant_id],
+            0 if participant_id == "player" else 1,
+            participant_id,
+        ),
+    )
+
     combat = world_state["combat"]
-    combat["active"] = True
-    combat["round"] = 1
-    combat["initiative_order"] = initiative_order
-    combat["current_turn_index"] = 0
-    combat["participants"] = ["player", player_target_npc.get("id")]
-    combat["target_id"] = player_target_npc.get("id")
-    
+    combat.clear()
+    combat.update({
+        "schema_version": 3,
+        "active": True,
+        "status": "active",
+        "round": 1,
+        "initiative_order": initiative_order,
+        "current_turn_index": 0,
+        "current_actor_id": initiative_order[0],
+        "participants": participant_ids,
+        "participant_records": [],
+        "actions_used": [],
+        "target_id": target_id,
+        "end_reason": None,
+    })
+    combat["participant_records"] = [
+        _combat_record_for_actor(
+            participant_id,
+            initiative=initiatives[participant_id],
+            actions_used=combat["actions_used"],
+        )
+        for participant_id in participant_ids
+    ]
+    _validate_combat_v3_payload(combat)
+
+    # Preserve legacy summary keys while the API/UI adopt the scheduler projection.
+    npc_initiative = initiatives.get(target_id, 0)
+    player_init = initiatives["player"]
     return {
         "combat_started": True,
         "round": 1,
         "initiative_order": initiative_order,
         "player_initiative": player_init,
-        "npc_initiative": npc_init,
+        "npc_initiative": npc_initiative,
+        "current_actor_id": combat["current_actor_id"],
+        "turn_owner": combat["current_actor_id"],
+        "target_id": target_id,
     }
 
 
@@ -1977,7 +2404,11 @@ def resolve_enemy_attack(target_npc):
     world_state = _session().world_state
     combat = ensure_combat_state()
     canonical = resolve_combat_target("", target_npc)
-    if not canonical or canonical == "ambiguous" or (combat["active"] and canonical["id"] != combat["target_id"]):
+    if (
+        not canonical
+        or canonical == "ambiguous"
+        or (combat["active"] and canonical["id"] not in combat["participants"])
+    ):
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "invalid_target", "damage": 0}
     target_npc = ensure_npc_enemy_stats(canonical)
@@ -2003,7 +2434,9 @@ def resolve_enemy_attack(target_npc):
         world_state["player_combat_status"] = "unconscious"
     return {"action": "enemy_attack", "status": "resolved", "success": hit,
             "outcome": "critical_hit" if critical else "hit" if hit else "miss",
-            "actor": target_npc["id"], "target": "player", "attack_roll": attack_roll,
+            "actor": target_npc["id"], "actor_name": target_npc.get("name"),
+            "target": "player", "target_name": _session().character.get("name"),
+            "attack_roll": attack_roll,
             "attack_bonus": attack_bonus, "attack_total": attack_total, "target_ac": _session().character["armor_class"],
             "critical": critical, "damage": damage, "target_hp_before": player_hp_before,
             "target_hp_after": player_hp_after, "target_status": world_state["player_combat_status"]}
@@ -2013,22 +2446,35 @@ def end_combat(reason="combat_ended"):
     """Clear the encounter idempotently; HP and incapacitation are unchanged."""
     combat = ensure_combat_state()
     combat.clear()
-    combat.update({"active": False, "round": 0, "initiative_order": [],
-                   "current_turn_index": 0, "participants": [], "target_id": None})
+    combat.update(_combat_defaults(end_reason=reason))
     return {"combat_ended": True, "reason": reason}
 
 
 def advance_combat_turn():
-    """Safely advance metadata; V2 exchanges do not use index choreography."""
+    """Advance initiative to the next living actor and roll over completed rounds."""
     combat = ensure_combat_state()
     order = combat["initiative_order"]
     if not combat["active"] or not order:
         return False, None, False
-    combat["current_turn_index"] = (combat["current_turn_index"] + 1) % len(order)
-    round_changed = combat["current_turn_index"] == 0
-    if round_changed:
-        combat["round"] += 1
-    return True, order[combat["current_turn_index"]], round_changed
+    start_index = combat["current_turn_index"]
+    round_changed = False
+    for step in range(1, len(order) * 2 + 1):
+        index = (start_index + step) % len(order)
+        if index == 0:
+            combat["round"] += 1
+            combat["actions_used"] = []
+            round_changed = True
+        participant_id = order[index]
+        if participant_id in combat["actions_used"]:
+            continue
+        if not _combat_participant_can_act(combat, participant_id):
+            continue
+        combat["current_turn_index"] = index
+        combat["current_actor_id"] = participant_id
+        _sync_combat_participant_records(combat)
+        _validate_combat_v3_payload(combat)
+        return True, participant_id, round_changed
+    return False, None, round_changed
 
 
 def _combat_snapshot():
@@ -4035,7 +4481,7 @@ def _commit_travel_action(action_result):
     return True
 
 
-def execute_intent(intent, player_input, npc_target=None):
+def execute_intent(intent, player_input, npc_target=None, target_id=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
     world_state = _session().world_state
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
@@ -4052,6 +4498,25 @@ def execute_intent(intent, player_input, npc_target=None):
     if intent_type in {"attack", "combat"} and (_session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious"):
         result.update(action="attack", success=False, outcome="player_unconscious",
                       direct_response="Bilincin kapalı; saldırı yapamazsın.")
+        return _finish_combat_result(result, before)
+    if combat_was_active and intent_type not in {
+        "attack",
+        "combat",
+        "dialogue",
+        "query",
+        "unknown",
+        "narrative",
+    }:
+        result.update(
+            action="combat_action",
+            success=False,
+            status="unsupported",
+            outcome="unsupported_combat_action",
+            direct_response=(
+                "Bu çatışma sürümünde desteklenen tek mekanik hamle saldırıdır; "
+                "bu eylem durumu değiştirmedi."
+            ),
+        )
         return _finish_combat_result(result, before)
 
     character_reply = known_character_answer(player_input)
@@ -4202,12 +4667,30 @@ def execute_intent(intent, player_input, npc_target=None):
     if intent_type in {"attack", "combat"}:
         combat = ensure_combat_state()
         result["action"] = "attack"
+        if combat["active"] and (
+            combat["current_actor_id"] != "player"
+            or "player" in combat["actions_used"]
+        ):
+            result.update(
+                success=False,
+                status="out_of_turn",
+                outcome="out_of_turn",
+                current_actor_id=combat["current_actor_id"],
+                turn_owner=combat["current_actor_id"],
+                direct_response="Bu hamle için sıra sende değil.",
+            )
+            return _finish_combat_result(result, before)
+
         weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
         if not weapon_name:
             result.update(success=False, outcome="no_weapon",
                           direct_response="Envanterinde saldırmak için kullanabileceğin bir kılıç yok.")
             return _finish_combat_result(result, before)
-        target_npc = resolve_combat_target(player_input, npc_target)
+        target_npc = resolve_combat_target(
+            player_input,
+            npc_target,
+            target_id=target_id,
+        )
         if target_npc == "ambiguous":
             result.update(success=False, status="clarification", outcome="ambiguous_target",
                           direct_response="Hangi hedefe saldırıyorsun?")
@@ -4216,41 +4699,87 @@ def execute_intent(intent, player_input, npc_target=None):
             result.update(success=False, outcome="no_target",
                           direct_response="Burada saldırabileceğin o hedef bulunmuyor.")
             return _finish_combat_result(result, before)
-        if combat["active"] and target_npc["id"] != combat["target_id"]:
+        if combat["active"] and target_npc["id"] not in combat["participants"]:
             result.update(success=False, outcome="target_mismatch",
-                          direct_response="Önce mevcut rakibinle çatışmayı bitirmelisin.")
+                          target_id=target_npc["id"],
+                          direct_response="Bu kişi mevcut çatışmanın katılımcısı değil.")
             return _finish_combat_result(result, before)
         ensure_npc_enemy_stats(target_npc)
         if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
             result.update(success=False, outcome="invalid_target", target_id=target_npc["id"],
                           direct_response="Bu hedef savaşabilecek durumda değil.")
-            if combat["active"]:
-                end_combat("target_defeated")
-                result.update(combat_ended=True, end_reason="target_defeated")
             return _finish_combat_result(result, before)
         started = not combat["active"]
+        enemy_actions = []
         if started:
-            start_combat(target_npc)
-            # First attack: round is 1 (set by start_combat)
-        # V2 contract: the initiating command attacks first regardless of initiative.
+            start_result = start_combat(target_npc)
+            if start_result["current_actor_id"] != "player":
+                enemy_actions.extend(_resolve_enemy_turns_until_player())
+                if (
+                    _session().character["current_hp"] <= 0
+                    or world_state["player_combat_status"] == "unconscious"
+                ):
+                    result.update(
+                        success=False,
+                        status="resolved",
+                        outcome="player_unconscious",
+                        combat_started=True,
+                        enemy_actions=enemy_actions,
+                        enemy_action=enemy_actions[-1] if enemy_actions else None,
+                        direct_response="Çatışma başladı; rakiplerin sırası önce geldi ve bilincini kaybettin.",
+                    )
+                    if enemy_actions:
+                        result["enemy_action"] = enemy_actions[0]
+                    return _finish_combat_result(result, before)
+        combat = ensure_combat_state()
+        if combat["current_actor_id"] != "player":
+            result.update(
+                success=False,
+                status="out_of_turn",
+                outcome="out_of_turn",
+                current_actor_id=combat["current_actor_id"],
+                turn_owner=combat["current_actor_id"],
+                direct_response="Bu hamle için sıra sende değil.",
+            )
+            return _finish_combat_result(result, before)
+        combat["target_id"] = target_npc["id"]
         result = resolve_attack(player_input, weapon_name, weapon_data, target_npc)
         result["combat_started"] = started
-        
-        if target_npc["combat_status"] != "active":
-            end_combat("target_defeated")
-            result.update(combat_ended=True, end_reason="target_defeated")
+        if result.get("outcome") in ("invalid_target", "no_target"):
+            result["combat_started"] = started
+            if enemy_actions:
+                result["enemy_actions"] = enemy_actions
+                result["enemy_action"] = enemy_actions[0]
+            return _finish_combat_result(result, before)
+
+        _mark_combat_action_used("player")
+        combat = ensure_combat_state()
+        if _combat_end_if_decided():
+            combat = ensure_combat_state()
+            result.update(
+                combat_ended=True,
+                end_reason=combat.get("end_reason"),
+            )
         else:
-            canonical_target = next(npc for npc in world_state["npcs"] if npc["id"] == combat["target_id"])
-            enemy_result = resolve_enemy_attack(canonical_target)
-            result["enemy_action"] = enemy_result
-            if _session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious":
-                end_combat("player_defeated")
-                result.update(combat_ended=True, end_reason="player_defeated")
-            else:
-                # After enemy acts, a full exchange is complete -> advance round
-                combat["round"] += 1
-                # Reset turn index to player for next round
-                combat["current_turn_index"] = combat["initiative_order"].index("player")
+            advanced, _, _ = advance_combat_turn()
+            if advanced:
+                enemy_actions.extend(_resolve_enemy_turns_until_player())
+            combat = ensure_combat_state()
+            if enemy_actions:
+                result["enemy_actions"] = enemy_actions
+                result["enemy_action"] = enemy_actions[0]
+            if not combat["active"]:
+                result.update(
+                    combat_ended=True,
+                    end_reason=combat.get("end_reason"),
+                )
+        combat = ensure_combat_state()
+        if enemy_actions:
+            result["enemy_actions"] = enemy_actions
+            result["enemy_action"] = enemy_actions[0]
+        result["current_actor_id"] = combat["current_actor_id"]
+        result["turn_owner"] = combat["current_actor_id"]
+        result["target_id"] = target_npc["id"]
         return _finish_combat_result(result, before)
 
     elif intent_type in {"rest", "use_item"}:
@@ -4265,7 +4794,7 @@ def execute_intent(intent, player_input, npc_target=None):
     return result
 
 
-def run_player_turn(player_input, messages=None):
+def run_player_turn(player_input, messages=None, target_id=None):
     """Intent → rules → validated updates → committed state → narration."""
     world_state = _session().world_state
     if messages is None:
@@ -4274,11 +4803,53 @@ def run_player_turn(player_input, messages=None):
     flags = world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
 
-    npc_resolution = resolve_npc_reference(player_input)
-    if npc_resolution["status"] == "ambiguous":
-        result = {"action": "dialogue", "status": "clarification", "success": False, "state_changes": []}
-        return {"action_result": result, "narration": npc_ambiguity_response(npc_resolution)}
-    npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
+    combat = ensure_combat_state()
+    if combat["active"] and combat["current_actor_id"] != "player":
+        enemy_actions = _resolve_enemy_turns_until_player()
+        combat = ensure_combat_state()
+        ended = not combat["active"]
+        action_result = {
+            "action": "attack",
+            "success": False,
+            "status": "resolved",
+            "outcome": (
+                "player_unconscious"
+                if world_state.get("player_combat_status") == "unconscious"
+                else "enemy_turn_resolved"
+            ),
+            "enemy_actions": enemy_actions,
+            "enemy_action": enemy_actions[0] if enemy_actions else None,
+            "combat_ended": ended,
+            "end_reason": combat.get("end_reason") if ended else None,
+            "current_actor_id": combat.get("current_actor_id"),
+            "turn_owner": combat.get("current_actor_id"),
+            "direct_response": (
+                "Rakibin sırası tamamlandı; verdiğin hamle kullanılmadı. "
+                "Şimdi kendi hamleni yeniden gönderebilirsin."
+                if not ended
+                else "Rakibin sırası tamamlandı ve karakterin çatışmada ilerleyemiyor."
+            ),
+        }
+        return {"action_result": action_result, "narration": action_result["direct_response"]}
+
+    if target_id is not None:
+        if not isinstance(target_id, str) or not target_id:
+            result = {
+                "action": "attack",
+                "status": "resolved",
+                "success": False,
+                "outcome": "invalid_target",
+                "direct_response": "Seçilen hedef geçerli değil.",
+                "state_changes": [],
+            }
+            return {"action_result": result, "narration": result["direct_response"]}
+        npc_target = None
+    else:
+        npc_resolution = resolve_npc_reference(player_input)
+        if npc_resolution["status"] == "ambiguous":
+            result = {"action": "dialogue", "status": "clarification", "success": False, "state_changes": []}
+            return {"action_result": result, "narration": npc_ambiguity_response(npc_resolution)}
+        npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
     raw_intent = parse_player_intent(player_input)
     normalized_intent = normalize_intent(raw_intent, player_input)
@@ -4288,7 +4859,15 @@ def run_player_turn(player_input, messages=None):
         print(json.dumps(validated_intent, ensure_ascii=False, indent=2))
 
     previous_location = world_state.get("location")
-    action_result = execute_intent(validated_intent, player_input, npc_target)
+    if target_id is None:
+        action_result = execute_intent(validated_intent, player_input, npc_target)
+    else:
+        action_result = execute_intent(
+            validated_intent,
+            player_input,
+            npc_target,
+            target_id=target_id,
+        )
     if DEBUG_MODE:
         print("[RULE ENGINE]")
         print(json.dumps({key: value for key, value in action_result.items() if key != "direct_response"}, ensure_ascii=False, indent=2))

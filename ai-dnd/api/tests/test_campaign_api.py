@@ -341,6 +341,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("SESSION_SECRET", str(response))
             self.assertNotIn("Authorization", str(response))
 
+    async def test_blank_target_id_is_rejected(self):
+        created = await self.create_campaign()
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Bandit'e saldırıyorum.", "target_id": "   "},
+        )
+        self.assertEqual(response.status_code, 422, response.text)
+
     async def test_attack_turn_returns_only_safe_structured_combat_result(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
@@ -348,7 +356,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "id": "npc_bandit",
             "name": "Bandit",
             "role": "bandit",
-            "location": "tavern",
+            "location": session.world_state["location"],
             "max_hp": 14,
             "current_hp": 7,
             "armor_class": 12,
@@ -356,18 +364,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "memory": [],
         }
         session.world_state["npcs"].append(target)
-        session.world_state["combat"].update(
-            {
-                "active": True,
-                "round": 1,
-                "initiative_order": ["player", "npc_bandit"],
-                "current_turn_index": 0,
-                "participants": ["player", "npc_bandit"],
-                "target_id": "npc_bandit",
-            }
-        )
+        with patch.object(session.rng, "randint", side_effect=[20, 1]):
+            session.start_combat(target)
+        received_target_ids = []
 
-        def attack_turn(_message):
+        def attack_turn(_message, *, target_id=None):
+            received_target_ids.append(target_id)
             return {
                 "narration": "The blade catches the bandit.",
                 "action_result": {
@@ -412,6 +414,26 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         "target_status": "active",
                         "direct_response": "must not leave the engine",
                     },
+                    "enemy_actions": [
+                        {
+                            "action": "enemy_attack",
+                            "actor": "npc_bandit",
+                            "actor_name": "Bandit",
+                            "outcome": "hit",
+                            "attack_roll": 12,
+                            "damage": 2,
+                            "private_state": "must not leave the engine",
+                        },
+                        {
+                            "action": "enemy_attack",
+                            "actor": "npc_archer",
+                            "actor_name": "Archer",
+                            "outcome": "miss",
+                            "attack_roll": 4,
+                            "damage": 0,
+                            "private_state": "must not leave the engine",
+                        },
+                    ],
                     "direct_response": "must not leave the engine",
                     "state_changes": {"private": "must not leave the engine"},
                 },
@@ -420,10 +442,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = attack_turn
         response = await self.http.post(
             f"/api/game/sessions/{created['session_id']}/turn",
-            json={"message": "Bandit'e saldırıyorum."},
+            json={"message": "Bandit'e saldırıyorum.", "target_id": "npc_bandit"},
         )
 
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(received_target_ids, ["npc_bandit"])
         result = response.json()["combat_result"]
         self.assertEqual(result["outcome"], "critical_hit")
         self.assertEqual(result["attack_roll"], 20)
@@ -433,6 +456,15 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("direct_response", result)
         self.assertNotIn("state_changes", result)
         self.assertNotIn("direct_response", result["enemy_action"])
+        self.assertEqual(
+            [(enemy["actor"], enemy["actor_name"], enemy["outcome"])
+             for enemy in result["enemy_actions"]],
+            [
+                ("npc_bandit", "Bandit", "hit"),
+                ("npc_archer", "Archer", "miss"),
+            ],
+        )
+        self.assertNotIn("private_state", result["enemy_actions"][0])
         history_entry = response.json()["combat_history_entry"]
         self.assertEqual(history_entry["result"], result)
         self.assertRegex(

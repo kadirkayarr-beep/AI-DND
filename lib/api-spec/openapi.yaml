@@ -548,6 +548,10 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        target_id:
+          type: ["string", "null"]
+          minLength: 1
+          maxLength: 128
       required: [message]
     GameTurnResult:
       type: object
@@ -711,6 +715,8 @@ components:
           type: ["string", "null"]
         actor:
           type: ["string", "null"]
+        actor_name:
+          type: ["string", "null"]
         target:
           type: ["string", "null"]
         target_id:
@@ -751,6 +757,8 @@ components:
           type: ["string", "null"]
         actor:
           type: ["string", "null"]
+        actor_name:
+          type: ["string", "null"]
         target:
           type: ["string", "null"]
         target_id:
@@ -783,10 +791,18 @@ components:
           type: ["boolean", "null"]
         end_reason:
           type: ["string", "null"]
+        current_actor_id:
+          type: ["string", "null"]
+        turn_owner:
+          type: ["string", "null"]
         enemy_action:
           anyOf:
             - $ref: "#/components/schemas/CombatAttackResult"
             - type: "null"
+        enemy_actions:
+          type: ["array", "null"]
+          items:
+            $ref: "#/components/schemas/CombatAttackResult"
     CombatHistoryEntry:
       type: object
       additionalProperties: false
@@ -1248,14 +1264,56 @@ components:
         broken:
           type: boolean
       required: [id, name, location, description, open, locked, broken]
+    CombatParticipantState:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 128
+        kind:
+          type: string
+          enum: [player, npc]
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        current_hp:
+          type: integer
+          minimum: 0
+        max_hp:
+          type: integer
+          minimum: 1
+        armor_class:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+        primary_action_available:
+          type: boolean
+        is_current_actor:
+          type: boolean
+      required:
+        - id
+        - kind
+        - name
+        - current_hp
+        - max_hp
+        - armor_class
+        - status
+        - primary_action_available
+        - is_current_actor
     GameCombat:
       type: object
       description: >-
-        Current Python combat state. The public serializer copies this mapping;
-        additional fields may be present in valid legacy saves.
+        Allowlisted public projection of Python-owned combat scheduler state.
       properties:
         active:
           type: boolean
+        status:
+          type: string
+          enum: [active, ended]
         round:
           type: integer
         initiative_order:
@@ -1264,13 +1322,35 @@ components:
             type: string
         current_turn_index:
           type: integer
+        current_actor_id:
+          type: ["string", "null"]
+        turn_owner:
+          type: ["string", "null"]
         participants:
           type: array
           items:
             type: string
+        participant_records:
+          type: array
+          items:
+            $ref: "#/components/schemas/CombatParticipantState"
         target_id:
           type: ["string", "null"]
-      additionalProperties: true
+        end_reason:
+          type: ["string", "null"]
+      required:
+        - active
+        - status
+        - round
+        - initiative_order
+        - current_turn_index
+        - current_actor_id
+        - turn_owner
+        - participants
+        - participant_records
+        - target_id
+        - end_reason
+      additionalProperties: false
     CampaignCreateInput:
       type: object
       properties:

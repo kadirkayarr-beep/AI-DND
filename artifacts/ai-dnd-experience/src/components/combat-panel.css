@@ -125,7 +125,7 @@
 
 .combat-combatants {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -139,6 +139,25 @@
 .combat-combatant-opponent {
   border-color: rgba(124, 68, 54, .76);
   background: rgba(67, 31, 26, .32);
+}
+
+.combat-combatant-current {
+  border-color: rgba(202, 158, 96, .9);
+  box-shadow: inset 0 0 0 1px rgba(202, 158, 96, .22);
+}
+
+.combat-current-actor {
+  display: inline-block;
+  margin-top: 6px;
+  color: #d8b77e;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .13em;
+}
+
+.combat-initiative-current {
+  border-color: rgba(202, 158, 96, .9);
+  color: #f0d39d;
 }
 
 .combat-combatant-mark {

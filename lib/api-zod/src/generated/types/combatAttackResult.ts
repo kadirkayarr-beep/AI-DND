@@ -18,6 +18,8 @@ export interface CombatAttackResult {
   /** @nullable */
   actor?: string | null;
   /** @nullable */
+  actor_name?: string | null;
+  /** @nullable */
   target?: string | null;
   /** @nullable */
   target_id?: string | null;

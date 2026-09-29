@@ -78,16 +78,10 @@ class CampaignPersistenceTests(unittest.TestCase):
                 "combat_status": "active",
             }
         )
-        session.world_state["combat"].update(
-            {
-                "active": True,
-                "round": 2,
-                "initiative_order": ["player", "npc_saved"],
-                "current_turn_index": 1,
-                "target_id": "npc_saved",
-            }
-        )
-        session.ensure_combat_state()
+        with patch.object(session.rng, "randint", side_effect=[20, 1]):
+            session.start_combat(session.world_state["npcs"][0])
+        session._mark_combat_action_used("player")
+        session.advance_combat_turn()
         session.rng.random()
         expected_save = copy.deepcopy(session.serialize_game_state())
         expected_rng = session.rng.getstate()
@@ -129,7 +123,14 @@ class CampaignPersistenceTests(unittest.TestCase):
             restored.world_state["npcs"][0]["memory"],
             expected_save["world_state"]["npcs"][0]["memory"],
         )
-        self.assertEqual(restored.world_state["combat"]["round"], 2)
+        self.assertEqual(restored.world_state["combat"]["round"], 1)
+        self.assertEqual(restored.world_state["combat"]["current_actor_id"], "npc_saved")
+        self.assertEqual(restored.world_state["combat"]["actions_used"], ["player"])
+        self.assertFalse(
+            restored.world_state["combat"]["participant_records"][0][
+                "primary_action_available"
+            ]
+        )
         self.assertEqual(history[0]["player_message"], "Mira'ya adım Arven diyorum.")
         self.assertEqual(history[0]["narration"], "Mira başıyla selam verir.")
         self.assertEqual(resumed.combat_history, expected_combat_history)

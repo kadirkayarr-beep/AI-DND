@@ -81,6 +81,15 @@ export const createGameSessionResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createGameSessionResponseStateJournalQuestsMax = 100;
 
+export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const createGameSessionResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const createGameSessionResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const createGameSessionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
 export const createGameSessionResponseStateTurnIndexMin = 0;
 
 export const createGameSessionResponseStateQuestsItemQuestIdMax = 120;
@@ -227,13 +236,28 @@ export const CreateGameSessionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(createGameSessionResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(createGameSessionResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(createGameSessionResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(createGameSessionResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(createGameSessionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -329,6 +353,15 @@ export const getGameSessionStateResponseJournalQuestsItemObjectivesItemDescripti
 export const getGameSessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getGameSessionStateResponseJournalQuestsMax = 100;
+
+export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
+
+export const getGameSessionStateResponseCombatParticipantRecordsItemNameMax = 120;
+
+export const getGameSessionStateResponseCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const getGameSessionStateResponseCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const getGameSessionStateResponseTurnIndexMin = 0;
 
@@ -474,13 +507,28 @@ export const GetGameSessionStateResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(getGameSessionStateResponseCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(getGameSessionStateResponseCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(getGameSessionStateResponseCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(getGameSessionStateResponseCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(getGameSessionStateResponseTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -522,10 +570,13 @@ export const PlayGameTurnParams = zod.object({
 
 export const playGameTurnBodyMessageMax = 4000;
 
+export const playGameTurnBodyTargetIdMax = 128;
+
 
 
 export const PlayGameTurnBody = zod.object({
-  "message": zod.string().min(1).max(playGameTurnBodyMessageMax)
+  "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
+  "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
 export const playGameTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -583,6 +634,15 @@ export const playGameTurnResponseStateJournalQuestsItemObjectivesItemDescription
 export const playGameTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playGameTurnResponseStateJournalQuestsMax = 100;
+
+export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const playGameTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const playGameTurnResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const playGameTurnResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const playGameTurnResponseStateTurnIndexMin = 0;
 
@@ -752,13 +812,28 @@ export const PlayGameTurnResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(playGameTurnResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(playGameTurnResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(playGameTurnResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(playGameTurnResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(playGameTurnResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -795,6 +870,7 @@ export const PlayGameTurnResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -811,12 +887,15 @@ export const PlayGameTurnResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -830,7 +909,28 @@ export const PlayGameTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
   "event_id": zod.string().uuid().regex(playGameTurnResponseCombatHistoryEntryOneEventIdRegExp),
@@ -841,6 +941,7 @@ export const PlayGameTurnResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -857,12 +958,15 @@ export const PlayGameTurnResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -876,7 +980,28 @@ export const PlayGameTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
@@ -970,6 +1095,15 @@ export const acceptGameQuestResponseStateJournalQuestsItemObjectivesItemDescript
 export const acceptGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const acceptGameQuestResponseStateJournalQuestsMax = 100;
+
+export const acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const acceptGameQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const acceptGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const acceptGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const acceptGameQuestResponseStateTurnIndexMin = 0;
 
@@ -1143,13 +1277,28 @@ export const AcceptGameQuestResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(acceptGameQuestResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(acceptGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(acceptGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(acceptGameQuestResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -1272,6 +1421,15 @@ export const cancelGameQuestResponseStateJournalQuestsItemObjectivesItemDescript
 export const cancelGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const cancelGameQuestResponseStateJournalQuestsMax = 100;
+
+export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const cancelGameQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const cancelGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const cancelGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const cancelGameQuestResponseStateTurnIndexMin = 0;
 
@@ -1445,13 +1603,28 @@ export const CancelGameQuestResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(cancelGameQuestResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(cancelGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(cancelGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(cancelGameQuestResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -1610,6 +1783,15 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
+export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const createCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const createCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const createCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
 export const createCampaignResponseStateTurnIndexMin = 0;
 
 export const createCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -1761,13 +1943,28 @@ export const CreateCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(createCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(createCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(createCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(createCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(createCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -1812,6 +2009,7 @@ export const CreateCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -1828,12 +2026,15 @@ export const CreateCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -1847,7 +2048,28 @@ export const CreateCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })
@@ -1915,6 +2137,15 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesItemDescriptionM
 export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getCampaignResponseStateJournalQuestsMax = 100;
+
+export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const getCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const getCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const getCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const getCampaignResponseStateTurnIndexMin = 0;
 
@@ -2077,13 +2308,28 @@ export const GetCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(getCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(getCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(getCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(getCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(getCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -2128,6 +2374,7 @@ export const GetCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -2144,12 +2391,15 @@ export const GetCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -2163,7 +2413,28 @@ export const GetCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })
@@ -2231,6 +2502,15 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesItemDescripti
 export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
+
+export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resumeCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resumeCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resumeCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const resumeCampaignResponseStateTurnIndexMin = 0;
 
@@ -2383,13 +2663,28 @@ export const ResumeCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resumeCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resumeCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resumeCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resumeCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(resumeCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -2434,6 +2729,7 @@ export const ResumeCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -2450,12 +2746,15 @@ export const ResumeCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -2469,7 +2768,28 @@ export const ResumeCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })
@@ -2581,6 +2901,15 @@ export const createLegacySessionResponseStateJournalQuestsItemObjectivesItemDesc
 export const createLegacySessionResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createLegacySessionResponseStateJournalQuestsMax = 100;
+
+export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const createLegacySessionResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const createLegacySessionResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const createLegacySessionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const createLegacySessionResponseStateTurnIndexMin = 0;
 
@@ -2728,13 +3057,28 @@ export const CreateLegacySessionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(createLegacySessionResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(createLegacySessionResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(createLegacySessionResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(createLegacySessionResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(createLegacySessionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -2831,6 +3175,15 @@ export const getLegacySessionStateResponseJournalQuestsItemObjectivesItemDescrip
 export const getLegacySessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacySessionStateResponseJournalQuestsMax = 100;
+
+export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
+
+export const getLegacySessionStateResponseCombatParticipantRecordsItemNameMax = 120;
+
+export const getLegacySessionStateResponseCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const getLegacySessionStateResponseCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const getLegacySessionStateResponseTurnIndexMin = 0;
 
@@ -2976,13 +3329,28 @@ export const GetLegacySessionStateResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(getLegacySessionStateResponseCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(getLegacySessionStateResponseCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(getLegacySessionStateResponseCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(getLegacySessionStateResponseCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(getLegacySessionStateResponseTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -3025,10 +3393,13 @@ export const PlayLegacyTurnParams = zod.object({
 
 export const playLegacyTurnBodyMessageMax = 4000;
 
+export const playLegacyTurnBodyTargetIdMax = 128;
+
 
 
 export const PlayLegacyTurnBody = zod.object({
-  "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax)
+  "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
+  "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
 export const playLegacyTurnResponseStateWorldEnvironmentDefault = `unknown`;
@@ -3086,6 +3457,15 @@ export const playLegacyTurnResponseStateJournalQuestsItemObjectivesItemDescripti
 export const playLegacyTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playLegacyTurnResponseStateJournalQuestsMax = 100;
+
+export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const playLegacyTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const playLegacyTurnResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const playLegacyTurnResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
 
@@ -3255,13 +3635,28 @@ export const PlayLegacyTurnResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(playLegacyTurnResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(playLegacyTurnResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(playLegacyTurnResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(playLegacyTurnResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -3298,6 +3693,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3314,12 +3710,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3333,7 +3732,28 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
   "event_id": zod.string().uuid().regex(playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp),
@@ -3344,6 +3764,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3360,12 +3781,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3379,7 +3803,28 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
   "skill_check_result": zod.union([zod.object({
@@ -3501,6 +3946,15 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesItemDes
 export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
+
+export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const createLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const createLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const createLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const createLegacyCampaignResponseStateTurnIndexMin = 0;
 
@@ -3653,13 +4107,28 @@ export const CreateLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(createLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(createLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(createLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -3704,6 +4173,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3720,12 +4190,15 @@ export const CreateLegacyCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -3739,7 +4212,28 @@ export const CreateLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })
@@ -3808,6 +4302,15 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesItemDescri
 export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
+
+export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const getLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const getLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const getLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const getLegacyCampaignResponseStateTurnIndexMin = 0;
 
@@ -3970,13 +4473,28 @@ export const GetLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(getLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(getLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(getLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(getLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -4021,6 +4539,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -4037,12 +4556,15 @@ export const GetLegacyCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -4056,7 +4578,28 @@ export const GetLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })
@@ -4125,6 +4668,15 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesItemDes
 export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
+
+export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
 export const resumeLegacyCampaignResponseStateTurnIndexMin = 0;
 
@@ -4277,13 +4829,28 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
-  "active": zod.boolean().optional(),
-  "round": zod.number().int().optional(),
-  "initiative_order": zod.array(zod.string()).optional(),
-  "current_turn_index": zod.number().int().optional(),
-  "participants": zod.array(zod.string()).optional(),
-  "target_id": zod.string().nullish()
-}).describe('Current Python combat state. The public serializer copies this mapping; additional fields may be present in valid legacy saves.'),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resumeLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resumeLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resumeLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
   "player_combat_status": zod.enum(['active', 'unconscious']),
   "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
@@ -4328,6 +4895,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -4344,12 +4912,15 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
+  "current_actor_id": zod.string().nullish(),
+  "turn_owner": zod.string().nullish(),
   "enemy_action": zod.union([zod.object({
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
   "outcome": zod.string().nullish(),
   "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
   "target": zod.string().nullish(),
   "target_id": zod.string().nullish(),
   "target_name": zod.string().nullish(),
@@ -4363,7 +4934,28 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish()
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "enemy_actions": zod.array(zod.object({
+  "action": zod.string().nullish(),
+  "status": zod.string().nullish(),
+  "success": zod.boolean().nullish(),
+  "outcome": zod.string().nullish(),
+  "actor": zod.string().nullish(),
+  "actor_name": zod.string().nullish(),
+  "target": zod.string().nullish(),
+  "target_id": zod.string().nullish(),
+  "target_name": zod.string().nullish(),
+  "weapon": zod.string().nullish(),
+  "attack_roll": zod.number().int().nullish(),
+  "attack_bonus": zod.number().int().nullish(),
+  "attack_total": zod.number().int().nullish(),
+  "target_ac": zod.number().int().nullish(),
+  "critical": zod.boolean().nullish(),
+  "damage": zod.number().int().nullish(),
+  "target_hp_before": zod.number().int().nullish(),
+  "target_hp_after": zod.number().int().nullish(),
+  "target_status": zod.string().nullish()
+})).nullish()
 })
 }))
 })

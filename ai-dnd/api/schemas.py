@@ -20,6 +20,7 @@ class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str = Field(min_length=1, max_length=4000)
+    target_id: str | None = Field(default=None, min_length=1, max_length=128)
 
     @field_validator("message")
     @classmethod
@@ -27,6 +28,46 @@ class TurnRequest(BaseModel):
         if not value.strip():
             raise ValueError("Message must not be empty.")
         return value
+
+    @field_validator("target_id")
+    @classmethod
+    def target_id_must_not_be_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Target ID must not be blank.")
+        return cleaned
+
+
+class CombatParticipantState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=128)
+    kind: Literal["player", "npc"]
+    name: str = Field(min_length=1, max_length=120)
+    current_hp: int = Field(ge=0)
+    max_hp: int = Field(ge=1)
+    armor_class: int = Field(ge=0)
+    status: str
+    primary_action_available: bool
+    is_current_actor: bool
+
+
+class CombatStateProjection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    active: bool
+    status: Literal["active", "ended"]
+    round: int = Field(ge=0)
+    initiative_order: list[str]
+    current_turn_index: int = Field(ge=0)
+    current_actor_id: str | None = None
+    turn_owner: str | None = None
+    participants: list[str]
+    participant_records: list[CombatParticipantState]
+    target_id: str | None = None
+    end_reason: str | None = None
 
 
 class CombatAttackResult(BaseModel):
@@ -37,6 +78,7 @@ class CombatAttackResult(BaseModel):
     success: bool | None = None
     outcome: str | None = None
     actor: str | None = None
+    actor_name: str | None = None
     target: str | None = None
     target_id: str | None = None
     target_name: str | None = None
@@ -56,7 +98,10 @@ class CombatTurnResult(CombatAttackResult):
     combat_started: bool | None = None
     combat_ended: bool | None = None
     end_reason: str | None = None
+    current_actor_id: str | None = None
+    turn_owner: str | None = None
     enemy_action: CombatAttackResult | None = None
+    enemy_actions: list[CombatAttackResult] | None = None
 
 
 class CombatHistoryEntry(BaseModel):
