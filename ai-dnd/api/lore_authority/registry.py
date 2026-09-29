@@ -191,6 +191,34 @@ class LoreRegistry:
     def sources(self) -> tuple[SourceManifest, ...]:
         return tuple(self._sources[key] for key in sorted(self._sources))
 
+    def _region_scope_values(self, region_scopes: Iterable[str]) -> set[str]:
+        """Expand region IDs and reviewed names to their equivalent values."""
+        values = {
+            scope
+            for scope in region_scopes
+            if isinstance(scope, str) and scope.strip()
+        }
+        for scope in tuple(values):
+            if scope in self._entities:
+                candidate_ids = (scope,)
+            else:
+                candidate_ids = self._aliases.get(normalize_name(scope), ())
+            for entity_id in candidate_ids:
+                region = self._entities.get(entity_id)
+                if region is None or region.entity_type is not EntityType.REGION:
+                    continue
+                values.update(
+                    {
+                        region.entity_id,
+                        region.canonical_name,
+                        normalize_name(region.canonical_name),
+                    }
+                )
+                for alias in region.aliases:
+                    values.add(alias)
+                    values.add(normalize_name(alias))
+        return values
+
     def resolve_entity(self, name_or_id: str, *, region_scope: str | None = None) -> EntityResolution:
         query = name_or_id.strip()
         if not query:
@@ -200,10 +228,12 @@ class LoreRegistry:
         else:
             candidates = self._aliases.get(normalize_name(query), ())
         if region_scope:
+            region_scopes = self._region_scope_values((region_scope,))
             scoped = tuple(
                 entity_id
                 for entity_id in candidates
-                if self._entities[entity_id].region_scope in {None, region_scope}
+                if self._entities[entity_id].region_scope is None
+                or self._entities[entity_id].region_scope in region_scopes
             )
             if scoped:
                 candidates = scoped
@@ -226,12 +256,17 @@ class LoreRegistry:
             return ()
         normalized = normalize_name(text)
         mentioned: set[str] = set()
+        region_scopes = self._region_scope_values((region_scope,)) if region_scope else set()
         for alias, candidates in self._aliases.items():
             if not re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", normalized):
                 continue
             for entity_id in candidates:
                 entity = self._entities[entity_id]
-                if region_scope and entity.region_scope not in {None, region_scope}:
+                if (
+                    region_scope
+                    and entity.region_scope is not None
+                    and entity.region_scope not in region_scopes
+                ):
                     continue
                 mentioned.add(entity_id)
         return tuple(sorted(mentioned))
@@ -308,7 +343,7 @@ class LoreRegistry:
         region_ids: Iterable[str] = (),
     ) -> LoreClaimValidation:
         known = set(player_known_fact_ids)
-        regions = set(region_ids)
+        regions = self._region_scope_values(region_ids)
         candidates = [
             fact
             for fact in self._facts_by_subject.get(subject_id, ())
@@ -344,7 +379,7 @@ class LoreRegistry:
         region_ids: Iterable[str] = (),
     ) -> tuple[LoreFact, ...]:
         known = set(known_fact_ids)
-        regions = set(region_ids)
+        regions = self._region_scope_values(region_ids)
         return tuple(
             self._facts[fact_id]
             for fact_id in sorted(known)
@@ -385,6 +420,7 @@ class LoreRegistry:
         region_ids = self.geography_ancestors(
             item for item in (state.region_id, current_location_id) if item
         )
+        region_scopes = self._region_scope_values(region_ids)
         geography_ids = set(self.geography_ancestors(all_context_ids))
         for entity_id in tuple(geography_ids):
             for edge in self._incoming_edges.get(entity_id, ()):
@@ -414,8 +450,8 @@ class LoreRegistry:
             fact = self._facts.get(fact_id)
             if fact is not None:
                 candidates.setdefault(fact.fact_id, (6, fact))
-        for region_id in region_ids:
-            for fact in self._facts_by_region.get(region_id, ()):
+        for region_scope in region_scopes:
+            for fact in self._facts_by_region.get(region_scope, ()):
                 candidates.setdefault(fact.fact_id, (7, fact))
         if len(candidates) > MAX_CANDIDATES:
             candidates = dict(
@@ -452,7 +488,7 @@ class LoreRegistry:
                 ):
                     continue
             if fact.visibility is VisibilityScope.REGIONAL_KNOWLEDGE:
-                if fact.region_scope not in region_ids and fact.fact_id not in campaign_known:
+                if fact.region_scope not in region_scopes and fact.fact_id not in campaign_known:
                     continue
             allowed.append((rank, fact))
 
@@ -492,7 +528,7 @@ class LoreRegistry:
             fact.to_dict()
             for fact in self.get_player_known_lore(
                 campaign_known,
-                region_ids=region_ids,
+                region_ids=region_scopes,
             )
             if fact.fact_id in {item.fact_id for _, item in selected}
         ]

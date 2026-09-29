@@ -237,6 +237,92 @@ class LoreAuthorityTests(unittest.TestCase):
         )
         self.assertEqual(registry.mentioned_entity_ids("Waterdeepish"), ())
 
+    def test_region_display_names_match_bound_region_ids(self):
+        north = entity(
+            "region:north",
+            "The North",
+            entity_type="REGION",
+        )
+        neverwinter = entity(
+            "city:neverwinter",
+            "Neverwinter",
+            entity_type="CITY",
+        )
+        neverwinter["region_scope"] = "The North"
+        registry = verified_registry(
+            entities=[
+                entity("world:test", "Test World"),
+                north,
+                neverwinter,
+            ],
+            facts=[
+                fact(
+                    "fact:neverwinter_status",
+                    "city:neverwinter",
+                    "city_status",
+                    "Rebuilding",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="The North",
+                )
+            ],
+        )
+        state = CampaignLoreState.from_mapping(
+            {
+                "binding_status": "BOUND",
+                "setting_profile": "TEST_SETTING",
+                "world_id": "world:test",
+                "epoch_id": "epoch:test",
+                "region_id": "region:north",
+                "current_location_entity_id": "city:neverwinter",
+                "starting_location_entity_id": "city:neverwinter",
+                "region_pack_id": "test:pack",
+                "player_known_fact_ids": [],
+                "npc_known_fact_ids": {},
+                "campaign_overrides": [],
+                "procedural_entity_refs": [],
+                "lore_discoveries": [],
+            }
+        )
+
+        self.assertEqual(
+            registry.mentioned_entity_ids(
+                "What is known about Neverwinter?",
+                region_scope="region:north",
+            ),
+            ("city:neverwinter",),
+        )
+        packet = registry.retrieve_lore_context(
+            current_location_id="city:neverwinter",
+            mentioned_entity_ids={"city:neverwinter"},
+            campaign_state=state,
+        )
+        self.assertIn(
+            "fact:neverwinter_status",
+            {
+                item["fact_id"]
+                for item in packet["sections"]["official_forgotten_realms_lore"]
+            },
+        )
+        self.assertEqual(
+            registry.validate_lore_claim(
+                subject_id="city:neverwinter",
+                predicate="city_status",
+                object_id_or_value="Rebuilding",
+                region_ids={"region:north"},
+            ).status,
+            ResolutionStatus.RESOLVED,
+        )
+        self.assertEqual(
+            tuple(
+                item.fact_id
+                for item in registry.get_player_known_lore(
+                    ["fact:neverwinter_status"],
+                    region_ids={"region:north"},
+                )
+            ),
+            ("fact:neverwinter_status",),
+        )
+
     def test_player_knowledge_filters_secrets_and_respects_regions(self):
         facts = [
             fact("fact:common", "world:test", "common_custom", "Known"),

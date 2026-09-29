@@ -14,3 +14,17 @@ mtime_ms = 1790614791739
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/3e08e3ca-d5e8-465e-835e-0b0593786bb4/ab1a63dc-87a0-4fd5-87a2-af97daa48361"
 storage_version_token = "1790614840822949"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "FVC3idvy-1YHNO1jldIA9"
+uri = "file://ai-dnd/NEVERWINTER_CANON_SMOKE_REPORT_2026-09-29.md"
+type = "text"
+title = "Neverwinter live canon smoke report"
+description = "18-turn Qwen3 verification, retrieved lore, failure cases, state review, and campaign cleanup."
+logical_id = "89d2b591-c6ea-4885-a451-d485cabe16e6"
+content_hash = "sha256:df8e2229673598fc57c15108ec142797f273284d0b732e1c6a662a7ab00b2b43"
+size = 9718
+mtime_ms = 1790687801533
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/89d2b591-c6ea-4885-a451-d485cabe16e6/73cf029b-ac7f-4afa-9ed2-26313f8631ac"
+storage_version_token = "1790687842916697"
+content_type = "text/markdown"
