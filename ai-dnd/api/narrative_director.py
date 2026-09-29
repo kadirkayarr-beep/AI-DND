@@ -19,6 +19,7 @@ class NarrativeTurnContext:
     player_message: str
     action_result: dict[str, Any] | None = None
     diagnostics: dict[str, Any] = field(default_factory=dict)
+    selected_player_claims: list[dict[str, str]] = field(default_factory=list)
 
 
 _active_turn: ContextVar[NarrativeTurnContext | None] = ContextVar(
@@ -45,13 +46,18 @@ def narrative_turn_context(
 
 
 def install_narrative_context_adapter(game_module: Any) -> None:
-    """Wrap the engine context builder without changing game.py or its state."""
+    """Wrap engine context and finalization without mutating session state."""
     if getattr(game_module, "_narrative_context_adapter_installed", False):
         return
 
     original_build = getattr(game_module, "build_world_context", None)
     original_ask = getattr(game_module, "ask_dungeon_master", None)
-    if not callable(original_build) or not callable(original_ask):
+    original_finalize = getattr(game_module, "finalize_narration", None)
+    if (
+        not callable(original_build)
+        or not callable(original_ask)
+        or not callable(original_finalize)
+    ):
         raise RuntimeError("The engine narrator context hooks are unavailable.")
 
     def ask_with_action_context(*args: Any, **kwargs: Any) -> Any:
@@ -75,6 +81,7 @@ def install_narrative_context_adapter(game_module: Any) -> None:
         if frame is None or not isinstance(canonical_context, dict):
             return canonical_context
 
+        frame.selected_player_claims = []
         packet, diagnostics = build_narrative_context(
             frame.memory,
             canonical_context,
@@ -82,6 +89,41 @@ def install_narrative_context_adapter(game_module: Any) -> None:
             frame.action_result,
         )
         frame.diagnostics = diagnostics
+        relevant = packet.get("relevant_continuity", {})
+        interactions = (
+            relevant.get("npc_interactions", {})
+            if isinstance(relevant, dict)
+            else {}
+        )
+        if isinstance(interactions, dict):
+            seen: set[tuple[str, str]] = set()
+            for npc_id, entries in interactions.items():
+                if not isinstance(npc_id, str) or not npc_id or not isinstance(
+                    entries, list
+                ):
+                    continue
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    if (
+                        entry.get("source") != "player_utterance"
+                        or entry.get("authority") != "narrative_continuity"
+                    ):
+                        continue
+                    text = entry.get("text")
+                    if not isinstance(text, str) or not text.strip():
+                        continue
+                    key = (npc_id, text)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    frame.selected_player_claims.append(
+                        {"npc_id": npc_id, "text": text}
+                    )
+                    if len(frame.selected_player_claims) >= 12:
+                        break
+                if len(frame.selected_player_claims) >= 12:
+                    break
         enriched = dict(canonical_context)
         enriched["narrative_continuity"] = {
             "authority_boundary": packet.get("authority_boundary", {}),
@@ -90,6 +132,19 @@ def install_narrative_context_adapter(game_module: Any) -> None:
         }
         return enriched
 
+    def finalize_with_supported_claims(*args: Any, **kwargs: Any) -> Any:
+        frame = _active_turn.get()
+        if (
+            frame is not None
+            and len(args) < 6
+            and "supported_player_claims" not in kwargs
+        ):
+            kwargs["supported_player_claims"] = [
+                dict(claim) for claim in frame.selected_player_claims
+            ]
+        return original_finalize(*args, **kwargs)
+
     game_module.ask_dungeon_master = ask_with_action_context
     game_module.build_world_context = build_with_narrative_context
+    game_module.finalize_narration = finalize_with_supported_claims
     game_module._narrative_context_adapter_installed = True

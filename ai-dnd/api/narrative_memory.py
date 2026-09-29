@@ -752,8 +752,10 @@ def _scene_type(action: dict[str, Any]) -> str:
         return "combat"
     if action.get("action") == "travel":
         return "travel"
-    if action.get("action") == "query":
+    if action.get("action") in {"query", "inventory", "status"}:
         return "direct_query"
+    if action.get("action") == "skill_check":
+        return "skill_check"
     if action.get("action") == "dialogue" or action.get("npc_id"):
         return "conversation"
     return "exploration"
