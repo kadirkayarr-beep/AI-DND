@@ -5520,9 +5520,8 @@ def _unverified_lore_response(player_input, npc_target=None):
             "kesin uzaklık doğrulanamıyor."
         )
     if re.search(
-        r"\b(?:kral|kraliçe|hükümdar|yönetici|lord|king|queen|ruler)\b",
-        player_input,
-        re.IGNORECASE,
+        r"\b(?:kralice|kral|hukumdar|yonetici|lord|king|queen|ruler)\w*\b",
+        text,
     ):
         if (
             isinstance(npc_target, dict)
@@ -8487,6 +8486,7 @@ def plan_living_world_turn(player_input, target_id=None):
                 }
             elif target:
                 living_world.set_player_position(world_state, current, "seated", target.get("id"))
+                target_name = str(target.get("name") or "seçtiğin yer").strip()
                 direct = {
                     "action": "sit",
                     "status": "completed",
@@ -8494,7 +8494,10 @@ def plan_living_world_turn(player_input, target_id=None):
                     "target_id": target.get("id"),
                     "target_name": target.get("name"),
                     "state_changes": [],
-                    "direct_response": "Yanındaki uygun bir yere oturup yerleşiyorsun.",
+                    "direct_response": (
+                        f"“{target_name}” yakınında uygun bir yere oturup "
+                        "yerleşiyorsun."
+                    ),
                 }
             else:
                 direct = {

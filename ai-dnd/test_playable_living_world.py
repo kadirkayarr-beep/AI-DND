@@ -235,7 +235,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(sit["direct_result"]["target_id"], feature["id"])
         self.assertEqual(
             sit["direct_result"]["direct_response"],
-            "Yanındaki uygun bir yere oturup yerleşiyorsun.",
+            "“Pencere yanı meşe masa” yakınında uygun bir yere oturup yerleşiyorsun.",
         )
         inspect = self.session.plan_living_world_turn(
             f"{feature['name']} üzerindeki ayrıntıyı inceliyorum.",
@@ -354,6 +354,18 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIn("ölçüm kaydı yok", response)
         self.assertNotIn("vermiyorsun", response)
         self.assertNotIn("ölçün yok", response)
+
+    def test_unverified_ruler_response_handles_turkish_inflections(self):
+        for question in (
+            "Bu şehrin hükümdarı kim?",
+            "Bu şehrin hükümdarı kimdir?",
+            "Bu şehrin yöneticisi kim?",
+            "Bu ülkenin kraliçesi kim?",
+        ):
+            with self.subTest(question=question):
+                response = game._unverified_lore_response(question)
+                self.assertIn("yöneticisinin kim olduğu", response)
+                self.assertNotIn("kesin yanıt belirsiz", response)
 
     def test_legacy_save_migrates_feature_ids_idempotently(self):
         location = self.root_location
