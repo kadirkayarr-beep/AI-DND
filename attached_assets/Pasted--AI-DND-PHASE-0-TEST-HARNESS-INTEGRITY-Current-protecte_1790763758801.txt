@@ -1,0 +1,162 @@
+# AI-DND — PHASE 0: TEST HARNESS INTEGRITY
+
+Current protected baseline:
+
+AI-DND v0.6.1-alpha
+Internal Build V15
+
+Current game.py SHA-256:
+
+8656d9dafd8ca9c022b7bbb992958ffe233cf126afc0c62d55e0a78dbd0c8592
+
+Playable Living World V1.1 is CLOSED / FINAL / PASS.
+
+Do NOT begin Narrative Authority Rebalance yet.
+
+This task is ONLY about test/release-gate integrity.
+
+==================================================
+KNOWN ISSUE
+==================================================
+
+The current test workflow has previously produced a contradictory result:
+
+- run_tests.py reported its deterministic gates as passed
+- while the same overall run separately printed a failure involving:
+
+test_location_name_vs_character_name
+
+This means our release/test harness may be capable of reporting success while
+a regression test has actually failed.
+
+Before the next architectural phase, we need to understand and correct this.
+
+==================================================
+GOAL
+==================================================
+
+Make the test/release gate truthful.
+
+If ANY test that is supposed to participate in the gate fails, the overall
+command/gate must fail with a non-zero exit status.
+
+Do not make tests green by weakening assertions.
+
+Do not change gameplay behavior unless investigation proves there is an actual
+product bug and the smallest safe correction is required.
+
+==================================================
+STEP 1 — READ ONLY DIAGNOSIS FIRST
+==================================================
+
+Before modifying anything:
+
+1. Inspect run_tests.py and every subprocess/test command it invokes.
+
+2. Locate test_location_name_vs_character_name.
+
+3. Reproduce the contradictory state if possible.
+
+4. Determine which of these is true:
+
+A. the test harness ignores or masks a subprocess/test failure
+
+B. test_location_name_vs_character_name itself is stale or incorrect
+
+C. the application has a real regression
+
+D. more than one of the above
+
+5. Report the exact reason before editing.
+
+==================================================
+STEP 2 — MINIMAL FIX
+==================================================
+
+After diagnosis, make ONLY the smallest change required.
+
+Test harness requirements:
+
+- any participating failing test must produce an overall non-zero exit code
+- success summaries must not print if a required test failed
+- subprocess return codes must not be silently ignored
+- exceptions must not be converted into PASS
+- stdout/stderr should remain useful for debugging
+
+For test_location_name_vs_character_name:
+
+DO NOT simply edit the expected value to match current behavior.
+
+First determine whether current behavior or the test expectation represents
+the intended V1.1 contract.
+
+If the test is stale, correct the test and explain why.
+
+If the game has a real regression, make the smallest safe product correction
+and explain why.
+
+==================================================
+SCOPE LIMIT
+==================================================
+
+Do NOT:
+
+- implement NarrationPacket
+- change Qwen usage
+- change Living World narration architecture
+- change lore architecture
+- change memory architecture
+- add Continue
+- add Suggestions
+- add Spells
+- refactor game.py
+- perform broad cleanup
+- change unrelated tests
+- modify release reports
+- change public version/build
+
+This is Phase 0 only.
+
+==================================================
+VALIDATION
+==================================================
+
+After the fix:
+
+1. Run the corrected deterministic/release harness.
+
+2. Run the focused Living World tests.
+
+3. Run the full API test suite.
+
+4. Demonstrate that the harness really fails by using a safe temporary or
+controlled failing-test verification if practical.
+
+Do not leave any intentional failing change in the repository.
+
+5. Confirm final working tree/code is clean except for the intended Phase 0
+changes.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+Report:
+
+- root cause
+- files changed
+- whether the issue was harness, stale test, product bug, or combination
+- exact fix
+- deterministic gate result
+- focused Living World test result
+- API test result
+- proof that a real failure now produces non-zero overall status
+- final game.py SHA-256
+- whether game.py changed
+- git diff summary
+
+Do NOT bump v0.6.1-alpha / V15.
+
+Do NOT start the next phase.
+
+Stop after Phase 0 is verified.
