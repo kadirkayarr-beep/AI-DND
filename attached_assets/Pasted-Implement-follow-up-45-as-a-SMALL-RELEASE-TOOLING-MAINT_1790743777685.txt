@@ -1,0 +1,213 @@
+Implement follow-up #45 as a SMALL RELEASE-TOOLING MAINTENANCE PATCH.
+
+Playable Living World V1 is already complete and remains:
+
+AI-DND v0.6.0-alpha
+Internal Build V14
+
+Do NOT modify gameplay behavior and do NOT bump the public version.
+
+GOAL
+
+Add an explicit second-step manual review finalization path for completed
+Playable Living World V1 smoke runs.
+
+The current 36-turn smoke intentionally ends as REVIEW_PENDING / exit 1
+until narration has been manually reviewed.
+
+The completed release was manually reviewed, but the harness has no formal
+way to record that approval without altering the original append-only smoke
+summary.
+
+Fix only that release-evidence gap.
+
+==================================================
+SCOPE
+==================================================
+
+Relevant files:
+
+- ai-dnd/api/tests/live_playable_living_world_v1_smoke.py
+- ai-dnd/reports/playable-living-world-v1-smokes/
+- focused tests for this finalization path if needed
+
+Do NOT modify:
+
+- ai-dnd/game.py
+- scene/living-world mechanics
+- lore authority behavior
+- persistence/gameplay behavior
+- combat
+- quests
+- memory semantics
+- API gameplay contracts
+- frontend gameplay
+- source lore packs
+- historical failed smoke reports
+- existing append-only smoke summaries
+
+Do NOT rerun the 36-turn Qwen smoke merely to implement this follow-up.
+
+==================================================
+REQUIRED BEHAVIOR
+==================================================
+
+Add an explicit manual-review finalization command/mode.
+
+It must take an EXISTING sanitized smoke evidence directory/report and verify
+the objective evidence before allowing approval.
+
+At minimum validate:
+
+- model == qwen3:8b
+- exactly 36 completed turns
+- no required evidence gaps
+- model-call limit remained valid
+- ordinary fallback count is within the release threshold
+- all required restart/resume comparisons passed
+- route/distance safety guard passed
+- final tavern continuity passed
+- required original tavern/NPC/feature identity continuity is supported
+- the run itself did not previously fail a mandatory invariant
+
+If any required evidence is incomplete, inconsistent, failed, or malformed:
+
+REFUSE SIGN-OFF.
+
+Do not allow a human approval flag to override failed mechanical evidence.
+
+==================================================
+MANUAL APPROVAL
+==================================================
+
+After objective validation succeeds, require an EXPLICIT manual approval
+action.
+
+Do not infer approval automatically.
+
+Example concept:
+
+python ...live_playable_living_world_v1_smoke.py \
+  --finalize-review <report-dir> \
+  --approve
+
+Exact CLI shape may follow the existing harness conventions.
+
+The manual sign-off must record only NON-NARRATIVE attestation data.
+
+It may include:
+
+- review status
+- review timestamp
+- harness/report version
+- evidence digest/hash
+- reviewer approval boolean
+- objective validation result
+- optional short non-narrative note
+
+It must NOT persist:
+
+- player raw prompts
+- narration text
+- private model prompts
+- secrets
+- hidden memories
+- withheld lore
+- auth data
+
+==================================================
+APPEND-ONLY REQUIREMENT
+==================================================
+
+Do NOT rewrite or mutate the original smoke summary.
+
+The original REVIEW_PENDING evidence remains historical truth.
+
+Create a separate review-attestation/finalization artifact associated with
+that run.
+
+For example:
+
+manual-review-attestation.json
+
+or another clear existing-project convention.
+
+The attestation must reference the original run safely, preferably through
+stable report identity and/or digest.
+
+Repeated approval must be idempotent.
+
+A second identical approval must not create contradictory state.
+
+A conflicting or tampered source report must fail validation.
+
+==================================================
+FINAL STATUS
+==================================================
+
+The tool should clearly distinguish:
+
+SMOKE EXECUTION STATUS
+from
+MANUAL REVIEW STATUS
+from
+FINAL RELEASE-GATE STATUS.
+
+Conceptually:
+
+execution: COMPLETE
+manual_review: APPROVED
+final_gate: PASS
+
+Do not rewrite historical execution state to pretend the original command
+itself returned PASS.
+
+==================================================
+TESTS
+==================================================
+
+Add focused tests covering at least:
+
+1. Valid 36-turn sanitized evidence + explicit approval -> PASS attestation.
+2. Missing turn -> reject.
+3. Evidence gap -> reject.
+4. Failed resume comparison -> reject.
+5. Excess fallback count -> reject.
+6. Wrong model -> reject.
+7. Failed route guard -> reject.
+8. Broken final tavern continuity -> reject.
+9. Modified/tampered evidence after approval source digest -> reject.
+10. Duplicate identical sign-off -> idempotent.
+11. No approval flag -> remain pending.
+12. No raw player/narration/private text written into attestation.
+
+Run the focused tests plus the normal deterministic/API gates necessary to
+show this tooling patch did not affect gameplay.
+
+Do NOT weaken existing gates.
+
+==================================================
+CURRENT COMPLETED RUN
+==================================================
+
+After implementation and tests pass, apply the new sign-off mechanism to the
+already-completed successful 36-turn Playable Living World V1 smoke evidence.
+
+Do NOT alter earlier failed runs.
+
+Do NOT alter the original successful smoke summary.
+
+Create only the separate approval attestation.
+
+Then report:
+
+- source smoke report used
+- objective validation result
+- manual-review attestation path
+- final release-gate status
+- tests run/results
+- changed files
+- confirmation that no gameplay files changed
+- confirmation that version remains AI-DND v0.6.0-alpha / Internal Build V14
+
+This is a maintenance closure for release evidence, not a new gameplay phase.
