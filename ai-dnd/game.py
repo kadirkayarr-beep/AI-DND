@@ -791,6 +791,8 @@ def is_dialogue_or_emotion(player_input):
 def is_npc_dialogue_input(player_input):
     if not isinstance(player_input, str):
         return False
+    if is_ordinary_environment_look(player_input) or living_world.classify_scene_action(player_input) == "look":
+        return False
     text = player_input.casefold().strip()
     if (
         local_dialogue.is_local_dialogue_input(player_input)
@@ -818,22 +820,37 @@ def is_npc_dialogue_input(player_input):
 
 
 def is_npc_historical_claim(player_input):
-    """Identify claims about prior NPC speech so they cannot create world facts."""
-    text = player_input.casefold()
+    """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
+    if not isinstance(player_input, str):
+        return False
+    text = player_input.casefold().strip()
     return bool(re.search(
-        r"\b(?:daha önce|az önce|önceden|geçen sefer|bir keresinde)\b.{0,180}"
-        r"\b(?:söyle\w*|de\w*|anlat\w*|bahset\w*|konuş\w*)\b|"
-        r"\b(?:söylemiştin|demiştin|anlatmıştın|bahsetmiştin)\b|"
+        r"\b(?:daha önce|az önce|önceden|geçen sefer|geçen gün|vaktiyle|bir keresinde|hatırlarsan)\b.{0,180}"
+        r"\b(?:söyle\w*|de\w*|anlat\w*|bahset\w*|konuş\w*|söz\s+ver\w*|vadet\w*)\b|"
+        r"\b(?:söylemişti[kmnez]?|demişti[kmnez]?|anlatmıştı[kmnez]?|bahsetmişti[kmnez]?|konuşmuştu[kmnez]?)\b|"
+        r"\b(?:söyledi[kmnez]?|dedi[kmnez]?|anlattı[kmnez]?|bahsetti[kmnez]?|konuştu[kmnez]?)\b|"
+        r"\b(?:söylenmişti|denmişti|anlatılmıştı|bahsedilmişti)\b|"
+        r"\b(?:söz\s+vermişti[kmnez]?|söz\s+verdi[kmnez]?|vadetmişti[kmnez]?|vadetti[kmnez]?)\b|"
+        r"\b(?:bana|bize|sana)\b.{0,80}"
+        r"\b(?:söylemiş\w*|söyledi\w*|anlatmış\w*|anlattı\w*|bahsetmiş\w*|bahsetti\w*|demiş\w*|dedi\w*|konuşmuş\w*|konuştu\w*|söz\s+vermiş\w*|söz\s+verdi\w*|vadetmiş\w*|vadetti\w*)\b|"
         r"\b(?:hatırl\w*|hatirl\w*)\b",
         text,
     ))
 
 
 def is_ordinary_environment_look(player_input):
+    if not isinstance(player_input, str):
+        return False
     text = player_input.casefold().strip()
+    if living_world.classify_scene_action(player_input) == "look":
+        return not any(
+            phrase in text for phrase in ("dikkatlice", "gözlem", "fark etmeye", "bir şey", "araştır")
+        )
     simple_view = bool(re.search(
-        r"\b(?:etrafıma bak|etrafa bak|çevreme bak|çevreye bak|etrafıma göz at|çevreye göz at|"
-        r"etrafta ne görüyorum|çevrede ne görüyorum|etrafta ne var|çevrede ne var)\w*\b",
+        r"\b(?:etraf[ıi]m[ae]?\s*bak\w*|çevrem[ae]?\s*bak\w*|etrafa\s*bak\w*|çevreye\s*bak\w*|"
+        r"etraf[ıi]?m?da\s+ne(?:ler)?\s+var|çevre(?:m|de)?\s+ne(?:ler)?\s+var|"
+        r"etrafta\s+ne(?:ler)?\s+görüyorum|çevrede\s+ne(?:ler)?\s+görüyorum|"
+        r"etrafta\s+ne(?:ler)?\s+var|çevrede\s+ne(?:ler)?\s+var)\b",
         text,
     ))
     return simple_view and not any(
@@ -3291,6 +3308,8 @@ def _claim_keywords(text):
         "sana", "bunu", "bunun", "orada", "burada", "soyledin", "soylemistin", "demistin",
         "anlatmistin", "bahsetmistin", "demistin", "ettin", "ettigini", "oldugunu", "varligini", "zaman", "zamandir",
         "gibi", "acaba", "gercekten", "hatirlamiyorum", "hatirlamiyorumdur", "duymadim",
+        "soylemisti", "anlatmisti", "bahsetmisti", "demisti", "soyledi", "anlatti", "bahsetti", "dedi",
+        "soylemis", "anlatmis", "bahsetmis", "konustu", "konusmustu",
     }
     suffixes = (
         "larindan", "lerinden", "larinda", "lerinde", "larinin", "lerinin", "larina", "lerine",
@@ -3340,6 +3359,8 @@ def npc_memory_supporting_entry(npc, player_input):
         "sen ", "senin ", "söylemiştin", "demistin", "anlatmıştın", "bahsetmiştin",
         "söylemistin", "demistin", "anlatmistin", "bahsetmistin",
         "söyledin", "dedin", "anlattın", "bahsettin",
+        "söylemişti", "demişti", "anlatmıştı", "bahsetmişti",
+        "söyledi", "dedi", "anlattı", "bahsetti",
         "hatırlıyor musun", "hatirliyor musun"
     ))
     claim_about_player = any(phrase in claim_text for phrase in (
@@ -4438,6 +4459,20 @@ def _unregistered_persistent_object_claim(world_state, narration):
     return claim.group(0)
 
 
+def _resolve_campaign_npc_reference(player_input, world_state=None):
+    if not isinstance(player_input, str):
+        return None
+    if world_state is None:
+        world_state = _session().world_state
+    text = _normalize_turkish_typos(player_input)
+    for npc in world_state.get("npcs", []):
+        if not isinstance(npc, dict):
+            continue
+        if _entity_reference_in_text(npc.get("name", ""), text) or _entity_reference_in_text(npc.get("role", ""), text):
+            return npc
+    return None
+
+
 def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, player_input=""):
     """Detect invented relationship mutations or campaign-history claims not grounded in Python state."""
     text = str(narration).casefold()
@@ -4463,19 +4498,38 @@ def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, p
         (r"\bödül(?:de|\s+için)?\s+anlaş\w*|\bödül\s+sözü\s+ver\w*", "reward_agreement"),
         (r"\b(?:kardeşimi|hayatımı|babamı|annemi)\s+kurtar\w*", "life_saving"),
         (r"\b(?:dün|geçen\s+gün|daha\s+önce)\s+(?:burada\s+)?(?:buluş\w*|görüş\w*|karşılaş\w*|tanış\w*)", "prior_meeting"),
-        (r"\b(?:bana|bize)\s+.{1,40}\b(?:söylemiştin|anlatmıştın|bahsetmiştin)\b", "prior_disclosure"),
+        (r"\b(?:bana|bize)\s+.{1,60}\b(?:söylemiş\w*|anlatmış\w*|bahsetmiş\w*|demiş\w*|söyledi\w*|anlattı\w*|bahsetti\w*|dedi\w*)\b", "prior_disclosure"),
+        (r"\b\w+(?:'nin|'nın|'nun|'nün|in|ın|un|ün)?\s+sözleri\b.{0,60}\b(?:belirtti|söyledi|anlattı|bahsetti)\b", "npc_speech_affirmation"),
     )
     for pat, _category in history_patterns:
         match = re.search(pat, text)
         if match:
             supported = False
-            if isinstance(npc_target, dict):
-                if npc_memory_supports_claim(npc_target, match.group(0)):
+            target = npc_target or _resolve_campaign_npc_reference(player_input or narration)
+            if isinstance(target, dict):
+                if npc_memory_supports_claim(target, match.group(0)):
                     supported = True
-                elif any(match.group(0) in str(k).casefold() for k in npc_target.get("knowledge", [])):
+                elif any(match.group(0) in str(k).casefold() for k in target.get("knowledge", [])):
                     supported = True
             if not supported:
                 return ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", match.group(0))
+
+    if player_input and is_npc_historical_claim(player_input):
+        target = npc_target or _resolve_campaign_npc_reference(player_input)
+        supported = False
+        if isinstance(target, dict):
+            if npc_memory_supports_claim(target, player_input):
+                supported = True
+            elif any(player_input.casefold() in str(k).casefold() for k in target.get("knowledge", [])):
+                supported = True
+        if not supported:
+            denial_pattern = (
+                r"\b(?:hatırlam\w*|hatirlam\w*|kayıt\s+yok|kayit\s+yok|bilmi\w*|"
+                r"bahsetme\w*|söyleme\w*|soyleme\w*|anlatma\w*|demedi\w*|"
+                r"doğrulanm\w*|dogrulanm\w*|belirsiz|bulunmuyor|böyle\s+bir\s+şey\b)"
+            )
+            if not re.search(denial_pattern, text):
+                return ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", player_input[:160])
 
     return None
 
@@ -7050,6 +7104,8 @@ def finalize_narration(
     if historical_claim and not history_target and target_id is None:
         resolution = resolve_npc_reference(player_input)
         history_target = resolution.get("npc") if resolution.get("status") == "found" else None
+        if not history_target:
+            history_target = _resolve_campaign_npc_reference(player_input)
     if historical_claim and (
         not isinstance(history_target, dict)
         or not isinstance(history_target.get("id"), str)
@@ -7101,7 +7157,10 @@ def finalize_narration(
             }
             handling = "python_memory_response"
         elif not npc_memory_supports_claim(history_target, player_input):
-            narration = historical_claim_denial(history_target)
+            if history_target.get("location") == _session().world_state.get("location"):
+                narration = historical_claim_denial(history_target)
+            else:
+                narration = f"{history_target['name']} şu anda burada bulunmuyor; ayrıca geçmişte böyle bir şey söylediğine dair bir kayıt yok."
             decision = {
                 "reason_code": "NPC_MEMORY_UNSUPPORTED_CLAIM",
                 "trigger_span": None,
@@ -8490,6 +8549,7 @@ def plan_living_world_turn(player_input, target_id=None):
         not combat.get("active")
         and not direct
         and action != "presence"
+        and action != "look"
         and not world_subject_question
     ):
         if target_id is not None:
@@ -9144,9 +9204,12 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         )
         if quest_transitions:
             action_result["quest_outcomes"] = quest_transitions
+        fallback_text = action_result.get("direct_response", "Çevredeki hareketliliği gözlüyorsun.")
+        if action_result.get("action") == "explore":
+            return finish_turn(action_result, fallback_text, quest_transitions)
         return finish_turn(
             action_result,
-            action_result.get("direct_response", "Çevredeki hareketliliği gözlüyorsun."),
+            fallback_text,
             quest_transitions,
             safety_handling="python_scene_response",
         )
@@ -9450,10 +9513,15 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         record_npc_interaction(
             npc_target, smalltalk_response, player_input, npc_target
         )
+        if personal:
+            return finish_turn(
+                action_result,
+                smalltalk_response,
+                safety_handling="python_scene_response",
+            )
         return finish_turn(
             action_result,
             smalltalk_response,
-            safety_handling="python_scene_response",
         )
 
     work_answer = local_dialogue.unaddressed_work_answer(player_input)
@@ -9488,6 +9556,63 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             response,
             safety_handling="python_scene_response",
         )
+
+    if is_npc_historical_claim(player_input):
+        claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
+        supported_entry = (
+            npc_memory_supporting_entry(claimed_npc, player_input)
+            if claimed_npc else None
+        )
+        if not supported_entry and claimed_npc:
+            claim_kw = _claim_keywords(player_input)
+            for k in claimed_npc.get("knowledge", []):
+                if claim_kw & _claim_keywords(str(k)):
+                    supported_entry = str(k)
+                    break
+        if supported_entry and claimed_npc:
+            quote = re.search(r'["\u201c](.*?)["\u201d]', str(supported_entry))
+            if quote:
+                response = f'{claimed_npc["name"]}, "Evet, bunu söylemiştim: {quote.group(1)}" diye yanıt verir.'
+            else:
+                response = f'{claimed_npc["name"]}, "Evet, bunu daha önce konuştuğumuzu hatırlıyorum," diye yanıt verir.'
+            action_result = {
+                "action": "dialogue",
+                "status": "answered_from_npc_memory",
+                "success": True,
+                "npc_id": claimed_npc["id"],
+                "state_changes": [],
+                "direct_response": response,
+            }
+            record_npc_interaction(claimed_npc, response, player_input, claimed_npc)
+            return finish_turn(
+                action_result,
+                response,
+                safety_reason_code="NPC_MEMORY_SUPPORTED_CLAIM",
+                safety_handling="python_memory_response",
+            )
+        else:
+            if claimed_npc and claimed_npc.get("location") == world_state.get("location"):
+                response = historical_claim_denial(claimed_npc)
+            elif claimed_npc:
+                response = f"{claimed_npc['name']} şu anda burada bulunmuyor; ayrıca geçmişte böyle bir şey söylediğine dair bir kayıt yok."
+            else:
+                response = "Geçmişte böyle bir konuşma geçtiğine dair doğrulanmış bir kampanya kaydı yok."
+            action_result = {
+                "action": "dialogue",
+                "status": "unverified",
+                "success": False,
+                "npc_id": claimed_npc.get("id") if claimed_npc else None,
+                "state_changes": [],
+                "direct_response": response,
+            }
+            if claimed_npc and claimed_npc.get("location") == world_state.get("location"):
+                record_npc_interaction(claimed_npc, response, player_input, claimed_npc)
+            return finish_turn(
+                action_result,
+                response,
+                safety_reason_code="NPC_MEMORY_UNSUPPORTED_CLAIM",
+                safety_handling="python_memory_response",
+            )
 
     supported_lore_response = _supported_lore_question_response(
         player_input,

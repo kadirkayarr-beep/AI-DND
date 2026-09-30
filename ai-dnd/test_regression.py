@@ -384,12 +384,17 @@ def test_false_memory_claim():
     }
     game.world_state["npcs"].append(npc)
 
-    # Player claims NPC said something
+    # Player claims NPC said something (second person)
     result = run_turn("daha önce bana bir hikaye anlatmıştın")
-
     narration = result.get("narration", "")
     assert "hatırlamıyorum" in narration.lower() or "buna dair bir kayıt yok" in narration.lower(), \
         f"FAIL: Should deny false memory claim, got: {narration}"
+
+    # Player claims NPC said something (third person with named entity)
+    result2 = run_turn("TestNPC bana ejderha hazinesinden bahsetmişti.")
+    narration2 = result2.get("narration", "")
+    assert "hatırlam" in narration2.lower() or "kayıt yok" in narration2.lower() or "bulunmuyor" in narration2.lower(), \
+        f"FAIL: Should deny third-person false memory claim, got: {narration2}"
     print("PASS: test_false_memory_claim")
 
 
@@ -479,6 +484,19 @@ def test_ordinary_environment_look():
 
     assert result["action_result"].get("action") != "skill_check", \
         f"FAIL: Ordinary look should not be skill check, got {result['action_result'].get('action')}"
+
+    # Regression coverage for exact phrase "Etrafımda neler var?" with multiple NPCs present
+    game.world_state["npcs"] = [
+        {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "tavern"},
+        {"id": "npc_002", "name": "Elaris", "role": "Müşteri", "location": "tavern"},
+    ]
+    result2 = run_turn("Etrafımda neler var?")
+    assert result2["action_result"].get("action") == "explore", \
+        f"FAIL: 'Etrafımda neler var?' should resolve as explore, got: {result2['action_result']}"
+    assert result2["action_result"].get("status") == "observed", \
+        f"FAIL: 'Etrafımda neler var?' should have status observed, got: {result2['action_result']}"
+    assert "Bu tanıma uyan birden fazla kişi var" not in result2.get("narration", ""), \
+        f"FAIL: 'Etrafımda neler var?' misrouted as dialogue clarification: {result2.get('narration')}"
     print("PASS: test_ordinary_environment_look")
 
 

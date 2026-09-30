@@ -28,9 +28,12 @@ _LOCAL_NAMES = (
 )
 
 _LOOK_RE = re.compile(
-    r"(?:etraf(?:ı|i)m[ae]? bak|çevrem[ae]? bak|bakınıyorum|"
-    r"etrafa göz at|çevreyi gözle|etraf(?:ı|i)m.{0,30}gözlemle\w*|"
-    r"çevre(?:yi|m).{0,30}gözlemle\w*|şehirde dolan\w*.{0,50}(?:bak|gözlemle)\w*|"
+    r"(?:etraf[ıi]m[ae]?\s*bak\w*|çevrem[ae]?\s*bak\w*|etrafa\s+bak(?:ıyor\w*|ıyorum)|bakınıyorum|"
+    r"etraf[ıi]?m?da\s+ne(?:ler)?\s+var|çevre(?:m|de)?(?:de)?\s+ne(?:ler)?\s+var|"
+    r"etrafta\s+ne(?:ler)?\s+var|çevrede\s+ne(?:ler)?\s+var|"
+    r"etrafa\s+göz\s+at\w*|etrafıma\s+göz\s+at\w*|çevreyi\s+gözle\w*|çevreye\s+göz\s+at\w*|çevreme\s+göz\s+at\w*|"
+    r"etraf[ıi]m.{0,30}gözlemle\w*|çevre(?:yi|m).{0,30}gözlemle\w*|"
+    r"şehirde\s+dolan\w*.{0,50}(?:bak|gözlemle)\w*|"
     r"look around|look about|take a look|walk around.{0,50}observe)",
     re.IGNORECASE,
 )

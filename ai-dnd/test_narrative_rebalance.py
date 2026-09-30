@@ -379,6 +379,147 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertIn(new_loc, self.session.world_state.get("locations", {}))
         self.assertEqual(result["action_result"]["status"], "completed")
 
+    # 24 (A). multiple NPCs present + active NPC exists: "Etrafımda neler var?" resolves as explore, not dialogue clarification
+    @patch("game.ollama.chat")
+    def test_24_multiple_npcs_and_active_npc_explore_not_dialogue_clarification(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Taverna çevresine bakıyorsun, masalar dolu.", "lore_claims": [], "world_updates": {}}'
+        )
+        self.session.world_state["npcs"] = [
+            {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "l_tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+            {"id": "npc_002", "name": "Elaris", "role": "Müşteri", "location": "l_tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+        ]
+        self.session.world_state["flags"]["active_npc_id"] = "npc_001"
+        result = self.session.run_player_turn("Etrafımda neler var?")
+        action = result["action_result"]
+        self.assertEqual(action.get("action"), "explore")
+        self.assertNotEqual(action.get("action"), "dialogue")
+        self.assertNotEqual(action.get("status"), "clarification")
+        self.assertNotIn("Bu tanıma uyan birden fazla kişi var", result["narration"])
+
+    # 25 (B). deterministically resolved ordinary NPC greeting: exactly one narration model call when narration-eligible
+    @patch("game.ollama.chat")
+    def test_25_deterministic_npc_greeting_makes_single_narration_call(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Gromm sana başıyla selam verir.", "lore_claims": [], "world_updates": {}}'
+        )
+        self.session.world_state["npcs"] = [
+            {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "l_tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+        ]
+        result = self.session.run_player_turn("Gromm'a selam veriyorum")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(result["action_result"]["action"], "dialogue")
+        self.assertEqual(result["action_result"]["status"], "answered_smalltalk")
+
+    # 26 (C). deterministically resolved exploration: exactly one narration model call when narration-eligible
+    @patch("game.ollama.chat")
+    def test_26_deterministic_exploration_makes_single_narration_call(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Etrafına baktığında tahta masalar ve ocak başı dikkat çeker.", "lore_claims": [], "world_updates": {}}'
+        )
+        result = self.session.run_player_turn("Etrafıma bakıyorum")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(result["action_result"]["action"], "explore")
+        self.assertEqual(result["action_result"]["status"], "observed")
+
+    # 27 (D). direct factual queries return from Python without forcing a Qwen call
+    def test_27_direct_factual_queries_use_zero_model_calls(self):
+        res_loc = self.session.run_player_turn("Neredeyim?")
+        self.assertEqual(res_loc["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        self.assertIn("Eski Han", res_loc["narration"])
+
+        res_pres = self.session.run_player_turn("Tavernada kimler var?")
+        self.assertEqual(res_pres["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        self.assertEqual(res_pres["action_result"]["action"], "query")
+
+        res_ident = self.session.run_player_turn("Hancı, senin adın ne?")
+        self.assertEqual(res_ident["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        self.assertIn("Hancı", res_ident["narration"])
+
+    # 28 (E). all tested turns remain <= 2 total model calls
+    @patch("game.ollama.chat")
+    def test_28_all_tested_turns_remain_under_max_2_calls(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Taverna hareketli ve gürültülü.", "lore_claims": [], "world_updates": {}}'
+        )
+        turns = [
+            "Etrafımda neler var?",
+            "Gromm'a selam veriyorum",
+            "Etrafıma bakıyorum",
+            "Neredeyim?",
+            "Tavernada kimler var?",
+        ]
+        for t in turns:
+            res = self.session.run_player_turn(t)
+            telemetry = res["_engine_event_evidence"]["telemetry"]
+            self.assertLessEqual(telemetry["total_model_calls"], 2, f"Turn '{t}' exceeded 2 model calls: {telemetry}")
+
+
+    # 29. unverified historical/memory claim for remote NPC fails closed without model calls
+    def test_29_unverified_historical_claim_remote_npc_fails_closed(self):
+        self.session.world_state["location"] = "forest"
+        self.session.world_state["npcs"] = [
+            {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+        ]
+        result = self.session.run_player_turn("Gromm bana ejderha hazinesinden bahsetmişti.")
+        action = result["action_result"]
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(action.get("status"), "unverified")
+        self.assertFalse(action.get("success"))
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(self.session.world_state["location"], "forest")
+        narration = result["narration"]
+        self.assertTrue(
+            "kayıt yok" in narration or "bulunmuyor" in narration or "hatırlam" in narration,
+            f"Expected denial/unverified indication, got: {narration}"
+        )
+        self.assertNotIn("çınlıyor", narration)
+        self.assertNotIn("sırlarını açan", narration)
+
+    # 30. unverified historical/memory claim for local NPC fails closed with direct denial
+    def test_30_unverified_historical_claim_local_npc_fails_closed(self):
+        self.session.world_state["location"] = "tavern"
+        self.session.world_state["npcs"] = [
+            {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+        ]
+        result = self.session.run_player_turn("Gromm bana ejderha hazinesinden bahsetmişti.")
+        action = result["action_result"]
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(action.get("status"), "unverified")
+        self.assertFalse(action.get("success"))
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertIn("hatırlamıyorum", result["narration"])
+
+    # 31. narration safety validator rejects model narration affirming unverified historical premise
+    def test_31_narration_safety_rejects_unverified_claim_affirmation(self):
+        self.session.world_state["location"] = "forest"
+        self.session.world_state["npcs"] = [
+            {"id": "npc_001", "name": "Gromm", "role": "Barmen", "location": "tavern", "relationship": "neutral", "memory": [], "knowledge": []},
+        ]
+        unverified_input = "Gromm bana ejderha hazinesinden bahsetmişti."
+        model_affirmation = "Gromm’un sözleri hâlâ kulaklarında çınlıyor; ejderha hazinesinin sırlarını açan bir yolun olması gerektiğini belirtti."
+        output = self.session.finalize_narration(
+            model_affirmation,
+            unverified_input,
+            npc_target=None,
+            action_result={"action": "dialogue", "status": "unverified", "success": False},
+        )
+        self.assertTrue(
+            self.session.last_narration_safety["reason_code"] in ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", "NPC_MEMORY_UNSUPPORTED_CLAIM"),
+            f"Expected safety reason code, got: {self.session.last_narration_safety}"
+        )
+        self.assertNotIn("çınlıyor", output)
+        self.assertTrue(
+            "kayıt yok" in output or "bulunmuyor" in output or "hatırlam" in output or "kesin yanıt belirsiz" in output,
+            f"Expected fallback denial, got: {output}"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

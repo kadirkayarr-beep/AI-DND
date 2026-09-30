@@ -153,8 +153,16 @@ def main():
             trace["issues"].append("Location answer contradicts state")
         if label == "false_presence" and ("Gromm" in narration or location != "forest"):
             trace["issues"].append("Remote NPC appears in forest")
-        if label == "unverified_claim" and location != "forest":
-            trace["issues"].append("Unverified claim changed location")
+        if label == "unverified_claim":
+            if location != "forest":
+                trace["issues"].append("Unverified claim changed location")
+            denial_terms = (
+                "kayıt yok", "kayit yok", "hatırlamıyor", "hatirlamiyor",
+                "hatırlamıyorum", "doğrulanm", "dogrulanm", "belirsiz",
+                "bulunmuyor", "böyle bir şey",
+            )
+            if not any(term in narration.casefold() for term in denial_terms):
+                trace["issues"].append("Accepted narration affirmed unverified historical premise")
         if label in ("explore_tavern", "explore_forest") and trace["state_before"]["location"] != location:
             trace["issues"].append("Exploration moved the player")
         if label in ("travel_tavern", "explore_tavern", "npc_dialogue", "travel_forest", "explore_forest") and not any(
@@ -175,15 +183,16 @@ def main():
 
     issues = sum(len(row["issues"]) for row in records)
     calls = sum(row["model_call_count"] for row in records)
+    passed = not issues and calls > 0
     print(json.dumps({
-        "status": "PASS" if not issues and all(row["calls"] for row in records) else "FAIL",
+        "status": "PASS" if passed else "FAIL",
         "game_sha256": digest, "model": "qwen3:8b", "turns_run": len(records),
         "live_model_calls": calls,
         "maximum_calls_per_turn": max(row["model_call_count"] for row in records),
         "observed_narration_replacements": sum(bool(row.get("narration_replaced")) for row in records),
         "issues": issues, "turns": records,
     }, ensure_ascii=False, indent=2))
-    return 0 if not issues and all(row["calls"] for row in records) else 1
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
