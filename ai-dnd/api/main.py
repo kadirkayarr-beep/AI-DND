@@ -244,7 +244,14 @@ def _stage_engine_lore_state(
         "quest_outcomes",
         "procedural_entity_ids",
     }
-    if not isinstance(evidence, dict) or set(evidence) != required_keys:
+    if not isinstance(evidence, dict):
+        raise ValueError("Engine lore evidence has an invalid shape.")
+    evidence_keys = set(evidence)
+    if "telemetry" in evidence_keys:
+        if not isinstance(evidence["telemetry"], dict):
+            raise ValueError("Engine lore evidence telemetry has an invalid shape.")
+        evidence_keys = evidence_keys - {"telemetry"}
+    if evidence_keys != required_keys:
         raise ValueError("Engine lore evidence has an invalid shape.")
     turn_index = after_world.get("flags", {}).get("turn_index")
     action_id = f"turn:{turn_index}"

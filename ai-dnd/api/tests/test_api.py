@@ -340,6 +340,83 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 422)
         self.assertNotIn(sentinel, response.text)
 
+    async def test_real_engine_evidence_with_telemetry_succeeds_without_500(self):
+        created = await self.create_session()
+        session = self.manager.get(created["session_id"]).game_session
+        session.world_state["flags"]["turn_index"] = 0
+
+        def engine_with_telemetry(message):
+            session.world_state["flags"]["turn_index"] = 1
+            session.world_state["location"] = "tavern"
+            return {
+                "action_result": {"action": "explore", "status": "observed"},
+                "narration": "Taverna hareketli ve kalabalık.",
+                "_engine_event_evidence": {
+                    "authority": "python_engine",
+                    "action_id": "turn:1",
+                    "turn_index": 1,
+                    "quest_outcomes": [],
+                    "procedural_entity_ids": [],
+                    "telemetry": {
+                        "intent_model_calls": 0,
+                        "narration_model_calls": 1,
+                        "total_model_calls": 1,
+                        "intent_source": "deterministic",
+                        "narration_source": "qwen",
+                        "fallback_reason": None,
+                        "narration_validation_result": "accepted",
+                        "resolved_action_type": "explore",
+                    },
+                },
+            }
+
+        session.run_player_turn = engine_with_telemetry
+        response = await self.http.post(
+            f"/api/sessions/{created['session_id']}/turn",
+            json={"message": "Etrafıma bakıyorum"},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["narration"], "Taverna hareketli ve kalabalık.")
+        self.assertEqual(response.json()["state"]["location"], "tavern")
+        self.assertNotIn("_engine_event_evidence", response.json())
+
+    async def test_model_call_limit_enforced_by_captured_calls_ignoring_telemetry_claim(self):
+        self.fake_client.chat = lambda *args, **kwargs: {"ok": True}
+        created = await self.create_session()
+        session = self.manager.get(created["session_id"]).game_session
+        session.world_state["flags"]["turn_index"] = 0
+        before = serialize_session_state(session)
+
+        def forged_telemetry_turn(_message):
+            for _ in range(3):
+                game.ollama.chat(model="qwen3:8b")
+            session.world_state["flags"]["turn_index"] = 1
+            return {
+                "action_result": {"action": "explore", "status": "observed"},
+                "narration": "Narration text",
+                "_engine_event_evidence": {
+                    "authority": "python_engine",
+                    "action_id": "turn:1",
+                    "turn_index": 1,
+                    "quest_outcomes": [],
+                    "procedural_entity_ids": [],
+                    "telemetry": {
+                        "intent_model_calls": 0,
+                        "narration_model_calls": 1,
+                        "total_model_calls": 1,
+                    },
+                },
+            }
+
+        session.run_player_turn = forged_telemetry_turn
+        response = await self.http.post(
+            f"/api/sessions/{created['session_id']}/turn",
+            json={"message": "Bekle"},
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()["detail"]["code"], "engine_error")
+        self.assertEqual(serialize_session_state(session), before)
+
     async def test_turns_in_one_session_are_serialized(self):
         created = await self.create_session()
         session = self.manager.get(created["session_id"]).game_session

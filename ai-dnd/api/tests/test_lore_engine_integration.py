@@ -626,5 +626,167 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 self.assertTrue(rejected(narration, fact_ids))
 
 
+    def test_valid_engine_evidence_with_telemetry_is_accepted(self):
+        state = bound_lore_state()
+        before_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 2}}
+        after_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 3}}
+        action_result = {"quest_outcomes": []}
+        evidence = {
+            "authority": "python_engine",
+            "action_id": "turn:3",
+            "turn_index": 3,
+            "quest_outcomes": [],
+            "procedural_entity_ids": [],
+            "telemetry": {
+                "intent_model_calls": 0,
+                "narration_model_calls": 1,
+                "total_model_calls": 1,
+                "intent_source": "deterministic",
+                "narration_source": "qwen",
+                "fallback_reason": None,
+                "narration_validation_result": "accepted",
+                "resolved_action_type": "explore",
+            },
+        }
+        staged = _stage_engine_lore_state(
+            state,
+            evidence,
+            action_result,
+            before_world,
+            after_world,
+        )
+        self.assertIsNotNone(staged)
+        self.assertEqual(staged.binding_status, BindingStatus.BOUND)
+
+    def test_telemetry_field_does_not_change_campaign_canon(self):
+        state = bound_lore_state()
+        before_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 0}}
+        after_world = {
+            "locations": {
+                "location_001": {
+                    "id": "location_001",
+                    "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                }
+            },
+            "npcs": [],
+            "flags": {"turn_index": 1},
+        }
+        transition = {
+            "event_id": "quest:completed:quest:sample",
+            "quest_id": "quest:sample",
+            "transition": "completed",
+            "objective_id": None,
+            "source_event_id": "event:1",
+            "turn_index": 1,
+        }
+        action_result = {"quest_outcomes": [transition]}
+        base_evidence = {
+            "authority": "python_engine",
+            "action_id": "turn:1",
+            "turn_index": 1,
+            "quest_outcomes": [transition],
+            "procedural_entity_ids": ["location_001"],
+        }
+        evidence_with_telemetry = dict(base_evidence)
+        evidence_with_telemetry["telemetry"] = {
+            "intent_model_calls": 1,
+            "narration_model_calls": 1,
+            "total_model_calls": 2,
+            "intent_source": "model",
+            "narration_source": "qwen",
+            "fallback_reason": None,
+            "narration_validation_result": "accepted",
+            "resolved_action_type": "travel",
+        }
+
+        staged_without = _stage_engine_lore_state(
+            state,
+            base_evidence,
+            action_result,
+            before_world,
+            after_world,
+        )
+        staged_with = _stage_engine_lore_state(
+            state,
+            evidence_with_telemetry,
+            action_result,
+            before_world,
+            after_world,
+        )
+
+        self.assertEqual(staged_with.to_dict(), staged_without.to_dict())
+        self.assertEqual(staged_with.campaign_overrides, staged_without.campaign_overrides)
+        self.assertEqual(staged_with.procedural_entity_refs, staged_without.procedural_entity_refs)
+
+    def test_unknown_extra_field_in_engine_evidence_is_rejected(self):
+        state = bound_lore_state()
+        before_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 0}}
+        after_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 1}}
+        action_result = {"quest_outcomes": []}
+        base_evidence = {
+            "authority": "python_engine",
+            "action_id": "turn:1",
+            "turn_index": 1,
+            "quest_outcomes": [],
+            "procedural_entity_ids": [],
+        }
+
+        # Extra untrusted field alone
+        with_extra = dict(base_evidence, untrusted_key="malicious_payload")
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, with_extra, action_result, before_world, after_world)
+
+        # Extra untrusted field alongside telemetry
+        with_extra_and_telemetry = dict(
+            base_evidence,
+            telemetry={"total_model_calls": 0},
+            forged_canon="some_canon",
+        )
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, with_extra_and_telemetry, action_result, before_world, after_world)
+
+    def test_malformed_engine_evidence_fails_closed(self):
+        state = bound_lore_state()
+        before_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 0}}
+        after_world = {"locations": {}, "npcs": [], "flags": {"turn_index": 1}}
+        action_result = {"quest_outcomes": []}
+
+        # Non-dict evidence
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, "not_a_dict", action_result, before_world, after_world)
+
+        # Missing required keys
+        incomplete_evidence = {
+            "authority": "python_engine",
+            "turn_index": 1,
+            "telemetry": {},
+        }
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, incomplete_evidence, action_result, before_world, after_world)
+
+        # Malformed telemetry (not a dict)
+        bad_telemetry_evidence = {
+            "authority": "python_engine",
+            "action_id": "turn:1",
+            "turn_index": 1,
+            "quest_outcomes": [],
+            "procedural_entity_ids": [],
+            "telemetry": "invalid_string_telemetry",
+        }
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, bad_telemetry_evidence, action_result, before_world, after_world)
+
+        # Wrong authority value
+        wrong_auth_evidence = {
+            "authority": "model_authored",
+            "action_id": "turn:1",
+            "turn_index": 1,
+            "quest_outcomes": [],
+            "procedural_entity_ids": [],
+            "telemetry": {},
+        }
+        with self.assertRaises(ValueError):
+            _stage_engine_lore_state(state, wrong_auth_evidence, action_result, before_world, after_world)
+
 if __name__ == "__main__":
     unittest.main()
