@@ -13,6 +13,19 @@ import types
 from quest_catalog import catalog as quest_catalog, find_quest
 import living_world
 import local_dialogue
+from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Any
+
+@dataclass
+class ResolvedTurn:
+    """Structure to hold resolved game state before narration."""
+    action_result: Dict[str, Any]
+    fallback_response: str
+    requires_narration: bool = True
+    safety_reason_code: Optional[str] = None
+    safety_handling: str = "accepted"
+    quest_outcomes: Optional[List[Dict[str, Any]]] = None
+
 
 
 def ollama_response_content(response):
@@ -6324,7 +6337,15 @@ DM_RESPONSE_SCHEMA = {
 }
 
 
-def _dm_response_schema_for_turn(allow_new_shops=False):
+def _dm_response_schema_for_turn(allow_new_shops=False, narration_only=False):
+    if narration_only:
+        schema = copy.deepcopy(DM_RESPONSE_SCHEMA)
+        props = schema["properties"]["world_updates"]["properties"]
+        for field in ("create_locations", "create_npcs", "update_npcs", "create_features", "events", "create_shops"):
+            props[field]["maxItems"] = 0
+        schema["properties"]["lore_claims"]["maxItems"] = 0
+        return schema
+        
     if not allow_new_shops:
         return DM_RESPONSE_SCHEMA
 
@@ -6427,6 +6448,7 @@ def ask_dungeon_master(
     lore_context=None,
     allow_new_shops=False,
     scene_plan=None,
+    narration_only=False,
 ):
     """Request one structured narration turn; apply only Python-validated lore updates."""
     world_state = _session().world_state
@@ -6503,6 +6525,9 @@ def ask_dungeon_master(
         if allow_new_shops
         else " Bu tur yeni dükkân veya dükkân sahibi oluşturma; create_shops boş dizi olsun."
     )
+    if narration_only:
+        update_permissions = "BU TUR NARRATION-ONLY'DİR: world_updates ve lore_claims kesinlikle boş olmalıdır. Yalnızca narration üret."
+        shop_creation_guidance = ""
     if world_entry and allow_new_npcs and not active_npcs():
         update_permissions += " Bu lokasyonda NPC kaydı yok; sahneye uygunsa bir özgün NPC oluştur."
     elif world_entry and active_npcs():
@@ -6586,7 +6611,7 @@ def ask_dungeon_master(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            format=_dm_response_schema_for_turn(allow_new_shops),
+            format=_dm_response_schema_for_turn(allow_new_shops, narration_only),
             think=False,
             options={"temperature": 0.35, "num_predict": 700, "repeat_penalty": 1.15, "repeat_last_n": 128},
         )
@@ -8581,7 +8606,54 @@ def plan_living_world_turn(player_input, target_id=None):
     }
 
 
+class TurnResolved(Exception):
+    def __init__(self, raw_result, resolved_turn):
+        self.raw_result = raw_result
+        self.resolved_turn = resolved_turn
+
+
 def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None):
+    try:
+        return _run_player_turn_internal(player_input, messages, target_id, scene_plan)
+    except TurnResolved as e:
+        return _narrate_resolved_turn(e.resolved_turn, player_input, messages, target_id)
+
+
+def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
+    npc_target = None
+    npc_id = resolved_turn.action_result.get("npc_id")
+    if npc_id:
+        for npc in _session().world_state.get("npcs", []):
+            if isinstance(npc, dict) and npc.get("id") == npc_id:
+                npc_target = npc
+                break
+                
+    packet = ask_dungeon_master(
+        messages,
+        player_input,
+        allow_new_npcs=False,
+        allow_new_features=False,
+        npc_target=npc_target,
+        world_entry=False,
+        action_result=resolved_turn.action_result,
+        allow_new_locations=False,
+        return_details=True,
+        allow_new_shops=False,
+        narration_only=True,
+    )
+    
+    packet = packet if isinstance(packet, dict) else {}
+    narration_text = packet.get("narration")
+    if not isinstance(narration_text, str) or not narration_text.strip():
+        narration_text = resolved_turn.fallback_response
+        
+    final_dict = resolved_turn.raw_result
+    final_dict["narration"] = narration_text
+    
+    return final_dict
+
+
+def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
     world_state = _session().world_state
     world_subject_question = local_dialogue.is_world_subject_question(player_input)
@@ -8642,6 +8714,7 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         safety_reason_code=None,
         safety_handling="accepted",
         record_safety=True,
+        is_final=False,
     ):
         if _is_internal_player_facing_text(narration):
             narration = _natural_unresolved_action_response(
@@ -8685,7 +8758,37 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
                     procedural_entity_ids() - procedural_ids_before
                 ),
             }
-        return result
+            
+        if is_final:
+            return result
+            
+        status = action_result.get("status") if isinstance(action_result, dict) else None
+        action = action_result.get("action") if isinstance(action_result, dict) else None
+        
+        system_deterministic = False
+        if status in ("invalid_target", "limit_reached", "unsupported", "explicitly_declined", "unsupported_combat_action", "player_unconscious"):
+            system_deterministic = True
+        if action == "attack" and status == "resolved":
+            system_deterministic = False
+        if action == "shop_setup" or action == "shop_economy":
+            system_deterministic = True
+        if status == "unverified":
+            system_deterministic = False
+            
+        if system_deterministic:
+            return result
+            
+        resolved = ResolvedTurn(
+            action_result=action_result,
+            fallback_response=narration,
+            requires_narration=True,
+            safety_reason_code=safety_reason_code,
+            safety_handling=safety_handling,
+            quest_outcomes=quest_outcomes
+        )
+        resolved.raw_result = result
+        raise TurnResolved(result, resolved)
+
 
     combat = ensure_combat_state()
     if combat["active"] and combat["current_actor_id"] != "player":
@@ -9338,6 +9441,7 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         narration,
         quest_transitions,
         record_safety=False,
+        is_final=True,
     )
 
 

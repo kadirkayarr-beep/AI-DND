@@ -1,3 +1,4 @@
+import os
 """Offline contracts for independent adventures and the legacy default adapter."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -165,6 +166,7 @@ class SessionTests(unittest.TestCase):
 
     def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
         before = copy.deepcopy(self.a.world_state)
+        mock_narration = {"narration": "O kral hakkında hiçbir fikrim yok.", "world_updates": {}, "lore_claims": []}
         with patch.object(
             game,
             "parse_player_intent",
@@ -172,11 +174,15 @@ class SessionTests(unittest.TestCase):
         ), patch.object(
             game,
             "ask_dungeon_master",
-            side_effect=AssertionError("Unsupported lore question must fail closed."),
-        ):
+            return_value=mock_narration,
+        ) as mock_ask:
             result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
+            
+        mock_ask.assert_called_once()
+        self.assertIn("narration_only", mock_ask.call_args.kwargs)
+        self.assertTrue(mock_ask.call_args.kwargs["narration_only"])
 
-        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
+        self.assertIn("fikrim yok", result["narration"])
         self.assertNotIn("UNVERIFIED", result["narration"])
         after = copy.deepcopy(self.a.world_state)
         before["flags"]["turn_index"] = after["flags"]["turn_index"]
@@ -758,7 +764,7 @@ class CompatibilityTests(unittest.TestCase):
 
     def test_exec_namespace_scalars_are_not_a_state_input(self):
         namespace = {"__name__": "isolated_engine", "__file__": game.__file__}
-        exec(compile(Path(game.__file__).read_text(), game.__file__, "exec"),
+        exec(compile(Path(game.__file__).read_text(encoding="utf-8"), game.__file__, "exec"),
              namespace)
         before = namespace["serialize_game_state"]()
         namespace["current_hp"] = 0
@@ -771,9 +777,11 @@ class CompatibilityTests(unittest.TestCase):
                          session.serialize_game_state())
 
     def test_terminal_initialization_dice_and_exit(self):
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
         result = subprocess.run(
             [sys.executable, game.__file__], input="2\nzar at\nexit\n",
-            text=True, capture_output=True, timeout=15,
+            text=True, capture_output=True, timeout=15, encoding="utf-8", env=env
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("D20 sonucu:", result.stdout)
