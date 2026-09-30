@@ -68,6 +68,45 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIn("Tuna", response)
         self.assertTrue(response.strip())
 
+    def test_selected_npc_smalltalk_uses_grounded_responses(self):
+        npc = {"id": "npc_smalltalk", "name": "Melis"}
+
+        activity = game._direct_npc_smalltalk_response(
+            "Bugün burada neler oluyor?", npc
+        )
+        self.assertEqual(
+            activity,
+            "Melis, “Şimdilik göze çarpan özel bir şey yok; "
+            "ben kendi işimle ilgileniyorum,” diye yanıt verir.",
+        )
+        day = game._direct_npc_smalltalk_response(
+            "Bugün günün nasıl gidiyor?", npc
+        )
+        self.assertEqual(
+            day,
+            "Melis, “Fena değil, teşekkür ederim. "
+            "Sorduğun için sağ ol,” diye karşılık verir.",
+        )
+        guard = game._direct_npc_smalltalk_response(
+            "Bugün yol ve güvenlik nasıl?",
+            {"id": "npc_guard", "name": "Duru"},
+        )
+        self.assertEqual(
+            guard,
+            "Duru, “Yol ve güvenlik hakkında doğrulanmış bilgim yok; "
+            "kesin bir şey söyleyemem,” diye yanıt verir.",
+        )
+        greeting = game._direct_npc_smalltalk_response(
+            "Onunla kısa bir selamlaşıyorum.", npc
+        )
+        self.assertEqual(
+            greeting,
+            "Melis, “Merhaba,” diye karşılık verir.",
+        )
+        self.assertIsNone(
+            game._direct_npc_smalltalk_response("Doğu'da ne var?", npc)
+        )
+
     def test_merchant_search_creates_local_person_and_shop_without_trade(self):
         plan = self.session.plan_living_world_turn(
             "Bir tüccar arıyorum."
@@ -134,6 +173,41 @@ class PlayableLivingWorldTests(unittest.TestCase):
             self.world["scene_state"]["scenes"][tavern_id]["visit_revision"],
             first_visit,
         )
+
+    def test_travel_uses_last_named_location_as_destination(self):
+        search = self.session.plan_living_world_turn(
+            "Yakınlarda bir taverna arıyorum."
+        )
+        tavern_id = search["direct_result"]["target_id"]
+        tavern = self.world["locations"][tavern_id]
+        self.world["location"] = tavern_id
+        root_name = self.world["locations"][self.root_location]["name"]
+        travel_text = (
+            f"{tavern['name']} içinden {root_name} konumuna dönüyorum."
+        )
+
+        self.assertEqual(
+            self.session._location_reference_in_text(travel_text),
+            tavern_id,
+        )
+        intent = self.session.normalize_intent(
+            {
+                "intent": "travel",
+                "target": {"type": "location", "reference": tavern["name"]},
+            },
+            travel_text,
+        )
+        self.assertEqual(intent["intent"], "travel")
+        self.assertEqual(intent["target"]["reference"], self.root_location)
+
+        validated = self.session.validate_intent(intent, travel_text)
+        self.assertEqual(
+            validated["target"]["reference"], self.root_location
+        )
+        result = self.session.execute_intent(validated, travel_text)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["new_location"], self.root_location)
+        self.assertEqual(self.world["location"], self.root_location)
 
     def test_feature_identity_and_scene_projection_survive_save_load(self):
         self.session.plan_living_world_turn("Etrafıma bakıyorum.")
@@ -203,6 +277,30 @@ class PlayableLivingWorldTests(unittest.TestCase):
 
         self.assertEqual(public_ref["addressable_alias"], "traveler")
         self.assertNotIn("aliases", public_ref)
+
+    def test_observing_referent_does_not_promote_it_to_an_npc(self):
+        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
+        turn_index = self.world["flags"].get("turn_index", 0) + 1
+        description = "Girişteki ziyaretçi çantasının kayışını düzeltiyor."
+        ref = living_world.create_scene_referent(
+            self.world,
+            self.root_location,
+            turn_index,
+            description=description,
+            aliases=["ziyaretçi"],
+        )
+
+        plan = self.session.plan_living_world_turn(
+            "Ziyaretçi etkinliğine dikkat ediyorum."
+        )
+        result = plan["direct_result"]
+
+        self.assertEqual(result["action"], "explore")
+        self.assertEqual(result["status"], "observed")
+        self.assertEqual(result["target_id"], ref["id"])
+        self.assertEqual(result["direct_response"], description)
+        self.assertEqual(ref["lifecycle"], "presented")
+        self.assertIsNone(ref.get("promoted_npc_id"))
 
     def test_legacy_save_migrates_feature_ids_idempotently(self):
         location = self.root_location

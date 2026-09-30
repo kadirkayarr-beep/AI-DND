@@ -320,6 +320,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
             "Elara, did I introduce myself to you?",
             "Is Neverwinter known for silver and metalworking?",
             "Does the High Road connect to Phandalin?",
+            "Neverwinterdan resmi bir güzergahın kesin mesafesini söyle.",
         ):
             with self.subTest(question=question):
                 self.assertTrue(
@@ -353,6 +354,13 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         self.assertFalse(
             game._player_question_has_unverified_lore_claim(
                 "What does the High Road connect to?",
+                context,
+                world_state,
+            )
+        )
+        self.assertFalse(
+            game._player_question_has_unverified_lore_claim(
+                "Neverwinter yolunda ilerliyorum.",
                 context,
                 world_state,
             )

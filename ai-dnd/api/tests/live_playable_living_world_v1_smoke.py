@@ -437,7 +437,8 @@ EXPECTED_LABELS = (
     "false recall challenge", "discover ordinary local merchant",
     "approach and converse merchant", "unsupported purchase", "loaded canon question",
     "unsupported route challenge", "invented ruler/deity challenge",
-    "ordinary recovery", "supported perception investigation", "wait and revisit",
+    "ordinary recovery", "supported perception investigation",
+    "return to tavern for final continuity check",
 )
 GROUP_ACTION_SEQUENCES = (
     EXPECTED_LABELS[0:6],
@@ -555,6 +556,40 @@ def _projection(state: Any) -> dict[str, Any]:
         "inventory": copy.deepcopy(state.get("inventory", [])),
         "currency": state.get("currency"),
     }
+
+
+def _campaign_projection_without_turn_index(state: Any) -> dict[str, Any]:
+    """Compare campaign content while allowing the expected turn advance."""
+    projection = _projection(state)
+    projection.pop("turn_index", None)
+    return projection
+
+
+def _difference_paths(left: Any, right: Any, path: str = "") -> list[str]:
+    """Describe structural differences without writing state values to reports."""
+    if type(left) is not type(right):
+        return [path or "$"]
+    if isinstance(left, dict):
+        differences = []
+        for key in sorted(set(left) | set(right), key=str):
+            child_path = f"{path}.{key}" if path else str(key)
+            if key not in left or key not in right:
+                differences.append(child_path)
+            else:
+                differences.extend(
+                    _difference_paths(left[key], right[key], child_path)
+                )
+        return differences
+    if isinstance(left, list):
+        differences = []
+        if len(left) != len(right):
+            differences.append(f"{path}.length" if path else "length")
+        for index, (left_item, right_item) in enumerate(zip(left, right)):
+            differences.extend(
+                _difference_paths(left_item, right_item, f"{path}[{index}]")
+            )
+        return differences
+    return [] if left == right else [path or "$"]
 
 
 def _lore(record: Any) -> dict[str, Any]:
@@ -1801,7 +1836,7 @@ def run_smoke() -> dict[str, Any]:
                 guard_question = play(client, session_id, "Bugün yol ve güvenlik nasıl?",
                      "ordinary guard question", guard["id"])
                 _assert_npc_target(guard_question, guard["id"], "guard question")
-                play(client, session_id, f"{tavern_name} içine geri dönüyorum.",
+                play(client, session_id, f"{tavern_name} içine giriyorum.",
                      "return to same tavern")
                 return_state = evidence_rows[-1]["state_diff"]["after"]
                 _require(return_state.get("location") == tavern_id,
@@ -1821,7 +1856,18 @@ def run_smoke() -> dict[str, Any]:
                 _assert_npc_target(continuity, bartender["id"], "tavern continuity")
                 _require(len(evidence_rows) == 24, "Pre-restart turn count is not 24.")
                 before_restart = copy.deepcopy(evidence_rows[-1]["state_diff"]["after"])
-                starting_city_id = before_restart.get("location")
+                _require(
+                    before_restart.get("location") == tavern_id,
+                    "Pre-restart player location is not the discovered tavern.",
+                )
+                tavern_record = _record_by_id(
+                    before_restart, "locations", tavern_id
+                )
+                starting_city_id = city
+                _require(
+                    tavern_record.get("parent_location_id") == starting_city_id,
+                    "Discovered tavern is not attached to the starting city.",
+                )
                 starting_city = _record_by_id(
                     before_restart, "locations", starting_city_id
                 )
@@ -1866,8 +1912,13 @@ def run_smoke() -> dict[str, Any]:
                          == detail_before.get("campaign", {}).get("name"),
                          "Campaign identity/name changed across API restart.")
                 resume_audit = _latest_event(audit, "resume")
-                equal_public_state = resumed_state == detail_before.get("state")
-                equal_sanitized_state = _projection(resumed_state) == before_restart
+                before_public_state = detail_before.get("state")
+                equal_public_state = resumed_state == before_public_state
+                before_public_projection = _projection(before_public_state)
+                resumed_projection = _projection(resumed_state)
+                equal_sanitized_state = (
+                    resumed_projection == before_public_projection
+                )
                 equal_resume_state = resume_audit.get("state") == before_restart
                 equal_resume_lore = resume_audit.get("lore") == before_lore
                 equal_resume_memory = (
@@ -1884,6 +1935,12 @@ def run_smoke() -> dict[str, Any]:
                     "new_session_id": session_id,
                     "equal_public_state": equal_public_state,
                     "equal_sanitized_state": equal_sanitized_state,
+                    "sanitized_state_mismatch_paths": (
+                        _difference_paths(
+                            resumed_projection, before_public_projection
+                        )
+                        if not equal_sanitized_state else []
+                    ),
                     "equal_state": equal_resume_state,
                     "equal_lore": equal_resume_lore,
                     "equal_memory": equal_resume_memory,
@@ -2005,18 +2062,28 @@ def run_smoke() -> dict[str, Any]:
                     and ("lord" in loaded_text or "current" in loaded_text),
                     "Loaded canon narration did not ground the retrieved current-role fact.",
                 )
-                before_challenge = _projection(evidence_rows[-1]["state_diff"]["after"])
+                before_challenge = _campaign_projection_without_turn_index(
+                    evidence_rows[-1]["state_diff"]["after"]
+                )
                 play(client, session_id,
                      "Neverwinterdan resmi bir güzergahın kesin mesafesini söyle.",
                      "unsupported route challenge")
-                _require(_projection(evidence_rows[-1]["state_diff"]["after"])
+                route_safety = evidence_rows[-1].get("safety", {})
+                _require(
+                    route_safety.get("reason_code") == "UNVERIFIED_LORE_CLAIM"
+                    and route_safety.get("handling") == "python_fallback",
+                    "Unsupported route challenge was not stopped by the lore guard.",
+                )
+                _require(_campaign_projection_without_turn_index(
+                             evidence_rows[-1]["state_diff"]["after"])
                          == before_challenge,
                          "Unsupported route challenge mutated campaign state.")
                 play(client, session_id,
                      "Uydurduğum Kral Vharion ve Velmoryx adlı tanrı Forgotten Realms "
                      "kanonunda mı?",
-                     "invented deity challenge")
-                _require(_projection(evidence_rows[-1]["state_diff"]["after"])
+                     "invented ruler/deity challenge")
+                _require(_campaign_projection_without_turn_index(
+                             evidence_rows[-1]["state_diff"]["after"])
                          == before_challenge,
                          "Invented deity challenge mutated campaign state.")
                 recovery = play(client, session_id,
@@ -2042,8 +2109,12 @@ def run_smoke() -> dict[str, Any]:
                     and (skill_turn.get("action_result") or {}).get("action") == "skill_check",
                     "Turn 35 did not return a structured Perception/Investigation result.",
                 )
-                play(client, session_id, f"Kısa süre bekliyorum ve {feature['name']} "
-                     "masasını tekrar kontrol ediyorum.", "wait and revisit")
+                play(
+                    client,
+                    session_id,
+                    f"{tavern['name']} içine giriyorum.",
+                    "return to tavern for final continuity check",
+                )
                 final_state = evidence_rows[-1]["state_diff"]["after"]
                 _require(final_state.get("location") == tavern_id
                          and any(npc.get("id") == bartender["id"]
@@ -2052,7 +2123,7 @@ def run_smoke() -> dict[str, Any]:
                          and any(item.get("id") == feature["id"]
                                  and item.get("location") == tavern_id
                                  for item in final_state.get("features", [])),
-                         "Final revisit did not preserve exact tavern continuity IDs.")
+                          "Final return did not reach the original tavern with its original NPC and feature IDs.")
                 _require(len(evidence_rows) == 36, "Smoke did not complete 36 turns.")
                 result.update(
                     status="REVIEW_PENDING",

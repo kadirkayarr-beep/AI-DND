@@ -764,7 +764,10 @@ def is_npc_dialogue_input(player_input):
     text = player_input.casefold().strip()
     if "?" in text or is_npc_historical_claim(player_input):
         return True
-    if re.search(r"\b(?:selam|merhaba|iyi günler|teşekkür|sağ ol)\b", text):
+    if re.search(
+        r"\b(?:selam\w*|merhaba\w*|iyi günler|teşekkür\w*|sağ ol)\b",
+        text,
+    ):
         return True
     if re.search(r"\b(?:konuş\w*|sohbet\w*|laf ed\w*|selam ver\w*)\b", text):
         return True
@@ -3549,6 +3552,48 @@ def _location_reference_in_text(text):
     return None
 
 
+def _travel_destination_reference_in_text(text):
+    """Use the last named location as the destination in an explicit travel command."""
+    if not isinstance(text, str):
+        return None
+    normalized = _normalize_turkish_typos(text)
+    text_tokens = list(re.finditer(r"[a-z0-9]+", normalized))
+    if not text_tokens:
+        return None
+
+    locations = _session().world_state.get("locations", {})
+    matches = []
+    for location_id, location in locations.items():
+        for alias in _location_alias_values(location):
+            alias_tokens = re.findall(r"[a-z0-9]+", alias)
+            if not alias_tokens or len(alias_tokens) > len(text_tokens):
+                continue
+            for start in range(len(text_tokens) - len(alias_tokens) + 1):
+                if all(
+                    _reference_token_matches(
+                        alias_token, text_tokens[start + offset].group(0)
+                    )
+                    for offset, alias_token in enumerate(alias_tokens)
+                ):
+                    matches.append((
+                        text_tokens[start + len(alias_tokens) - 1].end(),
+                        len(alias_tokens),
+                        location_id,
+                    ))
+
+    if not matches:
+        return None
+    last_mention = max(match[0] for match in matches)
+    last_matches = [match for match in matches if match[0] == last_mention]
+    longest_alias = max(match[1] for match in last_matches)
+    candidate_ids = {
+        match[2] for match in last_matches if match[1] == longest_alias
+    }
+    if len(candidate_ids) == 1:
+        return next(iter(candidate_ids))
+    return _location_reference_in_text(normalized)
+
+
 def normalize_location_id(value):
     return resolve_location_reference(value)
 
@@ -3841,18 +3886,23 @@ def normalize_intent(raw_intent, player_input):
         intent_type, explore_type, query_type = "explore", explore_type or "observe", None
 
     known_location = _location_reference_in_text(normalized_input)
+    travel_language = _has_travel_language(normalized_input)
+    travel_location = (
+        _travel_destination_reference_in_text(normalized_input)
+        if travel_language else None
+    )
     pending = world_state.get("flags", {}).get("pending_destination")
-    pending_followup = bool(pending and _has_travel_language(normalized_input) and re.search(
+    pending_followup = bool(pending and travel_language and re.search(
         r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", normalized_input
     ))
     reference_mentioned = bool(reference and _entity_reference_in_text(reference, player_input))
     if intent_type in {"query", "explore"}:
         pass
-    elif known_location and _has_travel_language(normalized_input):
+    elif travel_language and (travel_location or known_location):
         intent_type = "travel"
         target_type = "location"
-        reference = known_location
-    elif (intent_type == "travel" or (target_type == "location" and reference_mentioned)) and _has_travel_language(normalized_input):
+        reference = travel_location or known_location
+    elif (intent_type == "travel" or (target_type == "location" and reference_mentioned)) and travel_language:
         intent_type = "travel"
     if pending_followup:
         intent_type = "travel"
@@ -3946,7 +3996,10 @@ def validate_intent(intent, player_input):
         elif not reference and not pending_followup:
             valid["intent"] = "narrative"
         elif reference and not pending_followup:
-            mentioned_location = _location_reference_in_text(text)
+            mentioned_location = (
+                _travel_destination_reference_in_text(text)
+                or _location_reference_in_text(text)
+            )
             # More flexible reference matching for Turkish case endings
             named_in_input = _normalize_turkish_location(text, reference)
             if mentioned_location:
@@ -5383,7 +5436,8 @@ _LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
     r"\b(?:road|route|path|way|distance|miles?|kilometers?|kilometres?|"
     r"how far|how many\s+(?:miles?|kilometers?|kilometres?|meters?|metres?)|"
     r"far from|on the road|"
-    r"yol|rota|guzergah|uzaklik|kac mil|kac kilometre|ne kadar uzak|arasi)\b",
+    r"yol|rota|guzergah|mesafe\w*|uzaklik\w*|kac mil|kac kilometre|"
+    r"ne kadar uzak|arasi)\b",
     re.IGNORECASE,
 )
 _UNVERIFIED_LORE_RESPONSE = (
@@ -5971,13 +6025,27 @@ def _player_question_has_unverified_lore_claim(
 ):
     if not isinstance(player_input, str) or not player_input.strip():
         return False
-    if "?" not in player_input and not re.match(
+    normalized_input = _lore_guard_text(player_input)
+    starts_with_question_word = bool(re.match(
         r"^\s*(?:who|what|where|when|why|how|which|whose|"
         r"is|are|was|were|does|do|did|can|could|should|would|will|"
         r"kim|ne|nerede|hangi|neden|nasıl|nasil|"
         r"mi|mı|mu|mü)\b",
         player_input,
         re.IGNORECASE,
+    ))
+    requests_route_distance = bool(
+        _LORE_ROUTE_DISTANCE_QUERY_RE.search(normalized_input)
+        and re.search(
+            r"\b(?:tell|give|provide|state|calculate|estimate|"
+            r"soyle\w*|ver\w*|belirt\w*|hesapla\w*|aktar\w*)\b",
+            normalized_input,
+        )
+    )
+    if (
+        "?" not in player_input
+        and not starts_with_question_word
+        and not requests_route_distance
     ):
         return False
 
@@ -5991,7 +6059,6 @@ def _player_question_has_unverified_lore_claim(
     ):
         return True
 
-    normalized_input = _lore_guard_text(player_input)
     mentioned_ids = {
         entity_id
         for entity_id, names in names_by_id.items()
@@ -6079,7 +6146,7 @@ def _player_question_has_unverified_lore_claim(
             r"\b(?:distance|how far|how many\s+(?:miles?|kilometers?|"
             r"kilometres?|meters?|metres?)|miles?|kilometers?|"
             r"kilometres?|meters?|metres?|kac mil|kac kilometre|"
-            r"ne kadar uzak|uzaklik)\b",
+            r"ne kadar uzak\w*|mesafe\w*|uzaklik\w*)\b",
             normalized_input,
         ))
         if distance_question and len(mentioned_ids) == 1:
@@ -6349,7 +6416,7 @@ def ask_dungeon_master(
             "veya bilmediğini söylesin. Gündelik küçük sohbete kısa, doğal ve karaktere uygun bir yanıt ver; "
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
             "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
-            "bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
+            "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
         )
     recent_narrations = _session().recent_dm_narrations[-8:]
@@ -7701,6 +7768,75 @@ def _scene_feature_match(player_input, location_id):
     return matches
 
 
+def _direct_npc_smalltalk_response(player_input, npc_target):
+    if (
+        not isinstance(player_input, str)
+        or not isinstance(npc_target, dict)
+        or not isinstance(npc_target.get("id"), str)
+        or not is_npc_dialogue_input(player_input)
+        or is_npc_historical_claim(player_input)
+    ):
+        return None
+
+    text = living_world.normalize_text(player_input)
+    name = str(npc_target.get("name") or "Kişi")
+    has_local_context = bool(
+        re.search(r"\b(?:bugun|burada|buralarda|su an)\b", text)
+    )
+    asks_about_activity = bool(
+        re.search(r"\b(?:ne oluyor|neler oluyor|ne var|neler var)\b", text)
+    )
+    if has_local_context and asks_about_activity:
+        return (
+            f'{name}, “Şimdilik göze çarpan özel bir şey yok; '
+            'ben kendi işimle ilgileniyorum,” diye yanıt verir.'
+        )
+
+    asks_about_day = bool(
+        re.search(r"\b(?:gunun|bugunun|keyfin|halin)\b", text)
+        and re.search(r"\b(?:nasil|gidiyor|geciyor)\b", text)
+    ) or bool(re.search(r"\b(?:nasilsin|keyfin nasil)\b", text))
+    if asks_about_day:
+        return (
+            f'{name}, “Fena değil, teşekkür ederim. '
+            'Sorduğun için sağ ol,” diye karşılık verir.'
+        )
+
+    asks_about_conditions = bool(
+        re.search(r"\b(?:yol\w*|guvenli\w*|emniyet\w*)\b", text)
+        and re.search(r"\b(?:bugun|su an|nasil|durum|guvenli)\b", text)
+    )
+    if asks_about_conditions:
+        return (
+            f'{name}, “Yol ve güvenlik hakkında doğrulanmış bilgim yok; '
+            'kesin bir şey söyleyemem,” diye yanıt verir.'
+        )
+
+    if re.search(
+        r"\b(?:selam\w*|merhaba|iyi gunler|gunaydin|iyi aksamlar)\b",
+        text,
+    ):
+        return f'{name}, “Merhaba,” diye karşılık verir.'
+    return None
+
+
+def _is_scene_referent_activity_observation(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = living_world.normalize_text(player_input)
+    return bool(
+        re.search(r"\b(?:dikkat\w*|gozlemle\w*|izle\w*)\b", text)
+        and re.search(
+            r"\b(?:etkinli\w*|davran\w*|hareket\w*|yaptig\w*)\b",
+            text,
+        )
+        and not re.search(
+            r"\b(?:sor\w*|konus\w*|selam\w*|yaklas\w*)\b",
+            text,
+        )
+    )
+
+
 def _scene_names(location_id):
     return [
         npc for npc in active_npcs(location_id)
@@ -8040,17 +8176,33 @@ def plan_living_world_turn(player_input, target_id=None):
                 "direct_response": "Birden fazla kişi bu tarife uyuyor. Hangisini kastettiğini biraz daha tarif eder misin?",
             }
         elif ref_resolution["status"] in ("found", "promoted") and referent:
-            resolved_npc = _promote_scene_referent(referent, current)
-            if resolved_npc:
-                _set_scene_active_npc(resolved_npc, turn_index)
-            elif action == "approach":
+            if _is_scene_referent_activity_observation(player_input):
+                description = referent.get("description")
                 direct = {
-                    "action": "approach",
-                    "status": "unavailable",
-                    "success": False,
+                    "action": "explore",
+                    "explore_type": "observe",
+                    "status": "observed",
+                    "success": True,
+                    "target_id": referent.get("id"),
                     "state_changes": [],
-                    "direct_response": "Kalabalıkta o kişiye yaklaşacak yer bulamıyorsun.",
+                    "direct_response": (
+                        description.strip()
+                        if isinstance(description, str) and description.strip()
+                        else "Belirgin bir değişiklik fark etmiyorsun."
+                    ),
                 }
+            else:
+                resolved_npc = _promote_scene_referent(referent, current)
+                if resolved_npc:
+                    _set_scene_active_npc(resolved_npc, turn_index)
+                elif action == "approach":
+                    direct = {
+                        "action": "approach",
+                        "status": "unavailable",
+                        "success": False,
+                        "state_changes": [],
+                        "direct_response": "Kalabalıkta o kişiye yaklaşacak yer bulamıyorsun.",
+                    }
 
     if not combat.get("active") and not direct and action != "presence":
         if target_id is not None:
@@ -8591,6 +8743,23 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
                     query_response,
                     safety_handling="python_scene_response",
                 )
+
+    smalltalk_response = _direct_npc_smalltalk_response(
+        player_input, npc_target
+    )
+    if smalltalk_response:
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_smalltalk",
+            "success": True,
+            "npc_id": npc_target["id"],
+            "state_changes": [],
+        }
+        return finish_turn(
+            action_result,
+            smalltalk_response,
+            safety_handling="python_scene_response",
+        )
 
     supported_lore_response = _supported_lore_question_response(
         player_input,
