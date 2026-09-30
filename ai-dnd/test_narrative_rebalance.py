@@ -252,17 +252,132 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(state1["player"]["name"], state2["player"]["name"])
         self.assertEqual(state1["world_state"]["location"], state2["world_state"]["location"])
 
-    # 17. model-generated prose alone cannot create canonical memory
+    # 17. model-generated prose alone cannot create canonical memory or mutate relationships
     @patch("game.ollama.chat")
     def test_17_model_generated_prose_alone_cannot_create_canonical_memory(self, mock_chat):
         mock_chat.return_value = self.mock_ollama_response(
-            '{"valid_response": true, "narration": "Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.", "world_updates": {"update_npcs": [{"id": "npc_barkeep", "relationship": "allied"}]}}'
+            '{"valid_response": true, "narration": "Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.", "lore_claims": [], "world_updates": {"update_npcs": [{"id": "npc_barkeep", "relationship": "allied"}]}}'
         )
         self.session.world_state["npcs"][0]["relationship"] = "neutral"
-        self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
+        gold_before = self.session.character.get("gold", 0)
+        items_before = copy.deepcopy(self.session.character.get("inventory", []))
+
+        result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         npc = self.session.world_state["npcs"][0]
+
+        # 1. canonical relationship is unchanged
         self.assertEqual(npc.get("relationship"), "neutral")
         self.assertEqual(len(npc.get("knowledge", [])), 0)
+
+        # 2. no reward/quest/inventory mutation occurs
+        self.assertEqual(len(self.session.world_state.get("quests", [])), 0)
+        self.assertEqual(self.session.character.get("gold", 0), gold_before)
+        self.assertEqual(self.session.character.get("inventory", []), items_before)
+
+        # 3. narration does not present the unsupported canonical claim as fact
+        narration_lower = result["narration"].lower()
+        self.assertNotIn("tamamen güveniyor", narration_lower)
+        self.assertNotIn("en iyi dostu", narration_lower)
+
+        # 4. unsupported claim is NOT written into trusted NPC memory
+        memory_texts = [
+            m.get("text", "") if isinstance(m, dict) else str(m)
+            for m in npc.get("memory", [])
+        ]
+        for text in memory_texts:
+            self.assertNotIn("tamamen güveniyor", text.lower())
+            self.assertNotIn("en iyi dostu", text.lower())
+
+        # 5. there is no extra model retry
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertLessEqual(telemetry["total_model_calls"], 2)
+
+        # 6. fallback/validation telemetry truthfully reports what happened
+        self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
+        self.assertEqual(telemetry["fallback_reason"], "CANONICAL_RELATIONSHIP_CONTRADICTION")
+        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+
+    # 18. legitimate unknown procedural travel destination creates matching location
+    @patch("game.ollama.chat")
+    def test_18_legitimate_unknown_procedural_travel_destination_creates_matching_location(self, mock_chat):
+        intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Kuzeydeki Terkedilmiş Maden"}, "completion": "completed", "confidence": 0.9}'
+        narration_payload = '{"valid_response": true, "narration": "Kuzeydeki Terkedilmiş Maden girişine ulaştın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Kuzeydeki Terkedilmiş Maden", "type": "dungeon", "description": "Terk edilmiş bir maden."}]}}'
+        mock_chat.side_effect = [
+            self.mock_ollama_response(intent_payload),
+            self.mock_ollama_response(narration_payload)
+        ]
+        locs_before = len(self.session.world_state.get("locations", {}))
+        result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
+        locs_after = len(self.session.world_state.get("locations", {}))
+        self.assertEqual(locs_after, locs_before + 1)
+        self.assertEqual(result["action_result"]["status"], "completed")
+
+    # 19. unrelated model-proposed location is rejected
+    @patch("game.ollama.chat")
+    def test_19_unrelated_model_proposed_location_is_rejected(self, mock_chat):
+        intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Kuzeydeki Terkedilmiş Maden"}, "completion": "completed", "confidence": 0.9}'
+        narration_payload = '{"valid_response": true, "narration": "Uzak Çöl kumlarına ulaştın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Uzak Çöl", "type": "wilderness", "description": "Uzak bir çöl."}]}}'
+        mock_chat.side_effect = [
+            self.mock_ollama_response(intent_payload),
+            self.mock_ollama_response(narration_payload)
+        ]
+        locs_before = len(self.session.world_state.get("locations", {}))
+        result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
+        locs_after = len(self.session.world_state.get("locations", {}))
+        self.assertEqual(locs_after, locs_before)
+        self.assertEqual(result["action_result"]["status"], "failed")
+        self.assertNotIn("Uzak Çöl", result["narration"])
+
+    # 20. route/distance question cannot create location
+    def test_20_route_distance_question_cannot_create_location(self):
+        loc_count_before = len(self.session.world_state.get("locations", {}))
+        result = self.session.run_player_turn("Neverwinter ne kadar uzakta?")
+        loc_count_after = len(self.session.world_state.get("locations", {}))
+        self.assertEqual(loc_count_after, loc_count_before)
+        self.assertNotIn("Neverwinter", self.session.world_state.get("locations", {}))
+
+    # 21. location proposal and narration stays within max 2 model calls
+    @patch("game.ollama.chat")
+    def test_21_location_proposal_and_narration_stays_within_max_2_model_calls(self, mock_chat):
+        intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Kuzeydeki Terkedilmiş Maden"}, "completion": "completed", "confidence": 0.9}'
+        narration_payload = '{"valid_response": true, "narration": "Kuzeydeki Terkedilmiş Maden girişine ulaştın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Kuzeydeki Terkedilmiş Maden", "type": "dungeon", "description": "Terk edilmiş bir maden."}]}}'
+        mock_chat.side_effect = [
+            self.mock_ollama_response(intent_payload),
+            self.mock_ollama_response(narration_payload)
+        ]
+        result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertLessEqual(telemetry["total_model_calls"], 2)
+
+    # 22. failed location proposal leaves current location unchanged
+    @patch("game.ollama.chat")
+    def test_22_failed_location_proposal_leaves_current_location_unchanged(self, mock_chat):
+        initial_loc = self.session.world_state.get("location")
+        intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Kuzey Kalesi"}, "completion": "completed", "confidence": 0.9}'
+        narration_payload = '{"valid_response": true, "narration": "Büyülü Orman derinliklerine vardın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Büyülü Orman", "type": "forest", "description": "Orman."}]}}'
+        mock_chat.side_effect = [
+            self.mock_ollama_response(intent_payload),
+            self.mock_ollama_response(narration_payload)
+        ]
+        result = self.session.run_player_turn("Kuzey kalesine gidiyorum")
+        self.assertEqual(self.session.world_state.get("location"), initial_loc)
+        self.assertEqual(result["action_result"]["status"], "failed")
+
+    # 23. successful committed travel produces correct canonical location
+    @patch("game.ollama.chat")
+    def test_23_successful_committed_travel_produces_correct_canonical_location(self, mock_chat):
+        initial_loc = self.session.world_state.get("location")
+        intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Eski Kütüphane"}, "completion": "completed", "confidence": 0.9}'
+        narration_payload = '{"valid_response": true, "narration": "Eski Kütüphane kapısına vardın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Eski Kütüphane", "type": "library", "description": "Terk edilmiş eski kütüphane."}]}}'
+        mock_chat.side_effect = [
+            self.mock_ollama_response(intent_payload),
+            self.mock_ollama_response(narration_payload)
+        ]
+        result = self.session.run_player_turn("Eski kütüphaneye gidiyorum")
+        new_loc = self.session.world_state.get("location")
+        self.assertNotEqual(new_loc, initial_loc)
+        self.assertIn(new_loc, self.session.world_state.get("locations", {}))
+        self.assertEqual(result["action_result"]["status"], "completed")
 
 
 if __name__ == "__main__":

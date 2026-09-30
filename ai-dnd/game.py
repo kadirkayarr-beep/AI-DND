@@ -38,6 +38,7 @@ class ResolvedTurn:
     allow_new_shops: bool = False
     expected_location_change: bool = False
     scene_plan: Optional[Dict[str, Any]] = None
+    quest_world_before: Optional[Dict[str, Any]] = None
 
 
 
@@ -3256,6 +3257,8 @@ def record_npc_interaction(npc, npc_reply, player_input, npc_target=None):
     
     if not player_text or not npc_text:
         return
+    if _unsupported_npc_history_or_relationship_claim(npc_text, npc, player_input):
+        return
     
     # Create structured entries
     player_entry = {"speaker": "player", "text": player_text}
@@ -4435,6 +4438,48 @@ def _unregistered_persistent_object_claim(world_state, narration):
     return claim.group(0)
 
 
+def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, player_input=""):
+    """Detect invented relationship mutations or campaign-history claims not grounded in Python state."""
+    text = str(narration).casefold()
+
+    # 1. Relationship / trust / alliance mutation without canonical backing
+    rel_patterns = (
+        r"\b(?:artık\s+)?(?:tamamen\s+)?güven(?:iyor|ir|ini\s+kazandın|i\s+tam)\b",
+        r"\b(?:en\s+iyi|en\s+yakın)\s+dost(?:u|umuz|um|sunuz)?\b",
+        r"\b(?:artık\s+)?(?:dost|müttefik)\s+(?:olduk|oldu|ilan\s+eder|sayılırız)\b",
+        r"\bartık\s+sana\s+güven\w*\b",
+    )
+    for pat in rel_patterns:
+        match = re.search(pat, text)
+        if match:
+            rel = (npc_target or {}).get("relationship") if isinstance(npc_target, dict) else None
+            if rel not in ("friendly", "allied"):
+                return ("CANONICAL_RELATIONSHIP_CONTRADICTION", match.group(0))
+
+    # 2. Campaign history / past agreements / past debts / past encounters
+    history_patterns = (
+        (r"\b(?:sana|bana)\s+(?:olan\s+)?borc(?:um|un|umu|unu)\b|\bborcum\s+var\b|\bborçluyum\b", "debt"),
+        (r"\b(?:iş|görev)\s+sözü\s+ver\w*|\biş\s+vadet\w*|\b(?:iş|görev)\s+borçluyum\b", "job_promise"),
+        (r"\bödül(?:de|\s+için)?\s+anlaş\w*|\bödül\s+sözü\s+ver\w*", "reward_agreement"),
+        (r"\b(?:kardeşimi|hayatımı|babamı|annemi)\s+kurtar\w*", "life_saving"),
+        (r"\b(?:dün|geçen\s+gün|daha\s+önce)\s+(?:burada\s+)?(?:buluş\w*|görüş\w*|karşılaş\w*|tanış\w*)", "prior_meeting"),
+        (r"\b(?:bana|bize)\s+.{1,40}\b(?:söylemiştin|anlatmıştın|bahsetmiştin)\b", "prior_disclosure"),
+    )
+    for pat, _category in history_patterns:
+        match = re.search(pat, text)
+        if match:
+            supported = False
+            if isinstance(npc_target, dict):
+                if npc_memory_supports_claim(npc_target, match.group(0)):
+                    supported = True
+                elif any(match.group(0) in str(k).casefold() for k in npc_target.get("knowledge", [])):
+                    supported = True
+            if not supported:
+                return ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", match.group(0))
+
+    return None
+
+
 def _narration_safety_decision(narration, player_input, npc_target=None, action_result=None):
     """Return a reason-coded safety decision without changing canonical state."""
     world_state = _session().world_state
@@ -4467,6 +4512,12 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
 
     text = narration.casefold()
     input_text = str(player_input).casefold()
+
+    unsupported_npc_claim = _unsupported_npc_history_or_relationship_claim(
+        narration, npc_target=npc_target, player_input=player_input
+    )
+    if unsupported_npc_claim:
+        return reject(unsupported_npc_claim[0], unsupported_npc_claim[1])
     action_outcome = action_result.get("outcome")
     character_name = str(_session().character.get("name", "")).casefold()
     character_name_pattern = (
@@ -8675,7 +8726,12 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         injected = getattr(_session(), "lore_authority_context", None)
         lore_context = _prepare_lore_authority_context(injected)
 
-    narration_only = not (resolved_turn.allow_new_npcs or resolved_turn.allow_new_features or resolved_turn.allow_new_shops)
+    narration_only = not (
+        resolved_turn.allow_new_npcs
+        or resolved_turn.allow_new_features
+        or resolved_turn.allow_new_shops
+        or resolved_turn.allow_new_locations
+    )
     narration_model_calls = 1
     packet = ask_dungeon_master(
         messages,
@@ -8694,13 +8750,58 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     )
     packet = packet if isinstance(packet, dict) else {}
 
+    proposal_snapshot = _world_snapshot()
     if not narration_only and packet.get("valid_response"):
-        raw_updates = packet.get("world_updates", {})
+        raw_updates = (
+            packet.get("world_updates", {})
+            if isinstance(packet.get("world_updates"), dict)
+            else {}
+        )
+        if resolved_turn.allow_new_shops:
+            raw_updates = {"create_shops": raw_updates.get("create_shops", [])}
+        is_assertion = is_player_world_assertion(player_input) and not resolved_turn.allow_new_shops
+
+        # Location proposals are validated and committed before the player location changes.
+        location_updates = validate_world_updates(
+            raw_updates,
+            allow_new_locations=resolved_turn.allow_new_locations and not is_assertion,
+        )
+        if resolved_turn.allow_new_locations and location_updates.get("create_locations"):
+            expected = str(resolved_turn.action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
+            expected_words = re.findall(r"[a-z0-9çğıöşü]+", expected)
+            matching = []
+            for proposal in location_updates["create_locations"]:
+                candidates = [proposal.get("name", ""), *proposal.get("aliases", [])]
+                candidate_words = [re.findall(r"[a-z0-9çğıöşü]+", candidate.casefold()) for candidate in candidates]
+                exact_or_contained = any(
+                    expected == " ".join(words)
+                    or bool(expected_words and any(
+                        words[index:index + len(expected_words)] == expected_words
+                        for index in range(max(0, len(words) - len(expected_words) + 1))
+                    ))
+                    for words in candidate_words
+                )
+                if exact_or_contained:
+                    original_name = proposal.get("name", "")
+                    if original_name.casefold() != expected:
+                        aliases = list(proposal.get("aliases", []))
+                        if original_name and original_name not in aliases:
+                            aliases.append(original_name)
+                        proposal["aliases"] = aliases[:8]
+                        proposal["name"] = resolved_turn.action_result.get("target_reference", original_name)
+                    matching.append(proposal)
+            location_updates["create_locations"] = matching[:1]
+        if location_updates.get("create_locations"):
+            merge_world_updates({"create_locations": location_updates["create_locations"]})
+        if resolved_turn.action_result.get("action") == "travel" and resolved_turn.action_result.get("status") == "awaiting_proposal":
+            _commit_travel_action(resolved_turn.action_result)
+
+        # Validate NPC/feature/shop proposals only after any accepted location exists.
         validated_updates = validate_world_updates(
             raw_updates,
-            allow_new_npcs=resolved_turn.allow_new_npcs,
-            allow_new_features=resolved_turn.allow_new_features,
-            allow_new_shops=resolved_turn.allow_new_shops,
+            allow_new_npcs=resolved_turn.allow_new_npcs and not is_assertion,
+            allow_new_features=resolved_turn.allow_new_features and not is_assertion,
+            allow_new_shops=resolved_turn.allow_new_shops and not is_assertion,
         )
         if resolved_turn.allow_new_shops and not validated_updates.get("create_shops"):
             resolved_turn.action_result.update(
@@ -8714,7 +8815,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             packet["valid_response"] = False
             packet["narration"] = resolved_turn.action_result["direct_response"]
         else:
-            created_npcs = merge_world_updates(validated_updates)
+            created_npcs = merge_world_updates(validated_updates) if not is_assertion else []
             if resolved_turn.allow_new_shops and validated_updates.get("create_shops"):
                 resolved_turn.action_result.update(success=True, status="created")
                 resolved_turn.action_result.setdefault("state_changes", []).append("world.shops")
@@ -8728,6 +8829,35 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
                 flags["last_npc_id"] = created_npcs[0].get("id")
                 flags["active_npc_id"] = created_npcs[0].get("id")
                 flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+
+            accepted_proposal_keys, rejected_proposal_names = _bind_world_update_mentions(
+                raw_updates,
+                location_updates,
+                validated_updates,
+                _session().world_state,
+            )
+            if isinstance(packet.get("narration"), str):
+                packet["narration"] = _filter_unaccepted_proposal_mentions(
+                    packet["narration"],
+                    accepted_proposal_keys,
+                    rejected_proposal_names,
+                )
+
+        if resolved_turn.action_result.get("action") == "travel" and resolved_turn.action_result.get("status") == "failed":
+            packet["valid_response"] = False
+            packet["narration"] = _fallback_for_action_result(player_input, resolved_turn.action_result)
+
+        proposal_changes = _changed_state_fields(proposal_snapshot)
+        resolved_turn.action_result["state_changes"] = list(dict.fromkeys(
+            resolved_turn.action_result.get("state_changes", []) + proposal_changes
+        ))
+
+        if resolved_turn.quest_world_before and resolved_turn.action_result.get("action") == "travel" and resolved_turn.action_result.get("status") == "completed":
+            post_travel_quests = _session().evaluate_quest_events(
+                resolved_turn.quest_world_before, resolved_turn.action_result
+            )
+            if post_travel_quests:
+                resolved_turn.action_result["quest_outcomes"] = post_travel_quests
 
     claims = packet.get("lore_claims", [])
     if not _lore_claims_are_supported(claims, lore_context) or _narration_has_unsupported_lore_claim(
@@ -8972,6 +9102,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             allow_new_shops=allow_new_shops,
             expected_location_change=expected_location_change,
             scene_plan=scene_plan,
+            quest_world_before=quest_world_before,
         )
         raise TurnResolved(result, resolved)
 
@@ -9447,189 +9578,6 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         player_input, action_result
     )
     return finish_turn(action_result, narration, quest_transitions)
-    packet = ask_dungeon_master(
-        messages,
-        player_input,
-        allow_new_npcs=allow_new_npcs,
-        allow_new_features=allow_new_features,
-        npc_target=npc_target,
-        world_entry=expected_location_change,
-        action_result=action_result,
-        allow_new_locations=allow_new_locations,
-        return_details=True,
-        lore_context=lore_context,
-        allow_new_shops=allow_new_shops,
-        scene_plan=scene_plan,
-    )
-    packet = packet if isinstance(packet, dict) else {"narration": None, "world_updates": {}, "valid_response": False}
-    claims = packet.get("lore_claims", [])
-    narration_text = packet.get("narration")
-    shop_economy_claim = (
-        (shop_request or bool(world_state.get("shops")))
-        and isinstance(narration_text, str)
-        and bool(_SHOP_ECONOMY_PATTERN.search(narration_text))
-    )
-    if shop_economy_claim and not shop_request:
-        packet = {
-            "narration": None,
-            "world_updates": {},
-            "lore_claims": [],
-            "valid_response": False,
-            "fallback_reason_code": "SHOP_ECONOMY_NOT_SUPPORTED",
-        }
-    elif not _lore_claims_are_supported(claims, lore_context):
-        packet = {
-            "narration": None,
-            "world_updates": {},
-            "lore_claims": [],
-            "valid_response": False,
-            "fallback_reason_code": "UNVERIFIED_LORE_CLAIM",
-        }
-    raw_updates = (
-        packet.get("world_updates", {})
-        if packet.get("valid_response", True)
-        else {}
-    )
-    if shop_request and isinstance(raw_updates, dict):
-        raw_updates = {"create_shops": raw_updates.get("create_shops", [])}
-    is_assertion = is_player_world_assertion(player_input) and not shop_request
-    proposal_snapshot = _world_snapshot()
-
-    # Location proposals are validated and committed before the player location changes.
-    location_updates = validate_world_updates(
-        raw_updates,
-        allow_new_locations=allow_new_locations and not is_assertion,
-    )
-    if allow_new_locations and location_updates.get("create_locations"):
-        expected = str(action_result.get("target_reference", "")).casefold().strip(" .,!?:;\"'")
-        expected_words = re.findall(r"[a-z0-9çğıöşü]+", expected)
-        matching = []
-        for proposal in location_updates["create_locations"]:
-            candidates = [proposal.get("name", ""), *proposal.get("aliases", [])]
-            candidate_words = [re.findall(r"[a-z0-9çğıöşü]+", candidate.casefold()) for candidate in candidates]
-            exact_or_contained = any(
-                expected == " ".join(words)
-                or bool(expected_words and any(
-                    words[index:index + len(expected_words)] == expected_words
-                    for index in range(max(0, len(words) - len(expected_words) + 1))
-                ))
-                for words in candidate_words
-            )
-            if exact_or_contained:
-                original_name = proposal.get("name", "")
-                if original_name.casefold() != expected:
-                    aliases = list(proposal.get("aliases", []))
-                    if original_name and original_name not in aliases:
-                        aliases.append(original_name)
-                    proposal["aliases"] = aliases[:8]
-                    proposal["name"] = action_result.get("target_reference", original_name)
-                matching.append(proposal)
-        location_updates["create_locations"] = matching[:1]
-    if location_updates.get("create_locations"):
-        merge_world_updates({"create_locations": location_updates["create_locations"]})
-    if action_result.get("action") == "travel" and action_result.get("status") == "awaiting_proposal":
-        _commit_travel_action(action_result)
-
-    # Validate NPC/feature/lore proposals only after any accepted location exists.
-    validated_updates = validate_world_updates(
-        raw_updates,
-        allow_new_npcs=allow_new_npcs and not is_assertion,
-        allow_new_features=allow_new_features and not is_assertion,
-        allow_new_shops=allow_new_shops and not is_assertion,
-    )
-    if shop_request and not validated_updates.get("create_shops"):
-        action_result.update(
-            success=False,
-            status="proposal_rejected",
-            direct_response=(
-                "Bu tur için doğrulanmış bir dükkân ve dükkân sahibi kaydı alınmadı; "
-                "dünya durumuna hiçbir dükkân eklenmedi."
-            ),
-        )
-        return finish_turn(action_result, action_result["direct_response"])
-
-    created_npcs = merge_world_updates(validated_updates) if not is_assertion else []
-    accepted_proposal_keys, rejected_proposal_names = _bind_world_update_mentions(
-        raw_updates,
-        location_updates,
-        validated_updates,
-        world_state,
-    )
-    if isinstance(packet.get("narration"), str):
-        packet["narration"] = _filter_unaccepted_proposal_mentions(
-            packet["narration"],
-            accepted_proposal_keys,
-            rejected_proposal_names,
-        )
-    if shop_request and len(world_state.get("shops", [])) == shop_count_before:
-        action_result.update(
-            success=False,
-            status="creation_failed",
-            direct_response=(
-                "Bu turda kullanılabilir bir dükkân veya dükkâncı ortaya çıkmadı."
-            ),
-        )
-        return finish_turn(action_result, action_result["direct_response"])
-    if len(created_npcs) == 1:
-        flags["last_npc_id"] = created_npcs[0].get("id")
-        flags["active_npc_id"] = created_npcs[0].get("id")
-        flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
-
-    if shop_request:
-        action_result.update(success=True, status="created")
-        packet["narration"] = (
-            "Bu kampanyada mevcut konumda tek bir yerel dükkân ve onu işleten "
-            "bir dükkâncı kaydedildi."
-        )
-        packet["lore_claims"] = []
-    elif packet.get("valid_response") and _narration_has_unsupported_lore_claim(
-        packet.get("narration"),
-        packet.get("lore_claims", []),
-        lore_context,
-        world_state,
-    ):
-        filtered_narration = _filter_unsupported_lore_paragraphs(
-            packet.get("narration"),
-            packet.get("lore_claims", []),
-            lore_context,
-            world_state,
-        )
-        if filtered_narration:
-            packet["narration"] = filtered_narration
-        else:
-            packet["narration"] = None
-            packet["valid_response"] = False
-            packet["fallback_reason_code"] = "UNVERIFIED_LORE_CLAIM"
-
-    proposal_changes = _changed_state_fields(proposal_snapshot)
-    action_result["state_changes"] = list(dict.fromkeys(action_result.get("state_changes", []) + proposal_changes))
-
-    if DEBUG_MODE:
-        print("[ACTION RESULT]")
-        print(json.dumps(action_result, ensure_ascii=False, indent=2))
-        print("[WORLD STATE CHANGE]")
-        print(json.dumps(action_result.get("state_changes", []), ensure_ascii=False))
-
-    narration = finalize_narration(
-        packet.get("narration"),
-        player_input,
-        npc_target,
-        action_result,
-        fallback_reason_code=packet.get("fallback_reason_code"),
-        target_id=target_id,
-    )
-    quest_transitions = _session().evaluate_quest_events(
-        quest_world_before, action_result
-    )
-    if quest_transitions:
-        action_result["quest_outcomes"] = quest_transitions
-    return finish_turn(
-        action_result,
-        narration,
-        quest_transitions,
-        record_safety=False,
-        is_final=True,
-    )
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"
