@@ -166,7 +166,6 @@ class SessionTests(unittest.TestCase):
 
     def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
         before = copy.deepcopy(self.a.world_state)
-        mock_narration = {"narration": "O kral hakkında hiçbir fikrim yok.", "world_updates": {}, "lore_claims": []}
         with patch.object(
             game,
             "parse_player_intent",
@@ -174,15 +173,11 @@ class SessionTests(unittest.TestCase):
         ), patch.object(
             game,
             "ask_dungeon_master",
-            return_value=mock_narration,
-        ) as mock_ask:
+            side_effect=AssertionError("Unsupported lore question must fail closed."),
+        ):
             result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
-            
-        mock_ask.assert_called_once()
-        self.assertIn("narration_only", mock_ask.call_args.kwargs)
-        self.assertTrue(mock_ask.call_args.kwargs["narration_only"])
 
-        self.assertIn("fikrim yok", result["narration"])
+        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
         self.assertNotIn("UNVERIFIED", result["narration"])
         after = copy.deepcopy(self.a.world_state)
         before["flags"]["turn_index"] = after["flags"]["turn_index"]

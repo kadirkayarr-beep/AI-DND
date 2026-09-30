@@ -21,10 +21,23 @@ class ResolvedTurn:
     """Structure to hold resolved game state before narration."""
     action_result: Dict[str, Any]
     fallback_response: str
+    raw_result: Dict[str, Any]
     requires_narration: bool = True
     safety_reason_code: Optional[str] = None
     safety_handling: str = "accepted"
     quest_outcomes: Optional[List[Dict[str, Any]]] = None
+    npc_target: Optional[Dict[str, Any]] = None
+    target_id: Optional[str] = None
+    lore_context: Optional[Dict[str, Any]] = None
+    intent_source: str = "deterministic"
+    intent_model_calls: int = 0
+    messages: Optional[List[Dict[str, Any]]] = None
+    allow_new_npcs: bool = False
+    allow_new_features: bool = False
+    allow_new_locations: bool = False
+    allow_new_shops: bool = False
+    expected_location_change: bool = False
+    scene_plan: Optional[Dict[str, Any]] = None
 
 
 
@@ -810,7 +823,7 @@ def is_npc_historical_claim(player_input):
         r"\b(?:daha önce|az önce|önceden|geçen sefer|bir keresinde)\b.{0,180}"
         r"\b(?:söyle\w*|de\w*|anlat\w*|bahset\w*|konuş\w*)\b|"
         r"\b(?:söylemiştin|demiştin|anlatmıştın|bahsetmiştin)\b|"
-        r"\bhatırlıyor musun\b",
+        r"\b(?:hatırl\w*|hatirl\w*)\b",
         text,
     ))
 
@@ -8619,42 +8632,164 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         return _narrate_resolved_turn(e.resolved_turn, player_input, messages, target_id)
 
 
+def _current_procedural_entity_ids():
+    world_state = _session().world_state
+    ids = {
+        str(entity.get("id", location_id))
+        for location_id, entity in world_state.get("locations", {}).items()
+        if isinstance(entity, dict)
+        and entity.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+    }
+    ids.update(
+        str(npc["id"])
+        for npc in world_state.get("npcs", [])
+        if isinstance(npc, dict)
+        and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and isinstance(npc.get("id"), str)
+    )
+    ids.update(
+        str(shop["id"])
+        for shop in world_state.get("shops", [])
+        if isinstance(shop, dict)
+        and shop.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+        and isinstance(shop.get("id"), str)
+    )
+    return ids
+
+
 def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, target_id):
-    npc_target = None
-    npc_id = resolved_turn.action_result.get("npc_id")
-    if npc_id:
-        for npc in _session().world_state.get("npcs", []):
-            if isinstance(npc, dict) and npc.get("id") == npc_id:
-                npc_target = npc
-                break
-                
+    if messages is None:
+        messages = resolved_turn.messages or _session().messages
+
+    npc_target = resolved_turn.npc_target
+    if npc_target is None and isinstance(resolved_turn.action_result, dict):
+        npc_id = resolved_turn.action_result.get("npc_id")
+        if npc_id:
+            for npc in _session().world_state.get("npcs", []):
+                if isinstance(npc, dict) and npc.get("id") == npc_id:
+                    npc_target = npc
+                    break
+
+    lore_context = resolved_turn.lore_context
+    if lore_context is None:
+        injected = getattr(_session(), "lore_authority_context", None)
+        lore_context = _prepare_lore_authority_context(injected)
+
+    narration_only = not (resolved_turn.allow_new_npcs or resolved_turn.allow_new_features or resolved_turn.allow_new_shops)
+    narration_model_calls = 1
     packet = ask_dungeon_master(
         messages,
         player_input,
-        allow_new_npcs=False,
-        allow_new_features=False,
+        allow_new_npcs=resolved_turn.allow_new_npcs,
+        allow_new_features=resolved_turn.allow_new_features,
         npc_target=npc_target,
-        world_entry=False,
+        world_entry=resolved_turn.expected_location_change,
         action_result=resolved_turn.action_result,
-        allow_new_locations=False,
+        allow_new_locations=resolved_turn.allow_new_locations,
         return_details=True,
-        allow_new_shops=False,
-        narration_only=True,
+        allow_new_shops=resolved_turn.allow_new_shops,
+        narration_only=narration_only,
+        lore_context=lore_context,
+        scene_plan=resolved_turn.scene_plan,
     )
-    
     packet = packet if isinstance(packet, dict) else {}
-    narration_text = packet.get("narration")
-    if not isinstance(narration_text, str) or not narration_text.strip():
-        narration_text = resolved_turn.fallback_response
-        
+
+    if not narration_only and packet.get("valid_response"):
+        raw_updates = packet.get("world_updates", {})
+        validated_updates = validate_world_updates(
+            raw_updates,
+            allow_new_npcs=resolved_turn.allow_new_npcs,
+            allow_new_features=resolved_turn.allow_new_features,
+            allow_new_shops=resolved_turn.allow_new_shops,
+        )
+        if resolved_turn.allow_new_shops and not validated_updates.get("create_shops"):
+            resolved_turn.action_result.update(
+                success=False,
+                status="proposal_rejected",
+                direct_response=(
+                    "Bu tur için doğrulanmış bir dükkân ve dükkân sahibi kaydı alınmadı; "
+                    "dünya durumuna hiçbir dükkân eklenmedi."
+                ),
+            )
+            packet["valid_response"] = False
+            packet["narration"] = resolved_turn.action_result["direct_response"]
+        else:
+            created_npcs = merge_world_updates(validated_updates)
+            if resolved_turn.allow_new_shops and validated_updates.get("create_shops"):
+                resolved_turn.action_result.update(success=True, status="created")
+                resolved_turn.action_result.setdefault("state_changes", []).append("world.shops")
+                packet["narration"] = (
+                    "Bu kampanyada mevcut konumda tek bir yerel dükkân ve onu işleten "
+                    "bir dükkâncı kaydedildi."
+                )
+                packet["lore_claims"] = []
+            flags = _session().world_state.setdefault("flags", {})
+            if len(created_npcs) == 1:
+                flags["last_npc_id"] = created_npcs[0].get("id")
+                flags["active_npc_id"] = created_npcs[0].get("id")
+                flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
+
+    claims = packet.get("lore_claims", [])
+    if not _lore_claims_are_supported(claims, lore_context) or _narration_has_unsupported_lore_claim(
+        packet.get("narration"), claims, lore_context, _session().world_state
+    ):
+        packet["valid_response"] = False
+        packet["fallback_reason_code"] = "UNVERIFIED_LORE_CLAIM"
+
+    fallback_code = packet.get("fallback_reason_code") or resolved_turn.safety_reason_code
+    finalized_narration = finalize_narration(
+        packet.get("narration"),
+        player_input,
+        npc_target=npc_target,
+        action_result=resolved_turn.action_result,
+        fallback_reason_code=fallback_code,
+        target_id=target_id or resolved_turn.target_id,
+    )
+
     final_dict = resolved_turn.raw_result
-    final_dict["narration"] = narration_text
-    
+    final_dict["narration"] = finalized_narration
+
+    safety_diag = getattr(_session(), "last_narration_safety", {}) or {}
+    validation_result = safety_diag.get("handling", "accepted")
+    fallback_reason = safety_diag.get("reason_code") or packet.get("fallback_reason_code")
+
+    if validation_result in ("python_memory_response", "python_memory_fallback"):
+        narration_source = "python_memory_response"
+    elif validation_result in ("accepted", "repaired") and packet.get("valid_response", True) and packet.get("narration"):
+        narration_source = "qwen"
+    else:
+        narration_source = "deterministic_fallback"
+
+    intent_calls = resolved_turn.intent_model_calls
+    total_calls = intent_calls + narration_model_calls
+
+    if "_engine_event_evidence" in final_dict:
+        before_set = final_dict["_engine_event_evidence"].pop("_procedural_ids_before", set())
+        final_dict["_engine_event_evidence"]["procedural_entity_ids"] = sorted(
+            _current_procedural_entity_ids() - before_set
+        )
+        final_dict["_engine_event_evidence"]["telemetry"] = {
+            "intent_model_calls": intent_calls,
+            "narration_model_calls": narration_model_calls,
+            "total_model_calls": total_calls,
+            "intent_source": resolved_turn.intent_source,
+            "narration_source": narration_source,
+            "fallback_reason": fallback_reason,
+            "narration_validation_result": validation_result,
+            "resolved_action_type": (
+                resolved_turn.action_result.get("action", "unknown")
+                if isinstance(resolved_turn.action_result, dict)
+                else "unknown"
+            ),
+        }
+
     return final_dict
 
 
 def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
+    intent_model_calls = 0
+    intent_source = "deterministic"
     world_state = _session().world_state
     world_subject_question = local_dialogue.is_world_subject_question(player_input)
     if messages is None:
@@ -8671,6 +8806,11 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     flags["turn_index"] = flags.get("turn_index", 0) + 1
     turn_index = flags["turn_index"]
     npc_target = None
+    allow_new_npcs = False
+    allow_new_features = False
+    allow_new_locations = False
+    allow_new_shops = False
+    expected_location_change = False
 
     def procedural_entity_ids():
         ids = {
@@ -8748,45 +8888,91 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
                 + list(scene_plan.get("state_changes", []))
             ))
         result = {"action_result": action_result, "narration": narration}
-        if injected_lore_context is not None:
-            result["_engine_event_evidence"] = {
-                "authority": "python_engine",
-                "action_id": f"turn:{turn_index}",
-                "turn_index": turn_index,
-                "quest_outcomes": copy.deepcopy(quest_outcomes or []),
-                "procedural_entity_ids": sorted(
-                    procedural_entity_ids() - procedural_ids_before
-                ),
-            }
-            
+        result["_engine_event_evidence"] = {
+            "authority": "python_engine",
+            "action_id": f"turn:{turn_index}",
+            "turn_index": turn_index,
+            "quest_outcomes": copy.deepcopy(quest_outcomes or []),
+            "procedural_entity_ids": sorted(
+                procedural_entity_ids() - procedural_ids_before
+            ),
+            "_procedural_ids_before": procedural_ids_before,
+        }
+
         if is_final:
+            result["_engine_event_evidence"].pop("_procedural_ids_before", None)
+            if "telemetry" not in result["_engine_event_evidence"]:
+                result["_engine_event_evidence"]["telemetry"] = {
+                    "intent_model_calls": intent_model_calls,
+                    "narration_model_calls": 0,
+                    "total_model_calls": intent_model_calls,
+                    "intent_source": intent_source,
+                    "narration_source": "deterministic_system",
+                    "fallback_reason": safety_reason_code,
+                    "narration_validation_result": safety_handling if safety_reason_code else "accepted",
+                    "resolved_action_type": action_result.get("action", "unknown") if isinstance(action_result, dict) else "unknown",
+                }
             return result
-            
+
         status = action_result.get("status") if isinstance(action_result, dict) else None
         action = action_result.get("action") if isinstance(action_result, dict) else None
-        
+
         system_deterministic = False
-        if status in ("invalid_target", "limit_reached", "unsupported", "explicitly_declined", "unsupported_combat_action", "player_unconscious"):
+        if status in (
+            "invalid_target", "limit_reached", "unsupported",
+            "explicitly_declined", "unsupported_combat_action",
+            "player_unconscious", "unverified", "clarification",
+            "answered_from_npc_memory", "answered_from_campaign_state",
+        ):
             system_deterministic = True
-        if action == "attack" and status == "resolved":
-            system_deterministic = False
-        if action == "shop_setup" or action == "shop_economy":
+        elif action in ("shop_economy", "shop_inquiry", "character_query"):
             system_deterministic = True
-        if status == "unverified":
-            system_deterministic = False
-            
+        elif action == "query" and action_result.get("direct_response"):
+            system_deterministic = True
+        elif safety_handling in ("python_memory_response", "python_scene_response"):
+            system_deterministic = True
+
         if system_deterministic:
+            result["_engine_event_evidence"].pop("_procedural_ids_before", None)
+            narration_src = "deterministic_system"
+            if safety_handling in ("python_memory_response", "python_memory_fallback"):
+                narration_src = "python_memory_response"
+            elif safety_reason_code:
+                narration_src = "deterministic_fallback"
+
+            result["_engine_event_evidence"]["telemetry"] = {
+                "intent_model_calls": intent_model_calls,
+                "narration_model_calls": 0,
+                "total_model_calls": intent_model_calls,
+                "intent_source": intent_source,
+                "narration_source": narration_src,
+                "fallback_reason": safety_reason_code,
+                "narration_validation_result": safety_handling if safety_reason_code else "accepted",
+                "resolved_action_type": action_result.get("action", "unknown") if isinstance(action_result, dict) else "unknown",
+            }
             return result
-            
+
         resolved = ResolvedTurn(
             action_result=action_result,
             fallback_response=narration,
+            raw_result=result,
             requires_narration=True,
             safety_reason_code=safety_reason_code,
             safety_handling=safety_handling,
-            quest_outcomes=quest_outcomes
+            quest_outcomes=quest_outcomes,
+            npc_target=npc_target,
+            target_id=target_id,
+            lore_context=lore_context,
+            intent_source=intent_source,
+            intent_model_calls=intent_model_calls,
+            messages=messages,
+            allow_new_npcs=allow_new_npcs,
+            allow_new_features=allow_new_features,
+            allow_new_locations=allow_new_locations,
+            allow_new_shops=allow_new_shops,
+            expected_location_change=expected_location_change,
+            scene_plan=scene_plan,
         )
-        resolved.raw_result = result
         raise TurnResolved(result, resolved)
 
 
@@ -9207,6 +9393,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     elif npc_target and is_npc_dialogue_input(player_input):
         validated_intent = {"intent": "dialogue"}
     else:
+        intent_model_calls = 1
+        intent_source = "model"
         raw_intent = parse_player_intent(player_input)
         normalized_intent = normalize_intent(raw_intent, player_input)
         validated_intent = validate_intent(normalized_intent, player_input)
@@ -9235,17 +9423,6 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         print("[RULE ENGINE]")
         print(json.dumps({key: value for key, value in action_result.items() if key != "direct_response"}, ensure_ascii=False, indent=2))
 
-    if action_result.get("direct_response"):
-        quest_transitions = _session().evaluate_quest_events(
-            quest_world_before, action_result
-        )
-        if quest_transitions:
-            action_result["quest_outcomes"] = quest_transitions
-        narration = action_result["direct_response"]
-        if npc_target and (action_result or {}).get("action") != "attack":
-            record_npc_interaction(npc_target, narration, player_input, npc_target)
-        return finish_turn(action_result, narration, quest_transitions)
-
     proposed_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
     allow_new_locations = bool(action_result.get("proposal_required"))
     expected_location_change = proposed_entry or world_state.get("location") != previous_location
@@ -9260,6 +9437,16 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         and not is_player_world_assertion(player_input)
     )
     allow_new_shops = bool(shop_request)
+
+    quest_transitions = _session().evaluate_quest_events(
+        quest_world_before, action_result
+    )
+    if quest_transitions:
+        action_result["quest_outcomes"] = quest_transitions
+    narration = action_result.get("direct_response") or _fallback_for_action_result(
+        player_input, action_result
+    )
+    return finish_turn(action_result, narration, quest_transitions)
     packet = ask_dungeon_master(
         messages,
         player_input,
