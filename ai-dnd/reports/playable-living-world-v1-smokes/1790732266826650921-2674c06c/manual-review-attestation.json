@@ -1,0 +1,33 @@
+{
+  "attestation_schema_version": 1,
+  "source_report_id": "1790732266826650921-2674c06c",
+  "source_report_path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c",
+  "source_summary_status": "REVIEW_PENDING",
+  "source_evidence_sha256": "5f0888916f72a4d139ee92ed04e6c6dd5df92c7582c44d4348bf8add9dbf90f8",
+  "source_file_sha256": {
+    "api-audit.jsonl": "2d7d6e9c3b88359335a131f328df1bee1caa9b3bdea2942d8efed76e0961b2f9",
+    "resume-comparison.json": "12bc6f5d3a15c0e6b20eb008f9d1c77d89d31849bdd0add58675c1d004facddd",
+    "summary.json": "eae58ae9eaf4822d87cb28a4f3dd66883042c2f61866cb997b04a41d154efad7",
+    "turn-evidence.jsonl": "e9d4ea67ebec42d169b07b8964cc4792a1a67a37d6e3cb3105a5c949cee34d2f"
+  },
+  "execution_status": "COMPLETE",
+  "objective_validation_result": "PASS",
+  "objective_validation_checks": {
+    "execution_complete": true,
+    "model_qwen3_8b": true,
+    "evidence_complete": true,
+    "turns_and_telemetry": true,
+    "model_call_limit": true,
+    "ordinary_fallback_limit": true,
+    "resume_comparisons": true,
+    "api_audit_consistent": true,
+    "route_distance_guard": true,
+    "final_tavern_continuity": true,
+    "original_entity_identity_continuity": true
+  },
+  "manual_review_status": "APPROVED",
+  "reviewer_approved": true,
+  "reviewed_turn_count": 36,
+  "final_gate_status": "PASS",
+  "review_timestamp_utc": "2026-09-30T05:02:37Z"
+}

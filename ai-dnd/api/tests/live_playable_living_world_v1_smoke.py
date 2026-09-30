@@ -35,6 +35,11 @@ import uuid
 
 import httpx
 
+from api.tests.playable_living_world_v1_review import (
+    ReviewFinalizationError,
+    finalize_review,
+)
+
 
 _REQUEST_TELEMETRY: contextvars.ContextVar[list[dict[str, Any]] | None] = (
     contextvars.ContextVar("playable_v1_request_telemetry", default=None)
@@ -417,6 +422,7 @@ def _install_telemetry(game: Any) -> None:
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
 MAX_MODEL_CALLS_PER_TURN = 2
+BUDGET_EXEMPT_TURN_IDS = frozenset({27, 30, 31, 32, 33})
 START_SELECTION = {
     "setting_id": "forgotten_realms",
     "region_pack_id": "fr:pack:the_north:neverwinter:v1",
@@ -1471,7 +1477,7 @@ def run_smoke() -> dict[str, Any]:
             "only numeric model counts and sanitized proposal diagnostics are retained"
         ),
         "evidence_incomplete": [],
-        "budget_exempt_turn_ids": [27, 30, 31, 32, 33],
+        "budget_exempt_turn_ids": sorted(BUDGET_EXEMPT_TURN_IDS),
     }
     report_parent = AI_DND_DIR / "reports" / "playable-living-world-v1-smokes"
     report_root = report_parent / f"{time.time_ns()}-{uuid.uuid4().hex[:8]}"
@@ -1540,7 +1546,7 @@ def run_smoke() -> dict[str, Any]:
             early_tier = early_safety.get("tier")
             early_scope = early_safety.get("scope")
             early_fallback = _is_fallback_candidate(early_safety)
-            early_budget_exempt = turn_number in {27, 30, 31, 32, 33}
+            early_budget_exempt = turn_number in BUDGET_EXEMPT_TURN_IDS
             early_row = {
                 "turn": turn_number, "label": label,
                 "target_id": target,
@@ -2222,6 +2228,55 @@ def main() -> int:
     if len(sys.argv) >= 2 and sys.argv[1] == "--serve":
         _serve(int(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]))
         return 0
+    if len(sys.argv) >= 2 and sys.argv[1] == "--finalize-review":
+        arguments = sys.argv[2:]
+        if (
+            not arguments
+            or len(arguments) > 2
+            or any(argument != "--approve" for argument in arguments[1:])
+            or arguments[1:].count("--approve") > 1
+        ):
+            print(json.dumps({
+                "execution_status": "UNVERIFIED",
+                "objective_validation_result": "NOT_RUN",
+                "manual_review_status": "NOT_APPROVED",
+                "final_gate_status": "BLOCKED",
+                "error": (
+                    "Usage: --finalize-review <report-dir> [--approve]"
+                ),
+            }, ensure_ascii=False))
+            return 2
+        try:
+            result = finalize_review(
+                arguments[0],
+                approve="--approve" in arguments[1:],
+                reports_root=(
+                    AI_DND_DIR / "reports" / "playable-living-world-v1-smokes"
+                ),
+                expected_labels=EXPECTED_LABELS,
+                budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS,
+                proposal_trace_validator=_proposal_trace_gaps,
+            )
+        except ReviewFinalizationError as error:
+            print(json.dumps({
+                "execution_status": "UNVERIFIED",
+                "objective_validation_result": "FAIL",
+                "manual_review_status": "NOT_APPROVED",
+                "final_gate_status": "BLOCKED",
+                "error": str(error),
+            }, ensure_ascii=False))
+            return 1
+        except Exception:
+            print(json.dumps({
+                "execution_status": "UNVERIFIED",
+                "objective_validation_result": "FAIL",
+                "manual_review_status": "NOT_APPROVED",
+                "final_gate_status": "BLOCKED",
+                "error": "The smoke report could not be finalized safely.",
+            }, ensure_ascii=False))
+            return 1
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("final_gate_status") == "PASS" else 1
     review_narrations = "--review-narrations" in sys.argv[1:]
     try:
         result = run_smoke()
