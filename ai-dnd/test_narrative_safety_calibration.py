@@ -452,7 +452,8 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             action_result={"action": "dialogue", "status": "resolved"},
         )
 
-        self.assertIn("UNVERIFIED", output)
+        self.assertIn("Bu konuşmayı kiminle yaptığını", output)
+        self.assertNotIn("Mira", output)
         self.assertEqual(
             self.session.last_narration_safety["reason_code"],
             "NPC_MEMORY_UNVERIFIED_NO_STABLE_ID",

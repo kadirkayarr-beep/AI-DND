@@ -248,6 +248,7 @@ def _validate_objective_evidence(
     expected_labels: Sequence[str],
     budget_exempt_turn_ids: Iterable[int],
     proposal_trace_validator: Callable[[dict[str, Any]], list[str]],
+    expected_pending_error: str = EXPECTED_PENDING_ERROR,
 ) -> tuple[dict[str, bool], dict[str, Any]]:
     summary = _decode_json(source["summary.json"])
     resume = _decode_json(source["resume-comparison.json"])
@@ -268,7 +269,7 @@ def _validate_objective_evidence(
     if (
         summary.get("status") != "REVIEW_PENDING"
         or summary.get("review_status") != "pending_human_review"
-        or summary.get("error") != EXPECTED_PENDING_ERROR
+        or summary.get("error") != expected_pending_error
         or summary.get("campaign_database") != "temporary_disposable"
         or summary.get("model") != MODEL_NAME
     ):
@@ -295,19 +296,32 @@ def _validate_objective_evidence(
 
     expected_labels = tuple(expected_labels)
     exempt_turns = frozenset(budget_exempt_turn_ids)
-    if len(expected_labels) != 36 or sorted(exempt_turns) != [27, 30, 31, 32, 33]:
+    expected_turn_count = len(expected_labels)
+    if (
+        expected_turn_count < 1
+        or len(set(expected_labels)) != expected_turn_count
+        or any(not isinstance(label, str) or not label for label in expected_labels)
+        or (
+            expected_turn_count == 36
+            and sorted(exempt_turns) != [27, 30, 31, 32, 33]
+        )
+        or any(
+            type(turn_id) is not int or not 1 <= turn_id <= expected_turn_count
+            for turn_id in exempt_turns
+        )
+    ):
         raise ReviewFinalizationError(
             "The release-gate validator configuration is invalid."
         )
     summary_turns = summary.get("turns")
     if (
         not isinstance(summary_turns, list)
-        or len(summary_turns) != 36
-        or len(turns) != 36
+        or len(summary_turns) != expected_turn_count
+        or len(turns) != expected_turn_count
         or summary_turns != turns
     ):
         raise ReviewFinalizationError(
-            "The smoke report does not contain exactly 36 consistent turns."
+            f"The smoke report does not contain exactly {expected_turn_count} consistent turns."
         )
     turn_by_label: dict[str, dict[str, Any]] = {}
     ordinary_fallbacks = 0
@@ -449,7 +463,10 @@ def _validate_objective_evidence(
             raise ReviewFinalizationError(
                 "The API audit contains an unrecognized non-turn record."
             )
-    if set(audit_by_turn) != set(range(1, 37)) or len(resume_events) != 1:
+    if (
+        set(audit_by_turn) != set(range(1, expected_turn_count + 1))
+        or len(resume_events) != 1
+    ):
         raise ReviewFinalizationError(
             "The API audit is missing required turn or resume evidence."
         )
@@ -471,11 +488,19 @@ def _validate_objective_evidence(
                 "The API audit conflicts with sanitized turn evidence."
             )
     resume_event = resume_events[0]
+    resume_after_turn = summary.get("resume_after_turn", 24)
     if (
-        resume_event.get("campaign_id") != summary.get("campaign_id")
+        type(resume_after_turn) is not int
+        or not 1 <= resume_after_turn < expected_turn_count
+        or resume.get("resume_after_turn", resume_after_turn) != resume_after_turn
+        or resume_event.get("campaign_id") != summary.get("campaign_id")
         or resume_event.get("session_id") != resume.get("new_session_id")
         or resume_event.get("state")
-        != turns[23].get("state_diff", {}).get("after")
+        != turns[resume_after_turn - 1].get("state_diff", {}).get("after")
+        or (
+            "turn_index" in resume_event
+            and resume_event.get("turn_index") != resume_after_turn
+        )
     ):
         raise ReviewFinalizationError(
             "The API resume audit conflicts with resume evidence."
@@ -663,6 +688,7 @@ def finalize_review(
     expected_labels: Sequence[str],
     budget_exempt_turn_ids: Iterable[int],
     proposal_trace_validator: Callable[[dict[str, Any]], list[str]],
+    expected_pending_error: str = EXPECTED_PENDING_ERROR,
 ) -> dict[str, Any]:
     """Validate an existing run and, only with explicit approval, attest it."""
     report_parent, report_dir = _resolve_report_dir(report_arg, reports_root)
@@ -673,6 +699,7 @@ def finalize_review(
         expected_labels=expected_labels,
         budget_exempt_turn_ids=budget_exempt_turn_ids,
         proposal_trace_validator=proposal_trace_validator,
+        expected_pending_error=expected_pending_error,
     )
     file_digests = _file_digests(source)
     evidence_digest = _combined_digest(file_digests)
@@ -690,7 +717,7 @@ def finalize_review(
         "objective_validation_checks": checks,
         "manual_review_status": "APPROVED",
         "reviewer_approved": True,
-        "reviewed_turn_count": 36,
+        "reviewed_turn_count": len(expected_labels),
         "final_gate_status": "PASS",
     }
     existing = _load_existing_attestation(attestation_path, expected_attestation)

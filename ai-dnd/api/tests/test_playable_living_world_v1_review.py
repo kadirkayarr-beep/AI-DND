@@ -9,6 +9,12 @@ from api.tests.live_playable_living_world_v1_smoke import (
     EXPECTED_LABELS,
     _proposal_trace_gaps,
 )
+from api.tests.live_playable_living_world_v1_1_smoke import (
+    BUDGET_EXEMPT_TURN_IDS as BUDGET_EXEMPT_TURN_IDS_V11,
+    EXPECTED_LABELS as EXPECTED_LABELS_V11,
+    EXPECTED_PENDING_ERROR_V11,
+    RESUME_AFTER_TURN as RESUME_AFTER_TURN_V11,
+)
 from api.tests.playable_living_world_v1_review import (
     ATTESTATION_FILENAME,
     EXPECTED_PENDING_ERROR,
@@ -370,6 +376,113 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
             self._finalize(approve=True)
         attestation = self.report_dir / ATTESTATION_FILENAME
         self.assertFalse(attestation.exists())
+
+    def test_v11_30_turn_report_is_reviewable_without_changing_v1_attestation(self):
+        original_by_label = {row["label"]: row for row in self.turns}
+        audit_by_turn = {
+            row["turn_index"]: row
+            for row in self.audit
+            if "turn_index" in row
+        }
+        route = original_by_label["unsupported route challenge"]
+        final_return = original_by_label[
+            "return to tavern for final continuity check"
+        ]
+        selected_sources = []
+        generic_source = original_by_label["city look"]
+        required_labels = {
+            "discover local tavern",
+            "enter discovered tavern",
+            "ask bartender name",
+            "tavern look",
+            "sit at presented table",
+            "unsupported route challenge",
+            "return to tavern for final continuity check",
+        }
+        for index, label in enumerate(EXPECTED_LABELS_V11, 1):
+            if label in required_labels:
+                source = original_by_label[label]
+            elif label == "unsupported route challenge":
+                source = route
+            elif label == "return to tavern for final continuity check":
+                source = final_return
+            else:
+                source = generic_source
+            row = copy.deepcopy(source)
+            row["turn"] = index
+            row["label"] = label
+            exempt = index in BUDGET_EXEMPT_TURN_IDS_V11
+            safety = row["safety"]
+            fallback = (
+                safety.get("tier") == "tier_2_repair"
+                or (
+                    safety.get("tier") == "tier_3_fallback"
+                    and safety.get("handling")
+                    not in {"python_scene_response", "python_memory_response"}
+                )
+            )
+            row["budget_exempt"] = exempt
+            row["fallback_budget_counted"] = fallback and not exempt
+            selected_sources.append(row)
+
+        resume_turn = RESUME_AFTER_TURN_V11
+        selected_audit = []
+        for index, turn in enumerate(selected_sources, 1):
+            old_turn = original_by_label.get(turn["label"], generic_source)
+            source_audit = audit_by_turn.get(old_turn["turn"], audit_by_turn[1])
+            audit_row = copy.deepcopy(source_audit)
+            audit_row["turn_index"] = index
+            audit_row["action_result"] = turn["action_result"]
+            audit_row["safety"] = turn["safety"]
+            audit_row["state"] = turn["state_diff"]["after"]
+            selected_audit.append(audit_row)
+        resume_event = {
+            "event": "resume",
+            "campaign_id": "campaign-review-fixture",
+            "session_id": "session-after-restart",
+            "state": selected_sources[resume_turn - 1]["state_diff"]["after"],
+        }
+        selected_audit.append(resume_event)
+
+        self.report_dir = (
+            Path(self.temp_dir.name)
+            / "reports"
+            / "playable-living-world-v1-1-smokes"
+            / "1790000000000000000-5678abcd"
+        )
+        self.report_dir.mkdir(parents=True)
+        self.turns = selected_sources
+        self.audit = selected_audit
+        self.summary["status"] = "REVIEW_PENDING"
+        self.summary["review_status"] = "pending_human_review"
+        self.summary["error"] = EXPECTED_PENDING_ERROR_V11
+        self.summary["report_path"] = str(self.report_dir.resolve())
+        self.summary["budget_exempt_turn_ids"] = sorted(
+            BUDGET_EXEMPT_TURN_IDS_V11
+        )
+        self.summary["ordinary_fallback_candidate_count"] = sum(
+            row["fallback_budget_counted"] for row in selected_sources
+        )
+        self.summary["resume_after_turn"] = resume_turn
+        self.summary["turns"] = selected_sources
+        self.resume["resume_after_turn"] = resume_turn
+        self._write_report()
+
+        approved = finalize_review(
+            self.report_dir,
+            approve=True,
+            reports_root=self.report_dir.parent,
+            expected_labels=EXPECTED_LABELS_V11,
+            budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS_V11,
+            proposal_trace_validator=_proposal_trace_gaps,
+            expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+        )
+        self.assertEqual(approved["manual_review_status"], "APPROVED")
+        self.assertEqual(approved["final_gate_status"], "PASS")
+        attestation = json.loads(
+            (self.report_dir / ATTESTATION_FILENAME).read_text(encoding="utf-8")
+        )
+        self.assertEqual(attestation["reviewed_turn_count"], 30)
 
 
 if __name__ == "__main__":

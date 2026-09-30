@@ -7,9 +7,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import game
 import living_world
+import local_dialogue
 
 
 class PlayableLivingWorldTests(unittest.TestCase):
@@ -126,6 +128,12 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertNotIn("stock", shop)
         self.assertNotIn("gold", shop)
         self.assertNotIn("inventory", shop)
+        self.assertEqual(
+            shop["name"],
+            f"{game._turkish_genitive_form(merchant['name'])} Tezgâhı",
+        )
+        self.assertEqual(game._turkish_genitive_form("Veyra"), "Veyra'nın")
+        self.assertEqual(game._turkish_genitive_form("Marek"), "Marek'in")
 
         negative = self.session.plan_living_world_turn(
             "Bir tüccar aramıyorum."
@@ -227,7 +235,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(sit["direct_result"]["target_id"], feature["id"])
         self.assertEqual(
             sit["direct_result"]["direct_response"],
-            "Seçtiğin özelliğin yanındaki yere oturuyorsun.",
+            "Yanındaki uygun bir yere oturup yerleşiyorsun.",
         )
         inspect = self.session.plan_living_world_turn(
             f"{feature['name']} üzerindeki ayrıntıyı inceliyorum.",
@@ -291,7 +299,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
 
         plan = self.session.plan_living_world_turn(
-            "Ziyaretçi etkinliğine dikkat ediyorum."
+            "Ziyaretçi ne yapıyor?"
         )
         result = plan["direct_result"]
 
@@ -301,6 +309,51 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["direct_response"], description)
         self.assertEqual(ref["lifecycle"], "presented")
         self.assertIsNone(ref.get("promoted_npc_id"))
+        self.assertEqual(self.world["npcs"], [])
+
+    def test_unrelated_unsupported_query_does_not_expire_scene_referent(self):
+        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
+        turn_index = self.world["flags"].get("turn_index", 0)
+        ref = living_world.create_scene_referent(
+            self.world,
+            self.root_location,
+            turn_index,
+            description="Girişteki ziyaretçi çantasının kayışını düzeltiyor.",
+            aliases=["ziyaretçi"],
+        )
+        ref["expires_after_turn"] = turn_index
+
+        with patch("game.ask_dungeon_master") as ask:
+            result = self.session.run_player_turn("Bu iki yer arası kaç mil?")
+
+        ask.assert_not_called()
+        self.assertEqual(result["action_result"]["status"], "unverified")
+        self.assertEqual(ref["lifecycle"], "presented")
+
+    def test_expired_scene_referent_expires_when_addressed(self):
+        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
+        turn_index = self.world["flags"].get("turn_index", 0)
+        ref = living_world.create_scene_referent(
+            self.world,
+            self.root_location,
+            turn_index,
+            description="Girişteki ziyaretçi çantasının kayışını düzeltiyor.",
+            aliases=["ziyaretçi"],
+        )
+        ref["expires_after_turn"] = turn_index
+
+        plan = self.session.plan_living_world_turn("Ziyaretçi ne yapıyor?")
+
+        self.assertEqual(plan["direct_result"]["status"], "expired")
+        self.assertEqual(ref["lifecycle"], "expired")
+
+    def test_unverified_distance_response_does_not_attribute_player_action(self):
+        response = game._unverified_lore_response(
+            "Bu iki yer arası kaç mil?"
+        )
+        self.assertIn("ölçüm kaydı yok", response)
+        self.assertNotIn("vermiyorsun", response)
+        self.assertNotIn("ölçün yok", response)
 
     def test_legacy_save_migrates_feature_ids_idempotently(self):
         location = self.root_location
@@ -383,6 +436,194 @@ class PlayableLivingWorldTests(unittest.TestCase):
             lore_context,
             self.world,
         ))
+
+    def test_v11_semantic_city_observation_and_local_discovery(self):
+        observation = self.session.plan_living_world_turn(
+            "Şehirde dolanıyorum, etrafımda neler var gözlemliyorum."
+        )
+        self.assertEqual(observation["direct_result"]["action"], "explore")
+
+        venue = self.session.plan_living_world_turn(
+            "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?"
+        )
+        self.assertEqual(venue["direct_result"]["action"], "local_search")
+        self.assertEqual(venue["direct_result"]["status"], "found")
+        self.assertEqual(
+            self.world["locations"][venue["direct_result"]["target_id"]]["scene_kind"],
+            "tavern",
+        )
+
+        merchant = self.session.plan_living_world_turn(
+            "Buralarda bir tücaar var mı?"
+        )
+        self.assertEqual(merchant["direct_result"]["action"], "local_search")
+        self.assertEqual(merchant["direct_result"]["status"], "found")
+        self.assertEqual(len(self.world["shops"]), 1)
+
+    def test_v11_personal_profile_answers_remain_procedural_and_stable(self):
+        npc = {
+            "id": "npc_v11_profile",
+            "name": "Derya",
+            "role": "Yolcu",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }
+        self.world["npcs"].append(npc)
+        questions = (
+            "Mesleğin nedir?",
+            "Şu an ne yapıyorsun?",
+            "Bugün ne yaptın?",
+            "Keyfin nasıl?",
+            "Nereden geliyorsun?",
+            "Peki sen, kendinden biraz bahset.",
+        )
+        for question in questions:
+            answer = local_dialogue.personal_answer(npc, question)
+            self.assertIsNotNone(answer, question)
+            text, category = answer
+            self.assertIn("Derya", text)
+            self.assertEqual(category, local_dialogue.PROCEDURAL_PERSONAL_FACT)
+        activity_answer, _ = local_dialogue.personal_answer(npc, questions[1])
+        self.assertTrue(activity_answer.split("“", 1)[1][0].isupper())
+        self.assertEqual(
+            local_dialogue.personal_answer(npc, questions[0]),
+            local_dialogue.personal_answer(npc, questions[0]),
+        )
+        self.assertEqual(
+            npc["reality_layer"], "PROCEDURAL_LOCAL_FICTION"
+        )
+
+    def test_v11_name_disclosure_is_bound_to_the_npc_who_heard_it(self):
+        npc = {
+            "id": "npc_v11_memory",
+            "name": "Melis",
+            "role": "Kent sakini",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "memory": [],
+        }
+        other_npc = {
+            "id": "npc_v11_other",
+            "name": "Duru",
+            "role": "Muhafız",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            "memory": [],
+        }
+        self.world["npcs"].extend([npc, other_npc])
+        self.assertEqual(
+            local_dialogue.explicit_player_name_disclosure(
+                "Benim adım Arven; kendimi tanıtıyorum."
+            ),
+            "Arven",
+        )
+        game.record_npc_interaction(
+            npc,
+            "Melis, “Tanıştığımıza memnun oldum, Arven,” der.",
+            "Benim adım Arven; kendimi tanıtıyorum.",
+            npc,
+        )
+        self.assertEqual(
+            game._historical_player_name_from_npc_memory(
+                npc, "Adımı hatırlıyor musun?"
+            ),
+            "Arven",
+        )
+        self.assertIsNone(
+            game._historical_player_name_from_npc_memory(
+                other_npc, "Adımı hatırlıyor musun?"
+            )
+        )
+
+    def test_v11_work_questions_do_not_create_or_imply_a_job_offer(self):
+        npc = {
+            "id": "npc_v11_work",
+            "name": "Tuna",
+            "role": "Tüccar",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }
+        self.world["npcs"].append(npc)
+        inquiry = local_dialogue.personal_answer(npc, "Bu civarda iş var mı?")
+        acceptance = local_dialogue.personal_answer(
+            npc, "İşe başlamaya hazırım."
+        )
+        self.assertIsNotNone(inquiry)
+        self.assertIsNotNone(acceptance)
+        self.assertIn("belirli bir iş yok", inquiry[0].casefold())
+        self.assertNotIn("ara sıra gündelik işler", inquiry[0].casefold())
+        self.assertIn("henüz sana belirli bir iş önermedim", acceptance[0].casefold())
+        self.assertEqual(self.world["quests"], [])
+
+    def test_v11_world_subject_question_is_not_routed_to_active_npc_identity(self):
+        npc = {
+            "id": "npc_v11_world_subject",
+            "name": "Melis",
+            "role": "Kent sakini",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }
+        other_npc = {
+            "id": "npc_v11_world_subject_other",
+            "name": "Darian",
+            "role": "Yolcu",
+            "location": self.root_location,
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }
+        self.world["npcs"].extend([npc, other_npc])
+        question = "Bu şehrin hükümdarı kim?"
+        self.assertTrue(local_dialogue.is_world_subject_question(question))
+        self.assertIsNone(
+            local_dialogue.personal_question_kind(question)
+        )
+        self.assertIsNone(game._detect_query_type(question, npc))
+        self.session.lore_authority_context = game._empty_lore_authority_context()
+        with patch("game.ask_dungeon_master") as ask:
+            targeted = self.session.run_player_turn(question, target_id=npc["id"])
+            untargeted = self.session.run_player_turn(question)
+        ask.assert_not_called()
+        for result in (targeted, untargeted):
+            self.assertEqual(result["action_result"]["status"], "unverified")
+            self.assertNotIn("npc_id", result["action_result"])
+            self.assertNotIn("Melis", result["narration"])
+            self.assertNotIn("Darian", result["narration"])
+
+    def test_v11_npc_identity_answer_uses_natural_name_only(self):
+        response = game._handle_query(
+            "Adın ne?",
+            "npc_identity",
+            {"name": "Orin", "role": "Barmen"},
+        )
+        self.assertEqual(
+            response,
+            "Orin, “Ben Orin. Barmen olarak buradayım.” diye yanıt verir.",
+        )
+
+    def test_v11_reentering_the_current_tavern_is_idempotent(self):
+        search = self.session.plan_living_world_turn(
+            "Yakınlarda bir taverna arıyorum."
+        )
+        tavern_id = search["direct_result"]["target_id"]
+        self.world["flags"]["turn_index"] += 1
+        enter = self.session.plan_living_world_turn(
+            "Taverna içine giriyorum."
+        )
+        self.assertEqual(enter["direct_result"]["target_id"], tavern_id)
+        self.assertIn(
+            "Kapıdan içeri giriyorsun.",
+            enter["direct_result"]["direct_response"],
+        )
+        self.assertEqual(self.world["location"], tavern_id)
+        self.world["flags"]["turn_index"] += 1
+
+        repeated = self.session.plan_living_world_turn("İçeri giriyorum.")
+        self.assertEqual(repeated["direct_result"]["status"], "already_inside")
+        self.assertIn(
+            "Zaten içeridesin.",
+            repeated["direct_result"]["direct_response"],
+        )
+        self.assertEqual(repeated["direct_result"]["target_id"], tavern_id)
+        self.assertEqual(self.world["location"], tavern_id)
 
 
 if __name__ == "__main__":

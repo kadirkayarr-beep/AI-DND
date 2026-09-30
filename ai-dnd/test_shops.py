@@ -162,10 +162,12 @@ class CampaignShopTests(unittest.TestCase):
                 "Ben sana daha önce adımı söylemiştim. Adım neydi, hatırlıyor musun?",
                 target_id=keeper["id"],
             )
+            recall_safety = dict(self.session.narration_safety_history[-1])
             other_recall = self.session.run_player_turn(
                 "Ben sana daha önce adımı söylemiştim. Adım neydi, hatırlıyor musun?",
                 target_id=other_npc["id"],
             )
+            other_recall_safety = dict(self.session.narration_safety_history[-1])
             invalid_recall = self.session.run_player_turn(
                 "Ben sana daha önce adımı söylemiştim. Adım neydi, hatırlıyor musun?",
                 target_id="npc_missing",
@@ -183,6 +185,16 @@ class CampaignShopTests(unittest.TestCase):
         self.assertIn("Arven", recall["narration"])
         self.assertNotIn("Arven", other_recall["narration"])
         self.assertNotIn("Arven", invalid_recall["narration"])
+        self.assertEqual(
+            recall_safety["reason_code"],
+            "NPC_MEMORY_SUPPORTED_PLAYER_NAME",
+        )
+        self.assertEqual(
+            other_recall_safety["reason_code"],
+            "NPC_MEMORY_UNSUPPORTED_CLAIM",
+        )
+        self.assertEqual(recall_safety["handling"], "python_memory_response")
+        self.assertEqual(other_recall_safety["handling"], "python_memory_response")
 
     def test_narration_alone_cannot_register_a_shop_or_shopkeeper(self):
         response = shop_response(
@@ -206,7 +218,7 @@ class CampaignShopTests(unittest.TestCase):
             ),
             patch("game.ask_dungeon_master", return_value=response) as ask,
         ):
-            result = self.session.run_player_turn("I look around.")
+            result = self.session.run_player_turn("The wind is blowing.")
 
         self.assertEqual(self.session.world_state["shops"], [])
         self.assertEqual(self.session.world_state["npcs"], [])

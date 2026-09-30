@@ -22,13 +22,16 @@ MAX_SCENE_STATE_BYTES = 96 * 1024
 MAX_BEAT_TEXT = 240
 
 _LOCAL_NAMES = (
-    "Aylin", "Baran", "Duru", "Ece", "Emre", "Narin", "Sema", "Tuna",
-    "Yasemin", "Arda", "Melis", "Bora", "Elif", "Deniz", "Rana", "Onur",
+    "Aldren", "Brynna", "Cael", "Darian", "Elaris", "Fenra", "Garrick",
+    "Ilyra", "Kael", "Liora", "Marek", "Neris", "Orin", "Sylva", "Thalen",
+    "Veyra",
 )
 
 _LOOK_RE = re.compile(
     r"(?:etraf(?:ı|i)m[ae]? bak|çevrem[ae]? bak|bakınıyorum|"
-    r"etrafa göz at|çevreyi gözle|look around|look about|take a look)",
+    r"etrafa göz at|çevreyi gözle|etraf(?:ı|i)m.{0,30}gözlemle\w*|"
+    r"çevre(?:yi|m).{0,30}gözlemle\w*|şehirde dolan\w*.{0,50}(?:bak|gözlemle)\w*|"
+    r"look around|look about|take a look|walk around.{0,50}observe)",
     re.IGNORECASE,
 )
 _PRESENCE_RE = re.compile(
@@ -72,9 +75,17 @@ _TAVERN_RE = re.compile(
 _MERCHANT_RE = re.compile(
     r"(?:tüccar|tacir|satıcı|esnaf|merchant|trader|vendor)", re.IGNORECASE
 )
+_VENUE_RE = re.compile(
+    r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana|"
+    r"içecek|içki|drink|ale|"
+    r"oturacak.{0,20}yer|dinlenecek.{0,20}yer|"
+    r"bir şeyler iç|bir seyler ic)",
+    re.IGNORECASE,
+)
 _SEARCH_RE = re.compile(
     r"(?:ar(?:a|ı|i)\w*|bul\w*|karşılaş\w*|tanış\w*|find|look for|search for|"
-    r"meet|locate|nearby|yakın(?:da|larda|ımda)?)",
+    r"meet|locate|nearby|yakın(?:da|larda|ımda)?|buralarda|civar(?:da|larda)?|"
+    r"var\s*m[ıi]|bulunur\s*m[ıi]|bulunuyor\s*m[ıi]|görür\s*m[üu]y[üu]m)",
     re.IGNORECASE,
 )
 _NEGATIVE_RE = re.compile(
@@ -114,7 +125,16 @@ def classify_scene_action(value: Any) -> str | None:
     text = value.strip()
     if _PRESENCE_RE.search(text):
         return "presence"
-    if _LOOK_RE.search(text):
+    normalized = normalize_text(text)
+    semantic_look = bool(
+        re.search(
+            r"\b(?:etrafim|cevreyi|cevrede|sehirde|kentte|sokaklarda)\b"
+            r".{0,90}\b(?:gozlemle\w*|dolan\w*|kesfet\w*|cevreye bak\w*|"
+            r"etrafa bak\w*|etrafi kola(can|caan)\w*)\b",
+            normalized,
+        )
+    )
+    if _LOOK_RE.search(text) or semantic_look:
         return "look"
     if _WAIT_RE.search(text):
         return "wait"
@@ -134,17 +154,102 @@ def classify_scene_action(value: Any) -> str | None:
 def is_tavern_search(value: Any) -> bool:
     if not isinstance(value, str) or _NEGATIVE_RE.search(value):
         return False
-    return bool(
+    explicit_tavern = bool(
         _TAVERN_RE.search(value)
         and _SEARCH_RE.search(value)
         and not _ENTER_RE.search(value)
     )
+    return explicit_tavern or is_local_venue_search(value)
+
+
+def is_local_venue_search(value: Any) -> bool:
+    """Recognize searches by purpose as well as by the word "tavern"."""
+    if not isinstance(value, str) or _NEGATIVE_RE.search(value):
+        return False
+    if _ENTER_RE.search(value):
+        return False
+    has_search_intent = bool(
+        _SEARCH_RE.search(value)
+        or re.search(
+            r"\b(?:var\s*m[ıi]|bulunur\s*m[ıi]|nerede\s*bulabilirim|"
+            r"nereye\s+gidebilirim|bana\s+bir\b)",
+            value,
+            re.IGNORECASE,
+        )
+    )
+    has_venue_purpose = bool(_VENUE_RE.search(value))
+    nearby_context = bool(
+        re.search(
+            r"\b(?:yakın\w*|buralarda|burada|civar\w*|yakınımda|"
+            r"nearby|around here|close by)\b",
+            value,
+            re.IGNORECASE,
+        )
+    )
+    return has_venue_purpose and (has_search_intent or nearby_context)
 
 
 def is_merchant_search(value: Any) -> bool:
     if not isinstance(value, str) or _NEGATIVE_RE.search(value):
         return False
-    return bool(_MERCHANT_RE.search(value) and _SEARCH_RE.search(value))
+    normalized = normalize_text(value)
+    merchant_terms = (
+        "tuccar", "tacir", "satici", "esnaf", "merchant", "trader", "vendor"
+    )
+
+    def one_edit_apart(left: str, right: str) -> bool:
+        if abs(len(left) - len(right)) > 1:
+            return False
+        i = j = edits = 0
+        while i < len(left) and j < len(right):
+            if left[i] == right[j]:
+                i += 1
+                j += 1
+                continue
+            edits += 1
+            if edits > 1:
+                return False
+            if len(left) > len(right):
+                i += 1
+            elif len(right) > len(left):
+                j += 1
+            else:
+                i += 1
+                j += 1
+        if i < len(left) or j < len(right):
+            edits += 1
+        return edits <= 1
+
+    merchant_mention = _MERCHANT_RE.search(value) is not None
+    if not merchant_mention:
+        tokens = normalized.split()
+        merchant_mention = any(
+            token.startswith(term)
+            or (
+                len(token) >= 4
+                and one_edit_apart(token, term)
+            )
+            for token in tokens
+            for term in merchant_terms
+        )
+    discovery_intent = bool(
+        _SEARCH_RE.search(value)
+        or re.search(
+            r"\b(?:var\s*m[ıi]|bulunur\s*m[ıi]|nerede\s*bulabilirim|"
+            r"bana\s+bir\b|kim\s+var)\b",
+            value,
+            re.IGNORECASE,
+        )
+    )
+    nearby = bool(
+        re.search(
+            r"\b(?:yakın\w*|buralarda|burada|civar\w*|yakınımda|"
+            r"nearby|around here|close by)\b",
+            value,
+            re.IGNORECASE,
+        )
+    )
+    return merchant_mention and (discovery_intent or nearby)
 
 
 def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
@@ -392,7 +497,6 @@ def materialize_scene(
     """Create one small location-appropriate scene once, reusing saved actors."""
     scene = ensure_scene_record(world_state, location_id, turn_index)
     if scene.get("materialized"):
-        expire_referents(world_state, turn_index)
         return scene
 
     kind = scene.get("kind")
@@ -437,23 +541,34 @@ def materialize_scene(
             location_id,
             turn_index,
             description="Girişe yakın bir ziyaretçi, omzundaki çanta kayışını düzeltiyor.",
-            aliases=["ziyaretçi", "kapıdaki kişi", "girişteki yolcu", "kapıdaki adam"],
+            aliases=["ziyaretçi", "yolcu", "kapıdaki kişi", "girişteki yolcu", "kapıdaki adam"],
         )
     elif kind == "wilderness":
         scene["last_beat"] = "Çevre sessiz; yalnızca doğal sesler duyuluyor."
 
     scene["materialized"] = True
     scene["last_activity_turn"] = max(0, turn_index)
-    expire_referents(world_state, turn_index)
     return scene
 
 
-def expire_referents(world_state: dict[str, Any], turn_index: int) -> None:
+def expire_referents(
+    world_state: dict[str, Any],
+    turn_index: int,
+    *,
+    location_id: str | None = None,
+    referent_ids: set[str] | None = None,
+) -> None:
     state = ensure_scene_state(world_state)
-    for scene in state["scenes"].values():
+    if location_id is None:
+        scenes = state["scenes"].values()
+    else:
+        scene = state["scenes"].get(location_id)
+        scenes = (scene,) if isinstance(scene, dict) else ()
+    for scene in scenes:
         for referent in scene.get("referents", []):
             if (
-                referent.get("lifecycle") == "presented"
+                (referent_ids is None or referent.get("id") in referent_ids)
+                and referent.get("lifecycle") == "presented"
                 and type(referent.get("expires_after_turn")) is int
                 and turn_index > referent["expires_after_turn"]
             ):
@@ -493,7 +608,6 @@ def resolve_scene_referent(
     scene = state["scenes"].get(location_id)
     if not isinstance(scene, dict):
         return {"status": "missing", "referent": None}
-    expire_referents(world_state, turn_index)
     candidates = [
         ref
         for ref in scene.get("referents", [])
@@ -509,6 +623,17 @@ def resolve_scene_referent(
             ref for ref in scene.get("referents", [])
             if ref.get("id") == active_id
         ]
+    if candidates:
+        candidate_ids = {
+            ref["id"] for ref in candidates if isinstance(ref.get("id"), str)
+        }
+        if candidate_ids:
+            expire_referents(
+                world_state,
+                turn_index,
+                location_id=location_id,
+                referent_ids=candidate_ids,
+            )
     unique = {ref["id"]: ref for ref in candidates}
     if len(unique) > 1:
         return {"status": "ambiguous", "referent": None}
@@ -616,7 +741,6 @@ def public_scene_projection(
     scene = state["scenes"].get(location_id)
     if not isinstance(scene, dict):
         return None
-    expire_referents(world_state, turn_index)
     npcs = [
         {
             "id": npc.get("id"),

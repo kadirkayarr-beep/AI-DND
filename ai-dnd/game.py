@@ -12,6 +12,7 @@ import sys
 import types
 from quest_catalog import catalog as quest_catalog, find_quest
 import living_world
+import local_dialogue
 
 
 def ollama_response_content(response):
@@ -761,7 +762,14 @@ def is_dialogue_or_emotion(player_input):
 
 
 def is_npc_dialogue_input(player_input):
+    if not isinstance(player_input, str):
+        return False
     text = player_input.casefold().strip()
+    if (
+        local_dialogue.is_local_dialogue_input(player_input)
+        or local_dialogue.explicit_player_name_disclosure(player_input)
+    ):
+        return True
     if "?" in text or is_npc_historical_claim(player_input):
         return True
     if re.search(
@@ -946,10 +954,16 @@ def _detect_query_type(player_input, npc_target=None):
     )
     if any(_normalize_turkish_typos(phrase) in text for phrase in self_phrases):
         return "self"
+    if local_dialogue.is_world_subject_question(player_input):
+        # A setting question must never borrow the active NPC as its subject.
+        return None
     if re.search(r"\bkim(?:ler)?\b.{0,48}\b(?:var|bulun\w*|bekl\w*|dur\w*)\b", text) or \
             re.search(r"\bkimler\s+(?:burada|etrafta)\b", text):
         return "presence"
-    asks_name = bool(re.search(r"\b(?:ad(?:i|in)|ism(?:i|in))\s+(?:ne|nedir)\b", text))
+    asks_name = bool(
+        re.search(r"\b(?:ad(?:i|in)|ism(?:i|in))\s+(?:ne|nedir)\b", text)
+        or local_dialogue.personal_question_kind(player_input) == "npc_identity"
+    )
     location_query = any(_normalize_turkish_typos(phrase) in text for phrase in (
         "neredeyim", "nerdeyim", "nerdeyiz", "şu an neredeyim", "hangi yerdeyim", "konumum neresi",
     )) or bool(re.search(r"\bhangi\s+(?:mekan|yer|konum)\w*\b", text))
@@ -1023,7 +1037,11 @@ def _handle_query(player_input, query_type, npc_target=None):
         return _scene_presence_text(location_id)
 
     if query_type == "npc_identity" and npc_target:
-        return f"{npc_target['name']}, \"Ben {npc_target['name']}, {npc_target['role']}.\" diye yanıt verir."
+        return (
+            f'{npc_target["name"]}, “Ben {npc_target["name"]}. '
+            f'{npc_target["role"]} olarak buradayım.” '
+            "diye yanıt verir."
+        )
 
     return None
 
@@ -2065,6 +2083,7 @@ def create_npc_from_ai(proposal):
             and npc.get("name", "").casefold() == normalized_name
             and npc.get("role", "").casefold() == normalized_role
         ):
+            local_dialogue.ensure_personal_profile(npc)
             return npc
     if len(world_state["npcs"]) >= 60 or len(active_npcs(validated["location"])) >= 6:
         return None
@@ -2074,6 +2093,7 @@ def create_npc_from_ai(proposal):
         "reality_layer": "PROCEDURAL_LOCAL_FICTION",
         "tags": [],
     }
+    local_dialogue.ensure_personal_profile(npc)
     ensure_npc_combat_stats(npc)
     world_state["npcs"].append(npc)
     return npc
@@ -2200,6 +2220,7 @@ def _explicit_campaign_shop_request(player_input):
     )
     create_action = (
         r"(?:create|open|set\s+up|establish|build|add|start|make|get|"
+        r"find(?:\s+me)?|"
         r"want|would\s+like|need|kur\w*|aç\w*|oluştur\w*|ekle\w*|"
         r"inşa\s+et\w*|istiyorum)"
     )
@@ -2870,7 +2891,18 @@ def validate_world_updates(
                 result["create_locations"].append(validated)
 
     if allow_new_npcs and isinstance(updates.get("create_npcs"), list):
+        rejecting_unapproved_shopkeeper = (
+            not allow_new_shops
+            and isinstance(updates.get("create_shops"), list)
+            and bool(updates["create_shops"])
+        )
         for index, proposal in enumerate(updates["create_npcs"][:2]):
+            if (
+                rejecting_unapproved_shopkeeper
+                and isinstance(proposal, dict)
+                and _is_shopkeeper_role(proposal.get("role"))
+            ):
+                continue
             validated = validate_npc_proposal(proposal)
             if validated:
                 validated["proposal_key"] = proposal_key(proposal, "n", index)
@@ -3155,9 +3187,8 @@ def resolve_npc_reference(player_input):
     )):
         flags = world_state.setdefault("flags", {})
         active_id = flags.get("active_npc_id") or flags.get("last_npc_id")
-        active_until = flags.get("active_npc_until_turn", -1)
         active = next((npc for npc in available if npc.get("id") == active_id), None)
-        if active and flags.get("turn_index", 0) <= active_until:
+        if active and active.get("location") == world_state.get("location"):
             matches = [active]
         elif len(available) == 1:
             matches = available[:]
@@ -3391,6 +3422,13 @@ def build_world_context(npc_target=None):
                 "current_hp", "max_hp", "armor_class", "combat_status"
             ) if npc.get(key) not in (None, "", [])}
             | {"reality_layer": npc.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
+            | ({
+                "procedural_personal_profile":
+                    local_dialogue.ensure_personal_profile(npc)
+            } if (
+                npc_target
+                and npc.get("id") == npc_target.get("id")
+            ) else {})
             | {"verified_npc_memory": _format_npc_memory(npc.get("memory", []))}
             for npc in npcs[:8]
         ],
@@ -4205,7 +4243,36 @@ def _fallback_narration(player_input):
         return "Girişimin başarıya ulaşır; amaçladığın sonuç gerçekleşir."
     if outcome in ("critical_failure", "failure"):
         return "Girişimin ters gider ve amaçladığın sonuç gerçekleşmez."
-    return "Belirttiğin eylem dışında sahnede yeni bir değişiklik olmaz."
+    return (
+        "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha "
+        "belirgin anlatabilirsin."
+    )
+
+
+_INTERNAL_PLAYER_FACING_RE = re.compile(
+    r"\bpython\b|\bworld[_ ]state\b|\bunverified_lore_claim\b|"
+    r"dünya\s+durumu\s+değişmedi|belirttiğin\s+eylem\s+dışında\s+sahnede\s+"
+    r"yeni\s+bir\s+değişiklik\s+olmaz|no\s+state\s+change|"
+    r"no\s+new\s+changes",
+    re.IGNORECASE,
+)
+
+
+def _is_internal_player_facing_text(value):
+    return isinstance(value, str) and bool(
+        _INTERNAL_PLAYER_FACING_RE.search(value)
+    )
+
+
+def _natural_unresolved_action_response(player_input, action_result=None):
+    result = action_result if isinstance(action_result, dict) else {}
+    if result.get("action") == "use_item":
+        return "Hangi eşyayı nasıl kullanmak istediğini belirtir misin?"
+    if result.get("action") == "rest":
+        return "Dinlenmek istediğini anladım; nerede dinleneceğini belirtir misin?"
+    if result.get("action") in {"dialogue", "query"}:
+        return "Karşındaki kişi sözünü dinliyor, ancak buna ekleyeceği bir şey bulamıyor."
+    return "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin."
 
 
 def _narration_scene_type(action_result):
@@ -5441,8 +5508,38 @@ _LORE_ROUTE_DISTANCE_QUERY_RE = re.compile(
     re.IGNORECASE,
 )
 _UNVERIFIED_LORE_RESPONSE = (
-    "Bu konuda güvenilir bir doğrulamam yok; bilinmeyeni gerçekmiş gibi aktarmayacağım."
+    "Bu konuda güvenilir bir doğrulamam yok; kesin yanıt belirsiz."
 )
+
+
+def _unverified_lore_response(player_input, npc_target=None):
+    text = local_dialogue.normalize_text(player_input)
+    if re.search(r"\b(?:mesafe|uzaklik|kac mil|kac kilometre|ne kadar uzak)\b", text):
+        return (
+            "İki yer arasındaki mesafe için güvenilir bir ölçüm kaydı yok; "
+            "kesin uzaklık doğrulanamıyor."
+        )
+    if re.search(
+        r"\b(?:kral|kraliçe|hükümdar|yönetici|lord|king|queen|ruler)\b",
+        player_input,
+        re.IGNORECASE,
+    ):
+        if (
+            isinstance(npc_target, dict)
+            and (
+                _entity_reference_in_text(npc_target.get("name", ""), player_input)
+                or _entity_reference_in_text(npc_target.get("role", ""), player_input)
+            )
+        ):
+            return (
+                f'{npc_target.get("name", "Kişi")}, “Bu konuda kesin bir şey '
+                'söyleyemem; yanlış yönlendirmek istemem,” der.'
+            )
+        return (
+            "Bu yerin yöneticisinin kim olduğu konusunda güvenilir bir "
+            "doğrulamam yok."
+        )
+    return _UNVERIFIED_LORE_RESPONSE
 
 
 def _narration_has_unsupported_lore_claim(
@@ -6361,6 +6458,12 @@ def ask_dungeon_master(
                 travel_guidance = "Oyuncu hedefe gitmek istediğini belirtti; yalnızca hedef adıyla eşleşen create_locations öner, varış olduğunu anlatma."
         elif action_result.get("status") == "failed":
             travel_guidance = "Seyahat hedefi doğrulanmadı; varış veya konum değişikliği anlatma."
+        elif action_result.get("status") == "completed":
+            travel_guidance = (
+                "Varış tamamlandı ve yeni konumun sahnesi Python tarafından hazırlandı. "
+                "Yalnızca 'ulaştın' deyip bırakma: bağlamda varsa bir kayıtlı kişiyi veya "
+                "özelliği, yoksa kısa bir duyusal ayrıntıyı ekle. Oyuncuya yeni eylem yükleme."
+            )
     scene_guidance = ""
     scene_type = _narration_scene_type(action_result)
     if scene_type == "direct_query":
@@ -6412,9 +6515,12 @@ def ask_dungeon_master(
         npc_dialogue_guidance = (
             f" Bu tur doğrudan {npc_target.get('name')} adlı {npc_target.get('role')} ile devam eden konuşmadır. "
             "İkinci tekil kişiyle sorulan sorular bu NPC'ye yöneliktir; oyuncuya aynı soruyu geri sorma. "
+            "Context'teki PROCEDURAL PERSONAL PROFILE bu NPC'ye ait, kampanya içi gündelik bilgidir; "
+            "yalnızca kişisel soruları yanıtlarken kullan ve bunu setting/campaign lore'a yükseltme. "
             "Adı sorulursa NPC kendi adını söylesin; çalışma süresi sorulursa buna doğrudan cevap versin "
             "veya bilmediğini söylesin. Gündelik küçük sohbete kısa, doğal ve karaktere uygun bir yanıt ver; "
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
+            "Python action result açıkça bir teklif içermedikçe iş, ödül, görev veya yardım sözü verme; "
             "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
@@ -6619,7 +6725,16 @@ def _fallback_for_action_result(player_input, action_result=None):
         if status == "intended":
             return f"{place} yönüne gitmek istediğini anladım; henüz oraya ulaşmadın."
         if status == "completed":
-            return f"{place} konumuna ulaştın."
+            location_id = result.get("new_location") or result.get("target")
+            presence = (
+                _scene_presence_text(location_id)
+                if location_id in world_state.get("locations", {})
+                else ""
+            )
+            return (
+                f"{place} konumuna ulaştın."
+                + (f" {presence}" if presence else "")
+            )
         return "Bu seyahat hedefi doğrulanamadı; konumun değişmedi."
     if action == "explore":
         location_id = world_state.get("location")
@@ -6713,25 +6828,7 @@ def _is_historical_player_name_query(player_input):
 
 
 def _explicit_player_name_disclosure(text):
-    if not isinstance(text, str) or not text.strip():
-        return None
-    normalized_text = _normalize_turkish_typos(text.casefold())
-    if "?" in text or re.search(
-        r"\b(?:mi|miydi|miydim|musun|musunuz|daha once|once)\b",
-        normalized_text,
-    ):
-        return None
-    disclosed_name = re.search(
-        r"\b(?:benim\s+)?(?:adım|ismim)\s+"
-        r"([A-ZÇĞİÖŞÜa-zçğıöşü][A-ZÇĞİÖŞÜa-zçğıöşü'’-]{1,})\b",
-        text,
-        re.IGNORECASE,
-    )
-    return (
-        disclosed_name.group(1).strip("'’-")
-        if disclosed_name
-        else None
-    )
+    return local_dialogue.explicit_player_name_disclosure(text)
 
 
 def _historical_player_name_from_npc_memory(npc, player_input):
@@ -6813,7 +6910,7 @@ def finalize_narration(
     }
     handling = "python_fallback" if fallback_reason_code else "accepted"
     if fallback_reason_code == "UNVERIFIED_LORE_CLAIM":
-        narration = _UNVERIFIED_LORE_RESPONSE
+        narration = _unverified_lore_response(player_input, npc_target)
         handling = "python_fallback"
     if not isinstance(narration, str) or not narration.strip():
         narration = _fallback_for_action_result(player_input, action_result)
@@ -7635,7 +7732,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         result.update({
             "success": False,
             "status": "unsupported",
-            "direct_response": "Bu eylem için henüz bir Python kuralı tanımlı değil; dünya durumu değişmedi.",
+            "direct_response": _natural_unresolved_action_response(
+                player_input, {"action": intent_type}
+            ),
             "state_changes": [],
         })
     else:
@@ -7690,6 +7789,32 @@ def _ensure_local_tavern(parent_location_id):
     return record
 
 
+def _turkish_genitive_form(name):
+    value = str(name or "").strip()
+    if not value:
+        return ""
+    vowels = "aıeiouöü"
+    last_vowel = next(
+        (character for character in reversed(value.casefold()) if character in vowels),
+        None,
+    )
+    if last_vowel is None:
+        return value
+    suffix = {
+        "a": "ın",
+        "ı": "ın",
+        "o": "un",
+        "u": "un",
+        "e": "in",
+        "i": "in",
+        "ö": "ün",
+        "ü": "ün",
+    }[last_vowel]
+    if value[-1].casefold() in vowels:
+        suffix = "n" + suffix
+    return f"{value}'{suffix}"
+
+
 def _ensure_local_merchant(location_id):
     world_state = _session().world_state
     existing = next(
@@ -7738,7 +7863,7 @@ def _ensure_local_merchant(location_id):
     shop_id = generate_shop_id()
     shop = {
         "id": shop_id,
-        "name": f"{merchant['name']}'ın Tezgâhı",
+        "name": f"{_turkish_genitive_form(merchant['name'])} Tezgâhı",
         "description": "Küçük, sade bir yerel tezgâh.",
         "location": location_id,
         "tags": ["campaign_local", "shop"],
@@ -7777,6 +7902,12 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
         or is_npc_historical_claim(player_input)
     ):
         return None
+
+    personal_answer = local_dialogue.personal_answer(
+        npc_target, player_input
+    )
+    if personal_answer:
+        return personal_answer[0]
 
     text = living_world.normalize_text(player_input)
     name = str(npc_target.get("name") or "Kişi")
@@ -7824,11 +7955,22 @@ def _is_scene_referent_activity_observation(player_input):
     if not isinstance(player_input, str):
         return False
     text = living_world.normalize_text(player_input)
-    return bool(
-        re.search(r"\b(?:dikkat\w*|gozlemle\w*|izle\w*)\b", text)
-        and re.search(
-            r"\b(?:etkinli\w*|davran\w*|hareket\w*|yaptig\w*)\b",
+    activity_question = bool(
+        re.search(
+            r"\b(?:ne|neler)\s+yap\w*\b|\bneyle\s+ugras\w*\b",
             text,
+        )
+    )
+    return bool(
+        (
+            activity_question
+            or (
+                re.search(r"\b(?:dikkat\w*|gozlemle\w*|izle\w*)\b", text)
+                and re.search(
+                    r"\b(?:etkinli\w*|davran\w*|hareket\w*|yaptig\w*)\b",
+                    text,
+                )
+            )
         )
         and not re.search(
             r"\b(?:sor\w*|konus\w*|selam\w*|yaklas\w*)\b",
@@ -7851,11 +7993,16 @@ def _scene_presence_text(location_id):
         shop for shop in world_state.get("shops", [])
         if isinstance(shop, dict) and shop.get("location") == location_id
     ]
+    turn_index = world_state.get("flags", {}).get("turn_index", 0)
     scene = living_world.ensure_scene_record(
         world_state,
         location_id,
-        world_state.get("flags", {}).get("turn_index", 0),
+        turn_index,
     )
+    if isinstance(location_id, str):
+        living_world.expire_referents(
+            world_state, turn_index, location_id=location_id
+        )
     visible = [
         f"{npc['name']} ({npc.get('role', 'kent sakini')})"
         for npc in people[:4]
@@ -7892,11 +8039,16 @@ def _scene_look_text(location_id):
         item for item in location_features(location_id)
         if isinstance(item, dict)
     ]
+    turn_index = world_state.get("flags", {}).get("turn_index", 0)
     scene = living_world.ensure_scene_record(
         world_state,
         location_id,
-        world_state.get("flags", {}).get("turn_index", 0),
+        turn_index,
     )
+    if isinstance(location_id, str):
+        living_world.expire_referents(
+            world_state, turn_index, location_id=location_id
+        )
     parts = [f"{location_name} çevresine göz gezdiriyorsun."]
     if people:
         parts.append(
@@ -7996,8 +8148,16 @@ def plan_living_world_turn(player_input, target_id=None):
     )
     if inspect_action:
         action = "inspect"
-    tavern_search = living_world.is_tavern_search(player_input)
-    merchant_search = living_world.is_merchant_search(player_input)
+    shop_request = (
+        target_id is None
+        and _explicit_campaign_shop_request(player_input)
+    )
+    tavern_search = (
+        not shop_request and living_world.is_tavern_search(player_input)
+    )
+    merchant_search = (
+        not shop_request and living_world.is_merchant_search(player_input)
+    )
     scene_attention = bool(
         action
         or tavern_search
@@ -8108,8 +8268,41 @@ def plan_living_world_turn(player_input, target_id=None):
                 "target_id": candidate,
                 "state_changes": [],
                 "direct_response": (
-                    f"{candidate_record['name']} içine giriyorsun. "
+                    "Kapıdan içeri giriyorsun. "
                     + _scene_presence_text(candidate)
+                ),
+            }
+        elif (
+            candidate == current
+            and isinstance(candidate_record, dict)
+            and direct is None
+        ):
+            direct = {
+                "action": "enter",
+                "status": "already_inside",
+                "success": True,
+                "target_id": candidate,
+                "state_changes": [],
+                "direct_response": (
+                    "Zaten buradasın. "
+                    + _scene_presence_text(candidate)
+                ),
+            }
+        elif (
+            direct is None
+            and isinstance(world_state.get("locations", {}).get(current), dict)
+            and world_state["locations"][current].get("scene_kind") == "tavern"
+        ):
+            current_record = world_state["locations"][current]
+            direct = {
+                "action": "enter",
+                "status": "already_inside",
+                "success": True,
+                "target_id": current,
+                "state_changes": [],
+                "direct_response": (
+                    "Zaten içeridesin. "
+                    + _scene_presence_text(current)
                 ),
             }
         elif direct is None and explicit_tavern_target:
@@ -8204,7 +8397,13 @@ def plan_living_world_turn(player_input, target_id=None):
                         "direct_response": "Kalabalıkta o kişiye yaklaşacak yer bulamıyorsun.",
                     }
 
-    if not combat.get("active") and not direct and action != "presence":
+    world_subject_question = local_dialogue.is_world_subject_question(player_input)
+    if (
+        not combat.get("active")
+        and not direct
+        and action != "presence"
+        and not world_subject_question
+    ):
         if target_id is not None:
             resolved_npc = next(
                 (
@@ -8295,7 +8494,7 @@ def plan_living_world_turn(player_input, target_id=None):
                     "target_id": target.get("id"),
                     "target_name": target.get("name"),
                     "state_changes": [],
-                    "direct_response": "Seçtiğin özelliğin yanındaki yere oturuyorsun.",
+                    "direct_response": "Yanındaki uygun bir yere oturup yerleşiyorsun.",
                 }
             else:
                 direct = {
@@ -8382,6 +8581,7 @@ def plan_living_world_turn(player_input, target_id=None):
 def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
     world_state = _session().world_state
+    world_subject_question = local_dialogue.is_world_subject_question(player_input)
     if messages is None:
         messages = _session().messages
     scene_plan = (
@@ -8440,6 +8640,17 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         safety_handling="accepted",
         record_safety=True,
     ):
+        if _is_internal_player_facing_text(narration):
+            narration = _natural_unresolved_action_response(
+                player_input, action_result
+            )
+            if (
+                isinstance(action_result, dict)
+                and _is_internal_player_facing_text(
+                    action_result.get("direct_response")
+                )
+            ):
+                action_result["direct_response"] = narration
         if record_safety:
             _record_narration_safety(
                 {
@@ -8531,6 +8742,7 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         npc_target = None
         if (
             not combat["active"]
+            and not world_subject_question
             and (
                 is_npc_dialogue_input(player_input)
                 or _explicit_player_name_disclosure(player_input) is not None
@@ -8557,15 +8769,21 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
             if isinstance(scene_plan, dict)
             else None
         )
-        npc_target = next(
-            (
-                npc for npc in active_npcs()
-                if isinstance(npc, dict) and npc.get("id") == planned_npc_id
-            ),
-            None,
+        npc_target = (
+            next(
+                (
+                    npc for npc in active_npcs()
+                    if isinstance(npc, dict) and npc.get("id") == planned_npc_id
+                ),
+                None,
+            )
+            if not world_subject_question
+            else None
         )
         npc_resolution = (
-            {"status": "found", "npc": npc_target}
+            {"status": "none", "npc": None}
+            if world_subject_question
+            else {"status": "found", "npc": npc_target}
             if npc_target is not None
             else resolve_npc_reference(player_input)
         )
@@ -8584,7 +8802,8 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         if isinstance(shop, dict) and shop.get("location") == world_state.get("location")
     )
     if shop_request and (
-        len(world_state.get("shops", [])) >= 12
+        _campaign_has_shopkeeper()
+        or len(world_state.get("shops", [])) >= 12
         or current_shop_count >= 3
         or len(world_state.get("npcs", [])) >= 60
         or len(active_npcs(world_state.get("location"))) >= 6
@@ -8686,6 +8905,45 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         }
         return finish_turn(action_result, message)
 
+    if (
+        isinstance(npc_target, dict)
+        and _is_historical_player_name_query(player_input)
+    ):
+        remembered_name = _historical_player_name_from_npc_memory(
+            npc_target, player_input
+        )
+        npc_name = str(npc_target.get("name") or "Kişi")
+        response = (
+            f'{npc_name}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
+            if remembered_name
+            else f'{npc_name}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
+        )
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_npc_memory",
+            "success": True,
+            "npc_id": npc_target.get("id"),
+            "reality_category": (
+                local_dialogue.PROCEDURAL_PERSONAL_FACT
+                if remembered_name
+                else local_dialogue.CAMPAIGN_FACT
+            ),
+            "state_changes": [],
+        }
+        record_npc_interaction(
+            npc_target, response, player_input, npc_target
+        )
+        return finish_turn(
+            action_result,
+            response,
+            safety_reason_code=(
+                "NPC_MEMORY_SUPPORTED_PLAYER_NAME"
+                if remembered_name
+                else "NPC_MEMORY_UNSUPPORTED_CLAIM"
+            ),
+            safety_handling="python_memory_response",
+        )
+
     disclosed_name = _explicit_player_name_disclosure(player_input)
     if (
         disclosed_name
@@ -8748,16 +9006,63 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         player_input, npc_target
     )
     if smalltalk_response:
+        personal = (
+            local_dialogue.personal_answer(npc_target, player_input)
+            if isinstance(npc_target, dict)
+            else None
+        )
         action_result = {
             "action": "dialogue",
-            "status": "answered_smalltalk",
+            "status": (
+                "answered_personal_question" if personal
+                else "answered_smalltalk"
+            ),
             "success": True,
             "npc_id": npc_target["id"],
+            **({
+                "reality_category": personal[1]
+            } if personal else {}),
             "state_changes": [],
         }
+        record_npc_interaction(
+            npc_target, smalltalk_response, player_input, npc_target
+        )
         return finish_turn(
             action_result,
             smalltalk_response,
+            safety_handling="python_scene_response",
+        )
+
+    work_answer = local_dialogue.unaddressed_work_answer(player_input)
+    if work_answer:
+        if isinstance(npc_target, dict):
+            npc_name = str(npc_target.get("name") or "Kişi")
+            response = (
+                f'{npc_name}, “Şu an sana önerebileceğim belirli bir iş yok,” der.'
+            )
+            action_result = {
+                "action": "dialogue",
+                "status": "answered_without_offer",
+                "success": True,
+                "npc_id": npc_target.get("id"),
+                "reality_category": local_dialogue.CAMPAIGN_FACT,
+                "state_changes": [],
+            }
+            record_npc_interaction(
+                npc_target, response, player_input, npc_target
+            )
+        else:
+            response = work_answer[0]
+            action_result = {
+                "action": "local_inquiry",
+                "status": "answered_without_offer",
+                "success": True,
+                "reality_category": work_answer[1],
+                "state_changes": [],
+            }
+        return finish_turn(
+            action_result,
+            response,
             safety_handling="python_scene_response",
         )
 
@@ -8775,10 +9080,8 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         }
         return finish_turn(action_result, supported_lore_response)
 
-    if _player_question_has_unverified_lore_claim(
-        player_input,
-        lore_context,
-        world_state,
+    if world_subject_question or _player_question_has_unverified_lore_claim(
+        player_input, lore_context, world_state
     ):
         action_result = {
             "action": "dialogue",
@@ -8788,7 +9091,7 @@ def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None
         }
         return finish_turn(
             action_result,
-            _UNVERIFIED_LORE_RESPONSE,
+            _unverified_lore_response(player_input, npc_target),
             safety_reason_code="UNVERIFIED_LORE_CLAIM",
             safety_handling="python_fallback",
         )

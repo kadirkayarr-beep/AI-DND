@@ -6,4 +6,4 @@
 - [Quest ledger authority](quest-journal-authority.md) — Python owns quest transitions; keep production definitions empty until owner-approved content exists.
 - [Narrative continuity authority](narrative-continuity-authority.md) — only selected, NPC-ID-bound player disclosures may support narrow deterministic recall; generated narration stays non-canonical.
 - [Server-authoritative skill results](server-authoritative-skill-results.md) — render validated engine results only; never create or restore client-side roll cards.
-- [Predicate-aware lore retrieval](predicate-aware-lore-retrieval.md) — narrow query intents must prioritize matching structured predicates ahead of broad overview facts.
+- [Lore query evidence and side effects](predicate-aware-lore-retrieval.md) — select exact structured facts and keep unsupported or unrelated queries from mutating world state.
