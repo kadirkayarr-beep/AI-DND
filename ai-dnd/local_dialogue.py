@@ -262,7 +262,10 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
         match = re.search(pattern, value, re.IGNORECASE)
         if match:
             name = match.group(1).strip("'’-")
-            if name and normalize_text(name) not in {"adim", "ismim"}:
+            normalized_name = normalize_text(name)
+            if normalized_name in {"ne", "nedir"}:
+                continue
+            if name and normalized_name not in {"adim", "ismim"}:
                 return name
     return None
 

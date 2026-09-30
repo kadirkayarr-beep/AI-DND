@@ -37,6 +37,7 @@ print('Test 1 - içeri giriyorum (unlocked):')
 print(f'  door.open = {door["open"]}')
 print(f'  action = {result["action_result"].get("action")}')
 print(f'  narration: {result["narration"][:80]}...')
+assert door is not None and door["open"] is True, "Entering through an unlocked door should open it"
 
 # Test 2: unlocked closed door + 'kapıyı açıp içeri giriyorum'
 reset()
@@ -47,6 +48,7 @@ print('Test 2 - kapıyı açıp içeri giriyorum (unlocked):')
 print(f'  door.open = {door["open"]}')
 print(f'  action = {result["action_result"].get("action")}')
 print(f'  narration: {result["narration"][:80]}...')
+assert door is not None and door["open"] is True, "Opening and entering through an unlocked door should leave it open"
 
 # Test 3: locked door + 'içeri giriyorum'
 reset()
@@ -57,6 +59,7 @@ print('Test 3 - içeri giriyorum (locked):')
 print(f'  door.open = {door["open"]}')
 print(f'  action = {result["action_result"].get("action")}')
 print(f'  narration: {result["narration"][:80]}...')
+assert door is not None and door["locked"] is True and door["open"] is False, "Entering through a locked door should not open it"
 
 # Test 4: no door + 'içeri giriyorum'
 reset()
@@ -66,3 +69,4 @@ print('Test 4 - içeri giriyorum (no door):')
 print(f'  door = {door}')
 print(f'  action = {result["action_result"].get("action")}')
 print(f'  narration: {result["narration"][:80]}...')
+assert door is None, "Entering where no door is registered should not create a door"

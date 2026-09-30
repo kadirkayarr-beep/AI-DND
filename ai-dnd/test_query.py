@@ -38,3 +38,5 @@ result = session.run_player_turn('senin adın ne?', [{'role': 'system', 'content
 print(f"Action: {result['action_result'].get('action')}")
 print(f"Direct response: {result['action_result'].get('direct_response')}")
 print(f"Narration: {result['narration']}")
+assert result["action_result"].get("query_type") != "npc_identity", "An NPC identity must not be invented without an NPC"
+assert session.world_state["npcs"] == [], "An ambiguous identity question must not create an NPC"

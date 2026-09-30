@@ -48,3 +48,10 @@ print(f"Action: {result['action_result'].get('action')}")
 print(f"Direct response: {result['action_result'].get('direct_response')}")
 print(f"Query type: {result['action_result'].get('query_type')}")
 print(f"Narration: {result['narration'][:100]}")
+action_result = result["action_result"]
+assert action_result.get("action") == "character_query", (
+    f"Explicit player-name question should be a character query, got {action_result.get('action')}"
+)
+assert session.character["name"] in action_result.get("direct_response", ""), (
+    "The character query should return the player's registered character name"
+)

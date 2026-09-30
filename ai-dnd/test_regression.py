@@ -611,3 +611,4 @@ if __name__ == "__main__":
         for name, msg in failures:
             print(f"  - {name}: {msg}")
     print(f"{'='*50}")
+    raise SystemExit(1 if failed else 0)

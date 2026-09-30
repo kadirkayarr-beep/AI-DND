@@ -49,9 +49,11 @@ print("\n=== With Active NPC ===")
 for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
     result = session._detect_query_type(t, npc_target)
     print(f"  '{t}' -> {result}")
+    assert result == "npc_identity", f"Active NPC identity question was not recognized: {t!r} -> {result!r}"
 
 # Test without NPC
 print("\n=== Without NPC ===")
 for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
     result = session._detect_query_type(t, None)
     print(f"  '{t}' -> {result}")
+    assert result is None, f"NPC identity question without a target must remain unresolved: {t!r} -> {result!r}"
