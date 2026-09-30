@@ -46,9 +46,10 @@ AI-DND is a Turkish-language terminal D&D game. Players create a character, desc
 
 ## Release versioning
 
-- Current release identity: AI-DND v0.6.0-alpha, Internal Build V14.
+- Current release identity: AI-DND v0.6.1-alpha, Internal Build V15.
 - Do not increase the public version for implementation work alone.
 - Playable Living World V1 passed its deterministic, real-Qwen, continuity, fallback, and manual narration review gates; see `ai-dnd/PLAYABLE_LIVING_WORLD_V1_RELEASE_REPORT_2026-09-30.md`.
+- Playable Living World V1.1 passed final solo web-client verification; see `ai-dnd/PLAYABLE_LIVING_WORLD_V1_1_FINAL_REPORT_2026-09-30.md`.
 - Tie future public version bumps to a meaningful playable milestone and document them in the phase report or changelog.
 
 ## User preferences

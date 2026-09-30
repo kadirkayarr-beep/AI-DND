@@ -88,12 +88,27 @@ _SEARCH_RE = re.compile(
     r"var\s*m[ıi]|bulunur\s*m[ıi]|bulunuyor\s*m[ıi]|görür\s*m[üu]y[üu]m)",
     re.IGNORECASE,
 )
+_ROUTE_DISTANCE_QUERY_RE = re.compile(
+    r"\b(?:distance|route|road|path|way|miles?|mile|kilometers?|kilometres?|"
+    r"meters?|metres?|km|mil|mesafe\w*|uzak\w*|guzergah\w*|rota\w*|yol\w*)\b|"
+    r"\b(?:kac|ne kadar)\s+(?:mil|mile|km|kilometre\w*|kilometer\w*|"
+    r"kilometre\w*|meter\w*|metre\w*)\b|"
+    r"\b(?:ne kadar uzak|how far)\b",
+    re.IGNORECASE,
+)
 _NEGATIVE_RE = re.compile(
     r"(?:\b(?:istemiyorum|istemeyelim|bulma|arama|aramıyorum|aramayalım|"
     r"kurma|açma|oluşturma|"
     r"ekleme)\b|don't|do not|never|no need)",
     re.IGNORECASE,
 )
+
+
+def _is_route_distance_query(value: Any) -> bool:
+    return bool(
+        isinstance(value, str)
+        and _ROUTE_DISTANCE_QUERY_RE.search(normalize_text(value))
+    )
 
 
 def initial_scene_state() -> dict[str, Any]:
@@ -152,7 +167,11 @@ def classify_scene_action(value: Any) -> str | None:
 
 
 def is_tavern_search(value: Any) -> bool:
-    if not isinstance(value, str) or _NEGATIVE_RE.search(value):
+    if (
+        not isinstance(value, str)
+        or _NEGATIVE_RE.search(value)
+        or _is_route_distance_query(value)
+    ):
         return False
     explicit_tavern = bool(
         _TAVERN_RE.search(value)
@@ -164,7 +183,11 @@ def is_tavern_search(value: Any) -> bool:
 
 def is_local_venue_search(value: Any) -> bool:
     """Recognize searches by purpose as well as by the word "tavern"."""
-    if not isinstance(value, str) or _NEGATIVE_RE.search(value):
+    if (
+        not isinstance(value, str)
+        or _NEGATIVE_RE.search(value)
+        or _is_route_distance_query(value)
+    ):
         return False
     if _ENTER_RE.search(value):
         return False

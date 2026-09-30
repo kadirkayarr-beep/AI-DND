@@ -355,6 +355,41 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertNotIn("vermiyorsun", response)
         self.assertNotIn("ölçün yok", response)
 
+    def test_distance_question_mentioning_tavern_does_not_create_local_venue(self):
+        self.world["location"] = "tavern"
+        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
+        question = "Taverna ile Kale arasındaki yol mesafesi kaç kilometre?"
+
+        self.assertFalse(living_world.is_tavern_search(question))
+        self.assertTrue(
+            living_world.is_tavern_search("Yakınlarda bir taverna arıyorum.")
+        )
+        before = {
+            key: copy.deepcopy(self.world.get(key))
+            for key in (
+                "location",
+                "locations",
+                "npcs",
+                "shops",
+                "features",
+                "doors",
+                "containers",
+                "scene_state",
+                "quests",
+                "quest_offers",
+                "inventory",
+            )
+        }
+
+        with patch("game.ask_dungeon_master") as ask:
+            result = self.session.run_player_turn(question)
+
+        ask.assert_not_called()
+        self.assertEqual(result["action_result"]["status"], "unverified")
+        self.assertIn("ölçüm kaydı yok", result["narration"])
+        for key, value in before.items():
+            self.assertEqual(self.world.get(key), value, key)
+
     def test_unverified_ruler_response_handles_turkish_inflections(self):
         for question in (
             "Bu şehrin hükümdarı kim?",
