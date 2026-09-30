@@ -1,0 +1,126 @@
+All 18 deterministic gates and the workspace typecheck pass. The manual build needs workflow-injected BASE_PATH, so I won’t change artifact config to work around it. I’m checking the API’s campaign storage and smoke-test setup before restarting anything, to ensure a real-model run cannot touch shared campaign data.
+
+
+3 actions
+The API uses AI_DND_CAMPAIGN_DB and already has a real-Qwen restart smoke harness with a temporary SQLite database, but its scenario is only 20 turns. I’ll check the required 36-turn sequence and adapt the harness to use a fresh disposable database before running it; I will not start an API against the default campaign store.
+
+
+45 actions
+The 36-turn schedule is now correctly counted, but the review found remaining gaps that could either produce false failures or overstate a pass—especially referent promotion, post-restart lore proof, target identity, and required audit fields. I’m checking what the engine can safely expose, then I’ll tighten the smoke gate before any real-model run.
+
+
+Show less
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Searched ai-dnd/game.py, ai-dnd/api for "def validate_world_updates|def merge_world_updates|model_calls|prompt_eval_count|eval_count|token_usage|accepted_proposal|proposal_key|last_narration_safety|skill_check_result|world_update"
+Checking feature sit function
+
+Checking feature sit function
+Considering deterministic ground
+
+Considering deterministic ground
+
+Subagent: Please fix the remaining concrete correctness defects in the current smoke harness (still do not touch engine files or historical reports): assert a real background referent lifecycle='promoted', stable promoted_npc_id and follow-up target; fix false-recall by comparing only relevant player-disclosure memory before/after (not rejecting any prior NPC memory); send/verify the table feature target for sit if supported; assert submitted/resolved target IDs for NPC approach/name/small-talk/guard/merchant/continuity actions; assert return to the exact same tavern and its bartender/feature IDs at turns 23-24, and final revisit continuity at 36; assert a new session ID after resume; do not compare pre-restart audit lore to itself—either add a fresh resume audit or leave this invariant BLOCKED; use exact loaded-canon narration content checks plus fact IDs; use the API's actual structured skill_check_result and explicit supported skill-action wording for turn 35; compare inventory/currency/shops/NPCs against the immediately pre-turn-30 snapshot; improve report creation/error handling. For missing proposal decision/token telemetry or safety reason/scope classification, never mark the run mechanical pass; emit an explicit evidence-incomplete/block status and explain which contract fields are unavailable, unless you can obtain them without engine changes. Do not claim a full pass or manual review. Run py_compile/diff-check only; no services/models.
+
+Subagent: Read-only source investigation only: in current ai-dnd/game.py/api/main.py/api/ollama_adapter.py identify (a) exact response fields and supported natural-language trigger for a Perception/Investigation check; (b) how run_player_turn captures model-call return objects and whether prompt/completion token counts can be exposed to the smoke middleware without logging prompts/secrets; (c) exact world-update validation/mention binding function inputs/outputs and a safe read-only test-harness wrapper to capture accepted/rejected proposal category/key/reason per turn without changing parser/model behavior; (d) action_result fields for NPC/feature targets. Give precise line refs and recommend if test-only wrapping is safe or whether the user contract cannot be fulfilled without source instrumentation. Do not edit or run anything.
+
+Updated campaign smoke tests and codebase documentation
+Verifying adapter functionality
+
+Verifying adapter functionality
+Implementing updates
+
+Implementing updates
+Evaluating proxy behavior
+
+Evaluating proxy behavior
+
+Subagent: Now add behavior-preserving test-only telemetry wrappers inside the isolated API subprocess, based on the explorer's source findings. Patch `game.ollama.chat` so it calls the original exactly once, returns the identical response/raises unchanged, and captures ONLY numeric prompt_eval_count/eval_count (or typed equivalents) into a per-request mutable accumulator; never retain/log messages, prompt, completion, headers, or raw response. Also wrap `game.validate_world_updates` and `game._bind_world_update_mentions` to call originals exactly once and return unchanged values while recording sanitized per-turn proposal category, proposal key or hash, validator accepted/rejected stage, mention-binding accepted/rejected stage, and reason. For reasons only claim what is knowable: category flag disabled; validator rejected/malformed (specific internal rule unavailable); or validated proposal not materialized/bound; accepted + persisted. Do not duplicate/re-run validators and do not alter inputs/order/returns. Use request-local ContextVar/list or equivalent; report token aggregates and proposal diagnostics per turn, not hardcoded unavailable. Clearly include reason-specificity and telemetry implementation in the report. If any category/reason can't be associated, mark that field unavailable and status BLOCKED / EVIDENCE_INCOMPLETE rather than mechanical pass. Preserve exact direct-call count and existing <=2 check. No engine edits or service/model run; py_compile/diff-check only.
+Task
+
+Now add behavior-preserving test-only telemetry wrappers inside the isolated API subprocess, based on the explorer's source findings. Patch `game.ollama.chat` so it calls the original exactly once, returns the identical response/raises unchanged, and captures ONLY numeric prompt_eval_count/eval_count (or typed equivalents) into a per-request mutable accumulator; never retain/log messages, prompt, completion, headers, or raw response. Also wrap `game.validate_world_updates` and `game._bind_world_update_mentions` to call originals exactly once and return unchanged values while recording sanitized per-turn proposal category, proposal key or hash, validator accepted/rejected stage, mention-binding accepted/rejected stage, and reason. For reasons only claim what is knowable: category flag disabled; validator rejected/malformed (specific internal rule unavailable); or validated proposal not materialized/bound; accepted + persisted. Do not duplicate/re-run validators and do not alter inputs/order/returns. Use request-local ContextVar/list or equivalent; report token aggregates and proposal diagnostics per turn, not hardcoded unavailable. Clearly include reason-specificity and telemetry implementation in the report. If any category/reason can't be associated, mark that field unavailable and status BLOCKED / EVIDENCE_INCOMPLETE rather than mechanical pass. Preserve exact direct-call count and existing <=2 check. No engine edits or service/model run; py_compile/diff-check only.
+Show more
+
+21 actions
+Working
+Result
+Added isolated subprocess-only telemetry wrappers. game.ollama.chat calls the captured original once, returns/raises unchanged, and retains only numeric prompt/eval counts in a request-local ContextVar accumulator. game.validate_world_updates and _bind_world_update_mentions similarly call originals once and record sanitized category/key/hash, validator accepted/rejected/malformed or category-flag-disabled reasons, and mention-binding accepted+persisted or not-materialized/bound outcomes—without retaining proposal content. Middleware emits per-turn token aggregates and diagnostics, and result aggregates token totals. Added explicit telemetry implementation metadata and dynamic evidence-gap detection; unavailable token/proposal/safety fields force BLOCKED / EVIDENCE_INCOMPLETE, with no mechanical/manual pass claim. py_compile and git diff --check pass; no service/model run.
+
+
+Implemented world telemetry and API hooks
+
+Counted lines in …/tests/live_playable_living_world_v1_smoke.py and 4 other actions
+
+Subagent: Review the current on-disk revision of ai-dnd/api/tests/live_playable_living_world_v1_smoke.py, especially the new test-only token/proposal wrappers and the latest target/referent/restart/safety assertions. Read-only only; do not run services or model. Identify concrete risks (context propagation, double calls, recording raw content, wrong telemetry assumptions, false failures) and whether it is now safe to start the disposable real smoke.
+
+Analyzed campaign smoke test configuration
+Examining API functionality
+
+Examining API functionality
+Exploring code adjustments
+
+Exploring code adjustments
+
+Opened main.py
+
+Opened main.py
+
+Opened schemas.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+Evaluating classification logic
+
+Evaluating classification logic
+
+Read lines 730–870 of ai-dnd/api/main.py
+Inspecting middleware functions
+
+Inspecting middleware functions
+
+Subagent: Final harness correctness pass: (1) The HTTP TurnResponse omits action_result, but the engine's GameSession.run_player_turn returns it before main.py filters the response. In the isolated server only, wrap GameSession.run_player_turn; invoke the original once, retain only an allowlisted action_result projection (no direct_response or free text), return original result unchanged, and put the projection in the audit row. Parent play() should attach audit action_result for assertions. Replace _assert_npc_target's stale-flag fallback with authoritative captured engine result, and use it for inspect; do not modify production API/schema. (2) Fix turn35 check: public skill_check_result has no status field; assert skill, ability, d20, total, dc, outcome and action_result.action == skill_check if telemetry captured. Explicitly include Turkish/English supported Investigation wording; no invented check. (3) False recall must assert first NPC's Arven disclosure evidence and output; different NPC response must not falsely claim remembering Arven and must not gain a player-name-disclosure evidence ID. Use disclosure-specific detection, not memory-anything. (4) Add fresh resume audit event in middleware on successful POST /api/campaigns/{id}/resume, capturing only resumed session ID, sanitized lore projection and state projection, then compare exact pre/post lore + procedural refs before turn25. Write resume-comparison.json under durable report_root, not temp, with old/new IDs, equality checks, history/combat counts. (5) Remove stale static evidence_incomplete text and incorrect 'token unavailable' claims when wrappers captured them; include actual per-turn token aggregates/proposal diagnostics and mark evidence incomplete only when truly missing. Add update_npcs proposal diagnostics and record validation pass index; no raw proposal hashes of complete contents (key/category only; names/descriptions never retained). (6) Safety record/classification must derive from actual handling + reason_code, not turn number. Keep budget-exempt turn IDs as a separate field, never call them intentional merely because excluded; count conservative fallback candidates on the 31 ordinary turns and store exact reason. (7) Add evidence assertions that narration isn't empty/debug fallback, turn31 loaded canon response grounds the retrieved fact (avoid over-specific invented 'Lord Protector' if the verified fact supports current lord wording), turn33 challenges both invented ruler/deity in one turn if practical, turn34 recovers, and turn36 continuity holds. Keep report status REVIEW_PENDING until manual review. If exact proposal rejection reasoning or safety replacement scope remains unavailable, leave status BLOCKED / EVIDENCE_INCOMPLETE with precise fields, not PASS. No service/model; run py_compile/diff-check only.
+
+Verified Playable World smoke test audit
+Reviewing script changes
+
+Reviewing script changes
+Loaded skill follow-up-tasks
+
+Counted lines in …/tests/live_playable_living_world_v1_smoke.py and 4 other actions
+
+Searched ai-dnd/game.py, ai-dnd for "class GameSession|def run_player_turn|run_player_turn ="
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened game.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+
+Opened live_playable_living_world_v1_smoke.py
+Considering event inclusion
+
+Considering event inclusion
+Navigating implementation specifics
+
+Navigating implementation specifics
+Updating summary statuses
+
+Updating summary statuses
+
+Searched ai-dnd/game.py for "last_narration_safety|reason_code|scope" and 1 other action

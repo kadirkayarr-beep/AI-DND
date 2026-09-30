@@ -1,0 +1,25 @@
+Checkpoint made
+44 minutes ago
+
+14 actions
+The focused engine and API contract tests now pass, including scene save/resume and the lore-guard cases. Next I’m running the full deterministic gate and workspace build, then I’ll configure the live smoke to use only a fresh disposable database.
+
+
+5 actions
+The full deterministic run found three regressions to resolve before the smoke: one safety test assumes no state change despite automatic scene setup, the legacy door-entry path is being intercepted by the new scene handler, and two tests still expect the old technical fallback text. The workspace typecheck passed; the build command also needs its required PORT setting, so I’ll rerun it with that environment value after fixing the code/tests.
+
+
+66 actions
+The full deterministic suite now passes. Workspace typechecking also passed, but the recursive build stopped because the mockup artifact requires BASE_PATH; I’ll check the artifact routing and rerun builds with the correct paths.
+
+
+6 actions
+All 18 deterministic gates and the workspace typecheck pass. The manual build needs workflow-injected BASE_PATH, so I won’t change artifact config to work around it. I’m checking the API’s campaign storage and smoke-test setup before restarting anything, to ensure a real-model run cannot touch shared campaign data.
+
+
+3 actions
+The API uses AI_DND_CAMPAIGN_DB and already has a real-Qwen restart smoke harness with a temporary SQLite database, but its scenario is only 20 turns. I’ll check the required 36-turn sequence and adapt the harness to use a fresh disposable database before running it; I will not start an API against the default campaign store.
+
+
+45 actions
+The 36-turn schedule is now correctly counted, but the review found remaining gaps that could either produce false failures or overstate a pass—especially referent promotion, post-restart lore proof, target identity, and required audit fields. I’m checking what the engine can safely expose, then I’ll tighten the smoke gate before any real-model run.

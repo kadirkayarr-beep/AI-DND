@@ -44,15 +44,33 @@ class PlayableLivingWorldTests(unittest.TestCase):
             feature_ids,
         )
 
+        self.world["npcs"].extend([
+            {
+                "id": "npc_presence_one",
+                "name": "Aylin",
+                "role": "Kent sakini",
+                "location": self.root_location,
+                "tags": [],
+            },
+            {
+                "id": "npc_presence_two",
+                "name": "Tuna",
+                "role": "Muhafız",
+                "location": self.root_location,
+                "tags": [],
+            },
+        ])
         presence = self.session.plan_living_world_turn("Burada kimler var?")
         response = presence["direct_result"]["direct_response"]
         self.assertNotIn("kayıtlı", response.casefold())
         self.assertNotIn("npc", response.casefold())
+        self.assertIn("Aylin", response)
+        self.assertIn("Tuna", response)
         self.assertTrue(response.strip())
 
     def test_merchant_search_creates_local_person_and_shop_without_trade(self):
         plan = self.session.plan_living_world_turn(
-            "Yakında bir tüccar bulmak istiyorum."
+            "Bir tüccar arıyorum."
         )
         self.assertEqual(plan["direct_result"]["action"], "local_search")
         self.assertEqual(plan["direct_result"]["status"], "found")
@@ -69,6 +87,12 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertNotIn("stock", shop)
         self.assertNotIn("gold", shop)
         self.assertNotIn("inventory", shop)
+
+        negative = self.session.plan_living_world_turn(
+            "Bir tüccar aramıyorum."
+        )
+        self.assertIsNone(negative["direct_result"])
+        self.assertEqual(len(self.world["shops"]), 1)
 
     def test_tavern_search_enter_exit_and_return_use_local_parent(self):
         search = self.session.plan_living_world_turn(
@@ -96,7 +120,14 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(exit_plan["direct_result"]["action"], "exit")
         self.assertEqual(self.world["location"], self.root_location)
         self.world["flags"]["turn_index"] += 1
-        return_plan = self.session.plan_living_world_turn("Taverna içine giriyorum.")
+        self.assertEqual(
+            living_world.classify_scene_action("Emre Hanı içine giriyorum."),
+            "enter",
+        )
+        return_plan = self.session.plan_living_world_turn(
+            f"{tavern['name']} içine giriyorum."
+        )
+        self.assertEqual(return_plan["direct_result"]["action"], "enter")
         self.world["flags"]["turn_index"] += 1
         self.assertEqual(self.world["location"], tavern_id)
         self.assertGreater(
@@ -115,6 +146,23 @@ class PlayableLivingWorldTests(unittest.TestCase):
         })
         self.assertIsNotNone(feature)
         self.assertTrue(feature["id"].startswith("feature_"))
+        sit = self.session.plan_living_world_turn(
+            f"{feature['name']} yanına oturuyorum.",
+            target_id=feature["id"],
+        )
+        self.assertEqual(sit["direct_result"]["target_id"], feature["id"])
+        self.assertEqual(
+            sit["direct_result"]["direct_response"],
+            "Seçtiğin özelliğin yanındaki yere oturuyorsun.",
+        )
+        inspect = self.session.plan_living_world_turn(
+            f"{feature['name']} üzerindeki ayrıntıyı inceliyorum.",
+            target_id=feature["id"],
+        )
+        inspect_result = inspect["direct_result"]
+        self.assertEqual(inspect_result["action"], "inspect")
+        self.assertEqual(inspect_result["status"], "observed")
+        self.assertEqual(inspect_result["target_id"], feature["id"])
         public_scene = living_world.public_scene_projection(
             self.world, self.world["flags"]["turn_index"]
         )
@@ -134,6 +182,27 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(restored["id"], expected_scene_id)
         self.assertIn(expected_id, {item["id"] for item in restored["features"]})
+
+    def test_public_scene_referent_exposes_only_one_addressable_alias(self):
+        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
+        turn_index = self.world["flags"]["turn_index"]
+        ref = living_world.create_scene_referent(
+            self.world,
+            self.root_location,
+            turn_index,
+            description="A traveler adjusts a satchel.",
+            aliases=["traveler", "person with a satchel"],
+        )
+
+        public_scene = living_world.public_scene_projection(
+            self.world, turn_index
+        )
+        public_ref = next(
+            item for item in public_scene["referents"] if item["id"] == ref["id"]
+        )
+
+        self.assertEqual(public_ref["addressable_alias"], "traveler")
+        self.assertNotIn("aliases", public_ref)
 
     def test_legacy_save_migrates_feature_ids_idempotently(self):
         location = self.root_location

@@ -44,6 +44,13 @@ Türkçe doğal dil ile oynanan, Python kurallar motoru ve Qwen anlatıcısı ku
 
 AI-DND is a Turkish-language terminal D&D game. Players create a character, describe actions naturally, explore canonical or dynamically proposed locations, speak with NPCs, inspect environments, manage items, and resolve combat through deterministic D&D mechanics.
 
+## Release versioning
+
+- Current release identity: AI-DND v0.5.0-alpha, Internal Build V13.
+- Do not increase the public version for implementation work alone.
+- Advance to v0.6.0-alpha only if Playable Living World V1 passes the full deterministic suite and the real Qwen playability smoke.
+- Tie every public version bump to a meaningful playable milestone and document it in the phase report or changelog.
+
 ## User preferences
 
 _Populate as you build — explicit user instructions worth remembering across sessions._

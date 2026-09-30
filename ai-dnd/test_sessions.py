@@ -119,7 +119,7 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(self.a.recent_dm_narrations)
         self.assertEqual(self.b.serialize_game_state(), before_b)
 
-    def test_unverified_lore_claim_rolls_back_narrator_proposals(self):
+    def test_unverified_lore_claim_preserves_unrelated_local_proposals(self):
         self.a.world_state["location"] = "tavern"
         self.a.world_state["locations"]["tavern"] = {"name": "Taverna"}
         before_npcs = copy.deepcopy(self.a.world_state["npcs"])
@@ -139,19 +139,29 @@ class SessionTests(unittest.TestCase):
                         "role": "merchant",
                         "location": "tavern",
                     }],
-                    "events": ["A new market opens."],
+                    "events": ["Lamba alevi titrer."],
                 },
                 "lore_claims": [],
                 "valid_response": True,
             },
         ):
-            result = self.a.run_player_turn("Bir tüccar arıyorum.")
+            result = self.a.run_player_turn("Rüzgar esiyor.")
 
-        self.assertIn("UNVERIFIED", result["narration"])
-        self.assertEqual(self.a.world_state["npcs"], before_npcs)
+        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
+        self.assertNotIn("UNVERIFIED", result["narration"])
+        self.assertNotIn("King Vharion", result["narration"])
+        self.assertEqual(len(self.a.world_state["npcs"]), len(before_npcs) + 1)
+        elara = self.a.world_state["npcs"][-1]
+        self.assertEqual(elara["name"], "Elara")
+        self.assertEqual(elara["location"], "tavern")
+        self.assertEqual(elara["reality_layer"], "PROCEDURAL_LOCAL_FICTION")
         self.assertEqual(self.a.world_state["locations"], before_locations)
         self.assertEqual(self.a.world_state["features"], before_features)
-        self.assertEqual(self.a.world_state["events"], before_events)
+        self.assertEqual(len(self.a.world_state["events"]), len(before_events) + 1)
+        self.assertEqual(
+            self.a.world_state["events"][-1]["reality_layer"],
+            "NARRATIVE_TEXTURE",
+        )
 
     def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
         before = copy.deepcopy(self.a.world_state)
@@ -166,7 +176,8 @@ class SessionTests(unittest.TestCase):
         ):
             result = self.a.run_player_turn("Does King Vharion rule Neverwinter?")
 
-        self.assertIn("UNVERIFIED", result["narration"])
+        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
+        self.assertNotIn("UNVERIFIED", result["narration"])
         after = copy.deepcopy(self.a.world_state)
         before["flags"]["turn_index"] = after["flags"]["turn_index"]
         self.assertEqual(after, before)

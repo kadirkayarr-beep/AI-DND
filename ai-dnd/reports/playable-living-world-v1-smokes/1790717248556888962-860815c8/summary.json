@@ -1,0 +1,22 @@
+{
+  "status": "BLOCKED / LIVE PLAYABILITY UNVERIFIED",
+  "model": "qwen3:8b",
+  "campaign_database": "temporary_disposable",
+  "turns": [],
+  "token_usage": "unavailable",
+  "telemetry_implementation": "isolated subprocess wrappers call original game.ollama.chat, validate_world_updates, and _bind_world_update_mentions exactly once; only numeric model counts and sanitized proposal diagnostics are retained",
+  "evidence_incomplete": [],
+  "budget_exempt_turn_ids": [
+    27,
+    30,
+    31,
+    32,
+    33
+  ],
+  "report_path": "/home/runner/workspace/ai-dnd/reports/playable-living-world-v1-smokes/1790717248556888962-860815c8",
+  "error": "Turn failed HTTP 500; response redacted.",
+  "evidence_lifecycle": "sanitized evidence is append-only outside the temporary database directory",
+  "review_status": "pending_human_review",
+  "narration_retention": "omitted from persistent reports; transient CLI output only with --review-narrations",
+  "ordinary_fallback_candidate_count": 0
+}

@@ -62,6 +62,69 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
+    async def test_game_session_bound_turn_uses_engine_signature_fallback(self):
+        created_response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "name": "Session-bound engine signature regression",
+                # This is the release-gate start where city-look is deterministic
+                # and must not invoke the fake model adapter.
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": "fr:city:neverwinter",
+                },
+            },
+        )
+        self.assertEqual(created_response.status_code, 200, created_response.text)
+        created = created_response.json()
+        session = self.manager.get(created["session_id"]).game_session
+        self.assertIsInstance(session, game.GameSession)
+
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Etrafıma bakıyorum."},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        turn = response.json()
+        self.assertTrue(turn["narration"].strip())
+        self.assertIsInstance(turn.get("state"), dict)
+        self.assertTrue(turn["state"])
+
+    async def test_selected_npc_identity_query_is_deterministic(self):
+        created_response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "name": "Selected NPC identity target regression",
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": "fr:city:neverwinter",
+                },
+            },
+        )
+        self.assertEqual(created_response.status_code, 200, created_response.text)
+        created = created_response.json()
+        session = self.manager.get(created["session_id"]).game_session
+
+        look_response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Etrafıma bakıyorum."},
+        )
+        self.assertEqual(look_response.status_code, 200, look_response.text)
+        npc = session.world_state["npcs"][0]
+
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Adın ne?", "target_id": npc["id"]},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        turn = response.json()
+        self.assertIn(npc["name"], turn["narration"])
+        self.assertIn(npc["role"], turn["narration"])
+
     async def test_create_list_detail_resume_and_safe_metadata(self):
         created = await self.create_campaign()
         self.assertTrue(created["campaign_id"])
@@ -903,6 +966,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_journal_survives_explicit_save_and_a_new_session_manager(self):
         created = await self.create_campaign()
         session = self.manager.get(created["session_id"]).game_session
+        session.world_state["location"] = "tavern"
+        session.plan_living_world_turn("Etrafıma bakıyorum.")
 
         def visit_tavern(_message):
             session.world_state["location"] = "tavern"
@@ -929,6 +994,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             resumed_state["journal"],
             turn.json()["state"]["journal"],
+        )
+        self.assertEqual(resumed_state["scene"]["id"], "scene:tavern")
+        self.assertTrue(
+            resumed_state["scene"]["visit_revision"] >= 1
         )
 
     async def test_store_save_without_journal_argument_preserves_existing_journal(self):

@@ -684,7 +684,20 @@ def create_app(
                         with active_adapter.capture_model_calls() as model_calls:
                             with active_adapter.capture_model_failures() as model_failures:
                                 run_turn = session.run_player_turn
-                                run_parameters = inspect.signature(run_turn).parameters
+                                try:
+                                    run_parameters = inspect.signature(
+                                        run_turn
+                                    ).parameters
+                                except (TypeError, ValueError):
+                                    if not isinstance(session, game.GameSession):
+                                        raise
+                                    # GameSession exposes session-bound engine
+                                    # helpers as partials. Their wrapped
+                                    # signatures omit the injected session kwarg,
+                                    # so inspect.signature(partial) cannot bind it.
+                                    run_parameters = inspect.signature(
+                                        game.run_player_turn
+                                    ).parameters
                                 run_kwargs = {}
                                 if "scene_plan" in run_parameters:
                                     run_kwargs["scene_plan"] = scene_plan

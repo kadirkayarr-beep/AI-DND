@@ -372,9 +372,37 @@ class ContractParityTests(unittest.TestCase):
                             "tavern": {field: "Tavern" for field in _LOCATION_FIELDS}
                         },
                         "flags": {"turn_index": 2},
+                        "scene_state": {
+                            "schema_version": 1,
+                            "next_referent_number": 1,
+                            "next_feature_number": 1,
+                            "active_referent_id": None,
+                            "player_position": {
+                                "location_id": "tavern",
+                                "kind": "standing",
+                                "target_id": None,
+                            },
+                            "proposal_references": [],
+                            "scenes": {
+                                "tavern": {
+                                    "id": "scene:tavern",
+                                    "location_id": "tavern",
+                                    "parent_location_id": None,
+                                    "kind": "tavern",
+                                    "materialized": True,
+                                    "visit_revision": 1,
+                                    "activity_revision": 0,
+                                    "first_seen_turn": 1,
+                                    "last_visit_turn": 1,
+                                    "last_activity_turn": 1,
+                                    "last_beat": None,
+                                    "referents": [],
+                                }
+                            },
+                        },
                         "inventory": [],
                         "npcs": [],
-            "shops": [],
+                        "shops": [],
                         "features": [],
                         "doors": [],
                         "combat": {
@@ -391,6 +419,12 @@ class ContractParityTests(unittest.TestCase):
 
         public_state = serialize_session_state(SerializableSession())
         self.assertEqual(set(public_state), _property_names("GameState"))
+        self.assertEqual(public_state["scene"]["id"], "scene:tavern")
+        self.assertEqual(public_state["scene"]["location_id"], "tavern")
+        self.assertEqual(
+            public_state["scene"]["player_position"]["kind"],
+            "standing",
+        )
         self.assertEqual(set(public_state["character"]), _property_names("GameCharacter"))
         self.assertEqual(set(public_state["combat"]), _property_names("GameCombat"))
         self.assertEqual(

@@ -61,7 +61,7 @@ _APPROACH_RE = re.compile(
     re.IGNORECASE,
 )
 _ENTER_RE = re.compile(
-    r"(?:içeri gir|içeriye gir|hana gir|tavernaya gir|taverna.{0,12}gir|meyhaneye gir|"
+    r"(?:içeri gir|içeriye gir|içine gir|hana gir|tavernaya gir|taverna.{0,12}gir|meyhaneye gir|"
     r"enter|go inside|head inside)",
     re.IGNORECASE,
 )
@@ -73,12 +73,13 @@ _MERCHANT_RE = re.compile(
     r"(?:tüccar|tacir|satıcı|esnaf|merchant|trader|vendor)", re.IGNORECASE
 )
 _SEARCH_RE = re.compile(
-    r"(?:ara\w*|bul\w*|karşılaş\w*|tanış\w*|find|look for|search for|"
+    r"(?:ar(?:a|ı|i)\w*|bul\w*|karşılaş\w*|tanış\w*|find|look for|search for|"
     r"meet|locate|nearby|yakın(?:da|larda|ımda)?)",
     re.IGNORECASE,
 )
 _NEGATIVE_RE = re.compile(
-    r"(?:\b(?:istemiyorum|istemeyelim|bulma|arama|kurma|açma|oluşturma|"
+    r"(?:\b(?:istemiyorum|istemeyelim|bulma|arama|aramıyorum|aramayalım|"
+    r"kurma|açma|oluşturma|"
     r"ekleme)\b|don't|do not|never|no need)",
     re.IGNORECASE,
 )
@@ -635,6 +636,19 @@ def public_scene_projection(
         for feature in world_state.get("features", [])
         if isinstance(feature, dict) and feature.get("location") == location_id
     ]
+    def addressable_alias(ref: dict[str, Any]) -> str | None:
+        aliases = ref.get("aliases")
+        if not isinstance(aliases, list):
+            return None
+        return next(
+            (
+                alias.strip()[:80]
+                for alias in aliases
+                if isinstance(alias, str) and alias.strip()
+            ),
+            None,
+        )
+
     referents = [
         {
             "id": ref.get("id"),
@@ -643,6 +657,7 @@ def public_scene_projection(
             "source_turn": ref.get("source_turn"),
             "lifecycle": ref.get("lifecycle"),
             "promoted_npc_id": ref.get("promoted_npc_id"),
+            "addressable_alias": addressable_alias(ref),
         }
         for ref in scene.get("referents", [])
         if ref.get("lifecycle") in ("presented", "promoted")
