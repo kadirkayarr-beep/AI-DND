@@ -9876,8 +9876,11 @@ initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None)
 def create_session(seed=None):
     """Create an initialized, independent adventure; seed controls its dice."""
     session = GameSession(seed=seed)
-    initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None,
-                    session=session)
+    token = _ACTIVE_SESSION.set(session)
+    try:
+        initialize_game(creation_choice="2", print_fn=lambda *args, **kwargs: None)
+    finally:
+        _ACTIVE_SESSION.reset(token)
     return session
 
 
@@ -10025,12 +10028,13 @@ if __name__ == "__main__":
                 continue
 
 
+            character = _session().character
             result = perform_skill_check(
                 matched_skill,
                 dc,
-                modifiers,
-                proficient_skills,
-                proficiency_bonus
+                character["modifiers"],
+                character["proficient_skills"],
+                character["proficiency_bonus"]
             )
 
 

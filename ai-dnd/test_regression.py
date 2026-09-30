@@ -559,6 +559,37 @@ def test_ollama_unavailable():
 
 
 # =========================================================
+# TEST 23: Terminal /skill command uses active session character
+# =========================================================
+def test_terminal_skill_command():
+    """Verify /skill stealth 15 terminal command executes without NameError and uses active session character."""
+    import runpy
+
+    game_file = Path(engine.__file__).resolve()
+    save_file = engine.DEFAULT_SAVE_PATH
+    inputs = ["1", "2", "SkillHero", "/skill stealth 15", "çık"] if save_file.is_file() else ["2", "SkillHero", "/skill stealth 15", "çık"]
+    input_iter = iter(inputs)
+
+    captured_out = io.StringIO()
+    with patch("builtins.input", lambda prompt="": next(input_iter)), \
+         patch("sys.stdout", captured_out):
+        try:
+            mod = runpy.run_path(str(game_file), run_name="__main__")
+        except SystemExit:
+            pass
+
+    output = captured_out.getvalue()
+    assert "🎲 SKILL CHECK" in output, f"FAIL: Output should contain SKILL CHECK header:\n{output}"
+    assert "Skill: Stealth" in output, f"FAIL: Output should contain Skill: Stealth:\n{output}"
+    active_char = mod["_session"]().character
+    dex_mod = active_char["modifiers"]["dexterity"]
+    expected_mod_str = f"+{dex_mod}" if dex_mod >= 0 else str(dex_mod)
+    assert f"Ability Modifier: {expected_mod_str}" in output, \
+        f"FAIL: Expected Ability Modifier {expected_mod_str} in output:\n{output}"
+    print("PASS: test_terminal_skill_command")
+
+
+# =========================================================
 # MAIN
 # =========================================================
 if __name__ == "__main__":
@@ -585,6 +616,7 @@ if __name__ == "__main__":
         test_failed_investigation,
         test_malformed_intent_json,
         test_ollama_unavailable,
+        test_terminal_skill_command,
     ]
 
     passed = 0
