@@ -57,3 +57,17 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# Local databases / campaign state
+*.db
+*.sqlite
+*.sqlite3
+
+# Private keys / credentials
+*.pem
+*.key
