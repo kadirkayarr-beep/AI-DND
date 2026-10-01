@@ -1,7 +1,5 @@
 import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Test the logic directly without importing the full game
 # Copy the relevant functions here
@@ -43,56 +41,67 @@ def _detect_query_type(text, npc_target=None):
     return None
 
 
-# Test scenarios
-npc_target = {"name": "Barmen", "role": "Barmen"}
 
-print("=== With Active NPC ===")
-tests_with_npc = [
-    "adın ne?",
-    "senin adın ne?",
-    "kimsin?",
-    "ismin ne?",
-]
-for t in tests_with_npc:
-    result = _detect_query_type(t, npc_target)
-    print(f"  '{t}' -> {result}")
+def run_tests():
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+    # Test scenarios
+    npc_target = {"name": "Barmen", "role": "Barmen"}
 
-print("\n=== Without NPC ===")
-tests_without_npc = [
-    "adın ne?",
-    "senin adın ne?",
-    "kimsin?",
-    "ismin ne?",
-]
-for t in tests_without_npc:
-    result = _detect_query_type(t, None)
-    print(f"  '{t}' -> {result}")
+    print("=== With Active NPC ===")
+    tests_with_npc = [
+        "adın ne?",
+        "senin adın ne?",
+        "kimsin?",
+        "ismin ne?",
+    ]
+    for t in tests_with_npc:
+        result = _detect_query_type(t, npc_target)
+        print(f"  '{t}' -> {result}")
 
-print("\n=== Self queries (should always be 'self') ===")
-self_tests = [
-    "benim adım ne?",
-    "senin adın ne?",
-    "ben kimim?",
-    "karakterimin adı ne?",
-]
-for t in self_tests:
-    result = _detect_query_type(t, npc_target)
-    print(f"  '{t}' -> {result}")
+    print("\n=== Without NPC ===")
+    tests_without_npc = [
+        "adın ne?",
+        "senin adın ne?",
+        "kimsin?",
+        "ismin ne?",
+    ]
+    for t in tests_without_npc:
+        result = _detect_query_type(t, None)
+        print(f"  '{t}' -> {result}")
 
-print("\n=== Location queries ===")
-loc_tests = [
-    "buranın adı ne?",
-    "neredeyim?",
-]
-for t in loc_tests:
-    result = _detect_query_type(t, npc_target)
-    print(f"  '{t}' -> {result}")
+    print("\n=== Self queries (should always be 'self') ===")
+    self_tests = [
+        "benim adım ne?",
+        "senin adın ne?",
+        "ben kimim?",
+        "karakterimin adı ne?",
+    ]
+    for t in self_tests:
+        result = _detect_query_type(t, npc_target)
+        print(f"  '{t}' -> {result}")
 
-print("\n=== Presence queries ===")
-pres_tests = [
-    "burada kimler var?",
-    "burada kim var?",
-]
-for t in pres_tests:
-    result = _detect_query_type(t, npc_target)
-    print(f"  '{t}' -> {result}")
+    print("\n=== Location queries ===")
+    loc_tests = [
+        "buranın adı ne?",
+        "neredeyim?",
+    ]
+    for t in loc_tests:
+        result = _detect_query_type(t, npc_target)
+        print(f"  '{t}' -> {result}")
+
+    print("\n=== Presence queries ===")
+    pres_tests = [
+        "burada kimler var?",
+        "burada kim var?",
+    ]
+    for t in pres_tests:
+        result = _detect_query_type(t, npc_target)
+        print(f"  '{t}' -> {result}")
+
+if __name__ == '__main__':
+    run_tests()

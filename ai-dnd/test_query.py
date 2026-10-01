@@ -1,8 +1,6 @@
 import sys
 import io
 from pathlib import Path
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
@@ -33,10 +31,21 @@ def reset():
 
 reset()
 
-# Test "senin adın ne?"
-result = session.run_player_turn('senin adın ne?', [{'role': 'system', 'content': 'test'}])
-print(f"Action: {result['action_result'].get('action')}")
-print(f"Direct response: {result['action_result'].get('direct_response')}")
-print(f"Narration: {result['narration']}")
-assert result["action_result"].get("query_type") != "npc_identity", "An NPC identity must not be invented without an NPC"
-assert session.world_state["npcs"] == [], "An ambiguous identity question must not create an NPC"
+
+def run_tests():
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+    # Test "senin adın ne?"
+    result = session.run_player_turn('senin adın ne?', [{'role': 'system', 'content': 'test'}])
+    print(f"Action: {result['action_result'].get('action')}")
+    print(f"Direct response: {result['action_result'].get('direct_response')}")
+    print(f"Narration: {result['narration']}")
+    assert result["action_result"].get("query_type") != "npc_identity", "An NPC identity must not be invented without an NPC"
+    assert session.world_state["npcs"] == [], "An ambiguous identity question must not create an NPC"
+
+if __name__ == '__main__':
+    run_tests()

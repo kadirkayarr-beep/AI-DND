@@ -1,8 +1,6 @@
 import sys
 import io
 from pathlib import Path
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
@@ -41,19 +39,27 @@ session.world_state["npcs"].append({
     "backstory": ""
 })
 
-npc_target = session.active_npcs()[0]
-print(f"Active NPC: {npc_target['name']}")
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
-# Test with NPC
-print("\n=== With Active NPC ===")
-for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
-    result = session._detect_query_type(t, npc_target)
-    print(f"  '{t}' -> {result}")
-    assert result == "npc_identity", f"Active NPC identity question was not recognized: {t!r} -> {result!r}"
+    npc_target = session.active_npcs()[0]
+    print(f"Active NPC: {npc_target['name']}")
 
-# Test without NPC
-print("\n=== Without NPC ===")
-for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
-    result = session._detect_query_type(t, None)
-    print(f"  '{t}' -> {result}")
-    assert result is None, f"NPC identity question without a target must remain unresolved: {t!r} -> {result!r}"
+    # Test with NPC
+    print("\n=== With Active NPC ===")
+    for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
+        result = session._detect_query_type(t, npc_target)
+        print(f"  '{t}' -> {result}")
+        assert result == "npc_identity", f"Active NPC identity question was not recognized: {t!r} -> {result!r}"
+
+    # Test without NPC
+    print("\n=== Without NPC ===")
+    for t in ["adın ne?", "senin adın ne?", "kimsin?", "ismin ne?"]:
+        result = session._detect_query_type(t, None)
+        print(f"  '{t}' -> {result}")
+        assert result is None, f"NPC identity question without a target must remain unresolved: {t!r} -> {result!r}"
