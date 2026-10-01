@@ -18,6 +18,7 @@ MAX_MODEL_CALLS_PER_TURN = 2
 MAX_ORDINARY_FALLBACKS = 2
 MAX_EVIDENCE_FILE_BYTES = 16 * 1024 * 1024
 ATTESTATION_FILENAME = "manual-review-attestation.json"
+NARRATION_REVIEW_FILENAME = "narration-review.json"
 SOURCE_EVIDENCE_FILENAMES = (
     "api-audit.jsonl",
     "resume-comparison.json",
@@ -163,9 +164,16 @@ def _resolve_report_dir(
     return root, resolved
 
 
-def _read_source_files(report_dir: Path) -> dict[str, bytes]:
+def _read_source_files(
+    report_dir: Path,
+    *,
+    narration_review_required: bool = False,
+) -> dict[str, bytes]:
     source: dict[str, bytes] = {}
-    for filename in SOURCE_EVIDENCE_FILENAMES:
+    filenames = list(SOURCE_EVIDENCE_FILENAMES)
+    if narration_review_required:
+        filenames.append(NARRATION_REVIEW_FILENAME)
+    for filename in filenames:
         path = report_dir / filename
         try:
             info = path.lstat()
@@ -188,13 +196,13 @@ def _read_source_files(report_dir: Path) -> dict[str, bytes]:
 def _file_digests(source: dict[str, bytes]) -> dict[str, str]:
     return {
         filename: hashlib.sha256(source[filename]).hexdigest()
-        for filename in SOURCE_EVIDENCE_FILENAMES
+        for filename in source
     }
 
 
 def _combined_digest(file_digests: dict[str, str]) -> str:
     digest = hashlib.sha256()
-    for filename in SOURCE_EVIDENCE_FILENAMES:
+    for filename in file_digests:
         digest.update(filename.encode("utf-8"))
         digest.update(b"\0")
         digest.update(file_digests[filename].encode("ascii"))
@@ -241,6 +249,171 @@ def _turn_index_without_expected_advance(state: Any) -> Any:
     return result
 
 
+def _validate_narration_review(
+    report_dir: Path,
+    source: dict[str, bytes],
+    summary: dict[str, Any],
+    turns: list[dict[str, Any]],
+    expected_labels: Sequence[str],
+) -> dict[str, Any]:
+    review = _decode_json(source[NARRATION_REVIEW_FILENAME])
+    run = review.get("run") if isinstance(review, dict) else None
+    review_turns = review.get("turns") if isinstance(review, dict) else None
+    if not isinstance(summary, dict):
+        raise ReviewFinalizationError(
+            "The narration-review evidence is missing or incomplete."
+        )
+    summary_reference = summary.get("narration_review_evidence")
+    if (
+        not isinstance(review, dict)
+        or type(review.get("schema_version")) is not int
+        or review.get("schema_version") != 1
+        or not isinstance(run, dict)
+        or run.get("report_id") != report_dir.name
+        or not isinstance(run.get("git_sha"), str)
+        or not run.get("git_sha")
+        or not isinstance(run.get("git_branch"), str)
+        or not run.get("git_branch")
+        or run.get("model") != MODEL_NAME
+        or run.get("status") != "finished"
+        or type(run.get("expected_turn_count")) is not int
+        or run.get("expected_turn_count") != len(expected_labels)
+        or type(run.get("recorded_turn_count")) is not int
+        or run.get("recorded_turn_count") != len(expected_labels)
+        or run.get("evidence_complete") is not True
+        or run.get("evidence_gaps") != []
+        or not isinstance(review_turns, list)
+        or len(review_turns) != len(expected_labels)
+        or summary_reference
+        != {
+            "file": NARRATION_REVIEW_FILENAME,
+            "expected_turn_count": len(expected_labels),
+            "recorded_turn_count": len(expected_labels),
+            "evidence_complete": True,
+        }
+    ):
+        raise ReviewFinalizationError(
+            "The narration-review evidence is missing or incomplete."
+        )
+
+    reported_calls = 0
+    observed_calls = 0
+    fallback_turns = 0
+    for index, (review_row, turn, label) in enumerate(
+        zip(review_turns, turns, expected_labels),
+        1,
+    ):
+        action_result = turn.get("action_result")
+        engine_telemetry = (
+            review_row.get("engine_telemetry")
+            if isinstance(review_row, dict)
+            else None
+        )
+        if (
+            not isinstance(review_row, dict)
+            or review_row.get("turn") != index
+            or review_row.get("label") != label
+            or not isinstance(review_row.get("player_input"), str)
+            or not review_row.get("player_input").strip()
+            or not isinstance(review_row.get("narration"), str)
+            or not review_row.get("narration").strip()
+            or review_row.get("model") != MODEL_NAME
+            or review_row.get("action")
+            != (action_result.get("action") if isinstance(action_result, dict) else None)
+            or review_row.get("request_target_id") != turn.get("target_id")
+            or review_row.get("action_target_id")
+            != (
+                action_result.get("target_id")
+                if isinstance(action_result, dict)
+                else None
+            )
+            or type(review_row.get("model_calls")) is not int
+            or review_row.get("model_calls") != turn.get("model_calls")
+            or type(review_row.get("observed_model_calls")) is not int
+            or review_row.get("observed_model_calls")
+            != turn.get("observed_model_calls")
+            or review_row.get("safety") != turn.get("safety")
+            or review_row.get("evidence_complete") is not True
+            or not isinstance(review_row.get("intent_source"), str)
+            or not review_row.get("intent_source")
+            or not isinstance(review_row.get("narration_source"), str)
+            or not review_row.get("narration_source")
+            or not isinstance(
+                review_row.get("narration_validation_result"), str
+            )
+            or not review_row.get("narration_validation_result")
+            or (
+                review_row.get("fallback_reason") is not None
+                and not isinstance(review_row.get("fallback_reason"), str)
+            )
+            or not isinstance(engine_telemetry, dict)
+            or engine_telemetry.get("narration_source")
+            != review_row.get("narration_source")
+            or engine_telemetry.get("intent_source")
+            != review_row.get("intent_source")
+            or engine_telemetry.get("fallback_reason")
+            != review_row.get("fallback_reason")
+            or engine_telemetry.get("narration_validation_result")
+            != review_row.get("narration_validation_result")
+            or engine_telemetry.get("resolved_action_type")
+            != review_row.get("resolved_action_type")
+            or review_row.get("resolved_action_type")
+            != review_row.get("action")
+        ):
+            raise ReviewFinalizationError(
+                "The narration-review evidence conflicts with a sanitized turn."
+            )
+
+        call_fields = (
+            "intent_model_calls",
+            "narration_model_calls",
+            "total_model_calls",
+            "model_calls",
+            "observed_model_calls",
+        )
+        if any(
+            type(review_row.get(field)) is not int or review_row[field] < 0
+            for field in call_fields
+        ):
+            raise ReviewFinalizationError(
+                "The narration-review model-call evidence is incomplete."
+            )
+        if (
+            review_row["intent_model_calls"]
+            + review_row["narration_model_calls"]
+            != review_row["total_model_calls"]
+            or review_row["total_model_calls"] != review_row["model_calls"]
+            or review_row["model_calls"] != review_row["observed_model_calls"]
+            or any(
+                engine_telemetry.get(field) != review_row.get(field)
+                for field in (
+                    "intent_model_calls",
+                    "narration_model_calls",
+                    "total_model_calls",
+                )
+            )
+        ):
+            raise ReviewFinalizationError(
+                "The narration-review model-call evidence is inconsistent."
+            )
+        reported_calls += review_row["model_calls"]
+        observed_calls += review_row["observed_model_calls"]
+        fallback_turns += int(_fallback_candidate(review_row.get("safety")))
+
+    if (
+        type(run.get("model_calls_reported")) is not int
+        or run.get("model_calls_reported") != reported_calls
+        or type(run.get("model_calls_observed")) is not int
+        or run.get("model_calls_observed") != observed_calls
+        or type(run.get("fallback_turn_count")) is not int
+        or run.get("fallback_turn_count") != fallback_turns
+    ):
+        raise ReviewFinalizationError(
+            "The narration-review run counters are inconsistent."
+        )
+    return review
+
+
 def _validate_objective_evidence(
     report_dir: Path,
     source: dict[str, bytes],
@@ -249,11 +422,23 @@ def _validate_objective_evidence(
     budget_exempt_turn_ids: Iterable[int],
     proposal_trace_validator: Callable[[dict[str, Any]], list[str]],
     expected_pending_error: str = EXPECTED_PENDING_ERROR,
+    narration_review_required: bool = False,
 ) -> tuple[dict[str, bool], dict[str, Any]]:
     summary = _decode_json(source["summary.json"])
     resume = _decode_json(source["resume-comparison.json"])
     turns = _decode_jsonl(source["turn-evidence.jsonl"])
     audit = _decode_jsonl(source["api-audit.jsonl"])
+    narration_review = (
+        _validate_narration_review(
+            report_dir,
+            source,
+            summary,
+            turns,
+            expected_labels,
+        )
+        if narration_review_required
+        else None
+    )
     parsed_sources = (summary, resume, turns, audit)
     if any(_contains_transient_field(item) for item in parsed_sources):
         raise ReviewFinalizationError(
@@ -483,6 +668,16 @@ def _validate_objective_evidence(
             != turn.get("state_diff", {}).get("after")
             or audit_row.get("request_telemetry_context_seen") is not True
             or audit_row.get("action_result_capture_seen") is not True
+            or (
+                narration_review_required
+                and (
+                    audit_row.get("narration_telemetry_capture_seen") is not True
+                    or audit_row.get("narration_telemetry")
+                    != narration_review["turns"][index - 1].get(
+                        "engine_telemetry"
+                    )
+                )
+            )
         ):
             raise ReviewFinalizationError(
                 "The API audit conflicts with sanitized turn evidence."
@@ -606,6 +801,9 @@ def _validate_objective_evidence(
         "turns": turns,
         "audit": audit,
     }
+    if narration_review is not None:
+        checks["narration_review_evidence"] = True
+        parsed["narration_review"] = narration_review
     return checks, parsed
 
 
@@ -689,10 +887,14 @@ def finalize_review(
     budget_exempt_turn_ids: Iterable[int],
     proposal_trace_validator: Callable[[dict[str, Any]], list[str]],
     expected_pending_error: str = EXPECTED_PENDING_ERROR,
+    narration_review_required: bool = False,
 ) -> dict[str, Any]:
     """Validate an existing run and, only with explicit approval, attest it."""
     report_parent, report_dir = _resolve_report_dir(report_arg, reports_root)
-    source = _read_source_files(report_dir)
+    source = _read_source_files(
+        report_dir,
+        narration_review_required=narration_review_required,
+    )
     checks, parsed = _validate_objective_evidence(
         report_dir,
         source,
@@ -700,6 +902,7 @@ def finalize_review(
         budget_exempt_turn_ids=budget_exempt_turn_ids,
         proposal_trace_validator=proposal_trace_validator,
         expected_pending_error=expected_pending_error,
+        narration_review_required=narration_review_required,
     )
     file_digests = _file_digests(source)
     evidence_digest = _combined_digest(file_digests)
@@ -740,7 +943,12 @@ def finalize_review(
             attestation_path=None,
         )
 
-    if _file_digests(_read_source_files(report_dir)) != file_digests:
+    if _file_digests(
+        _read_source_files(
+            report_dir,
+            narration_review_required=narration_review_required,
+        )
+    ) != file_digests:
         raise ReviewFinalizationError(
             "The source report changed during manual-review finalization."
         )

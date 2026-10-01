@@ -7,6 +7,7 @@ import unittest
 from api.tests.live_playable_living_world_v1_smoke import (
     BUDGET_EXEMPT_TURN_IDS,
     EXPECTED_LABELS,
+    _is_fallback_candidate,
     _proposal_trace_gaps,
 )
 from api.tests.live_playable_living_world_v1_1_smoke import (
@@ -244,6 +245,8 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
         self._write_json("resume-comparison.json", self.resume)
         self._write_jsonl("turn-evidence.jsonl", self.turns)
         self._write_jsonl("api-audit.jsonl", self.audit)
+        if getattr(self, "narration_review", None) is not None:
+            self._write_json("narration-review.json", self.narration_review)
 
     def _write_json(self, filename, value):
         (self.report_dir / filename).write_text(
@@ -451,6 +454,7 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
             / "1790000000000000000-5678abcd"
         )
         self.report_dir.mkdir(parents=True)
+        self.narration_review = None
         self.turns = selected_sources
         self.audit = selected_audit
         self.summary["status"] = "REVIEW_PENDING"
@@ -467,6 +471,103 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
         self.summary["turns"] = selected_sources
         self.resume["resume_after_turn"] = resume_turn
         self._write_report()
+        with self.assertRaises(ReviewFinalizationError):
+            finalize_review(
+                self.report_dir,
+                approve=True,
+                reports_root=self.report_dir.parent,
+                expected_labels=EXPECTED_LABELS_V11,
+                budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS_V11,
+                proposal_trace_validator=_proposal_trace_gaps,
+                expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+                narration_review_required=True,
+            )
+
+        narration_review_turns = []
+        for index, turn in enumerate(selected_sources, 1):
+            action_result = turn["action_result"]
+            engine_telemetry = {
+                "intent_model_calls": 0,
+                "narration_model_calls": 0,
+                "total_model_calls": 0,
+                "intent_source": "fixture",
+                "narration_source": "qwen",
+                "fallback_reason": None,
+                "narration_validation_result": "accepted",
+                "resolved_action_type": action_result["action"],
+            }
+            audit_row = next(
+                row for row in selected_audit
+                if row.get("turn_index") == index
+            )
+            audit_row["narration_telemetry_capture_seen"] = True
+            audit_row["narration_telemetry"] = engine_telemetry
+            narration_review_turns.append({
+                "turn": index,
+                "label": turn["label"],
+                "player_input": f"fixture player input {index}",
+                "narration": f"fixture narration {index}",
+                "model": "qwen3:8b",
+                "action": action_result["action"],
+                "request_target_id": turn.get("target_id"),
+                "action_target_id": action_result.get("target_id"),
+                "intent_model_calls": 0,
+                "narration_model_calls": 0,
+                "total_model_calls": 0,
+                "model_calls": turn["model_calls"],
+                "observed_model_calls": turn["observed_model_calls"],
+                "intent_source": "fixture",
+                "narration_source": "qwen",
+                "fallback_reason": None,
+                "narration_validation_result": "accepted",
+                "resolved_action_type": action_result["action"],
+                "engine_telemetry": engine_telemetry,
+                "safety": turn["safety"],
+                "evidence_complete": True,
+            })
+        self.summary["narration_review_evidence"] = {
+            "file": "narration-review.json",
+            "expected_turn_count": len(EXPECTED_LABELS_V11),
+            "recorded_turn_count": len(narration_review_turns),
+            "evidence_complete": True,
+        }
+        self.narration_review = {
+            "schema_version": 1,
+            "run": {
+                "report_id": self.report_dir.name,
+                "git_sha": "fixture-sha",
+                "git_branch": "fixture-branch",
+                "model": "qwen3:8b",
+                "started_at_utc": "2026-01-01T00:00:00Z",
+                "status": "finished",
+                "expected_turn_count": len(EXPECTED_LABELS_V11),
+                "recorded_turn_count": len(narration_review_turns),
+                "model_calls_reported": 0,
+                "model_calls_observed": 0,
+                "fallback_turn_count": sum(
+                    _is_fallback_candidate(row["safety"])
+                    for row in selected_sources
+                ),
+                "evidence_complete": True,
+                "evidence_gaps": [],
+            },
+            "turns": narration_review_turns,
+        }
+        self.narration_review["run"]["evidence_complete"] = False
+        self._write_report()
+        with self.assertRaises(ReviewFinalizationError):
+            finalize_review(
+                self.report_dir,
+                approve=True,
+                reports_root=self.report_dir.parent,
+                expected_labels=EXPECTED_LABELS_V11,
+                budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS_V11,
+                proposal_trace_validator=_proposal_trace_gaps,
+                expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+                narration_review_required=True,
+            )
+        self.narration_review["run"]["evidence_complete"] = True
+        self._write_report()
 
         approved = finalize_review(
             self.report_dir,
@@ -476,6 +577,7 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
             budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS_V11,
             proposal_trace_validator=_proposal_trace_gaps,
             expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+            narration_review_required=True,
         )
         self.assertEqual(approved["manual_review_status"], "APPROVED")
         self.assertEqual(approved["final_gate_status"], "PASS")
@@ -483,6 +585,19 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
             (self.report_dir / ATTESTATION_FILENAME).read_text(encoding="utf-8")
         )
         self.assertEqual(attestation["reviewed_turn_count"], 30)
+        self.narration_review["turns"][0]["player_input"] += " changed"
+        self._write_report()
+        with self.assertRaises(ReviewFinalizationError):
+            finalize_review(
+                self.report_dir,
+                approve=True,
+                reports_root=self.report_dir.parent,
+                expected_labels=EXPECTED_LABELS_V11,
+                budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS_V11,
+                proposal_trace_validator=_proposal_trace_gaps,
+                expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+                narration_review_required=True,
+            )
 
 
 if __name__ == "__main__":

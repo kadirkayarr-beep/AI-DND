@@ -102,6 +102,36 @@ def _telemetry() -> list[dict[str, Any]] | None:
     return _REQUEST_TELEMETRY.get()
 
 
+_NARRATION_TELEMETRY_FIELDS = (
+    "intent_model_calls",
+    "narration_model_calls",
+    "total_model_calls",
+    "intent_source",
+    "narration_source",
+    "fallback_reason",
+    "narration_validation_result",
+    "resolved_action_type",
+)
+
+
+def _narration_telemetry_from_result(result: Any) -> dict[str, Any] | None:
+    if not isinstance(result, dict):
+        return None
+    event_evidence = result.get("_engine_event_evidence")
+    engine_telemetry = (
+        event_evidence.get("telemetry")
+        if isinstance(event_evidence, dict)
+        else None
+    )
+    if not isinstance(engine_telemetry, dict):
+        return None
+    return {
+        field: engine_telemetry[field]
+        for field in _NARRATION_TELEMETRY_FIELDS
+        if field in engine_telemetry
+    }
+
+
 def _install_telemetry(game: Any) -> None:
     """Install transparent wrappers only inside the isolated API subprocess."""
     if getattr(game, "_playable_v1_telemetry_installed", False):
@@ -398,6 +428,10 @@ def _install_telemetry(game: Any) -> None:
             scene_plan=scene_plan, session=self,
         )
         if calls is not None and isinstance(result, dict):
+            calls.append({
+                "kind": "narration_provenance",
+                "narration_telemetry": _narration_telemetry_from_result(result),
+            })
             action = result.get("action_result")
             action = action if isinstance(action, dict) else {}
             calls.append({
@@ -907,6 +941,13 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
                     ),
                     None,
                 )
+                narration_telemetry_row = next(
+                    (
+                        row for row in telemetry_rows
+                        if row.get("kind") == "narration_provenance"
+                    ),
+                    None,
+                )
                 telemetry_context_seen = any(
                     row.get("kind") == "turn_wrapper_seen" for row in telemetry_rows
                 )
@@ -986,6 +1027,17 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
                     "action_result": (
                         action_result_row.get("action_result")
                         if isinstance(action_result_row, dict) else None
+                    ),
+                    "narration_telemetry_capture_seen": (
+                        isinstance(narration_telemetry_row, dict)
+                        and isinstance(
+                            narration_telemetry_row.get("narration_telemetry"),
+                            dict,
+                        )
+                    ),
+                    "narration_telemetry": (
+                        narration_telemetry_row.get("narration_telemetry")
+                        if isinstance(narration_telemetry_row, dict) else None
                     ),
                     "retrieved_fact_ids": facts if facts is not None else [],
                     "player_disclosure_memory_refs": disclosure_memory_ids,

@@ -5,13 +5,15 @@ Run from ``ai-dnd`` with:
     python -m api.tests.live_playable_living_world_v1_1_smoke --review-narrations
 
 The run uses a fresh SQLite database, restarts the isolated API after turn 15,
-and persists only sanitized evidence. Narration is printed for review only when
-the explicit flag is supplied; it is never written to the report.
+and persists sanitized evidence separately from the explicit raw narration
+review artifact. Narration is also printed to stdout only when the
+``--review-narrations`` flag is supplied.
 """
 
 from __future__ import annotations
 
 import copy
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -26,6 +28,7 @@ import httpx
 
 from api.tests import live_playable_living_world_v1_smoke as telemetry
 from api.tests.playable_living_world_v1_review import (
+    NARRATION_REVIEW_FILENAME,
     EXPECTED_PENDING_ERROR,
     ReviewFinalizationError,
     finalize_review,
@@ -72,6 +75,15 @@ EXPECTED_LABELS = (
 )
 BUDGET_EXEMPT_TURN_IDS = frozenset({14})
 AI_DND_DIR = Path(__file__).resolve().parents[2]
+NARRATION_REVIEW_SCHEMA_VERSION = 1
+CLI_HELP = """Usage: python -m api.tests.live_playable_living_world_v1_1_smoke [--review-narrations]
+       python -m api.tests.live_playable_living_world_v1_1_smoke --finalize-review REPORT_DIR [--approve]
+
+Run the live V1.1 smoke (no options), optionally printing narration to stdout.
+--help, -h               Show this help without starting the smoke or calling a model.
+--review-narrations      Also print per-turn narration to stdout.
+--finalize-review DIR    Validate a completed report; --approve writes manual sign-off.
+"""
 
 
 class SmokeFailure(RuntimeError):
@@ -94,17 +106,232 @@ def _player_state(turn: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _git_identity() -> tuple[str, str]:
+    def read_git_value(arguments: list[str], fallback: str) -> str:
+        try:
+            completed = subprocess.run(
+                ["git", "-C", str(AI_DND_DIR), *arguments],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return fallback
+        value = completed.stdout.strip()
+        return value if completed.returncode == 0 and value else fallback
+
+    sha = read_git_value(["rev-parse", "HEAD"], "unavailable")
+    branch = read_git_value(["branch", "--show-current"], "detached")
+    return sha, branch
+
+
+def _narration_review_turn(
+    *,
+    turn_number: int,
+    label: str,
+    message: str,
+    target_id: str | None,
+    action_result: Any,
+    source: dict[str, Any],
+    safety: dict[str, Any],
+) -> dict[str, Any]:
+    engine = source.get("narration_telemetry")
+    engine = engine if isinstance(engine, dict) else {}
+    action = action_result if isinstance(action_result, dict) else {}
+    model_calls = source.get("model_calls")
+    observed_model_calls = source.get("observed_model_calls")
+    intent_model_calls = engine.get("intent_model_calls")
+    narration_model_calls = engine.get("narration_model_calls")
+    total_model_calls = engine.get("total_model_calls")
+    intent_source = engine.get("intent_source")
+    narration_source = engine.get("narration_source")
+    fallback_reason = engine.get("fallback_reason")
+    validation_result = engine.get("narration_validation_result")
+    resolved_action = engine.get("resolved_action_type")
+    if not isinstance(resolved_action, str) or not resolved_action:
+        resolved_action = action.get("action")
+    narration = source.get("narration")
+    complete = (
+        bool(message.strip())
+        and isinstance(narration, str)
+        and bool(narration.strip())
+        and source.get("model") == MODEL_NAME
+        and isinstance(action.get("action"), str)
+        and bool(action.get("action"))
+        and type(model_calls) is int
+        and type(observed_model_calls) is int
+        and model_calls == observed_model_calls
+        and all(
+            type(value) is int and value >= 0
+            for value in (
+                intent_model_calls,
+                narration_model_calls,
+                total_model_calls,
+            )
+        )
+        and intent_model_calls + narration_model_calls == total_model_calls
+        and total_model_calls == model_calls
+        and isinstance(intent_source, str)
+        and bool(intent_source)
+        and isinstance(narration_source, str)
+        and bool(narration_source)
+        and isinstance(validation_result, str)
+        and bool(validation_result)
+        and isinstance(resolved_action, str)
+        and resolved_action == action.get("action")
+        and engine.get("resolved_action_type") == resolved_action
+        and (fallback_reason is None or isinstance(fallback_reason, str))
+        and all(
+            isinstance(safety.get(field), str) and safety.get(field)
+            for field in ("tier", "handling", "reason_code", "scope")
+        )
+        and (
+            target_id is None
+            or isinstance(target_id, str)
+        )
+    )
+    return {
+        "turn": turn_number,
+        "label": label,
+        "player_input": message,
+        "narration": narration,
+        "model": source.get("model"),
+        "action": action.get("action"),
+        "request_target_id": target_id,
+        "action_target_id": action.get("target_id"),
+        "intent_model_calls": intent_model_calls,
+        "narration_model_calls": narration_model_calls,
+        "total_model_calls": total_model_calls,
+        "model_calls": model_calls,
+        "observed_model_calls": observed_model_calls,
+        "intent_source": intent_source,
+        "narration_source": narration_source,
+        "fallback_reason": fallback_reason,
+        "narration_validation_result": validation_result,
+        "resolved_action_type": resolved_action,
+        "engine_telemetry": engine,
+        "safety": safety,
+        "evidence_complete": complete,
+    }
+
+
+def _narration_review_document(
+    run_identity: dict[str, Any],
+    review_rows: list[dict[str, Any]],
+    *,
+    status: str,
+    evidence_gaps: list[str],
+) -> dict[str, Any]:
+    reported_calls = [
+        row.get("model_calls")
+        for row in review_rows
+        if type(row.get("model_calls")) is int and row["model_calls"] >= 0
+    ]
+    observed_calls = [
+        row.get("observed_model_calls")
+        for row in review_rows
+        if type(row.get("observed_model_calls")) is int
+        and row["observed_model_calls"] >= 0
+    ]
+    gaps = list(dict.fromkeys(evidence_gaps))
+    evidence_complete = (
+        status == "finished"
+        and len(review_rows) == len(EXPECTED_LABELS)
+        and all(row.get("evidence_complete") is True for row in review_rows)
+        and not gaps
+    )
+    run = {
+        **run_identity,
+        "status": status,
+        "expected_turn_count": len(EXPECTED_LABELS),
+        "recorded_turn_count": len(review_rows),
+        "model_calls_reported": sum(reported_calls),
+        "model_calls_observed": sum(observed_calls),
+        "fallback_turn_count": sum(
+            telemetry._is_fallback_candidate(row.get("safety"))
+            for row in review_rows
+        ),
+        "evidence_complete": evidence_complete,
+        "evidence_gaps": gaps,
+    }
+    return {
+        "schema_version": NARRATION_REVIEW_SCHEMA_VERSION,
+        "run": run,
+        "turns": review_rows,
+    }
+
+
+def _write_narration_review(
+    report_root: Path,
+    document: dict[str, Any],
+) -> None:
+    path = report_root / NARRATION_REVIEW_FILENAME
+    temporary_path = report_root / f".{NARRATION_REVIEW_FILENAME}.tmp"
+    serialized = json.dumps(
+        document,
+        ensure_ascii=False,
+        indent=2,
+        allow_nan=False,
+    ) + "\n"
+    temporary_path.write_text(serialized, encoding="utf-8")
+    temporary_path.replace(path)
+
+
+def _narration_review_gaps(
+    run_identity: dict[str, Any],
+    review_rows: list[dict[str, Any]],
+) -> list[str]:
+    gaps: list[str] = []
+    if (
+        not isinstance(run_identity.get("git_sha"), str)
+        or not run_identity.get("git_sha")
+        or run_identity.get("git_sha") == "unavailable"
+        or not isinstance(run_identity.get("git_branch"), str)
+        or not run_identity.get("git_branch")
+        or run_identity.get("git_branch") == "unavailable"
+    ):
+        gaps.append("narration review Git identity unavailable")
+    if len(review_rows) != len(EXPECTED_LABELS):
+        gaps.append("narration review turn count incomplete")
+    if any(row.get("evidence_complete") is not True for row in review_rows):
+        gaps.append("narration review turn evidence incomplete")
+    return gaps
+
+
 def run_smoke() -> dict[str, Any]:
     evidence_rows: list[dict[str, Any]] = []
+    narration_review_rows: list[dict[str, Any]] = []
     report_parent = AI_DND_DIR / "reports" / "playable-living-world-v1-1-smokes"
     report_root = report_parent / f"{time.time_ns()}-{uuid.uuid4().hex[:8]}"
     report_root.mkdir(parents=True, exist_ok=False)
     audit_path = report_root / "api-audit.jsonl"
     turn_path = report_root / "turn-evidence.jsonl"
     salt = uuid.uuid4().hex
+    git_sha, git_branch = _git_identity()
+    run_identity = {
+        "report_id": report_root.name,
+        "git_sha": git_sha,
+        "git_branch": git_branch,
+        "model": MODEL_NAME,
+        "started_at_utc": datetime.now(timezone.utc).isoformat(
+            timespec="seconds"
+        ).replace("+00:00", "Z"),
+    }
+    _write_narration_review(
+        report_root,
+        _narration_review_document(
+            run_identity,
+            narration_review_rows,
+            status="in_progress",
+            evidence_gaps=["smoke run is in progress"],
+        ),
+    )
     result: dict[str, Any] = {
         "status": "BLOCKED / LIVE PLAYABILITY UNVERIFIED",
         "model": MODEL_NAME,
+        "git_sha": git_sha,
+        "git_branch": git_branch,
         "campaign_database": "temporary_disposable",
         "turns": evidence_rows,
         "report_path": str(report_root),
@@ -142,15 +369,38 @@ def run_smoke() -> dict[str, Any]:
             source = telemetry._latest(audit_path)
             action_result = source.get("action_result")
             state = source.get("state")
+            safety = source.get("safety")
+            safety = safety if isinstance(safety, dict) else {}
+            calls = source.get("model_calls")
+            observed_calls = source.get("observed_model_calls")
+            narration_review_rows.append(
+                _narration_review_turn(
+                    turn_number=expected_index + 1,
+                    label=label,
+                    message=message,
+                    target_id=target_id,
+                    action_result=action_result,
+                    source={
+                        **source,
+                        "narration": turn.get("narration"),
+                    },
+                    safety=safety,
+                )
+            )
+            _write_narration_review(
+                report_root,
+                _narration_review_document(
+                    run_identity,
+                    narration_review_rows,
+                    status="in_progress",
+                    evidence_gaps=["smoke run is in progress"],
+                ),
+            )
             if not isinstance(state, dict) or not isinstance(action_result, dict):
                 raise SmokeFailure(f"{label}: engine evidence is incomplete.")
             before = copy.deepcopy(last_state[0])
             after = telemetry._projection(state)
             turn_number = expected_index + 1
-            safety = source.get("safety")
-            safety = safety if isinstance(safety, dict) else {}
-            calls = source.get("model_calls")
-            observed_calls = source.get("observed_model_calls")
             fallback = telemetry._is_fallback_candidate(safety)
             exempt = turn_number in BUDGET_EXEMPT_TURN_IDS
             if fallback and not exempt:
@@ -170,6 +420,10 @@ def run_smoke() -> dict[str, Any]:
                 "action_result_source": "isolated_session_engine_telemetry",
                 "resolved_action": action_result.get("action"),
                 "action_result": action_result,
+                "narration_telemetry_capture_seen": source.get(
+                    "narration_telemetry_capture_seen"
+                ),
+                "narration_telemetry": source.get("narration_telemetry"),
                 "skill_check_result": turn.get("skill_check_result"),
                 "location_id": after.get("location"),
                 "entity_ids": {
@@ -710,10 +964,29 @@ def run_smoke() -> dict[str, Any]:
             or row.get("resolved_action") != row.get("action_result", {}).get("action")
         ):
             gaps.append("engine action result/resolved action missing")
+        if (
+            row.get("narration_telemetry_capture_seen") is not True
+            or not isinstance(row.get("narration_telemetry"), dict)
+        ):
+            gaps.append("engine narration provenance telemetry missing")
         gaps.extend(telemetry._proposal_trace_gaps(row))
         if not isinstance(row.get("safety"), dict) or row["safety"].get("scope") == "unavailable":
             gaps.append("safety classification incomplete")
+    gaps.extend(_narration_review_gaps(run_identity, narration_review_rows))
     gaps = list(dict.fromkeys(gaps))
+    narration_review = _narration_review_document(
+        run_identity,
+        narration_review_rows,
+        status="finished",
+        evidence_gaps=gaps,
+    )
+    _write_narration_review(report_root, narration_review)
+    result["narration_review_evidence"] = {
+        "file": NARRATION_REVIEW_FILENAME,
+        "expected_turn_count": len(EXPECTED_LABELS),
+        "recorded_turn_count": len(narration_review_rows),
+        "evidence_complete": narration_review["run"]["evidence_complete"],
+    }
     result["evidence_incomplete"] = gaps
     result["review_status"] = "pending_human_review"
     result["ordinary_fallback_candidate_count"] = ordinary_fallbacks
@@ -733,6 +1006,10 @@ def run_smoke() -> dict[str, Any]:
 
 def main() -> int:
     args = sys.argv[1:]
+    if "--help" in args or "-h" in args:
+        print(CLI_HELP, end="")
+        return 0
+
     if args and args[0] == "--finalize-review":
         if len(args) not in (2, 3) or (len(args) == 3 and args[2] != "--approve"):
             print(json.dumps({"final_gate_status": "BLOCKED", "error": "Invalid review arguments."}))
@@ -746,6 +1023,7 @@ def main() -> int:
                 budget_exempt_turn_ids=BUDGET_EXEMPT_TURN_IDS,
                 proposal_trace_validator=telemetry._proposal_trace_gaps,
                 expected_pending_error=EXPECTED_PENDING_ERROR_V11,
+                narration_review_required=True,
             )
         except ReviewFinalizationError as error:
             print(json.dumps({"final_gate_status": "BLOCKED", "error": str(error)}))
@@ -753,9 +1031,26 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result.get("final_gate_status") == "PASS" else 1
 
+    if any(argument != "--review-narrations" for argument in args) or args.count(
+        "--review-narrations"
+    ) > 1:
+        print(
+            json.dumps(
+                {
+                    "error": "Invalid smoke arguments.",
+                    "usage": CLI_HELP.splitlines()[0],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 2
+
     result = run_smoke()
     if "--review-narrations" in args:
-        print("TRANSIENT V1.1 NARRATION REVIEW (not written to report files)")
+        print(
+            "TRANSIENT V1.1 NARRATION REVIEW "
+            "(also retained in narration-review.json)"
+        )
         for row in result.get("turns", []):
             print(
                 json.dumps(

@@ -7,3 +7,4 @@
 - [Narrative continuity authority](narrative-continuity-authority.md) — only selected, NPC-ID-bound player disclosures may support narrow deterministic recall; generated narration stays non-canonical.
 - [Server-authoritative skill results](server-authoritative-skill-results.md) — render validated engine results only; never create or restore client-side roll cards.
 - [Lore query evidence and side effects](predicate-aware-lore-retrieval.md) — select exact structured facts and keep unsupported or unrelated queries from mutating world state.
+- [Raw narration evidence boundary](raw-narration-evidence.md) — keep full V1.1 input and narration in a dedicated review artifact, separate from sanitized reports.
