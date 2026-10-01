@@ -1,0 +1,127 @@
+Do NOT rerun the smoke.
+Do NOT modify code.
+Do NOT modify tests.
+Do NOT commit.
+Do NOT push.
+Do NOT reset.
+Do NOT run any model calls.
+
+We now have the exact 30-turn narration transcript from the final run:
+
+report:
+1790877563432591039-ab30b35f
+
+The narration transcript is already captured in:
+/home/runner/AI-DND-final-smoke-output.7ipiPP.txt
+
+Perform a READ-ONLY forensic review of ONLY turns 19, 24, 26, and 29 using the structured artifacts from THIS EXACT RUN.
+
+Inspect:
+- api-audit.jsonl
+- turn-evidence.jsonl
+- summary.json
+- resume-comparison.json
+- captured stdout if needed
+
+For EACH of turns 19, 24, 26, and 29 report:
+
+1. player input if available
+2. resolved_action
+3. action result / success
+4. target NPC/entity if any
+5. model call count
+6. safety classification
+7. safety handling
+8. safety reason_code
+9. fallback candidate classification
+10. fallback reason if any
+11. lore diagnostics
+12. selected lore fact/entity if any
+13. exact final narration
+14. whether the final narration came from:
+   - Qwen directly
+   - Tier 2 repair
+   - deterministic Python fallback
+   - another path
+
+TURN-SPECIFIC QUESTIONS
+
+TURN 19:
+Why was this turn an ordinary fallback candidate?
+Was "Ahşap masa" registered/verified as a local feature?
+Was the rejected model narration available in telemetry?
+Was the final narration deterministic Python output?
+
+TURN 24:
+Determine whether the final narration's:
+- cup
+- coffee
+- nervousness
+- tomorrow's job
+- Orin's reactions
+
+were supported by actual narration context/state available in THIS RUN.
+
+Do not infer from source possibility alone.
+If exact model prompt is unavailable, say so.
+
+Determine which portions are:
+A. directly state/context supported
+B. model-generated but not independently verified
+C. impossible to determine from available telemetry
+
+TURN 26:
+Determine exactly why this narration was accepted rather than repaired/rejected.
+
+Identify which details are directly supported:
+- Darian
+- greeting
+- bag strap
+- tiredness
+- long journey
+- arrival in Neverwinter
+- wanting to rest
+- not being ready to talk
+- cup
+- coffee
+- story/journey framing
+
+Do not label something supported merely because it is plausible.
+
+TURN 29:
+THIS IS THE PRIORITY.
+
+The earlier validated run resolved the current-city ruler question as:
+answered_from_loaded_lore
+using:
+fr:fact:dagult_neverember_current_lord
+with 0 model calls.
+
+In this exact final run, the narration is:
+"Bu yerin yöneticisinin kim olduğu konusunda güvenilir bir doğrulamam yok."
+
+and turn 29 is reported as an ordinary fallback candidate.
+
+Determine exactly:
+
+1. resolved_action
+2. action result
+3. whether the canonical current location was bound
+4. whether fr:fact:dagult_neverember_current_lord was selected
+5. whether lore resolution succeeded or failed
+6. whether the fallback was caused by lore retrieval, safety, entity routing, or another reason
+7. whether this represents a regression from the previously validated behavior
+8. whether model calls were 0
+9. whether the final refusal was deterministic Python output
+
+Do NOT change anything.
+
+After this investigation, give a concise conclusion:
+
+- Confirmed defects
+- Confirmed working fixes
+- New regressions, if any
+- Inconclusive items
+- Recommended next investigation only
+
+Do not propose a code patch yet.
