@@ -1,0 +1,74 @@
+GitHub push authentication hâlâ başarısız oluyor. Şu anda HİÇBİR ŞEYİ DEĞİŞTİRMEYELİM; sadece read-only authentication diagnostics yap.
+
+ÖNEMLİ:
+- Dosya değiştirme.
+- Commit yapma.
+- Push yapma.
+- Fetch yapma.
+- Pull/sync yapma.
+- Reset/merge/rebase yapma.
+- Branch değiştirme.
+- Smoke/test çalıştırma.
+- GitHub tokenını, credentialını veya herhangi bir secret değerini terminal çıktısına YAZDIRMA.
+
+Mevcut HEAD:
+`a83bb09ccfdf6ab56c5a1eba8676c6ec71ae70f4`
+
+Branch:
+`gemini/narrative-authority-rebalance-v1`
+
+Kontrol et:
+
+1. `git remote get-url origin`
+   - Remote'un gerçekten `https://github.com/kadirkayarr-beep/AI-DND.git` olduğunu doğrula.
+   - Eğer URL'de herhangi bir token/credential görünüyorsa onu raporda maskeleyerek bildir.
+
+2. `printf '%s\n' "${GIT_ASKPASS:-<unset>}"`
+   - Yalnızca GIT_ASKPASS değişkeninin ayarlı olup olmadığını ve mümkünse script yolunu bildir.
+   - Token veya secret yazdırma.
+
+3. Eğer GIT_ASKPASS ayarlıysa:
+   - Dosyanın mevcut ve executable olup olmadığını kontrol et.
+   - Dosyanın içeriğini yazdırma.
+
+4. Replit'in GitHub token endpoint'ini yalnızca HTTP status code ile kontrol et:
+   `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8283/github/token`
+   - Tokenın kendisini kesinlikle yazdırma.
+
+5. Mümkünse tokenın GitHub tarafından kabul edilip edilmediğini yalnızca HTTP status code ile kontrol et.
+   Tokenı terminale veya rapora yazdırma.
+   GitHub `/user` endpoint'i için geçici Authorization header kullanabilirsin; fakat response body'yi yazdırma.
+   Yalnızca HTTP status code raporla.
+
+6. `git config --show-origin --get-all credential.helper`
+   - Credential helper durumunu raporla.
+   - Secret değerleri raporlama.
+
+7. `git status --short`
+   - Working tree'nin hâlâ temiz olduğunu doğrula.
+
+8. `git rev-parse HEAD`
+   - HEAD'in hâlâ `a83bb09ccfdf6ab56c5a1eba8676c6ec71ae70f4` olduğunu doğrula.
+
+AMAÇ:
+Şunu ayırt etmek istiyoruz:
+
+A) Replit'in GitHub token endpoint'i çalışmıyor,
+B) GIT_ASKPASS eksik/bozuk,
+C) Replit tokenı var ama GitHub reddediyor,
+D) Git remote/credential helper yanlış,
+E) Replit tarafında bilinen GitHub authentication problemi var.
+
+SONUÇTA SADECE:
+- remote durumu
+- GIT_ASKPASS durumu
+- token endpoint HTTP status
+- GitHub authentication HTTP status
+- credential helper durumu
+- HEAD
+- branch
+- working tree
+
+raporla.
+
+Token, password, PAT, OAuth credential veya secret değerlerini ASLA rapora koyma.
