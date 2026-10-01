@@ -31,21 +31,21 @@ function outcomeLabel(value: string | undefined): string | undefined {
     critical_hit: 'Kritik isabet',
     hit: 'İsabet',
     miss: 'Iskaladı',
-    invalid_target: 'Geçersiz hedef',
+    invalid_target: 'Hedef seçilemedi',
     no_target: 'Hedef bulunamadı',
-    target_mismatch: 'Mevcut hedefle eşleşmiyor',
-    no_weapon: 'Uygun silah yok',
-    ambiguous_target: 'Hedef belirsiz',
-    player_unconscious: 'Oyuncu bilinçsiz',
-    enemy_turn_resolved: 'Rakip sırası çözüldü',
+    target_mismatch: 'Seçilen hedef uyuşmuyor',
+    no_weapon: 'Kullanılabilir silah yok',
+    ambiguous_target: 'Bir hedef seç',
+    player_unconscious: 'Karakter bilincini kaybetti',
+    enemy_turn_resolved: 'Rakip hamlesini yaptı',
     out_of_turn: 'Sıra sende değil',
   };
   return labels[value] ?? value;
 }
 
 function actionLabel(value: string | undefined): string | undefined {
-  if (value === 'attack') return 'Oyuncu saldırısı';
-  if (value === 'enemy_attack') return 'Düşman karşı hamlesi';
+  if (value === 'attack') return 'Saldırı';
+  if (value === 'enemy_attack') return 'Karşı saldırı';
   return value;
 }
 
@@ -200,7 +200,7 @@ function AttackReadout({
     <article className={`combat-result-card ${enemy ? 'combat-result-enemy' : ''} ${naturalRoll === 'DOĞAL 20' ? 'combat-result-critical' : ''} ${naturalRoll === 'DOĞAL 1' ? 'combat-result-fumble' : ''}`} data-testid={prefix}>
       <div className="combat-result-heading">
         <div>
-          <span className="combat-overline">{enemy ? 'KANONİK KARŞI HAMLE' : 'PYTHON SONUCU'}</span>
+          <span className="combat-overline">{enemy ? 'RAKİBİN KARŞILIĞI' : 'HAMLE SONUCU'}</span>
           <h4>{heading}</h4>
         </div>
         <div className="combat-result-side">
@@ -254,8 +254,8 @@ function InitiativeStrip({ state }: { state: GameState }) {
   return (
     <section className="combat-initiative" aria-labelledby="combat-initiative-heading">
       <div className="combat-section-heading">
-        <span className="combat-overline" id="combat-initiative-heading">İNİSİYATİF SIRASI</span>
-        <span className="combat-section-note">Atış toplamları gösterilmez</span>
+        <span className="combat-overline" id="combat-initiative-heading">HAMLE SIRASI</span>
+        <span className="combat-section-note">Önce davranan en üstte</span>
       </div>
       <ol className="combat-initiative-list" data-testid="combat-initiative">
         {order.map((participant, index) => (
@@ -315,11 +315,11 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
   )?.name;
 
   return (
-    <section className="combat-panel" data-testid="panel-combat">
+    <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
       <header className="combat-panel-header">
         <div>
-          <span className="combat-overline">MOTOR DURUMU</span>
-          <h2>Çatışma kaydı</h2>
+          <span className="combat-overline">KARŞILAŞMANIN SEYRİ</span>
+          <h2>Çatışma</h2>
         </div>
         <div className={`combat-state-seal combat-state-${ended ? 'ended' : active ? 'active' : 'idle'}`} data-testid="combat-status">
           <span className="combat-seal-dot" aria-hidden="true" />
@@ -329,14 +329,14 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
 
       {ended ? (
         <div className="combat-ended-state" data-testid="combat-ended-state">
-          <span className="combat-overline">SON KANONİK KAYIT</span>
+          <span className="combat-overline">SON AN</span>
           <strong>Çatışma sona erdi.</strong>
             {latest?.end_reason && <span data-testid="combat-end-reason">{endReasonLabel(latest.end_reason)}</span>}
         </div>
       ) : active ? (
         <>
           <div className="combat-round-line">
-            <span>ÇATIŞMA AKTİF</span>
+            <span>KILIÇLAR ÇEKİLDİ</span>
             {typeof state.combat.round === 'number' && <strong data-testid="combat-round">Tur {state.combat.round}</strong>}
             {currentActorName && <strong data-testid="combat-turn-owner">Sıra: {currentActorName}</strong>}
           </div>
@@ -362,7 +362,7 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
           <span className="combat-die" aria-hidden="true"><i /><i /><i /></span>
           <div>
             <strong>Çatışma yok</strong>
-            <span>Motor yeni bir karşılaşma başlattığında kanonik atışlar burada görünür.</span>
+            <span>Yeni bir karşılaşmada zarların ve hamlelerin izi burada belirecek.</span>
           </div>
         </div>
       )}
@@ -370,8 +370,8 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
       {entries.length > 0 && (
         <section className="combat-log" aria-labelledby="combat-log-heading" aria-live="polite">
           <div className="combat-section-heading">
-            <span className="combat-overline" id="combat-log-heading">KARAR KAYDI</span>
-            <span className="combat-section-note">Python tarafından döndürülen sonuçlar</span>
+            <span className="combat-overline" id="combat-log-heading">ÇATIŞMANIN İZLERİ</span>
+            <span className="combat-section-note">Atılan zarlar, isabetler ve karşı hamleler</span>
           </div>
           <div className="combat-log-list">
             {entries.map((entry) => <EntryCard entry={entry} key={entry.id} />)}

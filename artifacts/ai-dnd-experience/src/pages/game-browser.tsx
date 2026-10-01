@@ -72,9 +72,9 @@ function statusCode(error: unknown) {
 
 function friendlyError(error: unknown, fallback: string) {
   const code = statusCode(error);
-  if (code === 404) return 'Bu macera kaydı bulunamadı.';
-  if (code === 422) return 'Motor bu mesajı kabul etmedi. Bir iletinin 1–4000 karakter arasında olduğundan emin ol.';
-  if (code === 503) return 'Dungeon Master’a şu anda ulaşılamıyor.';
+  if (code === 404) return 'Bu macera bulunamadı.';
+  if (code === 422) return 'Bu söz şimdilik yankı bulmadı. 1–4000 karakter arasında yeniden dene.';
+  if (code === 503) return 'Dünya şu an sessiz.';
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'Bağlantı yok. İnternet bağlantını kontrol edip tekrar dene.';
   return fallback;
 }
@@ -128,23 +128,21 @@ function EngineHealth() {
   return (
     <aside className="dnd-card dnd-texture p-5 md:p-7" data-testid="panel-engine-health">
       <div className="relative z-10">
-        <div className="flex items-center gap-2"><Wifi size={14} /><Kicker>Motor bağlantısı</Kicker></div>
-        <h2 className="dnd-display mt-3 text-xl tracking-wide text-[#decdaa]">{health.isLoading ? 'Kapı yoklanıyor.' : ready ? 'Kapı şu an açık.' : 'Kapı sessiz.'}</h2>
-        <p className="dnd-serif mt-2 text-[17px] leading-6 text-[#94866e]">Python motoru mekanikleri doğrular; tarayıcı yalnızca senin sözlerini taşır.</p>
+        <div className="flex items-center gap-2"><Wifi size={14} /><Kicker>Yolun işareti</Kicker></div>
+        <h2 className="dnd-display mt-3 text-xl tracking-wide text-[#decdaa]">{health.isLoading ? 'Dünya uyanıyor.' : ready ? 'Yol açık.' : 'Dünya sessiz.'}</h2>
+        <p className="dnd-serif mt-2 text-[17px] leading-6 text-[#94866e]">Sözlerin yola düşmeye hazır. Dünya, kendi kurallarıyla karşılık verecek.</p>
         {health.isLoading ? (
           <div className="mt-7 grid gap-2" data-testid="health-loading">{[1, 2].map((item) => <div className="dnd-skeleton h-10 rounded-sm" key={item} />)}</div>
         ) : health.isError ? (
-          <div className="notice error mt-6" data-testid="error-health"><span>Sağlık bilgisi alınamadı.</span><button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></div>
+          <div className="notice error mt-6" data-testid="error-health"><span>Dünyanın nabzına ulaşılamadı.</span><button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></div>
         ) : (
           <div className="mt-6" data-testid="status-health">
-            {[['Durum', health.data?.status ?? 'bilinmiyor'], ['Motor', health.data?.engine ?? '—'], ['Model', health.data?.model ?? '—']].map(([label, value], index) => (
-              <div className={`flex items-center justify-between py-3 text-sm ${index < 2 ? 'border-b border-[#4b3926]' : ''}`} key={label}>
-                <span className="text-[#897b65]">{label}</span><span className="flex items-center gap-2 font-mono text-xs"><span className={`health-dot ${ready ? '' : 'bad'}`} />{value}</span>
-              </div>
-            ))}
+            <div className="flex items-center justify-between py-3 text-sm">
+              <span className="text-[#897b65]">Yol</span><span className="flex items-center gap-2 font-mono text-xs"><span className={`health-dot ${ready ? '' : 'bad'}`} />{ready ? 'Açık' : 'Sessiz'}</span>
+            </div>
           </div>
         )}
-        <div className="mt-6 flex items-center gap-2 text-[10px] text-[#83745e]"><Shield size={13} /> Mekanik sonuçları istemci tarafından üretilmez.</div>
+        <div className="mt-6 flex items-center gap-2 text-[10px] text-[#83745e]"><Shield size={13} /> Her hamle dünyanın kurallarıyla tartılır.</div>
       </div>
     </aside>
   );
@@ -172,7 +170,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
                 {loadingCampaigns ? <RefreshCw size={14} className="animate-spin" /> : <BookOpen size={14} />} Maceraya devam et
               </button>
             </div>
-            {showNoCampaigns && !hasCampaigns && <div className="continue-note" data-testid="text-no-session">Henüz kayıtlı macera yok. Yeni maceranı sunucuya kaydedebilirsin.</div>}
+            {showNoCampaigns && !hasCampaigns && <div className="continue-note" data-testid="text-no-session">Henüz bir macera yok. İlk yolculuğunu başlat.</div>}
             {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
             <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
           </section>
@@ -193,8 +191,8 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
       <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
-      {!compact && <div className="mt-5"><Kicker>Özellikler · motor kaydı</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
-      {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Motor henüz beceri kaydetmedi.</span>}</div></div>}
+      {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
+      {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
     </section>
   );
 }
@@ -207,11 +205,10 @@ function WorldPanel({ state }: { state: GameState }) {
   const locations = Object.values(state.locations);
   const scene = state.scene;
   return <section className="state-panel" data-testid="panel-world">
-    <div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Kamuya açık dünya</Kicker><h2>Çevre</h2></div></div>
+     <div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Dünyanın izleri</Kicker><h2>Çevre</h2></div></div>
     <div className="location-current" data-testid="text-current-location"><small><MapPinned size={11} className="mr-1 inline" /> Şu anki konum</small>{state.locations[state.location]?.name ?? state.location}</div>
     {scene && <div className="data-row mt-3" data-testid={`scene-${scene.id}`}>
-      <div className="data-row-head"><span>Şu anki sahne</span><span className="status-pill">{scene.kind ?? 'çevre'}</span></div>
-      <div className="data-row-meta">Ziyaret {scene.visit_revision} · hareketlilik {scene.activity_revision} · {scene.player_position.kind}</div>
+       <div className="data-row-head"><span>Şu anki sahne</span></div>
       <div className="data-row-desc">{scene.last_activity ?? 'Sahne sakin; çevredeki ayrıntılar değişmedi.'}</div>
     </div>}
     <div className="mt-3 grid gap-2">{locations.length ? locations.map((location) => <div className="data-row" key={location.id} data-testid={`location-${location.id}`}>
@@ -251,7 +248,7 @@ function PeoplePanel({ state }: { state: GameState }) {
     {otherPeople.length > 0 && <div className="mt-4">
       <Kicker>Diğer karşılaştıkların</Kicker>
       {otherPeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`npc-${npc.id}`}>
-        <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status}</span>}</div>
+        <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status === 'active' ? 'Ayakta' : npc.combat_status === 'unconscious' ? 'Bilinçsiz' : npc.combat_status === 'defeated' ? 'Etkisiz' : npc.combat_status}</span>}</div>
         <div className="data-row-meta">{npc.role} · {state.locations[npc.location]?.name ?? npc.location}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>)}
@@ -321,9 +318,9 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
 
   return (
     <section className="state-panel" data-testid="panel-journal">
-      <Kicker><BookOpen size={12} className="mr-1 inline" /> Kanonik kampanya kaydı</Kicker>
+      <Kicker><BookOpen size={12} className="mr-1 inline" /> Yol boyunca birikenler</Kicker>
       <h2>Günlük</h2>
-      <p className="subtle-text mt-3">Keşifler ve olaylar Python oyun durumundan gelir. Anlatı metni görev veya ilerleme kaydı oluşturmaz.</p>
+      <p className="subtle-text mt-3">Keşfettiğin yerler, tanıdığın kişiler ve yoluna çıkan önemli olaylar burada birikir.</p>
 
       <section className="journal-section" data-testid="section-journal-locations">
         <div className="journal-section-heading">
@@ -382,7 +379,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
           <span className="character-badge">{String(events.length).padStart(2, '0')}</span>
         </div>
         {events.length ? (
-          <ol className="journal-chronicle mt-3" aria-label="Kanonik olaylar">
+          <ol className="journal-chronicle mt-3" aria-label="Önemli olaylar">
             {events.map((event) => (
               <li className="journal-chronicle-entry" key={event.event_id} data-testid={`journal-event-${event.event_id}`}>
                 <span>Tur {event.turn_index}{event.location_name ? ` · ${event.location_name}` : ''}</span>
@@ -409,7 +406,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
 }
 
 function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string }) {
-  const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'NPC’LER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
+  const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'KİŞİLER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let nextIndex: number | undefined;
@@ -477,7 +474,7 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
     <section className="story-column workspace-story" data-testid="panel-story">
       <div className="story-heading">
         <div className="story-icon"><Feather size={15} strokeWidth={1.25} /></div>
-        <div><Kicker>Dungeon Master · sunucu anlatısı</Kicker><div className="story-meta mt-1">Başarılı turlar yerel olarak gösterilir</div></div>
+        <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
         <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
       </div>
       <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
@@ -491,7 +488,7 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
       )}
       {state.combat.active && currentActor && currentActor.id !== 'player' && (
         <div className="command-combat-turn-note" role="status" data-testid="status-combat-turn-owner">
-          Sıra {currentActor.name}'de. Bu gönderim rakibin hamlesini çözer; ardından kendi hamleni yeniden gönder.
+          Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
         </div>
       )}
       <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />
@@ -500,7 +497,7 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
         <form className="command-form" onSubmit={onSubmit}>
           {state.combat.active && combatTargets.length > 0 && (
             <label className="command-target-label" htmlFor="combat-target-select">
-              <span>Çatışma hedefi <small>· boş bırakılırsa mesajdaki ad kullanılır</small></span>
+              <span>Hedef seç <small>· isteğe bağlı</small></span>
               <select
                 id="combat-target-select"
                 className="command-target-select"
@@ -509,7 +506,7 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
                 disabled={sending}
                 data-testid="select-combat-target"
               >
-                <option value="">Mesajımdaki hedef</option>
+                <option value="">Hamlemde belirteceğim</option>
                 {combatTargets.map((participant) => (
                   <option value={participant.id} key={participant.id}>{participant.name}</option>
                 ))}
@@ -520,10 +517,10 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
           <textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-            {sending ? 'Motor düşünüyor' : 'Gönder'}
+            {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
           </button>
         </form>
-        <div className="command-help"><span>Doğal dil · 1–4000 karakter · Python karar verir</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
+        <div className="command-help"><span>Sözlerinle anlat · 1–4000 karakter</span><span data-testid="text-message-count">{message.length} / 4000</span></div>
       </div>
     </section>
   );
@@ -538,7 +535,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
           <MapPinned size={13} />
           <div className="header-location-copy">
             <span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span>
-            <small data-testid="text-neutral-atmosphere">Otomatik kaydediliyor</small>
+            <small data-testid="text-neutral-atmosphere">Yolculuğun kaydediliyor</small>
           </div>
           <span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span>
         </div>
@@ -553,7 +550,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
         <div className="header-actions">
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-character" onClick={() => onDrawer('character')}><Shield size={14} /> Karakter</button>
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button>
-          <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span> #{campaignId.slice(0, 8)}</div>
+          <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span></div>
           <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button>
           <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button>
         </div>
@@ -593,13 +590,13 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Kanonik çevre'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Kanonik kayıt' : 'Kanonik çevre'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
   const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
-  return <main className="reveal-screen" data-testid="screen-character-reveal"><header className="dnd-shell reveal-header"><Brand /><button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening"><ArrowLeft size={13} /> Geri dön</button></header><div className="reveal-wrap"><div className="reveal-heading"><Kicker>Yeni macera · Kanonik karakter kaydı</Kicker><h1 className="dnd-display">Yolcu ortaya çıktı.</h1><p className="dnd-serif">Motorun ürettiği kayıtla yola çıkıyorsun. Bu sayfa bir seçim ekranı değil; dünya durumunun okunabilir yüzü.</p></div><div className="reveal-card"><div className="portrait-empty" aria-label="Portre alanı boş"><ScrollText size={25} /><Kicker>Portre alanı · boş</Kicker><span>Motor portre verisi sağlamadı</span></div><div className="reveal-data"><div className="reveal-top"><div><Kicker>Karakter</Kicker><h2 data-testid="reveal-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div><Rule /><div className="reveal-metrics"><div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div><div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div><div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div></div><div className="reveal-stats"><Kicker>Özellikler · motor kaydı</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div><div className="reveal-skills"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Motor henüz beceri kaydetmedi.</span>}</div></div><div className="reveal-actions"><span>İsim, ırk, sınıf ve değerler sunucunun kaydıdır.</span><button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">Macerayı aç <ArrowRight size={14} /></button></div></div></div></div></main>;
+  return <main className="reveal-screen" data-testid="screen-character-reveal"><header className="dnd-shell reveal-header"><Brand /><button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening"><ArrowLeft size={13} /> Geri dön</button></header><div className="reveal-wrap"><div className="reveal-heading"><Kicker>Yeni macera · Yolcu</Kicker><h1 className="dnd-display">Yolcu ortaya çıktı.</h1><p className="dnd-serif">Yolculuğun başlıyor. Dünya ilk sözünü bekliyor.</p></div><div className="reveal-card"><div className="portrait-empty" aria-label="Portre alanı boş"><ScrollText size={25} /><Kicker>Henüz bir suret yok</Kicker><span>Yol boyunca yüzün hatırlanacak.</span></div><div className="reveal-data"><div className="reveal-top"><div><Kicker>Karakter</Kicker><h2 data-testid="reveal-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div><Rule /><div className="reveal-metrics"><div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div><div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div><div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div></div><div className="reveal-stats"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div><div className="reveal-skills"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div><div className="reveal-actions"><span>Bu yolculukta sana adın, geçmişin ve yeteneklerin eşlik edecek.</span><button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">Macerayı aç <ArrowRight size={14} /></button></div></div></div></div></main>;
 }
 
 function StateSkeleton() {
@@ -754,8 +751,8 @@ export default function GameBrowser() {
         tone: 'error',
         title: 'Kampanya oluşturulamadı',
         detail: statusCode(error) === 422
-          ? 'İsim, ırk veya sınıfı kontrol et; motor yalnızca listelenen seçenekleri kabul eder.'
-          : friendlyError(error, 'Sunucu yanıt vermedi.'),
+          ? 'İsim, ırk ya da sınıfını yeniden gözden geçir.'
+          : friendlyError(error, 'Dünya şu an yanıt vermiyor.'),
       }),
     });
   };
@@ -801,7 +798,7 @@ export default function GameBrowser() {
     if (!campaignId || saveCampaign.isPending) return;
     saveCampaign.mutate({ campaignId }, {
       onSuccess: () => {
-        setNotice({ tone: 'success', title: 'Macera kaydedildi', detail: 'Kanonik dünya durumu sunucudaki kayıt defterine yazıldı.' });
+        setNotice({ tone: 'success', title: 'Macera kaydedildi', detail: 'Yolculuğunun izleri güvenle saklandı.' });
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => setNotice({ tone: 'error', title: 'Kayıt tamamlanamadı', detail: friendlyError(error, 'Macera güvenli biçimde kaydedilemedi.') }),
@@ -851,7 +848,7 @@ export default function GameBrowser() {
                 ? 'Rakip etkisiz hale getirildi.'
                 : endReason === 'player_defeated'
                   ? 'Karakter bilinç kaybetti.'
-                  : 'Motor çatışmayı sonlandırdı.',
+                  : 'Çatışma sona erdi.',
             );
           } else {
             setCombatEndNotice(null);
@@ -885,11 +882,11 @@ export default function GameBrowser() {
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Motor şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Python motoru bu hamleyi kabul etmedi.') }),
+      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle işlenemedi', detail: friendlyError(error, 'Dünya bu hamleyi kabul etmedi.') }),
     });
   };
 
-  const sessionLabel = useMemo(() => campaignId ? `#${campaignId.slice(0, 8)}` : 'yeni macera', [campaignId]);
+  const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} />;
   if (phase === 'creation') return (
     <CharacterCreationScreen
@@ -929,9 +926,9 @@ export default function GameBrowser() {
           ) : stateQuery.isError ? (
             <div className="dnd-card p-7 workspace-error" data-testid="error-session-state">
               <div className="flex items-center gap-2 text-[#dca49b]">
-                <AlertTriangle size={16} /> {statusCode(stateQuery.error) === 503 ? 'Motor şu an kullanılamıyor.' : 'Günlük yüklenemedi.'}
+                <AlertTriangle size={16} /> {statusCode(stateQuery.error) === 503 ? 'Dünya şu an sessiz.' : 'Yolculuğun izleri görünmüyor.'}
               </div>
-              <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{friendlyError(stateQuery.error, 'Kanonik durum alınamadı.')}</p>
+              <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{friendlyError(stateQuery.error, 'Dünya şu an görünmüyor.')}</p>
               <button className="dnd-button secondary mt-5" type="button" data-testid="button-retry-session-state" onClick={() => void stateQuery.refetch()}>
                 <RefreshCw size={14} /> Tekrar dene
               </button>
@@ -946,7 +943,7 @@ export default function GameBrowser() {
         </main>
         {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
-          {sessionLabel} · yalnızca başarılı sunucu turları saklanır
+          {sessionLabel} · sahnenin izleri yol boyunca korunur
         </div>
       </div>
     </EnvironmentThemeProvider>
