@@ -823,6 +823,8 @@ def is_npc_historical_claim(player_input):
     """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
     if not isinstance(player_input, str):
         return False
+    if _explicit_player_name_disclosure(player_input):
+        return False
     text = player_input.casefold().strip()
     return bool(re.search(
         r"\b(?:daha önce|az önce|önceden|geçen sefer|geçen gün|vaktiyle|bir keresinde|hatırlarsan)\b.{0,180}"
@@ -4500,6 +4502,8 @@ def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, p
         (r"\b(?:dün|geçen\s+gün|daha\s+önce)\s+(?:burada\s+)?(?:buluş\w*|görüş\w*|karşılaş\w*|tanış\w*)", "prior_meeting"),
         (r"\b(?:bana|bize)\s+.{1,60}\b(?:söylemiş\w*|anlatmış\w*|bahsetmiş\w*|demiş\w*|söyledi\w*|anlattı\w*|bahsetti\w*|dedi\w*)\b", "prior_disclosure"),
         (r"\b\w+(?:'nin|'nın|'nun|'nün|in|ın|un|ün)?\s+sözleri\b.{0,60}\b(?:belirtti|söyledi|anlattı|bahsetti)\b", "npc_speech_affirmation"),
+        (r"\b(?:yıllardır|uzun\s+zamandır|eskiden\s+beri)\s+tanı\w*", "longstanding_acquaintance"),
+        (r"\b(?:eski|geçmiş)\s+macera\w*", "past_adventures"),
     )
     for pat, _category in history_patterns:
         match = re.search(pat, text)

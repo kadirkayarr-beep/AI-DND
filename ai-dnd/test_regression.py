@@ -10,8 +10,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Fix Windows console encoding
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Add project directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -611,6 +609,13 @@ def test_terminal_skill_command():
 # MAIN
 # =========================================================
 if __name__ == "__main__":
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
     tests = [
         test_failed_stealth_narrator_contradiction,
         test_unlocked_door_normal_open,

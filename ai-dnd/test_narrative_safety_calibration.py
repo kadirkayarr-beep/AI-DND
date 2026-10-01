@@ -352,7 +352,7 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         self.gromm["memory"] = [
             {
                 "speaker": "player",
-                "text": "Daha önce adımı Arven olarak sana söylemiştim.",
+                "text": "Gromm, benim adım Arven. Kendimi tanıtıyorum.",
             },
         ]
         output = self.finalize_narration(
@@ -362,10 +362,11 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             npc_target=self.gromm,
             action_result={"action": "dialogue", "status": "resolved"},
         )
-        self.assertIn("hatırlıyorum", output.casefold())
+        self.assertIn("Arven", output)
+        self.assertNotIn("söylemen gerekirdi", output)
         self.assertEqual(
             self.session.last_narration_safety["reason_code"],
-            "NPC_MEMORY_CONTRADICTION",
+            "NPC_MEMORY_SUPPORTED_PLAYER_NAME",
         )
         self.assertNotIn("reason_code", output)
         self.assertNotIn("last_narration_safety", self.session.world_state)
@@ -524,6 +525,79 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
         )
         self.assertEqual(_scene_type({"action": "inventory"}), "direct_query")
         self.assertEqual(_scene_type({"action": "skill_check"}), "skill_check")
+
+    def test_explicit_name_disclosure_memory_and_unsupported_claim_rejection(self):
+        # CASE A: Explicit name disclosure allows NPC to learn player's name
+        self.gromm["memory"] = []
+        player_intro = "Benim adım Arven."
+        safe_reply = 'Gromm başını kaldırır ve "Memnun oldum Arven," der.'
+
+        # Verify safe reply passes claim check
+        self.assertIsNone(
+            game._unsupported_npc_history_or_relationship_claim(
+                safe_reply, self.gromm, player_intro
+            )
+        )
+        # Record into memory
+        game.record_npc_interaction(self.gromm, safe_reply, player_intro, self.gromm)
+        self.assertTrue(
+            any(
+                entry.get("speaker") == "player" and "Arven" in entry.get("text", "")
+                for entry in self.gromm.get("memory", [])
+            )
+        )
+        # Verify subsequent query remembers Arven
+        query_out = self.finalize_narration(
+            'Gromm kadehini silerken "Adını bilmiyorum," der.',
+            "Gromm, daha önce sana adımı söylemiş miydim?",
+            npc_target=self.gromm,
+            action_result={"action": "dialogue", "status": "resolved"},
+        )
+        self.assertIn("Arven", query_out)
+        self.assertEqual(
+            self.session.last_narration_safety["reason_code"],
+            "NPC_MEMORY_SUPPORTED_PLAYER_NAME",
+        )
+
+        # CASE B: Unsupported history/relationship claim rejected and NOT recorded
+        mem_before = copy.deepcopy(self.gromm.get("memory", []))
+        malicious_narration = "Gromm seni yıllardır tanıyor ve eski maceralarınızı hatırlıyor."
+
+        decision_b = self.decide(
+            malicious_narration,
+            player_input=player_intro,
+            npc_target=self.gromm,
+        )
+        self.assertTrue(decision_b["unsafe"])
+        self.assertEqual(
+            decision_b["reason_code"],
+            "UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM",
+        )
+
+        # Verify record_npc_interaction refuses to store malicious claim
+        game.record_npc_interaction(
+            self.gromm, malicious_narration, player_intro, self.gromm
+        )
+        self.assertEqual(self.gromm.get("memory", []), mem_before)
+
+        # Threat Case: Name disclosure + longstanding acquaintance / past adventures claim
+        threat_intro = "Gromm, benim adım Arven. Kendimi tanıtıyorum."
+        threat_narration = "Gromm seni yıllardır tanıyormuş gibi gülümser ve eski maceralarınızdan söz eder."
+
+        decision_threat = self.decide(
+            threat_narration,
+            player_input=threat_intro,
+            npc_target=self.gromm,
+        )
+        self.assertTrue(decision_threat["unsafe"])
+        self.assertEqual(
+            decision_threat["reason_code"],
+            "UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM",
+        )
+        game.record_npc_interaction(
+            self.gromm, threat_narration, threat_intro, self.gromm
+        )
+        self.assertEqual(self.gromm.get("memory", []), mem_before)
 
 
 if __name__ == "__main__":
