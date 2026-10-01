@@ -13,6 +13,11 @@ AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
+import tempfile
+import game
+from game import build_world_context
+from api.persistence.campaign_store import CampaignStore
+from api.session_manager import SessionManager
 from api.narrative_memory import (  # noqa: E402
     MAX_RECENT_TURNS,
     MAX_SERIALIZED_BYTES,
@@ -419,6 +424,158 @@ class NarrativeMemoryTests(unittest.TestCase):
         self.assertLessEqual(diagnostics_a["estimated_total_tokens"], 40960)
         self.assertEqual(packet_a, packet_b)
         self.assertEqual(diagnostics_a["estimated_tokens"], diagnostics_b["estimated_tokens"])
+
+
+class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_dir.name) / "campaigns.sqlite3"
+        self.store = CampaignStore(self.db_path)
+        self.manager = SessionManager(campaign_store=self.store)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _setup_two_npc_session(self):
+        campaign_id, session_id, record, _ = self.manager.create_campaign("Memory Isolation Test")
+        session = record.game_session
+        session.character["name"] = "Kaelen"
+        session.character["race"] = "Human"
+        session.character["class"] = "Fighter"
+        session.character["level"] = 1
+        session.character["current_hp"] = 10
+        session.character["max_hp"] = 10
+        session.character["armor_class"] = 12
+        session.world_state["location"] = "tavern"
+        session.world_state["locations"]["tavern"] = {
+            "name": "The Tavern",
+            "reality_layer": "CANONICAL",
+        }
+        session.world_state["npcs"] = [
+            {
+                "id": "npc_001",
+                "name": "Elaris",
+                "role": "bartender",
+                "location": "tavern",
+                "memory": [],
+            },
+            {
+                "id": "npc_002",
+                "name": "Aldren",
+                "role": "patron",
+                "location": "tavern",
+                "memory": [],
+            },
+        ]
+        return campaign_id, session_id, record, session
+
+    def test_1_npc_memory_isolation(self):
+        """TEST 1: Disclose name to NPC A; NPC A knows it, NPC B does not."""
+        _, _, record, session = self._setup_two_npc_session()
+
+        # Step 4: Tell NPC A: "Benim adım Arven."
+        t1 = session.run_player_turn("Benim adım Arven.", target_id="npc_001")
+        self.manager.autosave_turn(record, "Benim adım Arven.", t1["narration"])
+        self.assertIn("Arven", t1["narration"])
+        self.assertEqual(t1["action_result"].get("npc_id"), "npc_001")
+
+        # Step 5: Verify NPC A can use Arven
+        t_a = session.run_player_turn("Bana adımla hitap et", target_id="npc_001")
+        self.assertIn("Arven", t_a["narration"])
+        self.assertIn("Elaris", t_a["narration"])
+        self.assertEqual(t_a["action_result"].get("npc_id"), "npc_001")
+
+        # Step 6 & 7: Address NPC B and ask NPC B to use player's name
+        t_b = session.run_player_turn("Bana adımla hitap et", target_id="npc_002")
+        self.manager.autosave_turn(record, "Bana adımla hitap et", t_b["narration"])
+
+        # Step 8: Verify NPC B does NOT know Arven
+        self.assertNotIn("Arven", t_b["narration"])
+        self.assertIn("Aldren", t_b["narration"])
+        self.assertEqual(t_b["action_result"].get("npc_id"), "npc_002")
+        self.assertEqual(t_b["action_result"].get("status"), "answered_from_npc_memory")
+
+    def test_2_speaker_binding(self):
+        """TEST 2: Address NPC B; returned dialogue/narration attributed to NPC B, not NPC A."""
+        _, _, _, session = self._setup_two_npc_session()
+
+        # Disclose to Elaris
+        session.run_player_turn("Benim adım Arven.", target_id="npc_001")
+
+        # Address Aldren
+        t2 = session.run_player_turn("Bana adımla hitap et", target_id="npc_002")
+
+        # Attributed to Aldren, not Elaris
+        self.assertIn("Aldren", t2["narration"])
+        self.assertNotIn("Elaris", t2["narration"])
+        self.assertEqual(t2["action_result"].get("npc_id"), "npc_002")
+
+    def test_3_cross_npc_recent_dialogue_leak(self):
+        """TEST 3: Recent turn involving NPC A does not cause NPC B's response to inherit NPC A's memory."""
+        _, _, record, session = self._setup_two_npc_session()
+
+        # Turn with NPC A
+        t1 = session.run_player_turn("Benim adım Arven.", target_id="npc_001")
+        self.manager.autosave_turn(record, "Benim adım Arven.", t1["narration"])
+
+        # Next turn with NPC B
+        t2 = session.run_player_turn("Bana adımla hitap et", target_id="npc_002")
+        self.manager.autosave_turn(record, "Bana adımla hitap et", t2["narration"])
+
+        # NPC B must not leak Arven from recent dialogue history
+        self.assertNotIn("Arven", t2["narration"])
+        # Verify narrative memory context packet isolates recent turns
+        packet, _ = build_narrative_context(
+            record.narrative_memory,
+            build_world_context(npc_target=session.world_state["npcs"][1]),
+            "Bana adımla hitap et",
+            {"npc_id": "npc_002"},
+        )
+        recent_players = [t["player"] for t in packet["relevant_continuity"].get("recent_turns", [])]
+        self.assertNotIn("Benim adım Arven.", recent_players)
+
+    def test_4_resume(self):
+        """TEST 4: Disclose to NPC A, save, resume, verify NPC A still knows and NPC B still does not."""
+        campaign_id, _, record, session = self._setup_two_npc_session()
+
+        # Disclose to NPC A
+        t1 = session.run_player_turn("Benim adım Arven.", target_id="npc_001")
+        self.manager.autosave_turn(record, "Benim adım Arven.", t1["narration"])
+        self.manager.save_campaign(campaign_id)
+
+        # Resume campaign in fresh manager
+        fresh_manager = SessionManager(campaign_store=CampaignStore(self.db_path))
+        _, resumed_record, _, _, _ = fresh_manager.resume_campaign(campaign_id)
+        resumed_session = resumed_record.game_session
+
+        # Verify NPC A still knows
+        t_a = resumed_session.run_player_turn("Bana adımla hitap et", target_id="npc_001")
+        self.assertIn("Arven", t_a["narration"])
+        self.assertEqual(t_a["action_result"].get("npc_id"), "npc_001")
+
+        # Verify NPC B still does not know
+        t_b = resumed_session.run_player_turn("Bana adımla hitap et", target_id="npc_002")
+        self.assertNotIn("Arven", t_b["narration"])
+        self.assertIn("Aldren", t_b["narration"])
+        self.assertEqual(t_b["action_result"].get("npc_id"), "npc_002")
+
+    def test_5_existing_npc_memory_regression(self):
+        """TEST 5: Verify existing legitimate NPC memory and historical claim behavior remains intact."""
+        _, _, _, session = self._setup_two_npc_session()
+
+        # Disclose to Elaris
+        t1 = session.run_player_turn("Benim adım Arven.", target_id="npc_001")
+        self.assertIn("Arven", t1["narration"])
+
+        # Historical query to Elaris
+        t2 = session.run_player_turn("Daha önce sana adımı söylemiştim, hatırla.", target_id="npc_001")
+        self.assertIn("Arven", t2["narration"])
+        self.assertEqual(t2["action_result"].get("status"), "answered_from_npc_memory")
+
+        # Unsupported claim to Elaris
+        t3 = session.run_player_turn("Elaris bana ejderha hazinesinden bahsetmişti.", target_id="npc_001")
+        self.assertEqual(t3["action_result"].get("status"), "unverified")
+        self.assertIn("hatırlamıyorum", t3["narration"])
 
 
 if __name__ == "__main__":

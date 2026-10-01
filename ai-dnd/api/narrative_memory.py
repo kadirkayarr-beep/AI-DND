@@ -141,9 +141,15 @@ def validate_narrative_memory(
     if not isinstance(value["recent_turns"], list) or len(value["recent_turns"]) > MAX_RECENT_TURNS:
         _invalid(error_type)
     for turn in value["recent_turns"]:
-        if not isinstance(turn, dict) or set(turn) != {"player", "narration", "turn_index", "authority"}:
+        keys = set(turn) if isinstance(turn, dict) else set()
+        if keys not in (
+            {"player", "narration", "turn_index", "authority"},
+            {"player", "narration", "turn_index", "authority", "npc_id"},
+        ):
             _invalid(error_type)
         if not _text(turn["player"]) or not _text(turn["narration"]) or type(turn["turn_index"]) is not int:
+            _invalid(error_type)
+        if "npc_id" in turn and not _text(turn["npc_id"], MAX_TOPIC):
             _invalid(error_type)
         if turn["authority"] != "presentation":
             _invalid(error_type)
@@ -350,12 +356,16 @@ def update_narrative_memory(
         "needs_clarification",
     }
     turn = _turn_index(world_state_after)
-    base["recent_turns"].append({
+    npc_id = action.get("npc_id") or action.get("target_id")
+    turn_record = {
         "player": player_message.strip()[:MAX_TEXT],
         "narration": "[presentation omitted from continuity]",
         "turn_index": turn,
         "authority": "presentation",
-    })
+    }
+    if not clarification and isinstance(npc_id, str) and npc_id:
+        turn_record["npc_id"] = npc_id
+    base["recent_turns"].append(turn_record)
     base["recent_turns"] = base["recent_turns"][-MAX_RECENT_TURNS:]
     for location_id, entries in list(base["location_continuity"].items()):
         base["location_continuity"][location_id] = [
@@ -365,7 +375,6 @@ def update_narrative_memory(
         ][-MAX_LOCATION_FACTS:]
 
     npcs = _canonical_npcs(world_state_after)
-    npc_id = action.get("npc_id") or action.get("target_id")
     if not clarification and isinstance(npc_id, str) and npc_id in npcs:
         npc = npcs[npc_id]
         base["entity_memory"]["npcs"][npc_id] = {
@@ -636,6 +645,29 @@ def build_narrative_context(
         for entity_id in selected_locations
         if entity_id in memory["location_continuity"]
     }
+    target_npc_id = None
+    if isinstance(canonical_context.get("current_npc_target"), dict):
+        target_npc_id = canonical_context["current_npc_target"].get("id")
+    if not target_npc_id and isinstance(action, dict):
+        target_npc_id = action.get("npc_id") or action.get("target_id")
+
+    filtered_recent_turns = []
+    if target_npc_id:
+        other_npc_utterances = set()
+        for other_id, interactions in memory.get("npc_interactions", {}).items():
+            if other_id != target_npc_id and isinstance(interactions, list):
+                for item in interactions:
+                    if isinstance(item, dict) and item.get("text"):
+                        other_npc_utterances.add(item["text"].strip())
+        for turn_item in memory["recent_turns"][-MAX_RECENT_TURNS:]:
+            if turn_item.get("npc_id") and turn_item.get("npc_id") != target_npc_id:
+                continue
+            if turn_item.get("player") and turn_item["player"].strip() in other_npc_utterances:
+                continue
+            filtered_recent_turns.append(turn_item)
+    else:
+        filtered_recent_turns = memory["recent_turns"][-MAX_RECENT_TURNS:]
+
     packet: dict[str, Any] = {
         "authority_boundary": {
             "canonical_state": "authoritative; must not be contradicted",
@@ -655,7 +687,7 @@ def build_narrative_context(
                     "turn_index": turn["turn_index"],
                     "authority": "unverified_player_claim",
                 }
-                for turn in memory["recent_turns"][-MAX_RECENT_TURNS:]
+                for turn in filtered_recent_turns
             ],
             "story_summary": memory["story_summary"],
             "npcs": {entity_id: npc_records[entity_id] for entity_id in selected_npcs},

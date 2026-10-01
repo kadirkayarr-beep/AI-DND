@@ -797,6 +797,7 @@ def is_npc_dialogue_input(player_input):
     if (
         local_dialogue.is_local_dialogue_input(player_input)
         or local_dialogue.explicit_player_name_disclosure(player_input)
+        or _is_player_name_inquiry_to_npc(player_input)
     ):
         return True
     if "?" in text or is_npc_historical_claim(player_input):
@@ -3481,7 +3482,11 @@ def build_world_context(npc_target=None):
                 npc_target
                 and npc.get("id") == npc_target.get("id")
             ) else {})
-            | {"verified_npc_memory": _format_npc_memory(npc.get("memory", []))}
+            | ({
+                "verified_npc_memory": _format_npc_memory(npc.get("memory", []))
+            } if (
+                not npc_target or npc.get("id") == npc_target.get("id")
+            ) else {"verified_npc_memory": []})
             for npc in npcs[:8]
         ],
         "shops": [
@@ -3927,7 +3932,7 @@ def _travel_completion(player_input, model_completion="unclear"):
 
 def _normalize_turkish_typos(text):
     """Accent-fold for matching only; retain the original wording for Qwen."""
-    text = str(text).casefold().translate(str.maketrans({
+    text = str(text).replace("İ", "i").replace("I", "ı").casefold().translate(str.maketrans({
         "ı": "i", "ş": "s", "ç": "c", "ğ": "g", "ö": "o", "ü": "u",
     }))
     text = re.sub(r"[’'`]+", " ", text)
@@ -4216,7 +4221,7 @@ def _mechanical_outcome(player_input):
     return None
 
 
-def _fallback_narration(player_input):
+def _fallback_narration(player_input, npc_target=None):
     world_state = _session().world_state
     outcome = _mechanical_outcome(player_input)
     skill_match = re.search(r"(?im)^Skill:\s*(.+?)\s*$", player_input)
@@ -4233,8 +4238,21 @@ def _fallback_narration(player_input):
         if "Kılıç" in world_state["inventory"]:
             return "Kılıç envanterinde bulunuyor."
 
-    target = resolve_npc_reference(player_input)
-    target_npc = target.get("npc") if target.get("status") == "found" else None
+    if npc_target is not None and isinstance(npc_target, dict):
+        target_npc = npc_target
+    else:
+        target = resolve_npc_reference(player_input)
+        target_npc = target.get("npc") if target.get("status") == "found" else None
+    if target_npc and _is_player_name_inquiry_to_npc(player_input):
+        remembered_name = _historical_player_name_from_npc_memory(target_npc, player_input)
+        is_hitap = bool(re.search(r"\b(?:ad[ıi]mla|ismimle)\s+hitap\b", _normalize_turkish_typos(str(player_input).casefold())))
+        if remembered_name:
+            if is_hitap:
+                return f'{target_npc["name"]}, “Elbette, {remembered_name}. Sana adınla hitap edebilirim,” der.'
+            return f'{target_npc["name"]}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
+        if is_hitap:
+            return f'{target_npc["name"]}, “Bana henüz adını söylemedin; adını bilmeden sana adınla hitap edemem,” der.'
+        return f'{target_npc["name"]}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
     if target_npc and is_npc_historical_claim(player_input) and not npc_memory_supports_claim(target_npc, player_input):
         return historical_claim_denial(target_npc)
     if target_npc and is_npc_historical_claim(player_input):
@@ -4570,6 +4588,56 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
 
     text = narration.casefold()
     input_text = str(player_input).casefold()
+
+    if npc_target and isinstance(npc_target, dict) and npc_target.get("id"):
+        target_name = str(npc_target.get("name", "")).strip()
+        target_id = npc_target.get("id")
+        for other_npc in world_state.get("npcs", []):
+            if not isinstance(other_npc, dict):
+                continue
+            if other_npc.get("id") == target_id:
+                continue
+            other_name = str(other_npc.get("name", "")).strip()
+            if not other_name:
+                continue
+            norm_other = _normalize_turkish_typos(other_name.casefold())
+            norm_narration = _normalize_turkish_typos(text)
+            speaker_pattern = (
+                rf"\b{re.escape(norm_other)}\b.{{0,40}}(?:der|yanit\s+verir|cevap\s+verir|fisildar|konusur|seslenir|soyler)\b|"
+                rf"\b{re.escape(norm_other)},\s*[\"“]|"
+                rf"[\"“][^\"”]{{1,200}}[\"”]\s*(?:diye\s+)?(?:der|yanit\s+verir|cevap\s+verir|fisildar|konusur|seslenir|soyler)\s+{re.escape(norm_other)}\b|"
+                rf"\b{re.escape(norm_other)}\s+sana\s+.{{0,40}}(?:diye\s+)?(?:hitap\s+eder|seslenir|der|yanit\s+verir)\b"
+            )
+            match = re.search(speaker_pattern, norm_narration)
+            if match:
+                return reject("WRONG_NPC_SPEAKER_ATTRIBUTION", other_name)
+
+        other_disclosed_names = set()
+        for other_npc in world_state.get("npcs", []):
+            if not isinstance(other_npc, dict) or other_npc.get("id") == target_id:
+                continue
+            for entry in other_npc.get("memory", []):
+                if isinstance(entry, dict) and entry.get("speaker") == "player":
+                    disclosed = _explicit_player_name_disclosure(entry.get("text", ""))
+                    if disclosed:
+                        other_disclosed_names.add(disclosed.casefold())
+
+        target_known_names = set()
+        for entry in npc_target.get("memory", []):
+            if isinstance(entry, dict) and entry.get("speaker") == "player":
+                disclosed = _explicit_player_name_disclosure(entry.get("text", ""))
+                if disclosed:
+                    target_known_names.add(disclosed.casefold())
+        curr_disclosed = _explicit_player_name_disclosure(player_input)
+        if curr_disclosed:
+            target_known_names.add(curr_disclosed.casefold())
+
+        leaked_names = other_disclosed_names - target_known_names
+        for leaked_name in leaked_names:
+            pat = rf"(?<![a-zçğıöşü]){re.escape(leaked_name)}(?![a-zçğıöşü])"
+            match = re.search(pat, text)
+            if match:
+                return reject("NPC_MEMORY_DISCLOSURE_LEAK", match.group(0))
 
     unsupported_npc_claim = _unsupported_npc_history_or_relationship_claim(
         narration, npc_target=npc_target, player_input=player_input
@@ -6659,7 +6727,8 @@ def ask_dungeon_master(
     npc_dialogue_guidance = ""
     if npc_target:
         npc_dialogue_guidance = (
-            f" Bu tur doğrudan {npc_target.get('name')} adlı {npc_target.get('role')} ile devam eden konuşmadır. "
+            f" Bu tur doğrudan {npc_target.get('name')} adlı {npc_target.get('role')} (ID: {npc_target.get('id')}) ile devam eden konuşmadır. "
+            f"Konuşan ve replik veren kişi kesinlikle yalnızca {npc_target.get('name')} olmalıdır. Başka hiçbir NPC adına konuşma veya replik yazma. "
             "İkinci tekil kişiyle sorulan sorular bu NPC'ye yöneliktir; oyuncuya aynı soruyu geri sorma. "
             "Context'teki PROCEDURAL PERSONAL PROFILE bu NPC'ye ait, kampanya içi gündelik bilgidir; "
             "yalnızca kişisel soruları yanıtlarken kullan ve bunu setting/campaign lore'a yükseltme. "
@@ -6668,6 +6737,7 @@ def ask_dungeon_master(
             "soruyu gerçekten yanıtlayan, tek kısa ve dilbilgisel bir repliği önce ver; çevreyi veya oyuncuyu anlatma. "
             "Python action result açıkça bir teklif içermedikçe iş, ödül, görev veya yardım sözü verme; "
             "Kayıtlı olmayan kişi, olay, eşya, içecek ya da geçmiş ayrıntısı ekleme; bilmediğini sade biçimde söyle. "
+            f"Diğer NPC'lerin bildiklerini veya geçmiş diyaloglarını {npc_target.get('name')} biliyormuş gibi anlatma. "
             "Bu geçici tepkiyi lore gibi sunma veya 'doğrulanmış bilgi yok' kalıbına sığınma. "
             "Önceki cevabı tekrar etme; sadece güncel soruyu yanıtla."
         )
@@ -6859,7 +6929,7 @@ def ask_dungeon_master(
     )
 
 
-def _fallback_for_action_result(player_input, action_result=None):
+def _fallback_for_action_result(player_input, action_result=None, npc_target=None):
     world_state = _session().world_state
     result = action_result if isinstance(action_result, dict) else {}
     action = result.get("action")
@@ -6901,14 +6971,14 @@ def _fallback_for_action_result(player_input, action_result=None):
         outcome = result.get("outcome", "failure")
         door = _current_door()
         if skill == "Stealth":
-            return _fallback_narration(f"gizleniyorum\nResult: {'BAŞARILI' if outcome in ('success', 'critical_success') else 'BAŞARISIZ'}")
+            return _fallback_narration(f"gizleniyorum\nResult: {'BAŞARILI' if outcome in ('success', 'critical_success') else 'BAŞARISIZ'}", npc_target=npc_target)
         if skill in ("Perception", "Investigation"):
-            return _fallback_narration(f"Skill: {skill}\nResult: {'BAŞARILI' if outcome in ('success', 'critical_success') else 'BAŞARISIZ'}")
+            return _fallback_narration(f"Skill: {skill}\nResult: {'BAŞARILI' if outcome in ('success', 'critical_success') else 'BAŞARISIZ'}", npc_target=npc_target)
         if result.get("target_type") == "door":
             if outcome in ("success", "critical_success") and door and door.get("open"):
                 return f"{door.get('name', 'Kapı')} açılır."
             return f"Girişimin başarısız olur; {door.get('name', 'kapı') if door else 'kapı'} kapalı kalır."
-    return _fallback_narration(player_input)
+    return _fallback_narration(player_input, npc_target=npc_target)
 
 
 def _record_narration_safety(decision, handling):
@@ -6966,10 +7036,25 @@ def _remove_trigger_sentence(narration, decision):
     return repaired if removed and repaired else None
 
 
+def _is_player_name_inquiry_to_npc(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = _normalize_turkish_typos(player_input)
+    if bool(re.search(r"\b(?:adim|adimi|ismim|ismimi)\b", text)) and (
+        is_npc_historical_claim(player_input)
+        or bool(re.search(r"\b(?:neydi|biliyor\s+musun|hatirla\w*|soyle\w*|hitap\s+et\w*)\b", text))
+    ):
+        return True
+    if bool(re.search(r"\b(?:adimla|ismimle)\s+hitap\s+et\w*\b", text)):
+        return True
+    return False
+
+
 def _is_historical_player_name_query(player_input):
     normalized_input = _normalize_turkish_typos(str(player_input).casefold())
-    return is_npc_historical_claim(player_input) and bool(
-        re.search(r"\b(?:adimi|ismimi)\b", normalized_input)
+    return (
+        (is_npc_historical_claim(player_input) and bool(re.search(r"\b(?:adimi|ismimi)\b", normalized_input)))
+        or _is_player_name_inquiry_to_npc(player_input)
     )
 
 
@@ -7081,12 +7166,16 @@ def finalize_narration(
             )
             if repaired else None
         )
-        if repaired and repaired_safety and not repaired_safety["unsafe"]:
+        if safety.get("reason_code") in ("WRONG_NPC_SPEAKER_ATTRIBUTION", "NPC_MEMORY_DISCLOSURE_LEAK"):
+            narration = _fallback_for_action_result(player_input, action_result, npc_target=npc_target)
+            decision = safety
+            handling = "python_fallback"
+        elif repaired and repaired_safety and not repaired_safety["unsafe"]:
             narration = repaired
             decision = safety
             handling = "repaired"
         else:
-            narration = _fallback_for_action_result(player_input, action_result)
+            narration = _fallback_for_action_result(player_input, action_result, npc_target=npc_target)
             decision = safety
             handling = "python_fallback"
 
@@ -9230,15 +9319,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             }
             return finish_turn(result, result["direct_response"])
         npc_target = None
-        if (
-            not combat["active"]
-            and not world_subject_question
-            and (
-                is_npc_dialogue_input(player_input)
-                or _explicit_player_name_disclosure(player_input) is not None
-                or _is_historical_player_name_query(player_input)
-            )
-        ):
+        if not combat["active"] and not world_subject_question:
             npc_target = next(
                 (
                     npc
@@ -9270,6 +9351,10 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             if not world_subject_question
             else None
         )
+        if npc_target is not None:
+            flags["last_npc_id"] = npc_target["id"]
+            flags["active_npc_id"] = npc_target["id"]
+            flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
         npc_resolution = (
             {"status": "none", "npc": None}
             if world_subject_question
@@ -9403,11 +9488,17 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             npc_target, player_input
         )
         npc_name = str(npc_target.get("name") or "Kişi")
-        response = (
-            f'{npc_name}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
-            if remembered_name
-            else f'{npc_name}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
-        )
+        is_hitap = bool(re.search(r"\b(?:ad[ıi]mla|ismimle)\s+hitap\b", _normalize_turkish_typos(str(player_input).casefold())))
+        if remembered_name:
+            if is_hitap:
+                response = f'{npc_name}, “Elbette, {remembered_name}. Sana adınla hitap edebilirim,” der.'
+            else:
+                response = f'{npc_name}, “Evet, adının {remembered_name} olduğunu hatırlıyorum,” der.'
+        else:
+            if is_hitap:
+                response = f'{npc_name}, “Bana henüz adını söylemedin; adını bilmeden sana adınla hitap edemem,” der.'
+            else:
+                response = f'{npc_name}, “Bana henüz adını söylemedin; adını bilmiyorum,” der.'
         action_result = {
             "action": "dialogue",
             "status": "answered_from_npc_memory",
