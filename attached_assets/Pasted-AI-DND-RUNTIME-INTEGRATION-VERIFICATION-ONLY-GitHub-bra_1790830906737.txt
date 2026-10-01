@@ -1,0 +1,203 @@
+AI-DND — RUNTIME / INTEGRATION VERIFICATION ONLY
+
+GitHub branch:
+gemini/narrative-authority-rebalance-v1
+
+Beklenen HEAD commit:
+d13989b
+
+Gemini tarafındaki son değişiklikler commit edilip GitHub'a push edildi.
+
+Şimdi Replit runtime ortamında doğrulama yap.
+
+ÖNEMLİ:
+Bu görevde KOD DEĞİŞTİRME.
+Testleri düzeltme.
+Assertion gevşetme.
+Mock/bypass ekleme.
+Commit oluşturma.
+Push yapma.
+
+Önce mevcut Git durumunu kontrol et:
+
+1. git status
+2. git branch --show-current
+3. git rev-parse HEAD
+4. git fetch origin
+5. git rev-parse origin/gemini/narrative-authority-rebalance-v1
+
+Beklenen:
+- branch: gemini/narrative-authority-rebalance-v1
+- HEAD: d13989b
+- origin branch: d13989b
+
+Eğer Replit workspace eski committeyse, sadece güvenli fast-forward ile
+origin branch'e getir:
+
+git pull --ff-only
+
+Eğer working tree dirty ise önce DUR ve raporla.
+Yerel değişiklikleri silme.
+
+---
+
+AŞAMA 1 — FULL DETERMINISTIC TEST
+
+Çalıştır:
+
+python -m unittest discover -s ai-dnd -p "test_*.py"
+
+Sonucu aynen raporla:
+
+- toplam test
+- failures
+- errors
+- skipped
+- duration
+
+Beklenen:
+173 tests
+0 failures
+0 errors
+
+---
+
+AŞAMA 2 — PROJECT DETERMINISTIC GATES
+
+Çalıştır:
+
+python ai-dnd/run_tests.py
+
+Sonucu raporla.
+
+Beklenen:
+18/18 deterministic gates PASS
+
+Eğer komutun proje yapısına göre farklı çalıştırılması gerekiyorsa
+önce mevcut run_tests.py kullanımını incele.
+Dosyayı değiştirme.
+
+---
+
+AŞAMA 3 — TARGETED TESTS
+
+Aşağıdakileri ayrı ayrı doğrula:
+
+- test_shops.py
+- test_narrative_safety_calibration.py
+- test_ai_pipeline_port.py
+
+Sonuçları ayrı ayrı raporla.
+
+---
+
+AŞAMA 4 — API / RUNTIME
+
+Gerçek Replit runtime'ında FastAPI'nin çalıştığını doğrula.
+
+Kontrol et:
+
+- /api/health
+- campaign oluşturma
+- session oluşturma
+- state okuma
+- turn gönderme
+- campaign save
+- campaign resume
+- campaign isolation
+
+SQLite persistence'ın gerçekten çalıştığını doğrula.
+
+Özellikle:
+Campaign A'da oluşturulan NPC/location/memory Campaign B'ye
+sızmamalı.
+
+---
+
+AŞAMA 5 — REAL QWEN
+
+Gerçek Ollama/Qwen bağlantısını doğrula.
+
+Model:
+qwen3:8b
+
+Önce mevcut Ollama/model durumunu kontrol et.
+
+Ardından mevcut live narration smoke testini çalıştır:
+
+python ai-dnd/live_narration_smoke.py
+
+Ancak scriptin mevcut kullanımını önce incele.
+Scripti değiştirme.
+
+Özellikle raporla:
+
+- toplam turn
+- toplam Qwen call
+- turn başına maksimum call
+- başarısız turn
+- fallback sayısı
+- lore evidence validation sonucu
+- narration safety sonucu
+- session/campaign isolation sonucu
+
+ÇOK ÖNEMLİ:
+
+Maximum 2 model call per player turn korunmalı.
+
+Qwen:
+- mechanics resolve etmemeli
+- canonical state değiştirmemeli
+- lore authority olmamalı
+- campaign canon oluşturamamalı
+- unsupported NPC history/relationship claim ürettiğinde
+  canonical memory/state'e yazılmamalı
+
+---
+
+AŞAMA 6 — GERÇEK API SMOKE
+
+Gerçek çalışan API üzerinden en az şu oyuncu akışını doğrula:
+
+1. Yeni campaign oluştur.
+2. Tavernaya git.
+3. "Etrafımda neler var?" de.
+4. Bir NPC ile konuş.
+5. "Benim adım Arven." şeklinde player-name disclosure yap.
+6. Aynı NPC'nin bunu hatırladığını doğrula.
+7. Başka bir NPC'nin bu bilgiyi otomatik olarak bilmediğini doğrula.
+8. Save.
+9. Resume.
+10. State ve memory'nin korunduğunu doğrula.
+
+Narration'da Python state dışında bir gerçek üretilirse bunu ayrıca raporla.
+
+---
+
+AŞAMA 7 — SONUÇ SINIFLANDIRMASI
+
+Sonuçları şu formatta raporla:
+
+A. Git / commit verification
+B. Deterministic unittest
+C. Project gates
+D. API integration
+E. SQLite persistence
+F. Campaign/session isolation
+G. Real Qwen smoke
+H. Manual player-flow smoke
+I. Remaining failures
+J. Recommended next step
+
+Her problem için:
+- gerçek bug
+- test/harness problemi
+- environment problemi
+- beklenen davranış
+ayrımını yap.
+
+Eğer herhangi bir test başarısız olursa:
+KODU DÜZELTME.
+Önce root cause'u raporla.
+
+HİÇBİR COMMIT VE PUSH YAPMA.
