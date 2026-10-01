@@ -286,6 +286,178 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(public_ref["addressable_alias"], "traveler")
         self.assertNotIn("aliases", public_ref)
 
+    def _narration_projection_referent(self, session=None, *, promoted=True):
+        session = session or self.session
+        world = session.world_state
+        world["location"] = self.root_location
+        turn_index = world["flags"]["turn_index"]
+        living_world.ensure_scene_record(world, self.root_location, turn_index)
+        ref = living_world.create_scene_referent(
+            world,
+            self.root_location,
+            turn_index,
+            description="Girişteki ziyaretçi çantasının kayışını düzeltiyor.",
+            aliases=["ziyaretçi", "çantalı yolcu"],
+        )
+        npc = (
+            session._promote_scene_referent(ref, self.root_location)
+            if promoted
+            else session.create_npc_from_ai({
+                "name": "Melis",
+                "role": "Kent sakini",
+                "location": self.root_location,
+            })
+        )
+        self.assertIsNotNone(npc)
+        return ref, npc
+
+    def test_narration_projection_promoted_prompt_uses_persistent_npc(self):
+        ref, npc = self._narration_projection_referent()
+
+        context = json.loads(self.session._living_world_prompt_context())
+
+        self.assertEqual(
+            [item["id"] for item in context["visible_npcs"]],
+            [npc["id"]],
+        )
+        self.assertEqual(context["visible_npcs"][0]["name"], npc["name"])
+        self.assertNotIn(
+            ref["id"],
+            {item["id"] for item in context["background_referents"]},
+        )
+        self.assertEqual(context["background_referents"], [])
+
+    def test_narration_projection_promoted_presence_omits_anonymous_description(self):
+        ref, npc = self._narration_projection_referent()
+
+        presence = self.session._scene_presence_text(self.root_location)
+
+        self.assertIn(npc["name"], presence)
+        self.assertNotIn(ref["description"], presence)
+
+    def test_narration_projection_presented_referent_remains_visible(self):
+        ref, npc = self._narration_projection_referent(promoted=False)
+
+        context = json.loads(self.session._living_world_prompt_context())
+        presence = self.session._scene_presence_text(self.root_location)
+        look = self.session._scene_look_text(self.root_location)
+
+        self.assertEqual(context["background_referents"], [{
+            "id": ref["id"],
+            "lifecycle": "presented",
+            "description": ref["description"],
+        }])
+        self.assertIn(npc["name"], presence)
+        self.assertIn(ref["description"], presence)
+        self.assertIn(ref["description"], look)
+        self.assertEqual(ref["lifecycle"], "presented")
+        self.assertIsNone(ref["promoted_npc_id"])
+
+    def test_narration_projection_preserves_promoted_binding_and_public_metadata(self):
+        ref, npc = self._narration_projection_referent()
+        before = copy.deepcopy(self.world)
+        public_before = living_world.public_scene_projection(
+            self.world, self.world["flags"]["turn_index"]
+        )
+
+        self.session._living_world_prompt_context()
+        self.session._scene_presence_text(self.root_location)
+        self.session._scene_look_text(self.root_location)
+
+        self.assertEqual(self.world, before)
+        self.assertEqual(ref["lifecycle"], "promoted")
+        self.assertEqual(ref["promoted_npc_id"], npc["id"])
+        public_after = living_world.public_scene_projection(
+            self.world, self.world["flags"]["turn_index"]
+        )
+        self.assertEqual(public_after, public_before)
+        public_ref = next(
+            item for item in public_after["referents"] if item["id"] == ref["id"]
+        )
+        self.assertEqual(public_ref["lifecycle"], "promoted")
+        self.assertEqual(public_ref["promoted_npc_id"], npc["id"])
+        self.assertEqual(public_ref["addressable_alias"], ref["aliases"][0])
+        for alias in ref["aliases"]:
+            resolved = living_world.resolve_scene_referent(
+                self.world, alias, self.world["flags"]["turn_index"]
+            )
+            self.assertEqual(resolved["status"], "promoted")
+            self.assertIs(resolved["referent"], ref)
+            self.assertIs(
+                self.session._promote_scene_referent(ref, self.root_location),
+                npc,
+            )
+        self.assertEqual(self.world, before)
+
+    def test_narration_projection_save_load_preserves_binding_and_deduplication(self):
+        ref, npc = self._narration_projection_referent()
+        expected_ref = copy.deepcopy(ref)
+        public_before = living_world.public_scene_projection(
+            self.world, self.world["flags"]["turn_index"]
+        )
+        restored_session = game.create_session(seed=2718)
+        with tempfile.TemporaryDirectory() as directory:
+            save_path = Path(directory) / "promoted-referent-save.json"
+            self.session.save_game(save_path)
+            restored_session.load_game(save_path)
+
+        restored_world = restored_session.world_state
+        restored_ref = next(
+            item for item in restored_world["scene_state"]["scenes"]
+            [self.root_location]["referents"]
+            if item["id"] == expected_ref["id"]
+        )
+        self.assertEqual(restored_ref, expected_ref)
+        self.assertEqual(
+            living_world.public_scene_projection(
+                restored_world, restored_world["flags"]["turn_index"]
+            ),
+            public_before,
+        )
+        resolved = living_world.resolve_scene_referent(
+            restored_world,
+            expected_ref["aliases"][0],
+            restored_world["flags"]["turn_index"],
+        )
+        self.assertEqual(resolved["status"], "promoted")
+        self.assertEqual(resolved["referent"]["promoted_npc_id"], npc["id"])
+        context = json.loads(restored_session._living_world_prompt_context())
+        self.assertEqual(
+            [item["id"] for item in context["visible_npcs"]],
+            [npc["id"]],
+        )
+        self.assertEqual(context["background_referents"], [])
+        self.assertNotIn(
+            expected_ref["description"],
+            restored_session._scene_presence_text(self.root_location),
+        )
+
+    def test_narration_projection_isolates_sessions_and_save_load(self):
+        ref, npc = self._narration_projection_referent()
+        other_session = game.create_session(seed=3141)
+        other_ref, other_npc = self._narration_projection_referent(other_session)
+        self.assertEqual(other_ref["id"], ref["id"])
+        self.assertEqual(other_npc["id"], npc["id"])
+        other_before = other_session.serialize_game_state()
+        default_before = game.serialize_game_state()
+        own_before = self.session.serialize_game_state()
+        restored_session = game.create_session(seed=1618)
+
+        self.session._living_world_prompt_context()
+        self.session._scene_presence_text(self.root_location)
+        with tempfile.TemporaryDirectory() as directory:
+            save_path = Path(directory) / "isolated-promotion-save.json"
+            self.session.save_game(save_path)
+            restored_session.load_game(save_path)
+            restored_session._living_world_prompt_context()
+            restored_session._scene_presence_text(self.root_location)
+
+        self.assertEqual(self.session.serialize_game_state(), own_before)
+        self.assertEqual(other_session.serialize_game_state(), other_before)
+        self.assertEqual(game.serialize_game_state(), default_before)
+        self.assertIsNot(ref, other_ref)
+        self.assertIsNot(npc, other_npc)
+
     def test_observing_referent_does_not_promote_it_to_an_npc(self):
         self.session.plan_living_world_turn("Etrafıma bakıyorum.")
         turn_index = self.world["flags"].get("turn_index", 0) + 1

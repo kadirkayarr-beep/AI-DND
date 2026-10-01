@@ -6579,7 +6579,7 @@ def _living_world_prompt_context(scene_plan=None, npc_target=None):
         }
         for item in scene.get("referents", [])
         if isinstance(item, dict)
-        and item.get("lifecycle") in ("presented", "promoted")
+        and item.get("lifecycle") == "presented"
     ]
     content = {
         "location_id": location_id,
@@ -7130,6 +7130,8 @@ def finalize_narration(
     fallback_reason_code=None,
     supported_player_claims=None,
     target_id=None,
+    *,
+    resolved_fallback_response=None,
 ):
     """Sanitize narration after Python has applied every validated proposal and state change."""
     session = _session()
@@ -7140,17 +7142,36 @@ def finalize_narration(
         "scene_type": _narration_scene_type(action_result),
     }
     handling = "python_fallback" if fallback_reason_code else "accepted"
+
+    def fallback_for_turn(*, default_response=None, **fallback_kwargs):
+        if (
+            fallback_reason_code != "UNVERIFIED_LORE_CLAIM"
+            and isinstance(resolved_fallback_response, str)
+        ):
+            candidate = clean_dm_response(resolved_fallback_response)
+            if candidate.strip() and not _narration_safety_decision(
+                candidate, player_input, npc_target, action_result
+            )["unsafe"]:
+                return candidate
+        if default_response is not None:
+            return default_response
+        return _fallback_for_action_result(
+            player_input, action_result, **fallback_kwargs
+        )
+
     if fallback_reason_code == "UNVERIFIED_LORE_CLAIM":
         narration = _unverified_lore_response(player_input, npc_target)
         handling = "python_fallback"
+    elif fallback_reason_code:
+        narration = fallback_for_turn(default_response=narration)
     if not isinstance(narration, str) or not narration.strip():
-        narration = _fallback_for_action_result(player_input, action_result)
+        narration = fallback_for_turn()
         if not decision["reason_code"]:
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
     narration = clean_dm_response(narration)
     if not narration.strip():
-        narration = _fallback_for_action_result(player_input, action_result)
+        narration = fallback_for_turn()
         if not decision["reason_code"]:
             decision["reason_code"] = "EMPTY_NARRATION"
             handling = "python_fallback"
@@ -7167,7 +7188,7 @@ def finalize_narration(
             if repaired else None
         )
         if safety.get("reason_code") in ("WRONG_NPC_SPEAKER_ATTRIBUTION", "NPC_MEMORY_DISCLOSURE_LEAK"):
-            narration = _fallback_for_action_result(player_input, action_result, npc_target=npc_target)
+            narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
             handling = "python_fallback"
         elif repaired and repaired_safety and not repaired_safety["unsafe"]:
@@ -7175,13 +7196,13 @@ def finalize_narration(
             decision = safety
             handling = "repaired"
         else:
-            narration = _fallback_for_action_result(player_input, action_result, npc_target=npc_target)
+            narration = fallback_for_turn(npc_target=npc_target)
             decision = safety
             handling = "python_fallback"
 
     normalized = re.sub(r"\s+", " ", narration).strip().casefold()
     if any(normalized == old for old in recent_dm_narrations):
-        narration = _fallback_for_action_result(player_input, action_result)
+        narration = fallback_for_turn()
         decision = {
             "reason_code": "REPEATED_NARRATION",
             "trigger_span": None,
@@ -8250,7 +8271,7 @@ def _scene_presence_text(location_id):
     ref_descriptions = [
         ref.get("description")
         for ref in scene.get("referents", [])
-        if ref.get("lifecycle") in ("presented", "promoted")
+        if ref.get("lifecycle") == "presented"
         and isinstance(ref.get("description"), str)
     ]
     if visible:
@@ -9033,6 +9054,9 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         action_result=resolved_turn.action_result,
         fallback_reason_code=fallback_code,
         target_id=target_id or resolved_turn.target_id,
+        resolved_fallback_response=(
+            resolved_turn.fallback_response if narration_only else None
+        ),
     )
 
     final_dict = resolved_turn.raw_result

@@ -1,5 +1,6 @@
 import unittest
 import copy
+import json
 import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -9,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import game
 import local_dialogue
+import living_world
 
 
 class TestNarrativeRebalance(unittest.TestCase):
@@ -643,6 +645,185 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(telemetry["narration_model_calls"], 1)
         self.assertEqual(telemetry["total_model_calls"], 1)
         self.assertEqual(telemetry["narration_source"], "qwen")
+
+
+class ResolvedNarrationFallbackTests(unittest.TestCase):
+    """Resolved Python outcomes survive narration rejection without model retries."""
+
+    def setUp(self):
+        self.session = game.create_session(seed=42)
+        self.session.character["name"] = "Tester"
+        self.world = self.session.world_state
+        self.world["location"] = "tavern"
+        self.world["npcs"] = []
+        self.world["next_npc_number"] = 5
+        self.npc = self.session.create_npc_from_ai({
+            "name": "Darian", "role": "Yolcu", "location": "tavern",
+            "personality": "Kibar.", "appearance": "Sade bir pelerin giymiş.",
+            "relationship": "neutral",
+        })
+        self.world["flags"]["active_npc_id"] = self.npc["id"]
+        living_world.ensure_scene_record(self.world, "tavern", 0)["materialized"] = True
+        self.session.lore_authority_context = game._empty_lore_authority_context()
+        self.player_input = "Onunla kısa bir selamlaşıyorum."
+        self.action = {
+            "action": "dialogue", "status": "answered_smalltalk",
+            "success": True, "npc_id": self.npc["id"], "state_changes": [],
+        }
+        self.resolved_response = self.session._direct_npc_smalltalk_response(
+            self.player_input, self.npc
+        )
+        self.unsafe_response = "Halric başını sallar."
+
+    def finalize(self, narration, candidate):
+        return game.finalize_narration(
+            narration, self.player_input, npc_target=self.npc,
+            action_result=self.action, resolved_fallback_response=candidate,
+            session=self.session,
+        )
+
+    @patch("game.ollama.chat")
+    def test_rejected_smalltalk_preserves_resolved_outcome_and_accounting(self, chat):
+        from api.tests.live_playable_living_world_v1_smoke import _is_fallback_candidate
+
+        chat.return_value = {"message": {"content": json.dumps({
+            "narration": self.unsafe_response, "world_updates": {}, "lore_claims": [],
+        })}}
+        for player_input in (self.player_input, "Onunla selamlaşıyoruz."):
+            with self.subTest(player_input=player_input):
+                self.session.recent_dm_narrations.clear()
+                expected = self.session._direct_npc_smalltalk_response(player_input, self.npc)
+                self.assertTrue(expected)
+                chat.reset_mock()
+                result = self.session.run_player_turn(player_input, target_id=self.npc["id"])
+                self.assertEqual(result["action_result"]["status"], "answered_smalltalk")
+                self.assertEqual(result["action_result"]["npc_id"], "npc_005")
+                self.assertTrue(result["action_result"]["success"])
+                self.assertEqual(result["narration"], expected)
+                diagnostic = self.session.last_narration_safety
+                self.assertEqual(diagnostic["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+                self.assertEqual(diagnostic["trigger_span"], "Halric")
+                self.assertEqual(diagnostic["handling"], "python_fallback")
+                self.assertEqual(diagnostic["tier"], "tier_3_fallback")
+                self.assertTrue(_is_fallback_candidate(diagnostic))
+                telemetry = result["_engine_event_evidence"]["telemetry"]
+                self.assertEqual(telemetry["intent_model_calls"], 0)
+                self.assertEqual(telemetry["narration_model_calls"], 1)
+                self.assertEqual(telemetry["total_model_calls"], 1)
+                self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+                chat.assert_called_once()
+                self.assertEqual([npc["name"] for npc in self.world["npcs"]], ["Darian"])
+
+    def test_resolved_fallback_is_checked_by_existing_safety(self):
+        original = game._narration_safety_decision
+        with patch("game._narration_safety_decision", wraps=original) as decide:
+            result = self.finalize(self.unsafe_response, self.resolved_response)
+        self.assertEqual(result, self.resolved_response)
+        self.assertIn(self.resolved_response, [call.args[0] for call in decide.call_args_list])
+        self.assertEqual(len(self.session.narration_safety_history), 1)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+
+    def test_invalid_or_unsafe_resolved_fallback_keeps_legacy_behavior(self):
+        legacy = self.session._fallback_for_action_result(
+            self.player_input, self.action, npc_target=self.npc
+        )
+        for candidate in (None, "", " \n ", 17, "<think>discard</think>", self.unsafe_response):
+            with self.subTest(candidate=candidate):
+                self.session.recent_dm_narrations.clear()
+                self.assertEqual(self.finalize(self.unsafe_response, candidate), legacy)
+                self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+        self.assertEqual([npc["name"] for npc in self.world["npcs"]], ["Darian"])
+
+    def test_unregistered_name_classifier_remains_strict(self):
+        decision = self.session._narration_safety_decision(
+            self.unsafe_response, self.player_input, self.npc, self.action
+        )
+        self.assertTrue(decision["unsafe"])
+        self.assertEqual(decision["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+        self.assertEqual(decision["trigger_span"], "Halric")
+        self.assertFalse(self.session._narration_safety_decision(
+            self.resolved_response, self.player_input, self.npc, self.action
+        )["unsafe"])
+
+    def test_repetition_keeps_resolved_outcome_and_existing_classification(self):
+        self.session.recent_dm_narrations.append(self.resolved_response.casefold())
+        result = self.finalize(self.unsafe_response, self.resolved_response)
+        self.assertEqual(result, self.resolved_response)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "REPEATED_NARRATION")
+        self.assertEqual(self.session.last_narration_safety["handling"], "python_fallback")
+        self.assertEqual(len(self.session.narration_safety_history), 1)
+
+    def test_accepted_narration_and_existing_repair_still_take_precedence(self):
+        accepted = "Darian başını sallar."
+        self.assertEqual(self.finalize(accepted, self.resolved_response), accepted)
+        self.assertEqual(self.session.last_narration_safety["handling"], "accepted")
+        self.session.recent_dm_narrations.clear()
+        self.assertEqual(self.finalize(accepted + " Kılıcını savurursun.", self.resolved_response), accepted)
+        self.assertEqual(self.session.last_narration_safety["handling"], "repaired")
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "INVENTED_PLAYER_ACTION")
+
+    def test_empty_model_narration_uses_resolved_fallback(self):
+        self.assertEqual(self.finalize("", self.resolved_response), self.resolved_response)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "EMPTY_NARRATION")
+
+    @patch("game.ollama.chat")
+    def test_invalid_model_packet_uses_resolved_fallback_without_retry(self, chat):
+        legacy = self.session._fallback_for_action_result(self.player_input, self.action)
+        result = game.finalize_narration(
+            legacy, self.player_input, npc_target=self.npc, action_result=self.action,
+            fallback_reason_code="INVALID_MODEL_RESPONSE",
+            resolved_fallback_response=self.resolved_response, session=self.session,
+        )
+        self.assertEqual(result, self.resolved_response)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "INVALID_MODEL_RESPONSE")
+        self.assertEqual(self.session.last_narration_safety["handling"], "python_fallback")
+        chat.assert_not_called()
+
+    def test_dedicated_lore_fallback_remains_authoritative(self):
+        expected = self.session._unverified_lore_response(self.player_input, self.npc)
+        result = game.finalize_narration(
+            self.unsafe_response, self.player_input, npc_target=self.npc,
+            action_result=self.action, fallback_reason_code="UNVERIFIED_LORE_CLAIM",
+            resolved_fallback_response=self.resolved_response, session=self.session,
+        )
+        self.assertEqual(result, expected)
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNVERIFIED_LORE_CLAIM")
+
+    def test_other_resolved_action_uses_its_deterministic_fallback(self):
+        self.action.update(action="approach", status="completed")
+        expected = "Darian seni fark edip sana dönüyor."
+        self.assertEqual(self.finalize(self.unsafe_response, expected), expected)
+
+    @patch("game.ollama.chat")
+    def test_proposal_turn_preserves_final_action_fallback(self, chat):
+        chat.return_value = {"message": {"content": json.dumps({
+            "narration": self.unsafe_response,
+            "world_updates": {"create_locations": [{
+                "key": "l1", "name": "Sessiz Avlu", "type": "building",
+                "description": "Sade bir avlu.", "aliases": ["Sessiz Avlu"],
+            }]}, "lore_claims": [],
+        })}}
+        action = {
+            "action": "travel", "status": "awaiting_proposal",
+            "success": False, "completion": "completed",
+            "target_reference": "Sessiz Avlu", "state_changes": [],
+        }
+        resolved = game.ResolvedTurn(
+            action_result=action, fallback_response="Seyahat hedefi henüz doğrulanmadı.",
+            raw_result={"action_result": action, "_engine_event_evidence": {}},
+            allow_new_locations=True, lore_context=self.session.lore_authority_context,
+        )
+        result = self.session._narrate_resolved_turn(
+            resolved, "Sessiz Avlu'ya gidiyorum.", None, None
+        )
+        self.assertEqual(action["status"], "completed")
+        self.assertEqual(action["new_location"], self.world["location"])
+        self.assertEqual(result["narration"], self.session._fallback_for_action_result(
+            "Sessiz Avlu'ya gidiyorum.", action
+        ))
+        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 1)
+        chat.assert_called_once()
 
 
 if __name__ == "__main__":
