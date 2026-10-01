@@ -1,0 +1,81 @@
+AUTHORIZED LIVE VALIDATION — RUN ONE V1.1 LIVE SMOKE
+
+The current candidate has passed the isolated patch review and all offline regression tests.
+
+Current candidate:
+
+HEAD:
+365971e93599f8d8d22af2b96ffabf180f310dc7
+
+Branch:
+candidate/evidence-hardening-v1
+
+Working tree:
+clean
+
+Offline validation:
+- 24/24 focused narration safety tests passed
+- 11/11 lore integration tests passed
+- 49/49 narrative rebalance tests passed
+- 13/13 AI pipeline port tests passed
+- 4/4 narrative director tests passed
+- 77/77 regression tests passed
+
+I explicitly authorize ONE live V1.1 smoke run with real model calls.
+
+Run the existing 30-turn V1.1 playable living-world smoke against the current candidate.
+
+IMPORTANT:
+
+- Run the smoke exactly once.
+- Do not rerun it automatically if something fails.
+- Do not modify gameplay code.
+- Do not modify lore data.
+- Do not modify persistence/save behavior.
+- Do not modify the smoke harness during this run.
+- Do not change fallback budgets.
+- Do not change model-call limits.
+- Do not commit.
+- Do not push.
+- Do not reset.
+- Do not merge.
+- Do not cherry-pick.
+- Do not alter historical smoke reports.
+
+Use the existing V1.1 smoke runner and normal live Qwen configuration.
+
+Do NOT use --help.
+Do NOT use a dry-run.
+Do NOT substitute an offline test.
+
+After the single run finishes, report:
+
+1. Exact report directory.
+2. Recorded candidate SHA.
+3. Final status.
+4. review_status.
+5. Completed turns / total turns.
+6. evidence_incomplete.
+7. narration-review.json existence.
+8. Number of narration-review entries.
+9. Whether turn IDs 1–30 are complete and unique.
+10. Whether all 30 entries contain:
+    - exact player input
+    - final narration
+    - narration provenance
+    - safety metadata
+    - fallback metadata
+11. Whether narration telemetry matches API audit.
+12. Save/resume comparison results.
+13. Total reported model calls and observed model calls.
+14. Maximum model calls per turn.
+15. Ordinary fallback candidate count.
+16. Turn 24 exact final narration, source/provenance, safety reason, and fallback status.
+17. Turn 29 exact final narration, action result, retrieved fact IDs, model calls, and fallback status.
+18. Whether any new evidence/reporting mismatch occurred.
+
+Do not reproduce the entire 30-turn report.
+
+After reporting, STOP.
+
+No commit or push.
