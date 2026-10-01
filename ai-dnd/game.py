@@ -4556,6 +4556,68 @@ def _unsupported_npc_history_or_relationship_claim(narration, npc_target=None, p
     return None
 
 
+_PLAYER_MENTAL_STATE_PREFIXES = (
+    "anla", "kavra", "dusun", "inan", "guven", "hatirla", "unut",
+    "kork", "urk", "endiselen", "kaygilan", "sevin", "uzul", "utan",
+    "hoslan", "ist", "arzu", "niyet", "plan", "tercih", "sec",
+)
+_PLAYER_MENTAL_STATE_CONTEXT_RE = re.compile(
+    r"\b(?:fark|idrak|karar|kabul|redd|tercih|arzu|niyet|plan|"
+    r"memnun|mutlu|mutsuz|hosnut|uzgun|endiseli|kaygili|heyecan|"
+    r"keyif|gurur|rahatsiz|hosuna)\b"
+)
+_PLAYER_MENTAL_STATE_COPULA_RE = re.compile(
+    r"\b(?:mutlu|mutsuz|memnun|hoşnut|üzgün|endişeli|kaygılı|"
+    r"korkmuş|heyecanlı|kararsız|niyetli|kararlı|istekli)"
+    r"(?:sın|sin|sun|sün)\b"
+)
+_PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE = re.compile(
+    r"\b(?:oyuncu|karakter(?:in)?|kahraman(?:ın)?)\b[^.!?;]{0,48}\b"
+    r"(?:anla|kavra|düşün|inan|güven|hatırla|unut|kork|ürk|"
+    r"endişelen|kaygılan|sevin|üzül|utan|hoşlan|iste|arzu\s+et|"
+    r"niyetlen|planla|tercih\s+et|seç|fark\s+et|idrak\s+et|"
+    r"mutlu\s+ol|mutsuz\s+ol|memnun\s+ol|hoşnut\s+ol|üzgün\s+ol|"
+    r"karar\s+ver|kabul\s+et|reddet)"
+    r"\w*(?:d[ıiuü]|t[ıiuü]|yor|m[ıiuü]ş|acak|ecek|r)\b"
+)
+_PLAYER_MENTAL_STATE_AFFECT_RE = re.compile(
+    r"\bseni\b[^.!?;]{0,28}\b(?:korkut|mutlu\s+et|mutsuz\s+et|"
+    r"memnun\s+et|rahatsız\s+et|endişelendir)\w*\b"
+)
+
+
+def _unverified_player_mental_state_trigger(player_action_text, second_person_verb):
+    for match in second_person_verb.finditer(player_action_text):
+        normalized_verb = _normalize_turkish_typos(match.group(0))
+        if normalized_verb.endswith(
+            ("abilirsin", "ebilirsin", "abilirsiniz", "ebilirsiniz",
+             "malisin", "melisin", "malisiniz", "melisiniz")
+        ):
+            continue
+        if normalized_verb.startswith(_PLAYER_MENTAL_STATE_PREFIXES):
+            return match.group(0)
+
+        clause_prefix = re.split(
+            r"[.!?;]", player_action_text[:match.start()]
+        )[-1]
+        context = _normalize_turkish_typos(clause_prefix[-45:])
+        if (
+            normalized_verb.startswith(("ol", "et", "ed", "ver", "al", "duy", "kal", "his", "gor"))
+            and _PLAYER_MENTAL_STATE_CONTEXT_RE.search(context)
+        ):
+            return match.group(0)
+
+    for pattern in (
+        _PLAYER_MENTAL_STATE_COPULA_RE,
+        _PLAYER_MENTAL_STATE_EXPLICIT_SUBJECT_RE,
+        _PLAYER_MENTAL_STATE_AFFECT_RE,
+    ):
+        match = pattern.search(player_action_text)
+        if match:
+            return match.group(0)
+    return None
+
+
 def _narration_safety_decision(narration, player_input, npc_target=None, action_result=None):
     """Return a reason-coded safety decision without changing canonical state."""
     world_state = _session().world_state
@@ -4835,6 +4897,12 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
         ):
             continue
         return reject("INVENTED_PLAYER_ACTION", match.group(0))
+
+    mental_state_trigger = _unverified_player_mental_state_trigger(
+        player_action_text, second_person_verb
+    )
+    if mental_state_trigger:
+        return reject("INVENTED_PLAYER_MENTAL_STATE", mental_state_trigger)
 
     unsupported_goal = re.search(
         r"\b(?:izini|yolunu|gizli yolu|kaynağı)\b.{0,55}"
@@ -7030,7 +7098,8 @@ def _record_narration_safety(decision, handling):
 def _remove_trigger_sentence(narration, decision):
     """Remove one complete unsafe sentence only for deterministic agency repairs."""
     if decision.get("reason_code") not in {
-        "INVENTED_PLAYER_ACTION", "INVENTED_PLAYER_OBJECTIVE"
+        "INVENTED_PLAYER_ACTION", "INVENTED_PLAYER_OBJECTIVE",
+        "INVENTED_PLAYER_MENTAL_STATE",
     }:
         return None
     trigger = str(decision.get("trigger_span") or "").casefold()

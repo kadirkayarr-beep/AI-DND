@@ -224,6 +224,57 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
                 self.assertTrue(decision["unsafe"], decision)
                 self.assertEqual(decision["reason_code"], expected_reason)
 
+    def test_unverified_player_mental_state_claims_are_rejected(self):
+        cases = (
+            ("Bu hareketin ne anlama geldiğini henüz anlamadın.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Karanlıkta korktun.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Bu haber seni memnun etti.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Mutlusun.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Pazarlığı kabul ettin.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Onun yalan söylediğine karar verdin.", "INVENTED_PLAYER_ACTION"),
+            ("Bu fikri istedin.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Oyuncu bunu anladı.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Oyuncu bunu kabul etti.", "INVENTED_PLAYER_MENTAL_STATE"),
+            ("Karakter mutlu oldu.", "INVENTED_PLAYER_MENTAL_STATE"),
+        )
+        for narration, expected_reason in cases:
+            with self.subTest(narration=narration):
+                decision = self.decide(narration)
+                self.assertTrue(decision["unsafe"], decision)
+                self.assertEqual(decision["reason_code"], expected_reason)
+
+    def test_npc_gestures_and_temporary_atmosphere_remain_allowed(self):
+        cases = (
+            "Gromm sessizce gülümser.",
+            "Gromm başını sallayarak selam verir.",
+            "Atmosferdeki sıcaklık hafifçe değişiyor.",
+        )
+        for narration in cases:
+            with self.subTest(narration=narration):
+                decision = self.decide(narration)
+                self.assertFalse(decision["unsafe"], decision)
+
+    def test_mental_state_repair_removes_only_the_unsafe_sentence(self):
+        output = self.finalize_narration(
+            "Gromm kaşını kaldırır. "
+            "Bu hareketin ne anlama geldiğini henüz anlamadın. "
+            "Yağmur pencereye vurur.",
+            "Etrafıma bakıyorum.",
+            action_result={
+                "action": "explore",
+                "status": "resolved",
+                "explore_type": "observe",
+            },
+        )
+        self.assertIn("Gromm kaşını kaldırır.", output)
+        self.assertIn("Yağmur pencereye vurur.", output)
+        self.assertNotIn("anlamadın", output)
+        self.assertEqual(
+            self.session.last_narration_safety["reason_code"],
+            "INVENTED_PLAYER_MENTAL_STATE",
+        )
+        self.assertEqual(self.session.last_narration_safety["handling"], "repaired")
+
     def test_canonical_assertion_corpus_is_rejected(self):
         cases = (
             ("Can puanın 20'ye çıkar.", "CANONICAL_HP_CONTRADICTION"),
