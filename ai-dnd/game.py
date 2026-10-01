@@ -9298,7 +9298,20 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         if quest_transitions:
             action_result["quest_outcomes"] = quest_transitions
         fallback_text = action_result.get("direct_response", "Çevredeki hareketliliği gözlüyorsun.")
-        if action_result.get("action") == "explore":
+        current_loc = world_state.get("location")
+        loc_record = (
+            world_state.get("locations", {}).get(current_loc, {})
+            if isinstance(world_state.get("locations"), dict)
+            else {}
+        )
+        is_city_scene = (
+            living_world.scene_kind(world_state, current_loc) == "city"
+            or (
+                isinstance(loc_record, dict)
+                and loc_record.get("type") in ("city", "town", "village", "settlement", "şehir")
+            )
+        )
+        if action_result.get("action") == "explore" and not (scene_plan.get("action") == "look" and is_city_scene):
             return finish_turn(action_result, fallback_text, quest_transitions)
         return finish_turn(
             action_result,
