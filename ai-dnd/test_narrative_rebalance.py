@@ -520,6 +520,130 @@ class TestNarrativeRebalance(unittest.TestCase):
             f"Expected fallback denial, got: {output}"
         )
 
+    # 32. canonical city ID resolves deterministically with 0 model calls
+    def test_32_canonical_city_id_look_is_deterministic_zero_model_calls(self):
+        self.session.world_state["location"] = "fr:city:waterdeep"
+        self.session.world_state["locations"] = {
+            "fr:city:waterdeep": {"id": "fr:city:waterdeep", "name": "Waterdeep"}
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafımda neler var?")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["narration_source"], "deterministic_system")
+        self.assertIn("Waterdeep", result["narration"])
+
+    # 33. city display-name/alias resolves deterministically with 0 model calls
+    def test_33_city_display_alias_look_is_deterministic_zero_model_calls(self):
+        self.session.world_state["location"] = "Waterdeep"
+        self.session.world_state["locations"] = {
+            "fr:city:waterdeep": {
+                "id": "fr:city:waterdeep",
+                "name": "Waterdeep",
+                "aliases": ["waterdeep"],
+            }
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafıma bakıyorum.")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["narration_source"], "deterministic_system")
+        self.assertIn("Waterdeep", result["narration"])
+
+    # 34. sub-location with city parent resolves deterministically with 0 model calls
+    def test_34_sublocation_with_city_parent_look_is_deterministic_zero_model_calls(self):
+        self.session.world_state["location"] = "loc_market_square"
+        self.session.world_state["locations"] = {
+            "fr:city:neverwinter": {"id": "fr:city:neverwinter", "name": "Neverwinter"},
+            "loc_market_square": {
+                "id": "loc_market_square",
+                "name": "Pazar Meydanı",
+                "parent_location_id": "fr:city:neverwinter",
+            },
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafımda neler var?")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["narration_source"], "deterministic_system")
+
+    # 35. district location resolves deterministically with 0 model calls
+    def test_35_district_look_is_deterministic_zero_model_calls(self):
+        self.session.world_state["location"] = "loc_sea_ward"
+        self.session.world_state["locations"] = {
+            "fr:city:waterdeep": {"id": "fr:city:waterdeep", "name": "Waterdeep"},
+            "loc_sea_ward": {
+                "id": "loc_sea_ward",
+                "name": "Sea Ward",
+                "type": "district",
+                "parent_location_id": "fr:city:waterdeep",
+            },
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafıma bakıyorum.")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["narration_source"], "deterministic_system")
+
+    # 36. street location resolves deterministically with 0 model calls
+    def test_36_street_look_is_deterministic_zero_model_calls(self):
+        self.session.world_state["location"] = "loc_high_road"
+        self.session.world_state["locations"] = {
+            "fr:city:neverwinter": {"id": "fr:city:neverwinter", "name": "Neverwinter"},
+            "loc_high_road": {
+                "id": "loc_high_road",
+                "name": "High Road",
+                "type": "street",
+                "parent_location_id": "fr:city:neverwinter",
+            },
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafımda neler var?")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["total_model_calls"], 0)
+        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["narration_source"], "deterministic_system")
+
+    # 37. tavern exploration preserves 1 Qwen model call
+    @patch("game.ollama.chat")
+    def test_37_tavern_exploration_preserves_one_model_call(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Tavernanın loş ışıkları masalara vuruyor.", "lore_claims": [], "world_updates": {}}'
+        )
+        self.session.world_state["location"] = "l_tavern"
+        self.session.world_state["locations"] = {
+            "l_tavern": {"id": "l_tavern", "name": "Eski Han", "type": "tavern", "scene_kind": "tavern"}
+        }
+        self.session.world_metadata = {"environment": "city"}
+        result = self.session.run_player_turn("Etrafımda neler var?")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["narration_source"], "qwen")
+
+    # 38. forest exploration preserves 1 Qwen model call
+    @patch("game.ollama.chat")
+    def test_38_forest_exploration_preserves_one_model_call(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"valid_response": true, "narration": "Ağaçların arasından rüzgarın uğultusu duyuluyor.", "lore_claims": [], "world_updates": {}}'
+        )
+        self.session.world_state["location"] = "forest"
+        self.session.world_state["locations"] = {
+            "forest": {"id": "forest", "name": "Karanlık Orman", "type": "forest", "scene_kind": "wilderness"}
+        }
+        self.session.world_metadata = {"environment": "wilderness"}
+        result = self.session.run_player_turn("Etrafıma bakıyorum.")
+        telemetry = result["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(telemetry["intent_model_calls"], 0)
+        self.assertEqual(telemetry["narration_model_calls"], 1)
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        self.assertEqual(telemetry["narration_source"], "qwen")
+
 
 if __name__ == "__main__":
     unittest.main()

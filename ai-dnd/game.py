@@ -8676,14 +8676,20 @@ def plan_living_world_turn(player_input, target_id=None):
                 "state_changes": [],
                 "direct_response": _scene_presence_text(current),
             }
-        elif action == "look" and current in world_state.get("locations", {}):
-            direct = {
-                "action": "explore",
-                "status": "observed",
-                "success": True,
-                "state_changes": [],
-                "direct_response": _scene_look_text(current),
-            }
+        elif action == "look":
+            look_location = (
+                current
+                if current in world_state.get("locations", {})
+                else (resolve_location_reference(current) if isinstance(current, str) else None)
+            )
+            if look_location and look_location in world_state.get("locations", {}):
+                direct = {
+                    "action": "explore",
+                    "status": "observed",
+                    "success": True,
+                    "state_changes": [],
+                    "direct_response": _scene_look_text(look_location),
+                }
         elif action == "approach":
             if resolved_npc:
                 _set_scene_active_npc(resolved_npc, turn_index)
@@ -9069,6 +9075,20 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
     return final_dict
 
 
+def _is_canonical_city_id(loc_id):
+    if not isinstance(loc_id, str):
+        return False
+    lid = loc_id.casefold()
+    return (
+        lid in ("city", "town", "village", "settlement")
+        or ":city:" in lid
+        or ":town:" in lid
+        or ":village:" in lid
+        or ":settlement:" in lid
+        or lid.startswith(("city:", "town:", "village:", "settlement:"))
+    )
+
+
 def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
     intent_model_calls = 0
@@ -9299,17 +9319,73 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             action_result["quest_outcomes"] = quest_transitions
         fallback_text = action_result.get("direct_response", "Çevredeki hareketliliği gözlüyorsun.")
         current_loc = world_state.get("location")
+        locations = world_state.get("locations", {}) if isinstance(world_state.get("locations"), dict) else {}
         loc_record = (
-            world_state.get("locations", {}).get(current_loc, {})
-            if isinstance(world_state.get("locations"), dict)
+            locations.get(current_loc, {})
+            if isinstance(locations, dict)
             else {}
         )
-        is_city_scene = (
-            living_world.scene_kind(world_state, current_loc) == "city"
+        resolved_loc = (
+            resolve_location_reference(current_loc)
+            if not loc_record and isinstance(current_loc, str)
+            else current_loc
+        )
+        if resolved_loc and resolved_loc != current_loc and isinstance(locations, dict):
+            loc_record = locations.get(resolved_loc, {}) or loc_record
+
+        current_kind = living_world.scene_kind(world_state, current_loc)
+        resolved_kind = living_world.scene_kind(world_state, resolved_loc) if resolved_loc else "quiet"
+        loc_type = str(loc_record.get("type", "")).casefold()
+        loc_name = str(loc_record.get("name", "")).casefold()
+        is_non_city = (
+            current_kind in ("tavern", "wilderness", "building")
+            or resolved_kind in ("tavern", "wilderness", "building")
+            or loc_type in ("tavern", "wilderness", "forest", "inn", "building", "dungeon", "cave")
+            or current_loc in ("tavern", "forest")
+            or (isinstance(resolved_loc, str) and resolved_loc in ("tavern", "forest"))
+            or bool(living_world._TAVERN_RE.search(loc_name))
+        )
+
+        anchor_id = (
+            living_world.location_anchor_id(world_state, current_loc)
+            or living_world.location_anchor_id(world_state, resolved_loc)
+            if isinstance(locations, dict)
+            else None
+        )
+        anchor_record = (
+            locations.get(anchor_id, {})
+            if isinstance(locations, dict) and anchor_id
+            else {}
+        )
+        anchor_kind = living_world.scene_kind(world_state, anchor_id) if anchor_id else "quiet"
+        world_meta = getattr(_session(), "world_metadata", None)
+        env_meta = world_meta.get("environment") if isinstance(world_meta, dict) else None
+
+        is_city_scene = not is_non_city and (
+            current_kind == "city"
+            or resolved_kind == "city"
+            or anchor_kind == "city"
+            or _is_canonical_city_id(current_loc)
+            or _is_canonical_city_id(resolved_loc)
+            or _is_canonical_city_id(anchor_id)
+            or _is_canonical_city_id(loc_record.get("id"))
+            or _is_canonical_city_id(loc_record.get("canonical_entity_id"))
+            or _is_canonical_city_id(loc_record.get("lore_entity_id"))
             or (
                 isinstance(loc_record, dict)
-                and loc_record.get("type") in ("city", "town", "village", "settlement", "şehir")
+                and loc_record.get("type") in (
+                    "city", "town", "village", "settlement", "şehir", "district",
+                    "street", "square", "market", "kasaba", "köy", "cadde", "sokak",
+                    "meydan", "mahalle"
+                )
             )
+            or (
+                isinstance(anchor_record, dict)
+                and anchor_record.get("type") in (
+                    "city", "town", "village", "settlement", "şehir", "district", "kasaba", "köy"
+                )
+            )
+            or env_meta in ("city", "village", "town")
         )
         if action_result.get("action") == "explore" and not (scene_plan.get("action") == "look" and is_city_scene):
             return finish_turn(action_result, fallback_text, quest_transitions)
