@@ -1,0 +1,68 @@
+The checkout is now verified at the approved commit:
+
+Branch:
+gemini/narrative-authority-rebalance-v1
+
+HEAD:
+b18bdf4f83cbe80119f55dca4ef9767368f78ed9
+
+Working tree:
+clean
+
+Now run ONE live 30-turn playable-living-world-v1.1 smoke using the real configured Qwen runtime.
+
+IMPORTANT:
+- Do not modify any source files.
+- Do not modify tests.
+- Do not commit.
+- Do not push.
+- Do not merge.
+- Do not reset.
+- Do not change branches.
+- Do not change fallback budgets.
+- Do not change safety rules.
+- Do not make any model-call/retry changes.
+- Do not rerun the smoke if it fails.
+- This is exactly ONE live smoke run.
+
+Use the existing prescribed command:
+
+cd ai-dnd && python -m api.tests.live_playable_living_world_v1_1_smoke --review-narrations
+
+Before running, only verify that this command and the --review-narrations option are available in the current checkout. Do not edit anything if they are missing; stop and report.
+
+Capture the complete stdout/stderr to a file as well as preserving the smoke's normal report artifacts. Use a persistent external capture such as:
+
+/home/runner/AI-DND-final-smoke-output.txt
+
+Do not substitute narration from any previous run.
+
+After the run, report ONLY evidence from this exact run:
+
+1. Exit code.
+2. Exact report directory.
+3. Final status.
+4. Review status.
+5. Number of completed turns.
+6. evidence_incomplete.
+7. ordinary fallback count.
+8. maximum model calls observed per turn.
+9. Save/resume comparison result.
+10. State/lore/memory/NPC continuity result.
+11. Whether narration-review.json exists.
+12. Number of exact narration entries in narration-review.json.
+13. Whether failure-evidence.json exists; if so, identify the failed turn.
+14. All Tier 2 repair events, if any.
+15. Any smoke validation failure and its exact reason.
+16. Capture-file path and size.
+17. git HEAD and git status after the run.
+
+IMPORTANT FOR THE FINAL REPORT:
+- Do not call a 30/30 run PASS merely because all mechanics completed.
+- Keep REVIEW_PENDING if human narration review is still required.
+- Do not claim narration quality is approved.
+- Do not use evidence from any previous smoke.
+- If all 30 turns complete, explicitly confirm that turns 1–30 were produced by this exact run.
+- If the run stops before turn 30, do not rerun it.
+
+Stop after reporting.
