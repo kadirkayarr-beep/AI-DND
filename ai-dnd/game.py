@@ -5920,6 +5920,23 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
             for name in names
         )
     }
+    if (
+        "current_ruler" in query_intents
+        and re.search(
+            r"\b(?:this\s+(?:city|town|settlement)|current\s+"
+            r"(?:city|town|settlement)|bu\s+(?:sehir|sehr|kent|yer)\w*|"
+            r"burada\w*|here)\b",
+            normalized_input,
+        )
+    ):
+        current_location_entity_id = diagnostics.get(
+            "current_location_entity_id"
+        )
+        if (
+            isinstance(current_location_entity_id, str)
+            and current_location_entity_id in names_by_id
+        ):
+            mentioned_ids.add(current_location_entity_id)
     if not mentioned_ids:
         return None
 
@@ -9250,6 +9267,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             "explicitly_declined", "unsupported_combat_action",
             "player_unconscious", "unverified", "clarification",
             "answered_from_npc_memory", "answered_from_campaign_state",
+            "answered_from_loaded_lore",
         ):
             system_deterministic = True
         elif action in ("shop_economy", "shop_inquiry", "character_query"):

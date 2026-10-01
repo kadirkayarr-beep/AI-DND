@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import copy
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import game
-from api.lore_authority import BindingStatus, CampaignLoreState
+from api.lore_authority import (
+    BindingStatus,
+    CampaignLoreState,
+    PRODUCTION_REGISTRY,
+)
 from api.main import _lore_context_for_turn, _stage_engine_lore_state
 from api.session_manager import SessionManager
 
@@ -330,6 +336,13 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                         world_state,
                     )
                 )
+        self.assertIsNone(
+            game._supported_lore_question_response(
+                "Does King Vharion rule Neverwinter?",
+                context,
+                world_state,
+            )
+        )
         self.assertFalse(
             game._player_question_has_unverified_lore_claim(
                 "How is Neverwinter rebuilding?",
@@ -787,6 +800,99 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         }
         with self.assertRaises(ValueError):
             _stage_engine_lore_state(state, wrong_auth_evidence, action_result, before_world, after_world)
+
+    def test_turkish_current_city_ruler_is_deterministic_and_fails_closed(self):
+        question = "Bu şehrin hükümdarı kim?"
+        session = game.GameSession(seed=11)
+        session.world_state["location"] = "fr:city:neverwinter"
+        session.world_state["npcs"] = [
+            {
+                "id": "npc:elara",
+                "name": "Elara",
+                "role": "Guide",
+                "location": "fr:city:neverwinter",
+                "memory": [],
+                "knowledge": [],
+            }
+        ]
+        initial_world_state = copy.deepcopy(session.world_state)
+        session.lore_authority_context = PRODUCTION_REGISTRY.retrieve_lore_context(
+            current_location_id="fr:city:neverwinter",
+            player_message=question,
+            mentioned_entity_ids=set(),
+            campaign_state=CampaignLoreState.legacy_unbound(),
+        )
+
+        with (
+            patch.object(
+                game,
+                "ask_dungeon_master",
+                side_effect=AssertionError(
+                    "Supported lore answers must not call the model."
+                ),
+            ) as narration_model,
+            patch.object(
+                game,
+                "parse_player_intent",
+                side_effect=AssertionError(
+                    "Supported lore answers must not call the model."
+                ),
+            ) as intent_model,
+        ):
+            result = session.run_player_turn(question, scene_plan={})
+            targeted_result = session.run_player_turn(
+                question,
+                target_id="npc:elara",
+                scene_plan={},
+            )
+            unsupported_result = session.run_player_turn(
+                "Does King Vharion rule Neverwinter?",
+                scene_plan={},
+            )
+
+        self.assertEqual(
+            result["action_result"]["status"],
+            "answered_from_loaded_lore",
+        )
+        self.assertEqual(
+            result["narration"],
+            "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+        )
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+        self.assertEqual(
+            targeted_result["action_result"]["status"],
+            "answered_from_loaded_lore",
+        )
+        self.assertEqual(
+            targeted_result["narration"],
+            result["narration"],
+        )
+        self.assertNotIn("npc_id", targeted_result["action_result"])
+        self.assertEqual(
+            unsupported_result["action_result"]["status"],
+            "unverified",
+        )
+        self.assertNotIn(
+            "Dagult Neverember",
+            unsupported_result["narration"],
+        )
+        self.assertEqual(
+            unsupported_result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+        self.assertEqual(result["action_result"]["state_changes"], [])
+        self.assertEqual(targeted_result["action_result"]["state_changes"], [])
+        self.assertEqual(unsupported_result["action_result"]["state_changes"], [])
+        expected_world_state = copy.deepcopy(initial_world_state)
+        expected_world_state.setdefault("flags", {})["turn_index"] = (
+            expected_world_state.get("flags", {}).get("turn_index", 0) + 3
+        )
+        self.assertEqual(session.world_state, expected_world_state)
+        narration_model.assert_not_called()
+        intent_model.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,7 @@ from api.lore_authority import (
     LoreFact,
     LoreLayer,
     LoreRegistry,
+    PRODUCTION_REGISTRY,
     Relationship,
     ResolutionStatus,
     ReviewStatus,
@@ -799,6 +800,89 @@ class LoreAuthorityTests(unittest.TestCase):
                 item["canonical_name"]
                 for item in broad["sections"]["verified_entities"]
             },
+        )
+
+    def test_turkish_current_city_ruler_queries_use_bound_location_only(self):
+        for wording in (
+            "Bu şehrin hükümdarı kim?",
+            "Bu şehirde hükümdar kim?",
+        ):
+            with self.subTest(wording=wording):
+                packet = PRODUCTION_REGISTRY.retrieve_lore_context(
+                    current_location_id="fr:city:neverwinter",
+                    player_message=wording,
+                    mentioned_entity_ids=set(),
+                    campaign_state=CampaignLoreState.legacy_unbound(),
+                )
+                self.assertEqual(
+                    packet["diagnostics"]["selected_fact_ids"],
+                    ["fr:fact:dagult_neverember_current_lord"],
+                )
+                self.assertIn(
+                    "current_ruler",
+                    packet["diagnostics"]["query_intents"],
+                )
+                self.assertEqual(
+                    packet["diagnostics"]["current_location_entity_id"],
+                    "fr:city:neverwinter",
+                )
+
+        two_city_registry = verified_registry(
+            entities=[
+                entity("world:test", "Forgotten Realms"),
+                entity("region:north", "The North"),
+                entity("city:neverwinter", "Neverwinter"),
+                entity("city:waterdeep", "Waterdeep"),
+                entity("person:dagult", "Dagult Neverember"),
+                entity("person:laeral", "Laeral Silverhand"),
+            ],
+            facts=[
+                fact(
+                    "fact:neverwinter:current-lord",
+                    "city:neverwinter",
+                    "current_lord_id",
+                    "person:dagult",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+                fact(
+                    "fact:waterdeep:current-lord",
+                    "city:waterdeep",
+                    "current_lord_id",
+                    "person:laeral",
+                    visibility="REGIONAL_KNOWLEDGE",
+                    region_scope="region:north",
+                ),
+            ],
+        )
+        waterdeep_state = CampaignLoreState.from_mapping({
+            "binding_status": "BOUND",
+            "setting_profile": "TEST_SETTING",
+            "world_id": "world:test",
+            "epoch_id": "epoch:test",
+            "region_id": "region:north",
+            "current_location_entity_id": "city:waterdeep",
+            "starting_location_entity_id": "city:waterdeep",
+            "region_pack_id": "test:pack",
+            "player_known_fact_ids": [],
+            "npc_known_fact_ids": {},
+            "campaign_overrides": [],
+            "procedural_entity_refs": [],
+            "lore_discoveries": [],
+        })
+        waterdeep_packet = two_city_registry.retrieve_lore_context(
+            current_location_id="city:waterdeep",
+            player_message="Bu şehrin hükümdarı kim?",
+            mentioned_entity_ids=set(),
+            campaign_state=waterdeep_state,
+        )
+        self.assertEqual(
+            waterdeep_packet["diagnostics"]["selected_fact_ids"],
+            ["fact:waterdeep:current-lord"],
+        )
+        self.assertNotIn(
+            "fact:neverwinter:current-lord",
+            waterdeep_packet["diagnostics"]["selected_fact_ids"],
         )
 
 

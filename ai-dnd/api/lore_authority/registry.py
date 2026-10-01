@@ -50,7 +50,9 @@ _QUERY_SYNONYMS = {
     "kraliçe": {"lord"},
     "kral": {"lord"},
     "hükümdar": {"lord"},
+    "hükümdarı": {"lord"},
     "hukumdar": {"lord"},
+    "hukumdari": {"lord"},
     "route": {"road"},
     "safety": {"safe"},
     "distance": {"miles", "kilometers", "km"},
@@ -87,6 +89,21 @@ _DISTINCT_RELATION_QUERY_RE = re.compile(
     r"\b(?:same|identical|distinct|different|aynı|ayni|farklı|farkli)\b",
     re.IGNORECASE,
 )
+_CURRENT_RULER_QUERY_RE = re.compile(
+    r"\b(?:king\w*|queen\w*|monarch\w*|ruler\w*|lord\w*|leader\w*|"
+    r"rul\w*|h[üu]k[üu]mdar\w*|kral\w*|krali[cç]e\w*|yonet\w*)\b",
+    re.IGNORECASE,
+)
+_QUESTION_SIGNAL_RE = re.compile(
+    r"(?:\?|\b(?:who|whose|kim|kimin)\b)",
+    re.IGNORECASE,
+)
+_CURRENT_LOCATION_REFERENCE_RE = re.compile(
+    r"\b(?:this\s+(?:city|town|settlement)|current\s+(?:city|town|settlement)|"
+    r"bu\s+(?:şehir|şehr|sehir|sehr|kent|yer)\w*|burada\w*|here)\b",
+    re.IGNORECASE,
+)
+_CURRENT_RULER_PREDICATES = frozenset({"current_lord", "current_lord_id"})
 _OVERVIEW_PREDICATE_PRIORITY = {
     "known_as": 0,
     "known_for": 1,
@@ -119,6 +136,11 @@ def _query_intents(value: str | None) -> frozenset[str]:
         intents.add("purpose")
     if _DISTINCT_RELATION_QUERY_RE.search(text):
         intents.add("distinct_relation")
+    if (
+        _CURRENT_RULER_QUERY_RE.search(text)
+        and _QUESTION_SIGNAL_RE.search(text)
+    ):
+        intents.add("current_ruler")
     return frozenset(intents)
 
 
@@ -525,6 +547,12 @@ class LoreRegistry:
         query_terms = _query_terms(player_message)
         query_intents = _query_intents(player_message)
         broad_query = "overview" in query_intents
+        current_location_reference = bool(
+            isinstance(player_message, str)
+            and _CURRENT_LOCATION_REFERENCE_RE.search(
+                normalize_name(player_message)
+            )
+        )
         mentioned_ids = set(mentioned_entity_ids)
         quest_fact_ids = set(active_quest_fact_ids)
         quest_subject_ids = set(active_quest_subject_ids)
@@ -542,6 +570,17 @@ class LoreRegistry:
         geography_ids = set(self.geography_ancestors(all_context_ids))
         candidates: dict[str, tuple[int, LoreFact]] = {}
 
+        def ruler_fact_in_scope(fact: LoreFact) -> bool:
+            if (
+                "current_ruler" not in query_intents
+                or fact.predicate.casefold() not in _CURRENT_RULER_PREDICATES
+            ):
+                return True
+            return fact.subject_id in mentioned_ids or (
+                current_location_reference
+                and fact.subject_id == current_location_id
+            )
+
         def add_candidate(
             fact: LoreFact,
             rank: int,
@@ -550,6 +589,8 @@ class LoreRegistry:
             force: bool = False,
             allow_intent_match: bool = False,
         ) -> None:
+            if not ruler_fact_in_scope(fact):
+                return
             relevance = self._fact_relevance_score(fact, query_terms)
             intent_relevance = (
                 self._fact_intent_relevance_score(fact, query_intents)
@@ -626,6 +667,8 @@ class LoreRegistry:
         if player_message is not None and (query_terms or requested_years):
             for fact in self._facts.values():
                 if fact.region_scope and fact.region_scope not in region_scopes:
+                    continue
+                if not ruler_fact_in_scope(fact):
                     continue
                 if fact.visibility is VisibilityScope.REGIONAL_KNOWLEDGE:
                     if fact.region_scope not in region_scopes:
@@ -802,6 +845,7 @@ class LoreRegistry:
                     item["fact_id"] for item in official if "fact_id" in item
                 ],
                 "query_intents": sorted(query_intents),
+                "current_location_entity_id": current_location_id,
                 "withheld_secret_count": withheld_secret_count,
                 "unresolved_conflicts": unresolved_conflicts,
                 "coverage_status": (
@@ -859,6 +903,11 @@ class LoreRegistry:
         score = 0
         if "current_status" in intents and (
             predicate == "current_status" or predicate.endswith("_status")
+        ):
+            score += 2
+        if (
+            "current_ruler" in intents
+            and predicate in _CURRENT_RULER_PREDICATES
         ):
             score += 2
         if "route_continuation" in intents and predicate in {
