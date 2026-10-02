@@ -33,6 +33,7 @@ from api.schemas import (
     CampaignSummary,
     CharacterCreateInput,
     CharacterCreationOptions,
+    CharacterCreationCatalogResponse,
     HealthResponse,
     SessionResponse,
     TurnRequest,
@@ -235,11 +236,12 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC_TEXT)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 24)
+        self.assertEqual(len(documented_routes), 26)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
             ("GET", "/api/game/character-options", "/api/character-options"),
+            ("GET", "/api/game/character-creation-catalog", "/api/character-creation-catalog"),
             ("POST", "/api/game/sessions", "/api/sessions"),
             ("GET", "/api/game/sessions/{session_id}/state", "/api/sessions/{session_id}/state"),
             ("POST", "/api/game/sessions/{session_id}/turn", "/api/sessions/{session_id}/turn"),
@@ -316,6 +318,7 @@ class ContractParityTests(unittest.TestCase):
         response_models = {
             "GameSession": SessionResponse,
             "CharacterCreationOptions": CharacterCreationOptions,
+            "CharacterCreationCatalogResponse": CharacterCreationCatalogResponse,
             "CampaignSummary": CampaignSummary,
             "CampaignHistoryEntry": CampaignHistoryEntry,
             "CampaignDetail": CampaignDetailResponse,
@@ -342,7 +345,30 @@ class ContractParityTests(unittest.TestCase):
             _enum_values("CharacterCreateInput", "mode"),
             {"custom", "random"},
         )
-        for field_name in ("name", "race", "class"):
+        for field_name in (
+            "name",
+            "race",
+            "class",
+            "species",
+            "background",
+            "alignment",
+            "ability_score_method",
+            "ability_scores",
+            "background_ability_bonuses",
+            "proficient_skills",
+            "proficient_tools",
+            "origin_feat",
+            "fighting_style",
+            "equipment_package",
+            "equipment_choices",
+            "cantrips",
+            "spells",
+            "languages",
+            "background_equipment_option",
+            "appearance",
+            "personality",
+            "backstory",
+        ):
             with self.subTest(character_field=field_name):
                 self.assertIn(
                     '"null"',

@@ -1992,6 +1992,37 @@ export const GetCharacterOptionsResponse = zod.object({
 
 
 /**
+ * @summary Read D&D 2024 rules character creation options catalog
+ */
+export const GetCharacterCreationCatalogResponse = zod.object({
+  "races": zod.object({
+
+}).passthrough(),
+  "classes": zod.object({
+
+}).passthrough(),
+  "backgrounds": zod.object({
+
+}).passthrough(),
+  "ability_score_methods": zod.array(zod.object({
+
+}).passthrough()),
+  "alignments": zod.array(zod.object({
+
+}).passthrough()),
+  "origin_feats": zod.object({
+
+}).passthrough(),
+  "spells_catalog": zod.object({
+
+}).passthrough(),
+  "skills": zod.object({
+
+}).passthrough()
+})
+
+
+/**
  * @summary List safe campaign metadata
  */
 export const GetCampaignsResponseItem = zod.object({
@@ -2033,7 +2064,25 @@ export const CreateCampaignBody = zod.object({
   "mode": zod.enum(['custom', 'random']),
   "name": zod.string().min(1).max(createCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
-  "class": zod.string().nullish()
+  "class": zod.string().nullish(),
+  "species": zod.string().nullish(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "ability_score_method": zod.string().nullish(),
+  "ability_scores": zod.object({
+
+}).passthrough().nullish(),
+  "background_ability_bonuses": zod.object({
+
+}).passthrough().nullish(),
+  "proficient_skills": zod.array(zod.string()).nullish(),
+  "proficient_tools": zod.array(zod.string()).nullish(),
+  "origin_feat": zod.string().nullish(),
+  "fighting_style": zod.string().nullish(),
+  "equipment_package": zod.string().nullish(),
+  "equipment_choices": zod.array(zod.string()).nullish(),
+  "cantrips": zod.array(zod.string()).nullish(),
+  "spells": zod.array(zod.string()).nullish()
 }).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneSettingIdMax),
@@ -3350,6 +3399,38 @@ export const GetLegacyCharacterOptionsResponse = zod.object({
 
 
 /**
+ * Compatibility alias for /game/character-creation-catalog. Prefer the /game route family for new clients.
+ * @summary Legacy character-creation-catalog alias
+ */
+export const GetLegacyCharacterCreationCatalogResponse = zod.object({
+  "races": zod.object({
+
+}).passthrough(),
+  "classes": zod.object({
+
+}).passthrough(),
+  "backgrounds": zod.object({
+
+}).passthrough(),
+  "ability_score_methods": zod.array(zod.object({
+
+}).passthrough()),
+  "alignments": zod.array(zod.object({
+
+}).passthrough()),
+  "origin_feats": zod.object({
+
+}).passthrough(),
+  "spells_catalog": zod.object({
+
+}).passthrough(),
+  "skills": zod.object({
+
+}).passthrough()
+})
+
+
+/**
  * Compatibility alias for /game/sessions. Prefer the /game route family for new clients.
  * @summary Legacy session-creation alias
  */
@@ -4570,7 +4651,25 @@ export const CreateLegacyCampaignBody = zod.object({
   "mode": zod.enum(['custom', 'random']),
   "name": zod.string().min(1).max(createLegacyCampaignBodyCharacterOneNameMax).nullish(),
   "race": zod.string().nullish(),
-  "class": zod.string().nullish()
+  "class": zod.string().nullish(),
+  "species": zod.string().nullish(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "ability_score_method": zod.string().nullish(),
+  "ability_scores": zod.object({
+
+}).passthrough().nullish(),
+  "background_ability_bonuses": zod.object({
+
+}).passthrough().nullish(),
+  "proficient_skills": zod.array(zod.string()).nullish(),
+  "proficient_tools": zod.array(zod.string()).nullish(),
+  "origin_feat": zod.string().nullish(),
+  "fighting_style": zod.string().nullish(),
+  "equipment_package": zod.string().nullish(),
+  "equipment_choices": zod.array(zod.string()).nullish(),
+  "cantrips": zod.array(zod.string()).nullish(),
+  "spells": zod.array(zod.string()).nullish()
 }).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneSettingIdMax),

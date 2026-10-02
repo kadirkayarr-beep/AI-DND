@@ -176,6 +176,39 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "name": "  Arven  ",
                     "race": "Elf",
                     "class": "Wizard",
+                    "background": "Sage",
+                    "alignment": "Neutral Good",
+                    "ability_score_method": "standard_array",
+                    "ability_scores": {
+                        "intelligence": 15,
+                        "dexterity": 14,
+                        "constitution": 13,
+                        "wisdom": 12,
+                        "charisma": 10,
+                        "strength": 8,
+                    },
+                    "background_ability_bonuses": {
+                        "intelligence": 2,
+                        "constitution": 1,
+                    },
+                    "proficient_skills": [
+                        "Arcana",
+                        "History",
+                        "Investigation",
+                        "Insight",
+                    ],
+                    "languages": ["Common", "Dwarvish", "Elvish"],
+                    "background_equipment_option": "A",
+                    "equipment_package": "A",
+                    "cantrips": ["Fire Bolt", "Mage Hand", "Light"],
+                    "spells": [
+                        "Magic Missile",
+                        "Shield",
+                        "Mage Armor",
+                        "Detect Magic",
+                        "Thunderwave",
+                        "Sleep",
+                    ],
                 }
             },
         )
@@ -220,7 +253,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 )
             )
         )
-        self.assertEqual(len(engine_character["proficient_skills"]), 2)
+        self.assertEqual(len(engine_character["proficient_skills"]), 4)
         self.assertTrue(
             set(engine_character["proficient_skills"])
             <= set(game.CLASS_SKILL_OPTIONS["Wizard"])
@@ -373,16 +406,82 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_campaign_creation_ids_and_sessions_are_isolated(self):
         async def create(name, race, character_class):
+            if character_class == "Wizard":
+                char_payload = {
+                    "mode": "custom",
+                    "name": name,
+                    "race": race,
+                    "class": character_class,
+                    "background": "Sage",
+                    "alignment": "Neutral Good",
+                    "ability_score_method": "standard_array",
+                    "ability_scores": {
+                        "intelligence": 15,
+                        "dexterity": 14,
+                        "constitution": 13,
+                        "wisdom": 12,
+                        "charisma": 10,
+                        "strength": 8,
+                    },
+                    "background_ability_bonuses": {
+                        "intelligence": 2,
+                        "constitution": 1,
+                    },
+                    "proficient_skills": [
+                        "Arcana",
+                        "History",
+                        "Investigation",
+                        "Insight",
+                    ],
+                    "languages": ["Common", "Dwarvish", "Elvish"],
+                    "background_equipment_option": "A",
+                    "equipment_package": "A",
+                    "cantrips": ["Fire Bolt", "Mage Hand", "Light"],
+                    "spells": [
+                        "Magic Missile",
+                        "Shield",
+                        "Mage Armor",
+                        "Detect Magic",
+                        "Thunderwave",
+                        "Sleep",
+                    ],
+                }
+            else:
+                char_payload = {
+                    "mode": "custom",
+                    "name": name,
+                    "race": race,
+                    "class": character_class,
+                    "background": "Acolyte",
+                    "alignment": "Lawful Good",
+                    "ability_score_method": "standard_array",
+                    "ability_scores": {
+                        "wisdom": 15,
+                        "constitution": 14,
+                        "strength": 13,
+                        "dexterity": 12,
+                        "intelligence": 10,
+                        "charisma": 8,
+                    },
+                    "background_ability_bonuses": {
+                        "wisdom": 2,
+                        "intelligence": 1,
+                    },
+                    "proficient_skills": [
+                        "Insight",
+                        "Religion",
+                        "History",
+                        "Medicine",
+                    ],
+                    "languages": ["Common", "Dwarvish", "Elvish"],
+                    "background_equipment_option": "A",
+                    "equipment_package": "A",
+                    "cantrips": ["Light", "Sacred Flame", "Thaumaturgy"],
+                    "spells": ["Bless", "Cure Wounds"],
+                }
             response = await self.http.post(
                 "/api/game/campaigns",
-                json={
-                    "character": {
-                        "mode": "custom",
-                        "name": name,
-                        "race": race,
-                        "class": character_class,
-                    }
-                },
+                json={"character": char_payload},
             )
             self.assertEqual(response.status_code, 200, response.text)
             return response.json()
