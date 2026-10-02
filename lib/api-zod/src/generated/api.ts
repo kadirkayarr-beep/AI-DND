@@ -2048,6 +2048,12 @@ export const createCampaignBodyNameMax = 100;
 
 export const createCampaignBodyCharacterOneNameMax = 40;
 
+export const createCampaignBodyCharacterOneAppearanceMax = 1000;
+
+export const createCampaignBodyCharacterOnePersonalityMax = 1000;
+
+export const createCampaignBodyCharacterOneBackstoryMax = 2000;
+
 export const createCampaignBodyCampaignStartOneSettingIdMax = 128;
 
 export const createCampaignBodyCampaignStartOneRegionPackIdMax = 128;
@@ -2082,7 +2088,12 @@ export const CreateCampaignBody = zod.object({
   "equipment_package": zod.string().nullish(),
   "equipment_choices": zod.array(zod.string()).nullish(),
   "cantrips": zod.array(zod.string()).nullish(),
-  "spells": zod.array(zod.string()).nullish()
+  "spells": zod.array(zod.string()).nullish(),
+  "languages": zod.array(zod.string()).nullish(),
+  "background_equipment_option": zod.union([zod.literal('A'),zod.literal('B'),zod.literal(null)]).nullish(),
+  "appearance": zod.string().max(createCampaignBodyCharacterOneAppearanceMax).nullish(),
+  "personality": zod.string().max(createCampaignBodyCharacterOnePersonalityMax).nullish(),
+  "backstory": zod.string().max(createCampaignBodyCharacterOneBackstoryMax).nullish()
 }).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneSettingIdMax),
@@ -4635,6 +4646,12 @@ export const createLegacyCampaignBodyNameMax = 100;
 
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
+export const createLegacyCampaignBodyCharacterOneAppearanceMax = 1000;
+
+export const createLegacyCampaignBodyCharacterOnePersonalityMax = 1000;
+
+export const createLegacyCampaignBodyCharacterOneBackstoryMax = 2000;
+
 export const createLegacyCampaignBodyCampaignStartOneSettingIdMax = 128;
 
 export const createLegacyCampaignBodyCampaignStartOneRegionPackIdMax = 128;
@@ -4669,7 +4686,12 @@ export const CreateLegacyCampaignBody = zod.object({
   "equipment_package": zod.string().nullish(),
   "equipment_choices": zod.array(zod.string()).nullish(),
   "cantrips": zod.array(zod.string()).nullish(),
-  "spells": zod.array(zod.string()).nullish()
+  "spells": zod.array(zod.string()).nullish(),
+  "languages": zod.array(zod.string()).nullish(),
+  "background_equipment_option": zod.union([zod.literal('A'),zod.literal('B'),zod.literal(null)]).nullish(),
+  "appearance": zod.string().max(createLegacyCampaignBodyCharacterOneAppearanceMax).nullish(),
+  "personality": zod.string().max(createLegacyCampaignBodyCharacterOnePersonalityMax).nullish(),
+  "backstory": zod.string().max(createLegacyCampaignBodyCharacterOneBackstoryMax).nullish()
 }).describe('Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.'),zod.null()]).optional(),
   "campaign_start": zod.union([zod.object({
   "setting_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneSettingIdMax),

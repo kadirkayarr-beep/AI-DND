@@ -811,6 +811,17 @@ export const CharacterCreateInputMode = {
 /**
  * @nullable
  */
+export type CharacterCreateInputBackgroundEquipmentOption = typeof CharacterCreateInputBackgroundEquipmentOption[keyof typeof CharacterCreateInputBackgroundEquipmentOption] | null;
+
+
+export const CharacterCreateInputBackgroundEquipmentOption = {
+  A: 'A',
+  B: 'B',
+} as const;
+
+/**
+ * @nullable
+ */
 export type CharacterCreateInputAbilityScores = { [key: string]: unknown } | null;
 
 /**
@@ -861,6 +872,25 @@ export interface CharacterCreateInput {
   cantrips?: string[] | null;
   /** @nullable */
   spells?: string[] | null;
+  /** @nullable */
+  languages?: string[] | null;
+  /** @nullable */
+  background_equipment_option?: CharacterCreateInputBackgroundEquipmentOption;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  appearance?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  personality?: string | null;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  backstory?: string | null;
 }
 
 export interface CampaignStartSelection {

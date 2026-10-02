@@ -29,6 +29,7 @@ export * from './campaignSummary';
 export * from './characterCreateInput';
 export * from './characterCreateInputAbilityScores';
 export * from './characterCreateInputBackgroundAbilityBonuses';
+export * from './characterCreateInputBackgroundEquipmentOption';
 export * from './characterCreateInputMode';
 export * from './characterCreationCatalogResponse';
 export * from './characterCreationCatalogResponseAbilityScoreMethodsItem';

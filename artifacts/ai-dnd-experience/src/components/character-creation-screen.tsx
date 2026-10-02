@@ -510,7 +510,6 @@ export function CharacterCreationScreen({
       race: species, // legacy compatibility
       class: characterClass, // legacy compatibility
       species,
-      character_class: characterClass,
       background,
       alignment,
       ability_score_method: abilityMethod!,
