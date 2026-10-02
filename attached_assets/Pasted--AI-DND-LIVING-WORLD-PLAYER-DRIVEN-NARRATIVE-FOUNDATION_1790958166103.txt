@@ -1,0 +1,2737 @@
+# AI-DND — LIVING WORLD / PLAYER-DRIVEN NARRATIVE FOUNDATION V2
+# IMPLEMENTATION TASK — DO NOT TREAT THIS AS A DESIGN DISCUSSION
+
+Mevcut AI-DND canonical main checkout üzerinde çalış.
+
+Bu görev, son tasarım oturumunda kesin olarak kilitlediğimiz gameplay prensiplerini mevcut AI-DND mimarisine gerçek, test edilebilir, persistent ve Python-authoritative sistemler olarak uygulama görevidir.
+
+BU BİR "SIFIRDAN OYUN YAZ" GÖREVİ DEĞİLDİR.
+
+Mevcut sistemi önce incele.
+Mevcut:
+- GameSession
+- game.py
+- FastAPI
+- campaign/session persistence
+- character creation
+- world metadata
+- NPC memory
+- lore authority
+- campaign events
+- journal
+- quest outcomes
+- frontend
+- API contracts
+- generated clients
+- stable IDs
+- existing tests
+
+üzerine inşa et.
+
+Aynı işi yapan ikinci bir sistem oluşturma.
+Mevcut çalışan sistemleri yeniden yazma.
+Gereksiz büyük refactor yapma.
+
+============================================================
+0. EN YÜKSEK ÖNCELİKLİ AUTHORITY HİYERARŞİSİ
+============================================================
+
+Bu proje için aşağıdaki authority modelini koru:
+
+1. PYTHON / GAME ENGINE
+   = mekanik ve oyun state'inin otoritesi
+
+2. CAMPAIGN CANON
+   = bu campaign/session içinde engine tarafından doğrulanmış olayların gerçeği
+
+3. OFFICIAL / VERIFIED LORE AUTHORITY
+   = Forgotten Realms / D&D setting gerçekliği
+
+4. SUPPLEMENTAL / HISTORICAL / SECONDARY MATERIAL
+   = yalnızca uygun olduğunda destekleyici bilgi
+
+5. QWEN
+   = intent/context interpretation + narration
+
+6. FRONTEND
+   = verified state presentation
+
+TEMEL İLKE:
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN USES VERIFIED CONTEXT AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+QWEN GAME REALITY'NİN SAHİBİ DEĞİLDİR.
+
+QWEN:
+- HP değiştiremez
+- AC değiştiremez
+- inventory değiştiremez
+- gold değiştiremez
+- location değiştiremez
+- environment değiştiremez
+- time_of_day değiştiremez
+- weather değiştiremez
+- NPC öldüremez
+- NPC identity değiştiremez
+- quest oluşturamaz
+- quest kabul edemez
+- quest ilerletemez
+- quest tamamlayamaz
+- commitment kaydedemez
+- campaign canon oluşturamaz
+- dice sonucu belirleyemez
+- skill check sonucunu uyduramaz
+- player action uyduramaz
+- player adına karar veremez
+
+Qwen bir intent veya narrative candidate üretebilir.
+
+Fakat canonical mutation gerekiyorsa:
+
+QWEN CANDIDATE
+→ PYTHON VALIDATION / RESOLUTION
+→ CANONICAL STATE CHANGE
+→ EVENT / MEMORY
+→ NARRATION
+
+olmalıdır.
+
+Narration tek başına state mutation değildir.
+
+============================================================
+1. QWEN CALL BUDGET
+============================================================
+
+ÇOK ÖNEMLİ:
+
+Bir gameplay turn'ünde toplam Qwen model çağrısı:
+
+MAXIMUM 2
+
+olmalıdır.
+
+Mevcut sistem bu sınırı korumalıdır.
+
+Deterministic Python route mümkünse model çağrısı yapmamalıdır.
+
+Özellikle:
+- loaded lore lookup
+- deterministic world state
+- known NPC lookup
+- known quest state
+- known memory lookup
+- deterministic validation
+
+için gereksiz Qwen çağrısı ekleme.
+
+Yeni sistemler nedeniyle turn başına model call sayısını artırma.
+
+============================================================
+2. GIT / WORKFLOW GÜVENLİĞİ
+============================================================
+
+Çalışmaya başlamadan önce:
+
+git branch --show-current
+git rev-parse HEAD
+git rev-parse origin/main
+git status --short
+git diff --name-only
+
+çıktılarını kontrol et.
+
+Canonical branch / baseline doğrulanmadan reset, checkout, merge veya rebase yapma.
+
+Kullanıcının mevcut değişikliklerini silme.
+
+Handoff dosyalarını silme.
+
+`.agents/memory/` dosyalarına dokunma.
+
+`attached_assets/` altında yeni handoff dosyaları oluşturma.
+
+Git reset kullanma.
+
+Git rebase kullanma.
+
+Git merge kullanma.
+
+Git push yapma.
+
+Git commit oluşturma.
+
+Mevcut değişiklikler varsa üzerine yazma.
+
+Bu görev sırasında çalışma ağacındaki kullanıcı değişikliklerini "temizlemek" için herhangi bir destructive işlem yapma.
+
+============================================================
+3. GAME.PY ENGINE FREEZE
+============================================================
+
+ÖNEMLİ:
+
+Mevcut mühendislik kararımız gereği `game.py` şu anda korunmuş/frozen engine alanıdır.
+
+BU GÖREV İÇİN:
+
+`game.py` dosyasını değiştirme.
+
+Engine authority'yi başka dosyalarda mevcut public/API mekanizmaları üzerinden genişlet.
+
+Eğer bu görevi doğru şekilde uygulamak için `game.py` değişikliği gerçekten kaçınılmaz hale gelirse:
+
+- `game.py`'yi değiştirme
+- workaround ile gizli engine mutation yapma
+- büyük refactor yapma
+
+Bunun yerine dur ve raporla:
+
+1. hangi davranış için game.py gerekiyor
+2. neden mevcut public engine interface yeterli değil
+3. gereken minimum değişiklik ne olurdu
+4. hangi testler bunu doğrulayacak
+
+Bu görev için ayrıca engine-change approval alınmadan game.py'ye dokunma.
+
+============================================================
+4. MEVCUT WORLD METADATA AUTHORITY KORUNACAK
+============================================================
+
+Mevcut canonical world metadata sistemini koru.
+
+Python authoritative:
+
+- environment
+- time_of_day
+- weather
+
+Frontend bunları tahmin etmez.
+
+Qwen bunları doğrudan değiştiremez.
+
+Bu metadata:
+- save
+- load
+- restart
+- resume
+
+sonrasında korunmalıdır.
+
+Örneğin Python:
+
+weather = storm
+
+ise Qwen narration:
+
+"güneşli, sıcak bir gün"
+
+diyerek weather state'i değiştiremez.
+
+Narration mevcut weather state'e uygun olmalıdır.
+
+============================================================
+5. PLAYER-DRIVEN NARRATIVE
+============================================================
+
+Oyuncu kendi hikayesini yaşar.
+
+Önceden yazılmış tek bir quest zinciri oyuncuya zorlanmaz.
+
+Oyuncu:
+
+- ana hikayeyi takip edebilir
+- tamamen görmezden gelebilir
+- şehirde yaşayabilir
+- ticaret yapabilir
+- NPC'lerle konuşabilir
+- rastgele olaylara karışabilir
+- kendi hedeflerini oluşturabilir
+- şehirden ayrılabilir
+- başka yere gidebilir
+- hiçbir büyük quest tamamlamadan uzun süre oynayabilir
+- tamamen beklenmeyen yaratıcı bir eylem deneyebilir
+
+Bunların hepsi geçerli gameplay'dir.
+
+OYUNCUYA NUMARALI SEÇENEKLER DAYATMA.
+
+"1. Bunu yap"
+"2. Şunu yap"
+"3. Buraya git"
+
+gibi zorunlu choice-list gameplay'e geri dönme.
+
+Doğal dil / freeform action korunmalıdır.
+
+Oyuncunun söylediği yaratıcı bir eylemi sırf önceden tanımlanmadı diye reddetme.
+
+Ancak mekanik sonuç gerekiyorsa engine tarafından çözülmelidir.
+
+============================================================
+6. ZERO INVENTED PLAYER AGENCY
+============================================================
+
+EN KRİTİK INVARIANT'LARDAN BİRİ:
+
+AI OYUNCUNUN YAPMADIĞI BİR ŞEYİ YAPMIŞ GİBİ ANLATAMAZ.
+
+Oyuncu:
+
+"Muhafızla konuşuyorum."
+
+dediyse:
+
+"Sen kılıcını çekip muhafıza saldırdın."
+
+denemez.
+
+Oyuncu:
+
+"Kael'in yanına gidiyorum."
+
+dediyse:
+
+"Kael'e sarıldın."
+
+denemez.
+
+Oyuncu:
+
+"Onu bulacağım."
+
+dediyse:
+
+"Quest'i kabul ettin."
+
+denemez.
+
+Oyuncu:
+
+"Şehre girmeye çalışıyorum."
+
+dediyse:
+
+"Şehre girdin."
+
+engine resolution olmadan varsayılamaz.
+
+Doğru akış:
+
+PLAYER INPUT
+→ INTENT INTERPRETATION
+→ PYTHON RESOLUTION
+→ VERIFIED RESULT
+→ NARRATION
+
+Narration input değildir.
+
+Narration authority değildir.
+
+============================================================
+7. CHARACTER IDENTITY / PERSONAL HISTORY
+============================================================
+
+Character creation sırasında kabul edilen:
+
+- origin
+- homeland
+- birthplace
+- background
+- appearance
+- personality
+- backstory
+
+gibi alanlar karakterin kişisel geçmişinin parçasıdır.
+
+Bir character creation kaydı başarıyla kabul edildikten sonra:
+
+BU BİLGİLER CHARACTER TRUTH'TUR.
+
+AI sonradan keyfi şekilde:
+
+"Hayır, sen aslında burada büyümedin."
+
+diyerek kabul edilmiş character record'u değiştiremez.
+
+Ancak burada çok önemli bir ayrım vardır:
+
+CHARACTER CREATION TRUTH
+≠
+PLAYER'S NEW IN-GAME CLAIM
+
+============================================================
+8. PLAYER CLAIM vs CHARACTER TRUTH
+============================================================
+
+Örneğin character creation:
+
+Origin:
+"Neverwinter"
+
+Backstory:
+"Neverwinter'da büyüdüm."
+
+ise bu karakterin geçmişidir.
+
+Daha sonra oyuncu:
+
+"Ben Waterdeep'te büyüdüm."
+
+derse bu mevcut character record ile çelişen yeni bir PLAYER CLAIM'dir.
+
+Qwen bunu sessizce character record'a yazamaz.
+
+Narrator/DM, authoritative character record'a göre oyuncuya:
+
+"Hatırladığın geçmişe göre Waterdeep'te değil, Neverwinter'da büyüdün."
+
+gibi bir düzeltme yapabilir.
+
+Fakat bunu yaparken:
+
+- character record'u değiştirme
+- campaign canon'u değiştirme
+- oyuncunun yeni iddiasını canonical fact yapma
+
+Yalnızca mevcut authoritative character information ile çelişkiyi anlat.
+
+Eğer character record'da bu konuda hiçbir bilgi yoksa:
+
+AI YENİ BİR GEÇMİŞ UYDURAMAZ.
+
+Böyle bir durumda:
+- bilinmediğini söyle
+- belirsiz bırak
+- oyuncunun iddiasını claim olarak ele al
+
+ama keyfi "sen aslında X'te büyüdün" gerçeği üretme.
+
+============================================================
+9. NPC'LERİN OYUNCU İDDİALARINA TEPKİSİ
+============================================================
+
+NPC'ler omniscient değildir.
+
+Oyuncu NPC'ye:
+
+"Ben bu şehirde büyüdüm."
+
+dediğinde NPC:
+
+- inanabilir
+- şüphelenebilir
+- yalan söylediğini düşünebilir
+- bilmiyor olabilir
+- oyuncuyu tanımadığı için tarafsız kalabilir
+- mevcut knowledge'ına göre kabul edebilir
+
+NPC'nin tepkisi NPC'nin sahip olduğu bilgiye göre belirlenmelidir.
+
+Örneğin:
+
+Oyuncu:
+"Ben bu şehirde büyüdüm."
+
+NPC:
+"Seni daha önce hiç görmedim."
+
+NPC'nin bunu şüpheli bulması mümkündür.
+
+Ama:
+
+NPC'nin şüphelenmesi
+≠
+oyuncunun gerçekten yalan söylediğinin dünya tarafından kanıtlanması.
+
+NPC BELIEF
+≠
+WORLD FACT.
+
+============================================================
+10. NPC KNOWLEDGE / BELIEF
+============================================================
+
+NPC'nin knowledge scope'unu koru.
+
+NPC:
+
+- gördüğü olayları
+- kendisine söylenenleri
+- doğrulanmış ilişkilerini
+- bulunduğu yerleri
+- sahip olduğu lore bilgisini
+- campaign içinde gerçekten öğrendiği bilgileri
+
+kullanabilir.
+
+NPC başka bir yerde gerçekleşen ve bilmediği bir olayı otomatik bilemez.
+
+NPC memory:
+
+"Player told me X"
+
+ile
+
+"World fact X"
+
+ayrımını korumalıdır.
+
+Gerekirse NPC stance:
+
+- BELIEVES
+- SKEPTICAL
+- DOES_NOT_KNOW
+- DISBELIEVES
+
+gibi semantik sonuçlar taşıyabilir.
+
+Fakat yeni bir numeric relationship/belief subsystem icat etme.
+
+Mevcut relationship/memory altyapısı uygunsa genişlet.
+
+============================================================
+11. SKILL CHECK / SOCIAL CHECK SINIRI
+============================================================
+
+NPC'nin oyuncunun iddiasına inanması/şüphelenmesi gerektiğinde mevcut deterministic skill/check altyapısı varsa onu kullan.
+
+Örneğin uygun olduğunda:
+- Persuasion
+- Deception
+- Insight
+
+gibi mevcut sistemler kullanılabilir.
+
+Fakat bu sprintte komple yeni bir skill-check/combat/dice sistemi tasarlama.
+
+Mevcut engine API'si yeterliyse onu kullan.
+
+Yeterli değilse yeni büyük mekanik sistem oluşturmak yerine interface seviyesinde minimum entegrasyon yap veya durumu raporla.
+
+Zar sonucu Qwen tarafından seçilemez.
+
+Qwen:
+
+"Bu persuasion check başarılı."
+
+diyerek sonucu belirleyemez.
+
+Python belirler.
+
+============================================================
+12. SUBJECTIVE PLAYER STATEMENT vs OBJECTIVE WORLD STATE
+============================================================
+
+Bu çok önemli bir narrative davranışıdır.
+
+Oyuncu:
+
+"Bugün hava ne güzel."
+
+diyebilir.
+
+Ama Python world state:
+
+weather = storm
+
+ise AI:
+
+"Sen havayı güzel buluyorsun; fakat dışarıda şiddetli yağmur yağıyor. Islak taşlar gökyüzündeki karanlık bulutların altında parlıyor ve insanlar saçakların altına kaçışıyor."
+
+gibi bir anlatım üretebilir.
+
+Oyuncunun subjektif görüşü korunur.
+
+Ama world state değiştirilmez.
+
+Tersi de geçerlidir.
+
+Oyuncu:
+
+"Ne berbat bir hava."
+
+diyebilir.
+
+Ama dünya güneşliyse:
+
+"Sen havayı berbat buluyorsun; buna rağmen meydan güneş altında ve insanlar açık havada oturuyor."
+
+gibi bir anlatım mümkündür.
+
+TEMEL KURAL:
+
+PLAYER OPINION ≠ WORLD STATE.
+
+============================================================
+13. ACTION → RESOLUTION → CONCRETE RESULT
+============================================================
+
+Oyuncunun eylemleri boş narrative ile sonuçlanmamalıdır.
+
+Örneğin:
+
+"İzleri araştırıyorum."
+
+gibi bir action:
+
+ACTION
+→ CHECK / RESOLUTION
+→ CONCRETE EVIDENCE
+→ NARRATION
+
+üretmelidir.
+
+Örnek:
+
+- üç farklı ayak izi
+- kuzeye giden iz
+- yağmur nedeniyle kısmen silinmiş iz
+- başarısız inceleme nedeniyle yetersiz bilgi
+- uygun kritik sonuçta ekstra bilgi
+
+gibi somut sonuçlar engine'den gelmelidir.
+
+Qwen:
+
+"Üç adam kuzeye gitmiş."
+
+diye evidence uyduramaz.
+
+Engine'nin ürettiği result yoksa Qwen yeni canonical evidence icat edemez.
+
+============================================================
+14. CITY / STARTING LOCATION
+============================================================
+
+Seçilen city gerçek engine start olarak korunmalıdır.
+
+Sadece catalogued / verified / valid starting locations kullanılabilir.
+
+Oyuncu her zaman şehir merkezinde spawn olmak zorunda değildir.
+
+Starting context şu faktörlerden etkilenebilir:
+
+- selected city
+- character background
+- character origin
+- backstory
+- personality
+- time
+- weather
+- environment
+- current world state
+- current local activity
+- controlled randomness
+- valid starting locations
+
+Örnek:
+
+Soldier:
+- kışla
+- muhafız bölgesi
+- şehir kapısı
+- askerî bağlantılı bir alan
+
+Sailor:
+- liman
+- iskele
+- denizci bölgesi
+
+Sage:
+- kütüphane
+- akademi
+- kitapçı
+
+Criminal:
+- arka sokak
+- yeraltı bağlantılı alan
+
+Traveler:
+- han
+- şehir kapısı
+- pazar
+
+BUNLAR ZORUNLU ŞABLONLAR DEĞİLDİR.
+
+Aynı character/background/city kombinasyonu her campaign'de aynı başlangıcı vermemelidir.
+
+============================================================
+15. CHARACTER ORIGIN / HOMETOWN
+============================================================
+
+Character creation ekranına oyuncunun:
+
+"Nerelisin?"
+" Nerede büyüdün?"
+" Nereden geliyorsun?"
+
+anlamında bir personal origin alanı ekle.
+
+Bu tercihen background sonrasında / background ile ilişkili bir roleplay alanı olarak sunulsun.
+
+Örneğin oyuncu:
+
+"Neverwinter"
+"Waterdeep"
+"küçük bir kuzey köyü"
+"eski bir askerî yerleşim"
+"ormanın içindeki küçük bir topluluk"
+
+gibi serbest metin girebilsin.
+
+BU ALAN:
+
+- player-owned character identity'dir
+- persistent olmalıdır
+- save/load ile korunmalıdır
+- resume sonrası korunmalıdır
+- character review'da görünmelidir
+- opening context'e aktarılabilmelidir
+- background ile narrative olarak ilişkilendirilebilmelidir
+
+AMA otomatik olarak:
+
+- skill bonusu
+- faction membership
+- NPC relationship
+- canonical lore
+- world-wide recognition
+
+oluşturmaz.
+
+Origin freeform olabilir.
+
+Eğer origin metni mevcut verified location ile eşleşiyorsa mevcut sistemler üzerinden contextual matching yapılabilir.
+
+Eşleşmiyorsa yeni canonical location uydurma.
+
+============================================================
+16. CHARACTER CREATION CONTRACT
+============================================================
+
+A1/#49 sonrasında mevcut character creation API contract'ını bozma.
+
+Özellikle:
+
+`class`
+
+wire field olarak kullanılmaya devam etmeli.
+
+`character_class`
+
+frontend request payload'ında olmamalı.
+
+Generated client types OpenAPI'den üretilmelidir.
+
+Mevcut:
+
+- appearance
+- personality
+- backstory
+- languages
+- background_equipment_option
+
+alanlarını bozma.
+
+Origin yeni persistent contract alanı gerektiriyorsa:
+
+OPENAPI SOURCE
+→ CODEGEN
+→ GENERATED CLIENTS
+→ TYPECHECK
+→ TESTS
+
+zincirini kullan.
+
+Generated dosyaları elle düzenleme.
+
+============================================================
+17. DYNAMIC OPENING
+============================================================
+
+Opening artık tek sabit paragraph değildir.
+
+Opening context:
+
+- character identity
+- origin
+- background
+- backstory
+- selected city
+- verified starting location
+- environment
+- time_of_day
+- weather
+- current world state
+- nearby NPCs
+- nearby activity
+- ambient event
+- narrative tone
+- campaign seed
+
+gibi bilgileri kullanabilir.
+
+Opening tone:
+
+- sakin
+- sıcak
+- canlı
+- gizemli
+- gergin
+- tehlikeli
+- melankolik
+- hareketli
+- sıradan ama atmosferik
+
+gibi değişebilir.
+
+Karaktere göre de değişebilir.
+
+Bazı karakterlerde anlatım:
+- daha fantastik
+- daha şiirsel
+- daha sert
+- daha sade
+- daha teatral
+- daha karanlık
+- daha neşeli
+
+olabilir.
+
+Ama her zaman:
+- doğal
+- akıcı
+- edebi ama gereksiz şişirilmemiş
+- sahneye uygun
+- karaktere uygun
+
+olmalıdır.
+
+Aynı opening prose sürekli tekrar etmemelidir.
+
+============================================================
+18. OPENING RANDOMNESS
+============================================================
+
+Randomness kontrollü olmalıdır.
+
+Opening generation:
+- campaign seed
+- world state
+- context
+- weighted event pool
+- repetition history
+
+kullanabilir.
+
+AYNI CAMPAIGN'DE SAVE/LOAD YAPILDIĞINDA OPENING DEĞİŞMEMELİ.
+
+Aynı campaign state yeniden yüklenince:
+aynı starting state korunmalıdır.
+
+Yeni campaign:
+aynı character/background/city olsa bile uygun koşullarda farklı opening varyasyonu alabilir.
+
+Rastgelelik canonical state'i bozmayacak şekilde uygulanmalıdır.
+
+============================================================
+19. GAMEPLAY TRANSITION
+============================================================
+
+Opening yalnızca ilk paragraph değildir.
+
+Opening:
+→ scene establishment
+→ player agency
+
+şeklinde doğal biçimde gameplay'e geçmelidir.
+
+Oyuncu ilk action'da:
+
+- yürüyebilir
+- konuşabilir
+- inceleyebilir
+- eşya kullanabilir
+- şehirden çıkmaya çalışabilir
+- NPC takip edebilir
+- bekleyebilir
+- çevreyi gözlemleyebilir
+- kendi yaratıcı eylemini deneyebilir
+
+ve sistem bunu freeform olarak çözmelidir.
+
+Opening oyuncuyu zorunlu quest'e sokmamalıdır.
+
+============================================================
+20. NARRATIVE STYLE
+============================================================
+
+Genel narration:
+
+- doğal
+- akıcı
+- atmosferik
+- edebi
+- fakat gereksiz uzun ve yapay değil
+
+olmalıdır.
+
+Karakter/NPC/sahneye göre stil değişebilir.
+
+Örneğin:
+- Sage daha ölçülü
+- Soldier daha doğrudan
+- liman işçisi daha kaba
+- aristokrat daha resmi
+- korkmuş NPC daha parçalı
+- gizemli sahne daha fantastik
+
+olabilir.
+
+Ama bütün karakterler aynı AI chatbot sesiyle konuşmamalıdır.
+
+Türkçe doğal olmalıdır.
+
+"AI dili" hissi vermemelidir.
+
+============================================================
+21. NPC KATMANLARI
+============================================================
+
+NPC sistemi en az şu katmanları ayırmalıdır:
+
+A. Ambient NPC
+B. Canonical / Named NPC
+C. Faction NPC
+D. Background-linked NPC
+E. Dynamic NPC
+
+Stable ID kullanılmalıdır.
+
+Display name identity değildir.
+
+Aynı isimli iki NPC kesinlikle birbirine karıştırılmamalıdır.
+
+============================================================
+22. CANONICAL NPC
+============================================================
+
+Canonical NPC'ler mevcut verified lore authority'den gelmelidir.
+
+Qwen:
+
+- official NPC uyduramaz
+- canonical NPC'nin kimliğini değiştiremez
+- canonical NPC'nin ilişkilerini keyfi değiştiremez
+- canonical NPC'ye yeni official history yazamaz
+
+Campaign'de gerçekleşen olaylar ayrıca campaign canon olabilir.
+
+Örneğin:
+
+"Kael dün oyuncuya kardeşini bulmasını söyledi."
+
+campaign event ise campaign canon'dur.
+
+Bu bilgi D&D kitabında bulunmak zorunda değildir.
+
+Fakat campaign event setting canonunu sessizce değiştiremez.
+
+============================================================
+23. AMBIENT NPC
+============================================================
+
+Ambient NPC'ler dünyaya günlük yaşam hissi verir.
+
+Örnek:
+
+- fırıncı
+- muhafız
+- tüccar
+- işçi
+- dilenci
+- çocuk
+- gezgin
+- rahip
+- denizci
+- sanatçı
+- çiftçi
+- hizmetçi
+- kâtip
+- hamal
+- balıkçı
+
+gibi.
+
+Her ambient NPC büyük hikâyeye sahip olmak zorunda değildir.
+
+Bazıları gerçekten sadece:
+"bugün işine giden insan"
+
+olabilir.
+
+Her NPC'yi gizli conspiracy'ye bağlama.
+
+Her NPC'yi quest giver yapma.
+
+Bu çok önemli.
+
+============================================================
+24. AMBIENT EVENT SYSTEM
+============================================================
+
+Living World hissini ciddi şekilde artır.
+
+Ambient event sayısı mevcut sistemden anlamlı biçimde fazla olmalıdır.
+
+SADECE 5-10 EVENT EKLEME.
+
+Mevcut mimari uygunsa geniş, data-driven event catalog oluştur.
+
+Hedef:
+çok sayıda düşük/orta yoğunluklu olay + kontrollü varyasyon.
+
+Yaklaşık 50+ küçük olay/variation'a çıkmak mevcut mimari için makulse tercih edilir.
+
+Ama gereksiz şişirme yapma.
+
+Event türleri:
+
+GREEN / PURE AMBIENT
+- yalnızca atmosfer
+
+BLUE / INTERACTIVE
+- oyuncu isterse müdahale edebilir
+
+ORANGE / CONSEQUENTIAL
+- müdahale world/campaign state'i etkileyebilir
+
+RED / MAJOR
+- gelecekte büyük dünya olayları için genişletilebilir
+
+RED sistemini bu sprintte tam world simulation'a dönüştürme.
+
+============================================================
+25. AMBIENT EVENT ÖRNEKLERİ
+============================================================
+
+Örnek event pool:
+
+- köpek kasaptan et çalmaya çalışır
+- çocuk annesinden kaçıp kalabalığa karışır
+- iki esnaf tartışır
+- muhafız sarhoş birini uyarır
+- at ürker
+- sokak sanatçısı kalabalık toplar
+- tüccarın arabasının tekeri kırılır
+- dilenci biriyle tartışır
+- biri yüzüğünü arar
+- rahip dua dağıtır
+- askerler nöbet değiştirir
+- çocuklar kavga eder
+- hırsız birini izler
+- sokak kedisi balıkçı tezgâhına yaklaşır
+- biri oyuncuya çarpar
+- dükkân kepenklerini açar
+- dükkân kapanır
+- yağmur başlar
+- uzaktan zil sesi gelir
+- pazar kalabalığı değişir
+- küçük sokak kavgası çıkar
+- tüccar müşteriyle pazarlık eder
+- muhafız başka bir muhafızı çağırır
+- bir at arabası sıkışır
+- biri yağmurdan kaçıp hana girer
+- bir çocuk bozuk para arar
+- sokak lambası söner
+- bir hancı çalışanını azarlar
+- balıkçı ağlarını toplar
+- bir sokak müzisyeni yanlış nota çalar
+- iki gezgin yol tarifi tartışır
+- bir satıcı ürününü yüksek sesle över
+- biri cüzdanını düşürür
+- bir muhafız nöbet değişiminden önce esner
+- bir grup işçi yük taşır
+- bir rahip sessizce birini izler
+- yaşlı biri genç birine öğüt verir
+- bir tüccar fiyat konusunda sinirlenir
+- bir çocuk oyuncunun silahına bakar
+- uzaktan çan sesi gelir
+- bir kapı sertçe kapanır
+- bir kedi iki NPC arasında dolaşır
+- bir sokak köpeği başka bir köpeğe havlar
+- bir sarhoş duvara yaslanır
+- biri yağmurda şapkasını tutmaya çalışır
+- küçük bir kalabalık kısa süreli oluşur
+- bir NPC aceleyle bir yere yetişmeye çalışır
+- biri oyuncuya kısa süreli yol verir
+- bir seyyar satıcı başka bir sokağa taşınır
+- bir muhafız pazar girişini kontrol eder
+
+Bunlar örnektir.
+
+Data-driven event system mevcut mimariyle uyumlu şekilde daha genişletilebilir.
+
+============================================================
+26. AMBIENT EVENT CONTEXT
+============================================================
+
+Event selection:
+
+- location
+- environment
+- time_of_day
+- weather
+- NPC density
+- background
+- origin
+- faction activity
+- current world state
+- recent events
+- recent event history
+- campaign seed
+
+ile filtrelenebilir.
+
+Örneğin:
+
+Gece:
+öğlen pazarı atmosferi üretme.
+
+Fırtına:
+açık hava etkinliklerini uygun şekilde azalt.
+
+Liman:
+denizcilik olaylarının ağırlığını artır.
+
+Ama background hiçbir event'i otomatik zorunlu hale getirmemeli.
+
+============================================================
+27. EVENT REPETITION CONTROL
+============================================================
+
+Ambient event sistemi canlı olmalı fakat tekrar eden bot davranışı gibi görünmemeli.
+
+Track:
+
+- event_id
+- variation_id
+- campaign
+- location
+- last_seen
+- count
+- recent history
+- repetition group
+
+Aynı event kısa aralıkta tekrar etmemeli.
+
+Aynı variation arka arkaya gelmemeli.
+
+Ancak event'i sonsuza kadar blacklist yapma.
+
+Zaman ve context değiştiğinde tekrar mümkün olabilir.
+
+============================================================
+28. EVENT DENSITY
+============================================================
+
+Kullanıcı özellikle ambient event sayısının yüksek olmasını istiyor.
+
+Bu:
+
+"her 10 saniyede popup"
+
+anlamına gelmez.
+
+Ambient event density yüksek olacak.
+
+UX spam olmayacak.
+
+Bazı olaylar sadece narration içinde kısa bir cümle olabilir.
+
+Bazıları oyuncunun dikkatini çekebilir.
+
+Bazıları oyuncunun yanından geçip gidebilir.
+
+Bazıları hiç fark edilmeyebilir.
+
+Dünya:
+"olay üretmek için olay üretmiyor."
+
+Dünya gerçekten yaşıyor hissi vermeli.
+
+============================================================
+29. EVENT CONSEQUENCE
+============================================================
+
+Oyuncu ambient event'e müdahale ederse:
+
+PLAYER ACTION
+→ INTENT
+→ ENGINE RESOLUTION
+→ VERIFIED RESULT
+→ WORLD STATE / EVENT LOG
+→ NARRATION
+
+olmalı.
+
+Oyuncu müdahale etmezse event doğal sonucuna ulaşabilir.
+
+Narration tek başına event outcome yazamaz.
+
+============================================================
+30. MEMORY — FIRST CLASS SYSTEM
+============================================================
+
+MEMORY OYUNUN TEMEL SİSTEMİDİR.
+
+AI'ın conversation context'ine güvenerek hafıza oluşturma.
+
+OYUN HATIRLAMALI.
+
+Mevcut memory sistemini incele ve genişlet.
+
+Yeni paralel memory sistemi oluşturma.
+
+Temel katmanlar:
+
+1. Canonical World State
+2. Campaign Event Log
+3. Entity Memory
+4. NPC Interaction Memory
+5. Quest / Thread Memory
+6. Narrative Summary
+7. Recent Context
+8. Relevant Retrieval
+
+============================================================
+31. MEMORY RETRIEVAL
+============================================================
+
+Her turn'de bütün campaign transcript'i Qwen'e gönderme.
+
+Relevant memory retrieval kullan.
+
+Örneğin oyuncu:
+
+"Kael'in kardeşini en son nerede gördük?"
+
+derse retrieve:
+
+- Kael entity
+- brother entity/thread
+- relevant events
+- relevant commitment
+- recent conversation
+- journal evidence
+- relevant location
+
+getirsin.
+
+İlgisiz NPC memory'leri getirme.
+
+İlgisiz eski olayları getirme.
+
+============================================================
+32. MEMORY AUTHORITY
+============================================================
+
+Canonical state:
+
+en yüksek oyun authority'sidir.
+
+Event log:
+
+engine-confirmed campaign events içerir.
+
+NPC memory:
+
+NPC'nin gerçekten bildiği/duyduğu/yaşadığı bilgileri içerir.
+
+Player statement:
+
+oyuncunun söylediği bilgi olabilir.
+
+Player statement otomatik campaign canon değildir.
+
+Örneğin:
+
+Player:
+"Ben dün kral ile görüştüm."
+
+Bu tek başına:
+
+"Player met the king yesterday."
+
+canonical event oluşturmaz.
+
+Bunun engine-confirmed event karşılığı olmalıdır.
+
+============================================================
+33. NPC MEMORY SPEAKER SEPARATION
+============================================================
+
+Kesinlikle ayır:
+
+PLAYER_SAID
+NPC_SAID
+SYSTEM_VERIFIED
+CAMPAIGN_EVENT
+CANONICAL_LORE
+
+Özellikle:
+
+player_said ≠ npc_said
+
+ve:
+
+player_said ≠ world_fact
+
+olmalıdır.
+
+NPC'nin söylemediği bir şeyi NPC memory'sine yazma.
+
+Oyuncunun iddiasını NPC'nin geçmişi gibi gösterme.
+
+============================================================
+34. PERSONAL REALITY vs WORLD CANON
+============================================================
+
+Aşağıdaki ayrımı koru:
+
+CHARACTER TRUTH:
+"Ben Waterdeep'te büyüdüm."
+
+→ Character record'da kabul edilmişse karakter gerçeğidir.
+
+NPC BELIEF:
+"Ben sana inanıyorum."
+
+→ NPC'nin belief/stance'ıdır.
+
+WORLD FACT:
+"Bu kişi gerçekten Waterdeep'te büyüdü."
+
+→ bunu character record / verified campaign evidence desteklemelidir.
+
+PLAYER CLAIM:
+"Ben kralın oğluyum."
+
+→ oyuncunun iddiasıdır.
+
+Bu dört alan birbirine karıştırılmamalıdır.
+
+============================================================
+35. QUEST SYSTEM — CLASSIC QUEST LOG DEĞİL
+============================================================
+
+Quest sistemi klasik MMORPG görev listesi olmayacak.
+
+Temel kavramlar:
+
+RUMOR
+THREAD
+COMMITMENT
+FORMAL QUEST
+
+Bunlar gerektiğinde birbirine dönüşebilir.
+
+============================================================
+36. RUMOR
+============================================================
+
+Rumor henüz quest değildir.
+
+Örnek:
+
+"Kuzey ormanında geceleri garip ışıklar görülüyormuş."
+
+Oyuncu bunu duyabilir.
+
+Memory'ye rumor olarak kaydedilebilir.
+
+Quest Ledger'a otomatik formal quest olarak eklenmez.
+
+============================================================
+37. THREAD
+============================================================
+
+Oyuncunun dikkatini çekmiş veya campaign'de anlamlı hale gelmiş gelişen hikâye.
+
+Örnek:
+
+- kayıp kişi
+- gizemli sembol
+- pazardaki hırsızlık
+- kayıp kardeş
+- garip ışıklar
+
+Thread formal quest olmak zorunda değildir.
+
+============================================================
+38. COMMITMENT / PROMISE
+============================================================
+
+Oyuncu açık bir söz verdiğinde:
+
+"Merak etme, onu bulacağım."
+
+gibi bir ifade uygun intent olarak engine tarafından doğrulanırsa:
+
+COMMITMENT
+
+oluşabilir.
+
+Commitment örneğin:
+
+- stable_id
+- actor
+- target
+- subject
+- promise_text
+- timestamp
+- scope
+- status
+- related_entities
+
+taşıyabilir.
+
+Ama:
+
+"Bir gün dünyayı kurtarırım."
+
+gibi her cümleyi commitment yapma.
+
+Commitment:
+- context
+- intent
+- target
+- scope
+- explicitness
+
+ile değerlendirilmelidir.
+
+Qwen commitment candidate önerebilir.
+
+CANONICAL COMMITMENT'I PYTHON KAYDEDER.
+
+Qwen tek başına commitment yaratamaz.
+
+============================================================
+39. FORMAL QUEST
+============================================================
+
+Formal quest:
+
+NPC / world source tarafından anlamlı bir görev teklif edilmesi
++
+oyuncunun gerçekten kabul etmesi
++
+Python tarafında explicit canonical quest outcome
+
+gerektirir.
+
+Oyuncu kabul etmediyse:
+
+QUEST ACTIVE
+
+yapma.
+
+Narration:
+
+"Quest accepted!"
+
+diyerek quest oluşturamaz.
+
+Quest state yalnızca Python-owned event/outcome üzerinden değişebilir.
+
+============================================================
+40. QUEST STATUS
+============================================================
+
+Temel statuslar:
+
+ACTIVE
+PAUSED
+RESOLVED
+FAILED
+ABANDONED
+EXPIRED
+RESOLVED_WITHOUT_PLAYER
+
+Hidden bir visibility/property olabilir.
+
+Hidden ayrı bir quest type olmak zorunda değildir.
+
+============================================================
+41. QUEST WORLD INDEPENDENCE
+============================================================
+
+Oyuncu quest'i kabul etti diye dünya pause olmaz.
+
+Oyuncu üç gün ilgilenmezse:
+
+- NPC hareket edebilir
+- hedef değişebilir
+- başka biri işi çözebilir
+- hedef ölebilir
+- durum değişebilir
+- quest başka sonuca ulaşabilir
+
+Bu sonuçların hepsi engine/event tarafından canonical olarak kaydedilmelidir.
+
+============================================================
+42. QUEST JOURNAL
+============================================================
+
+Journal klasik:
+
+QUESTS
+- Kill goblin
+- Find sword
+- Talk to NPC
+
+listesi gibi davranmamalı.
+
+Journal:
+
+OYUNCUNUN YAŞADIĞI HİKÂYENİN KAYDI
+
+olmalıdır.
+
+Örneğin:
+
+PEOPLE
+Kael — kardeşini bulacağıma söz verdim.
+
+PROMISES
+Kael'in kardeşini bul.
+
+STORIES / THREADS
+Kuzey Ormanı'ndaki ışıklar.
+
+RUMORS
+Kuzey yolunda tüccarlar kayboluyor.
+
+DISCOVERIES
+Terk edilmiş değirmende garip bir sembol gördüm.
+
+FORMAL QUESTS
+Gerçekten aktif formal quest varsa göster.
+
+Journal yalnızca verified campaign state/event üzerinden oluşturulmalıdır.
+
+AI'nin uydurduğu bilgi Journal'a giremez.
+
+============================================================
+43. HIDDEN THREADS
+============================================================
+
+Gizli thread destekle.
+
+Oyuncu:
+
+- bir konuşmayı duyabilir
+- sembol fark edebilir
+- NPC davranışından şüphelenebilir
+- gizli oda bulabilir
+- NPC takip edebilir
+- bir olayın ipucunu keşfedebilir
+
+ve hidden thread oluşabilir.
+
+Ancak:
+
+AI "gizli quest" uyduramaz.
+
+Hidden thread de engine tarafından stable ID ile oluşturulmalıdır.
+
+============================================================
+44. JOURNAL / QUEST INVARIANT
+============================================================
+
+MEVCUT JOURNAL/QUEST V1 İLE ÇATIŞMA.
+
+Özellikle:
+
+Narration → Quest
+
+otomatik bridge yapma.
+
+Qwen'in:
+
+"Bu bir görev."
+
+demesi quest oluşturmaz.
+
+Qwen'in:
+
+"Artık bunu yapman gerekiyor."
+
+demesi quest oluşturmaz.
+
+Python-owned event/outcome gerekir.
+
+Bu mevcut canonical quest authority kararının korunmasıdır.
+
+============================================================
+45. ARRIVAL / RE-ENTRY
+============================================================
+
+Oyuncu bir şehirden ayrılıp birkaç gün sonra dönerse:
+
+Dünya aynıymış gibi davranmak zorunda değildir.
+
+Örneğin:
+
+- kuzey kapısı açılmış olabilir
+- muhafız sayısı değişmiş olabilir
+- pazar farklı olabilir
+- NPC artık orada olmayabilir
+- hava değişmiş olabilir
+- quest/thread ilerlemiş olabilir
+- ambient event farklı olabilir
+- bir dükkân kapanmış olabilir
+
+Ama bunların hepsi:
+
+canonical world state
++
+campaign events
+
+ile desteklenmelidir.
+
+Narration rastgele değişiklik uyduramaz.
+
+============================================================
+46. OPENING / RE-ENTRY CONTINUITY
+============================================================
+
+Save/load sonrası:
+
+- location
+- environment
+- time
+- weather
+- NPC state
+- quest/thread state
+- journal
+- memory
+- event history
+
+korunmalıdır.
+
+Oyuncunun save/load yapması dünyayı rastgele yeniden üretmemelidir.
+
+============================================================
+47. CANONICAL LORE
+============================================================
+
+Mevcut lore authority sistemini koru.
+
+Resmi canon:
+setting reality.
+
+Campaign event:
+campaign reality.
+
+Procedural content:
+controlled local content.
+
+Player claim:
+player claim.
+
+Bunları birbirine karıştırma.
+
+Canon olmayan bir şeyi:
+
+"official Forgotten Realms fact"
+
+olarak sunma.
+
+İnternetten rastgele yeni D&D lore/NPC/location import etme.
+
+Bu görevde yeni lore ingestion sistemi kurma.
+
+============================================================
+48. NARRATIVE FALLBACK
+============================================================
+
+Teknik hata oyuncuya görünmeyecek.
+
+Asla:
+
+MODEL_ERROR
+JSON_PARSE_ERROR
+INTERNAL_SERVER_ERROR
+NPC_MEMORY_LOOKUP_FAILED
+RETRIEVAL_FAILED
+QUEST_STATE_ERROR
+DATABASE_ERROR
+
+gibi ifadeleri normal player-facing narration'a bırakma.
+
+Fallback:
+
+- doğal
+- contextual
+- güvenli
+- canonical state ile çelişmeyen
+
+olmalıdır.
+
+============================================================
+49. FRONTEND
+============================================================
+
+Frontend yalnızca verified state'i sunar.
+
+Backend/game truth frontend tarafından oluşturulamaz.
+
+Character creation:
+
+- origin
+- background
+- appearance
+- personality
+- backstory
+
+gibi identity bilgilerini uygun şekilde göstermeli.
+
+Review ekranında origin görünmeli.
+
+Journal narrative-first olmalı.
+
+Ambient event'ler sürekli popup/notification spam'i yapmamalı.
+
+UI:
+
+"QUEST ACCEPTED!"
+
+gibi klasik MMO popup'larıyla dolmamalı.
+
+Dünya gerçek olsun.
+Arayüz yolundan çekilsin.
+
+============================================================
+50. FREEFORM UX
+============================================================
+
+Oyuncu:
+
+"Kapıyı açıyorum."
+
+"Kapının arkasını dinliyorum."
+
+"İçeri girmezden önce muhafızı izliyorum."
+
+"Adamın yüzüne bakıp yalan söyleyip söylemediğini anlamaya çalışıyorum."
+
+"Atın yanına gidip sakinleştirmeye çalışıyorum."
+
+gibi serbest eylemler yazabilmeli.
+
+Sistem:
+
+"Bu seçeneklerden birini seç."
+
+modeline geri dönmemeli.
+
+============================================================
+51. DEATH DESIGN
+============================================================
+
+Tasarım kararı:
+
+HARDCORE:
+Permadeath.
+
+Character öldüyse campaign/character sona erer.
+
+NON-HARDCORE:
+İleride sınırlı recovery / rewind olabilir.
+
+Kullanıcının yaklaşık 5 dakikalık rewind fikri vardır.
+
+ANCAK:
+
+Bu sprintte 5 dakikalık rewind mekanizmasını implement etme.
+
+Death/recovery detayları Combat/Death design fazında ayrıca netleştirilecek.
+
+Mevcut death state sistemini bozma.
+
+AI ölüm kararı veremez.
+
+Death yalnızca canonical engine state tarafından belirlenebilir.
+
+============================================================
+52. ŞİMDİLİK UYGULANMAYACAK SİSTEMLER
+============================================================
+
+Bu görevde büyük yeni sistem olarak şunları uygulama:
+
+- Combat overhaul
+- Combat V3
+- Spell overhaul
+- full magic system
+- XP/leveling overhaul
+- full economy simulation
+- full travel simulation
+- full faction simulation
+- romance system
+- companion system
+- complete crime/legal simulation
+- complete world simulation
+- final death rewind system
+- new D&D canonical lore database
+- internet lore ingestion
+
+Bunlar sonraki tasarım fazlarıdır.
+
+============================================================
+53. UYGULAMA STRATEJİSİ
+============================================================
+
+ÖNCE AUDIT.
+
+Aşağıdakileri repository'de bul:
+
+- character creation
+- character schemas
+- identity fields
+- campaign persistence
+- GameSession
+- world state
+- world metadata
+- NPC memory
+- entity IDs
+- event log
+- journal
+- quest outcome system
+- starting location
+- opening/start flow
+- lore authority
+- narrative context builder
+- frontend game screen
+- API contracts
+- generated API clients
+- existing tests
+
+Sonra:
+
+EXISTING SYSTEM
+→ GAP
+→ MINIMUM IMPLEMENTATION
+
+şeklinde ilerle.
+
+Aynı işi yapan ikinci sistem oluşturma.
+
+============================================================
+54. TASARIM KONTRATI
+============================================================
+
+Aşağıdaki dosyayı oluştur:
+
+docs/design/gameplay-design-contract-v1.md
+
+Bu dosya bu görevde kilitlediğimiz gameplay prensiplerini belgelemelidir.
+
+Başlıklar:
+
+1. Player-driven narrative
+2. Authority hierarchy
+3. Character identity
+4. Personal reality vs player claim
+5. NPC belief vs world fact
+6. Dynamic opening
+7. Dynamic starting location
+8. Character origin
+9. NPC layers
+10. Ambient events
+11. Memory
+12. Quest / Rumor / Thread / Commitment
+13. Journal
+14. Player agency
+15. Action resolution
+16. Conversation continuity
+17. Arrival / re-entry
+18. Narrative style
+19. Death boundary
+20. Deferred systems
+
+Bu belge implementation'ın yerine geçmez.
+
+Gerçek kod davranışıyla aynı olmalıdır.
+
+============================================================
+55. CHARACTER ORIGIN IMPLEMENTATION
+============================================================
+
+Origin field:
+
+- persistent
+- nullable/optional if existing creation allows
+- character-scoped
+- campaign-resumable
+- review-visible
+- opening-readable
+
+olmalıdır.
+
+Origin string:
+freeform olabilir.
+
+Canonical location değilse canonical location oluşturma.
+
+Origin background ile narrative context'te ilişkilendirilebilir.
+
+Örneğin:
+
+Background:
+Soldier
+
+Origin:
+"Neverwinter'ın kuzeyindeki küçük bir sınır köyü"
+
+Opening:
+"Şehrin kapısındaki muhafızların hareketini görünce yıllar önceki nöbet günlerini hatırlıyorsun."
+
+Ama bu:
+
+"Sen muhafızları tanıyorsun."
+
+gibi mekanik bir fact üretmemelidir.
+
+============================================================
+56. OPENING CONTEXT ABSTRACTION
+============================================================
+
+Mevcut uygun abstraction varsa genişlet.
+
+Gerekirse opening context şu bilgileri taşıyabilmelidir:
+
+- campaign_id
+- character_id
+- origin
+- background
+- backstory
+- personality
+- selected_city
+- starting_location
+- environment
+- time_of_day
+- weather
+- world_state
+- nearby_entities
+- nearby_event
+- narrative_tone
+- campaign_seed
+- opening_signature
+
+Opening context canonical state değildir.
+
+Narrative input'tur.
+
+Canonical state değişiklikleri yalnızca engine üzerinden yapılır.
+
+============================================================
+57. AMBIENT EVENT DATA MODEL
+============================================================
+
+Event definitions mümkün olduğunca data-driven olmalı.
+
+En azından kavramsal olarak:
+
+- stable_id
+- category
+- variation_id
+- eligible_locations
+- eligible_environments
+- time_conditions
+- weather_conditions
+- cooldown
+- repetition_group
+- interaction_level
+- consequence_type
+- actor requirements
+- narrative context
+- optional player interaction
+- seed/selection metadata
+
+gibi bilgiler taşıyabilir.
+
+Devasa hard-coded if/else event sistemi kurma.
+
+============================================================
+58. QUEST / THREAD DATA MODEL
+============================================================
+
+Stable ID zorunlu.
+
+Rumor:
+- id
+- source
+- subject
+- status
+- discovered_at
+- evidence
+
+Thread:
+- id
+- subject
+- related_entities
+- state
+- origin_event
+- visibility
+
+Commitment:
+- id
+- actor
+- target
+- promise
+- scope
+- status
+- timestamp
+- related_entities
+
+Formal Quest:
+- id
+- giver
+- subject
+- objectives
+- status
+- related_entities
+- deadline if any
+- related_commitment
+- event history
+
+Mevcut model uygun isimlendirmeye sahipse mevcut naming convention'ı kullan.
+
+Yeni parallel schema oluşturma.
+
+============================================================
+59. IDEMPOTENCY
+============================================================
+
+Quest/thread/commitment/event transitions idempotent olmalıdır.
+
+Aynı event iki kere işlenirse:
+
+duplicate quest
+duplicate commitment
+duplicate journal entry
+duplicate NPC memory
+
+oluşmamalıdır.
+
+Stable event IDs kullan.
+
+============================================================
+60. SESSION / CAMPAIGN ISOLATION
+============================================================
+
+Her browser/campaign/session birbirinden izole olmalıdır.
+
+Campaign A'daki:
+
+- NPC memory
+- quest
+- journal
+- origin
+- events
+- commitments
+- discoveries
+
+Campaign B'ye sızmamalıdır.
+
+Player'ın başka campaign'deki memory'si mevcut campaign context'ine girmemelidir.
+
+Save/load isolation korunmalıdır.
+
+============================================================
+61. NARRATIVE CONTEXT ORDER
+============================================================
+
+Qwen'e mümkün olduğunca structured verified context gönder.
+
+Conceptual order:
+
+SYSTEM RULES
++
+CANONICAL WORLD STATE
++
+CURRENT LOCATION
++
+CURRENT ACTORS
++
+CHARACTER IDENTITY
++
+RELEVANT ENTITY MEMORY
++
+RELEVANT QUEST/THREAD
++
+RELEVANT EVENTS
++
+RECENT CONVERSATION
++
+CURRENT PLAYER INPUT
++
+NARRATIVE STYLE
+
+Qwen state owner değildir.
+
+============================================================
+62. CONVERSATION CONTINUITY
+============================================================
+
+Conversation target stable olmalıdır.
+
+Player:
+
+"Kael'e kardeşini soruyorum."
+
+sonra:
+
+"En son nerede gördün?"
+
+sonra:
+
+"Onun peşinden gidiyorum."
+
+gibi ifadelerde:
+
+Kael
+→ brother
+→ brother's location
+→ current target
+
+context korunmalıdır.
+
+Pronoun resolution rastgele yapılmamalıdır.
+
+Aynı isimli NPC'ler stable ID ile ayrılmalıdır.
+
+============================================================
+63. NO FALSE CONTINUITY
+============================================================
+
+Qwen daha önce yaşanmamış bir olayı:
+
+"Hatırlıyorum."
+
+diye anlatmamalıdır.
+
+NPC:
+
+"Sen dün buraya gelmiştin."
+
+diyorsa gerçekten campaign/NPC memory bunu desteklemelidir.
+
+Oyuncu:
+
+"Geçen hafta sana söylemiştim."
+
+diyorsa memory yoksa NPC'nin bunu otomatik hatırlaması gerekmez.
+
+============================================================
+64. PLAYER PROMISE MEMORY
+============================================================
+
+Commitment oluştuğunda ileride NPC bunu hatırlayabilir.
+
+Örneğin:
+
+Player:
+"Merak etme. Kardeşini bulacağım."
+
+NPC:
+"Bana onu bulacağını söylemiştin."
+
+Bu yalnızca commitment canonical olarak kaydedilmişse mümkün olmalıdır.
+
+Qwen eski konuşmadan bunu kendi başına "hatırlıyor" gibi davranmamalıdır.
+
+Memory engine'den gelmelidir.
+
+============================================================
+65. AMBIENT EVENTS + MEMORY
+============================================================
+
+Her ambient event memory'ye kaydedilmek zorunda değildir.
+
+Önemli olaylar:
+- event log
+- campaign memory
+- journal
+
+alabilir.
+
+Küçük atmosfer olayları:
+sadece current scene/narrative context'te kalabilir.
+
+Bu ayrım memory'yi gereksiz büyütmemelidir.
+
+============================================================
+66. REPETITION CONTROL
+============================================================
+
+Sadece event repetition değil:
+
+- opening prose
+- NPC phrases
+- generic narration
+- ambient events
+- quest reminders
+
+için de tekrar kontrolü düşün.
+
+Ancak metni sonsuza kadar blacklist etme.
+
+Variation üret.
+
+============================================================
+67. NARRATIVE QUALITY GUARD
+============================================================
+
+Narration:
+
+- gerçek world state'e sadık
+- concrete
+- atmospheric
+- character-appropriate
+- Turkish
+- natural
+- non-repetitive
+
+olmalı.
+
+Teknik jargon:
+YOK.
+
+Developer terminology:
+YOK.
+
+"Internal state":
+YOK.
+
+"Game system says":
+YOK.
+
+Normal player UI/narration'da görünmemeli.
+
+============================================================
+68. TEST STRATEGY
+============================================================
+
+Smoke test çalıştırma.
+
+Live Qwen / Ollama smoke çalıştırma.
+
+Uzun playable living-world smoke çalıştırma.
+
+Bu görevde deterministik/unit/API/frontend testleri kullan.
+
+Mevcut testleri değiştirme veya gevşetme.
+
+Test failure varsa root cause düzelt.
+
+Testi başarıya ulaştırmak için expectation düşürme.
+
+============================================================
+69. EXISTING REGRESSION TESTS
+============================================================
+
+A1:
+
+PYTHONPATH=ai-dnd python -m unittest discover \
+  -s ai-dnd/api/tests \
+  -p 'test_character_creation_2024.py' \
+  -v
+
+Campaign start:
+
+PYTHONPATH=ai-dnd python -m unittest discover \
+  -s ai-dnd/api/tests \
+  -p 'test_campaign_starts.py' \
+  -v
+
+Contract:
+
+PYTHONPATH=ai-dnd python -m unittest discover \
+  -s ai-dnd/api/tests \
+  -p 'test_contract_parity.py' \
+  -v
+
+Frontend:
+- typecheck
+- character creation tests
+- relevant journal/quest tests
+
+Mevcut frontend test suite'ini çalıştır.
+
+============================================================
+70. YENİ TESTLER
+============================================================
+
+Aşağıdaki davranışları deterministik testlerle doğrula:
+
+A. Origin persistence
+
+Origin save/load sonrası aynı.
+
+B. Origin review
+
+Character review'da görünür.
+
+C. Origin opening context
+
+Opening context origin'i alabiliyor.
+
+D. Background influence
+
+Background opening weighting/context'i etkileyebiliyor.
+
+E. Dynamic opening
+
+Farklı valid context'lerde variation mümkün.
+
+F. Opening save/load stability
+
+Aynı campaign state yeniden yüklendiğinde opening state değişmiyor.
+
+G. Verified starting locations
+
+Geçersiz location start edilemiyor.
+
+H. Weather authority
+
+Python weather state ile narration context çelişmiyor.
+
+I. Subjective player statement
+
+Player opinion world state'i değiştirmiyor.
+
+J. Player agency
+
+Narration player action uyduramıyor.
+
+K. Player claim
+
+Yeni player claim character/world state'i sessizce değiştirmiyor.
+
+L. NPC belief
+
+NPC belief world fact olarak kaydedilmiyor.
+
+M. NPC memory
+
+player_said ≠ npc_said.
+
+N. Stable NPC IDs
+
+Aynı isimli NPC'ler karışmıyor.
+
+O. Conversation continuity
+
+Kael → brother → follow-up continuity korunuyor.
+
+P. Ambient event context
+
+Gece/gündüz/weather/location filtreleri çalışıyor.
+
+Q. Ambient event repetition
+
+Aynı event kısa aralıkta tekrar etmiyor.
+
+R. Ambient event non-interaction
+
+Oyuncu müdahale etmezse event doğal şekilde ilerleyebiliyor.
+
+S. Ambient event interaction
+
+Oyuncu müdahale ederse engine result üretiyor.
+
+T. Rumor
+
+Rumor otomatik formal quest olmuyor.
+
+U. Thread
+
+Thread stable ID ile tutuluyor.
+
+V. Commitment
+
+Açık promise uygun intent sonrası Python tarafından persist ediliyor.
+
+W. False commitment
+
+Her sıradan cümle commitment oluşturmuyor.
+
+X. Formal quest
+
+Explicit player acceptance olmadan active quest oluşmuyor.
+
+Y. Quest outcomes
+
+Resolved/Failed/Abandoned/Expired/ResolvedWithoutPlayer ayrımı korunuyor.
+
+Z. Hidden thread
+
+Discovery sonrası hidden thread oluşabiliyor.
+
+AA. Journal
+
+Journal yalnızca verified campaign state/event gösteriyor.
+
+AB. No narration quest mutation
+
+Qwen output tek başına quest state değiştiremiyor.
+
+AC. Memory retrieval
+
+Relevant memory geliyor, tüm transcript gönderilmiyor.
+
+AD. Campaign isolation
+
+Campaign A memory'si Campaign B'ye sızmıyor.
+
+AE. Re-entry
+
+Ayrılıp dönünce canonical changes korunuyor.
+
+AF. Technical fallback
+
+Technical error player-facing narration'a çıkmıyor.
+
+AG. Qwen budget
+
+Deterministic pathlerde gereksiz model call yapılmıyor.
+
+AH. Max Qwen calls
+
+Turn başına 2'den fazla model call oluşmuyor.
+
+============================================================
+71. API / CODEGEN
+============================================================
+
+Persistent contract değişikliği gerekiyorsa:
+
+1. Source OpenAPI'yi değiştir.
+2. Generated clients'i codegen ile üret.
+3. Generated dosyaları elle düzenleme.
+4. typecheck çalıştır.
+5. contract parity çalıştır.
+6. ilgili backend/frontend testlerini çalıştır.
+
+Özellikle CharacterCreateInput contract'ı korunmalıdır.
+
+============================================================
+72. DESIGN DOC vs IMPLEMENTATION
+============================================================
+
+Sadece:
+
+"docs dosyasını oluşturdum"
+
+yeterli değildir.
+
+Bu görevin amacı gerçek gameplay foundation implementasyonudur.
+
+Aynı şekilde yalnızca kod dosyası oluşturmak da yeterli değildir.
+
+Relevant behavior test edilmelidir.
+
+Her raporda:
+
+IMPLEMENTED
+DOCUMENTED ONLY
+ALREADY EXISTING
+DEFERRED
+
+ayrımını açıkça yap.
+
+============================================================
+73. IMPLEMENTATION ORDER
+============================================================
+
+Şu sırayı kullan:
+
+STEP 1
+Repository audit.
+
+STEP 2
+Existing architecture mapping.
+
+STEP 3
+Gap analysis.
+
+STEP 4
+Gameplay design contract document.
+
+STEP 5
+Character origin + persistence.
+
+STEP 6
+Opening context/start flow.
+
+STEP 7
+Ambient event foundation.
+
+STEP 8
+NPC/entity memory integration.
+
+STEP 9
+Rumor/thread/commitment/quest foundation.
+
+STEP 10
+Journal integration.
+
+STEP 11
+Memory retrieval/context integration.
+
+STEP 12
+Player agency/narrative safety guards.
+
+STEP 13
+Conversation continuity.
+
+STEP 14
+Deterministic tests.
+
+STEP 15
+Regression tests.
+
+STEP 16
+Frontend typecheck/test.
+
+Her aşamada mevcut çalışan sistemi koru.
+
+============================================================
+74. IMPORTANT: DO NOT OVER-ENGINEER
+============================================================
+
+Bu görevi:
+
+"Yeni D&D engine yazıyorum."
+
+şeklinde yorumlama.
+
+Yeni combat engine yazma.
+
+Yeni dice engine yazma.
+
+Yeni spell engine yazma.
+
+Yeni faction engine yazma.
+
+Yeni relationship simulation yazma.
+
+Yeni world simulator yazma.
+
+Mevcut sistemler varsa onları genişlet.
+
+Yoksa ilerideki tasarım fazları için temiz interface/data boundary bırak.
+
+============================================================
+75. IMPORTANT: NO AI MEMORY MAGIC
+============================================================
+
+"Qwen zaten konuşmayı hatırlıyor."
+
+çözüm değildir.
+
+Memory engine tarafından tutulmalıdır.
+
+"Prompt'a bütün eski konuşmaları ekleyelim."
+
+çözüm değildir.
+
+Relevant retrieval kullanılmalıdır.
+
+"AI muhtemelen bunu hatırlar."
+
+kabul edilemez.
+
+Canonical event/memory state gerekir.
+
+============================================================
+76. IMPORTANT: NO NARRATION MUTATION
+============================================================
+
+Narration:
+
+"Kael görevi kabul etti."
+
+diyorsa bu tek başına:
+
+quest.accept()
+
+çağırmamalıdır.
+
+Narration:
+
+"Player kılıcı aldı."
+
+diyorsa bu tek başına inventory mutation yapmamalıdır.
+
+Narration:
+
+"NPC öldü."
+
+diyorsa engine death state üretmeden NPC ölü kabul edilmemelidir.
+
+Narration:
+
+"Şiddetli yağmur başladı."
+
+diyorsa world weather mutation yalnızca engine tarafından yapılabilir.
+
+NARRATION IS OUTPUT.
+
+NOT AUTHORITY.
+
+============================================================
+77. ACCEPTANCE CRITERIA
+============================================================
+
+Görev ancak aşağıdakiler sağlandığında başarılı kabul edilir:
+
+1. Existing character creation çalışıyor.
+2. Existing A1 contract bozulmamış.
+3. Origin persistent.
+4. Origin review'da görünür.
+5. Opening context origin kullanabiliyor.
+6. Opening background/context ile dinamik.
+7. Opening verified starting locations kullanıyor.
+8. Opening aynı campaign reload'da stabil.
+9. Opening variation mevcut.
+10. Ambient event catalog anlamlı biçimde genişletilmiş.
+11. Ambient event repetition control mevcut.
+12. Ambient event context filtering mevcut.
+13. NPC stable IDs korunuyor.
+14. NPC memory speaker-aware.
+15. NPC knowledge scope korunuyor.
+16. NPC belief world fact olarak karıştırılmıyor.
+17. Character truth vs player claim ayrımı mevcut.
+18. Player agency ihlal edilmiyor.
+19. Action resolution concrete sonuç üretiyor.
+20. Rumor sistemi mevcut.
+21. Thread sistemi mevcut.
+22. Commitment/promise sistemi mevcut.
+23. Formal quest explicit acceptance gerektiriyor.
+24. Narration quest state değiştiremiyor.
+25. Hidden thread destekleniyor.
+26. Quest player olmadan ilerleyebiliyor.
+27. Quest outcome state'leri korunuyor.
+28. Journal lived-story modeline entegre.
+29. Memory first-class.
+30. Relevant memory retrieval mevcut.
+31. Campaign/session isolation korunuyor.
+32. Arrival/re-entry continuity korunuyor.
+33. World metadata Python-authoritative.
+34. Subjective player statements world state'i değiştirmiyor.
+35. Qwen turn başına maksimum 2 çağrı korunuyor.
+36. Technical fallback player-facing değil.
+37. Lore authority korunuyor.
+38. Freeform natural-language gameplay korunuyor.
+39. No numbered-choice enforcement.
+40. Existing save/resume davranışı bozulmamış.
+41. Existing regression tests geçiyor.
+42. Yeni deterministik testler geçiyor.
+43. Smoke test çalıştırılmadı.
+44. Live Qwen/Ollama test çalıştırılmadı.
+45. Git commit oluşturulmadı.
+46. Push yapılmadı.
+47. game.py değiştirilmedi.
+48. Testler gevşetilmedi.
+49. Generated files elle patch edilmedi.
+50. Mevcut sistemlerin üzerine paralel duplicate architecture kurulmadı.
+
+============================================================
+78. FINAL REPORT
+============================================================
+
+İş sonunda Türkçe rapor ver.
+
+Şunları açıkça yaz:
+
+1. Başlangıç branch
+2. Başlangıç HEAD
+3. origin/main
+4. Bitiş HEAD
+5. Git status
+6. Değiştirilen dosyalar
+7. Eklenen dosyalar
+8. Silinen dosyalar
+9. Design contract path
+10. Implement edilen sistemler
+11. Sadece dokümante edilen sistemler
+12. Zaten mevcut olan sistemler
+13. Deferred sistemler
+14. Test sonuçları
+15. Regression sonuçları
+16. Codegen sonucu
+17. Typecheck sonucu
+18. Yeni eklenen testler
+19. Herhangi bir failure
+20. Herhangi bir teknik risk
+21. game.py değişmediğinin doğrulaması
+22. Qwen call-budget invariant'ının korunmasının doğrulaması
+23. Sonraki mantıklı mühendislik adımı
+
+Özellikle "tamamlandı" demeden önce gerçekten test sonuçlarını kontrol et.
+
+============================================================
+79. SON VE EN ÖNEMLİ PRENSİP
+============================================================
+
+Bu proje bir chatbot değildir.
+
+Bu proje bir AI-D&D oyunudur.
+
+AI hikâyeyi istediği gibi yazmaz.
+
+AI:
+
+- dünyayı gözlemler
+- mevcut state'i anlar
+- oyuncunun niyetini yorumlar
+- engine sonucunu anlatır
+- NPC'leri rol yapar
+- atmosfer oluşturur
+- campaign hafızasından relevant bilgileri kullanır
+
+AMA:
+
+DÜNYANIN GERÇEKLİĞİNİ PYTHON BELİRLER.
+
+OYUNCU KENDİ HİKÂYESİNİ YARATIR.
+
+DÜNYA OYUNCUYU BEKLEMEZ.
+
+NPC'LER KENDİ BİLGİLERİNE GÖRE DAVRANIR.
+
+QUESTLER OYUNCU GERÇEKTEN BİR ŞEY YAPTIĞINDA OLUŞUR.
+
+VERİLEN SÖZLER HATIRLANIR.
+
+KÜÇÜK OLAYLAR BİLE DÜNYAYI CANLI HİSSETTİRİR.
+
+MEMORY OYUNUN BİR PARÇASIDIR.
+
+NARRATION GERÇEKLİĞİN KAYNAĞI DEĞİLDİR.
+
+VE EN ÖNEMLİSİ:
+
+OYUNCUYA ÖNCEDEN YAZILMIŞ BİR HİKÂYE OYNATMA.
+
+OYUNCUNUN KENDİ HİKÂYESİNİ YAŞAMASINA İZİN VER.
+
+DÜNYAYI YAŞAT.
