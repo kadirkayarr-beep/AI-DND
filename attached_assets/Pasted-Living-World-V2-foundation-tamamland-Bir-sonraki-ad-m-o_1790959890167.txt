@@ -1,0 +1,155 @@
+Living World V2 foundation tamamlandı.
+
+Bir sonraki adım olarak "Etkileşimli dünya olaylarına kurallara uygun sonuçlar ekle" işine geç.
+
+ANCAK ÖNCE IMPLEMENTATION DEĞİL AUDIT YAP.
+
+İlk olarak mevcut Python-authoritative motor ve session arayüzlerini salt okunur incele:
+
+- ai-dnd/ambient_event_catalog.py
+- ai-dnd/living_world.py
+- ai-dnd/api/main.py
+- ai-dnd/api/session_manager.py
+- ai-dnd/api/tests/test_living_world_v2_foundation.py
+- ai-dnd/LIVING_WORLD_V2_GAMEPLAY_CONTRACT.md
+- ilgili mevcut GameSession / event / inventory / quest / combat / persistence arayüzleri
+
+Amaç:
+Mevcut sistemin ambient event sonucunda hangi kalıcı state değişikliklerini zaten güvenli ve yetkili şekilde yapabildiğini tespit etmek.
+
+ÖNCELİKLİ KURAL:
+
+Ambient event katmanı doğrudan:
+- quest mutation
+- inventory mutation
+- gold mutation
+- combat state mutation
+- NPC death
+- location mutation
+- world state mutation
+- campaign canon mutation
+
+yapamaz.
+
+Bunlar yalnızca mevcut Python-authoritative engine/session interface'leri üzerinden yapılabilir.
+
+Özellikle `game.py` şu aşamada değiştirilmemelidir.
+
+Önce şu sorulara cevap ver:
+
+1. Mevcut engine hangi kalıcı sonuçları zaten destekliyor?
+2. Bu sonuçlar hangi mevcut public/internal interface üzerinden güvenli şekilde uygulanabiliyor?
+3. Ambient event sistemi bunları çağırabilecek güvenli bir boundary'ye sahip mi?
+4. Persistence/save-load bu sonuçları zaten koruyor mu?
+5. İdempotency mevcut mu?
+6. Event'in kabul edilen sonucu ile reddedilen sonucu nasıl temsil ediliyor?
+7. Oyuncunun event'e müdahalesi ile event'in yalnızca atmosfer olarak görülmesi nasıl ayrılıyor?
+8. Mevcut sistem hangi sonuçları desteklemiyor?
+
+SONRA:
+
+### Eğer mevcut engine capability yeterliyse
+
+Yalnızca mevcut yetkili arayüzleri kullanarak küçük bir set interaktif event sonucu ekle.
+
+Öncelik:
+
+GREEN
+→ yalnızca atmosfer
+
+BLUE
+→ geçici/interaktif sahne
+
+ORANGE
+→ mevcut engine tarafından doğrulanabilen küçük ve kalıcı sonuçlar
+
+RED
+→ bu aşamada yalnızca mevcut engine gerçekten destekliyorsa
+
+Örnek güvenli sonuçlar, yalnızca mevcut API destekliyorsa:
+
+- oyuncunun bir NPC ile konuşması sonucunda mevcut relationship/memory sistemine event yazılması
+- mevcut inventory interface'i üzerinden doğrulanmış bir eşya kazanımı/kaybı
+- mevcut gold interface'i üzerinden doğrulanmış ekonomik sonuç
+- mevcut quest interface'i üzerinden doğrulanmış thread/quest ilerlemesi
+
+Bunları örnek olarak değerlendir; mevcut API desteklemiyorsa yeni gizli mutation yazma.
+
+### Eğer engine capability yeterli değilse
+
+IMPLEMENTATION YAPMA.
+
+Özellikle:
+
+- `game.py` değiştirme
+- ambient_event_catalog içine gizli state mutation koyma
+- doğrudan DB/session objesine mutation ekleme
+- Qwen çıktısını state authority yapma
+- yeni paralel event/quest/inventory engine oluşturma
+- mevcut interface'i bypass etme
+
+Bunun yerine raporla:
+
+1. Eksik engine capability nedir?
+2. Neden mevcut interface yeterli değil?
+3. Gereken minimum authoritative interface nedir?
+4. Bu interface hangi state'i değiştirebilir?
+5. Persistence nasıl yapılmalıdır?
+6. Hangi deterministic testler gerekli?
+7. `game.py` değişikliği gerçekten kaçınılmaz mı?
+
+Ve DUR.
+
+### Test gereksinimleri
+
+Mevcut testleri değiştirme veya gevşetme.
+
+Yeni deterministik testlerle en az şunları doğrula:
+
+- kabul edilen event sonucu gerçekten uygulanıyor
+- reddedilen/invalid event sonucu state'i değiştirmiyor
+- aynı event iki kere işlendiğinde duplicate mutation oluşmuyor
+- save/load sonrası sonuç korunuyor
+- campaign/session isolation korunuyor
+- ambient event doğrudan gizli mutation yapamıyor
+- Qwen/narration tek başına mutation oluşturamıyor
+- event sonucu canonical event olarak kaydediliyorsa stable ID ile kaydediliyor
+
+Mevcut Living World V2 testlerini çalıştır.
+
+İlgili backend regression testlerini çalıştır.
+
+Smoke test çalıştırma.
+
+Canlı Ollama/Qwen testi çalıştırma.
+
+Git commit oluşturma.
+
+Push yapma.
+
+Reset/rebase/merge yapma.
+
+`game.py` değiştirme.
+
+### Sonuç raporu
+
+Türkçe raporla:
+
+- mevcut engine capabilities
+- mevcut kullanılabilir authoritative interfaces
+- uygulanan event sonuçları
+- uygulanmayan event sonuçları
+- nedenleri
+- değiştirilen dosyalar
+- test sonuçları
+- save/load doğrulaması
+- idempotency doğrulaması
+- session isolation doğrulaması
+- game.py'nin değişmediği doğrulaması
+- sonraki minimum engine işi
+
+Özellikle "engine destekliyor" sonucunu gerçek kod/interface kanıtına dayandır.
+
+Varsayım yapma.
+
+Eğer gerekli capability mevcut değilse workaround yazmak yerine dur.
