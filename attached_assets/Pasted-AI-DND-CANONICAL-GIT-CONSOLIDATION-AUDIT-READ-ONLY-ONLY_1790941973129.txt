@@ -1,0 +1,180 @@
+AI-DND — CANONICAL GIT CONSOLIDATION AUDIT
+READ-ONLY ONLY
+
+We have now safely published the accepted A1 checkpoint:
+
+origin/recovery/a1-freeze-288f5de
+→ 288f5de04d8c61e382aa22ea670d641bd331761a
+
+This is the accepted A1 Character Creation checkpoint.
+
+We now want to consolidate AI-DND into ONE canonical Git line.
+
+IMPORTANT:
+Do NOT modify source files.
+Do NOT commit.
+Do NOT push.
+Do NOT merge.
+Do NOT reset.
+Do NOT cherry-pick.
+Do NOT delete branches.
+Do NOT run the live smoke.
+
+A fetch is allowed because we need to inspect the newly published
+recovery branch.
+
+==================================================
+STEP 1 — FETCH REFERENCES
+==================================================
+
+Run:
+
+git fetch origin --prune
+
+Then inspect:
+
+git branch -a
+git log --all --oneline --decorate --graph --max-count=100
+
+==================================================
+STEP 2 — IDENTIFY ALL IMPORTANT REFERENCES
+==================================================
+
+Report the exact SHA for:
+
+- origin/main
+- origin/recovery/a1-freeze-288f5de
+- origin/candidate/evidence-hardening-v1
+- origin/gemini/narrative-authority-rebalance-v1
+- current HEAD
+
+If origin/main does not exist, explicitly say so.
+
+==================================================
+STEP 3 — A1 CHECKPOINT
+==================================================
+
+Verify:
+
+git show --stat 288f5de04d8c61e382aa22ea670d641bd331761a
+
+Confirm that:
+
+288f5de
+
+is exactly the published A1 checkpoint.
+
+Do NOT modify it.
+
+==================================================
+STEP 4 — COMPARE CURRENT REPLIT WITH A1
+==================================================
+
+Compare:
+
+288f5de
+vs
+current Replit HEAD
+
+Identify:
+
+- commits unique to A1
+- commits unique to Replit
+- source-code differences
+- whether A1 character creation functionality is present
+- whether Replit has later functionality that must be preserved
+
+Pay particular attention to:
+
+Character Creation
+Inventory
+Persistence
+API contracts
+Tests
+Turn 29 lore authority
+answered_from_loaded_lore
+Narration routing
+Smoke/evidence infrastructure
+
+==================================================
+STEP 5 — TURN 29
+==================================================
+
+Confirm which commits contain the current Turn 29 implementation.
+
+Specifically identify the implementation for:
+
+"Bu şehrin hükümdarı kim?"
+
+and confirm whether current Replit already has:
+
+- current-location binding
+- current_lord fact retrieval
+- Turkish ruler-query recognition
+- answered_from_loaded_lore
+- Python-only completion
+- zero model calls
+- fail-closed behavior
+
+==================================================
+STEP 6 — CANONICAL BRANCH RECOMMENDATION
+==================================================
+
+We want ONE canonical development branch.
+
+Preferred target:
+
+origin/main
+
+BUT DO NOT CHANGE IT YET.
+
+Determine whether origin/main exists and whether it is suitable as
+the canonical branch.
+
+If origin/main does not exist or is clearly obsolete, explain why.
+
+Compare all relevant branches before recommending the canonical base.
+
+==================================================
+STEP 7 — WORKING TREE
+==================================================
+
+Report:
+
+git status --short
+
+Do not alter the working tree.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Return:
+
+## REMOTE BRANCH MAP
+Exact SHA of every relevant branch.
+
+## A1 CHECKPOINT
+288f5de status and confirmation.
+
+## REPLIT VS A1
+What differs and which functionality exists on each side.
+
+## TURN 29
+Where the current implementation lives and whether it is already
+complete.
+
+## MAIN STATUS
+Whether origin/main exists and what it currently contains.
+
+## CANONICAL RECOMMENDATION
+Recommend exactly ONE branch as the future canonical development line,
+with evidence.
+
+## MIGRATION PLAN
+Give the minimum safe sequence of Git operations required to create
+the canonical line.
+
+Do NOT execute the migration.
+
+STOP.
