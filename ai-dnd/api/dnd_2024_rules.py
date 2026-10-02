@@ -764,6 +764,22 @@ SPELLS_CATALOG = {
             {"id": "Speak with Animals", "name_tr": "Hayvanlarla Konuşma", "desc": "Hayvanlarla iletişim kurmayı sağlar."},
         ],
     },
+    "Paladin": {
+        "cantrips": [],
+        "spells_level_1": [
+            {"id": "Bless", "name_tr": "Kutsama (Bless)", "desc": "Üç müttefikin saldırı ve kurtarma zarlarına destek verir."},
+            {"id": "Cure Wounds", "name_tr": "Yara İyileştirme (Cure Wounds)", "desc": "Dokunulan bir canlının yaralarını iyileştirir."},
+            {"id": "Command", "name_tr": "Emir (Command)", "desc": "Hedefe tek kelimelik bir emir verir."},
+        ],
+    },
+    "Ranger": {
+        "cantrips": [],
+        "spells_level_1": [
+            {"id": "Cure Wounds", "name_tr": "Yara İyileştirme (Cure Wounds)", "desc": "Dokunulan bir canlının yaralarını iyileştirir."},
+            {"id": "Entangle", "name_tr": "Sarmaşık Tuzağı (Entangle)", "desc": "Bitkilerle bir alanı sararak içindeki hedefleri kısıtlar."},
+            {"id": "Speak with Animals", "name_tr": "Hayvanlarla Konuşma", "desc": "Hayvanlarla iletişim kurmayı sağlar."},
+        ],
+    },
     "Sorcerer": {
         "cantrips": [
             {"id": "Fire Bolt", "name_tr": "Ateş Oku (Fire Bolt)", "desc": "1d10 ateş hasarı fırlatır."},

@@ -8,6 +8,7 @@ process.env.BASE_PATH ||= '/';
 let vite;
 let renderCreationScreen;
 let React;
+let catalogNormalizer;
 
 const mockCatalog = {
   races: {
@@ -36,25 +37,25 @@ const mockCatalog = {
       features: ['Büyü Kitabı', 'Ritüel Büyücülük'],
       is_spellcaster: true,
       cantrips_count: 3,
-      spells_count: 4,
+      spells_count: 6,
     },
   },
   backgrounds: {
     Soldier: {
       name_tr: 'Asker (Soldier)',
       desc: 'Savaş deneyimi olan bir nefer.',
-      ability_bonuses_options: ['strength', 'dexterity', 'constitution'],
+      abilities: ['strength', 'dexterity', 'constitution'],
       skills: ['Athletics', 'Intimidation'],
       tool: 'Oyun Seti',
-      origin_feat: 'Savage Attacker',
+      feat: 'Savage Attacker',
     },
     Sage: {
       name_tr: 'Bilge (Sage)',
       desc: 'Yıllarını kütüphanelerde geçirmiş bir araştırmacı.',
-      ability_bonuses_options: ['constitution', 'intelligence', 'wisdom'],
+      abilities: ['constitution', 'intelligence', 'wisdom'],
       skills: ['Arcana', 'History'],
       tool: 'Hattat Seti',
-      origin_feat: 'Magic Initiate (Wizard)',
+      feat: 'Magic Initiate (Wizard)',
     },
   },
   ability_score_methods: [
@@ -69,8 +70,19 @@ const mockCatalog = {
   origin_feats: {},
   spells_catalog: {
     Wizard: {
-      cantrips: [{ name: 'Fire Bolt', name_tr: 'Ateş Oku', desc: '1d10 ateş hasarı' }],
-      level_1: [{ name: 'Magic Missile', name_tr: 'Büyülü Füze', desc: 'Kaçınılmaz 3 füze' }],
+      cantrips: [
+        { id: 'Fire Bolt', name_tr: 'Ateş Oku', desc: '1d10 ateş hasarı' },
+        { id: 'Ray of Frost', name_tr: 'Buz Işını', desc: '1d8 soğuk hasarı' },
+        { id: 'Mage Hand', name_tr: 'Büyücü Eli', desc: 'Uzakta nesne taşıyan el' },
+      ],
+      spells_level_1: [
+        { id: 'Magic Missile', name_tr: 'Büyülü Füze', desc: 'Üç büyü oku fırlatır' },
+        { id: 'Shield', name_tr: 'Kalkan', desc: 'Tepki olarak zırh sınıfını artırır' },
+        { id: 'Mage Armor', name_tr: 'Büyücü Zırhı', desc: 'Zırhsız hedefin zırh sınıfını artırır' },
+        { id: 'Detect Magic', name_tr: 'Büyü Algılama', desc: 'Yakındaki büyüleri hissettirir' },
+        { id: 'Sleep', name_tr: 'Uyku', desc: 'Hedefleri büyülü uykuya daldırır' },
+        { id: 'Burning Hands', name_tr: 'Alevli Eller', desc: 'Bir koniye ateş hasarı saçar' },
+      ],
     },
   },
   skills: {
@@ -108,6 +120,7 @@ before(async () => {
     logLevel: 'silent',
   });
   const component = await vite.ssrLoadModule('/src/components/character-creation-screen.tsx');
+  catalogNormalizer = await vite.ssrLoadModule('/src/lib/character-catalog-normalizer.ts');
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
 
@@ -179,6 +192,75 @@ test('species cards render API-shaped trait objects without passing objects to R
   assert.ok(html.includes(description));
   assert.ok(html.includes('Eski biçimli özellik'));
   assert.ok(!html.includes('[object Object]'));
+});
+
+test('normalizes server catalog fields and keeps spell selection keyed by unique IDs', () => {
+  const normalized = catalogNormalizer.normalizeCharacterCreationCatalog({
+    backgrounds: {
+      Noble: {
+        abilities: ['strength', 'intelligence', 'charisma'],
+        feat: 'Skilled',
+      },
+    },
+    spells_catalog: {
+      Sorcerer: {
+        cantrips: [
+          { id: 'Fire Bolt', name_tr: 'Ateş Oku' },
+          { id: 'Ray of Frost', name_tr: 'Buz Işını' },
+          { id: 'Mage Hand', name_tr: 'Büyücü Eli' },
+        ],
+        spells_level_1: [{ id: 'Magic Missile', name_tr: 'Sihirli Füze' }],
+      },
+    },
+  });
+
+  assert.deepEqual(
+    normalized.backgrounds.Noble.ability_bonuses_options,
+    ['strength', 'intelligence', 'charisma'],
+  );
+  assert.equal(normalized.backgrounds.Noble.origin_feat, 'Skilled');
+  assert.deepEqual(
+    normalized.spells_catalog.Sorcerer.level_1.map((spell) => spell.id),
+    ['Magic Missile'],
+  );
+
+  const cantrips = normalized.spells_catalog.Sorcerer.cantrips;
+  const chosenId = catalogNormalizer.getSpellOptionId(cantrips[0]);
+  assert.equal(chosenId, 'Fire Bolt');
+  const selected = catalogNormalizer.updateLimitedSelection([], chosenId, true, 4);
+  assert.deepEqual(selected, ['Fire Bolt']);
+  assert.equal(
+    cantrips.filter((spell) =>
+      selected.includes(catalogNormalizer.getSpellOptionId(spell)),
+    ).length,
+    1,
+  );
+});
+
+test('Human skill selection includes its additional skill and all catalog skills', () => {
+  const { getClassSkillOptions, getRequiredSkillCount } = catalogNormalizer;
+  const skillCatalog = {
+    Arcana: { ability: 'intelligence' },
+    Nature: { ability: 'intelligence' },
+    Perception: { ability: 'wisdom' },
+  };
+
+  assert.equal(getRequiredSkillCount(2, 'Human'), 3);
+  assert.deepEqual(
+    getClassSkillOptions(['Arcana'], skillCatalog, 'Human'),
+    ['Arcana', 'Nature', 'Perception'],
+  );
+  assert.deepEqual(
+    getClassSkillOptions(['Arcana'], skillCatalog, 'Elf'),
+    ['Arcana'],
+  );
+});
+
+test('background cards render the server ability and feat fields', () => {
+  const html = renderCreationScreen({ initialStep: 'background' });
+  assert.ok(html.includes('Hüner: Savage Attacker'));
+  assert.ok(html.includes('Bonus Alanları: KUV / ÇEV / DAY'));
+  assert.ok(!html.includes('Hüner: undefined'));
 });
 
 test('never exposes developer terminology or internal server jargon in normal player UI', () => {

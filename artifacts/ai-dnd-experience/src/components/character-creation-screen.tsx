@@ -25,6 +25,13 @@ import type {
   CharacterCreationCatalogResponse,
 } from '@workspace/api-client-react';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
+import {
+  getClassSkillOptions,
+  getRequiredSkillCount,
+  getSpellOptionId,
+  normalizeCharacterCreationCatalog,
+  updateLimitedSelection,
+} from '@/lib/character-catalog-normalizer';
 import './character-creation-screen.css';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
@@ -121,7 +128,10 @@ export function CharacterCreationScreen({
   onRetryOptions,
   onRetryStartOptions,
 }: CharacterCreationScreenProps) {
-  const catalog = propCatalog ?? DEFAULT_CATALOG;
+  const catalog = useMemo(
+    () => normalizeCharacterCreationCatalog(propCatalog ?? DEFAULT_CATALOG),
+    [propCatalog],
+  );
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState<StepId>(initialStep);
@@ -227,10 +237,11 @@ export function CharacterCreationScreen({
 
   // Allowed background bonus attributes
   const allowedBonusAttributes: AbilityKey[] = useMemo(() => {
-    if (!backgroundData?.ability_bonuses_options) {
-      return ['strength', 'dexterity', 'constitution'];
-    }
-    return backgroundData.ability_bonuses_options as AbilityKey[];
+    const options = backgroundData?.ability_bonuses_options;
+    if (!Array.isArray(options)) return [];
+    return options.filter((ability: string): ability is AbilityKey =>
+      ABILITY_KEYS.includes(ability as AbilityKey),
+    );
   }, [backgroundData]);
 
   // Ensure background bonus picks are valid when background changes
@@ -371,7 +382,11 @@ export function CharacterCreationScreen({
   }, [abilityMethod, baseScores]);
 
   // Validation helpers
-  const requiredSkillCount = classData?.skill_count ?? 2;
+  const classSkillOptions = useMemo(
+    () => getClassSkillOptions(classData?.skill_options, catalog?.skills, species),
+    [catalog, classData, species],
+  );
+  const requiredSkillCount = getRequiredSkillCount(classData?.skill_count, species);
   const isSkillsValid = selectedClassSkills.length === requiredSkillCount;
 
   const requiredCantripsCount = classData?.cantrips_count ?? 0;
@@ -395,9 +410,19 @@ export function CharacterCreationScreen({
         if (abilityMethod === 'standard_array' && !isStandardArrayValid) return false;
         if (abilityMethod === 'point_buy' && !isPointBuyValid) return false;
         if (bonusMode === '+2/+1') {
-          return Boolean(bonusTarget2 && bonusTarget1 && bonusTarget2 !== bonusTarget1);
+          return Boolean(
+            bonusTarget2 &&
+            bonusTarget1 &&
+            bonusTarget2 !== bonusTarget1 &&
+            allowedBonusAttributes.includes(bonusTarget2 as AbilityKey) &&
+            allowedBonusAttributes.includes(bonusTarget1 as AbilityKey)
+          );
         }
-        return true;
+        return Boolean(
+          bonusTargetThree &&
+          new Set(bonusTargetThree).size === 3 &&
+          bonusTargetThree.every((ability) => allowedBonusAttributes.includes(ability))
+        );
       }
       case 'choices': {
         if (!isSkillsValid) return false;
@@ -537,7 +562,7 @@ export function CharacterCreationScreen({
       background_ability_bonuses: calculatedBackgroundBonuses,
       proficient_skills: derivedStats.allSkills,
       proficient_tools: [backgroundData?.tool ?? 'Tools'],
-      origin_feat: backgroundData?.origin_feat ?? 'Tough',
+      origin_feat: backgroundData?.origin_feat,
       fighting_style: characterClass === 'Fighter' ? fightingStyle : undefined,
       equipment_package: equipmentPackage,
       equipment_choices: classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage)?.items ?? [],
@@ -947,12 +972,18 @@ export function CharacterCreationScreen({
                 {/* Class Skills */}
                 <div className="cc-sub-section">
                   <div className="cc-sub-header">
-                    <span className="cc-label">Sınıf Becerileri ({selectedClassSkills.length} / {requiredSkillCount} Seçildi)</span>
-                    <small>Geçmişinden gelen beceriler zaten usta olarak eklenmiştir.</small>
+                    <span className="cc-label">
+                      {species === 'Human' ? 'Sınıf ve İnsan Becerileri' : 'Sınıf Becerileri'} ({selectedClassSkills.length} / {requiredSkillCount} Seçildi)
+                    </span>
+                    <small>
+                      {species === 'Human'
+                        ? 'Sınıf seçimlerine ek olarak İnsan türü için bir beceri daha seç.'
+                        : 'Geçmişinden gelen beceriler zaten usta olarak eklenmiştir.'}
+                    </small>
                   </div>
 
                   <div className="cc-checkbox-grid">
-                    {((classData?.skill_options ?? []) as string[]).map((skillName) => {
+                    {classSkillOptions.map((skillName) => {
                       const bgSkills = (backgroundData?.skills ?? []) as string[];
                       const isFromBg = bgSkills.includes(skillName);
                       const isSelected = selectedClassSkills.includes(skillName);
@@ -968,13 +999,14 @@ export function CharacterCreationScreen({
                             checked={isSelected || isFromBg}
                             onChange={(e) => {
                               if (isFromBg) return;
-                              if (e.target.checked) {
-                                if (selectedClassSkills.length < requiredSkillCount) {
-                                  setSelectedClassSkills([...selectedClassSkills, skillName]);
-                                }
-                              } else {
-                                setSelectedClassSkills(selectedClassSkills.filter((s) => s !== skillName));
-                              }
+                              setSelectedClassSkills((selected) =>
+                                updateLimitedSelection(
+                                  selected,
+                                  skillName,
+                                  e.target.checked,
+                                  requiredSkillCount,
+                                ),
+                              );
                             }}
                           />
                           <span>{skillName}</span>
@@ -1024,24 +1056,25 @@ export function CharacterCreationScreen({
                         </div>
                         <div className="cc-checkbox-grid">
                           {((availableSpellsForClass.cantrips ?? []) as any[]).map((sp) => {
-                            const isSelected = selectedCantrips.includes(sp.name);
+                            const spellId = getSpellOptionId(sp);
+                            if (!spellId) return null;
+                            const isSelected = selectedCantrips.includes(spellId);
                             return (
-                              <label key={sp.name} className={`cc-checkbox-card ${isSelected ? 'checked' : ''}`}>
+                              <label key={spellId} className={`cc-checkbox-card ${isSelected ? 'checked' : ''}`}>
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      if (selectedCantrips.length < requiredCantripsCount) {
-                                        setSelectedCantrips([...selectedCantrips, sp.name]);
-                                      }
-                                    } else {
-                                      setSelectedCantrips(selectedCantrips.filter((s) => s !== sp.name));
-                                    }
-                                  }}
+                                  onChange={(e) => setSelectedCantrips((selected) =>
+                                    updateLimitedSelection(
+                                      selected,
+                                      spellId,
+                                      e.target.checked,
+                                      requiredCantripsCount,
+                                    ),
+                                  )}
                                 />
                                 <div>
-                                  <strong>{sp.name_tr ?? sp.name}</strong>
+                                  <strong>{sp.name_tr ?? sp.name ?? spellId}</strong>
                                   <small className="cc-card-desc-sm">{sp.desc}</small>
                                 </div>
                               </label>
@@ -1059,24 +1092,25 @@ export function CharacterCreationScreen({
                         </div>
                         <div className="cc-checkbox-grid">
                           {((availableSpellsForClass.level_1 ?? []) as any[]).map((sp) => {
-                            const isSelected = selectedSpells.includes(sp.name);
+                            const spellId = getSpellOptionId(sp);
+                            if (!spellId) return null;
+                            const isSelected = selectedSpells.includes(spellId);
                             return (
-                              <label key={sp.name} className={`cc-checkbox-card ${isSelected ? 'checked' : ''}`}>
+                              <label key={spellId} className={`cc-checkbox-card ${isSelected ? 'checked' : ''}`}>
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      if (selectedSpells.length < requiredSpellsCount) {
-                                        setSelectedSpells([...selectedSpells, sp.name]);
-                                      }
-                                    } else {
-                                      setSelectedSpells(selectedSpells.filter((s) => s !== sp.name));
-                                    }
-                                  }}
+                                  onChange={(e) => setSelectedSpells((selected) =>
+                                    updateLimitedSelection(
+                                      selected,
+                                      spellId,
+                                      e.target.checked,
+                                      requiredSpellsCount,
+                                    ),
+                                  )}
                                 />
                                 <div>
-                                  <strong>{sp.name_tr ?? sp.name}</strong>
+                                  <strong>{sp.name_tr ?? sp.name ?? spellId}</strong>
                                   <small className="cc-card-desc-sm">{sp.desc}</small>
                                 </div>
                               </label>

@@ -46,6 +46,26 @@ class CharacterCreation2024Tests(unittest.TestCase):
         # Species count
         self.assertEqual(len(catalog["races"]), len(SPECIES_DEFINITIONS))
 
+    def test_every_spellcasting_class_has_enough_level_one_choices(self):
+        catalog = get_character_creation_catalog()
+        spell_catalog = catalog["spells_catalog"]
+
+        for class_name, class_data in catalog["classes"].items():
+            if not class_data.get("is_spellcaster"):
+                continue
+
+            spells = spell_catalog.get(class_name, {})
+            self.assertGreaterEqual(
+                len(spells.get("cantrips", [])),
+                class_data.get("cantrips_count", 0),
+                f"{class_name} does not have enough cantrip options.",
+            )
+            self.assertGreaterEqual(
+                len(spells.get("spells_level_1", [])),
+                class_data.get("spells_count", 0),
+                f"{class_name} does not have enough level-one spell options.",
+            )
+
     def test_random_mode_produces_complete_2024_character(self):
         session = MockSession(seed=123)
         configure_character(session, mode="random")
