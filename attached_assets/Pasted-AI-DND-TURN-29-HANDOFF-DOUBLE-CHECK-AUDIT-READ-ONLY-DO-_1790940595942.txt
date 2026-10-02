@@ -1,0 +1,263 @@
+AI-DND — TURN 29 HANDOFF + DOUBLE-CHECK AUDIT
+READ-ONLY — DO NOT IMPLEMENT YET
+
+We are continuing the Turn 29 deterministic world-query fix.
+
+Before making ANY code change, reconstruct the current state of YOUR
+Replit checkout and compare it against the known handoff below.
+
+IMPORTANT:
+This is a HANDOFF / AUDIT ONLY.
+
+Do NOT:
+- edit files
+- create files
+- delete files
+- commit
+- push
+- reset
+- restore
+- cherry-pick
+- run the full 30-turn smoke
+
+============================================================
+ACCEPTED CHECKPOINT
+============================================================
+
+A1 Character Creation is already accepted/frozen.
+
+Checkpoint:
+
+288f5de04d8c61e382aa22ea670d641bd331761a
+
+Do NOT reopen A1.
+
+Do NOT modify character creation, inventory authority, persistence,
+combat, movement, or frontend.
+
+============================================================
+TURN 29 ROOT CAUSE ALREADY IDENTIFIED
+============================================================
+
+Player input:
+
+"Bu şehrin hükümdarı kim?"
+
+Expected route:
+
+canonical current location
+→ rulership/current_lord semantic predicate
+→ verified lore fact
+→ answered_from_loaded_lore
+→ direct Python response
+→ 0 Qwen calls
+→ no fallback
+
+Known verified fact:
+
+fr:fact:dagult_neverember_current_lord
+
+Known canonical city:
+
+fr:city:neverwinter
+
+Previous forensic finding:
+
+query terms such as:
+
+[hükümdarı, kim, şehrin]
+
+were not resolving strongly enough to the existing rulership/current_lord
+predicate.
+
+The verified fact existed, but retrieval produced:
+
+lexical relevance = 0
+intent relevance = 0
+selected_fact_ids = []
+
+This caused:
+
+UNVERIFIED_LORE_CLAIM
+→ python_fallback
+→ ordinary fallback
+→ smoke termination.
+
+============================================================
+GEMINI PART 1 STATUS
+============================================================
+
+A previous Gemini session partially implemented Part 1 in:
+
+ai-dnd/api/lore_authority/registry.py
+
+The Gemini working tree contained UNCOMMITTED changes intended to:
+
+- support Turkish inflected rulership forms such as:
+  hükümdarı
+  lordu
+  yönetici
+  lideri
+- add rulership query recognition
+- add a rulership intent
+- improve relevance for current_lord predicates
+
+IMPORTANT:
+
+Those changes were NOT committed.
+
+Therefore they may NOT exist in this Replit checkout.
+
+DO NOT ASSUME THEY EXIST.
+
+DO NOT RECREATE THEM YET.
+
+FIRST VERIFY.
+
+============================================================
+PART 2 STATUS
+============================================================
+
+Part 2 was NOT completed.
+
+The intended Part 2 change is in:
+
+ai-dnd/game.py
+
+The problem:
+
+answered_from_loaded_lore
+
+is not currently treated as a completed deterministic Python-only
+response by the relevant finish_turn / deterministic status handling.
+
+Expected:
+
+verified structured lore fact
+→ answered_from_loaded_lore
+→ direct Python return
+→ 0 model calls
+→ 0 fallback
+
+============================================================
+AUDIT TASK
+============================================================
+
+First run and report:
+
+git rev-parse HEAD
+git branch --show-current
+git status --short
+git log --oneline --decorate -10
+git diff --stat
+git diff --check
+
+Then inspect:
+
+ai-dnd/api/lore_authority/registry.py
+
+and:
+
+ai-dnd/game.py
+
+Search for:
+
+answered_from_loaded_lore
+current_lord_id
+rulership
+hükümdarı
+lordu
+_query_terms
+_query_intents
+_relevance_score
+finish_turn
+
+============================================================
+CRITICAL CHECK
+============================================================
+
+Determine whether YOUR current Replit checkout contains the Gemini
+Part 1 registry.py changes.
+
+Classify:
+
+A. Present and uncommitted
+B. Present and committed
+C. Not present
+D. Present but materially different
+E. Cannot determine
+
+If the Part 1 changes are NOT present:
+
+STOP.
+
+Do NOT recreate them yet.
+
+Report:
+
+"Gemini's uncommitted Part 1 changes are not present in this Replit
+checkout."
+
+This is important because uncommitted changes from a separate local
+checkout are not automatically available here.
+
+============================================================
+CHECKPOINT RELATIONSHIP
+============================================================
+
+Determine whether current HEAD is:
+
+288f5de04d8c61e382aa22ea670d641bd331761a
+
+or a descendant of it.
+
+If not, report the exact SHA and relationship.
+
+DO NOT reset or checkout another branch.
+
+============================================================
+PART 2 CHECK
+============================================================
+
+Determine whether game.py currently contains logic that recognizes:
+
+answered_from_loaded_lore
+
+as a completed deterministic Python-only result.
+
+If it does not, report that.
+
+Do NOT implement it yet.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return exactly:
+
+## REPLIT CHECKOUT
+- HEAD
+- branch
+- status
+- relationship to 288f5de
+
+## GEMINI PART 1
+- Present / absent / different
+- Exact files
+- Exact diff summary
+
+## PART 2
+- Current answered_from_loaded_lore handling
+- Whether Python-only direct return exists
+
+## TEST/EVIDENCE STATE
+- Existing relevant tests
+- Do not run full live smoke
+
+## NEXT SAFE ACTION
+Give ONE recommended next action only.
+
+IMPORTANT:
+No code changes were requested in this audit.
+
+STOP.
