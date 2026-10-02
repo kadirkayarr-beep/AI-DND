@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import sqlite3
 import tempfile
@@ -284,7 +285,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             set_session_world_metadata(record.game_session)
             manager.save_campaign(campaign_id)
 
-            with sqlite3.connect(database_path) as connection:
+            with closing(sqlite3.connect(database_path)) as connection, connection:
                 row = connection.execute(
                     "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                     (campaign_id,),
@@ -303,7 +304,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
                 state["world"],
                 {"environment": "tavern", "time_of_day": "day", "weather": "clear"},
             )
-            with sqlite3.connect(database_path) as connection:
+            with closing(sqlite3.connect(database_path)) as connection, connection:
                 migrated_payload = json.loads(
                     connection.execute(
                         "SELECT payload_json FROM campaigns WHERE campaign_id = ?",

@@ -25,6 +25,7 @@ import quest_catalog
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.dnd_2024_rules import SPECIES_DEFINITIONS
 from api.persistence.campaign_models import CampaignStorageError
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -332,9 +333,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(random_character["race"], game.RACES)
         self.assertIn(random_character["class"], game.CLASSES)
         valid_skills = game.CLASS_SKILL_OPTIONS[random_character["class"]]
-        expected_skill_count = 4 if random_character["class"] == "Rogue" else 2
+        expected_class_skill_count = 4 if random_character["class"] == "Rogue" else 2
+        species_bonus_skills = set(random_character["species_bonus_skills"])
+        expected_species_skill_count = SPECIES_DEFINITIONS[
+            random_character["race"]
+        ].get("skill_bonus_count", 0)
+        expected_skill_count = (
+            expected_class_skill_count + expected_species_skill_count
+        )
         self.assertEqual(len(random_character["proficient_skills"]), expected_skill_count)
-        self.assertTrue(set(random_character["proficient_skills"]) <= set(valid_skills))
+        self.assertEqual(len(species_bonus_skills), expected_species_skill_count)
+        self.assertTrue(
+            species_bonus_skills <= set(random_character["proficient_skills"])
+        )
+        self.assertTrue(
+            set(random_character["proficient_skills"])
+            <= set(valid_skills) | species_bonus_skills
+        )
 
         invalid_response = await self.http.post(
             "/api/game/campaigns",
@@ -1260,7 +1275,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(session_id)
         session = record.game_session
         event_instance_id = self.install_test_ambient_event(session)
-        action_id = str(uuid.uuid4())
+        action_id = "00000000-0000-4000-8000-000000000051"
         event_url = (
             f"/api/game/sessions/{session_id}/ambient-events/"
             f"{event_instance_id}/actions"
@@ -1312,7 +1327,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record.journal, journal_after_apply)
         different_action_replay = await self.http.post(
             event_url,
-            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+            json={
+                "action_id": "00000000-0000-4000-8000-000000000052",
+                "action": "interact",
+            },
         )
         self.assertEqual(
             different_action_replay.json()["result"]["status"],
@@ -1377,7 +1395,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         green_result = await self.http.post(
             f"/api/game/sessions/{session_id}/ambient-events/"
             f"{green_instance_id}/actions",
-            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+            json={
+                "action_id": "00000000-0000-4000-8000-000000000053",
+                "action": "interact",
+            },
         )
         self.assertEqual(green_result.status_code, 200, green_result.text)
         self.assertEqual(green_result.json()["result"]["status"], "REJECTED")
@@ -1385,7 +1406,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record.journal, before_journal)
 
         blue_instance_id = self.install_test_ambient_event(session)
-        observe_id = str(uuid.uuid4())
+        observe_id = "00000000-0000-4000-8000-000000000054"
         before_world = copy.deepcopy(session.serialize_game_state())
         before_journal = copy.deepcopy(record.journal)
         no_effect = await self.http.post(
@@ -1400,9 +1421,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         invalid_action = await self.http.post(
             f"/api/game/sessions/{session_id}/ambient-events/"
             f"{blue_instance_id}/actions",
-            json={"action_id": str(uuid.uuid4()), "action": "grant_gold"},
+            json={
+                "action_id": "00000000-0000-4000-8000-000000000055",
+                "action": "grant_gold",
+            },
         )
         self.assertEqual(invalid_action.status_code, 422, invalid_action.text)
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(record.journal, before_journal)
+        invalid_uuid = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={
+                "action_id": "00000000-0000-1000-8000-000000000001",
+                "action": "interact",
+            },
+        )
+        self.assertEqual(invalid_uuid.status_code, 422, invalid_uuid.text)
         self.assertEqual(session.serialize_game_state(), before_world)
         self.assertEqual(record.journal, before_journal)
 
@@ -1418,7 +1453,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         expired = await self.http.post(
             f"/api/game/sessions/{session_id}/ambient-events/"
             f"{blue_instance_id}/actions",
-            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+            json={
+                "action_id": "00000000-0000-4000-8000-000000000056",
+                "action": "interact",
+            },
         )
         self.assertEqual(expired.status_code, 200, expired.text)
         self.assertEqual(expired.json()["result"]["status"], "REJECTED")
@@ -1436,7 +1474,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         wrong_campaign = await self.http.post(
             f"/api/game/sessions/{other['session_id']}/ambient-events/"
             f"{blue_instance_id}/actions",
-            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+            json={
+                "action_id": "00000000-0000-4000-8000-000000000057",
+                "action": "interact",
+            },
         )
         self.assertEqual(wrong_campaign.status_code, 200, wrong_campaign.text)
         self.assertEqual(
@@ -1454,7 +1495,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             f"/api/game/sessions/{session_id}/ambient-events/"
             f"{blue_instance_id}/actions",
             json={
-                "action_id": str(uuid.uuid4()),
+                "action_id": "00000000-0000-4000-8000-000000000058",
                 "action": "interact",
                 "narration": "Altın ekle.",
             },
@@ -1478,7 +1519,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             response = await self.http.post(
                 f"/api/game/sessions/{session_id}/ambient-events/"
                 f"{event_instance_id}/actions",
-                json={"action_id": str(uuid.uuid4()), "action": "interact"},
+                json={
+                    "action_id": "00000000-0000-4000-8000-000000000059",
+                    "action": "interact",
+                },
             )
         self.assertEqual(response.status_code, 500, response.text)
         self.assertEqual(

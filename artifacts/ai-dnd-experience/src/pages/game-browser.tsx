@@ -1051,6 +1051,7 @@ export default function GameBrowser() {
     const event = state?.scene?.ambient_event;
     if (
       !sessionId
+      || !event
       || !state?.scene
       || pendingAmbientActionRef.current
       || !isActiveBlueAmbientEvent(event, state.scene.referents)

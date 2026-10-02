@@ -4562,7 +4562,7 @@ _PLAYER_MENTAL_STATE_PREFIXES = (
     "hoslan", "ist", "arzu", "niyet", "plan", "tercih", "sec",
 )
 _PLAYER_MENTAL_STATE_CONTEXT_RE = re.compile(
-    r"\b(?:fark|idrak|karar|kabul|redd|tercih|arzu|niyet|plan|"
+    r"\b(?:idrak|karar|kabul|redd|tercih|arzu|niyet|plan|"
     r"memnun|mutlu|mutsuz|hosnut|uzgun|endiseli|kaygili|heyecan|"
     r"keyif|gurur|rahatsiz|hosuna)\b"
 )

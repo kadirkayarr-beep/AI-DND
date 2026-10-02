@@ -266,8 +266,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIn(expected_id, {item["id"] for item in restored["features"]})
 
     def test_public_scene_referent_exposes_only_one_addressable_alias(self):
-        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
-        turn_index = self.world["flags"]["turn_index"]
+        turn_index = self.world["flags"].get("turn_index", 0)
         ref = living_world.create_scene_referent(
             self.world,
             self.root_location,
@@ -459,7 +458,6 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIsNot(npc, other_npc)
 
     def test_observing_referent_does_not_promote_it_to_an_npc(self):
-        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
         turn_index = self.world["flags"].get("turn_index", 0) + 1
         description = "Girişteki ziyaretçi çantasının kayışını düzeltiyor."
         ref = living_world.create_scene_referent(
@@ -503,7 +501,6 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(ref["lifecycle"], "presented")
 
     def test_expired_scene_referent_expires_when_addressed(self):
-        self.session.plan_living_world_turn("Etrafıma bakıyorum.")
         turn_index = self.world["flags"].get("turn_index", 0)
         ref = living_world.create_scene_referent(
             self.world,

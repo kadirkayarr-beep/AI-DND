@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import sqlite3
 import tempfile
@@ -91,7 +92,7 @@ class CampaignLorePersistenceTests(unittest.TestCase):
     def test_legacy_payload_migrates_to_unbound_without_remapping_engine_state(self):
         campaign_id, _, record, _ = self.manager.create_campaign("Legacy test")
         original_engine_save = record.game_session.serialize_game_state()
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection, connection:
             row = connection.execute(
                 "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                 (campaign_id,),
@@ -121,7 +122,7 @@ class CampaignLorePersistenceTests(unittest.TestCase):
 
     def test_malformed_lore_state_is_rejected_as_corrupt_campaign(self):
         campaign_id, _, _, _ = self.manager.create_campaign("Corrupt test")
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection, connection:
             row = connection.execute(
                 "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                 (campaign_id,),
