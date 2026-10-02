@@ -1,0 +1,286 @@
+Aynen kanka. Bizim **oyunun açılışı için belirlediğimiz vizyon** kabaca şöyleydi:
+
+## 🎬 1. Büyük fikir: “Chatbot” değil, yaşayan bir D&D macerası
+
+Oyunun hissi:
+
+> **Premium, story-first bir D&D / Forgotten Realms deneyimi.**
+
+Yani oyuncu bir chatbot ekranına girip “ne yapayım?” diye seçenek seçmeyecek. Dünya önde olacak, **oyuncu doğal diliyle ne yapmak istediğini söyleyecek ve dünya buna tepki verecek.** 
+
+Ana açılış mesajımız da:
+
+> **AI DUNGEON MASTER**  
+> *Hikâyeni anlat. Dünya cevap versin.*
+
+şeklindeki sinematik/edebi girişti. 
+
+---
+
+# 🏰 2. İlk ekran: Opening
+
+Oyuncu ilk geldiğinde doğrudan oyun ekranına atılmıyor.
+
+İki ana yol var:
+
+### **YENİ MACERA**
+Yeni karakter + yeni campaign başlatır.
+
+### **MACERAYA DEVAM ET**
+Daha önceki campaign/session varsa kaldığı yerden devam eder.
+
+Bu yüzden opening aslında oyunun **ana kapısı**.
+
+---
+
+# 🧙 3. “Yeni Macera” → Character Creation
+
+Yeni maceraya basınca bizim geliştirdiğimiz **8 aşamalı Character Creation** geliyor.
+
+Burada amaç sadece:
+
+> isim → ırk → sınıf → tamam
+
+değil.
+
+Oyuncunun karakteri gerçekten **kendisine ait** oluyor:
+
+- karakter kimliği
+- species/race
+- class
+- background
+- alignment
+- ability scores
+- skills
+- equipment
+- starting location
+- appearance / personality / backstory gibi roleplay kimliği
+
+ve sonunda bütün bunların **review** edildiği bir aşama var.
+
+Özellikle kararların sessizce önceden seçilmesini istemiyoruz. Oyuncu seçim yapmadıysa sistem onun yerine gizlice seçim yapmıyor. Bu A1'de özellikle test edildi. 
+
+---
+
+# 📜 4. Character Reveal
+
+Karakter oluşturma bittiğinde oyuncuyu direkt gameplay'e fırlatmıyoruz.
+
+Bir **karakter reveal** anı var.
+
+Yani:
+
+> “Karakterin artık hazır.”
+
+hissi.
+
+Burada karakterinin:
+
+- adı
+- species
+- class
+- level
+- HP
+- AC
+- proficiency
+- ability scores
+- proficient skills
+
+gibi gerçek, Python tarafından doğrulanmış değerleri gösteriliyor.
+
+Bu ekranın amacı aslında oyuncuya:
+
+**“Tamam. Artık bu senin karakterin.”**
+
+hissini vermek.
+
+---
+
+# 🌍 5. Sonra asıl önemli geçiş: Dünyaya giriş
+
+Burada bizim için kritik bir karar vardı:
+
+**Seçilen başlangıç şehri sadece UI'da gösterilen bir bilgi olmayacak.**
+
+Oyuncunun seçtiği şehir:
+
+> **Gerçek engine başlangıç noktası olacak.**
+
+Campaign oluşturulurken bu şehir canonical campaign state'e yazılacak ve oyuncu save/resume yaptığında da aynı başlangıç/konum bilgisi korunacak. Bu kısım backend testlerinde zaten doğrulandı. 
+
+Yani:
+
+```text
+Oyuncu şehir seçti
+       ↓
+Campaign oluşturuldu
+       ↓
+Engine gerçekten o şehirde başladı
+       ↓
+Save
+       ↓
+Resume
+       ↓
+Aynı campaign / aynı dünya durumu
+```
+
+---
+
+# 🎲 6. Ondan sonra gerçek oyun başlıyor
+
+Ve burada artık **Adventure Workspace** geliyor.
+
+Bizim istediğimiz ana yapı:
+
+```text
+┌─────────────────────────────────────────────┐
+│                 GAME WORLD                  │
+│                                             │
+│       DM'nin gerçek anlatısı               │
+│       olaylar / NPC'ler / atmosfer          │
+│                                             │
+│                                             │
+│              [ oyuncu input ]               │
+│                                             │
+├──────────────┬────────────────┬─────────────┤
+│ CHARACTER    │   WORLD / DM   │ NPC /       │
+│              │                │ COMBAT      │
+│ gerçek       │ ana deneyim    │ canonical   │
+│ state        │                │ state       │
+└──────────────┴────────────────┴─────────────┘
+```
+
+**Orta bölüm oyunun kahramanı.**
+
+Yan paneller ise oyuncuya gerçek state'i gösteriyor:
+
+- karakter
+- HP
+- inventory
+- world
+- NPC
+- combat
+- journal vb.
+
+Ama bunlar **oyuncunun asıl deneyimi değil**, ana macerayı destekleyen bilgiler.
+
+
+
+---
+
+# 🗣️ 7. Oyuncunun ana ajansı doğal dil
+
+En önemli tasarım kararlarından biri de buydu:
+
+**“1 / 2 / 3 seç” tarzı RPG menüsü istemiyoruz.**
+
+Oyuncu:
+
+> “Han sahibine yaklaşarak kuzey yolunda kaybolan tüccarları soruyorum.”
+
+diyebilir.
+
+Veya:
+
+> “Kapının arkasından ses geliyor mu diye dinliyorum.”
+
+veya tamamen farklı bir şey deneyebilir.
+
+DM bunu yorumlar, Python engine gerekli mekanikleri uygular, dünya buna göre değişir.
+
+Yani:
+
+**oyuncu seçenekleri değil, eylemi seçiyor.**
+
+Bu da eski AI-DM prototiplerindeki “AI sana seçenek sunsun” yaklaşımından özellikle ayrıldığımız noktaydı. 
+
+---
+
+# 🧠 8. AI'nın rolü de burada net
+
+AI:
+
+**D&D kurallarının sahibi değil.**
+
+Kurallar:
+
+> **Python / engine**
+
+Dünya ve canonical state:
+
+> **Engine + campaign/lore authority**
+
+AI:
+
+> **Dungeon Master'ın anlatıcı sesi ve oyuncu niyetinin yorumlanması**
+
+Dolayısıyla oyuncu:
+
+> “Kılıcı çekip gobline saldırıyorum.”
+
+dediğinde AI kafasına göre:
+
+> “Goblin öldü.”
+
+demiyor.
+
+Önce oyun motoru gerçeği belirliyor.
+
+Sonra AI:
+
+> **olan şeyi güzel, atmosferik ve tutarlı biçimde anlatıyor.**
+
+Bu ayrım bizim bütün mimarinin temeliydi.
+
+---
+
+## 🎯 Kısacası bizim açılış vizyonumuz
+
+```text
+                 AI DUNGEON MASTER
+                Hikâyeni anlat.
+                 Dünya cevap versin.
+                         │
+                         ▼
+                  ┌─────────────┐
+                  │ YENİ MACERA │
+                  │ DEVAM ET    │
+                  └──────┬──────┘
+                         │
+                         ▼
+                 CHARACTER CREATION
+                         │
+                  8 aşamalı gerçek
+                  karakter yaratımı
+                         │
+                         ▼
+                  CHARACTER REVEAL
+                         │
+                         ▼
+                  STARTING LOCATION
+                         │
+                         ▼
+                CAMPAIGN / GAME SESSION
+                         │
+                         ▼
+                  FIRST NARRATIVE
+                         │
+                         ▼
+                ADVENTURE WORKSPACE
+                         │
+                         ▼
+             Oyuncu doğal dilde oynar
+                         │
+                         ▼
+                 Dünya tepki verir
+```
+
+Ve **şu anda bunun ilk büyük parçası olan Canonical Character Creation V1 zaten PASS durumda.** Persistent Campaign tarafı da PASS; seçilen şehir → gerçek engine başlangıcı → resume zinciri de doğrulanmış durumda. 
+
+### Bence şimdi asıl eğlenceli yere geldik:
+
+**“İlk narrative” nasıl olacak?**
+
+Yani karakter reveal'den sonra **ekrana ilk kez gerçek Forgotten Realms dünyası geldiğinde oyuncu tam olarak ne görecek, nerede uyanacak/başlayacak, ilk NPC kim olacak, ilk cümle ne hissi verecek ve oyuncuya hiçbir menü dayatmadan ilk özgür hamlesini nasıl yaptıracağız?**
+
+Bence oyunun **gerçek açılışını** şimdi burada tasarlamalıyız.
