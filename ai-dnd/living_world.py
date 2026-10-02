@@ -13,6 +13,8 @@ import re
 import unicodedata
 from typing import Any, Callable
 
+from ambient_event_catalog import select_ambient_event
+
 
 SCENE_SCHEMA_VERSION = 1
 MAX_SCENES = 80
@@ -20,6 +22,7 @@ MAX_REFERENTS_PER_SCENE = 6
 MAX_REFERENTS_TOTAL = 240
 MAX_SCENE_STATE_BYTES = 96 * 1024
 MAX_BEAT_TEXT = 240
+MAX_AMBIENT_EVENT_HISTORY = 32
 
 _LOCAL_NAMES = (
     "Aldren", "Brynna", "Cael", "Darian", "Elaris", "Fenra", "Garrick",
@@ -123,6 +126,16 @@ def initial_scene_state() -> dict[str, Any]:
         "active_referent_id": None,
         "player_position": {"location_id": None, "kind": "standing", "target_id": None},
         "proposal_references": [],
+        "campaign_seed": "",
+        "ambient_context": {
+            "environment": "unknown",
+            "time_of_day": "day",
+            "weather": "clear",
+            "background": "",
+            "origin": "",
+        },
+        "ambient_event_history": [],
+        "ambient_event_counts": {},
     }
 
 
@@ -291,6 +304,65 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         or len(state["scenes"]) > MAX_SCENES
     ):
         raise ValueError("Campaign scene state is invalid.")
+    state.setdefault("campaign_seed", "")
+    state.setdefault(
+        "ambient_context",
+        {
+            "environment": "unknown",
+            "time_of_day": "day",
+            "weather": "clear",
+            "background": "",
+            "origin": "",
+        },
+    )
+    state.setdefault("ambient_event_history", [])
+    state.setdefault("ambient_event_counts", {})
+    if (
+        not isinstance(state.get("campaign_seed"), str)
+        or len(state["campaign_seed"]) > 64
+        or not isinstance(state.get("ambient_context"), dict)
+        or not isinstance(state.get("ambient_event_history"), list)
+        or len(state["ambient_event_history"]) > MAX_AMBIENT_EVENT_HISTORY
+        or not isinstance(state.get("ambient_event_counts"), dict)
+        or len(state["ambient_event_counts"]) > 80
+    ):
+        raise ValueError("Campaign ambient-event state is invalid.")
+    for event_id, count in state["ambient_event_counts"].items():
+        if (
+            not isinstance(event_id, str)
+            or len(event_id) > 96
+            or type(count) is not int
+            or count < 1
+        ):
+            raise ValueError("Campaign ambient-event counts are invalid.")
+    ambient_context = state["ambient_context"]
+    if (
+        set(ambient_context) != {
+            "environment", "time_of_day", "weather", "background", "origin"
+        }
+        or any(
+            not isinstance(ambient_context.get(key), str)
+            for key in (
+                "environment", "time_of_day", "weather", "background", "origin"
+            )
+        )
+        or len(ambient_context["background"]) > 96
+        or len(ambient_context["origin"]) > 240
+    ):
+        raise ValueError("Campaign ambient context is invalid.")
+    for item in state["ambient_event_history"]:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("event_id"), str)
+            or not isinstance(item.get("variation_id"), str)
+            or not isinstance(item.get("repeat_group"), str)
+            or not isinstance(item.get("location_id"), str)
+            or type(item.get("turn_index")) is not int
+            or type(item.get("last_seen_turn")) is not int
+            or type(item.get("count")) is not int
+            or item.get("last_seen_turn") != item.get("turn_index")
+        ):
+            raise ValueError("Campaign ambient-event history is invalid.")
     for key in ("next_referent_number", "next_feature_number"):
         if type(state.get(key)) is not int or state[key] < 1:
             raise ValueError("Campaign scene counters are invalid.")
@@ -352,6 +424,27 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
                 not in ("presented", "promoted", "expired")
             ):
                 raise ValueError("Campaign scene referent is invalid.")
+        opening = scene.get("opening")
+        if opening is not None and (
+            not isinstance(opening, dict)
+            or not isinstance(opening.get("text"), str)
+            or len(opening["text"]) > 1800
+            or not isinstance(opening.get("tone"), str)
+            or not isinstance(opening.get("event_id"), str)
+            or not isinstance(opening.get("variation_id"), str)
+        ):
+            raise ValueError("Campaign scene opening is invalid.")
+        ambient_event = scene.get("ambient_event")
+        if ambient_event is not None and (
+            not isinstance(ambient_event, dict)
+            or not isinstance(ambient_event.get("event_id"), str)
+            or not isinstance(ambient_event.get("variation_id"), str)
+            or ambient_event.get("event_type") not in ("GREEN", "BLUE")
+            or not isinstance(ambient_event.get("repeat_group"), str)
+            or type(ambient_event.get("count")) is not int
+            or ambient_event["count"] < 1
+        ):
+            raise ValueError("Campaign scene event is invalid.")
     if referent_total > MAX_REFERENTS_TOTAL:
         raise ValueError("Campaign scene referents exceed the limit.")
     try:
@@ -431,6 +524,122 @@ def ensure_scene_record(
         }
         state["scenes"][location_id] = scene
     return scene
+
+
+def set_ambient_context(
+    world_state: dict[str, Any],
+    world_metadata: dict[str, Any] | None,
+    character: dict[str, Any] | None,
+    campaign_id: str,
+) -> dict[str, Any]:
+    """Persist bounded selector context without promoting it to world canon."""
+    state = ensure_scene_state(world_state)
+    metadata = world_metadata if isinstance(world_metadata, dict) else {}
+    player = character if isinstance(character, dict) else {}
+    environments = {
+        "tavern", "forest", "city", "village", "road", "wilderness",
+        "dungeon", "cave", "castle", "temple", "ruins", "unknown",
+    }
+    times = {"dawn", "day", "evening", "night"}
+    weather = {"clear", "rain", "fog", "snow", "storm", "unknown"}
+    environment = metadata.get("environment")
+    time_of_day = metadata.get("time_of_day")
+    conditions = metadata.get("weather")
+    state["ambient_context"] = {
+        "environment": (
+            environment
+            if isinstance(environment, str) and environment in environments
+            else "unknown"
+        ),
+        "time_of_day": (
+            time_of_day
+            if isinstance(time_of_day, str) and time_of_day in times
+            else "day"
+        ),
+        "weather": (
+            conditions
+            if isinstance(conditions, str) and conditions in weather
+            else "unknown"
+        ),
+        "background": str(player.get("background") or "")[:96],
+        "origin": str(player.get("origin") or "")[:240],
+    }
+    state["campaign_seed"] = hashlib.sha256(
+        campaign_id.encode("utf-8")
+    ).hexdigest()[:24]
+    return state["ambient_context"]
+
+
+def select_and_record_ambient_event(
+    world_state: dict[str, Any],
+    location_id: str,
+    turn_index: int,
+    *,
+    allowed_types: set[str] | None = None,
+) -> dict[str, Any] | None:
+    """Select and persist one scene event using campaign-local repetition data."""
+    state = ensure_scene_state(world_state)
+    history = state["ambient_event_history"]
+    context = copy.deepcopy(state["ambient_context"])
+    context["npc_density"] = sum(
+        1
+        for npc in world_state.get("npcs", [])
+        if isinstance(npc, dict) and npc.get("location") == location_id
+    )
+    selected = select_ambient_event(
+        scene_kind=scene_kind(world_state, location_id),
+        location_id=location_id,
+        turn_index=max(0, turn_index),
+        context=context,
+        history=history,
+        campaign_seed=state["campaign_seed"],
+        allowed_types=allowed_types,
+    )
+    if selected is None:
+        return None
+    event_id = selected["event_id"]
+    count = state["ambient_event_counts"].get(event_id, 0) + 1
+    state["ambient_event_counts"][event_id] = count
+    record = {
+        "event_id": event_id,
+        "variation_id": selected["variation_id"],
+        "repeat_group": selected["repeat_group"],
+        "location_id": location_id[:128],
+        "turn_index": max(0, turn_index),
+        "last_seen_turn": max(0, turn_index),
+        "count": count,
+    }
+    history.append(record)
+    state["ambient_event_history"] = history[-MAX_AMBIENT_EVENT_HISTORY:]
+    selected["count"] = count
+    return selected
+
+
+def set_scene_opening(
+    world_state: dict[str, Any],
+    location_id: str,
+    text: str,
+    tone: str,
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    """Store the authored opening with its scene so save/resume cannot reroll it."""
+    if (
+        not isinstance(text, str)
+        or not text.strip()
+        or len(text) > 1800
+        or not isinstance(tone, str)
+        or not isinstance(event.get("event_id"), str)
+        or not isinstance(event.get("variation_id"), str)
+    ):
+        raise ValueError("Campaign opening data is invalid.")
+    scene = ensure_scene_record(world_state, location_id, 0)
+    scene["opening"] = {
+        "text": text.strip(),
+        "tone": tone[:32],
+        "event_id": event["event_id"][:96],
+        "variation_id": event["variation_id"][:32],
+    }
+    return scene["opening"]
 
 
 def record_scene_visit(
@@ -539,13 +748,6 @@ def materialize_scene(
                 "personality": personality,
                 "relationship": "neutral",
             })
-        create_scene_referent(
-            world_state,
-            location_id,
-            turn_index,
-            description="Sokağın kıyısında bir yolcu, çantasının gevşeyen kayışını düzeltiyor.",
-            aliases=["yolcu", "çantasıyla uğraşan kişi", "sokak kenarındaki kişi"],
-        )
     elif kind == "tavern":
         create_npc({
             "name": _stable_name(world_state, location_id, "Barmen"),
@@ -562,15 +764,28 @@ def materialize_scene(
             "kind": "furnishing",
             "aliases": ["masa", "ahşap masa", "bardak", "kil bardak"],
         })
-        create_scene_referent(
-            world_state,
-            location_id,
-            turn_index,
-            description="Girişe yakın bir ziyaretçi, omzundaki çanta kayışını düzeltiyor.",
-            aliases=["ziyaretçi", "yolcu", "kapıdaki kişi", "girişteki yolcu", "kapıdaki adam"],
-        )
-    elif kind == "wilderness":
-        scene["last_beat"] = "Çevre sessiz; yalnızca doğal sesler duyuluyor."
+    event = select_and_record_ambient_event(
+        world_state,
+        location_id,
+        turn_index,
+    )
+    if event is not None:
+        scene["ambient_event"] = {
+            "event_id": event["event_id"],
+            "variation_id": event["variation_id"],
+            "event_type": event["event_type"],
+            "repeat_group": event["repeat_group"],
+            "count": event["count"],
+        }
+        scene["last_beat"] = event["text"][:MAX_BEAT_TEXT]
+        if event["event_type"] == "BLUE":
+            create_scene_referent(
+                world_state,
+                location_id,
+                turn_index,
+                description=event["text"],
+                aliases=list(event["aliases"]),
+            )
 
     scene["materialized"] = True
     scene["last_activity_turn"] = max(0, turn_index)
@@ -821,6 +1036,11 @@ def public_scene_projection(
         "visit_revision": scene.get("visit_revision", 0),
         "activity_revision": scene.get("activity_revision", 0),
         "last_activity": scene.get("last_beat"),
+        "opening": (
+            scene.get("opening", {}).get("text")
+            if isinstance(scene.get("opening"), dict)
+            else None
+        ),
         "player_position": copy.deepcopy(
             position if isinstance(position, dict) and position.get("location_id") == location_id
             else {"location_id": location_id, "kind": "standing", "target_id": None}

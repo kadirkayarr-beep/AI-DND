@@ -91,6 +91,8 @@ export const createGameSessionResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createGameSessionResponseStateJournalQuestsMax = 100;
 
+export const createGameSessionResponseStateCharacterOriginMax = 240;
+
 export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -148,6 +150,7 @@ export const CreateGameSessionResponse = zod.object({
   "visit_revision": zod.number().int().min(createGameSessionResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createGameSessionResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -240,6 +243,12 @@ export const CreateGameSessionResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(createGameSessionResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -420,6 +429,8 @@ export const getGameSessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getGameSessionStateResponseJournalQuestsMax = 100;
 
+export const getGameSessionStateResponseCharacterOriginMax = 240;
+
 export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemNameMax = 120;
@@ -475,6 +486,7 @@ export const GetGameSessionStateResponse = zod.object({
   "visit_revision": zod.number().int().min(getGameSessionStateResponseSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getGameSessionStateResponseSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -567,6 +579,12 @@ export const GetGameSessionStateResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(getGameSessionStateResponseCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -757,6 +775,8 @@ export const playGameTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playGameTurnResponseStateJournalQuestsMax = 100;
 
+export const playGameTurnResponseStateCharacterOriginMax = 240;
+
 export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -836,6 +856,7 @@ export const PlayGameTurnResponse = zod.object({
   "visit_revision": zod.number().int().min(playGameTurnResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(playGameTurnResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -928,6 +949,12 @@ export const PlayGameTurnResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(playGameTurnResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -1274,6 +1301,8 @@ export const acceptGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const acceptGameQuestResponseStateJournalQuestsMax = 100;
 
+export const acceptGameQuestResponseStateCharacterOriginMax = 240;
+
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -1357,6 +1386,7 @@ export const AcceptGameQuestResponse = zod.object({
   "visit_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -1449,6 +1479,12 @@ export const AcceptGameQuestResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(acceptGameQuestResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -1656,6 +1692,8 @@ export const cancelGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const cancelGameQuestResponseStateJournalQuestsMax = 100;
 
+export const cancelGameQuestResponseStateCharacterOriginMax = 240;
+
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -1739,6 +1777,7 @@ export const CancelGameQuestResponse = zod.object({
   "visit_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -1831,6 +1870,12 @@ export const CancelGameQuestResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(cancelGameQuestResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -2048,6 +2093,8 @@ export const createCampaignBodyNameMax = 100;
 
 export const createCampaignBodyCharacterOneNameMax = 40;
 
+export const createCampaignBodyCharacterOneOriginMax = 240;
+
 export const createCampaignBodyCharacterOneAppearanceMax = 1000;
 
 export const createCampaignBodyCharacterOnePersonalityMax = 1000;
@@ -2091,6 +2138,7 @@ export const CreateCampaignBody = zod.object({
   "spells": zod.array(zod.string()).nullish(),
   "languages": zod.array(zod.string()).nullish(),
   "background_equipment_option": zod.union([zod.literal('A'),zod.literal('B'),zod.literal(null)]).nullish(),
+  "origin": zod.string().max(createCampaignBodyCharacterOneOriginMax).nullish(),
   "appearance": zod.string().max(createCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createCampaignBodyCharacterOneBackstoryMax).nullish()
@@ -2169,6 +2217,8 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
+export const createCampaignResponseStateCharacterOriginMax = 240;
+
 export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -2231,6 +2281,7 @@ export const CreateCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(createCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -2323,6 +2374,12 @@ export const CreateCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(createCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -2580,6 +2637,8 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getCampaignResponseStateJournalQuestsMax = 100;
 
+export const getCampaignResponseStateCharacterOriginMax = 240;
+
 export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -2652,6 +2711,7 @@ export const GetCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(getCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -2744,6 +2804,12 @@ export const GetCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(getCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -3001,6 +3067,8 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeCampaignResponseStateCharacterOriginMax = 240;
+
 export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -3063,6 +3131,7 @@ export const ResumeCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -3155,6 +3224,12 @@ export const ResumeCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resumeCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -3511,6 +3586,8 @@ export const createLegacySessionResponseStateJournalQuestsItemObjectivesMax = 10
 
 export const createLegacySessionResponseStateJournalQuestsMax = 100;
 
+export const createLegacySessionResponseStateCharacterOriginMax = 240;
+
 export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -3568,6 +3645,7 @@ export const CreateLegacySessionResponse = zod.object({
   "visit_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -3660,6 +3738,12 @@ export const CreateLegacySessionResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(createLegacySessionResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -3841,6 +3925,8 @@ export const getLegacySessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacySessionStateResponseJournalQuestsMax = 100;
 
+export const getLegacySessionStateResponseCharacterOriginMax = 240;
+
 export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemNameMax = 120;
@@ -3896,6 +3982,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "visit_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -3988,6 +4075,12 @@ export const GetLegacySessionStateResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(getLegacySessionStateResponseCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -4179,6 +4272,8 @@ export const playLegacyTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
+export const playLegacyTurnResponseStateCharacterOriginMax = 240;
+
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -4258,6 +4353,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "visit_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -4350,6 +4446,12 @@ export const PlayLegacyTurnResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(playLegacyTurnResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -4646,6 +4748,8 @@ export const createLegacyCampaignBodyNameMax = 100;
 
 export const createLegacyCampaignBodyCharacterOneNameMax = 40;
 
+export const createLegacyCampaignBodyCharacterOneOriginMax = 240;
+
 export const createLegacyCampaignBodyCharacterOneAppearanceMax = 1000;
 
 export const createLegacyCampaignBodyCharacterOnePersonalityMax = 1000;
@@ -4689,6 +4793,7 @@ export const CreateLegacyCampaignBody = zod.object({
   "spells": zod.array(zod.string()).nullish(),
   "languages": zod.array(zod.string()).nullish(),
   "background_equipment_option": zod.union([zod.literal('A'),zod.literal('B'),zod.literal(null)]).nullish(),
+  "origin": zod.string().max(createLegacyCampaignBodyCharacterOneOriginMax).nullish(),
   "appearance": zod.string().max(createLegacyCampaignBodyCharacterOneAppearanceMax).nullish(),
   "personality": zod.string().max(createLegacyCampaignBodyCharacterOnePersonalityMax).nullish(),
   "backstory": zod.string().max(createLegacyCampaignBodyCharacterOneBackstoryMax).nullish()
@@ -4767,6 +4872,8 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
+
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -4829,6 +4936,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -4921,6 +5029,12 @@ export const CreateLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(createLegacyCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -5179,6 +5293,8 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
+
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -5251,6 +5367,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -5343,6 +5460,12 @@ export const GetLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(getLegacyCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),
@@ -5601,6 +5724,8 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
+
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -5663,6 +5788,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
   "kind": zod.string(),
@@ -5755,6 +5881,12 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "name": zod.string(),
   "race": zod.string(),
   "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resumeLegacyCampaignResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
   "strength": zod.number().int(),
   "dexterity": zod.number().int(),
   "constitution": zod.number().int(),

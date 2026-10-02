@@ -10,6 +10,21 @@ export interface GameCharacter {
   name: string;
   race: string;
   class: string;
+  /** @nullable */
+  background?: string | null;
+  /** @nullable */
+  alignment?: string | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  origin?: string | null;
+  /** @nullable */
+  appearance?: string | null;
+  /** @nullable */
+  personality?: string | null;
+  /** @nullable */
+  backstory?: string | null;
   strength: number;
   dexterity: number;
   constitution: number;

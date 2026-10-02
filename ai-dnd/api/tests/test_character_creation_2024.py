@@ -460,6 +460,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
         configure_character(
             session2,
             **base_params,
+            origin="Neverwinter",
             appearance="Tall, scarred veteran with grey eyes and braided dark hair.",
             personality="Pragmatic and quiet, values loyalty above all else.",
             backstory="Former sergeant of the Neverwinter city watch who left after uncovering local corruption.",
@@ -472,7 +473,9 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertEqual(char2["appearance"], "Tall, scarred veteran with grey eyes and braided dark hair.")
         self.assertEqual(char2["personality"], "Pragmatic and quiet, values loyalty above all else.")
         self.assertEqual(char2["backstory"], "Former sergeant of the Neverwinter city watch who left after uncovering local corruption.")
+        self.assertEqual(char2["origin"], "Neverwinter")
         self.assertIsNone(char1["appearance"])
+        self.assertIsNone(char1["origin"])
 
         # Mechanical derived stats are 100% IDENTICAL
         self.assertEqual(char1["max_hp"], char2["max_hp"])
@@ -657,6 +660,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
             species="Elf",
             character_class="Wizard",
             background="Sage",
+            origin="Silverymoon",
             alignment="Neutral Good",
             ability_score_method="standard_array",
             ability_scores={
@@ -943,6 +947,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
             species="Elf",
             character_class="Wizard",
             background="Sage",
+            origin="Silverymoon",
             alignment="Neutral Good",
             ability_score_method="standard_array",
             ability_scores={
@@ -970,6 +975,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
 
         # Verify all fields preserved intact
         self.assertEqual(loaded_session.character["name"], "Aeloria")
+        self.assertEqual(loaded_session.character["origin"], "Silverymoon")
         self.assertEqual(loaded_session.character["alignment"], "Neutral Good")
         self.assertEqual(loaded_session.character["languages"], ["Common", "Dwarvish", "Elvish"])
         self.assertEqual(loaded_session.character["background_equipment_option"], "B")

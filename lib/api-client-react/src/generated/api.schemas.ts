@@ -78,6 +78,7 @@ export interface GameScene {
   /** @minimum 0 */
   activity_revision: number;
   last_activity: string | null;
+  opening?: string | null;
   player_position: GameScenePlayerPosition;
   /** @maxItems 12 */
   npcs: GameSceneNpc[];
@@ -324,6 +325,21 @@ export interface GameCharacter {
   name: string;
   race: string;
   class: string;
+  /** @nullable */
+  background?: string | null;
+  /** @nullable */
+  alignment?: string | null;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  origin?: string | null;
+  /** @nullable */
+  appearance?: string | null;
+  /** @nullable */
+  personality?: string | null;
+  /** @nullable */
+  backstory?: string | null;
   strength: number;
   dexterity: number;
   constitution: number;
@@ -876,6 +892,11 @@ export interface CharacterCreateInput {
   languages?: string[] | null;
   /** @nullable */
   background_equipment_option?: CharacterCreateInputBackgroundEquipmentOption;
+  /**
+     * @maxLength 240
+     * @nullable
+     */
+  origin?: string | null;
   /**
      * @maxLength 1000
      * @nullable

@@ -64,6 +64,7 @@ def configure_character(
     languages: list[str] | None = None,
     cantrips: list[str] | None = None,
     spells: list[str] | None = None,
+    origin: str | None = None,
     appearance: str | None = None,
     personality: str | None = None,
     backstory: str | None = None,
@@ -93,6 +94,7 @@ def configure_character(
         languages,
         cantrips,
         spells,
+        origin,
         appearance,
         personality,
         backstory,
@@ -184,6 +186,7 @@ def configure_character(
             cantrips = c_avail[: cls_def.get("cantrips_count", 0)]
             spells = s_avail[: cls_def.get("spells_count", 0)]
 
+        origin = None
         appearance = None
         personality = None
         backstory = None
@@ -441,6 +444,12 @@ def configure_character(
             spells = []
 
         # Roleplay non-mechanical identity fields validation
+        if origin is not None:
+            if not isinstance(origin, str) or len(origin) > 240:
+                raise CharacterCreationError(
+                    "Origin must be a text string up to 240 characters."
+                )
+            origin = origin.strip() or None
         if appearance is not None:
             if not isinstance(appearance, str) or len(appearance) > 1000:
                 raise CharacterCreationError("Appearance must be a text string up to 1000 characters.")
@@ -493,6 +502,7 @@ def configure_character(
             "inventory": list(equipment_choices),
             "cantrips": list(cantrips),
             "spells": list(spells),
+            "origin": origin,
             "appearance": appearance,
             "personality": personality,
             "backstory": backstory,

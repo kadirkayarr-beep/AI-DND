@@ -17,6 +17,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import game
+import living_world
 from api.campaign_journal import update_campaign_journal
 from api.character_creation import CharacterCreationError
 from api.lore_authority import (
@@ -672,6 +673,16 @@ def create_app(
                 session, "lore_authority_context", None
             )
             try:
+                if record.campaign_id is not None:
+                    living_world.set_ambient_context(
+                        session.world_state,
+                        world_metadata_for_state(
+                            session.world_state,
+                            getattr(session, "world_metadata", None),
+                        ),
+                        session.character,
+                        record.campaign_id,
+                    )
                 scene_plan = session.plan_living_world_turn(
                     narrative_player_message,
                     target_id=request.target_id,

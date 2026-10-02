@@ -233,6 +233,7 @@ class CharacterCreateInput(BaseModel):
     spells: list[str] | None = None
     languages: list[str] | None = None
     background_equipment_option: Literal["A", "B"] | None = None
+    origin: str | None = Field(default=None, max_length=240)
     appearance: str | None = Field(default=None, max_length=1000)
     personality: str | None = Field(default=None, max_length=1000)
     backstory: str | None = Field(default=None, max_length=2000)
@@ -269,6 +270,7 @@ class CharacterCreateInput(BaseModel):
             self.spells,
             self.languages,
             self.background_equipment_option,
+            self.origin,
             self.appearance,
             self.personality,
             self.backstory,

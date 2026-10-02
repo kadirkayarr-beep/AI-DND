@@ -1230,6 +1230,19 @@ components:
           type: string
         class:
           type: string
+        background:
+          type: ["string", "null"]
+        alignment:
+          type: ["string", "null"]
+        origin:
+          type: ["string", "null"]
+          maxLength: 240
+        appearance:
+          type: ["string", "null"]
+        personality:
+          type: ["string", "null"]
+        backstory:
+          type: ["string", "null"]
         strength:
           type: integer
         dexterity:
@@ -1349,6 +1362,10 @@ components:
           type: integer
           minimum: 0
         last_activity:
+          anyOf:
+            - type: string
+            - type: "null"
+        opening:
           anyOf:
             - type: string
             - type: "null"
@@ -1723,6 +1740,9 @@ components:
         background_equipment_option:
           type: ["string", "null"]
           enum: ["A", "B", null]
+        origin:
+          type: ["string", "null"]
+          maxLength: 240
         appearance:
           type: ["string", "null"]
           maxLength: 1000

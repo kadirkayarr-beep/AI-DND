@@ -20,6 +20,7 @@ export interface GameScene {
   /** @minimum 0 */
   activity_revision: number;
   last_activity: string | null;
+  opening?: string | null;
   player_position: GameScenePlayerPosition;
   /** @maxItems 12 */
   npcs: GameSceneNpc[];

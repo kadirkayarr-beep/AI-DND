@@ -39,6 +39,7 @@ from api.narrative_memory import (
     empty_narrative_memory,
     validate_narrative_memory,
 )
+from api.opening_narrative import initialize_campaign_opening
 from api.serializers import serialize_session_state
 from api.world_metadata import set_session_world_metadata
 
@@ -141,6 +142,7 @@ class SessionManager:
             getattr(session, "world_metadata", None),
         )
         campaign_id = str(uuid.uuid4())
+        initialize_campaign_opening(session, campaign_id)
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(
             campaign_id,

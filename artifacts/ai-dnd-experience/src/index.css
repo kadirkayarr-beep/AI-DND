@@ -414,6 +414,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .reveal-top { display: flex; justify-content: space-between; gap: 16px; }
 .reveal-data h2 { margin: 5px 0 0; color: #443629; font-family: 'Cinzel', serif; font-size: 31px; font-weight: 500; letter-spacing: .02em; }
 .reveal-data .character-sub { color: #75654d; }
+.reveal-origin { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-top: 15px; color: #675439; font-size: 13px; line-height: 1.5; }
 .reveal-data .dnd-rule { margin: 25px 0; background: linear-gradient(90deg, rgba(135, 102, 58, .65), rgba(148, 124, 82, .24), transparent); }
 .reveal-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .reveal-metrics > div { border: 1px solid rgba(126, 98, 57, .35); padding: 12px; }

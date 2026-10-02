@@ -58,6 +58,11 @@ export interface CharacterCreateInput {
   /** @nullable */
   background_equipment_option?: CharacterCreateInputBackgroundEquipmentOption;
   /**
+     * @maxLength 240
+     * @nullable
+     */
+  origin?: string | null;
+  /**
      * @maxLength 1000
      * @nullable
      */

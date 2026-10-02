@@ -116,6 +116,7 @@ export function CharacterCreationScreen({
   const [alignment, setAlignment] = useState('');
 
   // Character roleplay identity (non-mechanical, player-owned)
+  const [origin, setOrigin] = useState('');
   const [appearance, setAppearance] = useState('');
   const [personality, setPersonality] = useState('');
   const [backstory, setBackstory] = useState('');
@@ -525,6 +526,7 @@ export function CharacterCreationScreen({
       languages: ['Common', ...selectedLanguages],
       cantrips: selectedCantrips,
       spells: selectedSpells,
+      origin: origin.trim() || undefined,
       appearance: appearance.trim() || undefined,
       personality: personality.trim() || undefined,
       backstory: backstory.trim() || undefined,
@@ -1214,7 +1216,19 @@ export function CharacterCreationScreen({
                     </span>
                   </div>
 
-                  {/* Roleplay Identity: Appearance, Personality, Backstory */}
+                  {/* Roleplay Identity: Origin, Appearance, Personality, Backstory */}
+                  <label className="cc-field cc-field-full">
+                    <span className="cc-label">Nerelisin / Nerede büyüdün? (Kişisel köken) - İsteğe Bağlı</span>
+                    <input
+                      className="cc-input cc-literary"
+                      value={origin}
+                      placeholder="Örn. Neverwinter, Waterdeep ya da kuzeyde küçük bir köy"
+                      onChange={(e) => setOrigin(e.target.value)}
+                      maxLength={240}
+                      data-testid="input-character-origin"
+                    />
+                  </label>
+
                   <label className="cc-field cc-field-full">
                     <span className="cc-label">Görünüş (Appearance) - İsteğe Bağlı</span>
                     <textarea
@@ -1451,6 +1465,10 @@ export function CharacterCreationScreen({
                   <div className="cc-sheet-identity-box mt-4">
                     <div className="cc-sheet-sec-title">Karakter Kimliği ve Rol Yapma Notları</div>
                     <div className="cc-sheet-identity-grid">
+                      <div className="cc-sheet-identity-item">
+                        <span className="cc-vital-label">Köken:</span>
+                        <p>{origin.trim() || 'Belirtilmedi'}</p>
+                      </div>
                       <div className="cc-sheet-identity-item">
                         <span className="cc-vital-label">Görünüş:</span>
                         <p>{appearance.trim() || 'Belirtilmedi'}</p>

@@ -597,8 +597,85 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
-  const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
-  return <main className="reveal-screen" data-testid="screen-character-reveal"><header className="dnd-shell reveal-header"><Brand /><button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening"><ArrowLeft size={13} /> Geri dön</button></header><div className="reveal-wrap"><div className="reveal-heading"><Kicker>Yeni macera · Yolcu</Kicker><h1 className="dnd-display">Yolcu ortaya çıktı.</h1><p className="dnd-serif">Seçtiğin nitelikler, beceriler ve ekipmanlar kurallara göre mühürlendi. Dünya ilk sözünü bekliyor.</p></div><div className="reveal-card"><div className="portrait-empty" aria-label="Portre alanı boş"><ScrollText size={25} /><Kicker>Henüz bir suret yok</Kicker><span>Yol boyunca yüzün hatırlanacak.</span></div><div className="reveal-data"><div className="reveal-top"><div><Kicker>Karakter</Kicker><h2 data-testid="reveal-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div><Rule /><div className="reveal-metrics"><div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div><div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div><div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div></div><div className="reveal-stats"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div><div className="reveal-skills"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div><div className="reveal-actions"><span>Bu yolculukta sana adın, geçmişin ve yeteneklerin eşlik edecek.</span><button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">Macerayı aç <ArrowRight size={14} /></button></div></div></div></div></main>;
+  const abilities = [
+    ['KUV', character.strength],
+    ['ÇEV', character.dexterity],
+    ['DAY', character.constitution],
+    ['ZEK', character.intelligence],
+    ['BİL', character.wisdom],
+    ['KAR', character.charisma],
+  ];
+  return (
+    <main className="reveal-screen" data-testid="screen-character-reveal">
+      <header className="dnd-shell reveal-header">
+        <Brand />
+        <button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening">
+          <ArrowLeft size={13} /> Geri dön
+        </button>
+      </header>
+      <div className="reveal-wrap">
+        <div className="reveal-heading">
+          <Kicker>Yeni macera · Yolcu</Kicker>
+          <h1 className="dnd-display">Yolcu ortaya çıktı.</h1>
+          <p className="dnd-serif">Seçtiğin nitelikler, beceriler ve ekipmanlar kurallara göre mühürlendi. Dünya ilk sözünü bekliyor.</p>
+        </div>
+        <div className="reveal-card">
+          <div className="portrait-empty" aria-label="Portre alanı boş">
+            <ScrollText size={25} />
+            <Kicker>Henüz bir suret yok</Kicker>
+            <span>Yol boyunca yüzün hatırlanacak.</span>
+          </div>
+          <div className="reveal-data">
+            <div className="reveal-top">
+              <div>
+                <Kicker>Karakter</Kicker>
+                <h2 data-testid="reveal-character-name">{character.name}</h2>
+                <div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div>
+              </div>
+              <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
+            </div>
+            {character.origin && (
+              <div className="reveal-origin" data-testid="reveal-character-origin">
+                <Kicker>Kişisel köken</Kicker>
+                <span>{character.origin}</span>
+              </div>
+            )}
+            <Rule />
+            <div className="reveal-metrics">
+              <div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div>
+              <div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div>
+              <div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div>
+            </div>
+            <div className="reveal-stats">
+              <Kicker>Yetenekler</Kicker>
+              <div className="stat-strip">
+                {abilities.map(([label, value]) => (
+                  <div className="stat-box" key={label}>
+                    <Kicker>{label}</Kicker>
+                    <div className="stat-value">{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="reveal-skills">
+              <Kicker>Usta olunan beceriler</Kicker>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {character.proficient_skills.length
+                  ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>)
+                  : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}
+              </div>
+            </div>
+            <div className="reveal-actions">
+              <span>Bu yolculukta sana adın, geçmişin ve yeteneklerin eşlik edecek.</span>
+              <button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">
+                Macerayı aç <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }
 
 function StateSkeleton() {
@@ -772,15 +849,36 @@ export default function GameBrowser() {
     void campaignsQuery.refetch();
   };
 
+  const handleRevealContinue = () => {
+    const opening = state?.scene?.opening;
+    if (typeof opening === 'string' && opening.trim()) {
+      const transcript: TranscriptEntry[] = [{ kind: 'narration', text: opening }];
+      setEntries(transcript);
+      if (sessionId) {
+        window.localStorage.setItem(
+          `${TRANSCRIPT_KEY}${sessionId}`,
+          JSON.stringify(transcript),
+        );
+      }
+    }
+    setPhase('adventure');
+  };
+
   const handleResume = (selectedCampaignId: string) => {
     setNotice(null);
     setResumingCampaignId(selectedCampaignId);
     resumeCampaign.mutate({ campaignId: selectedCampaignId }, {
       onSuccess: (resumed) => {
-        const transcript = resumed.history.flatMap((entry: CampaignHistoryEntry) => [
+        const opening = resumed.state.scene?.opening;
+        const transcript: TranscriptEntry[] = [
+          ...(typeof opening === 'string' && opening.trim()
+            ? [{ kind: 'narration' as const, text: opening }]
+            : []),
+          ...resumed.history.flatMap((entry: CampaignHistoryEntry) => [
           { kind: 'player' as const, text: entry.player_message },
           { kind: 'narration' as const, text: entry.narration },
-        ]);
+          ]),
+        ];
         setCampaignId(resumed.campaign_id);
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, resumed.campaign_id);
         window.localStorage.setItem(`${TRANSCRIPT_KEY}${resumed.session_id}`, JSON.stringify(transcript));
@@ -918,7 +1016,7 @@ export default function GameBrowser() {
     />
   );
   if (!sessionId || phase === 'opening') return <OpeningScreen onCreate={handleCreate} onContinue={handleContinue} creating={createCampaign.isPending} notice={notice} loadingCampaigns={campaignsQuery.isLoading} hasCampaigns={Boolean(campaignsQuery.data?.length)} showNoCampaigns={!campaignsQuery.isLoading && !campaignsQuery.error} />;
-  if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={() => setPhase('adventure')} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
+  if (phase === 'reveal' && state) return <CharacterReveal state={state} onContinue={handleRevealContinue} onBack={() => { setPhase('opening'); setSessionId(''); }} />;
   return (
     <EnvironmentThemeProvider state={state}>
       <div className="dnd-app" data-testid="app-session">
