@@ -11,7 +11,7 @@ import type { CharacterCreateInputBackgroundEquipmentOption } from './characterC
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
 
 /**
- * Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
+ * Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
  */
 export interface CharacterCreateInput {
   mode: CharacterCreateInputMode;
@@ -43,6 +43,10 @@ export interface CharacterCreateInput {
   proficient_tools?: string[] | null;
   /** @nullable */
   origin_feat?: string | null;
+  /** @nullable */
+  species_bonus_feat?: string | null;
+  /** @nullable */
+  species_bonus_skills?: string[] | null;
   /** @nullable */
   fighting_style?: string | null;
   /** @nullable */

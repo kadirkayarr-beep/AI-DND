@@ -178,6 +178,11 @@ ORIGIN_FEATS = {
 }
 
 
+def canonical_origin_feat_name(feat: str | None) -> str:
+    """Return the base feat name, ignoring a specialization in parentheses."""
+    return feat.split(" (", 1)[0].strip() if isinstance(feat, str) else ""
+
+
 # ============================================================================
 # BACKGROUNDS (2024 PHB)
 # ============================================================================
@@ -341,6 +346,8 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 0,
+        "skill_bonus_count": 1,
+        "origin_feat_bonus_count": 1,
         "traits": [
             {"name": "Becerikli (Skillful)", "desc": "Seçtiğin fazladan bir beceride ustalık kazanırsın."},
             {"name": "Çok Yönlü (Versatile)", "desc": "Fazladan 1 adet 1. seviye Başlangıç Hüneri (Origin Feat) kazanırsın."},
@@ -426,6 +433,7 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 60,
+        "skill_bonus_count": 2,
         "traits": [
             {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
             {"name": "Fey Soyu", "desc": "Büyülenmeye karşı kurtarma zarlarında avantaj."},
@@ -974,6 +982,7 @@ def calculate_derived_stats(
     fighting_style: str | None = None,
     equipped_armor: str | None = None,
     has_shield: bool = False,
+    chosen_feats: list[str] | None = None,
 ) -> dict[str, Any]:
     cls_def = CLASS_DEFINITIONS.get(character_class)
     if not cls_def:
@@ -989,8 +998,9 @@ def calculate_derived_stats(
     if species == "Dwarf":
         base_hp += 1
 
-    # Feat bonus (Tough)
-    if chosen_feat == "Tough":
+    # Feat bonus (Tough); include both background and species-granted feats.
+    all_chosen_feats = {feat for feat in [chosen_feat, *(chosen_feats or [])] if feat}
+    if "Tough" in all_chosen_feats:
         base_hp += 2
 
     max_hp = max(1, base_hp)
@@ -1110,11 +1120,12 @@ def generate_random_2024_character(rng: random.Random) -> dict[str, Any]:
     chosen_class_skills = rng.sample(available_class_skills, skill_count)
     all_skills = bg_skills + chosen_class_skills
 
-    # Extra skill for Human
-    if species == "Human":
-        remaining_all = [s for s in SKILL_DEFINITIONS.keys() if s not in all_skills]
-        if remaining_all:
-            all_skills.append(rng.choice(remaining_all))
+    species_bonus_skill_count = SPECIES_DEFINITIONS[species].get("skill_bonus_count", 0)
+    species_bonus_skills = rng.sample(
+        [skill for skill in SKILL_DEFINITIONS if skill not in all_skills],
+        min(species_bonus_skill_count, len(SKILL_DEFINITIONS)),
+    )
+    all_skills.extend(species_bonus_skills)
 
     # Equipment
     pkg = rng.choice(cls_def["equipment_packages"])
@@ -1142,6 +1153,15 @@ def generate_random_2024_character(rng: random.Random) -> dict[str, Any]:
         fighting_style = rng.choice([f["id"] for f in cls_def["fighting_styles"]])
 
     origin_feat = bg_def["feat"]
+    species_bonus_feat = None
+    if SPECIES_DEFINITIONS[species].get("origin_feat_bonus_count", 0):
+        feat_options = [
+            feat for feat in ORIGIN_FEATS
+            if canonical_origin_feat_name(feat) != canonical_origin_feat_name(origin_feat)
+        ]
+        if feat_options:
+            species_bonus_feat = rng.choice(feat_options)
+    origin_feats = [origin_feat, *([species_bonus_feat] if species_bonus_feat else [])]
 
     # Derived stats
     derived = calculate_derived_stats(
@@ -1150,6 +1170,7 @@ def generate_random_2024_character(rng: random.Random) -> dict[str, Any]:
         final_scores=final_scores,
         chosen_feat=origin_feat,
         has_shield="Kalkan" in " ".join(equipment_items),
+        chosen_feats=origin_feats,
     )
 
     return {
@@ -1164,8 +1185,11 @@ def generate_random_2024_character(rng: random.Random) -> dict[str, Any]:
         "background_ability_bonuses": bonuses,
         "final_ability_scores": final_scores,
         "proficient_skills": all_skills,
+        "species_bonus_skills": species_bonus_skills,
         "proficient_tools": [bg_def["tool"]],
         "origin_feat": origin_feat,
+        "species_bonus_feat": species_bonus_feat,
+        "origin_feats": origin_feats,
         "fighting_style": fighting_style,
         "equipment_choices": equipment_items,
         "cantrips": cantrips,

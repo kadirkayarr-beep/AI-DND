@@ -358,6 +358,8 @@ class ContractParityTests(unittest.TestCase):
             "proficient_skills",
             "proficient_tools",
             "origin_feat",
+            "species_bonus_feat",
+            "species_bonus_skills",
             "fighting_style",
             "equipment_package",
             "equipment_choices",

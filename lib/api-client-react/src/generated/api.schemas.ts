@@ -402,6 +402,12 @@ export interface GameCharacter {
   wisdom: number;
   charisma: number;
   proficient_skills: string[];
+  /** @nullable */
+  origin_feat?: string | null;
+  /** @nullable */
+  species_bonus_feat?: string | null;
+  species_bonus_skills?: string[];
+  origin_feats?: string[];
   level: number;
   proficiency_bonus: number;
   max_hp: number;
@@ -951,7 +957,7 @@ export type CharacterCreateInputAbilityScores = { [key: string]: unknown } | nul
 export type CharacterCreateInputBackgroundAbilityBonuses = { [key: string]: unknown } | null;
 
 /**
- * Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
+ * Custom mode requires non-null name, race, and class. Human and Half-Elf clients provide their species bonus skills separately from class skills. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
  */
 export interface CharacterCreateInput {
   mode: CharacterCreateInputMode;
@@ -983,6 +989,10 @@ export interface CharacterCreateInput {
   proficient_tools?: string[] | null;
   /** @nullable */
   origin_feat?: string | null;
+  /** @nullable */
+  species_bonus_feat?: string | null;
+  /** @nullable */
+  species_bonus_skills?: string[] | null;
   /** @nullable */
   fighting_style?: string | null;
   /** @nullable */

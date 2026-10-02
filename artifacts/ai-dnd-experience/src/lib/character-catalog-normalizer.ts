@@ -1,6 +1,11 @@
 type CatalogRecord = Record<string, any>;
 
 export type NormalizedSpellOption = CatalogRecord & { id: string };
+export type NormalizedOriginFeatOption = {
+  id: string;
+  label: string;
+  description?: string;
+};
 
 export type NormalizedCharacterCreationCatalog = CatalogRecord & {
   backgrounds: Record<string, CatalogRecord & {
@@ -106,24 +111,52 @@ export function updateLimitedSelection(
   return [...selected, optionId];
 }
 
-export function getRequiredSkillCount(skillCount: unknown, species: string): number {
+export function getRequiredSkillCount(skillCount: unknown): number {
   const baseCount =
     typeof skillCount === 'number' && Number.isFinite(skillCount)
       ? Math.max(0, Math.floor(skillCount))
       : 2;
-  return baseCount + (species === 'Human' ? 1 : 0);
+  return baseCount;
 }
 
-export function getClassSkillOptions(
-  classOptions: unknown,
-  skillsCatalog: unknown,
-  species: string,
-): string[] {
+export function getClassSkillOptions(classOptions: unknown): string[] {
   const options = Array.isArray(classOptions)
     ? classOptions.filter((skill): skill is string => typeof skill === 'string')
     : [];
 
-  if (species !== 'Human') return [...new Set(options)];
+  return [...new Set(options)];
+}
 
-  return [...new Set([...options, ...Object.keys(asRecord(skillsCatalog))])];
+export function getSpeciesBonusSkillCount(speciesData: unknown): number {
+  const count = asRecord(speciesData).skill_bonus_count;
+  return typeof count === 'number' && Number.isFinite(count)
+    ? Math.max(0, Math.floor(count))
+    : 0;
+}
+
+export function getSpeciesBonusSkillOptions(
+  skillsCatalog: unknown,
+  bonusSkillCount: number,
+): string[] {
+  return bonusSkillCount > 0 ? Object.keys(asRecord(skillsCatalog)) : [];
+}
+
+function canonicalFeatName(feat: string): string {
+  return feat.split(' (', 1)[0].trim();
+}
+
+export function getOriginFeatOptions(
+  originFeats: unknown,
+  backgroundFeat?: string,
+): NormalizedOriginFeatOption[] {
+  const backgroundFeatName = backgroundFeat ? canonicalFeatName(backgroundFeat) : '';
+  return Object.entries(asRecord(originFeats)).flatMap(([id, value]) => {
+    const feat = asRecord(value);
+    if (backgroundFeatName && canonicalFeatName(id) === backgroundFeatName) return [];
+    return [{
+      id,
+      label: nonEmptyString(feat.name_tr) ?? id,
+      ...(nonEmptyString(feat.desc) ? { description: nonEmptyString(feat.desc) } : {}),
+    }];
+  });
 }

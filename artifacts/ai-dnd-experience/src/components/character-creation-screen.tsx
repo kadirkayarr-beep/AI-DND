@@ -27,7 +27,10 @@ import type {
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import {
   getClassSkillOptions,
+  getOriginFeatOptions,
   getRequiredSkillCount,
+  getSpeciesBonusSkillCount,
+  getSpeciesBonusSkillOptions,
   getSpellOptionId,
   normalizeCharacterCreationCatalog,
   updateLimitedSelection,
@@ -169,6 +172,8 @@ export function CharacterCreationScreen({
 
   // Class choices
   const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>([]);
+  const [selectedSpeciesSkills, setSelectedSpeciesSkills] = useState<string[]>([]);
+  const [speciesBonusFeat, setSpeciesBonusFeat] = useState('');
   const [fightingStyle, setFightingStyle] = useState('');
   const [equipmentPackage, setEquipmentPackage] = useState<string>('');
   const [backgroundEquipmentOption, setBackgroundEquipmentOption] = useState<'A' | 'B' | ''>('');
@@ -229,6 +234,19 @@ export function CharacterCreationScreen({
     return (catalog.races as Record<string, any>)[species] ?? null;
   }, [catalog, species]);
 
+  const speciesBonusSkillCount = getSpeciesBonusSkillCount(speciesData);
+  const speciesBonusSkillOptions = useMemo(
+    () => getSpeciesBonusSkillOptions(catalog?.skills, speciesBonusSkillCount),
+    [catalog?.skills, speciesBonusSkillCount],
+  );
+  const originFeatOptions = useMemo(
+    () => getOriginFeatOptions(catalog?.origin_feats, backgroundData?.origin_feat),
+    [backgroundData?.origin_feat, catalog?.origin_feats],
+  );
+  const selectedSpeciesBonusFeat = originFeatOptions.find(
+    (feat) => feat.id === speciesBonusFeat,
+  );
+
   const availableSpellsForClass = useMemo(() => {
     if (!catalog?.spells_catalog || !characterClass) return { cantrips: [], level_1: [] };
     const sc = (catalog.spells_catalog as Record<string, any>)[characterClass];
@@ -265,6 +283,11 @@ export function CharacterCreationScreen({
     setFightingStyle('');
     setEquipmentPackage('');
   }, [characterClass]);
+
+  useEffect(() => {
+    setSelectedSpeciesSkills([]);
+    setSpeciesBonusFeat('');
+  }, [background, species]);
 
   // Calculate background ability bonuses
   const calculatedBackgroundBonuses = useMemo<Record<AbilityKey, number>>(() => {
@@ -330,13 +353,17 @@ export function CharacterCreationScreen({
       baseAc = 14 + Math.min(2, dexMod);
     }
 
-    const hp = Math.max(1, hitDie + conMod);
+    const toughnessFeatBonus =
+      backgroundData?.origin_feat === 'Tough' || speciesBonusFeat === 'Tough' ? 2 : 0;
+    const hp = Math.max(1, hitDie + conMod + toughnessFeatBonus);
     const speed = speciesData?.speed ?? '9 metre (30 ft)';
     const initiative = dexMod;
     const proficiencyBonus = 2;
 
     const bgSkills = (backgroundData?.skills ?? []) as string[];
-    const allSkills = Array.from(new Set([...bgSkills, ...selectedClassSkills]));
+    const allSkills = Array.from(
+      new Set([...bgSkills, ...selectedClassSkills, ...selectedSpeciesSkills]),
+    );
 
     const isPerceptionProficient = allSkills.includes('Perception');
     const passivePerception = 10 + wisMod + (isPerceptionProficient ? proficiencyBonus : 0);
@@ -362,7 +389,18 @@ export function CharacterCreationScreen({
       spellAttackBonus,
       hasShield,
     };
-  }, [backgroundData, characterClass, classData, equipmentPackage, fightingStyle, modifiers, selectedClassSkills, speciesData]);
+  }, [
+    backgroundData,
+    characterClass,
+    classData,
+    equipmentPackage,
+    fightingStyle,
+    modifiers,
+    selectedClassSkills,
+    selectedSpeciesSkills,
+    speciesBonusFeat,
+    speciesData,
+  ]);
 
   // Point Buy calculation
   const pointBuyRemaining = useMemo(() => {
@@ -383,11 +421,13 @@ export function CharacterCreationScreen({
 
   // Validation helpers
   const classSkillOptions = useMemo(
-    () => getClassSkillOptions(classData?.skill_options, catalog?.skills, species),
-    [catalog, classData, species],
+    () => getClassSkillOptions(classData?.skill_options),
+    [classData],
   );
-  const requiredSkillCount = getRequiredSkillCount(classData?.skill_count, species);
-  const isSkillsValid = selectedClassSkills.length === requiredSkillCount;
+  const requiredClassSkillCount = getRequiredSkillCount(classData?.skill_count);
+  const isSkillsValid =
+    selectedClassSkills.length === requiredClassSkillCount &&
+    selectedSpeciesSkills.length === speciesBonusSkillCount;
 
   const requiredCantripsCount = classData?.cantrips_count ?? 0;
   const isCantripsValid = !classData?.is_spellcaster || selectedCantrips.length === requiredCantripsCount;
@@ -404,7 +444,13 @@ export function CharacterCreationScreen({
       case 'background':
         return Boolean(background);
       case 'species':
-        return Boolean(species);
+        return Boolean(
+          species &&
+          (
+            !(Number(speciesData?.origin_feat_bonus_count) > 0) ||
+            originFeatOptions.some((feat) => feat.id === speciesBonusFeat)
+          )
+        );
       case 'abilities': {
         if (!abilityMethod) return false;
         if (abilityMethod === 'standard_array' && !isStandardArrayValid) return false;
@@ -458,7 +504,14 @@ export function CharacterCreationScreen({
       case 'background':
         return 'İlerlemek için bir geçmiş (background) seçin.';
       case 'species':
-        return 'İlerlemek için bir tür (species) seçin.';
+        if (!species) return 'İlerlemek için bir tür (species) seçin.';
+        if (
+          Number(speciesData?.origin_feat_bonus_count) > 0 &&
+          !originFeatOptions.some((feat) => feat.id === speciesBonusFeat)
+        ) {
+          return 'İnsan için geçmiş hünerinden farklı bir ek Başlangıç Hüneri seçmelisin.';
+        }
+        return '';
       case 'abilities': {
         if (!abilityMethod) return 'Lütfen bir yetenek puanı yöntemi seçin.';
         if (abilityMethod === 'standard_array' && !isStandardArrayValid) {
@@ -473,8 +526,11 @@ export function CharacterCreationScreen({
         return '';
       }
       case 'choices': {
-        if (!isSkillsValid) {
-          return `Sınıfın için ${requiredSkillCount} beceri seçmelisin (${selectedClassSkills.length}/${requiredSkillCount} seçildi).`;
+        if (selectedClassSkills.length !== requiredClassSkillCount) {
+          return `Sınıfın için ${requiredClassSkillCount} beceri seçmelisin (${selectedClassSkills.length}/${requiredClassSkillCount} seçildi).`;
+        }
+        if (selectedSpeciesSkills.length !== speciesBonusSkillCount) {
+          return `${species} için ${speciesBonusSkillCount} ek tür becerisi seçmelisin (${selectedSpeciesSkills.length}/${speciesBonusSkillCount} seçildi).`;
         }
         if (characterClass === 'Fighter' && !fightingStyle) {
           return 'Lütfen bir dövüş tarzı (fighting style) seçin.';
@@ -511,7 +567,7 @@ export function CharacterCreationScreen({
   const isFormValid = Boolean(
     characterClass &&
     background &&
-    species &&
+    isStepValid('species') &&
     name.trim() &&
     alignment &&
     selectedLanguages[0] &&
@@ -561,8 +617,10 @@ export function CharacterCreationScreen({
       ability_scores: baseScores,
       background_ability_bonuses: calculatedBackgroundBonuses,
       proficient_skills: derivedStats.allSkills,
+      species_bonus_skills: selectedSpeciesSkills,
       proficient_tools: [backgroundData?.tool ?? 'Tools'],
       origin_feat: backgroundData?.origin_feat,
+      species_bonus_feat: speciesBonusFeat || undefined,
       fighting_style: characterClass === 'Fighter' ? fightingStyle : undefined,
       equipment_package: equipmentPackage,
       equipment_choices: classData?.equipment_packages?.find((p: any) => p.id === equipmentPackage)?.items ?? [],
@@ -768,6 +826,57 @@ export function CharacterCreationScreen({
                     );
                   })}
                 </div>
+                {Number(speciesData?.origin_feat_bonus_count) > 0 && (
+                  <div className="cc-sub-section" data-testid="section-species-bonus-feat">
+                    <div className="cc-sub-header">
+                      <span className="cc-label">İnsan Tür Hüneri</span>
+                      <small>Geçmiş hünerinden farklı bir 1. seviye Başlangıç Hüneri seç.</small>
+                    </div>
+                    {originFeatOptions.length > 0 ? (
+                      <>
+                        <label className="cc-form-group" htmlFor="select-species-bonus-feat">
+                          <span className="cc-label">Ek Başlangıç Hüneri</span>
+                          <div className="cc-select-wrap">
+                            <select
+                              id="select-species-bonus-feat"
+                              data-testid="select-species-bonus-feat"
+                              value={speciesBonusFeat}
+                              onChange={(event) => setSpeciesBonusFeat(event.target.value)}
+                              aria-describedby={
+                                selectedSpeciesBonusFeat?.description
+                                  ? 'species-bonus-feat-description'
+                                  : undefined
+                              }
+                            >
+                              <option value="">Bir hüner seç...</option>
+                              {originFeatOptions.map((feat) => (
+                                <option key={feat.id} value={feat.id}>{feat.label}</option>
+                              ))}
+                            </select>
+                            <ChevronDown size={16} aria-hidden="true" />
+                          </div>
+                        </label>
+                        {selectedSpeciesBonusFeat?.description && (
+                          <p id="species-bonus-feat-description" className="cc-card-desc">
+                            {selectedSpeciesBonusFeat.description}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="cc-inline-notice" data-testid="status-origin-feats-unavailable">
+                        Başlangıç hünerleri kataloğu yüklenemedi.
+                        <button
+                          type="button"
+                          className="text-button"
+                          data-testid="button-retry-origin-feats"
+                          onClick={onRetryOptions}
+                        >
+                          Yeniden dene
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
@@ -973,13 +1082,9 @@ export function CharacterCreationScreen({
                 <div className="cc-sub-section">
                   <div className="cc-sub-header">
                     <span className="cc-label">
-                      {species === 'Human' ? 'Sınıf ve İnsan Becerileri' : 'Sınıf Becerileri'} ({selectedClassSkills.length} / {requiredSkillCount} Seçildi)
+                      Sınıf Becerileri ({selectedClassSkills.length} / {requiredClassSkillCount} Seçildi)
                     </span>
-                    <small>
-                      {species === 'Human'
-                        ? 'Sınıf seçimlerine ek olarak İnsan türü için bir beceri daha seç.'
-                        : 'Geçmişinden gelen beceriler zaten usta olarak eklenmiştir.'}
-                    </small>
+                    <small>Geçmiş becerileri zaten eklenmiştir. Tür bonus becerileri ayrı bölümden seçilir.</small>
                   </div>
 
                   <div className="cc-checkbox-grid">
@@ -987,35 +1092,103 @@ export function CharacterCreationScreen({
                       const bgSkills = (backgroundData?.skills ?? []) as string[];
                       const isFromBg = bgSkills.includes(skillName);
                       const isSelected = selectedClassSkills.includes(skillName);
+                      const isSpeciesSelected = selectedSpeciesSkills.includes(skillName);
 
                       return (
                         <label
                           key={skillName}
-                          className={`cc-checkbox-card ${isSelected || isFromBg ? 'checked' : ''} ${isFromBg ? 'disabled' : ''}`}
+                          className={`cc-checkbox-card ${isSelected || isFromBg || isSpeciesSelected ? 'checked' : ''} ${isFromBg || isSpeciesSelected ? 'disabled' : ''}`}
                         >
                           <input
                             type="checkbox"
-                            disabled={isFromBg}
-                            checked={isSelected || isFromBg}
+                            data-testid={`checkbox-class-skill-${skillName}`}
+                            disabled={isFromBg || isSpeciesSelected}
+                            checked={isSelected || isFromBg || isSpeciesSelected}
                             onChange={(e) => {
-                              if (isFromBg) return;
+                              if (isFromBg || isSpeciesSelected) return;
                               setSelectedClassSkills((selected) =>
                                 updateLimitedSelection(
                                   selected,
                                   skillName,
                                   e.target.checked,
-                                  requiredSkillCount,
+                                  requiredClassSkillCount,
                                 ),
                               );
                             }}
                           />
                           <span>{skillName}</span>
                           {isFromBg && <small className="cc-tag-sub">Geçmişten</small>}
+                          {isSpeciesSelected && <small className="cc-tag-sub">Türden</small>}
                         </label>
                       );
                     })}
                   </div>
                 </div>
+
+                {speciesBonusSkillCount > 0 && (
+                  <div className="cc-sub-section" data-testid="section-species-bonus-skills">
+                    <div className="cc-sub-header">
+                      <span className="cc-label">
+                        Tür Becerileri ({selectedSpeciesSkills.length} / {speciesBonusSkillCount} Seçildi)
+                      </span>
+                      <small>
+                        {species === 'Human'
+                          ? 'İnsan için beceri kataloğundan 1 ek beceri seç.'
+                          : 'Yarı-Elf için beceri kataloğundan 2 ek beceri seç.'}
+                      </small>
+                    </div>
+                    {speciesBonusSkillOptions.length > 0 ? (
+                      <div className="cc-checkbox-grid">
+                        {speciesBonusSkillOptions.map((skillName) => {
+                          const isFromBg = ((backgroundData?.skills ?? []) as string[]).includes(skillName);
+                          const isFromClass = selectedClassSkills.includes(skillName);
+                          const isSelected = selectedSpeciesSkills.includes(skillName);
+                          const isUnavailable = isFromBg || isFromClass;
+
+                          return (
+                            <label
+                              key={skillName}
+                              className={`cc-checkbox-card ${isSelected ? 'checked' : ''} ${isUnavailable ? 'disabled' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                data-testid={`checkbox-species-skill-${skillName}`}
+                                disabled={isUnavailable}
+                                checked={isSelected}
+                                onChange={(event) => {
+                                  if (isUnavailable) return;
+                                  setSelectedSpeciesSkills((selected) =>
+                                    updateLimitedSelection(
+                                      selected,
+                                      skillName,
+                                      event.target.checked,
+                                      speciesBonusSkillCount,
+                                    ),
+                                  );
+                                }}
+                              />
+                              <span>{skillName}</span>
+                              {isFromBg && <small className="cc-tag-sub">Geçmişten</small>}
+                              {isFromClass && <small className="cc-tag-sub">Sınıftan</small>}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="cc-inline-notice" data-testid="status-skills-unavailable">
+                        Beceri kataloğu yüklenemedi.
+                        <button
+                          type="button"
+                          className="text-button"
+                          data-testid="button-retry-skills"
+                          onClick={onRetryOptions}
+                        >
+                          Yeniden dene
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Fighting Style for Fighter */}
                 {characterClass === 'Fighter' && (
@@ -1484,10 +1657,27 @@ export function CharacterCreationScreen({
                           <span key={sk} className="cc-pill">{sk}</span>
                         ))}
                       </div>
+                      {selectedSpeciesSkills.length > 0 && (
+                        <>
+                          <div className="cc-sheet-sec-title mt-4">Tür Becerileri</div>
+                          <div className="cc-sheet-pills" data-testid="review-species-bonus-skills">
+                            {selectedSpeciesSkills.map((skill) => (
+                              <span key={skill} className="cc-pill">{skill}</span>
+                            ))}
+                          </div>
+                        </>
+                      )}
 
                       <div className="cc-sheet-sec-title mt-4">Hünerler & Sınıf Özellikleri</div>
                       <div className="cc-sheet-pills">
-                        <span className="cc-pill cc-pill-gold">Köken Hüneri: {backgroundData?.origin_feat ?? 'Tough'}</span>
+                        <span className="cc-pill cc-pill-gold" data-testid="review-background-origin-feat">
+                          Geçmiş Hüneri: {backgroundData?.origin_feat ?? 'Seçilmedi'}
+                        </span>
+                        {speciesBonusFeat && (
+                          <span className="cc-pill cc-pill-gold" data-testid="review-species-bonus-feat">
+                            Tür Hüneri: {selectedSpeciesBonusFeat?.label ?? speciesBonusFeat}
+                          </span>
+                        )}
                         {characterClass === 'Fighter' && (
                           <span className="cc-pill cc-pill-gold">Dövüş Tarzı: {fightingStyle}</span>
                         )}

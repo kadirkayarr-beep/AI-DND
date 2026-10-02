@@ -38,6 +38,10 @@ _PLAYER_FIELDS = (
     "wisdom",
     "charisma",
     "proficient_skills",
+    "origin_feat",
+    "species_bonus_feat",
+    "species_bonus_skills",
+    "origin_feats",
     "level",
     "proficiency_bonus",
     "max_hp",
@@ -351,6 +355,21 @@ def serialize_session_state(
         world,
         getattr(session, "world_metadata", None),
     )
+    character = _project_fields(player, _PLAYER_FIELDS)
+    character["origin_feat"] = player.get("origin_feat")
+    character["species_bonus_feat"] = player.get("species_bonus_feat")
+    species_bonus_skills = player.get("species_bonus_skills")
+    character["species_bonus_skills"] = (
+        list(species_bonus_skills)
+        if isinstance(species_bonus_skills, (list, tuple))
+        else []
+    )
+    origin_feats = player.get("origin_feats")
+    character["origin_feats"] = (
+        list(origin_feats)
+        if isinstance(origin_feats, (list, tuple))
+        else ([character["origin_feat"]] if character["origin_feat"] else [])
+    )
     raw_quests = copy.deepcopy(world.get("quests", []))
     quest_state = [
         {
@@ -402,7 +421,7 @@ def serialize_session_state(
             journal if journal is not None else empty_campaign_journal()
         ),
         "locations": locations,
-        "character": _project_fields(player, _PLAYER_FIELDS),
+        "character": character,
         "inventory": copy.deepcopy(world.get("inventory", [])),
         "npcs": _project_list(world.get("npcs"), _NPC_FIELDS),
         "shops": _project_list(world.get("shops"), _SHOP_FIELDS),

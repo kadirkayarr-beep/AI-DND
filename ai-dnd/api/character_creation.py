@@ -18,6 +18,7 @@ from api.dnd_2024_rules import (
     SPELLS_CATALOG,
     STANDARD_ARRAY,
     CharacterCreationError,
+    canonical_origin_feat_name,
     calculate_derived_stats,
     generate_random_2024_character,
     roll_4d6_drop_lowest,
@@ -57,6 +58,8 @@ def configure_character(
     proficient_skills: list[str] | None = None,
     proficient_tools: list[str] | None = None,
     origin_feat: str | None = None,
+    species_bonus_feat: str | None = None,
+    species_bonus_skills: list[str] | None = None,
     fighting_style: str | None = None,
     equipment_package: str | None = None,
     equipment_choices: list[str] | None = None,
@@ -87,6 +90,8 @@ def configure_character(
         proficient_skills,
         proficient_tools,
         origin_feat,
+        species_bonus_feat,
+        species_bonus_skills,
         fighting_style,
         equipment_package,
         equipment_choices,
@@ -152,8 +157,34 @@ def configure_character(
         skill_options = game.CLASS_SKILL_OPTIONS.get(character_class, cls_def["skill_options"])
         skill_count = 4 if character_class == "Rogue" else 2
         proficient_skills = session.rng.sample(skill_options, skill_count)
+        species_bonus_skill_count = SPECIES_DEFINITIONS.get(species, {}).get(
+            "skill_bonus_count", 0
+        )
+        species_bonus_skills = session.rng.sample(
+            [
+                skill
+                for skill in SKILL_DEFINITIONS
+                if skill not in proficient_skills
+            ],
+            min(species_bonus_skill_count, len(SKILL_DEFINITIONS)),
+        )
+        proficient_skills.extend(species_bonus_skills)
         proficient_tools = [bg_def["tool"]]
         origin_feat = bg_def["feat"]
+        species_bonus_feat = None
+        if SPECIES_DEFINITIONS.get(species, {}).get("origin_feat_bonus_count", 0):
+            feat_options = [
+                feat
+                for feat in ORIGIN_FEATS
+                if canonical_origin_feat_name(feat)
+                != canonical_origin_feat_name(origin_feat)
+            ]
+            if feat_options:
+                species_bonus_feat = session.rng.choice(feat_options)
+        origin_feats = [
+            origin_feat,
+            *([species_bonus_feat] if species_bonus_feat else []),
+        ]
         fighting_style = (
             cls_def["fighting_styles"][0]["id"]
             if character_class == "Fighter" and cls_def.get("fighting_styles")
@@ -197,6 +228,7 @@ def configure_character(
             species=species,
             final_scores=final_ability_scores,
             chosen_feat=origin_feat,
+            chosen_feats=origin_feats,
             fighting_style=fighting_style,
             equipped_armor=armor,
             has_shield=has_shield,
@@ -298,6 +330,8 @@ def configure_character(
         bg_skills = set(bg_def["skills"])
         if proficient_skills is None:
             raise CharacterCreationError("Skill choices are required.")
+        if len(proficient_skills) != len(set(proficient_skills)):
+            raise CharacterCreationError("Skill choices cannot contain duplicates.")
         chosen_skills_set = set(proficient_skills)
 
         for s in chosen_skills_set:
@@ -309,14 +343,48 @@ def configure_character(
                 f"Selected skills must include the background skills: {bg_def['skills']}."
             )
 
-        class_skills_chosen = chosen_skills_set - bg_skills
-        allowed_class_skill_count = cls_def["skill_count"]
-        if species == "Human":
-            allowed_class_skill_count += 1
-
         valid_class_options = set(cls_def["skill_options"])
+        bonus_fields_provided = (
+            species_bonus_skills is not None or species_bonus_feat is not None
+        )
+        if bonus_fields_provided:
+            species_bonus_skills = species_bonus_skills or []
+            if len(species_bonus_skills) != len(set(species_bonus_skills)):
+                raise CharacterCreationError(
+                    "Species bonus skill choices cannot contain duplicates."
+                )
+            species_bonus_skill_set = set(species_bonus_skills)
+            expected_species_skill_count = SPECIES_DEFINITIONS.get(
+                species, {}
+            ).get("skill_bonus_count", 0)
+            if len(species_bonus_skill_set) != expected_species_skill_count:
+                raise CharacterCreationError(
+                    f"{species} requires exactly {expected_species_skill_count} species bonus skills."
+                )
+            if species_bonus_skill_set & bg_skills:
+                raise CharacterCreationError(
+                    "Species bonus skills cannot duplicate background skills."
+                )
+            if not species_bonus_skill_set.issubset(chosen_skills_set):
+                raise CharacterCreationError(
+                    "Proficient skills must include all selected species bonus skills."
+                )
+            class_skills_chosen = (
+                chosen_skills_set - bg_skills - species_bonus_skill_set
+            )
+            allowed_class_skill_count = cls_def["skill_count"]
+        else:
+            # Older API clients submit all non-background skills in one field.
+            species_bonus_skills = []
+            class_skills_chosen = chosen_skills_set - bg_skills
+            allowed_class_skill_count = cls_def["skill_count"]
+            if species == "Human":
+                allowed_class_skill_count += 1
+
         for s in class_skills_chosen:
-            if s not in valid_class_options and species != "Human":
+            if s not in valid_class_options and not (
+                species == "Human" and not bonus_fields_provided
+            ):
                 raise CharacterCreationError(
                     f"Skill '{s}' is not available for class '{character_class}'."
                 )
@@ -329,6 +397,31 @@ def configure_character(
 
         proficient_tools = proficient_tools or [bg_def["tool"]]
         origin_feat = origin_feat or bg_def["feat"]
+        if bonus_fields_provided:
+            bonus_feat_count = SPECIES_DEFINITIONS.get(
+                species, {}
+            ).get("origin_feat_bonus_count", 0)
+            if bonus_feat_count:
+                if not species_bonus_feat:
+                    raise CharacterCreationError(
+                        f"{species} requires choosing an additional Origin Feat."
+                    )
+                if species_bonus_feat not in ORIGIN_FEATS:
+                    raise CharacterCreationError(
+                        f"Invalid species bonus Origin Feat: {species_bonus_feat}."
+                    )
+                if canonical_origin_feat_name(species_bonus_feat) == canonical_origin_feat_name(origin_feat):
+                    raise CharacterCreationError(
+                        "The species bonus Origin Feat must differ from the background Origin Feat."
+                    )
+            elif species_bonus_feat is not None:
+                raise CharacterCreationError(
+                    f"{species} does not grant an additional Origin Feat."
+                )
+        origin_feats = [
+            origin_feat,
+            *([species_bonus_feat] if species_bonus_feat else []),
+        ]
 
         if character_class == "Fighter":
             valid_styles = [f["id"] for f in cls_def.get("fighting_styles", [])]
@@ -466,6 +559,7 @@ def configure_character(
             species=species,
             final_scores=final_ability_scores,
             chosen_feat=origin_feat,
+            chosen_feats=origin_feats,
             fighting_style=fighting_style,
             equipped_armor=armor,
             has_shield=has_shield,
@@ -494,8 +588,11 @@ def configure_character(
             "final_ability_scores": final_ability_scores,
             **final_ability_scores,
             "proficient_skills": list(proficient_skills),
+            "species_bonus_skills": list(species_bonus_skills or []),
             "proficient_tools": list(proficient_tools),
             "origin_feat": origin_feat,
+            "species_bonus_feat": species_bonus_feat,
+            "origin_feats": origin_feats,
             "fighting_style": fighting_style,
             "equipment_package": equipment_package,
             "equipment_choices": list(equipment_choices),

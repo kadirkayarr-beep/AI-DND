@@ -237,23 +237,48 @@ test('normalizes server catalog fields and keeps spell selection keyed by unique
   );
 });
 
-test('Human skill selection includes its additional skill and all catalog skills', () => {
-  const { getClassSkillOptions, getRequiredSkillCount } = catalogNormalizer;
+test('species bonus skill selections stay separate from class skills', () => {
+  const {
+    getClassSkillOptions,
+    getRequiredSkillCount,
+    getSpeciesBonusSkillCount,
+    getSpeciesBonusSkillOptions,
+  } = catalogNormalizer;
   const skillCatalog = {
     Arcana: { ability: 'intelligence' },
     Nature: { ability: 'intelligence' },
     Perception: { ability: 'wisdom' },
   };
 
-  assert.equal(getRequiredSkillCount(2, 'Human'), 3);
+  assert.equal(getRequiredSkillCount(2), 2);
+  assert.equal(getSpeciesBonusSkillCount({ skill_bonus_count: 1 }), 1);
+  assert.equal(getSpeciesBonusSkillCount({ skill_bonus_count: 2 }), 2);
+  assert.deepEqual(getClassSkillOptions(['Arcana', 'Arcana']), ['Arcana']);
   assert.deepEqual(
-    getClassSkillOptions(['Arcana'], skillCatalog, 'Human'),
+    getSpeciesBonusSkillOptions(skillCatalog, 2),
     ['Arcana', 'Nature', 'Perception'],
   );
-  assert.deepEqual(
-    getClassSkillOptions(['Arcana'], skillCatalog, 'Elf'),
-    ['Arcana'],
+  assert.deepEqual(getSpeciesBonusSkillOptions(skillCatalog, 0), []);
+});
+
+test('species bonus feat options exclude the background feat base name', () => {
+  const options = catalogNormalizer.getOriginFeatOptions(
+    {
+      'Magic Initiate': { name_tr: 'Büyüye Giriş', desc: 'Choose spells.' },
+      Tough: { name_tr: 'Sağlam', desc: 'Gain hit points.' },
+    },
+    'Magic Initiate (Wizard)',
   );
+
+  assert.deepEqual(options, [
+    { id: 'Tough', label: 'Sağlam', description: 'Gain hit points.' },
+  ]);
+});
+
+test('review does not invent Tough when a background feat is missing', () => {
+  const html = renderCreationScreen({ initialStep: 'review' });
+  assert.ok(html.includes('Geçmiş Hüneri: Seçilmedi'));
+  assert.ok(!html.includes('Köken Hüneri: Tough'));
 });
 
 test('background cards render the server ability and feat fields', () => {

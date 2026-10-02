@@ -264,6 +264,8 @@ class CharacterCreateInput(BaseModel):
     proficient_skills: list[str] | None = None
     proficient_tools: list[str] | None = None
     origin_feat: str | None = None
+    species_bonus_feat: str | None = None
+    species_bonus_skills: list[str] | None = None
     fighting_style: str | None = None
     equipment_package: str | None = None
     equipment_choices: list[str] | None = None
@@ -301,6 +303,8 @@ class CharacterCreateInput(BaseModel):
             self.proficient_skills,
             self.proficient_tools,
             self.origin_feat,
+            self.species_bonus_feat,
+            self.species_bonus_skills,
             self.fighting_style,
             self.equipment_package,
             self.equipment_choices,

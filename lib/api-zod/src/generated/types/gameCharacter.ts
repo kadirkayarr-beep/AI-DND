@@ -32,6 +32,12 @@ export interface GameCharacter {
   wisdom: number;
   charisma: number;
   proficient_skills: string[];
+  /** @nullable */
+  origin_feat?: string | null;
+  /** @nullable */
+  species_bonus_feat?: string | null;
+  species_bonus_skills?: string[];
+  origin_feats?: string[];
   level: number;
   proficiency_bonus: number;
   max_hp: number;

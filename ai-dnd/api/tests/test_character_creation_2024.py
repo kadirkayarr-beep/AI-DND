@@ -43,6 +43,9 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertEqual(len(catalog["classes"]), 12)
         # 16 backgrounds
         self.assertEqual(len(catalog["backgrounds"]), 16)
+        self.assertEqual(catalog["races"]["Human"]["skill_bonus_count"], 1)
+        self.assertEqual(catalog["races"]["Human"]["origin_feat_bonus_count"], 1)
+        self.assertEqual(catalog["races"]["Half-Elf"]["skill_bonus_count"], 2)
         # Species count
         self.assertEqual(len(catalog["races"]), len(SPECIES_DEFINITIONS))
 
@@ -86,6 +89,36 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertGreaterEqual(len(char["proficient_skills"]), 2)
         self.assertIn("origin_feat", char)
         self.assertIn("equipment_choices", char)
+        self.assertIn("species_bonus_skills", char)
+        self.assertIn("species_bonus_feat", char)
+        self.assertIn("origin_feats", char)
+
+    def test_random_humans_and_half_elves_receive_species_bonuses(self):
+        found_species = set()
+        for seed in range(100):
+            session = MockSession(seed=seed)
+            configure_character(session, mode="random")
+            character = session.character
+            if character["species"] not in {"Human", "Half-Elf"}:
+                continue
+
+            found_species.add(character["species"])
+            expected_skill_count = 1 if character["species"] == "Human" else 2
+            self.assertEqual(
+                len(character["species_bonus_skills"]), expected_skill_count
+            )
+            self.assertTrue(
+                set(character["species_bonus_skills"]).issubset(
+                    character["proficient_skills"]
+                )
+            )
+            if character["species"] == "Human":
+                self.assertIn(character["species_bonus_feat"], character["origin_feats"])
+
+            if found_species == {"Human", "Half-Elf"}:
+                break
+
+        self.assertEqual(found_species, {"Human", "Half-Elf"})
 
     def test_random_mode_rejects_custom_fields(self):
         session = MockSession()
@@ -149,6 +182,102 @@ class CharacterCreation2024Tests(unittest.TestCase):
 
         # Saving throws: Fighter has Strength & Constitution
         self.assertEqual(set(char["saving_throws"]), {"strength", "constitution"})
+
+    def test_human_bonus_skills_and_origin_feat_are_validated_and_persisted(self):
+        selections = {
+            "name": "Mira Versatile",
+            "species": "Human",
+            "character_class": "Fighter",
+            "background": "Soldier",
+            "alignment": "Lawful Good",
+            "ability_score_method": "standard_array",
+            "ability_scores": {
+                "strength": 15,
+                "constitution": 14,
+                "dexterity": 13,
+                "wisdom": 12,
+                "intelligence": 10,
+                "charisma": 8,
+            },
+            "background_ability_bonuses": {"strength": 2, "constitution": 1},
+            "proficient_skills": [
+                "Athletics",
+                "Intimidation",
+                "Acrobatics",
+                "Perception",
+                "History",
+            ],
+            "species_bonus_skills": ["History"],
+            "species_bonus_feat": "Tough",
+            "fighting_style": "Defense",
+            "equipment_package": "A",
+            "background_equipment_option": "A",
+            "languages": ["Common", "Dwarvish", "Giant"],
+        }
+
+        session = MockSession()
+        configure_character(session, mode="custom", **selections)
+        character = session.character
+        self.assertEqual(character["species_bonus_skills"], ["History"])
+        self.assertEqual(character["species_bonus_feat"], "Tough")
+        self.assertEqual(character["origin_feats"], ["Savage Attacker", "Tough"])
+        self.assertIn("History", character["proficient_skills"])
+        self.assertEqual(character["max_hp"], 14)
+
+        with self.assertRaises(CharacterCreationError):
+            configure_character(
+                MockSession(),
+                mode="custom",
+                **{**selections, "species_bonus_feat": "Savage Attacker"},
+            )
+
+    def test_half_elf_requires_two_distinct_species_bonus_skills(self):
+        selections = {
+            "name": "Rowan Twofold",
+            "species": "Half-Elf",
+            "character_class": "Fighter",
+            "background": "Soldier",
+            "alignment": "Lawful Good",
+            "ability_score_method": "standard_array",
+            "ability_scores": {
+                "strength": 15,
+                "constitution": 14,
+                "dexterity": 13,
+                "wisdom": 12,
+                "intelligence": 10,
+                "charisma": 8,
+            },
+            "background_ability_bonuses": {"strength": 2, "constitution": 1},
+            "proficient_skills": [
+                "Athletics",
+                "Intimidation",
+                "Acrobatics",
+                "Perception",
+                "History",
+                "Stealth",
+            ],
+            "species_bonus_skills": ["History", "Stealth"],
+            "fighting_style": "Defense",
+            "equipment_package": "A",
+            "background_equipment_option": "A",
+            "languages": ["Common", "Dwarvish", "Giant"],
+        }
+
+        session = MockSession()
+        configure_character(session, mode="custom", **selections)
+        self.assertEqual(session.character["species_bonus_skills"], ["History", "Stealth"])
+        self.assertIsNone(session.character["species_bonus_feat"])
+
+        with self.assertRaises(CharacterCreationError):
+            configure_character(
+                MockSession(),
+                mode="custom",
+                **{
+                    **selections,
+                    "proficient_skills": selections["proficient_skills"][:-1],
+                    "species_bonus_skills": ["History"],
+                },
+            )
 
     def test_custom_mode_point_buy_validation(self):
         session = MockSession()

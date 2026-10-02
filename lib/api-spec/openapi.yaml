@@ -1374,6 +1374,18 @@ components:
           type: array
           items:
             type: string
+        origin_feat:
+          type: ["string", "null"]
+        species_bonus_feat:
+          type: ["string", "null"]
+        species_bonus_skills:
+          type: array
+          items:
+            type: string
+        origin_feats:
+          type: array
+          items:
+            type: string
         level:
           type: integer
         proficiency_bonus:
@@ -1833,8 +1845,10 @@ components:
     CharacterCreateInput:
       type: object
       description: >-
-        Custom mode requires non-null name, race, and class. Random mode rejects
-        non-null custom fields; omitted or explicit null custom fields are allowed.
+        Custom mode requires non-null name, race, and class. Human and Half-Elf
+        clients provide their species bonus skills separately from class skills.
+        Random mode rejects non-null custom fields; omitted or explicit null
+        custom fields are allowed.
       properties:
         mode:
           type: string
@@ -1869,6 +1883,12 @@ components:
             type: string
         origin_feat:
           type: ["string", "null"]
+        species_bonus_feat:
+          type: ["string", "null"]
+        species_bonus_skills:
+          type: ["array", "null"]
+          items:
+            type: string
         fighting_style:
           type: ["string", "null"]
         equipment_package:

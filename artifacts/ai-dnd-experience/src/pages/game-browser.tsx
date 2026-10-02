@@ -640,6 +640,23 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
                 <span>{character.origin}</span>
               </div>
             )}
+            {(character.origin_feat || character.species_bonus_feat) && (
+              <div className="reveal-origin" data-testid="reveal-character-origin-feats">
+                <Kicker>Başlangıç hünerleri</Kicker>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {character.origin_feat && (
+                    <span className="status-pill" data-testid="reveal-background-origin-feat">
+                      Geçmiş: {character.origin_feat}
+                    </span>
+                  )}
+                  {character.species_bonus_feat && (
+                    <span className="status-pill" data-testid="reveal-species-bonus-feat">
+                      Tür: {character.species_bonus_feat}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             <Rule />
             <div className="reveal-metrics">
               <div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div>
@@ -665,6 +682,16 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
                   : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}
               </div>
             </div>
+            {character.species_bonus_skills?.length ? (
+              <div className="reveal-skills" data-testid="reveal-species-bonus-skills">
+                <Kicker>Tür becerileri</Kicker>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {character.species_bonus_skills.map((skill) => (
+                    <span className="status-pill" key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div className="reveal-actions">
               <span>Bu yolculukta sana adın, geçmişin ve yeteneklerin eşlik edecek.</span>
               <button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">
