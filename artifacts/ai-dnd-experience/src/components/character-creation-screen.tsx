@@ -86,6 +86,25 @@ function formatModifier(mod: number): string {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
+function speciesTraitDetails(
+  trait: unknown,
+): { name: string; description: string | null } | null {
+  if (typeof trait === 'string') {
+    return trait.trim() ? { name: trait, description: null } : null;
+  }
+  if (!trait || typeof trait !== 'object') return null;
+
+  const record = trait as { name?: unknown; desc?: unknown };
+  if (typeof record.name !== 'string' || !record.name.trim()) return null;
+  return {
+    name: record.name,
+    description:
+      typeof record.desc === 'string' && record.desc.trim()
+        ? record.desc
+        : null,
+  };
+}
+
 export function CharacterCreationScreen({
   options,
   startOptions,
@@ -703,9 +722,22 @@ export function CharacterCreationScreen({
                         <p className="cc-card-desc">{rc.desc}</p>
                         <div className="cc-card-features">
                           <span className="cc-feature-tag">Karanlık Görüşü: {rc.darkvision}</span>
-                          {rc.traits?.map((t: string) => (
-                            <span className="cc-feature-tag" key={t}>{t}</span>
-                          ))}
+                          {Array.isArray(rc.traits) && rc.traits.map((trait: unknown, index: number) => {
+                            const details = speciesTraitDetails(trait);
+                            if (!details) return null;
+                            return (
+                              <span
+                                className="cc-feature-tag"
+                                key={`${raceKey}-${details.name}-${index}`}
+                                title={details.description ?? undefined}
+                              >
+                                {details.name}
+                                {details.description && (
+                                  <span className="sr-only">. {details.description}</span>
+                                )}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     );

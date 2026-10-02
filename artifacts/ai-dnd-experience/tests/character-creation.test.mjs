@@ -157,6 +157,30 @@ test('presents genuine player choices for class, species, background, and alignm
   assert.ok(html.includes('Rastgele Karakter Üret'));
 });
 
+test('species cards render API-shaped trait objects without passing objects to React', () => {
+  const description = 'Uzun dinlenme sonrası Kahramanca İlham kazanırsın.';
+  const html = renderCreationScreen({
+    initialStep: 'species',
+    catalog: {
+      ...mockCatalog,
+      races: {
+        Human: {
+          ...mockCatalog.races.Human,
+          traits: [
+            { name: 'Azimli', desc: description },
+            'Eski biçimli özellik',
+          ],
+        },
+      },
+    },
+  });
+
+  assert.ok(html.includes('Azimli'));
+  assert.ok(html.includes(description));
+  assert.ok(html.includes('Eski biçimli özellik'));
+  assert.ok(!html.includes('[object Object]'));
+});
+
 test('never exposes developer terminology or internal server jargon in normal player UI', () => {
   const html = renderCreationScreen();
   assert.ok(!html.includes('Python motoru'));
