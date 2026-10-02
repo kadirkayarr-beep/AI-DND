@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './ambientEventActionInput';
+export * from './ambientEventActionInputAction';
+export * from './ambientEventCommandResult';
+export * from './ambientEventResult';
+export * from './ambientEventResultStatus';
 export * from './apiErrorDetail';
 export * from './apiErrorDetailCode';
 export * from './apiErrorResponse';
@@ -54,6 +59,8 @@ export * from './gameFeature';
 export * from './gameLocation';
 export * from './gameNpc';
 export * from './gameScene';
+export * from './gameSceneAmbientEvent';
+export * from './gameSceneAmbientEventEventType';
 export * from './gameSceneFeature';
 export * from './gameSceneNpc';
 export * from './gameScenePlayerPosition';
@@ -74,6 +81,10 @@ export * from './healthResponse';
 export * from './healthResponseEngine';
 export * from './healthResponseModel';
 export * from './healthResponseStatus';
+export * from './journalAmbientEventResult';
+export * from './journalAmbientEventResultAction';
+export * from './journalAmbientEventResultReasonCode';
+export * from './journalAmbientEventResultStatus';
 export * from './journalEvent';
 export * from './journalEventEventType';
 export * from './journalLocation';

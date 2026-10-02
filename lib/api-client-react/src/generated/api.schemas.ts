@@ -32,6 +32,24 @@ export interface HealthResponse {
   model: HealthResponseModel;
 }
 
+export type GameSceneAmbientEventEventType = typeof GameSceneAmbientEventEventType[keyof typeof GameSceneAmbientEventEventType];
+
+
+export const GameSceneAmbientEventEventType = {
+  GREEN: 'GREEN',
+  BLUE: 'BLUE',
+} as const;
+
+export interface GameSceneAmbientEvent {
+  event_id: string;
+  instance_id: string;
+  variation_id: string;
+  event_type: GameSceneAmbientEventEventType;
+  repeat_group: string;
+  /** @minimum 1 */
+  count: number;
+}
+
 export interface GameScenePlayerPosition {
   location_id: string;
   kind: string;
@@ -61,6 +79,7 @@ export const GameSceneReferentLifecycle = {
 
 export interface GameSceneReferent {
   id: string;
+  event_instance_id: string | null;
   kind: string | null;
   description: string;
   source_turn: number | null;
@@ -78,6 +97,7 @@ export interface GameScene {
   /** @minimum 0 */
   activity_revision: number;
   last_activity: string | null;
+  ambient_event: GameSceneAmbientEvent | null;
   opening?: string | null;
   player_position: GameScenePlayerPosition;
   /** @maxItems 12 */
@@ -218,7 +238,41 @@ export const JournalEventEventType = {
   player_unconscious: 'player_unconscious',
   item_gained: 'item_gained',
   item_lost: 'item_lost',
+  ambient_event_outcome: 'ambient_event_outcome',
 } as const;
+
+export type JournalAmbientEventResultAction = typeof JournalAmbientEventResultAction[keyof typeof JournalAmbientEventResultAction];
+
+
+export const JournalAmbientEventResultAction = {
+  interact: 'interact',
+} as const;
+
+export type JournalAmbientEventResultStatus = typeof JournalAmbientEventResultStatus[keyof typeof JournalAmbientEventResultStatus];
+
+
+export const JournalAmbientEventResultStatus = {
+  APPLIED: 'APPLIED',
+} as const;
+
+export type JournalAmbientEventResultReasonCode = typeof JournalAmbientEventResultReasonCode[keyof typeof JournalAmbientEventResultReasonCode];
+
+
+export const JournalAmbientEventResultReasonCode = {
+  referent_promoted: 'referent_promoted',
+} as const;
+
+export interface JournalAmbientEventResult {
+  /** @maxLength 96 */
+  event_instance_id: string;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
+  action_id: string;
+  action: JournalAmbientEventResultAction;
+  status: JournalAmbientEventResultStatus;
+  reason_code: JournalAmbientEventResultReasonCode;
+  /** @maxLength 160 */
+  transition_id: string;
+}
 
 export interface JournalEvent {
   event_id: string;
@@ -248,6 +302,7 @@ export interface JournalEvent {
      * @nullable
      */
   related_item: string | null;
+  event_result?: JournalAmbientEventResult | null;
 }
 
 export type CampaignQuestStatus = typeof CampaignQuestStatus[keyof typeof CampaignQuestStatus];
@@ -814,6 +869,56 @@ export interface QuestCommandResult {
   state: GameState;
   quest: QuestState;
   outcome: QuestOutcome | null;
+}
+
+export type AmbientEventActionInputAction = typeof AmbientEventActionInputAction[keyof typeof AmbientEventActionInputAction];
+
+
+export const AmbientEventActionInputAction = {
+  interact: 'interact',
+  observe: 'observe',
+} as const;
+
+export interface AmbientEventActionInput {
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
+  action_id: string;
+  action: AmbientEventActionInputAction;
+}
+
+export type AmbientEventResultStatus = typeof AmbientEventResultStatus[keyof typeof AmbientEventResultStatus];
+
+
+export const AmbientEventResultStatus = {
+  APPLIED: 'APPLIED',
+  REJECTED: 'REJECTED',
+  NO_EFFECT: 'NO_EFFECT',
+  ALREADY_APPLIED: 'ALREADY_APPLIED',
+} as const;
+
+export interface AmbientEventResult {
+  /** @maxLength 96 */
+  event_instance_id: string;
+  /** @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ */
+  action_id: string;
+  status: AmbientEventResultStatus;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  reason_code: string | null;
+  /**
+     * @maxLength 160
+     * @nullable
+     */
+  transition_id: string | null;
+  /** @nullable */
+  canonical_event_id: string | null;
+}
+
+export interface AmbientEventCommandResult {
+  session_id: string;
+  state: GameState;
+  result: AmbientEventResult;
 }
 
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];

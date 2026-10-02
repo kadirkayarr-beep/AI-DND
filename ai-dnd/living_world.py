@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import unicodedata
+import uuid
 from typing import Any, Callable
 
 from ambient_event_catalog import select_ambient_event
@@ -23,6 +24,21 @@ MAX_REFERENTS_TOTAL = 240
 MAX_SCENE_STATE_BYTES = 96 * 1024
 MAX_BEAT_TEXT = 240
 MAX_AMBIENT_EVENT_HISTORY = 32
+
+
+def _legacy_ambient_event_instance_id(
+    campaign_seed: str,
+    location_id: str,
+    event_id: str,
+    count: int,
+    turn_index: int,
+) -> str:
+    identity = json.dumps(
+        [campaign_seed, location_id, event_id, count, turn_index],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"ai-dnd:ambient-event:{identity}"))
 
 _LOCAL_NAMES = (
     "Aldren", "Brynna", "Cael", "Darian", "Elaris", "Fenra", "Garrick",
@@ -352,8 +368,25 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Campaign ambient context is invalid.")
     for item in state["ambient_event_history"]:
         if (
+            isinstance(item, dict)
+            and not item.get("instance_id")
+            and isinstance(item.get("event_id"), str)
+            and isinstance(item.get("location_id"), str)
+            and type(item.get("turn_index")) is int
+            and type(item.get("count")) is int
+        ):
+            item["instance_id"] = _legacy_ambient_event_instance_id(
+                state["campaign_seed"],
+                item["location_id"],
+                item["event_id"],
+                item["count"],
+                item["turn_index"],
+            )
+        if (
             not isinstance(item, dict)
             or not isinstance(item.get("event_id"), str)
+            or not isinstance(item.get("instance_id"), str)
+            or len(item["instance_id"]) > 96
             or not isinstance(item.get("variation_id"), str)
             or not isinstance(item.get("repeat_group"), str)
             or not isinstance(item.get("location_id"), str)
@@ -413,6 +446,75 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         ):
             raise ValueError("Campaign scene record is invalid.")
         referent_total += len(scene["referents"])
+        ambient_event = scene.get("ambient_event")
+        if isinstance(ambient_event, dict):
+            if (
+                not ambient_event.get("instance_id")
+                and isinstance(ambient_event.get("event_id"), str)
+                and type(ambient_event.get("count")) is int
+                and ambient_event["count"] > 0
+            ):
+                history_match = next(
+                    (
+                        item for item in reversed(state["ambient_event_history"])
+                        if item.get("event_id") == ambient_event["event_id"]
+                        and item.get("location_id") == location_id
+                        and item.get("count") == ambient_event["count"]
+                    ),
+                    None,
+                )
+                ambient_event["instance_id"] = (
+                    history_match["instance_id"]
+                    if history_match is not None
+                    else _legacy_ambient_event_instance_id(
+                        state["campaign_seed"],
+                        location_id,
+                        ambient_event["event_id"],
+                        ambient_event["count"],
+                        0,
+                    )
+                )
+            if (
+                ambient_event.get("event_type") == "BLUE"
+                and isinstance(ambient_event.get("instance_id"), str)
+            ):
+                event_instance_id = ambient_event["instance_id"]
+                referent = next(
+                    (
+                        item for item in scene["referents"]
+                        if item.get("event_instance_id") == event_instance_id
+                    ),
+                    None,
+                )
+                if referent is None:
+                    history_match = next(
+                        (
+                            item for item in reversed(state["ambient_event_history"])
+                            if item.get("instance_id") == event_instance_id
+                            and item.get("location_id") == location_id
+                        ),
+                        None,
+                    )
+                    source_turn = (
+                        history_match.get("turn_index")
+                        if history_match is not None
+                        else None
+                    )
+                    referent = next(
+                        (
+                            item for item in scene["referents"]
+                            if item.get("event_instance_id") is None
+                            and (
+                                source_turn is None
+                                or item.get("source_turn") == source_turn
+                            )
+                        ),
+                        None,
+                    )
+                    if referent is not None:
+                        referent["event_instance_id"] = event_instance_id
+                if referent is not None:
+                    ambient_event.setdefault("referent_id", referent.get("id"))
         for referent in scene["referents"]:
             if (
                 not isinstance(referent, dict)
@@ -422,6 +524,13 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
                 or len(referent["aliases"]) > 8
                 or referent.get("lifecycle")
                 not in ("presented", "promoted", "expired")
+                or (
+                    referent.get("event_instance_id") is not None
+                    and (
+                        not isinstance(referent.get("event_instance_id"), str)
+                        or len(referent["event_instance_id"]) > 96
+                    )
+                )
             ):
                 raise ValueError("Campaign scene referent is invalid.")
         opening = scene.get("opening")
@@ -438,11 +547,26 @@ def ensure_scene_state(world_state: dict[str, Any]) -> dict[str, Any]:
         if ambient_event is not None and (
             not isinstance(ambient_event, dict)
             or not isinstance(ambient_event.get("event_id"), str)
+            or not isinstance(ambient_event.get("instance_id"), str)
+            or len(ambient_event["instance_id"]) > 96
             or not isinstance(ambient_event.get("variation_id"), str)
             or ambient_event.get("event_type") not in ("GREEN", "BLUE")
             or not isinstance(ambient_event.get("repeat_group"), str)
             or type(ambient_event.get("count")) is not int
             or ambient_event["count"] < 1
+            or (
+                ambient_event.get("event_type") == "BLUE"
+                and (
+                    not isinstance(ambient_event.get("referent_id"), str)
+                    or not any(
+                        item.get("id") == ambient_event["referent_id"]
+                        and item.get("event_instance_id")
+                        == ambient_event["instance_id"]
+                        for item in scene["referents"]
+                        if isinstance(item, dict)
+                    )
+                )
+            )
         ):
             raise ValueError("Campaign scene event is invalid.")
     if referent_total > MAX_REFERENTS_TOTAL:
@@ -602,6 +726,7 @@ def select_and_record_ambient_event(
     state["ambient_event_counts"][event_id] = count
     record = {
         "event_id": event_id,
+        "instance_id": str(uuid.uuid4()),
         "variation_id": selected["variation_id"],
         "repeat_group": selected["repeat_group"],
         "location_id": location_id[:128],
@@ -612,6 +737,7 @@ def select_and_record_ambient_event(
     history.append(record)
     state["ambient_event_history"] = history[-MAX_AMBIENT_EVENT_HISTORY:]
     selected["count"] = count
+    selected["instance_id"] = record["instance_id"]
     return selected
 
 
@@ -695,10 +821,13 @@ def create_scene_referent(
     description: str,
     aliases: list[str],
     kind: str = "person",
+    event_instance_id: str | None = None,
 ) -> dict[str, Any]:
     scene = ensure_scene_record(world_state, location_id, turn_index)
     for existing in scene["referents"]:
         if existing.get("lifecycle") in ("presented", "promoted"):
+            if event_instance_id and not existing.get("event_instance_id"):
+                existing["event_instance_id"] = event_instance_id
             return existing
     state = ensure_scene_state(world_state)
     number = max(1, state["next_referent_number"])
@@ -715,6 +844,7 @@ def create_scene_referent(
         "expires_after_turn": max(0, turn_index) + 12,
         "lifecycle": "presented",
         "promoted_npc_id": None,
+        "event_instance_id": event_instance_id,
     }
     scene["referents"].append(referent)
     scene["referents"] = scene["referents"][-MAX_REFERENTS_PER_SCENE:]
@@ -770,8 +900,9 @@ def materialize_scene(
         turn_index,
     )
     if event is not None:
-        scene["ambient_event"] = {
+        ambient_event = {
             "event_id": event["event_id"],
+            "instance_id": event["instance_id"],
             "variation_id": event["variation_id"],
             "event_type": event["event_type"],
             "repeat_group": event["repeat_group"],
@@ -779,13 +910,16 @@ def materialize_scene(
         }
         scene["last_beat"] = event["text"][:MAX_BEAT_TEXT]
         if event["event_type"] == "BLUE":
-            create_scene_referent(
+            referent = create_scene_referent(
                 world_state,
                 location_id,
                 turn_index,
                 description=event["text"],
                 aliases=list(event["aliases"]),
+                event_instance_id=event["instance_id"],
             )
+            ambient_event["referent_id"] = referent["id"]
+        scene["ambient_event"] = ambient_event
 
     scene["materialized"] = True
     scene["last_activity_turn"] = max(0, turn_index)
@@ -1017,6 +1151,7 @@ def public_scene_projection(
     referents = [
         {
             "id": ref.get("id"),
+            "event_instance_id": ref.get("event_instance_id"),
             "kind": ref.get("kind"),
             "description": ref.get("description"),
             "source_turn": ref.get("source_turn"),
@@ -1036,6 +1171,18 @@ def public_scene_projection(
         "visit_revision": scene.get("visit_revision", 0),
         "activity_revision": scene.get("activity_revision", 0),
         "last_activity": scene.get("last_beat"),
+        "ambient_event": (
+            {
+                "event_id": scene["ambient_event"].get("event_id"),
+                "instance_id": scene["ambient_event"].get("instance_id"),
+                "variation_id": scene["ambient_event"].get("variation_id"),
+                "event_type": scene["ambient_event"].get("event_type"),
+                "repeat_group": scene["ambient_event"].get("repeat_group"),
+                "count": scene["ambient_event"].get("count"),
+            }
+            if isinstance(scene.get("ambient_event"), dict)
+            else None
+        ),
         "opening": (
             scene.get("opening", {}).get("text")
             if isinstance(scene.get("opening"), dict)

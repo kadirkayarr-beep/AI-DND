@@ -11,6 +11,7 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -18,7 +19,10 @@ from fastapi.responses import JSONResponse
 
 import game
 import living_world
-from api.campaign_journal import update_campaign_journal
+from api.campaign_journal import (
+    append_ambient_event_outcome,
+    update_campaign_journal,
+)
 from api.character_creation import CharacterCreationError
 from api.lore_authority import (
     BindingStatus,
@@ -54,6 +58,9 @@ from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import (
     CharacterCreationOptions,
     CharacterCreationCatalogResponse,
+    AmbientEventActionRequest,
+    AmbientEventCommandResult,
+    AmbientEventResult,
     CampaignCreateRequest,
     CampaignDetailResponse,
     CampaignStartOptionsResponse,
@@ -1132,6 +1139,162 @@ def create_app(
     )
     def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:
         return _quest_command(session_id, quest_id, "cancel")
+
+    @application.post(
+        "/api/game/sessions/{session_id}/ambient-events/"
+        "{event_instance_id}/actions",
+        response_model=AmbientEventCommandResult,
+    )
+    def resolve_ambient_event_action(
+        session_id: str,
+        event_instance_id: UUID,
+        request: AmbientEventActionRequest,
+    ) -> dict[str, Any]:
+        record = get_record(session_id)
+        with record.turn_lock:
+            session = record.game_session
+            event_instance_key = str(event_instance_id)
+            action_id = str(request.action_id)
+
+            def response_for(
+                status: str,
+                reason_code: str | None = None,
+                transition_id: str | None = None,
+                canonical_event_id: str | None = None,
+            ) -> dict[str, Any]:
+                response = AmbientEventCommandResult(
+                    session_id=session_id,
+                    state=serialize_session_state(session, record.journal),
+                    result=AmbientEventResult(
+                        event_instance_id=event_instance_key,
+                        action_id=action_id,
+                        status=status,
+                        reason_code=reason_code,
+                        transition_id=transition_id,
+                        canonical_event_id=canonical_event_id,
+                    ),
+                )
+                return redact_sensitive_values(response.model_dump())
+
+            for event in reversed(record.journal.get("notable_events", [])):
+                prior = event.get("event_result")
+                if (
+                    event.get("event_type") != "ambient_event_outcome"
+                    or not isinstance(prior, dict)
+                    or prior.get("event_instance_id") != event_instance_key
+                ):
+                    continue
+                if (
+                    prior.get("action_id") == action_id
+                    and prior.get("action") != request.action
+                ):
+                    return response_for(
+                        "REJECTED",
+                        "action_id_conflict",
+                        canonical_event_id=event.get("event_id"),
+                    )
+                return response_for(
+                    "ALREADY_APPLIED",
+                    "event_already_resolved",
+                    transition_id=prior.get("transition_id"),
+                    canonical_event_id=event.get("event_id"),
+                )
+
+            if record.campaign_id is None:
+                return response_for("REJECTED", "campaign_persistence_required")
+
+            snapshot = _capture_session(session)
+            journal_snapshot = copy.deepcopy(record.journal)
+            try:
+                transition = session.resolve_ambient_event_action(
+                    event_instance_key,
+                    action_id,
+                    request.action,
+                )
+                status = transition.get("status")
+                transition_id = transition.get("transition_id")
+                if status != "APPLIED":
+                    _restore_session(session, snapshot)
+                    record.journal = journal_snapshot
+                    canonical_event_id = None
+                    if status == "ALREADY_APPLIED" and isinstance(
+                        transition_id, str
+                    ):
+                        canonical_event_id = next(
+                            (
+                                item.get("event_id")
+                                for item in reversed(
+                                    record.journal.get("notable_events", [])
+                                )
+                                if item.get("event_type") == "npc_met"
+                                and item.get("related_npc_id") == transition_id
+                            ),
+                            None,
+                        )
+                    return response_for(
+                        status,
+                        transition.get("reason_code"),
+                        transition_id=transition_id,
+                        canonical_event_id=canonical_event_id,
+                    )
+
+                after_save = session.serialize_game_state()
+                record.journal = update_campaign_journal(
+                    record.journal,
+                    snapshot["save"],
+                    after_save,
+                    {
+                        "action": "interact",
+                        "npc_id": transition_id,
+                        "target_id": transition_id,
+                    },
+                    world_metadata_for_state(
+                        session.world_state,
+                        getattr(session, "world_metadata", None),
+                    ),
+                )
+                record.journal, canonical_event = append_ambient_event_outcome(
+                    record.journal,
+                    after_save["world_state"],
+                    event_instance_id=event_instance_key,
+                    action_id=action_id,
+                    transition_id=transition_id,
+                )
+                response = AmbientEventCommandResult(
+                    session_id=session_id,
+                    state=serialize_session_state(session, record.journal),
+                    result=AmbientEventResult(
+                        event_instance_id=event_instance_key,
+                        action_id=action_id,
+                        status="APPLIED",
+                        reason_code=transition.get("reason_code"),
+                        transition_id=transition_id,
+                        canonical_event_id=canonical_event["event_id"],
+                    ),
+                )
+                manager.save_campaign_locked(record)
+                return redact_sensitive_values(response.model_dump())
+            except Exception as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception as restore_error:
+                    _logger.critical(
+                        "Ambient-event rollback failed (error_type=%s)",
+                        type(restore_error).__name__,
+                    )
+                finally:
+                    record.journal = journal_snapshot
+                _logger.error(
+                    "Ambient-event result could not be persisted (error_type=%s)",
+                    type(error).__name__,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "code": "event_persistence_error",
+                        "message": "The event result could not be saved safely.",
+                    },
+                ) from None
 
     return application
 

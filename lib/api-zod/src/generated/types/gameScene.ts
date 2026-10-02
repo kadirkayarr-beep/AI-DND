@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameSceneAmbientEvent } from './gameSceneAmbientEvent';
 import type { GameSceneFeature } from './gameSceneFeature';
 import type { GameSceneNpc } from './gameSceneNpc';
 import type { GameScenePlayerPosition } from './gameScenePlayerPosition';
@@ -20,6 +21,7 @@ export interface GameScene {
   /** @minimum 0 */
   activity_revision: number;
   last_activity: string | null;
+  ambient_event: GameSceneAmbientEvent | null;
   opening?: string | null;
   player_position: GameScenePlayerPosition;
   /** @maxItems 12 */

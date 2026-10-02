@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { JournalAmbientEventResult } from './journalAmbientEventResult';
 import type { JournalEventEventType } from './journalEventEventType';
 
 export interface JournalEvent {
@@ -35,4 +36,5 @@ export interface JournalEvent {
      * @nullable
      */
   related_item: string | null;
+  event_result?: JournalAmbientEventResult | null;
 }

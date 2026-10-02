@@ -9,6 +9,7 @@ import type { GameSceneReferentLifecycle } from './gameSceneReferentLifecycle';
 
 export interface GameSceneReferent {
   id: string;
+  event_instance_id: string | null;
   kind: string | null;
   description: string;
   source_turn: number | null;

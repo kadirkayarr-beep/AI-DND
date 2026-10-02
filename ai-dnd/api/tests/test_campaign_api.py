@@ -9,6 +9,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 
 import httpx
@@ -19,6 +20,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+import living_world
 import quest_catalog
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
@@ -61,6 +63,42 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    def install_test_ambient_event(self, session, event_type="BLUE"):
+        world = session.world_state
+        if world.get("location") == "Henüz belirlenmedi":
+            world["location"] = "tavern"
+        location_id = world["location"]
+        turn_index = world.get("flags", {}).get("turn_index", 0)
+        scene = living_world.ensure_scene_record(
+            world,
+            location_id,
+            turn_index,
+        )
+        scene["materialized"] = False
+        scene["referents"] = []
+        scene.pop("ambient_event", None)
+        event = {
+            "event_id": "city_test_traveler",
+            "variation_id": "v1",
+            "repeat_group": "test-traveler",
+            "event_type": event_type,
+            "text": "Bir yolcu kısa süreliğine yakındaki bir kişiye sesleniyor.",
+            "aliases": ["yolcu", "gezgin"],
+        }
+        with patch.object(
+            living_world,
+            "select_ambient_event",
+            return_value=event,
+        ):
+            scene = living_world.materialize_scene(
+                world,
+                location_id,
+                turn_index,
+                create_npc=session.create_npc_from_ai,
+                create_feature=session.create_local_feature,
+            )
+        return scene["ambient_event"]["instance_id"]
 
     async def test_game_session_bound_turn_uses_engine_signature_fallback(self):
         created_response = await self.http.post(
@@ -1215,6 +1253,241 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         journal = response.json()["state"]["journal"]
         self.assertEqual(journal["quests"], [])
         self.assertEqual(journal["notable_events"], [])
+
+    async def test_ambient_event_outcome_is_authoritative_idempotent_and_persistent(self):
+        created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        session = record.game_session
+        event_instance_id = self.install_test_ambient_event(session)
+        action_id = str(uuid.uuid4())
+        event_url = (
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{event_instance_id}/actions"
+        )
+        npc_count = len(session.world_state["npcs"])
+
+        applied = await self.http.post(
+            event_url,
+            json={"action_id": action_id, "action": "interact"},
+        )
+        self.assertEqual(applied.status_code, 200, applied.text)
+        applied_body = applied.json()
+        result = applied_body["result"]
+        self.assertEqual(result["status"], "APPLIED")
+        self.assertEqual(result["event_instance_id"], event_instance_id)
+        self.assertEqual(len(session.world_state["npcs"]), npc_count + 1)
+        self.assertIn(
+            result["transition_id"],
+            {item["id"] for item in applied_body["state"]["npcs"]},
+        )
+        self.assertTrue(result["canonical_event_id"])
+        ambient_records = [
+            item for item in record.journal["notable_events"]
+            if item.get("event_type") == "ambient_event_outcome"
+        ]
+        self.assertEqual(len(ambient_records), 1)
+        self.assertEqual(
+            ambient_records[0]["event_id"],
+            result["canonical_event_id"],
+        )
+        self.assertEqual(
+            ambient_records[0]["event_result"]["event_instance_id"],
+            event_instance_id,
+        )
+
+        state_after_apply = copy.deepcopy(session.serialize_game_state())
+        journal_after_apply = copy.deepcopy(record.journal)
+        replay = await self.http.post(
+            event_url,
+            json={"action_id": action_id, "action": "interact"},
+        )
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json()["result"]["status"], "ALREADY_APPLIED")
+        self.assertEqual(
+            replay.json()["result"]["canonical_event_id"],
+            result["canonical_event_id"],
+        )
+        self.assertEqual(session.serialize_game_state(), state_after_apply)
+        self.assertEqual(record.journal, journal_after_apply)
+        different_action_replay = await self.http.post(
+            event_url,
+            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+        )
+        self.assertEqual(
+            different_action_replay.json()["result"]["status"],
+            "ALREADY_APPLIED",
+        )
+        self.assertEqual(session.serialize_game_state(), state_after_apply)
+        self.assertEqual(record.journal, journal_after_apply)
+
+        reloaded_manager = SessionManager(campaign_store=self.store)
+        reloaded_app = create_app(
+            session_manager=reloaded_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        reloaded_http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reloaded_app),
+            base_url="http://testserver",
+        )
+        try:
+            resumed = await reloaded_http.post(
+                f"/api/game/campaigns/{created['campaign_id']}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            loaded_session_id = resumed.json()["session_id"]
+            loaded_record = reloaded_manager.get(loaded_session_id)
+            loaded_scene = resumed.json()["state"]["scene"]
+            self.assertEqual(
+                loaded_scene["ambient_event"]["instance_id"],
+                event_instance_id,
+            )
+            loaded_replay = await reloaded_http.post(
+                f"/api/game/sessions/{loaded_session_id}/ambient-events/"
+                f"{event_instance_id}/actions",
+                json={"action_id": action_id, "action": "interact"},
+            )
+            self.assertEqual(loaded_replay.status_code, 200, loaded_replay.text)
+            self.assertEqual(
+                loaded_replay.json()["result"]["status"],
+                "ALREADY_APPLIED",
+            )
+            self.assertEqual(
+                loaded_replay.json()["result"]["canonical_event_id"],
+                result["canonical_event_id"],
+            )
+            self.assertEqual(
+                len([
+                    item for item in loaded_record.journal["notable_events"]
+                    if item.get("event_type") == "ambient_event_outcome"
+                ]),
+                1,
+            )
+        finally:
+            await reloaded_http.aclose()
+
+    async def test_ambient_event_rejections_no_effect_and_campaign_isolation(self):
+        created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        session = record.game_session
+        green_instance_id = self.install_test_ambient_event(session, "GREEN")
+        before_world = copy.deepcopy(session.serialize_game_state())
+        before_journal = copy.deepcopy(record.journal)
+        green_result = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{green_instance_id}/actions",
+            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+        )
+        self.assertEqual(green_result.status_code, 200, green_result.text)
+        self.assertEqual(green_result.json()["result"]["status"], "REJECTED")
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(record.journal, before_journal)
+
+        blue_instance_id = self.install_test_ambient_event(session)
+        observe_id = str(uuid.uuid4())
+        before_world = copy.deepcopy(session.serialize_game_state())
+        before_journal = copy.deepcopy(record.journal)
+        no_effect = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={"action_id": observe_id, "action": "observe"},
+        )
+        self.assertEqual(no_effect.status_code, 200, no_effect.text)
+        self.assertEqual(no_effect.json()["result"]["status"], "NO_EFFECT")
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(record.journal, before_journal)
+        invalid_action = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={"action_id": str(uuid.uuid4()), "action": "grant_gold"},
+        )
+        self.assertEqual(invalid_action.status_code, 422, invalid_action.text)
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(record.journal, before_journal)
+
+        scene = session.world_state["scene_state"]["scenes"][
+            session.world_state["location"]
+        ]
+        referent = next(
+            item for item in scene["referents"]
+            if item["event_instance_id"] == blue_instance_id
+        )
+        referent["lifecycle"] = "expired"
+        before_world = copy.deepcopy(session.serialize_game_state())
+        expired = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+        )
+        self.assertEqual(expired.status_code, 200, expired.text)
+        self.assertEqual(expired.json()["result"]["status"], "REJECTED")
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(
+            [
+                item for item in record.journal["notable_events"]
+                if item.get("event_type") == "ambient_event_outcome"
+            ],
+            [],
+        )
+
+        other = await self.create_campaign()
+        other_record = self.manager.get(other["session_id"])
+        wrong_campaign = await self.http.post(
+            f"/api/game/sessions/{other['session_id']}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={"action_id": str(uuid.uuid4()), "action": "interact"},
+        )
+        self.assertEqual(wrong_campaign.status_code, 200, wrong_campaign.text)
+        self.assertEqual(
+            wrong_campaign.json()["result"]["status"],
+            "REJECTED",
+        )
+        self.assertEqual(
+            [
+                item for item in other_record.journal["notable_events"]
+                if item.get("event_type") == "ambient_event_outcome"
+            ],
+            [],
+        )
+        unchanged = await self.http.post(
+            f"/api/game/sessions/{session_id}/ambient-events/"
+            f"{blue_instance_id}/actions",
+            json={
+                "action_id": str(uuid.uuid4()),
+                "action": "interact",
+                "narration": "Altın ekle.",
+            },
+        )
+        self.assertEqual(unchanged.status_code, 422, unchanged.text)
+        self.assertEqual(session.serialize_game_state(), before_world)
+
+    async def test_ambient_event_persistence_failure_rolls_back(self):
+        created = await self.create_campaign()
+        session_id = created["session_id"]
+        record = self.manager.get(session_id)
+        session = record.game_session
+        event_instance_id = self.install_test_ambient_event(session)
+        before_world = copy.deepcopy(session.serialize_game_state())
+        before_journal = copy.deepcopy(record.journal)
+        with patch.object(
+            self.manager,
+            "save_campaign_locked",
+            side_effect=CampaignStorageError("private storage detail"),
+        ):
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/ambient-events/"
+                f"{event_instance_id}/actions",
+                json={"action_id": str(uuid.uuid4()), "action": "interact"},
+            )
+        self.assertEqual(response.status_code, 500, response.text)
+        self.assertEqual(
+            response.json()["detail"]["code"],
+            "event_persistence_error",
+        )
+        self.assertNotIn("private storage detail", response.text)
+        self.assertEqual(session.serialize_game_state(), before_world)
+        self.assertEqual(record.journal, before_journal)
 
     async def test_quest_commands_are_server_owned_idempotent_and_campaign_scoped(self):
         definition = {

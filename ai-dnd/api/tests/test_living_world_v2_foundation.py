@@ -117,6 +117,7 @@ class LivingWorldV2FoundationTests(unittest.TestCase):
         self.assertIsNotNone(first)
         self.assertIsNotNone(second)
         self.assertNotEqual(first["event_id"], second["event_id"])
+        self.assertNotEqual(first["instance_id"], second["instance_id"])
         self.assertNotEqual(first["repeat_group"], second["repeat_group"])
         self.assertEqual(
             session.world_state["scene_state"]["ambient_event_counts"][
@@ -155,6 +156,15 @@ class LivingWorldV2FoundationTests(unittest.TestCase):
             create_feature=create_feature,
         )
         event = copy.deepcopy(scene["ambient_event"])
+        self.assertTrue(event["instance_id"])
+        projection = living_world.public_scene_projection(
+            session.world_state,
+            1,
+        )
+        self.assertEqual(
+            projection["ambient_event"]["instance_id"],
+            event["instance_id"],
+        )
         history_length = len(
             session.world_state["scene_state"]["ambient_event_history"]
         )
@@ -171,6 +181,43 @@ class LivingWorldV2FoundationTests(unittest.TestCase):
             len(resumed_world["scene_state"]["ambient_event_history"]),
             history_length,
         )
+
+    def test_legacy_scene_event_gets_a_stable_instance_identity(self):
+        session = self.make_session()
+        living_world.set_ambient_context(
+            session.world_state,
+            session.world_metadata,
+            session.character,
+            "campaign-legacy-event-test",
+        )
+        scene = living_world.materialize_scene(
+            session.world_state,
+            "verified-city",
+            3,
+            create_npc=lambda _data: None,
+            create_feature=lambda _data: None,
+        )
+        legacy_world = copy.deepcopy(session.world_state)
+        legacy_scene = legacy_world["scene_state"]["scenes"]["verified-city"]
+        legacy_scene["ambient_event"].pop("instance_id")
+        legacy_scene["ambient_event"].pop("referent_id", None)
+        for history_item in legacy_world["scene_state"]["ambient_event_history"]:
+            history_item.pop("instance_id", None)
+        for referent in legacy_scene["referents"]:
+            referent.pop("event_instance_id", None)
+
+        living_world.public_scene_projection(legacy_world, 3)
+        instance_id = legacy_scene["ambient_event"]["instance_id"]
+        reloaded_world = copy.deepcopy(legacy_world)
+        living_world.public_scene_projection(reloaded_world, 3)
+        self.assertEqual(
+            reloaded_world["scene_state"]["scenes"]["verified-city"][
+                "ambient_event"
+            ]["instance_id"],
+            instance_id,
+        )
+        if legacy_scene["ambient_event"]["event_type"] == "BLUE":
+            self.assertTrue(legacy_scene["ambient_event"]["referent_id"])
 
 
 if __name__ == "__main__":

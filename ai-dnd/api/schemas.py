@@ -1,6 +1,7 @@
 """Validated HTTP request and response models for the AI-DND API."""
 
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -198,6 +199,43 @@ class QuestCommandResult(BaseModel):
     state: dict[str, Any]
     quest: QuestState
     outcome: QuestOutcome | None
+
+
+class AmbientEventActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: str = Field(min_length=36, max_length=36)
+    action: Literal["interact", "observe"]
+
+    @field_validator("action_id")
+    @classmethod
+    def action_id_must_be_uuid4(cls, value: str) -> str:
+        try:
+            parsed = UUID(value)
+        except (ValueError, TypeError, AttributeError):
+            raise ValueError("Action ID must be a UUIDv4.") from None
+        if parsed.version != 4 or str(parsed) != value.lower():
+            raise ValueError("Action ID must be a UUIDv4.")
+        return str(parsed)
+
+
+class AmbientEventResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    event_instance_id: str = Field(min_length=1, max_length=96)
+    action_id: str = Field(min_length=36, max_length=36)
+    status: Literal["APPLIED", "REJECTED", "NO_EFFECT", "ALREADY_APPLIED"]
+    reason_code: str | None = Field(default=None, max_length=64)
+    transition_id: str | None = Field(default=None, max_length=160)
+    canonical_event_id: str | None = Field(default=None, max_length=36)
+
+
+class AmbientEventCommandResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    state: dict[str, Any]
+    result: AmbientEventResult
 
 
 class TurnResponse(BaseModel):

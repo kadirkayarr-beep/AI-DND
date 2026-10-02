@@ -29,6 +29,7 @@ _EVENT_TYPES = {
     "player_unconscious",
     "item_gained",
     "item_lost",
+    "ambient_event_outcome",
 }
 _QUEST_STATUSES = {"active", "completed", "failed", "cancelled"}
 _OBJECTIVE_STATUSES = {"active", "completed", "failed", "cancelled"}
@@ -186,21 +187,28 @@ def validate_campaign_journal(
         npc_ids.add(npc_id)
 
     event_ids: set[str] = set()
+    ambient_instance_ids: set[str] = set()
     for entry in events:
-        if (
-            not isinstance(entry, dict)
-            or set(entry) != {
-                "event_id",
-                "event_type",
-                "created_at",
-                "turn_index",
-                "summary",
-                "location_id",
-                "location_name",
-                "related_npc_id",
-                "related_item",
-            }
-        ):
+        if not isinstance(entry, dict):
+            invalid()
+        event_fields = {
+            "event_id",
+            "event_type",
+            "created_at",
+            "turn_index",
+            "summary",
+            "location_id",
+            "location_name",
+            "related_npc_id",
+            "related_item",
+        }
+        has_ambient_result = entry.get("event_type") == "ambient_event_outcome"
+        expected_event_fields = (
+            event_fields | {"event_result"}
+            if has_ambient_result
+            else event_fields
+        )
+        if set(entry) != expected_event_fields:
             invalid()
         event_id = entry.get("event_id")
         if (
@@ -226,6 +234,29 @@ def validate_campaign_journal(
             )
         ):
             invalid()
+        if has_ambient_result:
+            result = entry.get("event_result")
+            if (
+                not isinstance(result, dict)
+                or set(result) != {
+                    "event_instance_id",
+                    "action_id",
+                    "action",
+                    "status",
+                    "reason_code",
+                    "transition_id",
+                }
+                or not _valid_text(result.get("event_instance_id"), 96)
+                or not _valid_uuid4(result.get("action_id"))
+                or result.get("action") != "interact"
+                or result.get("status") != "APPLIED"
+                or result.get("reason_code") != "referent_promoted"
+                or not _valid_text(result.get("transition_id"), 160)
+                or result.get("transition_id") != entry.get("related_npc_id")
+                or result.get("event_instance_id") in ambient_instance_ids
+            ):
+                invalid()
+            ambient_instance_ids.add(result["event_instance_id"])
         event_ids.add(event_id)
 
     quest_ids: set[str] = set()
@@ -320,8 +351,9 @@ def _add_event(
     location: dict[str, str] | None = None,
     related_npc_id: str | None = None,
     related_item: str | None = None,
-) -> None:
-    journal["notable_events"].append({
+    event_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    event = {
         "event_id": str(uuid.uuid4()),
         "event_type": event_type,
         "created_at": created_at,
@@ -331,9 +363,66 @@ def _add_event(
         "location_name": location["name"] if location else None,
         "related_npc_id": related_npc_id,
         "related_item": related_item,
-    })
+    }
+    if event_result is not None:
+        event["event_result"] = deepcopy(event_result)
+    journal["notable_events"].append(event)
     if len(journal["notable_events"]) > MAX_EVENTS:
         del journal["notable_events"][:-MAX_EVENTS]
+    return event
+
+
+def append_ambient_event_outcome(
+    journal_value: dict[str, Any],
+    world_state: dict[str, Any],
+    *,
+    event_instance_id: str,
+    action_id: str,
+    transition_id: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Record one engine-confirmed ambient outcome in the existing journal."""
+    validate_campaign_journal(journal_value)
+    journal = deepcopy(journal_value)
+    existing = next(
+        (
+            event for event in journal["notable_events"]
+            if event.get("event_type") == "ambient_event_outcome"
+            and event.get("event_result", {}).get("event_instance_id")
+            == event_instance_id
+        ),
+        None,
+    )
+    if existing is not None:
+        raise ValueError("Ambient event already has a canonical result.")
+
+    npc = next(
+        (
+            item for item in world_state.get("npcs", [])
+            if isinstance(item, dict) and item.get("id") == transition_id
+        ),
+        None,
+    )
+    location = _location_record(world_state, world_state.get("location"))
+    npc_name = npc.get("name", "Yerel kişi") if npc else "Yerel kişi"
+    event = _add_event(
+        journal,
+        event_type="ambient_event_outcome",
+        summary=f"{str(npc_name)[:150]} kampanyada kalıcı bir kişi olarak kaydedildi.",
+        created_at=_now(),
+        turn_index=_turn_index(world_state),
+        location=location,
+        related_npc_id=transition_id,
+        event_result={
+            "event_instance_id": event_instance_id,
+            "action_id": action_id,
+            "action": "interact",
+            "status": "APPLIED",
+            "reason_code": "referent_promoted",
+            "transition_id": transition_id,
+        },
+    )
+    validate_campaign_journal(journal)
+    return journal, deepcopy(event)
 
 
 def _record_location(

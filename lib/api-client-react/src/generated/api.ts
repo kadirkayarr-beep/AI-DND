@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AmbientEventActionInput,
+  AmbientEventCommandResult,
   ApiErrorResponse,
   CampaignCreateInput,
   CampaignCreateValidationErrorResponse,
@@ -532,6 +534,97 @@ export const useCancelGameQuest = <TError = ErrorType<ApiErrorResponse>,
         TContext
       > => {
       return useMutation(getCancelGameQuestMutationOptions(options));
+    }
+
+export const getResolveAmbientEventActionUrl = (sessionId: string,
+    eventInstanceId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/ambient-events/${eventInstanceId}/actions`
+}
+
+/**
+ * @summary Resolve one validated action against an active ambient event
+ */
+export const resolveAmbientEventAction = async (sessionId: string,
+    eventInstanceId: string,
+    ambientEventActionInput: AmbientEventActionInput, options?: Parameters<typeof customFetch>[1]): Promise<AmbientEventCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AmbientEventCommandResult>(getResolveAmbientEventActionUrl(sessionId,eventInstanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(ambientEventActionInput)
+  }
+);}
+
+
+
+
+
+export const getResolveAmbientEventActionMutationKey = () => ['resolveAmbientEventAction'] as const;
+
+export const getResolveAmbientEventActionMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext> => {
+
+const mutationKey = getResolveAmbientEventActionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveAmbientEventAction>>, ResolveAmbientEventActionMutationVariables> = (props) => {
+          const {sessionId,eventInstanceId,data} = props ?? {};
+
+          return  resolveAmbientEventAction(sessionId,eventInstanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveAmbientEventActionMutationResult = NonNullable<Awaited<ReturnType<typeof resolveAmbientEventAction>>>
+    export type ResolveAmbientEventActionMutationBody = BodyType<AmbientEventActionInput>
+    export type ResolveAmbientEventActionMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveAmbientEventActionMutationVariables = {sessionId: string;eventInstanceId: string;data: BodyType<AmbientEventActionInput>}
+
+    /**
+ * @summary Resolve one validated action against an active ambient event
+ */
+export const useResolveAmbientEventAction = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveAmbientEventAction>>,
+        TError,
+        ResolveAmbientEventActionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveAmbientEventActionMutationOptions(options));
     }
 
 export const getGetCampaignStartOptionsUrl = () => {

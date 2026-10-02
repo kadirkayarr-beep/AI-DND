@@ -29,6 +29,7 @@ export const createGameSessionResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createGameSessionResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const createGameSessionResponseStateSceneOneNpcsMax = 12;
 
 export const createGameSessionResponseStateSceneOneFeaturesMax = 24;
@@ -76,6 +77,11 @@ export const createGameSessionResponseStateJournalNotableEventsItemLocationNameM
 export const createGameSessionResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const createGameSessionResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const createGameSessionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const createGameSessionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createGameSessionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const createGameSessionResponseStateJournalNotableEventsMax = 200;
 
@@ -150,6 +156,14 @@ export const CreateGameSessionResponse = zod.object({
   "visit_revision": zod.number().int().min(createGameSessionResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createGameSessionResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -169,6 +183,7 @@ export const CreateGameSessionResponse = zod.object({
 })).max(createGameSessionResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -206,14 +221,22 @@ export const CreateGameSessionResponse = zod.object({
 })).max(createGameSessionResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(createGameSessionResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(createGameSessionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(createGameSessionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(createGameSessionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(createGameSessionResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -367,6 +390,7 @@ export const getGameSessionStateResponseSceneOneVisitRevisionMin = 0;
 
 export const getGameSessionStateResponseSceneOneActivityRevisionMin = 0;
 
+
 export const getGameSessionStateResponseSceneOneNpcsMax = 12;
 
 export const getGameSessionStateResponseSceneOneFeaturesMax = 24;
@@ -414,6 +438,11 @@ export const getGameSessionStateResponseJournalNotableEventsItemLocationNameMax 
 export const getGameSessionStateResponseJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const getGameSessionStateResponseJournalNotableEventsItemRelatedItemMax = 160;
+
+export const getGameSessionStateResponseJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const getGameSessionStateResponseJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getGameSessionStateResponseJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const getGameSessionStateResponseJournalNotableEventsMax = 200;
 
@@ -486,6 +515,14 @@ export const GetGameSessionStateResponse = zod.object({
   "visit_revision": zod.number().int().min(getGameSessionStateResponseSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getGameSessionStateResponseSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -505,6 +542,7 @@ export const GetGameSessionStateResponse = zod.object({
 })).max(getGameSessionStateResponseSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -542,14 +580,22 @@ export const GetGameSessionStateResponse = zod.object({
 })).max(getGameSessionStateResponseJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(getGameSessionStateResponseJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(getGameSessionStateResponseJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(getGameSessionStateResponseJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(getGameSessionStateResponseJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(getGameSessionStateResponseJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -713,6 +759,7 @@ export const playGameTurnResponseStateSceneOneVisitRevisionMin = 0;
 
 export const playGameTurnResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const playGameTurnResponseStateSceneOneNpcsMax = 12;
 
 export const playGameTurnResponseStateSceneOneFeaturesMax = 24;
@@ -760,6 +807,11 @@ export const playGameTurnResponseStateJournalNotableEventsItemLocationNameMax = 
 export const playGameTurnResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const playGameTurnResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const playGameTurnResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const playGameTurnResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playGameTurnResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const playGameTurnResponseStateJournalNotableEventsMax = 200;
 
@@ -856,6 +908,14 @@ export const PlayGameTurnResponse = zod.object({
   "visit_revision": zod.number().int().min(playGameTurnResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(playGameTurnResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -875,6 +935,7 @@ export const PlayGameTurnResponse = zod.object({
 })).max(playGameTurnResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -912,14 +973,22 @@ export const PlayGameTurnResponse = zod.object({
 })).max(playGameTurnResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(playGameTurnResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(playGameTurnResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(playGameTurnResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(playGameTurnResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(playGameTurnResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -1239,6 +1308,7 @@ export const acceptGameQuestResponseStateSceneOneVisitRevisionMin = 0;
 
 export const acceptGameQuestResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const acceptGameQuestResponseStateSceneOneNpcsMax = 12;
 
 export const acceptGameQuestResponseStateSceneOneFeaturesMax = 24;
@@ -1286,6 +1356,11 @@ export const acceptGameQuestResponseStateJournalNotableEventsItemLocationNameMax
 export const acceptGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const acceptGameQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const acceptGameQuestResponseStateJournalNotableEventsMax = 200;
 
@@ -1386,6 +1461,14 @@ export const AcceptGameQuestResponse = zod.object({
   "visit_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(acceptGameQuestResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -1405,6 +1488,7 @@ export const AcceptGameQuestResponse = zod.object({
 })).max(acceptGameQuestResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -1442,14 +1526,22 @@ export const AcceptGameQuestResponse = zod.object({
 })).max(acceptGameQuestResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(acceptGameQuestResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(acceptGameQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(acceptGameQuestResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -1630,6 +1722,7 @@ export const cancelGameQuestResponseStateSceneOneVisitRevisionMin = 0;
 
 export const cancelGameQuestResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const cancelGameQuestResponseStateSceneOneNpcsMax = 12;
 
 export const cancelGameQuestResponseStateSceneOneFeaturesMax = 24;
@@ -1677,6 +1770,11 @@ export const cancelGameQuestResponseStateJournalNotableEventsItemLocationNameMax
 export const cancelGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const cancelGameQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const cancelGameQuestResponseStateJournalNotableEventsMax = 200;
 
@@ -1777,6 +1875,14 @@ export const CancelGameQuestResponse = zod.object({
   "visit_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(cancelGameQuestResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -1796,6 +1902,7 @@ export const CancelGameQuestResponse = zod.object({
 })).max(cancelGameQuestResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -1833,14 +1940,22 @@ export const CancelGameQuestResponse = zod.object({
 })).max(cancelGameQuestResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(cancelGameQuestResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(cancelGameQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(cancelGameQuestResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -2006,6 +2121,395 @@ export const CancelGameQuestResponse = zod.object({
 
 
 /**
+ * @summary Resolve one validated action against an active ambient event
+ */
+export const resolveAmbientEventActionPathEventInstanceIdMax = 96;
+
+
+
+export const ResolveAmbientEventActionParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "event_instance_id": zod.coerce.string().uuid().max(resolveAmbientEventActionPathEventInstanceIdMax)
+})
+
+export const resolveAmbientEventActionBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
+export const ResolveAmbientEventActionBody = zod.object({
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionBodyActionIdRegExp),
+  "action": zod.enum(['interact', 'observe'])
+})
+
+export const resolveAmbientEventActionResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resolveAmbientEventActionResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateSceneOneNpcsMax = 12;
+
+export const resolveAmbientEventActionResponseStateSceneOneFeaturesMax = 24;
+
+export const resolveAmbientEventActionResponseStateSceneOneReferentsMax = 6;
+
+export const resolveAmbientEventActionResponseStateWorldEnvironmentDefault = `unknown`;
+export const resolveAmbientEventActionResponseStateWorldTimeOfDayDefault = `day`;
+export const resolveAmbientEventActionResponseStateWorldWeatherDefault = `clear`;
+export const resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalKnownNpcsMax = 500;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalNotableEventsMax = 200;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsItemTitleMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const resolveAmbientEventActionResponseStateJournalQuestsMax = 100;
+
+export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
+
+export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveAmbientEventActionResponseStateTurnIndexMin = 0;
+
+export const resolveAmbientEventActionResponseStateQuestsItemQuestIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestsItemTitleMax = 160;
+
+export const resolveAmbientEventActionResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resolveAmbientEventActionResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemTitleMax = 160;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveAmbientEventActionResponseResultEventInstanceIdMax = 96;
+
+export const resolveAmbientEventActionResponseResultActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveAmbientEventActionResponseResultReasonCodeMax = 64;
+
+export const resolveAmbientEventActionResponseResultTransitionIdMax = 160;
+
+
+
+export const ResolveAmbientEventActionResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resolveAmbientEventActionResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resolveAmbientEventActionResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resolveAmbientEventActionResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resolveAmbientEventActionResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resolveAmbientEventActionResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveAmbientEventActionResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveAmbientEventActionResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(resolveAmbientEventActionResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(resolveAmbientEventActionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(resolveAmbientEventActionResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(resolveAmbientEventActionResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(resolveAmbientEventActionResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(resolveAmbientEventActionResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(resolveAmbientEventActionResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(resolveAmbientEventActionResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(resolveAmbientEventActionResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(resolveAmbientEventActionResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resolveAmbientEventActionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(resolveAmbientEventActionResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(resolveAmbientEventActionResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(resolveAmbientEventActionResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resolveAmbientEventActionResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resolveAmbientEventActionResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resolveAmbientEventActionResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resolveAmbientEventActionResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "turn_index": zod.number().int().min(resolveAmbientEventActionResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resolveAmbientEventActionResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+}))
+}).describe('Public state projection produced by the API serializers.'),
+  "result": zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionResponseResultActionIdRegExp),
+  "status": zod.enum(['APPLIED', 'REJECTED', 'NO_EFFECT', 'ALREADY_APPLIED']),
+  "reason_code": zod.string().max(resolveAmbientEventActionResponseResultReasonCodeMax).nullable(),
+  "transition_id": zod.string().max(resolveAmbientEventActionResponseResultTransitionIdMax).nullable(),
+  "canonical_event_id": zod.string().uuid().nullable()
+})
+})
+
+
+/**
  * @summary List campaign starts from installed verified setting packs
  */
 export const GetCampaignStartOptionsResponse = zod.object({
@@ -2155,6 +2659,7 @@ export const createCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const createCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const createCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -2202,6 +2707,11 @@ export const createCampaignResponseStateJournalNotableEventsItemLocationNameMax 
 export const createCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const createCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const createCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const createCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const createCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -2281,6 +2791,14 @@ export const CreateCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(createCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -2300,6 +2818,7 @@ export const CreateCampaignResponse = zod.object({
 })).max(createCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -2337,14 +2856,22 @@ export const CreateCampaignResponse = zod.object({
 })).max(createCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(createCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(createCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(createCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(createCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(createCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(createCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(createCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(createCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(createCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -2575,6 +3102,7 @@ export const getCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const getCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const getCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const getCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -2622,6 +3150,11 @@ export const getCampaignResponseStateJournalNotableEventsItemLocationNameMax = 1
 export const getCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const getCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const getCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const getCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const getCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -2711,6 +3244,14 @@ export const GetCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(getCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -2730,6 +3271,7 @@ export const GetCampaignResponse = zod.object({
 })).max(getCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -2767,14 +3309,22 @@ export const GetCampaignResponse = zod.object({
 })).max(getCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(getCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(getCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(getCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(getCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(getCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(getCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(getCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(getCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(getCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(getCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(getCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -3005,6 +3555,7 @@ export const resumeCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const resumeCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const resumeCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const resumeCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -3052,6 +3603,11 @@ export const resumeCampaignResponseStateJournalNotableEventsItemLocationNameMax 
 export const resumeCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const resumeCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resumeCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resumeCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resumeCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const resumeCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -3131,6 +3687,14 @@ export const ResumeCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(resumeCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -3150,6 +3714,7 @@ export const ResumeCampaignResponse = zod.object({
 })).max(resumeCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -3187,14 +3752,22 @@ export const ResumeCampaignResponse = zod.object({
 })).max(resumeCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(resumeCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resumeCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resumeCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resumeCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(resumeCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -3524,6 +4097,7 @@ export const createLegacySessionResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createLegacySessionResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const createLegacySessionResponseStateSceneOneNpcsMax = 12;
 
 export const createLegacySessionResponseStateSceneOneFeaturesMax = 24;
@@ -3571,6 +4145,11 @@ export const createLegacySessionResponseStateJournalNotableEventsItemLocationNam
 export const createLegacySessionResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const createLegacySessionResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const createLegacySessionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const createLegacySessionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createLegacySessionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const createLegacySessionResponseStateJournalNotableEventsMax = 200;
 
@@ -3645,6 +4224,14 @@ export const CreateLegacySessionResponse = zod.object({
   "visit_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createLegacySessionResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -3664,6 +4251,7 @@ export const CreateLegacySessionResponse = zod.object({
 })).max(createLegacySessionResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -3701,14 +4289,22 @@ export const CreateLegacySessionResponse = zod.object({
 })).max(createLegacySessionResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(createLegacySessionResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(createLegacySessionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(createLegacySessionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(createLegacySessionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(createLegacySessionResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -3863,6 +4459,7 @@ export const getLegacySessionStateResponseSceneOneVisitRevisionMin = 0;
 
 export const getLegacySessionStateResponseSceneOneActivityRevisionMin = 0;
 
+
 export const getLegacySessionStateResponseSceneOneNpcsMax = 12;
 
 export const getLegacySessionStateResponseSceneOneFeaturesMax = 24;
@@ -3910,6 +4507,11 @@ export const getLegacySessionStateResponseJournalNotableEventsItemLocationNameMa
 export const getLegacySessionStateResponseJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const getLegacySessionStateResponseJournalNotableEventsItemRelatedItemMax = 160;
+
+export const getLegacySessionStateResponseJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const getLegacySessionStateResponseJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getLegacySessionStateResponseJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const getLegacySessionStateResponseJournalNotableEventsMax = 200;
 
@@ -3982,6 +4584,14 @@ export const GetLegacySessionStateResponse = zod.object({
   "visit_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getLegacySessionStateResponseSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -4001,6 +4611,7 @@ export const GetLegacySessionStateResponse = zod.object({
 })).max(getLegacySessionStateResponseSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -4038,14 +4649,22 @@ export const GetLegacySessionStateResponse = zod.object({
 })).max(getLegacySessionStateResponseJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(getLegacySessionStateResponseJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(getLegacySessionStateResponseJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(getLegacySessionStateResponseJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(getLegacySessionStateResponseJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(getLegacySessionStateResponseJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -4210,6 +4829,7 @@ export const playLegacyTurnResponseStateSceneOneVisitRevisionMin = 0;
 
 export const playLegacyTurnResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const playLegacyTurnResponseStateSceneOneNpcsMax = 12;
 
 export const playLegacyTurnResponseStateSceneOneFeaturesMax = 24;
@@ -4257,6 +4877,11 @@ export const playLegacyTurnResponseStateJournalNotableEventsItemLocationNameMax 
 export const playLegacyTurnResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const playLegacyTurnResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const playLegacyTurnResponseStateJournalNotableEventsMax = 200;
 
@@ -4353,6 +4978,14 @@ export const PlayLegacyTurnResponse = zod.object({
   "visit_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(playLegacyTurnResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -4372,6 +5005,7 @@ export const PlayLegacyTurnResponse = zod.object({
 })).max(playLegacyTurnResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -4409,14 +5043,22 @@ export const PlayLegacyTurnResponse = zod.object({
 })).max(playLegacyTurnResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(playLegacyTurnResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(playLegacyTurnResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(playLegacyTurnResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -4810,6 +5452,7 @@ export const createLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const createLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const createLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -4857,6 +5500,11 @@ export const createLegacyCampaignResponseStateJournalNotableEventsItemLocationNa
 export const createLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const createLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const createLegacyCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -4936,6 +5584,14 @@ export const CreateLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(createLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -4955,6 +5611,7 @@ export const CreateLegacyCampaignResponse = zod.object({
 })).max(createLegacyCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -4992,14 +5649,22 @@ export const CreateLegacyCampaignResponse = zod.object({
 })).max(createLegacyCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(createLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(createLegacyCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -5231,6 +5896,7 @@ export const getLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const getLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const getLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const getLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -5278,6 +5944,11 @@ export const getLegacyCampaignResponseStateJournalNotableEventsItemLocationNameM
 export const getLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const getLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const getLegacyCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -5367,6 +6038,14 @@ export const GetLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(getLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -5386,6 +6065,7 @@ export const GetLegacyCampaignResponse = zod.object({
 })).max(getLegacyCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -5423,14 +6103,22 @@ export const GetLegacyCampaignResponse = zod.object({
 })).max(getLegacyCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(getLegacyCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(getLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(getLegacyCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),
@@ -5662,6 +6350,7 @@ export const resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
 
+
 export const resumeLegacyCampaignResponseStateSceneOneNpcsMax = 12;
 
 export const resumeLegacyCampaignResponseStateSceneOneFeaturesMax = 24;
@@ -5709,6 +6398,11 @@ export const resumeLegacyCampaignResponseStateJournalNotableEventsItemLocationNa
 export const resumeLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
 
 export const resumeLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
 
 export const resumeLegacyCampaignResponseStateJournalNotableEventsMax = 200;
 
@@ -5788,6 +6482,14 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "visit_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin),
   "activity_revision": zod.number().int().min(resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin),
   "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
   "opening": zod.union([zod.string(),zod.null()]).optional(),
   "player_position": zod.object({
   "location_id": zod.string(),
@@ -5807,6 +6509,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
 })).max(resumeLegacyCampaignResponseStateSceneOneFeaturesMax),
   "referents": zod.array(zod.object({
   "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
   "kind": zod.union([zod.string(),zod.null()]),
   "description": zod.string(),
   "source_turn": zod.union([zod.number().int(),zod.null()]),
@@ -5844,14 +6547,22 @@ export const ResumeLegacyCampaignResponse = zod.object({
 })).max(resumeLegacyCampaignResponseStateJournalKnownNpcsMax),
   "notable_events": zod.array(zod.object({
   "event_id": zod.string().uuid(),
-  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost']),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
   "created_at": zod.coerce.date(),
   "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateJournalNotableEventsItemTurnIndexMin),
   "summary": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemSummaryMax),
   "location_id": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
   "location_name": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
   "related_npc_id": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
-  "related_item": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable()
+  "related_item": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resumeLegacyCampaignResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
 })).max(resumeLegacyCampaignResponseStateJournalNotableEventsMax),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().uuid(),

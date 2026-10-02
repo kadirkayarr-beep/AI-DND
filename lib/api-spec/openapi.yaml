@@ -141,6 +141,34 @@ paths:
         "404": {$ref: "#/components/responses/ApiError"}
         "500": {$ref: "#/components/responses/ApiError"}
         "503": {$ref: "#/components/responses/ApiError"}
+  /game/sessions/{session_id}/ambient-events/{event_instance_id}/actions:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema: {type: string, format: uuid}
+      - in: path
+        name: event_instance_id
+        required: true
+        schema: {type: string, format: uuid, maxLength: 96}
+    post:
+      operationId: resolveAmbientEventAction
+      tags: [game]
+      summary: Resolve one validated action against an active ambient event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AmbientEventActionInput"}
+      responses:
+        "200":
+          description: Engine-confirmed event result and persisted campaign state
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AmbientEventCommandResult"}
+        "404": {$ref: "#/components/responses/ApiError"}
+        "422": {$ref: "#/components/responses/RequestValidationError"}
+        "500": {$ref: "#/components/responses/ApiError"}
   /game/campaign-start-options:
     get:
       operationId: getCampaignStartOptions
@@ -703,6 +731,57 @@ components:
             - $ref: "#/components/schemas/QuestOutcome"
             - type: "null"
       required: [session_id, state, quest, outcome]
+    AmbientEventActionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        action_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        action:
+          type: string
+          enum: [interact, observe]
+      required: [action_id, action]
+    AmbientEventResult:
+      type: object
+      additionalProperties: false
+      properties:
+        event_instance_id:
+          type: string
+          format: uuid
+          maxLength: 96
+        action_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        status:
+          type: string
+          enum: [APPLIED, REJECTED, NO_EFFECT, ALREADY_APPLIED]
+        reason_code:
+          type: ["string", "null"]
+          maxLength: 64
+        transition_id:
+          type: ["string", "null"]
+          maxLength: 160
+        canonical_event_id:
+          type: ["string", "null"]
+          format: uuid
+      required:
+        - event_instance_id
+        - action_id
+        - status
+        - reason_code
+        - transition_id
+        - canonical_event_id
+    AmbientEventCommandResult:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id: {type: string, format: uuid}
+        state: {$ref: "#/components/schemas/GameState"}
+        result: {$ref: "#/components/schemas/AmbientEventResult"}
+      required: [session_id, state, result]
     SkillCheckResult:
       type: object
       additionalProperties: false
@@ -1069,6 +1148,7 @@ components:
             - player_unconscious
             - item_gained
             - item_lost
+            - ambient_event_outcome
         created_at:
           type: string
           format: date-time
@@ -1090,6 +1170,10 @@ components:
         related_item:
           type: ["string", "null"]
           maxLength: 160
+        event_result:
+          anyOf:
+            - $ref: "#/components/schemas/JournalAmbientEventResult"
+            - type: "null"
       required:
         - event_id
         - event_type
@@ -1100,6 +1184,37 @@ components:
         - location_name
         - related_npc_id
         - related_item
+    JournalAmbientEventResult:
+      type: object
+      additionalProperties: false
+      properties:
+        event_instance_id:
+          type: string
+          format: uuid
+          maxLength: 96
+        action_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        action:
+          type: string
+          enum: [interact]
+        status:
+          type: string
+          enum: [APPLIED]
+        reason_code:
+          type: string
+          enum: [referent_promoted]
+        transition_id:
+          type: string
+          maxLength: 160
+      required:
+        - event_instance_id
+        - action_id
+        - action
+        - status
+        - reason_code
+        - transition_id
     CampaignQuest:
       type: object
       additionalProperties: false
@@ -1365,6 +1480,10 @@ components:
           anyOf:
             - type: string
             - type: "null"
+        ambient_event:
+          anyOf:
+            - $ref: "#/components/schemas/GameSceneAmbientEvent"
+            - type: "null"
         opening:
           anyOf:
             - type: string
@@ -1394,10 +1513,37 @@ components:
         - visit_revision
         - activity_revision
         - last_activity
+        - ambient_event
         - player_position
         - npcs
         - features
         - referents
+    GameSceneAmbientEvent:
+      type: object
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+        instance_id:
+          type: string
+          format: uuid
+        variation_id:
+          type: string
+        event_type:
+          type: string
+          enum: [GREEN, BLUE]
+        repeat_group:
+          type: string
+        count:
+          type: integer
+          minimum: 1
+      required:
+        - event_id
+        - instance_id
+        - variation_id
+        - event_type
+        - repeat_group
+        - count
     GameScenePlayerPosition:
       type: object
       additionalProperties: false
@@ -1441,6 +1587,11 @@ components:
       properties:
         id:
           type: string
+        event_instance_id:
+          anyOf:
+            - type: string
+              format: uuid
+            - type: "null"
         kind:
           anyOf:
             - type: string
@@ -1460,6 +1611,7 @@ components:
             - type: "null"
       required:
         - id
+        - event_instance_id
         - kind
         - description
         - source_turn

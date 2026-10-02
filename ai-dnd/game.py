@@ -10073,6 +10073,105 @@ class GameSession:
             return functools.partial(helper, session=self)
         raise AttributeError(name)
 
+    def resolve_ambient_event_action(
+        self,
+        event_instance_id: str,
+        action_id: str,
+        action: str,
+    ) -> dict[str, Any]:
+        """Resolve the one currently supported persistent ambient outcome."""
+        result = {
+            "event_instance_id": event_instance_id,
+            "action_id": action_id,
+            "status": "REJECTED",
+            "reason_code": "event_unavailable",
+            "transition_id": None,
+        }
+        world = self.world_state
+        location_id = world.get("location")
+        scene_state = world.get("scene_state")
+        scenes = scene_state.get("scenes") if isinstance(scene_state, dict) else None
+        scene = scenes.get(location_id) if isinstance(scenes, dict) else None
+        event = scene.get("ambient_event") if isinstance(scene, dict) else None
+        if (
+            not isinstance(event, dict)
+            or event.get("instance_id") != event_instance_id
+            or event.get("event_type") != "BLUE"
+        ):
+            result["reason_code"] = "event_not_interactive"
+            return result
+
+        referents = scene.get("referents")
+        referent = next(
+            (
+                item for item in referents
+                if isinstance(item, dict)
+                and item.get("id") == event.get("referent_id")
+                and item.get("event_instance_id") == event_instance_id
+            ),
+            None,
+        ) if isinstance(referents, list) else None
+        if referent is None:
+            result["reason_code"] = "event_referent_missing"
+            return result
+
+        lifecycle = referent.get("lifecycle")
+        promoted_npc_id = referent.get("promoted_npc_id")
+        if lifecycle == "promoted" and isinstance(promoted_npc_id, str):
+            if not any(
+                isinstance(item, dict) and item.get("id") == promoted_npc_id
+                for item in world.get("npcs", [])
+            ):
+                result["reason_code"] = "promoted_npc_missing"
+                return result
+            result.update(
+                status="ALREADY_APPLIED",
+                reason_code="event_already_resolved",
+                transition_id=promoted_npc_id,
+            )
+            return result
+        flags = world.get("flags")
+        turn_index = (
+            flags.get("turn_index")
+            if isinstance(flags, dict)
+            else None
+        )
+        expires_after_turn = referent.get("expires_after_turn")
+        if (
+            lifecycle != "presented"
+            or type(turn_index) is not int
+            or type(expires_after_turn) is not int
+            or turn_index > expires_after_turn
+        ):
+            result["reason_code"] = "event_expired"
+            return result
+        if action == "observe":
+            result.update(status="NO_EFFECT", reason_code="observation_only")
+            return result
+        if action != "interact":
+            result["reason_code"] = "unsupported_action"
+            return result
+
+        npc = self._promote_scene_referent(referent, location_id)
+        if not isinstance(npc, dict) or not isinstance(npc.get("id"), str):
+            result.update(status="NO_EFFECT", reason_code="promotion_unavailable")
+            return result
+        if (
+            referent.get("lifecycle") != "promoted"
+            or referent.get("promoted_npc_id") != npc["id"]
+            or not any(
+                isinstance(item, dict) and item.get("id") == npc["id"]
+                for item in world.get("npcs", [])
+            )
+        ):
+            raise ValueError("Ambient event promotion did not reach canonical state.")
+        result.update(
+            status="APPLIED",
+            reason_code="referent_promoted",
+            transition_id=npc["id"],
+        )
+        return result
+
     def quest_offers(self):
         world = self.world_state
         known_quests = {item.get("quest_id") for item in world.get("quests", [])}

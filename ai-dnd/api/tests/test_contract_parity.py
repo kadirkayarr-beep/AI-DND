@@ -236,7 +236,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC_TEXT)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 26)
+        self.assertEqual(len(documented_routes), 27)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -538,6 +538,7 @@ class ContractParityTests(unittest.TestCase):
             "JournalEvent": {
                 "event_id", "event_type", "created_at", "turn_index", "summary",
                 "location_id", "location_name", "related_npc_id", "related_item",
+                "event_result",
             },
             "CampaignQuest": {
                 "quest_id", "title", "description", "status", "giver_npc_id",
