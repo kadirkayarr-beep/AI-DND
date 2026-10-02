@@ -20,6 +20,7 @@ from api.dnd_2024_rules import (
     CharacterCreationError,
     canonical_origin_feat_name,
     calculate_derived_stats,
+    get_equipment_armor_and_shield,
     generate_random_2024_character,
     roll_4d6_drop_lowest,
     validate_ability_scores,
@@ -28,18 +29,7 @@ from api.dnd_2024_rules import (
 
 
 def _detect_armor_and_shield(equipment_choices: list[str] | None) -> tuple[str | None, bool]:
-    if not equipment_choices:
-        return None, False
-    joined = " ".join(equipment_choices)
-    armor = None
-    if "Zincir Zırh" in joined or "Chain Mail" in joined:
-        armor = "Chain Mail"
-    elif "Pul Zırh" in joined or "Scale Mail" in joined:
-        armor = "Scale Mail"
-    elif "Deri Zırh" in joined or "Leather Armor" in joined:
-        armor = "Leather Armor"
-    has_shield = "Kalkan" in joined or "Shield" in joined
-    return armor, has_shield
+    return get_equipment_armor_and_shield(equipment_choices)
 
 
 def configure_character(

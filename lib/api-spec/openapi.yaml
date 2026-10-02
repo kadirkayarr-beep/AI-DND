@@ -1963,7 +1963,9 @@ components:
           type: object
         skills:
           type: object
-      required: [races, classes, backgrounds, ability_score_methods, alignments, origin_feats, spells_catalog, skills]
+        equipment_rules:
+          type: object
+      required: [races, classes, backgrounds, ability_score_methods, alignments, origin_feats, spells_catalog, skills, equipment_rules]
     CampaignSummary:
       type: object
       additionalProperties: false

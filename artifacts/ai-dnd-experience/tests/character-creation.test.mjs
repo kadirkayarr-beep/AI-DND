@@ -9,6 +9,7 @@ let vite;
 let renderCreationScreen;
 let React;
 let catalogNormalizer;
+let characterPreview;
 
 const mockCatalog = {
   races: {
@@ -121,6 +122,7 @@ before(async () => {
   });
   const component = await vite.ssrLoadModule('/src/components/character-creation-screen.tsx');
   catalogNormalizer = await vite.ssrLoadModule('/src/lib/character-catalog-normalizer.ts');
+  characterPreview = await vite.ssrLoadModule('/src/lib/character-preview-stats.ts');
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
 
@@ -273,6 +275,79 @@ test('species bonus feat options exclude the background feat base name', () => {
   assert.deepEqual(options, [
     { id: 'Tough', label: 'Sağlam', description: 'Gain hit points.' },
   ]);
+});
+
+test('Fighter style options come from the complete class rules catalog', () => {
+  const styles = catalogNormalizer.getFightingStyleOptions({
+    fighting_styles: [
+      { id: 'Archery', name_tr: 'Okçuluk' },
+      { id: 'Defense', name_tr: 'Savunma' },
+      { id: 'Dueling', name_tr: 'Düello' },
+      { id: 'Great Weapon Fighting', name_tr: 'Büyük Silah Dövüşü' },
+      { id: 'Protection', name_tr: 'Koruma' },
+      { id: 'Two-Weapon Fighting', name_tr: 'Çift Silah Dövüşü' },
+    ],
+  });
+
+  assert.equal(styles.length, 6);
+  assert.ok(styles.some((style) => style.id === 'Protection' && style.label === 'Koruma'));
+});
+
+test('HP and AC previews follow package, armor, shield, Defense, Dwarf, and Tough rules', () => {
+  const classData = {
+    hit_die: 10,
+    equipment_packages: [
+      { id: 'A', items: ['Zincir Zırh', 'Kalkan'] },
+      { id: 'B', items: ['Deri Zırh'] },
+      { id: 'C', items: ['Büyük Kılıç'] },
+    ],
+  };
+  const scores = {
+    strength: 12,
+    dexterity: 16,
+    constitution: 14,
+    intelligence: 10,
+    wisdom: 10,
+    charisma: 10,
+  };
+  const preview = (equipmentPackage, backgroundData = { equipment: [] }, options = {}) =>
+    characterPreview.calculateCharacterPreviewStats({
+      characterClass: 'Fighter',
+      classData,
+      speciesData: { hp_bonus: 0 },
+      backgroundData,
+      abilityScores: scores,
+      equipmentPackage,
+      backgroundEquipmentOption: 'B',
+      fightingStyle: 'Defense',
+      originFeats: { Tough: { hp_bonus: 2 } },
+      equipmentRules: characterPreview.DEFAULT_EQUIPMENT_RULES,
+      ...options,
+    });
+
+  assert.deepEqual(
+    ['A', 'B', 'C'].map((packageId) => preview(packageId).ac),
+    [19, 15, 13],
+  );
+  assert.equal(preview('A').hasShield, true);
+
+  const backgroundArmor = preview(
+    'C',
+    { equipment: ['Pul Zırh', 'Ahşap Kalkan'] },
+    { backgroundEquipmentOption: 'A' },
+  );
+  assert.equal(backgroundArmor.ac, 19);
+  assert.equal(backgroundArmor.equippedArmor, 'Scale Mail');
+
+  const dwarfWithTough = preview(
+    'A',
+    { equipment: [], origin_feat: 'Tough' },
+    {
+      speciesData: { hp_bonus: 1 },
+      speciesBonusFeat: 'Tough',
+    },
+  );
+  assert.equal(dwarfWithTough.hp, 15);
 });
 
 test('review does not invent Tough when a background feat is missing', () => {

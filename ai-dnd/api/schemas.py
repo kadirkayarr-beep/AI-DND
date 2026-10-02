@@ -347,6 +347,7 @@ class CharacterCreationCatalogResponse(BaseModel):
     origin_feats: dict[str, Any]
     spells_catalog: dict[str, Any]
     skills: dict[str, Any]
+    equipment_rules: dict[str, Any]
 
 
 class CampaignStartSelection(BaseModel):

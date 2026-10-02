@@ -12,6 +12,7 @@ from api.dnd_2024_rules import (
     CLASS_DEFINITIONS,
     SPECIES_DEFINITIONS,
     calculate_derived_stats,
+    get_equipment_armor_and_shield,
     get_character_creation_catalog,
     roll_4d6_drop_lowest,
     validate_ability_scores,
@@ -38,6 +39,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertIn("origin_feats", catalog)
         self.assertIn("spells_catalog", catalog)
         self.assertIn("skills", catalog)
+        self.assertIn("equipment_rules", catalog)
 
         # 12 classes
         self.assertEqual(len(catalog["classes"]), 12)
@@ -46,6 +48,19 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertEqual(catalog["races"]["Human"]["skill_bonus_count"], 1)
         self.assertEqual(catalog["races"]["Human"]["origin_feat_bonus_count"], 1)
         self.assertEqual(catalog["races"]["Half-Elf"]["skill_bonus_count"], 2)
+        self.assertEqual(
+            {style["id"] for style in catalog["classes"]["Fighter"]["fighting_styles"]},
+            {
+                "Archery",
+                "Defense",
+                "Dueling",
+                "Great Weapon Fighting",
+                "Protection",
+                "Two-Weapon Fighting",
+            },
+        )
+        self.assertEqual(catalog["races"]["Dwarf"]["hp_bonus"], 1)
+        self.assertEqual(catalog["origin_feats"]["Tough"]["hp_bonus"], 2)
         # Species count
         self.assertEqual(len(catalog["races"]), len(SPECIES_DEFINITIONS))
 
@@ -92,6 +107,86 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertIn("species_bonus_skills", char)
         self.assertIn("species_bonus_feat", char)
         self.assertIn("origin_feats", char)
+
+        armor, has_shield = get_equipment_armor_and_shield(char["equipment_choices"])
+        expected = calculate_derived_stats(
+            character_class=char["class"],
+            species=char["species"],
+            final_scores={
+                ability: char[ability]
+                for ability in (
+                    "strength",
+                    "dexterity",
+                    "constitution",
+                    "intelligence",
+                    "wisdom",
+                    "charisma",
+                )
+            },
+            chosen_feat=char.get("origin_feat"),
+            chosen_feats=char.get("origin_feats"),
+            fighting_style=char.get("fighting_style"),
+            equipped_armor=armor,
+            has_shield=has_shield,
+        )
+        self.assertEqual(char["armor_class"], expected["armor_class"])
+        self.assertEqual(char["max_hp"], expected["max_hp"])
+
+    def test_derived_stats_follow_equipment_species_and_feat_rules(self):
+        fighter = CLASS_DEFINITIONS["Fighter"]
+        scores = {
+            "strength": 12,
+            "dexterity": 16,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 10,
+            "charisma": 10,
+        }
+        expected_ac_by_package = {"A": 19, "B": 15, "C": 13}
+
+        for package in fighter["equipment_packages"]:
+            with self.subTest(package=package["id"]):
+                armor, has_shield = get_equipment_armor_and_shield(package["items"])
+                derived = calculate_derived_stats(
+                    character_class="Fighter",
+                    species="Human",
+                    final_scores=scores,
+                    fighting_style="Defense",
+                    equipped_armor=armor,
+                    has_shield=has_shield,
+                )
+                self.assertEqual(
+                    derived["armor_class"],
+                    expected_ac_by_package[package["id"]],
+                )
+                self.assertEqual(
+                    derived["max_hp"],
+                    fighter["hit_die"] + 2,
+                )
+
+        dwarf_with_tough = calculate_derived_stats(
+            character_class="Fighter",
+            species="Dwarf",
+            final_scores=scores,
+            chosen_feat="Tough",
+            chosen_feats=["Tough"],
+        )
+        self.assertEqual(dwarf_with_tough["max_hp"], 15)
+
+        armor, has_shield = get_equipment_armor_and_shield(
+            ["Pul Zırh", "Ahşap Kalkan"]
+        )
+        medium_armor = calculate_derived_stats(
+            character_class="Fighter",
+            species="Human",
+            final_scores=scores,
+            fighting_style="Defense",
+            equipped_armor=armor,
+            has_shield=has_shield,
+        )
+        self.assertEqual(armor, "Scale Mail")
+        self.assertTrue(has_shield)
+        self.assertEqual(medium_armor["armor_class"], 19)
 
     def test_random_humans_and_half_elves_receive_species_bonuses(self):
         found_species = set()

@@ -3,6 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
 import { mergeCombatHistory } from '@/lib/combat-history';
 import {
+  AmbientEventActionPanel,
+  createAmbientEventActionRequest,
+  findPersistedAmbientEventResult,
+  isActiveBlueAmbientEvent,
+  type AmbientEventActionRequest,
+} from '@/components/ambient-event-actions';
+import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
@@ -48,11 +55,12 @@ import {
   useAcceptGameQuest,
   useCancelGameQuest,
   usePlayGameTurn,
+  useResolveAmbientEventAction,
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { QuestJournalSection } from '@/components/quest-journal-section';
-import type { CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
+import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
@@ -462,8 +470,54 @@ function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry
   return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Sahne, kişiler ve öykü notları sağ panelde</div></div>;
 }
 
-function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice, combatTargetId, setCombatTargetId }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null; combatTargetId: string; setCombatTargetId: (value: string) => void }) {
+function StoryColumn({
+  state,
+  entries,
+  message,
+  setMessage,
+  onSubmit,
+  sending,
+  notice,
+  scrollRef,
+  onScroll,
+  locationChanged,
+  combatEndNotice,
+  combatTargetId,
+  setCombatTargetId,
+  ambientActionResult,
+  ambientActionRequest,
+  ambientActionSending,
+  ambientActionError,
+  onAmbientAction,
+  onRetryAmbientAction,
+}: {
+  state: GameState;
+  entries: TranscriptEntry[];
+  message: string;
+  setMessage: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  sending: boolean;
+  notice: Notice | null;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  locationChanged: boolean;
+  combatEndNotice: string | null;
+  combatTargetId: string;
+  setCombatTargetId: (value: string) => void;
+  ambientActionResult: AmbientEventResult | null;
+  ambientActionRequest: AmbientEventActionRequest | null;
+  ambientActionSending: boolean;
+  ambientActionError: boolean;
+  onAmbientAction: (action: AmbientEventActionInputAction) => void;
+  onRetryAmbientAction: () => void;
+}) {
   const location = state.locations[state.location];
+  const ambientEvent = state.scene?.ambient_event ?? null;
+  const currentAmbientResult = ambientActionResult?.event_instance_id === ambientEvent?.instance_id
+    ? ambientActionResult
+    : ambientEvent
+      ? findPersistedAmbientEventResult(state, ambientEvent.instance_id)
+      : null;
   const combatTargets = state.combat.participant_records.filter(
     (participant) => participant.kind === 'npc'
       && participant.status === 'active'
@@ -482,6 +536,16 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
       <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
         <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div>
       </div>
+      <AmbientEventActionPanel
+        event={ambientEvent}
+        referents={state.scene?.referents ?? []}
+        result={currentAmbientResult}
+        retryRequest={ambientActionRequest}
+        sending={ambientActionSending}
+        hasError={ambientActionError}
+        onAction={onAmbientAction}
+        onRetry={onRetryAmbientAction}
+      />
       {combatEndNotice && (
         <div className="combat-transition-banner" role="status" data-testid="status-combat-ended">
           <Swords size={14} aria-hidden="true" />
@@ -757,12 +821,24 @@ export default function GameBrowser() {
     },
   });
   const playTurn = usePlayGameTurn();
+  const resolveAmbientEventAction = useResolveAmbientEventAction();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
+  const [ambientActionResult, setAmbientActionResult] = useState<AmbientEventResult | null>(null);
+  const [ambientActionRequest, setAmbientActionRequest] = useState<AmbientEventActionRequest | null>(null);
+  const [ambientActionError, setAmbientActionError] = useState(false);
+  const pendingAmbientActionRef = useRef<AmbientEventActionRequest | null>(null);
   const storyScrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottom = useRef(true);
   const previousLocation = useRef<string>('');
   const previousCombatActive = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    pendingAmbientActionRef.current = null;
+    setAmbientActionRequest(null);
+    setAmbientActionResult(null);
+    setAmbientActionError(false);
+  }, [sessionId, state?.scene?.ambient_event?.instance_id]);
 
   useEffect(() => {
     setCombatEndNotice(null);
@@ -939,6 +1015,64 @@ export default function GameBrowser() {
     });
   };
 
+  const submitAmbientEventAction = (request: AmbientEventActionRequest) => {
+    pendingAmbientActionRef.current = request;
+    setAmbientActionRequest(request);
+    setAmbientActionError(false);
+    resolveAmbientEventAction.mutate(
+      {
+        sessionId: request.sessionId,
+        eventInstanceId: request.eventInstanceId,
+        data: request.data,
+      },
+      {
+        onSuccess: (response) => {
+          queryClient.setQueryData(
+            getGetGameSessionStateQueryKey(request.sessionId),
+            response.state,
+          );
+          if (pendingAmbientActionRef.current === request) {
+            pendingAmbientActionRef.current = null;
+            setAmbientActionResult(response.result);
+            setAmbientActionRequest(null);
+            setAmbientActionError(false);
+          }
+        },
+        onError: () => {
+          if (pendingAmbientActionRef.current === request) {
+            setAmbientActionError(true);
+          }
+        },
+      },
+    );
+  };
+
+  const handleAmbientAction = (action: AmbientEventActionInputAction) => {
+    const event = state?.scene?.ambient_event;
+    if (
+      !sessionId
+      || !state?.scene
+      || pendingAmbientActionRef.current
+      || !isActiveBlueAmbientEvent(event, state.scene.referents)
+    ) {
+      return;
+    }
+
+    const request = createAmbientEventActionRequest(
+      sessionId,
+      event.instance_id,
+      action,
+    );
+    setAmbientActionResult(null);
+    submitAmbientEventAction(request);
+  };
+
+  const retryAmbientAction = () => {
+    const request = pendingAmbientActionRef.current;
+    if (!request || resolveAmbientEventAction.isPending) return;
+    submitAmbientEventAction(request);
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = message.trim();
@@ -1074,7 +1208,27 @@ export default function GameBrowser() {
           ) : state ? (
             <>
               <LeftColumn state={state} />
-              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} combatTargetId={combatTargetId} setCombatTargetId={setCombatTargetId} />
+              <StoryColumn
+                state={state}
+                entries={entries}
+                message={message}
+                setMessage={setMessage}
+                onSubmit={handleSubmit}
+                sending={playTurn.isPending}
+                notice={notice}
+                scrollRef={storyScrollRef}
+                onScroll={handleStoryScroll}
+                locationChanged={locationChanged}
+                combatEndNotice={combatEndNotice}
+                combatTargetId={combatTargetId}
+                setCombatTargetId={setCombatTargetId}
+                ambientActionResult={ambientActionResult}
+                ambientActionRequest={ambientActionRequest}
+                ambientActionSending={resolveAmbientEventAction.isPending}
+                ambientActionError={ambientActionError}
+                onAmbientAction={handleAmbientAction}
+                onRetryAmbientAction={retryAmbientAction}
+              />
               <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}

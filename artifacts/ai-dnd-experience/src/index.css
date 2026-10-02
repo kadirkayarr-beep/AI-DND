@@ -373,6 +373,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .location-ribbon-new { background: rgba(152, 104, 52, .2); }
 .location-ribbon strong { display: block; margin-top: 2px; color: #e4d4b6; font-family: var(--app-font-serif); font-size: 20px; font-weight: 500; }
 .location-ribbon span { display: block; margin-top: 3px; color: #887962; font-size: 9px; }
+.ambient-event-panel { display: grid; gap: 10px; margin: -5px 0 18px; border: 1px solid rgba(145, 116, 64, .5); background: rgba(104, 74, 35, .12); padding: 12px 14px; }
+.ambient-event-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.ambient-event-heading > div:first-child { display: grid; gap: 3px; }
+.ambient-event-kicker { color: #a98c58; font-size: 8px; letter-spacing: .14em; }
+.ambient-event-heading strong { color: #ddc99f; font-family: var(--app-font-serif); font-size: 15px; font-weight: 500; }
+.ambient-event-actions, .ambient-event-retry { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ambient-event-retry > span { color: #d6b9a0; font-size: 10px; }
+.ambient-event-result { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid rgba(145, 116, 64, .32); padding-top: 9px; color: #cbb88f; font-size: 10px; }
+.ambient-event-result code { color: #9f8a64; font-family: var(--app-font-mono); font-size: 9px; }
 .combat-transition-banner { display: flex; align-items: center; gap: 10px; margin: -5px 0 20px; border: 1px solid rgba(145, 116, 64, .62); background: rgba(104, 74, 35, .14); padding: 10px 12px; color: #c7aa73; }
 .combat-transition-banner > div { display: grid; gap: 3px; }
 .combat-transition-banner strong { font-size: 8px; letter-spacing: .14em; }

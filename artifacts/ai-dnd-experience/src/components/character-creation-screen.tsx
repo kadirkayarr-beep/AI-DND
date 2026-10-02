@@ -26,6 +26,7 @@ import type {
 } from '@workspace/api-client-react';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import {
+  getFightingStyleOptions,
   getClassSkillOptions,
   getOriginFeatOptions,
   getRequiredSkillCount,
@@ -35,6 +36,7 @@ import {
   normalizeCharacterCreationCatalog,
   updateLimitedSelection,
 } from '@/lib/character-catalog-normalizer';
+import { calculateCharacterPreviewStats } from '@/lib/character-preview-stats';
 import './character-creation-screen.css';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
@@ -223,6 +225,7 @@ export function CharacterCreationScreen({
     if (!catalog?.classes || !characterClass) return null;
     return (catalog.classes as Record<string, any>)[characterClass] ?? null;
   }, [catalog, characterClass]);
+  const fightingStyleOptions = getFightingStyleOptions(classData);
 
   const backgroundData = useMemo(() => {
     if (!catalog?.backgrounds || !background) return null;
@@ -324,38 +327,24 @@ export function CharacterCreationScreen({
 
   // Derived statistics
   const derivedStats = useMemo(() => {
-    const hitDie = classData?.hit_die ?? 10;
-    const conMod = modifiers.constitution ?? 0;
     const dexMod = modifiers.dexterity ?? 0;
     const wisMod = modifiers.wisdom ?? 0;
-    const intMod = modifiers.intelligence ?? 0;
-    const chaMod = modifiers.charisma ?? 0;
-
-    let baseAc = 10 + dexMod;
-    let hasShield = false;
-    if (characterClass === 'Fighter') {
-      if (equipmentPackage === 'A') {
-        baseAc = 16 + 2; // Chain mail 16 + Shield 2
-        hasShield = true;
-      } else {
-        baseAc = 11 + dexMod; // Leather armor
-      }
-      if (fightingStyle === 'Defense') baseAc += 1;
-    } else if (characterClass === 'Barbarian') {
-      baseAc = 10 + dexMod + conMod;
-    } else if (characterClass === 'Monk') {
-      baseAc = 10 + dexMod + wisMod;
-    } else if (characterClass === 'Paladin') {
-      baseAc = 16 + (equipmentPackage === 'A' ? 2 : 0);
-    } else if (characterClass === 'Rogue') {
-      baseAc = 11 + dexMod;
-    } else if (characterClass === 'Ranger') {
-      baseAc = 14 + Math.min(2, dexMod);
-    }
-
-    const toughnessFeatBonus =
-      backgroundData?.origin_feat === 'Tough' || speciesBonusFeat === 'Tough' ? 2 : 0;
-    const hp = Math.max(1, hitDie + conMod + toughnessFeatBonus);
+    const previewStats = calculateCharacterPreviewStats({
+      characterClass,
+      classData,
+      speciesData,
+      backgroundData,
+      abilityScores: finalAbilityScores,
+      equipmentPackage,
+      backgroundEquipmentOption,
+      fightingStyle,
+      speciesBonusFeat,
+      originFeats: catalog.origin_feats,
+      equipmentRules: catalog.equipment_rules,
+    });
+    const hp = previewStats.hp;
+    const baseAc = previewStats.ac;
+    const hasShield = previewStats.hasShield;
     const speed = speciesData?.speed ?? '9 metre (30 ft)';
     const initiative = dexMod;
     const proficiencyBonus = 2;
@@ -391,9 +380,12 @@ export function CharacterCreationScreen({
     };
   }, [
     backgroundData,
+    backgroundEquipmentOption,
+    catalog,
     characterClass,
     classData,
     equipmentPackage,
+    finalAbilityScores,
     fightingStyle,
     modifiers,
     selectedClassSkills,
@@ -1197,24 +1189,33 @@ export function CharacterCreationScreen({
                       <span className="cc-label">Dövüş Tarzı (Fighting Style)</span>
                       <small>Savaşçının uzmanlaştığı taktik duruşu seç.</small>
                     </div>
-                    <div className="cc-cards-grid-sm">
-                      {[
-                        { id: 'Defense', name: 'Savunma (Defense)', desc: 'Zırh giyerken Zırh Sınıfına +1 bonus kazanırsın.' },
-                        { id: 'Dueling', name: 'Düello (Dueling)', desc: 'Tek elle tutulan bir yakın dövüş silahıyla saldırırken hasara +2 bonus.' },
-                        { id: 'Archery', name: 'Okçuluk (Archery)', desc: 'Menzilli silahlarla yapılan saldırı zarlarına +2 bonus.' },
-                        { id: 'Great Weapon Fighting', name: 'Büyük Silah Dövüşü', desc: 'İki elle tutulan silahlarda 1 veya 2 gelen hasar zarlarını yeniden atarsın.' },
-                        { id: 'Two-Weapon Fighting', name: 'Çift Silah Dövüşü', desc: 'Bonus aksiyonla ikinci silahla saldırırken yetenek bonusunu hasara eklersin.' },
-                      ].map((style) => (
-                        <div
-                          key={style.id}
-                          className={`cc-choice-card-sm ${fightingStyle === style.id ? 'selected' : ''}`}
-                          onClick={() => setFightingStyle(style.id)}
+                    {fightingStyleOptions.length > 0 ? (
+                      <div className="cc-cards-grid-sm">
+                        {fightingStyleOptions.map((style) => (
+                          <div
+                            key={style.id}
+                            data-testid={`fighting-style-${style.id}`}
+                            className={`cc-choice-card-sm ${fightingStyle === style.id ? 'selected' : ''}`}
+                            onClick={() => setFightingStyle(style.id)}
+                          >
+                            <strong>{style.label}</strong>
+                            {style.description && <p>{style.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="cc-inline-notice" data-testid="status-fighting-styles-unavailable">
+                        Dövüş tarzları kataloğu yüklenemedi.
+                        <button
+                          type="button"
+                          className="text-button"
+                          data-testid="button-retry-fighting-styles"
+                          onClick={onRetryOptions}
                         >
-                          <strong>{style.name}</strong>
-                          <p>{style.desc}</p>
-                        </div>
-                      ))}
-                    </div>
+                          Yeniden dene
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

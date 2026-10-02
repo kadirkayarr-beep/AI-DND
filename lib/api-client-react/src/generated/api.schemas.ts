@@ -1109,6 +1109,8 @@ export type CharacterCreationCatalogResponseSpellsCatalog = { [key: string]: unk
 
 export type CharacterCreationCatalogResponseSkills = { [key: string]: unknown };
 
+export type CharacterCreationCatalogResponseEquipmentRules = { [key: string]: unknown };
+
 export interface CharacterCreationCatalogResponse {
   races: CharacterCreationCatalogResponseRaces;
   classes: CharacterCreationCatalogResponseClasses;
@@ -1118,6 +1120,7 @@ export interface CharacterCreationCatalogResponse {
   origin_feats: CharacterCreationCatalogResponseOriginFeats;
   spells_catalog: CharacterCreationCatalogResponseSpellsCatalog;
   skills: CharacterCreationCatalogResponseSkills;
+  equipment_rules: CharacterCreationCatalogResponseEquipmentRules;
 }
 
 export interface CampaignSummary {

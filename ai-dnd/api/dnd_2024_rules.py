@@ -174,6 +174,7 @@ ORIGIN_FEATS = {
     "Tough": {
         "name_tr": "Dayanıklı (Tough)",
         "desc": "Maksimum can puanı seviye başına 2 artar (1. seviyede +2 Can).",
+        "hp_bonus": 2,
     },
 }
 
@@ -373,6 +374,7 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 120,
+        "hp_bonus": 1,
         "traits": [
             {"name": "Üstün Karanlık Görüşü", "desc": "120 fit mesafeye kadar zifiri karanlıkta görebilirsin."},
             {"name": "Cüce Dayanıklılığı (Resilience)", "desc": "Zehir hasarına karşı direnç ve zehirlenmeye karşı kurtarma zarlarında avantaj."},
@@ -845,6 +847,48 @@ SPELLS_CATALOG = {
 # AUTHORITATIVE CATALOG ACCESSOR
 # ============================================================================
 
+ARMOR_CLASS_RULES = {
+    "Chain Mail": {"base_ac": 16, "dexterity_mode": "none"},
+    "Scale Mail": {
+        "base_ac": 14,
+        "dexterity_mode": "capped",
+        "max_dexterity_bonus": 2,
+    },
+    "Leather Armor": {"base_ac": 11, "dexterity_mode": "full"},
+}
+
+ARMOR_NAME_ALIASES = {
+    "Zincir Zırh": "Chain Mail",
+    "Chain Mail": "Chain Mail",
+    "Pul Zırh": "Scale Mail",
+    "Scale Mail": "Scale Mail",
+    "Deri Zırh": "Leather Armor",
+    "Leather Armor": "Leather Armor",
+}
+
+SHIELD_ITEM_TOKENS = ("kalkan", "shield")
+
+
+def get_equipment_armor_and_shield(
+    equipment_choices: list[str] | None,
+) -> tuple[str | None, bool]:
+    """Resolve armor and shield from the same labels exposed to the client."""
+    if not equipment_choices:
+        return None, False
+
+    joined = " ".join(equipment_choices).casefold()
+    armor = next(
+        (
+            canonical_name
+            for alias, canonical_name in ARMOR_NAME_ALIASES.items()
+            if alias.casefold() in joined
+        ),
+        None,
+    )
+    has_shield = any(token in joined for token in SHIELD_ITEM_TOKENS)
+    return armor, has_shield
+
+
 def get_character_creation_catalog() -> dict[str, Any]:
     """Expose complete D&D 2024 rules options for client-side player choices."""
     return {
@@ -881,6 +925,11 @@ def get_character_creation_catalog() -> dict[str, Any]:
         "origin_feats": copy.deepcopy(ORIGIN_FEATS),
         "spells_catalog": copy.deepcopy(SPELLS_CATALOG),
         "skills": {k: {"ability": v["ability"], "name_tr": v["name_tr"]} for k, v in SKILL_DEFINITIONS.items()},
+        "equipment_rules": {
+            "armor_class": copy.deepcopy(ARMOR_CLASS_RULES),
+            "armor_name_aliases": copy.deepcopy(ARMOR_NAME_ALIASES),
+            "shield_item_tokens": list(SHIELD_ITEM_TOKENS),
+        },
     }
 
 
@@ -994,14 +1043,19 @@ def calculate_derived_stats(
     hit_die = cls_def["hit_die"]
     base_hp = hit_die + modifiers["constitution"]
 
-    # Species bonus (Dwarf Toughness)
-    if species == "Dwarf":
-        base_hp += 1
+    # Species HP bonuses are part of the same catalog the client previews.
+    base_hp += int(SPECIES_DEFINITIONS.get(species, {}).get("hp_bonus", 0))
 
     # Feat bonus (Tough); include both background and species-granted feats.
-    all_chosen_feats = {feat for feat in [chosen_feat, *(chosen_feats or [])] if feat}
-    if "Tough" in all_chosen_feats:
-        base_hp += 2
+    all_chosen_feats = {
+        canonical_origin_feat_name(feat)
+        for feat in [chosen_feat, *(chosen_feats or [])]
+        if feat
+    }
+    base_hp += sum(
+        int(ORIGIN_FEATS.get(feat, {}).get("hp_bonus", 0))
+        for feat in all_chosen_feats
+    )
 
     max_hp = max(1, base_hp)
 
@@ -1010,16 +1064,15 @@ def calculate_derived_stats(
     con_mod = modifiers["constitution"]
     wis_mod = modifiers["wisdom"]
 
-    armor_worn = False
-    if equipped_armor in ("Chain Mail", "Zincir Zırh"):
-        ac = 16
-        armor_worn = True
-    elif equipped_armor in ("Scale Mail", "Pul Zırh"):
-        ac = 14 + min(2, dex_mod)
-        armor_worn = True
-    elif equipped_armor in ("Leather Armor", "Deri Zırh"):
-        ac = 11 + dex_mod
-        armor_worn = True
+    canonical_armor = ARMOR_NAME_ALIASES.get(equipped_armor, equipped_armor)
+    armor_rule = ARMOR_CLASS_RULES.get(canonical_armor)
+    armor_worn = armor_rule is not None
+    if armor_rule:
+        ac = armor_rule["base_ac"]
+        if armor_rule["dexterity_mode"] == "full":
+            ac += dex_mod
+        elif armor_rule["dexterity_mode"] == "capped":
+            ac += min(armor_rule["max_dexterity_bonus"], dex_mod)
     elif character_class == "Barbarian":
         ac = 10 + dex_mod + con_mod
     elif character_class == "Monk":
@@ -1164,13 +1217,16 @@ def generate_random_2024_character(rng: random.Random) -> dict[str, Any]:
     origin_feats = [origin_feat, *([species_bonus_feat] if species_bonus_feat else [])]
 
     # Derived stats
+    equipped_armor, has_shield = get_equipment_armor_and_shield(equipment_items)
     derived = calculate_derived_stats(
         character_class=character_class,
         species=species,
         final_scores=final_scores,
         chosen_feat=origin_feat,
-        has_shield="Kalkan" in " ".join(equipment_items),
         chosen_feats=origin_feats,
+        fighting_style=fighting_style,
+        equipped_armor=equipped_armor,
+        has_shield=has_shield,
     )
 
     return {

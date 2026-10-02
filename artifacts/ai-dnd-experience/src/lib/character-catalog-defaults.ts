@@ -1,10 +1,11 @@
 import type { CharacterCreationCatalogResponse } from '@workspace/api-client-react';
+import { DEFAULT_EQUIPMENT_RULES } from './character-preview-stats';
 
 export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
   races: {
     Human: { name_tr: 'İnsan (Human)', desc: 'Uyarlanabilir ve azimli.', speed: '9 metre (30 ft)', darkvision: 'Yok', traits: ['Yetenekli', 'Çok Yönlü'] },
     Elf: { name_tr: 'Elf', desc: 'Büyülü zarafet ve keskin duyular.', speed: '9 metre (30 ft)', darkvision: '18 metre (60 ft)', traits: ['Elf Soyu', 'Keskin Duyular', 'Fey Ataları'] },
-    Dwarf: { name_tr: 'Cüce (Dwarf)', desc: 'Sağlam ve dayanıklı yeraltı madencileri.', speed: '9 metre (30 ft)', darkvision: '36 metre (120 ft)', traits: ['Cüce Dayanıklılığı', 'Taş Bilgeliği'] },
+    Dwarf: { name_tr: 'Cüce (Dwarf)', desc: 'Sağlam ve dayanıklı yeraltı madencileri.', speed: '9 metre (30 ft)', darkvision: '36 metre (120 ft)', hp_bonus: 1, traits: ['Cüce Dayanıklılığı', 'Taş Bilgeliği'] },
     Halfling: { name_tr: 'Buçukluk (Halfling)', desc: 'Küçük yapılı, cesur ve şanslı.', speed: '9 metre (30 ft)', darkvision: 'Yok', traits: ['Cesur', 'Şanslı', 'Çevik'] },
     Dragonborn: { name_tr: 'Ejderhadölü (Dragonborn)', desc: 'Ejderha soyunun kudretini taşıyan savaşçılar.', speed: '9 metre (30 ft)', darkvision: '18 metre (60 ft)', traits: ['Ejderha Nefesi', 'Hasar Direnci'] },
     Gnome: { name_tr: 'Gnom', desc: 'Zeki, meraklı ve mucit ruhlu küçük halk.', speed: '9 metre (30 ft)', darkvision: '18 metre (60 ft)', traits: ['Gnom Kurnazlığı'] },
@@ -81,9 +82,18 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       skill_options: ['Acrobatics', 'Animal Handling', 'Athletics', 'History', 'Insight', 'Intimidation', 'Perception', 'Survival'],
       features: ['İkinci Soluk (Second Wind)', 'Dövüş Tarzı (Fighting Style)', 'Silah Ustalığı'],
       is_spellcaster: false,
+      fighting_styles: [
+        { id: 'Archery', name_tr: 'Okçuluk (+2 Menzilli Saldırı Bonusu)' },
+        { id: 'Defense', name_tr: 'Savunma (+1 Zırh Sınıfı Bonusu)' },
+        { id: 'Dueling', name_tr: 'Düello (Tek Elle Silah Kullanırken +2 Hasar)' },
+        { id: 'Great Weapon Fighting', name_tr: 'Büyük Silah Dövüşü (İki Elle Silah Zarlarında 1 ve 2’leri Yenile)' },
+        { id: 'Protection', name_tr: 'Koruma (Yanındaki Müttefike Yapılan Saldırıyı Zorlaştır)' },
+        { id: 'Two-Weapon Fighting', name_tr: 'Çift Silah Dövüşü (Bonus Eylem Saldırısına Yetenek Bonusunu Ekle)' },
+      ],
       equipment_packages: [
         { id: 'A', label: 'Zincir Zırh & Kalkan & Uzun Kılıç Paketi', items: ['Zincir Zırh', 'Kalkan', 'Uzun Kılıç', 'Zindan Çantası', '11 Altın'] },
         { id: 'B', label: 'Deri Zırh & Uzun Yay & Çift Kısa Kılıç Paketi', items: ['Deri Zırh', 'Uzun Yay & 20 Ok', '2 Kısa Kılıç', 'Zindan Çantası', '11 Altın'] },
+        { id: 'C', label: 'İki Elli Kılıç & Ağır Tatar Yayı Paketi', items: ['Büyük Kılıç (Greatsword)', 'Ağır Tatar Yayı & 20 Ok', 'Macera Çantası', '10 Altın'] },
       ],
     },
     Monk: {
@@ -334,7 +344,14 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
     { id: 'Neutral Evil', name_tr: 'Tarafsız Kötü' },
     { id: 'Chaotic Evil', name_tr: 'Kaotik Kötü' },
   ],
-  origin_feats: {},
+  origin_feats: {
+    Tough: {
+      name_tr: 'Dayanıklı (Tough)',
+      desc: 'Maksimum can puanı seviye başına 2 artar (1. seviyede +2 Can).',
+      hp_bonus: 2,
+    },
+  },
+  equipment_rules: DEFAULT_EQUIPMENT_RULES,
   spells_catalog: {
     Wizard: {
       cantrips: [

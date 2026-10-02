@@ -2591,6 +2591,9 @@ export const GetCharacterCreationCatalogResponse = zod.object({
 }).passthrough(),
   "skills": zod.object({
 
+}).passthrough(),
+  "equipment_rules": zod.object({
+
 }).passthrough()
 })
 
@@ -4122,6 +4125,9 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
 
 }).passthrough(),
   "skills": zod.object({
+
+}).passthrough(),
+  "equipment_rules": zod.object({
 
 }).passthrough()
 })

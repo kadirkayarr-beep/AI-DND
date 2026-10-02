@@ -6,6 +6,11 @@ export type NormalizedOriginFeatOption = {
   label: string;
   description?: string;
 };
+export type NormalizedFightingStyleOption = {
+  id: string;
+  label: string;
+  description?: string;
+};
 
 export type NormalizedCharacterCreationCatalog = CatalogRecord & {
   backgrounds: Record<string, CatalogRecord & {
@@ -157,6 +162,30 @@ export function getOriginFeatOptions(
       id,
       label: nonEmptyString(feat.name_tr) ?? id,
       ...(nonEmptyString(feat.desc) ? { description: nonEmptyString(feat.desc) } : {}),
+    }];
+  });
+}
+
+export function getFightingStyleOptions(
+  classData: unknown,
+): NormalizedFightingStyleOption[] {
+  const rawStyles = asRecord(classData).fighting_styles;
+  if (!Array.isArray(rawStyles)) return [];
+
+  return rawStyles.flatMap((value) => {
+    const style = asRecord(value);
+    const id = nonEmptyString(style.id);
+    if (!id) return [];
+
+    const label =
+      nonEmptyString(style.name_tr) ??
+      nonEmptyString(style.name) ??
+      id;
+    const description = nonEmptyString(style.desc);
+    return [{
+      id,
+      label,
+      ...(description ? { description } : {}),
     }];
   });
 }
