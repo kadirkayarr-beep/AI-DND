@@ -49,8 +49,10 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
 )
 from api.persistence.campaign_store import CampaignStore
+from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import (
     CharacterCreationOptions,
+    CharacterCreationCatalogResponse,
     CampaignCreateRequest,
     CampaignDetailResponse,
     CampaignStartOptionsResponse,
@@ -437,6 +439,17 @@ def create_app(
     )
     def character_creation_options() -> dict[str, list[str]]:
         return {"races": list(game.RACES), "classes": list(game.CLASSES)}
+
+    @application.get(
+        "/api/game/character-creation-catalog",
+        response_model=CharacterCreationCatalogResponse,
+    )
+    @application.get(
+        "/api/character-creation-catalog",
+        response_model=CharacterCreationCatalogResponse,
+    )
+    def character_creation_catalog() -> dict[str, Any]:
+        return get_character_creation_catalog()
 
     @application.get(
         "/api/game/campaign-start-options",

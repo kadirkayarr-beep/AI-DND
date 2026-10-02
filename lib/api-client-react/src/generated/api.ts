@@ -27,6 +27,7 @@ import type {
   CampaignSession,
   CampaignStartOptionsResponse,
   CampaignSummary,
+  CharacterCreationCatalogResponse,
   CharacterCreationOptions,
   GameSession,
   GameState,
@@ -687,6 +688,83 @@ export function useGetCharacterOptions<TData = Awaited<ReturnType<typeof getChar
 
 
 
+export const getGetCharacterCreationCatalogUrl = () => {
+
+
+
+
+  return `/api/game/character-creation-catalog`
+}
+
+/**
+ * @summary Read D&D 2024 rules character creation options catalog
+ */
+export const getCharacterCreationCatalog = async ( options?: Parameters<typeof customFetch>[1]): Promise<CharacterCreationCatalogResponse> => {
+
+  return customFetch<CharacterCreationCatalogResponse>(getGetCharacterCreationCatalogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCharacterCreationCatalogQueryKey = () => {
+    return [
+    `/api/game/character-creation-catalog`
+    ] as const;
+    }
+
+
+export const getGetCharacterCreationCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getCharacterCreationCatalog>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterCreationCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCharacterCreationCatalogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCharacterCreationCatalog>>> = ({ signal }) => getCharacterCreationCatalog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCharacterCreationCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCharacterCreationCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getCharacterCreationCatalog>>>
+export type GetCharacterCreationCatalogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read D&D 2024 rules character creation options catalog
+ */
+
+export function useGetCharacterCreationCatalog<TData = Awaited<ReturnType<typeof getCharacterCreationCatalog>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCharacterCreationCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCharacterCreationCatalogQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetCampaignsUrl = () => {
 
 
@@ -1299,6 +1377,84 @@ export function useGetLegacyCharacterOptions<TData = Awaited<ReturnType<typeof g
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetLegacyCharacterOptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLegacyCharacterCreationCatalogUrl = () => {
+
+
+
+
+  return `/api/character-creation-catalog`
+}
+
+/**
+ * Compatibility alias for /game/character-creation-catalog. Prefer the /game route family for new clients.
+ * @summary Legacy character-creation-catalog alias
+ */
+export const getLegacyCharacterCreationCatalog = async ( options?: Parameters<typeof customFetch>[1]): Promise<CharacterCreationCatalogResponse> => {
+
+  return customFetch<CharacterCreationCatalogResponse>(getGetLegacyCharacterCreationCatalogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLegacyCharacterCreationCatalogQueryKey = () => {
+    return [
+    `/api/character-creation-catalog`
+    ] as const;
+    }
+
+
+export const getGetLegacyCharacterCreationCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLegacyCharacterCreationCatalogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>> = ({ signal }) => getLegacyCharacterCreationCatalog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLegacyCharacterCreationCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>>
+export type GetLegacyCharacterCreationCatalogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Legacy character-creation-catalog alias
+ */
+
+export function useGetLegacyCharacterCreationCatalog<TData = Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCharacterCreationCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLegacyCharacterCreationCatalogQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

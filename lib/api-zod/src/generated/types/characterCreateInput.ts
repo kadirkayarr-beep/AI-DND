@@ -5,6 +5,8 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CharacterCreateInputAbilityScores } from './characterCreateInputAbilityScores';
+import type { CharacterCreateInputBackgroundAbilityBonuses } from './characterCreateInputBackgroundAbilityBonuses';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
 
 /**
@@ -22,4 +24,32 @@ export interface CharacterCreateInput {
   race?: string | null;
   /** @nullable */
   class?: string | null;
+  /** @nullable */
+  species?: string | null;
+  /** @nullable */
+  background?: string | null;
+  /** @nullable */
+  alignment?: string | null;
+  /** @nullable */
+  ability_score_method?: string | null;
+  /** @nullable */
+  ability_scores?: CharacterCreateInputAbilityScores;
+  /** @nullable */
+  background_ability_bonuses?: CharacterCreateInputBackgroundAbilityBonuses;
+  /** @nullable */
+  proficient_skills?: string[] | null;
+  /** @nullable */
+  proficient_tools?: string[] | null;
+  /** @nullable */
+  origin_feat?: string | null;
+  /** @nullable */
+  fighting_style?: string | null;
+  /** @nullable */
+  equipment_package?: string | null;
+  /** @nullable */
+  equipment_choices?: string[] | null;
+  /** @nullable */
+  cantrips?: string[] | null;
+  /** @nullable */
+  spells?: string[] | null;
 }

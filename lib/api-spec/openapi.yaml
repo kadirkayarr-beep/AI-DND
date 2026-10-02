@@ -165,6 +165,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterCreationOptions"
+  /game/character-creation-catalog:
+    get:
+      operationId: getCharacterCreationCatalog
+      tags: [game]
+      summary: Read D&D 2024 rules character creation options catalog
+      responses:
+        "200":
+          description: Canonical character creation catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterCreationCatalogResponse"
   /game/campaigns:
     get:
       operationId: getCampaigns
@@ -332,6 +344,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CharacterCreationOptions"
+  /character-creation-catalog:
+    get:
+      operationId: getLegacyCharacterCreationCatalog
+      tags: [game]
+      summary: Legacy character-creation-catalog alias
+      description: Compatibility alias for /game/character-creation-catalog. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Canonical character creation catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterCreationCatalogResponse"
   /sessions:
     post:
       operationId: createLegacySession
@@ -1653,6 +1678,60 @@ components:
           type: ["string", "null"]
         class:
           type: ["string", "null"]
+        species:
+          type: ["string", "null"]
+        background:
+          type: ["string", "null"]
+        alignment:
+          type: ["string", "null"]
+        ability_score_method:
+          type: ["string", "null"]
+        ability_scores:
+          type: ["object", "null"]
+        background_ability_bonuses:
+          type: ["object", "null"]
+        proficient_skills:
+          type: ["array", "null"]
+          items:
+            type: string
+        proficient_tools:
+          type: ["array", "null"]
+          items:
+            type: string
+        origin_feat:
+          type: ["string", "null"]
+        fighting_style:
+          type: ["string", "null"]
+        equipment_package:
+          type: ["string", "null"]
+        equipment_choices:
+          type: ["array", "null"]
+          items:
+            type: string
+        cantrips:
+          type: ["array", "null"]
+          items:
+            type: string
+        spells:
+          type: ["array", "null"]
+          items:
+            type: string
+        languages:
+          type: ["array", "null"]
+          items:
+            type: string
+        background_equipment_option:
+          type: ["string", "null"]
+          enum: ["A", "B", null]
+        appearance:
+          type: ["string", "null"]
+          maxLength: 1000
+        personality:
+          type: ["string", "null"]
+          maxLength: 1000
+        backstory:
+          type: ["string", "null"]
+          maxLength: 2000
       required: [mode]
       additionalProperties: false
     CharacterCreationOptions:
@@ -1668,6 +1747,31 @@ components:
           items:
             type: string
       required: [races, classes]
+    CharacterCreationCatalogResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        races:
+          type: object
+        classes:
+          type: object
+        backgrounds:
+          type: object
+        ability_score_methods:
+          type: array
+          items:
+            type: object
+        alignments:
+          type: array
+          items:
+            type: object
+        origin_feats:
+          type: object
+        spells_catalog:
+          type: object
+        skills:
+          type: object
+      required: [races, classes, backgrounds, ability_score_methods, alignments, origin_feats, spells_catalog, skills]
     CampaignSummary:
       type: object
       additionalProperties: false

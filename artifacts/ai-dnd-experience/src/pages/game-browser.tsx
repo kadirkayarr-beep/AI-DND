@@ -35,6 +35,7 @@ import {
   getGetCampaignsQueryKey,
   getGetCampaignStartOptionsQueryKey,
   getGetCharacterOptionsQueryKey,
+  getGetCharacterCreationCatalogQueryKey,
   getGetGameHealthQueryKey,
   getGetGameSessionStateQueryKey,
   useCreateCampaign,
@@ -42,6 +43,7 @@ import {
   useGetCampaigns,
   useGetCampaignStartOptions,
   useGetCharacterOptions,
+  useGetCharacterCreationCatalog,
   useGetGameSessionState,
   useAcceptGameQuest,
   useCancelGameQuest,
@@ -599,7 +601,7 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
   const abilities = [['KUV', character.strength], ['ÇEV', character.dexterity], ['DAY', character.constitution], ['ZEK', character.intelligence], ['BİL', character.wisdom], ['KAR', character.charisma]];
-  return <main className="reveal-screen" data-testid="screen-character-reveal"><header className="dnd-shell reveal-header"><Brand /><button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening"><ArrowLeft size={13} /> Geri dön</button></header><div className="reveal-wrap"><div className="reveal-heading"><Kicker>Yeni macera · Kanonik karakter kaydı</Kicker><h1 className="dnd-display">Yolcu ortaya çıktı.</h1><p className="dnd-serif">Motorun ürettiği kayıtla yola çıkıyorsun. Bu sayfa bir seçim ekranı değil; dünya durumunun okunabilir yüzü.</p></div><div className="reveal-card"><div className="portrait-empty" aria-label="Portre alanı boş"><ScrollText size={25} /><Kicker>Portre alanı · boş</Kicker><span>Motor portre verisi sağlamadı</span></div><div className="reveal-data"><div className="reveal-top"><div><Kicker>Karakter</Kicker><h2 data-testid="reveal-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div><Rule /><div className="reveal-metrics"><div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div><div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div><div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div></div><div className="reveal-stats"><Kicker>Özellikler · motor kaydı</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div><div className="reveal-skills"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Motor henüz beceri kaydetmedi.</span>}</div></div><div className="reveal-actions"><span>İsim, ırk, sınıf ve değerler sunucunun kaydıdır.</span><button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">Macerayı aç <ArrowRight size={14} /></button></div></div></div></div></main>;
+  return <main className="reveal-screen" data-testid="screen-character-reveal"><header className="dnd-shell reveal-header"><Brand /><button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening"><ArrowLeft size={13} /> Geri dön</button></header><div className="reveal-wrap"><div className="reveal-heading"><Kicker>Yeni Macera · Karakter Sayfası</Kicker><h1 className="dnd-display">Kahramanın Maceraya Hazır.</h1><p className="dnd-serif">Seçtiğin tüm nitelikler, beceriler ve ekipmanlar kurallara göre mühürlendi. Yolculuk başlıyor.</p></div><div className="reveal-card"><div className="portrait-empty" aria-label="Portre alanı boş"><ScrollText size={25} /><Kicker>Portre Çizimi</Kicker><span>Özel portre çizimi bulunmuyor</span></div><div className="reveal-data"><div className="reveal-top"><div><Kicker>Karakter</Kicker><h2 data-testid="reveal-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div><Rule /><div className="reveal-metrics"><div><Kicker>Can</Kicker><strong>{character.current_hp} / {character.max_hp}</strong></div><div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div><div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div></div><div className="reveal-stats"><Kicker>Temel Yetenek Puanları</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div><div className="reveal-skills"><Kicker>Usta Olunan Beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Kayıtlı beceri bulunmuyor.</span>}</div></div><div className="reveal-actions"><span>Karakter sayfası hazırlandı ve maceraya mühürlendi.</span><button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">Macerayı aç <ArrowRight size={14} /></button></div></div></div></div></main>;
 }
 
 function StateSkeleton() {
@@ -635,6 +637,13 @@ export default function GameBrowser() {
   const characterOptionsQuery = useGetCharacterOptions({
     query: {
       queryKey: getGetCharacterOptionsQueryKey(),
+      enabled: phase === 'creation',
+      retry: false,
+    },
+  });
+  const characterCatalogQuery = useGetCharacterCreationCatalog({
+    query: {
+      queryKey: getGetCharacterCreationCatalogQueryKey(),
       enabled: phase === 'creation',
       retry: false,
     },
@@ -754,7 +763,7 @@ export default function GameBrowser() {
         tone: 'error',
         title: 'Kampanya oluşturulamadı',
         detail: statusCode(error) === 422
-          ? 'İsim, ırk veya sınıfı kontrol et; motor yalnızca listelenen seçenekleri kabul eder.'
+          ? 'İsim, ırk veya sınıfı kontrol et; kurallar yalnızca geçerli seçenekleri kabul eder.'
           : friendlyError(error, 'Sunucu yanıt vermedi.'),
       }),
     });
@@ -885,7 +894,7 @@ export default function GameBrowser() {
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Motor şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Python motoru bu hamleyi kabul etmedi.') }),
+      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Oyun şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Bu hamle kabul edilmedi.') }),
     });
   };
 
@@ -894,16 +903,20 @@ export default function GameBrowser() {
   if (phase === 'creation') return (
     <CharacterCreationScreen
       options={characterOptionsQuery.data}
+      catalog={characterCatalogQuery.data}
       startOptions={campaignStartOptionsQuery.data}
-      loadingOptions={characterOptionsQuery.isLoading}
+      loadingOptions={characterOptionsQuery.isLoading || characterCatalogQuery.isLoading}
       loadingStartOptions={campaignStartOptionsQuery.isLoading}
-      optionsError={characterOptionsQuery.error}
+      optionsError={characterOptionsQuery.error || characterCatalogQuery.error}
       startOptionsError={campaignStartOptionsQuery.error}
       creating={createCampaign.isPending}
       notice={notice}
       onBack={() => { setPhase(creationReturnPhase); setNotice(null); }}
       onCreate={handleCreateCharacter}
-      onRetryOptions={() => void characterOptionsQuery.refetch()}
+      onRetryOptions={() => {
+        void characterOptionsQuery.refetch();
+        void characterCatalogQuery.refetch();
+      }}
       onRetryStartOptions={() => void campaignStartOptionsQuery.refetch()}
     />
   );
@@ -929,7 +942,7 @@ export default function GameBrowser() {
           ) : stateQuery.isError ? (
             <div className="dnd-card p-7 workspace-error" data-testid="error-session-state">
               <div className="flex items-center gap-2 text-[#dca49b]">
-                <AlertTriangle size={16} /> {statusCode(stateQuery.error) === 503 ? 'Motor şu an kullanılamıyor.' : 'Günlük yüklenemedi.'}
+                <AlertTriangle size={16} /> {statusCode(stateQuery.error) === 503 ? 'Oyun şu an kullanılamıyor.' : 'Günlük yüklenemedi.'}
               </div>
               <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{friendlyError(stateQuery.error, 'Kanonik durum alınamadı.')}</p>
               <button className="dnd-button secondary mt-5" type="button" data-testid="button-retry-session-state" onClick={() => void stateQuery.refetch()}>

@@ -127,16 +127,34 @@ class CampaignStartApiTests(unittest.IsolatedAsyncioTestCase):
             "starting_location_id": location["entity_id"],
         }
 
+        valid_character = {
+            "mode": "custom",
+            "name": "Mira",
+            "species": "Human",
+            "character_class": "Fighter",
+            "background": "Soldier",
+            "alignment": "Neutral Good",
+            "ability_score_method": "standard_array",
+            "ability_scores": {
+                "strength": 15,
+                "dexterity": 14,
+                "constitution": 13,
+                "wisdom": 12,
+                "intelligence": 10,
+                "charisma": 8,
+            },
+            "background_ability_bonuses": {"strength": 2, "constitution": 1},
+            "proficient_skills": ["Athletics", "Intimidation", "Perception", "Survival", "Stealth"],
+            "fighting_style": "Defense",
+            "languages": ["Common", "Orc", "Goblin"],
+            "background_equipment_option": "A",
+            "equipment_package": "A",
+        }
         response = await self.http.post(
             "/api/game/campaigns",
             json={
                 "name": "First steps in Neverwinter",
-                "character": {
-                    "mode": "custom",
-                    "name": "Mira",
-                    "race": "Human",
-                    "class": "Fighter",
-                },
+                "character": valid_character,
                 "campaign_start": campaign_start,
             },
         )
@@ -176,15 +194,33 @@ class CampaignStartApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_campaign_start_is_rejected_before_creation(self):
         options_response = await self.http.get("/api/game/campaign-start-options")
         option = options_response.json()["settings"][0]["regions"][0]
+        valid_character = {
+            "mode": "custom",
+            "name": "Mira",
+            "species": "Human",
+            "character_class": "Fighter",
+            "background": "Soldier",
+            "alignment": "Neutral Good",
+            "ability_score_method": "standard_array",
+            "ability_scores": {
+                "strength": 15,
+                "dexterity": 14,
+                "constitution": 13,
+                "wisdom": 12,
+                "intelligence": 10,
+                "charisma": 8,
+            },
+            "background_ability_bonuses": {"strength": 2, "constitution": 1},
+            "proficient_skills": ["Athletics", "Intimidation", "Perception", "Survival", "Stealth"],
+            "fighting_style": "Defense",
+            "languages": ["Common", "Orc", "Goblin"],
+            "background_equipment_option": "A",
+            "equipment_package": "A",
+        }
         response = await self.http.post(
             "/api/game/campaigns",
             json={
-                "character": {
-                    "mode": "custom",
-                    "name": "Mira",
-                    "race": "Human",
-                    "class": "Fighter",
-                },
+                "character": valid_character,
                 "campaign_start": {
                     "setting_id": "forgotten_realms",
                     "region_pack_id": option["region_pack_id"],

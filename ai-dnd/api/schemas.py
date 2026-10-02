@@ -217,6 +217,25 @@ class CharacterCreateInput(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=40)
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
+    species: str | None = None
+    background: str | None = None
+    alignment: str | None = None
+    ability_score_method: str | None = None
+    ability_scores: dict[str, int] | None = None
+    background_ability_bonuses: dict[str, int] | None = None
+    proficient_skills: list[str] | None = None
+    proficient_tools: list[str] | None = None
+    origin_feat: str | None = None
+    fighting_style: str | None = None
+    equipment_package: str | None = None
+    equipment_choices: list[str] | None = None
+    cantrips: list[str] | None = None
+    spells: list[str] | None = None
+    languages: list[str] | None = None
+    background_equipment_option: Literal["A", "B"] | None = None
+    appearance: str | None = Field(default=None, max_length=1000)
+    personality: str | None = Field(default=None, max_length=1000)
+    backstory: str | None = Field(default=None, max_length=2000)
 
     @field_validator("name")
     @classmethod
@@ -230,15 +249,40 @@ class CharacterCreateInput(BaseModel):
 
     @model_validator(mode="after")
     def fields_must_match_creation_mode(self) -> "CharacterCreateInput":
+        custom_fields = (
+            self.name,
+            self.race,
+            self.character_class,
+            self.species,
+            self.background,
+            self.alignment,
+            self.ability_score_method,
+            self.ability_scores,
+            self.background_ability_bonuses,
+            self.proficient_skills,
+            self.proficient_tools,
+            self.origin_feat,
+            self.fighting_style,
+            self.equipment_package,
+            self.equipment_choices,
+            self.cantrips,
+            self.spells,
+            self.languages,
+            self.background_equipment_option,
+            self.appearance,
+            self.personality,
+            self.backstory,
+        )
         if self.mode == "custom":
-            if self.name is None or self.race is None or self.character_class is None:
+            if (
+                self.name is None
+                or (self.race is None and self.species is None)
+                or self.character_class is None
+            ):
                 raise ValueError(
                     "Custom character creation requires a name, race, and class."
                 )
-        elif any(
-            value is not None
-            for value in (self.name, self.race, self.character_class)
-        ):
+        elif any(value is not None for value in custom_fields):
             raise ValueError(
                 "Random character creation does not accept custom character fields."
             )
@@ -248,6 +292,17 @@ class CharacterCreateInput(BaseModel):
 class CharacterCreationOptions(BaseModel):
     races: list[str]
     classes: list[str]
+
+
+class CharacterCreationCatalogResponse(BaseModel):
+    races: dict[str, Any]
+    classes: dict[str, Any]
+    backgrounds: dict[str, Any]
+    ability_score_methods: list[dict[str, Any]]
+    alignments: list[dict[str, Any]]
+    origin_feats: dict[str, Any]
+    spells_catalog: dict[str, Any]
+    skills: dict[str, Any]
 
 
 class CampaignStartSelection(BaseModel):

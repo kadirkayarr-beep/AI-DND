@@ -809,6 +809,16 @@ export const CharacterCreateInputMode = {
 } as const;
 
 /**
+ * @nullable
+ */
+export type CharacterCreateInputAbilityScores = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type CharacterCreateInputBackgroundAbilityBonuses = { [key: string]: unknown } | null;
+
+/**
  * Custom mode requires non-null name, race, and class. Random mode rejects non-null custom fields; omitted or explicit null custom fields are allowed.
  */
 export interface CharacterCreateInput {
@@ -823,6 +833,34 @@ export interface CharacterCreateInput {
   race?: string | null;
   /** @nullable */
   class?: string | null;
+  /** @nullable */
+  species?: string | null;
+  /** @nullable */
+  background?: string | null;
+  /** @nullable */
+  alignment?: string | null;
+  /** @nullable */
+  ability_score_method?: string | null;
+  /** @nullable */
+  ability_scores?: CharacterCreateInputAbilityScores;
+  /** @nullable */
+  background_ability_bonuses?: CharacterCreateInputBackgroundAbilityBonuses;
+  /** @nullable */
+  proficient_skills?: string[] | null;
+  /** @nullable */
+  proficient_tools?: string[] | null;
+  /** @nullable */
+  origin_feat?: string | null;
+  /** @nullable */
+  fighting_style?: string | null;
+  /** @nullable */
+  equipment_package?: string | null;
+  /** @nullable */
+  equipment_choices?: string[] | null;
+  /** @nullable */
+  cantrips?: string[] | null;
+  /** @nullable */
+  spells?: string[] | null;
 }
 
 export interface CampaignStartSelection {
@@ -887,6 +925,33 @@ export interface CampaignStartOptionsResponse {
 export interface CharacterCreationOptions {
   races: string[];
   classes: string[];
+}
+
+export type CharacterCreationCatalogResponseRaces = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseClasses = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseBackgrounds = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseAbilityScoreMethodsItem = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseAlignmentsItem = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseOriginFeats = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseSpellsCatalog = { [key: string]: unknown };
+
+export type CharacterCreationCatalogResponseSkills = { [key: string]: unknown };
+
+export interface CharacterCreationCatalogResponse {
+  races: CharacterCreationCatalogResponseRaces;
+  classes: CharacterCreationCatalogResponseClasses;
+  backgrounds: CharacterCreationCatalogResponseBackgrounds;
+  ability_score_methods: CharacterCreationCatalogResponseAbilityScoreMethodsItem[];
+  alignments: CharacterCreationCatalogResponseAlignmentsItem[];
+  origin_feats: CharacterCreationCatalogResponseOriginFeats;
+  spells_catalog: CharacterCreationCatalogResponseSpellsCatalog;
+  skills: CharacterCreationCatalogResponseSkills;
 }
 
 export interface CampaignSummary {
