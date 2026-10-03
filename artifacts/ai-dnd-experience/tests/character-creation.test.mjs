@@ -10,6 +10,7 @@ let renderCreationScreen;
 let React;
 let catalogNormalizer;
 let characterPreview;
+let defaultCatalog;
 
 const mockCatalog = {
   races: {
@@ -121,8 +122,10 @@ before(async () => {
     logLevel: 'silent',
   });
   const component = await vite.ssrLoadModule('/src/components/character-creation-screen.tsx');
+  const catalogDefaults = await vite.ssrLoadModule('/src/lib/character-catalog-defaults.ts');
   catalogNormalizer = await vite.ssrLoadModule('/src/lib/character-catalog-normalizer.ts');
   characterPreview = await vite.ssrLoadModule('/src/lib/character-preview-stats.ts');
+  defaultCatalog = catalogDefaults.DEFAULT_CATALOG;
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
 
@@ -194,6 +197,23 @@ test('species cards render API-shaped trait objects without passing objects to R
   assert.ok(html.includes(description));
   assert.ok(html.includes('Eski biçimli özellik'));
   assert.ok(!html.includes('[object Object]'));
+});
+
+test('species picker shows 2024 additions and retains the 2014 Half species with source labels', () => {
+  const html = renderCreationScreen({
+    initialStep: 'species',
+    catalog: defaultCatalog,
+  });
+
+  assert.ok(html.includes('Göksoylu (Aasimar)'));
+  assert.ok(html.includes('Devsoylu (Goliath)'));
+  assert.ok(html.includes('Ork (Orc)'));
+  assert.ok(html.includes('Yarı-Elf (Half-Elf)'));
+  assert.ok(html.includes('Yarı-Ork (Half-Orc)'));
+  assert.ok(html.includes('D&amp;D 2024 PHB'));
+  assert.equal((html.match(/D&amp;D 2014 · Eski seçenek/g) ?? []).length, 2);
+  assert.ok(html.includes('Göksel Tecelli (Celestial Revelation)'));
+  assert.ok(html.includes('Adrenalin Patlaması (Adrenaline Rush)'));
 });
 
 test('normalizes server catalog fields and keeps spell selection keyed by unique IDs', () => {

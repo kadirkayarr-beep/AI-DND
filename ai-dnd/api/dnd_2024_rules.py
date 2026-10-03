@@ -3,7 +3,7 @@
 Implements rules from the D&D 5e Player's Handbook (2024) and setting options:
 - 12 Classes with hit dice, saving throws, skill options, spellcasting, features
 - 16 Backgrounds with ability score boosts (+2/+1 or +1/+1/+1), skills, tools, origin feats
-- 10 Species with traits, darkvision, speed, lineages
+- 10 D&D 2024 PHB species plus retained 2014 Half-Elf and Half-Orc options
 - 3 Ability Score generation methods: Standard Array, Point Buy (27 pts), Rolled (4d6 drop lowest)
 - Starting Equipment packages
 - Spellcasting setup (cantrips & 1st-level spells)
@@ -337,16 +337,38 @@ BACKGROUND_DEFINITIONS = {
 
 
 # ============================================================================
-# SPECIES (2024 PHB & Faerûn Lore)
+# SPECIES (2024 PHB, with retained 2014 SRD legacy options)
 # ============================================================================
 
 SPECIES_DEFINITIONS = {
+    "Aasimar": {
+        "name_tr": "Göksoylu (Aasimar)",
+        "desc": "Ruhunda Yukarı Düzlemlerden bir kıvılcım taşıyan ölümlüler; göksel mirasları ışık, şifa ve kudret olarak belirir.",
+        "size": "Medium or Small",
+        "speed": 30,
+        "darkvision": 60,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 186",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
+        "traits": [
+            {"name": "Göksel Direnç (Celestial Resistance)", "desc": "Necrotic ve radiant hasara karşı direncin vardır."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
+            {"name": "Şifa Veren Eller (Healing Hands)", "desc": "Büyü eylemiyle dokunduğun bir yaratığa Ustalık Bonusun kadar d4 toplamı kadar can kazandırırsın; uzun dinlenmede yenilenir."},
+            {"name": "Işık Taşıyıcısı (Light Bearer)", "desc": "Karizmanı kullanarak Light cantrip'ini bilirsin."},
+            {"name": "Göksel Tecelli (Celestial Revelation)", "desc": "3. seviyede bir dakikalığına Kanatlı Gökyüzü, İç Işıma veya Nekrotik Örtü biçimlerinden birini seçersin; tur başına bir kez fazladan hasar ve seçilen biçime özgü etki sağlar, uzun dinlenmede yenilenir."},
+        ],
+    },
     "Human": {
         "name_tr": "İnsan (Human)",
         "desc": "Hırslı, uyumlu ve son derece becerikli. Faerûn'un en yaygın türü.",
         "size": "Medium",
         "speed": 30,
         "darkvision": 0,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 194",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "skill_bonus_count": 1,
         "origin_feat_bonus_count": 1,
         "traits": [
@@ -361,11 +383,16 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 60,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), pp. 189–190",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
             {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Fey Soyu (Fey Ancestry)", "desc": "Büyüyle büyülenmeye (Charmed) karşı kurtarma zarlarında avantajın vardır."},
-            {"name": "Keskin Duyular (Keen Senses)", "desc": "Algı (Perception) becerisinde doğuştan ustalığın vardır."},
-            {"name": "Trans (Trance)", "desc": "Uyumak yerine 4 saatlik derin meditasyonla dinlenirsin."},
+            {"name": "Elf Soyu (Elven Lineage)", "desc": "Drow, High Elf veya Wood Elf soyunu seçersin; bu seçim başlangıç büyülerini, 3. ve 5. seviyede öğrendiğin büyüleri etkiler."},
+            {"name": "Fey Soyu (Fey Ancestry)", "desc": "Charmed durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır."},
+            {"name": "Keskin Duyular (Keen Senses)", "desc": "Insight, Perception veya Survival becerilerinden birinde uzmanlık kazanırsın."},
+            {"name": "Trans (Trance)", "desc": "Uykuya ihtiyaç duymazsın; 4 saatlik bilinçli transla uzun dinlenmeyi tamamlayabilirsin."},
         ],
     },
     "Dwarf": {
@@ -375,11 +402,15 @@ SPECIES_DEFINITIONS = {
         "speed": 30,
         "darkvision": 120,
         "hp_bonus": 1,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), pp. 188–189",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
             {"name": "Üstün Karanlık Görüşü", "desc": "120 fit mesafeye kadar zifiri karanlıkta görebilirsin."},
             {"name": "Cüce Dayanıklılığı (Resilience)", "desc": "Zehir hasarına karşı direnç ve zehirlenmeye karşı kurtarma zarlarında avantaj."},
             {"name": "Cüce Sağlamlığı (Toughness)", "desc": "Maksimum can puanın seviye başına 1 artar."},
-            {"name": "Taş Hissi (Stonecunning)", "desc": "Taş üzerinde Bonus Eylemle 60 fit Titreşim Hissi (Tremorsense) kazanırsın."},
+            {"name": "Taş Hissi (Stonecunning)", "desc": "Taşa temas ederken Bonus Eylemle 10 dakika 60 fit Tremorsense kazanırsın; kullanımların Ustalık Bonusuna eşittir ve uzun dinlenmede yenilenir."},
         ],
     },
     "Halfling": {
@@ -388,10 +419,15 @@ SPECIES_DEFINITIONS = {
         "size": "Small",
         "speed": 30,
         "darkvision": 0,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 193",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Şanslı (Lucky)", "desc": "Saldırı, yetenek veya kurtarma zarında 1 attığında zarı tekrar atabilirsin."},
-            {"name": "Cesur (Brave)", "desc": "Korku etkilerine karşı kurtarma zarlarında avantajın vardır."},
-            {"name": "Buçukluk Çevikliği", "desc": "Senden büyük yaratıkların alanından serbestçe geçebilirsin."},
+            {"name": "Şans (Luck)", "desc": "Bir d20 Testinde d20'de 1 attığında zarı yeniden atıp yeni sonucu kullanabilirsin."},
+            {"name": "Cesur (Brave)", "desc": "Frightened durumunu önlemek veya sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır."},
+            {"name": "Buçukluk Çevikliği (Halfling Nimbleness)", "desc": "Senden büyük yaratıkların alanından geçebilirsin; onların alanında sona eremezsin."},
+            {"name": "Doğal Gizlilik (Naturally Stealthy)", "desc": "Senden en az bir beden büyük bir yaratık seni örterken Hide eylemini kullanabilirsin."},
         ],
     },
     "Gnome": {
@@ -400,9 +436,14 @@ SPECIES_DEFINITIONS = {
         "size": "Small",
         "speed": 30,
         "darkvision": 60,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 191",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
             {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Gnóm Kurnazlığı (Gnome Cunning)", "desc": "Zeka, Bilgelik ve Karizma kurtarma zarlarında daima avantajın vardır."},
+            {"name": "Gnom Kurnazlığı (Gnomish Cunning)", "desc": "Intelligence, Wisdom ve Charisma kurtarma zarlarında avantajın vardır."},
+            {"name": "Gnom Soyu (Gnomish Lineage)", "desc": "Forest Gnome veya Rock Gnome soyunu seçerek ek doğaüstü yetenekler kazanırsın."},
         ],
     },
     "Tiefling": {
@@ -411,10 +452,14 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 60,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), pp. 196–197",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
             {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Cehennem Direnci", "desc": "Ateş hasarına karşı direncin vardır."},
-            {"name": "Doğaüstü Varlık", "desc": "Thaumaturgy cantrip'ini doğuştan bilirsin."},
+            {"name": "Şeytani Miras (Fiendish Legacy)", "desc": "Abyssal, Chthonic veya Infernal mirasını seçersin; direnç, cantrip ve 1., 3. ve 5. seviyelerde büyüler sağlar."},
+            {"name": "Öteki Dünyadan Varlık (Otherworldly Presence)", "desc": "Thaumaturgy cantrip'ini seçtiğin büyü yeteneğiyle bilirsin."},
         ],
     },
     "Dragonborn": {
@@ -423,35 +468,82 @@ SPECIES_DEFINITIONS = {
         "size": "Medium",
         "speed": 30,
         "darkvision": 60,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 187",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Ejderha Nefesi (Breath Weapon)", "desc": "15 fit koni veya 30 fit hat boyunca element hasarı (1d10) üflersin."},
-            {"name": "Ejderha Direnci", "desc": "Soyunun element türüne (ateş, yıldırım, asit, soğuk vb.) karşı direncin vardır."},
+            {"name": "Ejderha Soyu (Draconic Ancestry)", "desc": "Ejderha atana göre nefes silahının hasar türünü ve hasar direncini seçersin."},
+            {"name": "Nefes Silahı (Breath Weapon)", "desc": "Bir saldırı yerine 15 fit koni veya 30×5 fit hat boyunca 1d10 hasar verirsin; hasar 5., 11. ve 17. seviyelerde artar. Kullanımların Ustalık Bonusuna eşittir."},
             {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
+            {"name": "Ejderha Uçuşu (Draconic Flight)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika boyunca hızına eşit Uçuş Hızı kazanırsın."},
         ],
     },
     "Half-Elf": {
         "name_tr": "Yarı-Elf (Half-Elf)",
-        "desc": "İnsan tutkusu ile elf zarafetini birleştiren, iki dünyanın da köprüsünü kuran yolcular.",
+        "desc": "İnsan ve elf miraslarını bir arada taşıyan, 2014 kurallarındaki beceri çok yönlülüğü korunmuş eski bir seçenek.",
         "size": "Medium",
         "speed": 30,
         "darkvision": 60,
+        "rules_version": "2014 legacy",
+        "source_label_tr": "D&D 2014 · Eski seçenek",
+        "source_citation": "Wizards of the Coast, Systems Reference Document 5.1 (2016), Half-Elf Traits",
+        "source_url": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
         "skill_bonus_count": 2,
         "traits": [
-            {"name": "Karanlık Görüşü", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Fey Soyu", "desc": "Büyülenmeye karşı kurtarma zarlarında avantaj."},
-            {"name": "Yetenek Çok Yönlülüğü", "desc": "Seçtiğin fazladan 2 beceride ustalık kazanırsın."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
+            {"name": "Fey Ataları (Fey Ancestry)", "desc": "Charmed durumuna karşı kurtarma zarlarında avantajın vardır; büyü seni uyutamaz."},
+            {"name": "Beceri Çok Yönlülüğü (Skill Versatility)", "desc": "Seçtiğin iki beceride uzmanlık kazanırsın."},
+            {"name": "Diller (Languages)", "desc": "Common ve Elvish'in yanı sıra seçtiğin bir dili bilirsin."},
         ],
     },
     "Half-Orc": {
         "name_tr": "Yarı-Ork (Half-Orc)",
-        "desc": "Yenilmez iradeleri ve sarsılmaz fiziksel dirençleriyle bilinen gururlu savaşçılar.",
+        "desc": "İnsan ve ork soylarını birleştiren; 2014 kurallarındaki dayanıklılığı, tehditkâr duruşu ve kritik vuruş gücü korunmuş eski bir seçenek.",
+        "size": "Medium",
+        "speed": 30,
+        "darkvision": 60,
+        "rules_version": "2014 legacy",
+        "source_label_tr": "D&D 2014 · Eski seçenek",
+        "source_citation": "Wizards of the Coast, Systems Reference Document 5.1 (2016), Half-Orc Traits",
+        "source_url": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf",
+        "traits": [
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "60 fit mesafeye kadar karanlıkta görebilirsin."},
+            {"name": "Tehditkâr (Menacing)", "desc": "Intimidation becerisinde uzmanlık kazanırsın."},
+            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın."},
+            {"name": "Vahşi Saldırılar (Savage Attacks)", "desc": "Yakın dövüş silahı saldırısıyla kritik vuruşta silahın hasar zarlarından birini bir kez daha atıp sonuca eklersin."},
+        ],
+    },
+    "Goliath": {
+        "name_tr": "Devsoylu (Goliath)",
+        "desc": "İlk devlerin uzak torunları; dev atalarının izleri doğaüstü armağanlarda ve geçici olarak büyüyebilme yetilerinde görülür.",
+        "size": "Medium",
+        "speed": 35,
+        "darkvision": 0,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 192",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
+        "traits": [
+            {"name": "Dev Atası (Giant Ancestry)", "desc": "Bulut, ateş, ayaz, tepe, taş veya fırtına devi kökenli bir armağan seçersin; Ustalık Bonusun kadar kullanıp uzun dinlenmede yenilersin."},
+            {"name": "Büyük Biçim (Large Form)", "desc": "5. seviyede bir uzun dinlenmede bir kez, 10 dakika Büyük boyuta geçersin; Kuvvet kontrollerinde avantaj ve +10 fit hız kazanırsın."},
+            {"name": "Güçlü Yapı (Powerful Build)", "desc": "Grappled durumunu sona erdirmek için yaptığın kurtarma zarlarında avantajın vardır; taşıma kapasitesinde bir beden büyük sayılırsın."},
+        ],
+    },
+    "Orc": {
+        "name_tr": "Ork (Orc)",
+        "desc": "Gruumsh'un armağanlarını taşıyan; dayanıklılık, kararlılık ve karanlıkta görme yetileriyle uzun yolculuklara çıkan bir halk.",
         "size": "Medium",
         "speed": 30,
         "darkvision": 120,
+        "rules_version": "2024 PHB",
+        "source_label_tr": "D&D 2024 PHB",
+        "source_citation": "Player's Handbook (2024), p. 195",
+        "source_url": "https://www.dndbeyond.com/sources/dnd/phb-2024",
         "traits": [
-            {"name": "Üstün Karanlık Görüşü", "desc": "120 fit mesafeye kadar karanlıkta görebilirsin."},
-            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Canın 0'a düştüğünde ölmek yerine turda 1 kez 1 canla ayakta kalırsın."},
-            {"name": "Vahşi Saldırılar", "desc": "Kritik vuruş yaptığında fazladan bir silah hasar zarı atarsın."},
+            {"name": "Adrenalin Patlaması (Adrenaline Rush)", "desc": "Bonus Eylemle Dash yapıp Ustalık Bonusun kadar geçici can kazanırsın; kullanımların Ustalık Bonusuna eşittir ve kısa veya uzun dinlenmede yenilenir."},
+            {"name": "Karanlık Görüşü (Darkvision)", "desc": "120 fit mesafeye kadar karanlıkta görebilirsin."},
+            {"name": "Yılmayan Direnç (Relentless Endurance)", "desc": "Uzun dinlenmede bir kez, 0 can puanına düşüp anında ölmediğinde 1 can puanıyla ayakta kalırsın."},
         ],
     },
 }

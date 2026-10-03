@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import random
+import tempfile
 import unittest
+from pathlib import Path
 from typing import Any
 
+import game
 from api.character_creation import CharacterCreationError, configure_character
 from api.dnd_2024_rules import (
     BACKGROUND_DEFINITIONS,
@@ -48,6 +52,31 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertEqual(catalog["races"]["Human"]["skill_bonus_count"], 1)
         self.assertEqual(catalog["races"]["Human"]["origin_feat_bonus_count"], 1)
         self.assertEqual(catalog["races"]["Half-Elf"]["skill_bonus_count"], 2)
+        self.assertEqual(
+            set(catalog["races"]),
+            {
+                "Aasimar",
+                "Dragonborn",
+                "Dwarf",
+                "Elf",
+                "Gnome",
+                "Goliath",
+                "Halfling",
+                "Half-Elf",
+                "Half-Orc",
+                "Human",
+                "Orc",
+                "Tiefling",
+            },
+        )
+        self.assertEqual(set(game.RACES), set(catalog["races"]))
+        self.assertEqual(set(game.RACE_FEATURES), set(game.RACES))
+        self.assertEqual(catalog["races"]["Aasimar"]["rules_version"], "2024 PHB")
+        self.assertEqual(catalog["races"]["Goliath"]["speed"], 35)
+        self.assertEqual(catalog["races"]["Orc"]["darkvision"], 120)
+        self.assertEqual(catalog["races"]["Half-Elf"]["rules_version"], "2014 legacy")
+        self.assertEqual(catalog["races"]["Half-Orc"]["rules_version"], "2014 legacy")
+        self.assertEqual(catalog["races"]["Half-Orc"]["darkvision"], 60)
         self.assertEqual(
             {style["id"] for style in catalog["classes"]["Fighter"]["fighting_styles"]},
             {
@@ -358,10 +387,30 @@ class CharacterCreation2024Tests(unittest.TestCase):
             "languages": ["Common", "Dwarvish", "Giant"],
         }
 
-        session = MockSession()
+        session = game.create_session(seed=42)
         configure_character(session, mode="custom", **selections)
         self.assertEqual(session.character["species_bonus_skills"], ["History", "Stealth"])
+        self.assertEqual(
+            session.serialize_game_state()["player"]["species_bonus_skills"],
+            ["History", "Stealth"],
+        )
         self.assertIsNone(session.character["species_bonus_feat"])
+
+        legacy_save = session.serialize_game_state()
+        legacy_save["player"].pop("species_bonus_skills")
+        with tempfile.TemporaryDirectory() as directory:
+            save_path = Path(directory) / "legacy-half-elf.json"
+            save_path.write_text(json.dumps(legacy_save), encoding="utf-8")
+            restored_session = game.create_session(seed=7)
+            restored_session.character["species_bonus_skills"] = ["Perception"]
+            restored_session.load_game(save_path)
+            self.assertEqual(
+                restored_session.character["species_bonus_skills"], []
+            )
+            self.assertEqual(
+                set(restored_session.character["proficient_skills"]),
+                set(selections["proficient_skills"]),
+            )
 
         with self.assertRaises(CharacterCreationError):
             configure_character(

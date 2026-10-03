@@ -796,6 +796,14 @@ export function CharacterCreationScreen({
                         </div>
                         <p className="cc-card-desc">{rc.desc}</p>
                         <div className="cc-card-features">
+                          {typeof rc.source_label_tr === 'string' && (
+                            <span
+                              className="cc-feature-tag"
+                              title={typeof rc.source_citation === 'string' ? rc.source_citation : undefined}
+                            >
+                              {rc.source_label_tr}
+                            </span>
+                          )}
                           <span className="cc-feature-tag">Karanlık Görüşü: {rc.darkvision}</span>
                           {Array.isArray(rc.traits) && rc.traits.map((trait: unknown, index: number) => {
                             const details = speciesTraitDetails(trait);

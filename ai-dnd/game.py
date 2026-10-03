@@ -79,6 +79,7 @@ def roll_stat():
 # =========================================================
 
 RACES = [
+    "Aasimar",
     "Human",
     "Elf",
     "Dwarf",
@@ -87,7 +88,9 @@ RACES = [
     "Half-Elf",
     "Half-Orc",
     "Tiefling",
-    "Dragonborn"
+    "Dragonborn",
+    "Goliath",
+    "Orc",
 ]
 
 
@@ -98,46 +101,84 @@ RACES = [
 RACE_FEATURES = {
 
     "Human": [
-        "Versatile"
+        "Resourceful",
+        "Skillful",
+        "Versatile",
     ],
 
     "Elf": [
         "Darkvision",
-        "Fey Ancestry"
+        "Elven Lineage",
+        "Fey Ancestry",
+        "Keen Senses",
+        "Trance",
     ],
 
     "Dwarf": [
         "Darkvision",
-        "Dwarven Resilience"
+        "Dwarven Resilience",
+        "Dwarven Toughness",
+        "Stonecunning",
     ],
 
     "Halfling": [
-        "Lucky"
+        "Brave",
+        "Halfling Nimbleness",
+        "Lucky",
+        "Naturally Stealthy",
     ],
 
     "Gnome": [
         "Darkvision",
-        "Gnome Cunning"
+        "Gnomish Cunning",
+        "Gnomish Lineage",
     ],
 
     "Half-Elf": [
         "Darkvision",
-        "Fey Ancestry"
+        "Fey Ancestry",
+        "Skill Versatility",
     ],
 
     "Half-Orc": [
         "Darkvision",
-        "Relentless Endurance"
+        "Menacing",
+        "Relentless Endurance",
+        "Savage Attacks",
     ],
 
     "Tiefling": [
         "Darkvision",
-        "Hellish Resistance"
+        "Fiendish Legacy",
+        "Otherworldly Presence",
     ],
 
     "Dragonborn": [
-        "Breath Weapon"
-    ]
+        "Breath Weapon",
+        "Darkvision",
+        "Draconic Ancestry",
+        "Draconic Flight",
+    ],
+
+    "Aasimar": [
+        "Celestial Resistance",
+        "Celestial Revelation",
+        "Darkvision",
+        "Healing Hands",
+        "Light Bearer",
+    ],
+
+    "Goliath": [
+        "Giant Ancestry",
+        "Large Form",
+        "Powerful Build",
+    ],
+
+    "Orc": [
+        "Adrenaline Rush",
+        "Darkvision",
+        "Relentless Endurance",
+    ],
 }
 
 
@@ -1356,6 +1397,9 @@ def _player_state_for_save():
         "wisdom": _session().character["wisdom"],
         "charisma": _session().character["charisma"],
         "proficient_skills": list(_session().character["proficient_skills"]),
+        "species_bonus_skills": list(
+            _session().character.get("species_bonus_skills", [])
+        ),
         "level": _session().character["level"],
         "proficiency_bonus": _session().character["proficiency_bonus"],
         "max_hp": _session().character["max_hp"],
@@ -1530,6 +1574,18 @@ def _validate_save_payload(payload):
         _validate_combat_v3_payload(saved_world.get("combat"))
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
+    species_bonus_skills = player.get("species_bonus_skills", [])
+    if (
+        not isinstance(species_bonus_skills, list)
+        or any(
+            not isinstance(skill, str)
+            or skill not in SKILLS
+            or skill not in player["proficient_skills"]
+            for skill in species_bonus_skills
+        )
+        or len(species_bonus_skills) != len(set(species_bonus_skills))
+    ):
+        raise ValueError("Kayıt tür becerileri geçersiz.")
     for field in required_player - {"name", "race", "class", "proficient_skills"}:
         if type(player[field]) is not int:
             raise ValueError(f"Kayıt sayısal alanı geçersiz: {field}")
@@ -1750,6 +1806,9 @@ def load_game(path):
                       "max_hp", "current_hp", "armor_class"):
             character[field] = int(player[field])
         character["proficient_skills"] = list(player["proficient_skills"])
+        character["species_bonus_skills"] = list(
+            player.get("species_bonus_skills", [])
+        )
         character["modifiers"] = {
             ability: get_modifier(character[ability])
             for ability in ("strength", "dexterity", "constitution",
