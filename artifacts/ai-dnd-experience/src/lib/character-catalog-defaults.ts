@@ -218,6 +218,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       primary_ability: 'charisma',
       skill_count: 3,
       skill_options: ['Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception', 'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine', 'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion', 'Sleight of Hand', 'Stealth', 'Survival'],
+      expertise_progression: [{ level: 2, choices: 2 }, { level: 9, choices: 2 }],
       features: ['Ozan İlhamı (Bardic Inspiration)', 'Büyücülük'],
       is_spellcaster: true,
       cantrips_count: 2,
@@ -329,6 +330,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       primary_ability: 'dexterity',
       skill_count: 4,
       skill_options: ['Acrobatics', 'Athletics', 'Deception', 'Insight', 'Intimidation', 'Investigation', 'Perception', 'Performance', 'Persuasion', 'Sleight of Hand', 'Stealth'],
+      expertise_progression: [{ level: 1, choices: 2 }, { level: 6, choices: 2 }],
       features: ['Gizli Saldırı (Sneak Attack +1d6)', 'Uzmanlık (Expertise)', 'Hırsız Dili', 'Silah Ustalığı'],
       is_spellcaster: false,
       equipment_packages: [

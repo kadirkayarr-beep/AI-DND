@@ -28,6 +28,7 @@ import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import {
   getFightingStyleOptions,
   getClassSkillOptions,
+  getExpertiseChoiceCount,
   getOriginFeatOptions,
   getRequiredSkillCount,
   getSpeciesBonusSkillCount,
@@ -89,6 +90,7 @@ const STEPS = [
 ] as const;
 
 type StepId = typeof STEPS[number]['id'];
+const CHARACTER_CREATION_LEVEL = 1;
 
 function calculateModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -175,6 +177,7 @@ export function CharacterCreationScreen({
 
   // Class choices
   const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>([]);
+  const [selectedExpertiseSkills, setSelectedExpertiseSkills] = useState<string[]>([]);
   const [selectedSpeciesSkills, setSelectedSpeciesSkills] = useState<string[]>([]);
   const [speciesBonusFeat, setSpeciesBonusFeat] = useState('');
   const [fightingStyle, setFightingStyle] = useState('');
@@ -282,6 +285,7 @@ export function CharacterCreationScreen({
   // Reset skills and spells when class changes so player explicitly chooses
   useEffect(() => {
     setSelectedClassSkills([]);
+    setSelectedExpertiseSkills([]);
     setSelectedCantrips([]);
     setSelectedSpells([]);
     setFightingStyle('');
@@ -418,9 +422,26 @@ export function CharacterCreationScreen({
     [classData],
   );
   const requiredClassSkillCount = getRequiredSkillCount(classData?.skill_count);
+  const requiredExpertiseCount = getExpertiseChoiceCount(
+    classData?.expertise_progression,
+    CHARACTER_CREATION_LEVEL,
+  );
+  const isExpertiseValid =
+    selectedExpertiseSkills.length === requiredExpertiseCount &&
+    selectedExpertiseSkills.every((skill) => derivedStats.allSkills.includes(skill));
   const isSkillsValid =
     selectedClassSkills.length === requiredClassSkillCount &&
     selectedSpeciesSkills.length === speciesBonusSkillCount;
+
+  useEffect(() => {
+    const allowedSkills = new Set(derivedStats.allSkills);
+    setSelectedExpertiseSkills((selected) => {
+      const next = selected
+        .filter((skill) => allowedSkills.has(skill))
+        .slice(0, requiredExpertiseCount);
+      return next.length === selected.length ? selected : next;
+    });
+  }, [derivedStats.allSkills, requiredExpertiseCount]);
 
   const requiredCantripsCount = classData?.cantrips_count ?? 0;
   const isCantripsValid = !classData?.is_spellcaster || selectedCantrips.length === requiredCantripsCount;
@@ -464,7 +485,7 @@ export function CharacterCreationScreen({
         );
       }
       case 'choices': {
-        if (!isSkillsValid) return false;
+        if (!isSkillsValid || !isExpertiseValid) return false;
         if (characterClass === 'Fighter' && !fightingStyle) return false;
         if (classData?.is_spellcaster) {
           if (!isCantripsValid || !isSpellsValid) return false;
@@ -616,6 +637,7 @@ export function CharacterCreationScreen({
       ability_scores: baseScores,
       background_ability_bonuses: calculatedBackgroundBonuses,
       proficient_skills: derivedStats.allSkills,
+      expertise_skills: selectedExpertiseSkills,
       species_bonus_skills: selectedSpeciesSkills,
       proficient_tools: [backgroundData?.tool ?? 'Tools'],
       origin_feat: backgroundData?.origin_feat,
@@ -1226,6 +1248,50 @@ export function CharacterCreationScreen({
                   </div>
                 )}
 
+                {requiredExpertiseCount > 0 && (
+                  <div className="cc-sub-section" data-testid="section-expertise-skills">
+                    <div className="cc-sub-header">
+                      <span className="cc-label">
+                        Uzmanlık (Expertise) ({selectedExpertiseSkills.length} / {requiredExpertiseCount} Seçildi)
+                      </span>
+                      <small>
+                        Yalnızca usta olduğun becerilerden seç. Bu becerilerde ustalık bonusun iki katına çıkar.
+                      </small>
+                    </div>
+                    <div className="cc-checkbox-grid">
+                      {derivedStats.allSkills.map((skillName) => {
+                        const isSelected = selectedExpertiseSkills.includes(skillName);
+                        const isLimitReached =
+                          selectedExpertiseSkills.length >= requiredExpertiseCount;
+                        return (
+                          <label
+                            key={skillName}
+                            className={`cc-checkbox-card ${isSelected ? 'checked' : ''} ${!isSelected && isLimitReached ? 'disabled' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              data-testid={`checkbox-expertise-skill-${skillName}`}
+                              checked={isSelected}
+                              disabled={!isSelected && isLimitReached}
+                              onChange={(event) => {
+                                setSelectedExpertiseSkills((selected) =>
+                                  updateLimitedSelection(
+                                    selected,
+                                    skillName,
+                                    event.target.checked,
+                                    requiredExpertiseCount,
+                                  ),
+                                );
+                              }}
+                            />
+                            <span>{skillName}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Fighting Style for Fighter */}
                 {characterClass === 'Fighter' && (
                   <div className="cc-sub-section">
@@ -1708,6 +1774,16 @@ export function CharacterCreationScreen({
                           <div className="cc-sheet-pills" data-testid="review-species-bonus-skills">
                             {selectedSpeciesSkills.map((skill) => (
                               <span key={skill} className="cc-pill">{skill}</span>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {selectedExpertiseSkills.length > 0 && (
+                        <>
+                          <div className="cc-sheet-sec-title mt-4">Uzmanlık (Expertise)</div>
+                          <div className="cc-sheet-pills" data-testid="review-expertise-skills">
+                            {selectedExpertiseSkills.map((skill) => (
+                              <span key={skill} className="cc-pill cc-pill-gold">{skill}</span>
                             ))}
                           </div>
                         </>

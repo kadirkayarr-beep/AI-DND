@@ -43,6 +43,8 @@ export interface CharacterCreateInput {
   /** @nullable */
   proficient_skills?: string[] | null;
   /** @nullable */
+  expertise_skills?: string[] | null;
+  /** @nullable */
   proficient_tools?: string[] | null;
   /** @nullable */
   origin_feat?: string | null;

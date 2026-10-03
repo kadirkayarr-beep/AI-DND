@@ -283,6 +283,31 @@ test('species bonus skill selections stay separate from class skills', () => {
   assert.deepEqual(getSpeciesBonusSkillOptions(skillCatalog, 0), []);
 });
 
+test('Expertise choices follow each class and level progression', () => {
+  const { getExpertiseChoiceCount } = catalogNormalizer;
+  assert.equal(
+    getExpertiseChoiceCount(defaultCatalog.classes.Rogue.expertise_progression, 1),
+    2,
+  );
+  assert.equal(
+    getExpertiseChoiceCount(defaultCatalog.classes.Rogue.expertise_progression, 5),
+    2,
+  );
+  assert.equal(
+    getExpertiseChoiceCount(defaultCatalog.classes.Rogue.expertise_progression, 6),
+    4,
+  );
+  assert.equal(
+    getExpertiseChoiceCount(defaultCatalog.classes.Bard.expertise_progression, 1),
+    0,
+  );
+  assert.equal(
+    getExpertiseChoiceCount(defaultCatalog.classes.Bard.expertise_progression, 2),
+    2,
+  );
+  assert.equal(getExpertiseChoiceCount(undefined, 1), 0);
+});
+
 test('species bonus feat options exclude the background feat base name', () => {
   const options = catalogNormalizer.getOriginFeatOptions(
     {

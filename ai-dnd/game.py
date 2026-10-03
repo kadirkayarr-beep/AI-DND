@@ -15,6 +15,7 @@ import living_world
 import local_dialogue
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
+from api.dnd_2024_rules import get_expertise_choice_count
 from api.core_resolution import (
     resolution_action_scope,
     resolve_attack_roll,
@@ -1552,6 +1553,9 @@ def _player_state_for_save():
         "wisdom": _session().character["wisdom"],
         "charisma": _session().character["charisma"],
         "proficient_skills": list(_session().character["proficient_skills"]),
+        "expertise_skills": list(
+            _session().character.get("expertise_skills", [])
+        ),
         "species_bonus_skills": list(
             _session().character.get("species_bonus_skills", [])
         ),
@@ -1769,6 +1773,22 @@ def _validate_save_payload(payload):
     if any(not isinstance(skill, str) or skill not in SKILLS
            for skill in player["proficient_skills"]):
         raise ValueError("Karakter yetenekleri geçersiz.")
+    expertise_skills = player.get("expertise_skills", [])
+    if (
+        not isinstance(expertise_skills, list)
+        or any(
+            not isinstance(skill, str)
+            or skill not in SKILLS
+            or skill not in player["proficient_skills"]
+            for skill in expertise_skills
+        )
+        or len(expertise_skills) != len(set(expertise_skills))
+    ):
+        raise ValueError("Karakter uzmanlık becerileri geçersiz.")
+    if expertise_skills and len(expertise_skills) != get_expertise_choice_count(
+        player["class"], player["level"]
+    ):
+        raise ValueError("Karakter uzmanlık seçimi sınıf veya seviye ile uyuşmuyor.")
     if not 0 <= player["current_hp"] <= player["max_hp"] or player["max_hp"] < 1:
         raise ValueError("Karakter HP değerleri geçersiz.")
     if player["level"] < 1 or player["proficiency_bonus"] < 0 or player["armor_class"] < 0:
@@ -1987,6 +2007,9 @@ def load_game(path):
                       "max_hp", "current_hp", "armor_class"):
             character[field] = int(player[field])
         character["proficient_skills"] = list(player["proficient_skills"])
+        character["expertise_skills"] = list(
+            player.get("expertise_skills", [])
+        )
         character["species_bonus_skills"] = list(
             player.get("species_bonus_skills", [])
         )

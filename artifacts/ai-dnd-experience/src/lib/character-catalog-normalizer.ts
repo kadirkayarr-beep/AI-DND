@@ -124,6 +124,33 @@ export function getRequiredSkillCount(skillCount: unknown): number {
   return baseCount;
 }
 
+export function getExpertiseChoiceCount(
+  progression: unknown,
+  level: number,
+): number {
+  if (!Array.isArray(progression) || !Number.isInteger(level) || level < 1) {
+    return 0;
+  }
+
+  return progression.reduce((total, value) => {
+    const feature = asRecord(value);
+    const requiredLevel = feature.level;
+    const choices = feature.choices;
+    if (
+      typeof requiredLevel !== 'number' ||
+      !Number.isInteger(requiredLevel) ||
+      requiredLevel < 1 ||
+      typeof choices !== 'number' ||
+      !Number.isInteger(choices) ||
+      choices < 1 ||
+      level < requiredLevel
+    ) {
+      return total;
+    }
+    return total + choices;
+  }, 0);
+}
+
 export function getClassSkillOptions(classOptions: unknown): string[] {
   const options = Array.isArray(classOptions)
     ? classOptions.filter((skill): skill is string => typeof skill === 'string')

@@ -1648,6 +1648,10 @@ components:
           type: array
           items:
             type: string
+        expertise_skills:
+          type: array
+          items:
+            type: string
         origin_feat:
           type: ["string", "null"]
         species_bonus_feat:
@@ -1681,6 +1685,7 @@ components:
         - wisdom
         - charisma
         - proficient_skills
+        - expertise_skills
         - level
         - proficiency_bonus
         - max_hp
@@ -2151,6 +2156,10 @@ components:
         background_ability_bonuses:
           type: ["object", "null"]
         proficient_skills:
+          type: ["array", "null"]
+          items:
+            type: string
+        expertise_skills:
           type: ["array", "null"]
           items:
             type: string

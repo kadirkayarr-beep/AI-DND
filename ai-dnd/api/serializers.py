@@ -42,6 +42,7 @@ _PLAYER_FIELDS = (
     "wisdom",
     "charisma",
     "proficient_skills",
+    "expertise_skills",
     "origin_feat",
     "species_bonus_feat",
     "species_bonus_skills",
@@ -421,6 +422,12 @@ def serialize_session_state(
         getattr(session, "world_metadata", None),
     )
     character = _project_fields(player, _PLAYER_FIELDS)
+    expertise_skills = player.get("expertise_skills")
+    character["expertise_skills"] = (
+        list(expertise_skills)
+        if isinstance(expertise_skills, (list, tuple))
+        else []
+    )
     character["species"] = player.get("species", player.get("race"))
     character["giant_ancestry"] = player.get("giant_ancestry")
     trait_state = player.get("species_trait_state")

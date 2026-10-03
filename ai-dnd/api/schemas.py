@@ -341,6 +341,7 @@ class CharacterCreateInput(BaseModel):
     ability_scores: dict[str, int] | None = None
     background_ability_bonuses: dict[str, int] | None = None
     proficient_skills: list[str] | None = None
+    expertise_skills: list[str] | None = None
     proficient_tools: list[str] | None = None
     origin_feat: str | None = None
     species_bonus_feat: str | None = None
@@ -381,6 +382,7 @@ class CharacterCreateInput(BaseModel):
             self.ability_scores,
             self.background_ability_bonuses,
             self.proficient_skills,
+            self.expertise_skills,
             self.proficient_tools,
             self.origin_feat,
             self.species_bonus_feat,

@@ -587,6 +587,7 @@ CLASS_DEFINITIONS = {
         "saving_throws": ["dexterity", "charisma"],
         "skill_count": 3,
         "skill_options": list(SKILL_DEFINITIONS.keys()),
+        "expertise_progression": [{"level": 2, "choices": 2}, {"level": 9, "choices": 2}],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple"],
         "features": ["Ozan İlhamı (Bardic Inspiration d6)", "Büyücülük (Spellcasting)"],
@@ -735,6 +736,7 @@ CLASS_DEFINITIONS = {
         "saving_throws": ["dexterity", "intelligence"],
         "skill_count": 4,
         "skill_options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"],
+        "expertise_progression": [{"level": 1, "choices": 2}, {"level": 6, "choices": 2}],
         "armor_proficiencies": ["Light"],
         "weapon_proficiencies": ["Simple", "Martial (Finesse/Light)"],
         "features": ["Gizli Saldırı (Sneak Attack +1d6)", "Uzmanlık (Expertise)", "Hırsız Dili (Thieves' Cant)", "Silah Ustalığı"],
@@ -1031,6 +1033,20 @@ def get_character_creation_catalog() -> dict[str, Any]:
             "shield_item_tokens": list(SHIELD_ITEM_TOKENS),
         },
     }
+
+
+def get_expertise_choice_count(character_class: str, level: int) -> int:
+    """Return the number of Expertise skill choices granted by 2024 class features."""
+    if type(level) is not int or level < 1:
+        raise CharacterCreationError("Character level must be a positive integer.")
+    class_data = CLASS_DEFINITIONS.get(character_class)
+    if class_data is None:
+        raise CharacterCreationError(f"Unsupported class: {character_class}")
+    return sum(
+        feature["choices"]
+        for feature in class_data.get("expertise_progression", [])
+        if level >= feature["level"]
+    )
 
 
 # ============================================================================

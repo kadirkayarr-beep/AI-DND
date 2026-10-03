@@ -475,6 +475,7 @@ export interface GameCharacter {
   wisdom: number;
   charisma: number;
   proficient_skills: string[];
+  expertise_skills: string[];
   /** @nullable */
   origin_feat?: string | null;
   /** @nullable */
@@ -1248,6 +1249,8 @@ export interface CharacterCreateInput {
   background_ability_bonuses?: CharacterCreateInputBackgroundAbilityBonuses;
   /** @nullable */
   proficient_skills?: string[] | null;
+  /** @nullable */
+  expertise_skills?: string[] | null;
   /** @nullable */
   proficient_tools?: string[] | null;
   /** @nullable */

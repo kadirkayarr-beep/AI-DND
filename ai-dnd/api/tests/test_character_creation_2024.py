@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import game
 from api.character_creation import CharacterCreationError, configure_character
@@ -18,10 +19,16 @@ from api.dnd_2024_rules import (
     calculate_derived_stats,
     get_equipment_armor_and_shield,
     get_character_creation_catalog,
+    get_expertise_choice_count,
     roll_4d6_drop_lowest,
     validate_ability_scores,
     validate_background_bonuses,
 )
+from api.persistence.campaign_validation import (
+    restore_campaign_session,
+    serialize_campaign_payload,
+)
+from api.serializers import serialize_session_state
 
 
 class MockSession:
@@ -143,6 +150,13 @@ class CharacterCreation2024Tests(unittest.TestCase):
         self.assertIn("species_bonus_skills", char)
         self.assertIn("species_bonus_feat", char)
         self.assertIn("origin_feats", char)
+        expected_expertise_count = get_expertise_choice_count(
+            char["class"], char["level"]
+        )
+        self.assertEqual(len(char["expertise_skills"]), expected_expertise_count)
+        self.assertTrue(
+            set(char["expertise_skills"]).issubset(char["proficient_skills"])
+        )
 
         armor, has_shield = get_equipment_armor_and_shield(char["equipment_choices"])
         expected = calculate_derived_stats(
@@ -167,6 +181,100 @@ class CharacterCreation2024Tests(unittest.TestCase):
         )
         self.assertEqual(char["armor_class"], expected["armor_class"])
         self.assertEqual(char["max_hp"], expected["max_hp"])
+
+    def test_expertise_progression_validation_and_campaign_restore(self):
+        self.assertEqual(get_expertise_choice_count("Rogue", 1), 2)
+        self.assertEqual(get_expertise_choice_count("Rogue", 5), 2)
+        self.assertEqual(get_expertise_choice_count("Rogue", 6), 4)
+        self.assertEqual(get_expertise_choice_count("Bard", 1), 0)
+        self.assertEqual(get_expertise_choice_count("Bard", 2), 2)
+        self.assertEqual(get_expertise_choice_count("Bard", 9), 4)
+        self.assertEqual(get_expertise_choice_count("Fighter", 20), 0)
+
+        selections = {
+            "name": "Rook",
+            "race": "Elf",
+            "character_class": "Rogue",
+            "background": "Criminal",
+            "alignment": "Neutral Good",
+            "ability_score_method": "standard_array",
+            "ability_scores": {
+                "strength": 8,
+                "dexterity": 15,
+                "constitution": 13,
+                "intelligence": 12,
+                "wisdom": 14,
+                "charisma": 10,
+            },
+            "background_ability_bonuses": {
+                "dexterity": 2,
+                "constitution": 1,
+            },
+            "proficient_skills": [
+                "Sleight of Hand",
+                "Stealth",
+                "Athletics",
+                "Deception",
+                "Insight",
+                "Perception",
+            ],
+            "expertise_skills": ["Sleight of Hand", "Perception"],
+            "equipment_package": "A",
+            "background_equipment_option": "A",
+            "languages": ["Common", "Dwarvish", "Giant"],
+        }
+        session = game.create_session(seed=42)
+        configure_character(session, mode="custom", **selections)
+        self.assertEqual(
+            session.character["expertise_skills"],
+            selections["expertise_skills"],
+        )
+
+        with patch("game.roll_d20", return_value=10):
+            check = game.perform_skill_check(
+                "Perception",
+                12,
+                session.character["modifiers"],
+                session.character["proficient_skills"],
+                session.character["proficiency_bonus"],
+                expertise_skills=session.character["expertise_skills"],
+            )
+        self.assertTrue(check["expertise"])
+        self.assertEqual(check["proficiency_bonus"], 4)
+
+        for invalid_expertises in (
+            [],
+            ["History", "Perception"],
+            ["Perception", "Perception"],
+        ):
+            with self.assertRaises(CharacterCreationError):
+                configure_character(
+                    MockSession(),
+                    mode="custom",
+                    **{**selections, "expertise_skills": invalid_expertises},
+                )
+
+        campaign_payload = serialize_campaign_payload(session)
+        restored = game.create_session(seed=7)
+        restore_campaign_session(restored, campaign_payload)
+        self.assertEqual(
+            restored.character["expertise_skills"],
+            selections["expertise_skills"],
+        )
+        projected_state = serialize_session_state(restored)
+        self.assertEqual(
+            projected_state["character"]["expertise_skills"],
+            selections["expertise_skills"],
+        )
+
+        legacy_save = session.serialize_game_state()
+        legacy_save["player"].pop("expertise_skills")
+        with tempfile.TemporaryDirectory() as directory:
+            save_path = Path(directory) / "legacy-without-expertise.json"
+            save_path.write_text(json.dumps(legacy_save), encoding="utf-8")
+            legacy_session = game.create_session(seed=11)
+            legacy_session.load_game(save_path)
+        self.assertEqual(legacy_session.character["expertise_skills"], [])
 
     def test_derived_stats_follow_equipment_species_and_feat_rules(self):
         fighter = CLASS_DEFINITIONS["Fighter"]

@@ -22,6 +22,7 @@ from api.dnd_2024_rules import (
     calculate_derived_stats,
     get_equipment_armor_and_shield,
     generate_random_2024_character,
+    get_expertise_choice_count,
     roll_4d6_drop_lowest,
     validate_ability_scores,
     validate_background_bonuses,
@@ -47,6 +48,7 @@ def configure_character(
     ability_scores: dict[str, int] | None = None,
     background_ability_bonuses: dict[str, int] | None = None,
     proficient_skills: list[str] | None = None,
+    expertise_skills: list[str] | None = None,
     proficient_tools: list[str] | None = None,
     origin_feat: str | None = None,
     species_bonus_feat: str | None = None,
@@ -67,6 +69,7 @@ def configure_character(
     """Populate the engine's canonical character record following D&D 2024 rules."""
     if mode not in {"custom", "random"}:
         raise CharacterCreationError("Choose custom or random character creation.")
+    character_level = 1
 
     custom_inputs = (
         name,
@@ -80,6 +83,7 @@ def configure_character(
         ability_scores,
         background_ability_bonuses,
         proficient_skills,
+        expertise_skills,
         proficient_tools,
         origin_feat,
         species_bonus_feat,
@@ -170,6 +174,10 @@ def configure_character(
             min(species_bonus_skill_count, len(SKILL_DEFINITIONS)),
         )
         proficient_skills.extend(species_bonus_skills)
+        expertise_skills = session.rng.sample(
+            list(dict.fromkeys(proficient_skills)),
+            get_expertise_choice_count(character_class, character_level),
+        )
         proficient_tools = [bg_def["tool"]]
         origin_feat = bg_def["feat"]
         species_bonus_feat = None
@@ -410,6 +418,28 @@ def configure_character(
                 f"(chose {len(class_skills_chosen)})."
             )
 
+        expected_expertise_count = get_expertise_choice_count(
+            character_class, character_level
+        )
+        if expertise_skills is None:
+            expertise_skills = []
+        if not isinstance(expertise_skills, list) or any(
+            not isinstance(skill, str) or skill not in SKILL_DEFINITIONS
+            for skill in expertise_skills
+        ):
+            raise CharacterCreationError("Expertise choices must be valid skills.")
+        if len(expertise_skills) != len(set(expertise_skills)):
+            raise CharacterCreationError("Expertise choices cannot contain duplicates.")
+        if len(expertise_skills) != expected_expertise_count:
+            raise CharacterCreationError(
+                f"Class '{character_class}' at level 1 requires exactly "
+                f"{expected_expertise_count} Expertise skills."
+            )
+        if not set(expertise_skills).issubset(chosen_skills_set):
+            raise CharacterCreationError(
+                "Expertise can only be chosen for skills the character is proficient in."
+            )
+
         proficient_tools = proficient_tools or [bg_def["tool"]]
         origin_feat = origin_feat or bg_def["feat"]
         if bonus_fields_provided:
@@ -581,7 +611,7 @@ def configure_character(
         )
 
     modifiers = derived["modifiers"]
-    level = 1
+    level = character_level
     proficiency_bonus = 2
     max_hp = derived["max_hp"]
     current_hp = derived["current_hp"]
@@ -604,6 +634,7 @@ def configure_character(
             "final_ability_scores": final_ability_scores,
             **final_ability_scores,
             "proficient_skills": list(proficient_skills),
+            "expertise_skills": list(expertise_skills or []),
             "species_bonus_skills": list(species_bonus_skills or []),
             "proficient_tools": list(proficient_tools),
             "origin_feat": origin_feat,

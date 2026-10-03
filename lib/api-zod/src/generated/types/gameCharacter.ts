@@ -40,6 +40,7 @@ export interface GameCharacter {
   wisdom: number;
   charisma: number;
   proficient_skills: string[];
+  expertise_skills: string[];
   /** @nullable */
   origin_feat?: string | null;
   /** @nullable */
