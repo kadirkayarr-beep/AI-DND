@@ -1,0 +1,86 @@
+CORE RESOLUTION V1 — FINAL CLARIFICATIONS
+
+Önceki ana prompt ve clarification addendum'a aşağıdaki üç noktayı
+bağlayıcı son netleştirmeler olarak ekle.
+
+Henüz uygulamaya başlama. Ben "BAŞLA" demeden dosya değiştirme.
+
+1. STATE MUTATION BOUNDARY
+
+Core Resolution state mutation yapmaz.
+
+Core yalnızca authoritative ResolutionResult üretir.
+
+Başarılı resolution sonucunda gerekli state değişikliğini,
+ilgili Python gameplay sistemi uygular.
+
+Örnek:
+
+Core Resolution
+→ SUCCESS
+→ ResolutionResult
+
+Combat / Quest / Inventory / ilgili gameplay sistemi
+→ doğrulanmış sonucu değerlendirir
+→ kendi yetkili state transition'ını uygular.
+
+Core'un kendi içinde doğrudan HP, inventory, quest, NPC,
+combat veya başka canonical state mutate etmesi bu görev kapsamında
+yasaktır.
+
+2. ACTION_ID / RESOLUTION_ID AYRIMI
+
+`action_id`, oyuncunun tek bir gameplay action'ını temsil eder.
+
+`resolution_id`, o action içindeki tek bir authoritative
+resolution işlemini temsil eder.
+
+Bir action birden fazla resolution gerektirebilir.
+
+Örneğin ileride:
+
+action_id = A
+→ attack resolution_id = A-1
+→ damage resolution_id = A-2
+
+gibi bir ilişki kurulabilir.
+
+Her resolution kendi kararlı kimliğine sahip olmalıdır.
+
+Retry sırasında aynı action tekrar işlendiğinde mevcut
+resolution sonuçları yeniden kullanılmalı ve yeni zar
+üretilmemelidir.
+
+Aynı `action_id` farklı bir oyuncu action'ı ile yeniden
+kullanılırsa reddedilmelidir.
+
+Kimlikler session/campaign sınırları içinde izole edilmelidir.
+
+Bu davranış yalnızca process-memory'ye bağlı olmamalı;
+mevcut persistence/session sistemiyle uyumlu olmalıdır.
+
+3. SAVING THROW NATURAL 20 / NATURAL 1 TESTLERİ
+
+Saving throw için de doğal 20 ve doğal 1'in otomatik
+başarı/başarısızlık olmadığı açıkça test edilmelidir.
+
+En az iki targeted deterministic test bulunmalı:
+
+- Natural 1 + yeterince yüksek modifier → DC karşılanabiliyor
+  ve saving throw SUCCESS olabiliyor.
+
+- Natural 20 + yetersiz modifier → DC karşılanamıyor
+  ve saving throw FAILURE olabiliyor.
+
+Bu davranış yalnızca saving throw resolution'ında geçerlidir.
+
+Attack roll için daha önce tanımlanan natural 20 = critical hit
+ve natural 1 = automatic miss kuralları değişmez.
+
+Bunlar son clarification'lardır.
+
+Bundan sonra prompt kapsamını daha fazla genişletme.
+Önceki Core Resolution promptu + önceki clarification addendum
++ bu üç madde birlikte uygulanacak.
+
+Ben "BAŞLA" demeden implementasyon yapma.
