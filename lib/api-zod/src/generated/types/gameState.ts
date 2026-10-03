@@ -20,6 +20,7 @@ import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
 import type { KnownScheduledEvent } from './knownScheduledEvent';
+import type { PendingEventDecision } from './pendingEventDecision';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
 
@@ -29,6 +30,7 @@ import type { QuestState } from './questState';
 export interface GameState {
   campaign_time: CampaignTime | null;
   known_scheduled_events: KnownScheduledEvent[];
+  pending_event_decisions: PendingEventDecision[];
   journey: GameJourney | null;
   location: string;
   scene: GameScene | null;

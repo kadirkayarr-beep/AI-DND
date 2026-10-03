@@ -114,6 +114,7 @@ export * from './journalLocationEnvironment';
 export * from './journalNpc';
 export * from './knownScheduledEvent';
 export * from './knownScheduledEventStatus';
+export * from './pendingEventDecision';
 export * from './questCommandResult';
 export * from './questObjective';
 export * from './questObjectiveOffer';

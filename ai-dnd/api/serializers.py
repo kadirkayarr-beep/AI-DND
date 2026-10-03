@@ -549,6 +549,7 @@ def serialize_session_state(
         "location": copy.deepcopy(world.get("location")),
         "campaign_time": campaign_time.public_time(world),
         "known_scheduled_events": scheduled_events.public_events(world),
+        "pending_event_decisions": scheduled_events.public_pending(world),
         "journey": timed_gameplay.public_journey(world),
         "scene": living_world.public_scene_projection(
             world, flags.get("turn_index", 0)

@@ -33,3 +33,14 @@ design phases during the V1 implementation.
 
 **How to apply:** Leave extension points, but require a new explicit instruction
 before implementing recovery or additional time consumers.
+
+Pending encounters must survive their window closing, saving, and combat handoff.
+Finishing combat does not automatically continue the interrupted action.
+
+**Why:** The owner's edge-case design lock explicitly makes these separate player
+decision points, not scheduler decisions or successful completion by default.
+
+**How to apply:** Preserve actual progress, keep occurrence separate from encounter
+and knowledge, and require a new explicit player action after combat. Dependency
+cycles must preserve canonical state and report a diagnostic rather than fabricate
+a resolution or recurse indefinitely.

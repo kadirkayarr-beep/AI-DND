@@ -1325,6 +1325,15 @@ components:
         result:
           $ref: "#/components/schemas/CombatTurnResult"
       required: [event_id, turn_index, result]
+    PendingEventDecision:
+      type: object
+      additionalProperties: false
+      properties:
+        summary: {type: string}
+        forced: {type: boolean}
+        in_combat: {type: boolean}
+        can_fight: {type: boolean}
+      required: [summary, forced, in_combat, can_fight]
     GameState:
       type: object
       description: Public state projection produced by the API serializers.
@@ -1337,6 +1346,9 @@ components:
         known_scheduled_events:
           type: array
           items: {$ref: "#/components/schemas/KnownScheduledEvent"}
+        pending_event_decisions:
+          type: array
+          items: {$ref: "#/components/schemas/PendingEventDecision"}
         journey:
           anyOf:
             - $ref: "#/components/schemas/GameJourney"
@@ -1396,6 +1408,7 @@ components:
       required:
         - campaign_time
         - known_scheduled_events
+        - pending_event_decisions
         - journey
         - location
         - scene

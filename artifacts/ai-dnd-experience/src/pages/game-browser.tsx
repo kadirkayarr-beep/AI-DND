@@ -594,6 +594,17 @@ function StoryColumn({
           </div>
         </div>
         <form className="command-form" onSubmit={onSubmit}>
+          {state.pending_event_decisions?.map((event, index) => <div className="data-row mb-3" data-testid="scheduled-event-decision" key={index}>
+            <p>{event.summary}</p>
+            <small>{event.in_combat ? 'Çatışma sonrasında sonraki kararını sen vereceksin.' : event.forced ? 'Fiziksel engel: başka bir kayıtlı konum veya rota seçebilirsin.' : 'Kararın bekleniyor; zaman kendiliğinden ilerlemiyor.'}</small>
+            {!event.in_combat && <div className="action-suggestion-list">
+              {[
+                ...(!event.forced ? [['Devam etmeyi seç', 'Karşılaşmada devam etmeyi seçiyorum.'], ['Konuş', 'Karşılaşmada konuşmayı seçiyorum.']] : []),
+                ...(event.can_fight ? [['Savaş', 'Karşılaşmada savaşmayı seçiyorum.']] : []),
+                ...(state.journey ? [['Geri dön', 'Geri dönüyorum.']] : []),
+              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => { setMessage(`Karşılaşma: ${event.summary}\nKararım: ${intent}`); messageInputRef.current?.focus(); }}>{label}</button>)}
+            </div>}
+          </div>)}
           {state.journey && <div className="data-row mb-3" data-testid="journey-decision">
             <p>{state.locations[state.journey.destination]?.name ?? state.journey.destination} yolunda · {state.journey.stage} / {state.journey.stage_count}</p>
             {state.journey.encounter && <p>{state.journey.encounter}</p>}

@@ -14,7 +14,9 @@
   prerequisites expire it. Long actions are never cut retroactively. Aftermath
   is learned only through a later local observation, not merely by elapsed time.
 - Scheduled definitions are server-owned and the production queue starts empty.
-  V1 supports registered NPC relocation and namespaced boolean world flags.
+  Supports registered NPC relocation, namespaced boolean world flags, and the
+  fixed edge-case effects `npc_hostility` and `route_block` (registered endpoints,
+  boolean blocked state). Hostility never automatically starts combat.
   No Qwen-authored event scripts, NPC simulation, damage, or quest scheduling.
 - Bounded research is a finite examination of a registered feature/current scene:
   default six minutes per pass, overridden only by server `search_duration_seconds`.
@@ -46,3 +48,41 @@
   the entire pre-request snapshot, including RNG.
 - New current-format saves are validated; missing clock fields in old fixtures
   are not migrated during loading. The next real registered scene initializes once.
+
+## Edge-case hardening
+
+- Existing event/receipt architecture remains authoritative. Optional event fields
+  preserve the original V1 save shape; there is no parallel scheduler or ledger.
+- Bulk resolution uses causal readiness first. Within ready candidates it uses
+  chronological boundary, explicit priority (higher first), causal group, location,
+  and stable event ID. Each consequence is evaluated against preceding consequences.
+  Dependency-delayed events cannot resolve before their dependencies.
+- `dependencies` refer to canonical event IDs. `followups` are at most 16 fixed
+  server-owned definitions per parent, without recursively nested followups; the
+  full queue is at most 256 events. Spawned definitions automatically depend on the
+  parent. Cycles/missing dependencies and their descendants remain unchanged,
+  receive a private `scheduled_event_diagnostics` record, and produce a bounded
+  warning. Hidden event IDs are not sent to the client or model.
+- `decision_status` distinguishes no interaction, pending choice, combat handoff,
+  and resolved player choice from world occurrence and knowledge. Pending choices
+  survive window close and save/resume. Learning aftermath preserves a missed
+  encounter; it does not retroactively turn it into an on-time encounter.
+- Ordinary `INTERRUPTIVE` events do not split long actions. Only a public,
+  directly relevant `requires_decision` interaction or `FORCED` obstacle may stop
+  actual progress. A stationary location is not assumed to be the player's travel
+  position: in-route relevance requires explicit `route_destination`. The start
+  of an active window is the deterministic availability checkpoint, not a randomly
+  invented occurrence minute. Events elsewhere still resolve without forced choices.
+- Stops retain actual task/travel/retrace progress and requested/remaining seconds.
+  Independent consequences at the stop timestamp still resolve; later consequences
+  wait for future gameplay. Rest resources/healing apply only after completed rest.
+  Calendar-based weeks/months mean 7/30 Harptos days, not Gregorian dates.
+- A pending choice never advances time by itself. Avoidable continue/talk/stop and
+  valid return/reroute are explicit player intents. Forced obstacles cannot simply
+  be ignored. Multiple known pending encounters can be selected by their displayed
+  summary; UI command context is separated from the actual player decision.
+- An optional registered `combat_npc_id` only hands an explicit fight choice to
+  existing combat initialization. Initiative, damage, death and escape remain combat
+  owned. Combat exit restores the pending decision, not automatic action continuation.
+- Hidden aftermath requires explicit server `aftermath_visible` permission and a
+  real local observation. Clock passage alone never expands player knowledge.

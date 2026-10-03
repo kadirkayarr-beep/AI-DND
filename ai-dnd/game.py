@@ -3315,6 +3315,14 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             type(elapsed_seconds) is not int or not minimum <= elapsed_seconds <= campaign_time.DAY * 365
         ):
             raise ValueError("Dinlenme süresi geçersiz.")
+        if ensure_combat_state()["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
+        if rest_time.get("interrupted"):
+            return {
+                "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
+                "effects": {"time_result": rest_time, "rest_completed": False},
+            }
     character = _session().character
     species = character.get("species", character.get("race"))
     state = _species_trait_state()
@@ -3565,10 +3573,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         ensure_campaign_clock()
         if "campaign_time" not in _session().world_state:
             raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
-        duration = elapsed_seconds if elapsed_seconds is not None else (
-            3600 if action == "short_rest" else 8 * 3600
-        )
-        effects["time_result"] = advance_campaign_time(duration, action)
+        effects["time_result"] = rest_time
     return {"action": action, "message": message, "effects": effects}
 
 
@@ -4178,6 +4183,7 @@ def end_combat(reason="combat_ended"):
     combat = ensure_combat_state()
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
+    scheduled_events.combat_finished(_session().world_state)
     ensure_death_state()["combat_checkpoint"] = None
     return {"combat_ended": True, "reason": reason}
 
@@ -4812,6 +4818,7 @@ def build_world_context(npc_target=None):
     context = {
         "current_campaign_time": campaign_time.public_time(world_state),
         "player_known_events": scheduled_events.public_events(world_state),
+        "pending_event_decisions": scheduled_events.public_pending(world_state),
         "journey": timed_gameplay.public_journey(world_state),
         "character": {
             "name": _session().character["name"],
@@ -5163,6 +5170,11 @@ def commit_location_change(location_id, turn_index=None):
         flags["active_npc_id"] = None
         flags["last_npc_id"] = None
         flags["active_npc_until_turn"] = -1
+        now = world_state["campaign_time"]["elapsed_seconds"]
+        scheduled_events.process_events(
+            world_state, now, now,
+            observation={"kind": "arrival", "location_id": location_id},
+        )
     return previous_location != location_id
 
 
@@ -10028,6 +10040,8 @@ def plan_living_world_turn(player_input, target_id=None):
     )
     combat = ensure_combat_state()
     if current in world_state.get("locations", {}) and (
+        scheduled_events.pending_events(world_state)
+        or
         campaign_time.requested_duration(player_input) is not None
         or timed_gameplay.clock.normalize(player_input).startswith(
             ("sabaha kadar", "yola devam", "yolculuga devam", "geri don")

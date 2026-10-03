@@ -93,6 +93,13 @@ export interface KnownScheduledEvent {
   status: KnownScheduledEventStatus;
 }
 
+export interface PendingEventDecision {
+  summary: string;
+  forced: boolean;
+  in_combat: boolean;
+  can_fight: boolean;
+}
+
 export type GameJourneyStatus = typeof GameJourneyStatus[keyof typeof GameJourneyStatus];
 
 
@@ -898,6 +905,7 @@ export type GameStateLocations = {[key: string]: GameLocation};
 export interface GameState {
   campaign_time: CampaignTime | null;
   known_scheduled_events: KnownScheduledEvent[];
+  pending_event_decisions: PendingEventDecision[];
   journey: GameJourney | null;
   location: string;
   scene: GameScene | null;

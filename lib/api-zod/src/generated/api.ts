@@ -219,6 +219,12 @@ export const CreateGameSessionResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -717,6 +723,12 @@ export const GetGameSessionStateResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -1228,6 +1240,12 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -1746,6 +1764,12 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -2401,6 +2425,12 @@ export const PlayGameTurnResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -3323,6 +3353,12 @@ export const AcceptGameQuestResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -3877,6 +3913,12 @@ export const CancelGameQuestResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -4419,6 +4461,12 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -5134,6 +5182,12 @@ export const CreateCampaignResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -5893,6 +5947,12 @@ export const GetCampaignResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -6640,6 +6700,12 @@ export const ResumeCampaignResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -7432,6 +7498,12 @@ export const CreateLegacySessionResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -7931,6 +8003,12 @@ export const GetLegacySessionStateResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -8581,6 +8659,12 @@ export const PlayLegacyTurnResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
@@ -9615,6 +9699,12 @@ export const CreateLegacyCampaignResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -10374,6 +10464,12 @@ export const GetLegacyCampaignResponse = zod.object({
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
 })),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
   "journey": zod.union([zod.object({
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
@@ -11122,6 +11218,12 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "window_start": zod.number().int(),
   "window_end": zod.number().int(),
   "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
   "destination": zod.string(),

@@ -115,10 +115,20 @@ def advance(world, seconds, reason, source, *, observation=None):
     old = clock["elapsed_seconds"]
     candidate = dict(clock, elapsed_seconds=old + seconds)
     validate_clock(candidate)
-    clock["elapsed_seconds"] = candidate["elapsed_seconds"]
     from scheduled_events import process_events
-    known = process_events(world, old, clock["elapsed_seconds"], observation=observation)
-    return {"elapsed_seconds": seconds, "before": before, "after": public_time(world),
+    resolution = {}
+    journey = world.get("journey")
+    travelling = bool(journey and journey["status"] != "ARRIVED")
+    known = process_events(
+        world, old, candidate["elapsed_seconds"], observation=observation,
+        resolution=resolution, allow_interrupt=reason != "combat_round",
+        travelling=travelling,
+    )
+    actual = resolution["stop_at"] - old
+    clock["elapsed_seconds"] = old + actual
+    return {"elapsed_seconds": actual, "requested_seconds": seconds,
+            "remaining_seconds": seconds - actual, "interrupted": resolution["interrupted"],
+            "before": before, "after": public_time(world),
             "reason": reason, "player_known_events": known}
 
 
@@ -132,14 +142,15 @@ def requested_duration(text):
     normalized = normalize(text)
     words = {"bir": 1, "iki": 2, "uc": 3, "dort": 4, "bes": 5, "alti": 6,
              "yedi": 7, "sekiz": 8, "dokuz": 9, "on": 10, "yarim": 0.5}
-    pattern = r"\b(\d+(?:[.,]\d+)?|" + "|".join(words) + r")\s*(saniye|dakika|saat|gun)\b"
+    pattern = r"\b(\d+(?:[.,]\d+)?|" + "|".join(words) + r")\s*(saniye|dakika|saat|gun|hafta|ay)\b"
     matches = re.findall(pattern, normalized)
     if not matches:
         return None
     total = 0
     for amount, unit in matches:
         number = words[amount] if amount in words else float(amount.replace(",", "."))
-        total += number * {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY}[unit]
+        total += number * {"saniye": 1, "dakika": 60, "saat": 3600, "gun": DAY,
+                           "hafta": 7 * DAY, "ay": 30 * DAY}[unit]
     if total <= 0 or total > DAY * 365 or total != int(total):
         raise ValueError("Bekleme süresi pozitif ve en fazla bir oyun yılı olmalı.")
     return int(total)
