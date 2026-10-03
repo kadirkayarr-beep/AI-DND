@@ -14,6 +14,7 @@ from api.world_metadata import validate_world_metadata
 
 
 MODEL_NAME = "qwen3:8b"
+MAX_MODEL_CALLS_PER_TURN = 2
 _MODEL_FAILURES: ContextVar[list[str] | None] = ContextVar(
     "ai_dnd_api_model_failures", default=None
 )

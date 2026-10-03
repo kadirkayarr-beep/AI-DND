@@ -36,6 +36,7 @@ from api.lore_authority import (
 )
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
+    MAX_MODEL_CALLS_PER_TURN,
     MODEL_NAME,
     OllamaUnavailableError,
     RequiredModelUnavailableError,
@@ -793,7 +794,7 @@ def create_app(
                     },
                 ) from None
 
-            if len(model_calls) > 2:
+            if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
                 try:
                     _restore_session(session, snapshot)
                 except Exception as error:
