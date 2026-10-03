@@ -296,6 +296,40 @@ def resolve_saving_throw(
     )
 
 
+def resolve_death_save(
+    *,
+    roll_fn: Callable[[], int],
+    action_id: str | None = None,
+    resolution_id: str | None = None,
+) -> dict[str, Any]:
+    """Resolve a standard DC 10 death save using the shared d20 machinery."""
+    action_id, resolution_id, session_id = resolution_identity(
+        "death_save",
+        action_id=action_id,
+        resolution_id=resolution_id,
+    )
+    roll = roll_d20(roll_fn)
+    selected = roll["selected_roll"]
+    return {
+        "action_id": action_id,
+        "session_id": session_id,
+        "resolution_id": resolution_id,
+        "resolution_type": "death_save",
+        **roll,
+        "modifier_breakdown": {
+            "ability_modifier": 0,
+            "proficiency_modifier": 0,
+            "circumstantial_modifier": 0,
+        },
+        "total_modifier": 0,
+        "total": selected,
+        "target_value": 10,
+        "dc": 10,
+        "outcome": "SUCCESS" if selected >= 10 else "FAILURE",
+        "critical_state": None,
+    }
+
+
 def resolve_attack_roll(
     *,
     roll_fn: Callable[[], int],

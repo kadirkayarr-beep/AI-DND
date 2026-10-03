@@ -133,6 +133,20 @@ export const createGameSessionResponseStateCombatParticipantRecordsItemCurrentHp
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const createGameSessionResponseStateDeathStateSuccessesMin = 0;
+export const createGameSessionResponseStateDeathStateSuccessesMax = 3;
+
+export const createGameSessionResponseStateDeathStateFailuresMin = 0;
+export const createGameSessionResponseStateDeathStateFailuresMax = 3;
+
+export const createGameSessionResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const createGameSessionResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const createGameSessionResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const createGameSessionResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const createGameSessionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const createGameSessionResponseStateTurnIndexMin = 0;
 
 export const createGameSessionResponseStateQuestsItemQuestIdMax = 120;
@@ -376,7 +390,7 @@ export const CreateGameSessionResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -397,7 +411,42 @@ export const CreateGameSessionResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(createGameSessionResponseStateDeathStateSuccessesMin).max(createGameSessionResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(createGameSessionResponseStateDeathStateFailuresMin).max(createGameSessionResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createGameSessionResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createGameSessionResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(createGameSessionResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createGameSessionResponseStateDeathStateLastDeathSaveOneFailuresMin).max(createGameSessionResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createGameSessionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createGameSessionResponseStateQuestsItemQuestIdMax),
@@ -544,6 +593,20 @@ export const getGameSessionStateResponseCombatParticipantRecordsItemCurrentHpMin
 
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const getGameSessionStateResponseDeathStateSuccessesMin = 0;
+export const getGameSessionStateResponseDeathStateSuccessesMax = 3;
+
+export const getGameSessionStateResponseDeathStateFailuresMin = 0;
+export const getGameSessionStateResponseDeathStateFailuresMax = 3;
+
+export const getGameSessionStateResponseDeathStateLastDeathSaveOneRollMax = 20;
+
+export const getGameSessionStateResponseDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const getGameSessionStateResponseDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMin = 0;
+export const getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getGameSessionStateResponseTurnIndexMin = 0;
 
@@ -786,7 +849,7 @@ export const GetGameSessionStateResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -807,7 +870,42 @@ export const GetGameSessionStateResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(getGameSessionStateResponseDeathStateSuccessesMin).max(getGameSessionStateResponseDeathStateSuccessesMax),
+  "failures": zod.number().int().min(getGameSessionStateResponseDeathStateFailuresMin).max(getGameSessionStateResponseDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getGameSessionStateResponseDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getGameSessionStateResponseDeathStateLastDeathSaveOneSuccessesMin).max(getGameSessionStateResponseDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMin).max(getGameSessionStateResponseDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getGameSessionStateResponseTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getGameSessionStateResponseQuestsItemQuestIdMax),
@@ -960,6 +1058,20 @@ export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemC
 
 
 export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateDeathStateSuccessesMin = 0;
+export const resolveSpeciesTraitActionResponseStateDeathStateSuccessesMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateDeathStateFailuresMin = 0;
+export const resolveSpeciesTraitActionResponseStateDeathStateFailuresMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveSpeciesTraitActionResponseStateTurnIndexMin = 0;
 
@@ -1206,7 +1318,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -1227,7 +1339,42 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resolveSpeciesTraitActionResponseStateDeathStateSuccessesMin).max(resolveSpeciesTraitActionResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resolveSpeciesTraitActionResponseStateDeathStateFailuresMin).max(resolveSpeciesTraitActionResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resolveSpeciesTraitActionResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveSpeciesTraitActionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemQuestIdMax),
@@ -1387,6 +1534,20 @@ export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecord
 
 
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateSuccessesMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateSuccessesMax = 3;
+
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateFailuresMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateFailuresMax = 3;
+
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveSpeciesTraitActionCompatResponseStateTurnIndexMin = 0;
 
@@ -1633,7 +1794,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -1654,7 +1815,42 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateDeathStateSuccessesMin).max(resolveSpeciesTraitActionCompatResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateDeathStateFailuresMin).max(resolveSpeciesTraitActionCompatResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resolveSpeciesTraitActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemQuestIdMax),
@@ -1820,6 +2016,20 @@ export const playGameTurnResponseStateCombatParticipantRecordsItemCurrentHpMin =
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const playGameTurnResponseStateDeathStateSuccessesMin = 0;
+export const playGameTurnResponseStateDeathStateSuccessesMax = 3;
+
+export const playGameTurnResponseStateDeathStateFailuresMin = 0;
+export const playGameTurnResponseStateDeathStateFailuresMax = 3;
+
+export const playGameTurnResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const playGameTurnResponseStateTurnIndexMin = 0;
 
 export const playGameTurnResponseStateQuestsItemQuestIdMax = 120;
@@ -1864,6 +2074,14 @@ export const playGameTurnResponseCombatResultOneTemporaryHpAbsorbedMin = 0;
 
 export const playGameTurnResponseCombatResultOneTemporaryHpAfterMin = 0;
 
+export const playGameTurnResponseCombatResultOneDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
+
 export const playGameTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -1874,6 +2092,14 @@ export const playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbe
 
 export const playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const playGameTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -1883,6 +2109,14 @@ export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBefor
 export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -1897,6 +2131,14 @@ export const playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedM
 
 export const playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin = 0;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -1907,6 +2149,14 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTempor
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -1916,6 +2166,14 @@ export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemp
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 export const playGameTurnResponseSkillCheckResultOneSkillMax = 40;
 
@@ -2151,7 +2409,7 @@ export const PlayGameTurnResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -2172,7 +2430,42 @@ export const PlayGameTurnResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(playGameTurnResponseStateDeathStateSuccessesMin).max(playGameTurnResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseStateDeathStateFailuresMin).max(playGameTurnResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(playGameTurnResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMin).max(playGameTurnResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(playGameTurnResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(playGameTurnResponseStateQuestsItemQuestIdMax),
@@ -2234,6 +2527,31 @@ export const PlayGameTurnResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatResultOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatResultOneDeathSaveOneFailuresMin).max(playGameTurnResponseCombatResultOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -2270,7 +2588,32 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin).max(playGameTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -2303,7 +2646,32 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin).max(playGameTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -2341,6 +2709,31 @@ export const PlayGameTurnResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin).max(playGameTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -2377,7 +2770,32 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -2410,7 +2828,32 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -2563,6 +3006,20 @@ export const acceptGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMi
 
 
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const acceptGameQuestResponseStateDeathStateSuccessesMin = 0;
+export const acceptGameQuestResponseStateDeathStateSuccessesMax = 3;
+
+export const acceptGameQuestResponseStateDeathStateFailuresMin = 0;
+export const acceptGameQuestResponseStateDeathStateFailuresMax = 3;
+
+export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const acceptGameQuestResponseStateTurnIndexMin = 0;
 
@@ -2833,7 +3290,7 @@ export const AcceptGameQuestResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -2854,7 +3311,42 @@ export const AcceptGameQuestResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(acceptGameQuestResponseStateDeathStateSuccessesMin).max(acceptGameQuestResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(acceptGameQuestResponseStateDeathStateFailuresMin).max(acceptGameQuestResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(acceptGameQuestResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(acceptGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(acceptGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin).max(acceptGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(acceptGameQuestResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseStateQuestsItemQuestIdMax),
@@ -3028,6 +3520,20 @@ export const cancelGameQuestResponseStateCombatParticipantRecordsItemCurrentHpMi
 
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const cancelGameQuestResponseStateDeathStateSuccessesMin = 0;
+export const cancelGameQuestResponseStateDeathStateSuccessesMax = 3;
+
+export const cancelGameQuestResponseStateDeathStateFailuresMin = 0;
+export const cancelGameQuestResponseStateDeathStateFailuresMax = 3;
+
+export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const cancelGameQuestResponseStateTurnIndexMin = 0;
 
@@ -3298,7 +3804,7 @@ export const CancelGameQuestResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -3319,7 +3825,42 @@ export const CancelGameQuestResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(cancelGameQuestResponseStateDeathStateSuccessesMin).max(cancelGameQuestResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(cancelGameQuestResponseStateDeathStateFailuresMin).max(cancelGameQuestResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(cancelGameQuestResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(cancelGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(cancelGameQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMin).max(cancelGameQuestResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(cancelGameQuestResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseStateQuestsItemQuestIdMax),
@@ -3501,6 +4042,20 @@ export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemC
 
 
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveAmbientEventActionResponseStateDeathStateSuccessesMin = 0;
+export const resolveAmbientEventActionResponseStateDeathStateSuccessesMax = 3;
+
+export const resolveAmbientEventActionResponseStateDeathStateFailuresMin = 0;
+export const resolveAmbientEventActionResponseStateDeathStateFailuresMax = 3;
+
+export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const resolveAmbientEventActionResponseStateTurnIndexMin = 0;
 
@@ -3752,7 +4307,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -3773,7 +4328,42 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resolveAmbientEventActionResponseStateDeathStateSuccessesMin).max(resolveAmbientEventActionResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resolveAmbientEventActionResponseStateDeathStateFailuresMin).max(resolveAmbientEventActionResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resolveAmbientEventActionResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resolveAmbientEventActionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resolveAmbientEventActionResponseStateQuestsItemQuestIdMax),
@@ -3921,7 +4511,7 @@ export const createCampaignBodyCampaignStartOneRegionIdMax = 128;
 
 export const createCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
 
-
+export const createCampaignBodyDeathModeDefault = `NORMAL`;
 
 export const CreateCampaignBody = zod.object({
   "name": zod.string().min(1).max(createCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
@@ -3964,7 +4554,8 @@ export const CreateCampaignBody = zod.object({
   "region_pack_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionPackIdMax),
   "region_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneRegionIdMax),
   "starting_location_id": zod.string().min(1).max(createCampaignBodyCampaignStartOneStartingLocationIdMax)
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createCampaignBodyDeathModeDefault)
 })
 
 export const createCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -4075,6 +4666,20 @@ export const createCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin
 
 export const createCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const createCampaignResponseStateDeathStateSuccessesMin = 0;
+export const createCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const createCampaignResponseStateDeathStateFailuresMin = 0;
+export const createCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const createCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const createCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const createCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const createCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const createCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const createCampaignResponseStateTurnIndexMin = 0;
 
 export const createCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -4122,6 +4727,14 @@ export const createCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin
 
 export const createCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const createCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -4132,6 +4745,14 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporar
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -4141,6 +4762,14 @@ export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTempor
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -4353,7 +4982,7 @@ export const CreateCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -4374,7 +5003,42 @@ export const CreateCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(createCampaignResponseStateDeathStateSuccessesMin).max(createCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(createCampaignResponseStateDeathStateFailuresMin).max(createCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(createCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(createCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createCampaignResponseStateQuestsItemQuestIdMax),
@@ -4444,6 +5108,31 @@ export const CreateCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(createCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(createCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -4480,7 +5169,32 @@ export const CreateCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -4513,7 +5227,32 @@ export const CreateCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -4635,6 +5374,20 @@ export const getCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin = 
 
 export const getCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const getCampaignResponseStateDeathStateSuccessesMin = 0;
+export const getCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const getCampaignResponseStateDeathStateFailuresMin = 0;
+export const getCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const getCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const getCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const getCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const getCampaignResponseStateTurnIndexMin = 0;
 
 export const getCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -4682,6 +5435,14 @@ export const getCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 
 
 export const getCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const getCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -4692,6 +5453,14 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHp
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -4701,6 +5470,14 @@ export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporary
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -4923,7 +5700,7 @@ export const GetCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -4944,7 +5721,42 @@ export const GetCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(getCampaignResponseStateDeathStateSuccessesMin).max(getCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(getCampaignResponseStateDeathStateFailuresMin).max(getCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(getCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(getCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getCampaignResponseStateQuestsItemQuestIdMax),
@@ -5014,6 +5826,31 @@ export const GetCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(getCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(getCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5050,7 +5887,32 @@ export const GetCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5083,7 +5945,32 @@ export const GetCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -5205,6 +6092,20 @@ export const resumeCampaignResponseStateCombatParticipantRecordsItemCurrentHpMin
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const resumeCampaignResponseStateDeathStateSuccessesMin = 0;
+export const resumeCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const resumeCampaignResponseStateDeathStateFailuresMin = 0;
+export const resumeCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const resumeCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resumeCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resumeCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const resumeCampaignResponseStateTurnIndexMin = 0;
 
 export const resumeCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -5252,6 +6153,14 @@ export const resumeCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin
 
 export const resumeCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -5262,6 +6171,14 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporar
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -5271,6 +6188,14 @@ export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTempor
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -5483,7 +6408,7 @@ export const ResumeCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -5504,7 +6429,42 @@ export const ResumeCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resumeCampaignResponseStateDeathStateSuccessesMin).max(resumeCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resumeCampaignResponseStateDeathStateFailuresMin).max(resumeCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resumeCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resumeCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resumeCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resumeCampaignResponseStateQuestsItemQuestIdMax),
@@ -5574,6 +6534,31 @@ export const ResumeCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(resumeCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(resumeCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5610,7 +6595,32 @@ export const ResumeCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5643,7 +6653,32 @@ export const ResumeCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -5866,6 +6901,20 @@ export const createLegacySessionResponseStateCombatParticipantRecordsItemCurrent
 
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const createLegacySessionResponseStateDeathStateSuccessesMin = 0;
+export const createLegacySessionResponseStateDeathStateSuccessesMax = 3;
+
+export const createLegacySessionResponseStateDeathStateFailuresMin = 0;
+export const createLegacySessionResponseStateDeathStateFailuresMax = 3;
+
+export const createLegacySessionResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const createLegacySessionResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const createLegacySessionResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const createLegacySessionResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const createLegacySessionResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const createLegacySessionResponseStateTurnIndexMin = 0;
 
@@ -6110,7 +7159,7 @@ export const CreateLegacySessionResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -6131,7 +7180,42 @@ export const CreateLegacySessionResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(createLegacySessionResponseStateDeathStateSuccessesMin).max(createLegacySessionResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(createLegacySessionResponseStateDeathStateFailuresMin).max(createLegacySessionResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createLegacySessionResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createLegacySessionResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(createLegacySessionResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createLegacySessionResponseStateDeathStateLastDeathSaveOneFailuresMin).max(createLegacySessionResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createLegacySessionResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createLegacySessionResponseStateQuestsItemQuestIdMax),
@@ -6279,6 +7363,20 @@ export const getLegacySessionStateResponseCombatParticipantRecordsItemCurrentHpM
 
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const getLegacySessionStateResponseDeathStateSuccessesMin = 0;
+export const getLegacySessionStateResponseDeathStateSuccessesMax = 3;
+
+export const getLegacySessionStateResponseDeathStateFailuresMin = 0;
+export const getLegacySessionStateResponseDeathStateFailuresMax = 3;
+
+export const getLegacySessionStateResponseDeathStateLastDeathSaveOneRollMax = 20;
+
+export const getLegacySessionStateResponseDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const getLegacySessionStateResponseDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMin = 0;
+export const getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMax = 3;
 
 export const getLegacySessionStateResponseTurnIndexMin = 0;
 
@@ -6521,7 +7619,7 @@ export const GetLegacySessionStateResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -6542,7 +7640,42 @@ export const GetLegacySessionStateResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(getLegacySessionStateResponseDeathStateSuccessesMin).max(getLegacySessionStateResponseDeathStateSuccessesMax),
+  "failures": zod.number().int().min(getLegacySessionStateResponseDeathStateFailuresMin).max(getLegacySessionStateResponseDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getLegacySessionStateResponseDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getLegacySessionStateResponseDeathStateLastDeathSaveOneSuccessesMin).max(getLegacySessionStateResponseDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMin).max(getLegacySessionStateResponseDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getLegacySessionStateResponseTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getLegacySessionStateResponseQuestsItemQuestIdMax),
@@ -6703,6 +7836,20 @@ export const playLegacyTurnResponseStateCombatParticipantRecordsItemCurrentHpMin
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const playLegacyTurnResponseStateDeathStateSuccessesMin = 0;
+export const playLegacyTurnResponseStateDeathStateSuccessesMax = 3;
+
+export const playLegacyTurnResponseStateDeathStateFailuresMin = 0;
+export const playLegacyTurnResponseStateDeathStateFailuresMax = 3;
+
+export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const playLegacyTurnResponseStateTurnIndexMin = 0;
 
 export const playLegacyTurnResponseStateQuestsItemQuestIdMax = 120;
@@ -6747,6 +7894,14 @@ export const playLegacyTurnResponseCombatResultOneTemporaryHpAbsorbedMin = 0;
 
 export const playLegacyTurnResponseCombatResultOneTemporaryHpAfterMin = 0;
 
+export const playLegacyTurnResponseCombatResultOneDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMax = 3;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
@@ -6757,6 +7912,14 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsor
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
@@ -6766,6 +7929,14 @@ export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBef
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
@@ -6780,6 +7951,14 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbe
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin = 0;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax = 3;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
@@ -6790,6 +7969,14 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemp
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
@@ -6799,6 +7986,14 @@ export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTe
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 export const playLegacyTurnResponseSkillCheckResultOneSkillMax = 40;
 
@@ -7034,7 +8229,7 @@ export const PlayLegacyTurnResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -7055,7 +8250,42 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(playLegacyTurnResponseStateDeathStateSuccessesMin).max(playLegacyTurnResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseStateDeathStateFailuresMin).max(playLegacyTurnResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(playLegacyTurnResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMin).max(playLegacyTurnResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(playLegacyTurnResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(playLegacyTurnResponseStateQuestsItemQuestIdMax),
@@ -7117,6 +8347,31 @@ export const PlayLegacyTurnResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatResultOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatResultOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7153,7 +8408,32 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatResultOneEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7186,7 +8466,32 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -7224,6 +8529,31 @@ export const PlayLegacyTurnResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7260,7 +8590,32 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7293,7 +8648,32 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMin).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -7371,7 +8751,7 @@ export const createLegacyCampaignBodyCampaignStartOneRegionIdMax = 128;
 
 export const createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax = 128;
 
-
+export const createLegacyCampaignBodyDeathModeDefault = `NORMAL`;
 
 export const CreateLegacyCampaignBody = zod.object({
   "name": zod.string().min(1).max(createLegacyCampaignBodyNameMax).nullish().describe('Optional campaign name; if supplied, it must not be blank after trimming.'),
@@ -7414,7 +8794,8 @@ export const CreateLegacyCampaignBody = zod.object({
   "region_pack_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionPackIdMax),
   "region_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneRegionIdMax),
   "starting_location_id": zod.string().min(1).max(createLegacyCampaignBodyCampaignStartOneStartingLocationIdMax)
-}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createLegacyCampaignBodyDeathModeDefault)
 })
 
 export const createLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -7525,6 +8906,20 @@ export const createLegacyCampaignResponseStateCombatParticipantRecordsItemCurren
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const createLegacyCampaignResponseStateDeathStateSuccessesMin = 0;
+export const createLegacyCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const createLegacyCampaignResponseStateDeathStateFailuresMin = 0;
+export const createLegacyCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const createLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const createLegacyCampaignResponseStateTurnIndexMin = 0;
 
 export const createLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -7572,6 +8967,14 @@ export const createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsor
 
 export const createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -7582,6 +8985,14 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTe
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -7591,6 +9002,14 @@ export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -7803,7 +9222,7 @@ export const CreateLegacyCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -7824,7 +9243,42 @@ export const CreateLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(createLegacyCampaignResponseStateDeathStateSuccessesMin).max(createLegacyCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(createLegacyCampaignResponseStateDeathStateFailuresMin).max(createLegacyCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(createLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(createLegacyCampaignResponseStateQuestsItemQuestIdMax),
@@ -7894,6 +9348,31 @@ export const CreateLegacyCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(createLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7930,7 +9409,32 @@ export const CreateLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7963,7 +9467,32 @@ export const CreateLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -8086,6 +9615,20 @@ export const getLegacyCampaignResponseStateCombatParticipantRecordsItemCurrentHp
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const getLegacyCampaignResponseStateDeathStateSuccessesMin = 0;
+export const getLegacyCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const getLegacyCampaignResponseStateDeathStateFailuresMin = 0;
+export const getLegacyCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const getLegacyCampaignResponseStateTurnIndexMin = 0;
 
 export const getLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -8133,6 +9676,14 @@ export const getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbed
 
 export const getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -8143,6 +9694,14 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTempo
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -8152,6 +9711,14 @@ export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTem
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -8374,7 +9941,7 @@ export const GetLegacyCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -8395,7 +9962,42 @@ export const GetLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(getLegacyCampaignResponseStateDeathStateSuccessesMin).max(getLegacyCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(getLegacyCampaignResponseStateDeathStateFailuresMin).max(getLegacyCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(getLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(getLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(getLegacyCampaignResponseStateQuestsItemQuestIdMax),
@@ -8465,6 +10067,31 @@ export const GetLegacyCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(getLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -8501,7 +10128,32 @@ export const GetLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8534,7 +10186,32 @@ export const GetLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -8657,6 +10334,20 @@ export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemCurren
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
 
+export const resumeLegacyCampaignResponseStateDeathStateSuccessesMin = 0;
+export const resumeLegacyCampaignResponseStateDeathStateSuccessesMax = 3;
+
+export const resumeLegacyCampaignResponseStateDeathStateFailuresMin = 0;
+export const resumeLegacyCampaignResponseStateDeathStateFailuresMax = 3;
+
+export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
 export const resumeLegacyCampaignResponseStateTurnIndexMin = 0;
 
 export const resumeLegacyCampaignResponseStateQuestsItemQuestIdMax = 120;
@@ -8704,6 +10395,14 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsor
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax = 3;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax = 3;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
@@ -8714,6 +10413,14 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTe
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
 
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax = 3;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax = 3;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
@@ -8723,6 +10430,14 @@ export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItem
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax = 3;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin = 0;
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax = 3;
 
 
 
@@ -8935,7 +10650,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
 })),
   "combat": zod.object({
   "active": zod.boolean(),
-  "status": zod.enum(['active', 'ended']),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
   "initiative_order": zod.array(zod.string()),
   "current_turn_index": zod.number().int(),
@@ -8956,7 +10671,42 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "target_id": zod.string().nullable(),
   "end_reason": zod.string().nullable()
 }).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
-  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resumeLegacyCampaignResponseStateDeathStateSuccessesMin).max(resumeLegacyCampaignResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resumeLegacyCampaignResponseStateDeathStateFailuresMin).max(resumeLegacyCampaignResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resumeLegacyCampaignResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
   "turn_index": zod.number().int().min(resumeLegacyCampaignResponseStateTurnIndexMin),
   "quests": zod.array(zod.object({
   "quest_id": zod.string().max(resumeLegacyCampaignResponseStateQuestsItemQuestIdMax),
@@ -9026,6 +10776,31 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
   "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -9062,7 +10837,32 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -9095,7 +10895,32 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "action_id": zod.string().uuid().nullish(),
   "resolution_id": zod.string().nullish(),
   "critical_state": zod.string().nullish(),
-  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
+  "death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMin).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
 })).nullish()
 })
 }))

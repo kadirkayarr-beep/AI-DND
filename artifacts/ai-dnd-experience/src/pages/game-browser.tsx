@@ -989,9 +989,12 @@ export default function GameBrowser() {
   const handleCreateCharacter = (
     character: CharacterCreateInput,
     campaignStart: CampaignStartSelection,
+    deathMode: 'NORMAL' | 'PERMADEATH' | 'IRONMAN',
   ) => {
     setNotice(null);
-    createCampaign.mutate({ data: { character, campaign_start: campaignStart } }, {
+    createCampaign.mutate({
+      data: { character, campaign_start: campaignStart, death_mode: deathMode },
+    }, {
       onSuccess: (created) => {
         setCampaignId(created.campaign_id);
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);

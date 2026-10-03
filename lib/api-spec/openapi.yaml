@@ -1095,6 +1095,14 @@ components:
             - type: object
               additionalProperties: true
             - type: "null"
+        death_save:
+          anyOf:
+            - $ref: "#/components/schemas/DeathSaveResult"
+            - type: "null"
+        death_resolution:
+          anyOf:
+            - $ref: "#/components/schemas/DeathResolutionResult"
+            - type: "null"
     CombatTurnResult:
       type: object
       additionalProperties: false
@@ -1176,6 +1184,14 @@ components:
             - type: object
               additionalProperties: true
             - type: "null"
+        death_save:
+          anyOf:
+            - $ref: "#/components/schemas/DeathSaveResult"
+            - type: "null"
+        death_resolution:
+          anyOf:
+            - $ref: "#/components/schemas/DeathResolutionResult"
+            - type: "null"
         combat_started:
           type: ["boolean", "null"]
         combat_ended:
@@ -1194,6 +1210,102 @@ components:
           type: ["array", "null"]
           items:
             $ref: "#/components/schemas/CombatAttackResult"
+    DeathResolutionResult:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [NORMAL, PERMADEATH, IRONMAN]
+        outcome:
+          type: string
+          enum: [rolled_back, dead]
+        cause:
+          type: string
+          enum: [massive_damage, failed_death_saves]
+        rolled_back:
+          type: boolean
+        terminal:
+          type: boolean
+      required: [mode, outcome, cause, rolled_back, terminal]
+    DeathSaveResult:
+      type: object
+      additionalProperties: false
+      properties:
+        roll:
+          type: integer
+          minimum: 1
+          maximum: 20
+        outcome:
+          type: string
+          enum: [success, failure, natural_1, stable, revived, dead, rolled_back]
+        successes:
+          type: integer
+          minimum: 0
+          maximum: 3
+        failures:
+          type: integer
+          minimum: 0
+          maximum: 3
+        stable:
+          type: boolean
+        dead:
+          type: boolean
+        prone:
+          type: boolean
+        action_id:
+          type: ["string", "null"]
+          format: uuid
+        resolution_id:
+          type: ["string", "null"]
+        death_resolution:
+          anyOf:
+            - $ref: "#/components/schemas/DeathResolutionResult"
+            - type: "null"
+      required: [roll, outcome, successes, failures, stable, dead, prone]
+    DeathStateProjection:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum: [NORMAL, PERMADEATH, IRONMAN]
+        status:
+          type: string
+          enum: [active, unconscious, stable, dead]
+        successes:
+          type: integer
+          minimum: 0
+          maximum: 3
+        failures:
+          type: integer
+          minimum: 0
+          maximum: 3
+        stable:
+          type: boolean
+        dead:
+          type: boolean
+        terminal:
+          type: boolean
+        prone:
+          type: boolean
+        last_death_save:
+          anyOf:
+            - $ref: "#/components/schemas/DeathSaveResult"
+            - type: "null"
+        last_resolution:
+          anyOf:
+            - $ref: "#/components/schemas/DeathResolutionResult"
+            - type: "null"
+      required:
+        - mode
+        - status
+        - successes
+        - failures
+        - stable
+        - dead
+        - terminal
+        - prone
     CombatHistoryEntry:
       type: object
       additionalProperties: false
@@ -1251,9 +1363,11 @@ components:
             $ref: "#/components/schemas/GameDoor"
         combat:
           $ref: "#/components/schemas/GameCombat"
+        death_state:
+          $ref: "#/components/schemas/DeathStateProjection"
         player_combat_status:
           type: string
-          enum: [active, unconscious]
+          enum: [active, unconscious, dead]
         turn_index:
           type: integer
           minimum: 0
@@ -1276,6 +1390,7 @@ components:
         - features
         - doors
         - combat
+        - death_state
         - player_combat_status
         - turn_index
         - quests
@@ -1995,7 +2110,7 @@ components:
           type: boolean
         status:
           type: string
-          enum: [active, ended]
+          enum: [active, ended, death_resolution]
         round:
           type: integer
         initiative_order:
@@ -2049,6 +2164,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/CampaignStartSelection"
             - type: "null"
+        death_mode:
+          type: string
+          enum: [NORMAL, PERMADEATH, IRONMAN]
+          default: NORMAL
       additionalProperties: false
     CampaignStartSelection:
       type: object

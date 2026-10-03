@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CampaignCreateInputDeathMode } from './campaignCreateInputDeathMode';
 import type { CampaignStartSelection } from './campaignStartSelection';
 import type { CharacterCreateInput } from './characterCreateInput';
 
@@ -18,4 +19,5 @@ export interface CampaignCreateInput {
   name?: string | null;
   character?: CharacterCreateInput | null;
   campaign_start?: CampaignStartSelection | null;
+  death_mode?: CampaignCreateInputDeathMode;
 }

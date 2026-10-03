@@ -15,6 +15,7 @@ from api.schemas import (
     CombatHistoryEntry,
     CombatStateProjection,
     CombatTurnResult,
+    DeathStateProjection,
     SkillCheckResult,
 )
 from api.world_metadata import world_metadata_for_state
@@ -120,6 +121,8 @@ _COMBAT_ATTACK_FIELDS = (
     "resolution_id",
     "critical_state",
     "resolution",
+    "death_save",
+    "death_resolution",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -161,7 +164,10 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
 
 def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     """Expose only Python-owned combat outcome fields to the browser."""
-    if not isinstance(action_result, Mapping) or action_result.get("action") != "attack":
+    if not isinstance(action_result, Mapping) or action_result.get("action") not in {
+        "attack",
+        "death_save",
+    }:
         return None
 
     projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)
@@ -459,6 +465,42 @@ def serialize_session_state(
         if isinstance(origin_feats, (list, tuple))
         else ([character["origin_feat"]] if character["origin_feat"] else [])
     )
+    raw_death_state = world.get("death_state", {})
+    raw_death_state = (
+        raw_death_state if isinstance(raw_death_state, Mapping) else {}
+    )
+    player_status = world.get("player_combat_status", "active")
+    death_status = (
+        "dead"
+        if raw_death_state.get("dead") is True or player_status == "dead"
+        else "stable"
+        if raw_death_state.get("stable") is True
+        else "unconscious"
+        if player_status == "unconscious"
+        else "active"
+    )
+    projected_death_state = {
+        "mode": raw_death_state.get("mode", "NORMAL"),
+        "status": death_status,
+        "successes": raw_death_state.get("successes", 0),
+        "failures": raw_death_state.get("failures", 0),
+        "stable": raw_death_state.get("stable", False),
+        "dead": raw_death_state.get("dead", False),
+        "terminal": raw_death_state.get("terminal", False),
+        "prone": raw_death_state.get("prone", False),
+        "last_death_save": copy.deepcopy(
+            raw_death_state.get("last_death_save_result")
+        ),
+        "last_resolution": copy.deepcopy(
+            raw_death_state.get("last_resolution")
+        ),
+    }
+    try:
+        death_state = DeathStateProjection.model_validate(
+            projected_death_state, strict=True
+        ).model_dump(exclude_none=True)
+    except ValidationError:
+        raise ValueError("Invalid death state projection.") from None
     raw_quests = copy.deepcopy(world.get("quests", []))
     quest_state = [
         {
@@ -520,6 +562,7 @@ def serialize_session_state(
         "player_combat_status": copy.deepcopy(
             world.get("player_combat_status", "active")
         ),
+        "death_state": death_state,
         "turn_index": copy.deepcopy(flags.get("turn_index", 0)),
         "quests": quest_state,
         "quest_offers": offers,

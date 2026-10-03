@@ -41,6 +41,7 @@ import { calculateCharacterPreviewStats } from '@/lib/character-preview-stats';
 import './character-creation-screen.css';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
+type DeathMode = 'NORMAL' | 'PERMADEATH' | 'IRONMAN';
 
 type CharacterCreationScreenProps = {
   options?: CharacterCreationOptions;
@@ -54,7 +55,11 @@ type CharacterCreationScreenProps = {
   notice: Notice | null;
   onBack: () => void;
   initialStep?: StepId;
-  onCreate: (character: CharacterCreateInput, campaignStart: CampaignStartSelection) => void;
+  onCreate: (
+    character: CharacterCreateInput,
+    campaignStart: CampaignStartSelection,
+    deathMode: DeathMode,
+  ) => void;
   onRetryOptions: () => void;
   onRetryStartOptions: () => void;
 };
@@ -143,6 +148,7 @@ export function CharacterCreationScreen({
   // Wizard state
   const [currentStep, setCurrentStep] = useState<StepId>(initialStep);
   const [mode, setMode] = useState<'custom' | 'random'>('custom');
+  const [deathMode, setDeathMode] = useState<DeathMode>('NORMAL');
 
   // Form selections (no silent preselection: all start unchosen)
   const [characterClass, setCharacterClass] = useState('');
@@ -607,7 +613,7 @@ export function CharacterCreationScreen({
       starting_location_id: selectedLocation.entity_id,
     };
 
-    onCreate({ mode: 'random' }, campaignStart);
+    onCreate({ mode: 'random' }, campaignStart, deathMode);
   };
 
   // Submit final character to start campaign
@@ -655,7 +661,7 @@ export function CharacterCreationScreen({
       backstory: backstory.trim() || undefined,
     };
 
-    onCreate(characterInput, campaignStart);
+    onCreate(characterInput, campaignStart, deathMode);
   };
 
   return (
@@ -1706,6 +1712,27 @@ export function CharacterCreationScreen({
                   <div className="cc-label">Son Adım</div>
                   <h2 className="cc-step-title-text">Karakter Sayfasını İncele ve Başla</h2>
                   <p className="cc-literary">Karakterinin tüm değerleri kurallara uygun olarak hazırlandı. Bilgileri gözden geçirip maceraya adım atabilirsin.</p>
+                </div>
+
+                <div className="cc-death-mode">
+                  <label htmlFor="campaign-death-mode">Ölüm kuralı</label>
+                  <select
+                    id="campaign-death-mode"
+                    value={deathMode}
+                    onChange={(event) => setDeathMode(event.target.value as DeathMode)}
+                    data-testid="select-death-mode"
+                  >
+                    <option value="NORMAL">Normal — ölümde çatışma başına geri dön</option>
+                    <option value="PERMADEATH">Permadeath — karakter ölümü kalıcı</option>
+                    <option value="IRONMAN">Ironman — ölüm kampanyayı bitirir</option>
+                  </select>
+                  <p>
+                    {deathMode === 'NORMAL'
+                      ? 'Karakter ölürse çatışma öncesi oyun durumu geri yüklenir.'
+                      : deathMode === 'PERMADEATH'
+                        ? 'Karakter ölürse geri dönüş olmaz; kampanya kaydı korunur.'
+                        : 'Karakter ölürse geri dönüş olmaz ve kampanya sona erer.'}
+                  </p>
                 </div>
 
                 <div className="cc-sheet-preview">

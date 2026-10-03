@@ -22,6 +22,7 @@ if str(AI_DND_DIR) not in sys.path:
 import game
 import living_world
 import quest_catalog
+import api.main as main_module
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -64,6 +65,157 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
+        legacy = await self.create_campaign()
+        self.assertEqual(legacy["state"]["death_state"]["mode"], "NORMAL")
+
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                response = await self.http.post(
+                    "/api/game/campaigns",
+                    json={"death_mode": mode},
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                created = response.json()
+                self.assertEqual(created["state"]["death_state"]["mode"], mode)
+
+                resumed_manager = SessionManager(
+                    campaign_store=CampaignStore(self.store.path)
+                )
+                resumed_id, _, _, _, _ = resumed_manager.resume_campaign(
+                    created["campaign_id"]
+                )
+                self.assertEqual(
+                    resumed_manager.get(resumed_id)
+                    .game_session.world_state["death_state"]["mode"],
+                    mode,
+                )
+
+    async def test_normal_death_rollback_does_not_rewrite_campaign_metadata(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+
+        def rolled_back_turn(_message, **_kwargs):
+            return {
+                "narration": "Normal modda çatışma öncesi duruma dönüldü.",
+                "action_result": {
+                    "action": "death_save",
+                    "status": "resolved",
+                    "success": True,
+                    "death_resolution": {
+                        "mode": "NORMAL",
+                        "outcome": "rolled_back",
+                        "cause": "failed_death_saves",
+                        "rolled_back": True,
+                        "terminal": False,
+                    },
+                },
+            }
+
+        session.run_player_turn = rolled_back_turn
+        with (
+            patch.object(
+                main_module,
+                "set_session_world_metadata",
+                side_effect=AssertionError("metadata must come from the checkpoint"),
+            ),
+            patch.object(
+                main_module,
+                "update_narrative_memory",
+                side_effect=AssertionError("rollback turns do not add memories"),
+            ),
+            patch.object(
+                main_module,
+                "update_campaign_journal",
+                side_effect=AssertionError("rollback turns do not add journal entries"),
+            ),
+        ):
+            response = await self.http.post(
+                f"/api/game/sessions/{created['session_id']}/turn",
+                json={"message": "Bekle."},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(
+            response.json()["combat_result"]["death_resolution"]["outcome"],
+            "rolled_back",
+        )
+
+    async def test_death_checkpoint_is_json_safe_and_external_restore_is_atomic(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        game._capture_combat_death_checkpoint(session=session)
+        self.assertIsNotNone(
+            session.world_state["death_state"]["combat_checkpoint"]
+        )
+
+        self.manager.save_campaign(created["campaign_id"])
+        stored = self.store.get_campaign(created["campaign_id"])
+        encoded = json.dumps(
+            stored.payload,
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        self.assertTrue(encoded)
+
+        resumed_manager = SessionManager(
+            campaign_store=CampaignStore(self.store.path)
+        )
+        resumed_id, resumed_record, _, _, _ = resumed_manager.resume_campaign(
+            created["campaign_id"]
+        )
+        resumed_session = resumed_record.game_session
+        checkpoint = copy.deepcopy(
+            resumed_session.world_state["death_state"]["combat_checkpoint"]
+        )
+        campaign_state = checkpoint["campaign_state"]
+
+        resumed_record.journal = {"marker": "must remain untouched"}
+        before_narrative = copy.deepcopy(resumed_record.narrative_memory)
+        before_lore = resumed_record.lore_authority.to_dict()
+        invalid_checkpoint = copy.deepcopy(checkpoint)
+        invalid_checkpoint["campaign_state"]["narrative_memory"] = []
+        resumed_session.world_state["death_state"][
+            "combat_checkpoint"
+        ] = invalid_checkpoint
+
+        with self.assertRaises(CampaignStorageError):
+            game._restore_combat_death_checkpoint(
+                "massive_damage",
+                session=resumed_session,
+            )
+
+        self.assertEqual(
+            resumed_record.journal,
+            {"marker": "must remain untouched"},
+        )
+        self.assertEqual(resumed_record.narrative_memory, before_narrative)
+        self.assertEqual(resumed_record.lore_authority.to_dict(), before_lore)
+
+        resumed_session.world_state["death_state"][
+            "combat_checkpoint"
+        ] = checkpoint
+        result = game._restore_combat_death_checkpoint(
+            "massive_damage",
+            session=resumed_session,
+        )
+        self.assertTrue(result["rolled_back"])
+        self.assertEqual(resumed_record.journal, campaign_state["journal"])
+        self.assertEqual(
+            resumed_record.narrative_memory,
+            campaign_state["narrative_memory"],
+        )
+        self.assertEqual(
+            resumed_record.lore_authority.to_dict(),
+            campaign_state["lore_authority"],
+        )
+        self.assertEqual(
+            resumed_session.world_metadata,
+            campaign_state["world_metadata"],
+        )
 
     async def test_turn_action_replays_after_resume_and_rejects_reused_payload(self):
         created = await self.create_campaign()

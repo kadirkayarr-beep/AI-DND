@@ -102,7 +102,10 @@ class SessionManager:
         name: str | None = None,
         character: dict[str, Any] | None = None,
         campaign_start: dict[str, str] | None = None,
+        death_mode: str = "NORMAL",
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
+        if death_mode not in game.DEATH_MODES:
+            raise ValueError("Campaign death mode is invalid.")
         store = self._require_campaign_store()
         session = self._session_factory()
         if character is not None:
@@ -144,6 +147,11 @@ class SessionManager:
         )
         campaign_id = str(uuid.uuid4())
         initialize_campaign_opening(session, campaign_id)
+        session.world_state["campaign_id"] = campaign_id
+        death_state = session.world_state.setdefault(
+            "death_state", game._death_state_defaults()
+        )
+        death_state["mode"] = death_mode
         campaign_name = name or f"{session.character['name']} — Yeni Macera"
         metadata = store.create_campaign(
             campaign_id,
@@ -164,7 +172,55 @@ class SessionManager:
             )
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
+        self._attach_death_checkpoint_hooks(record)
         return campaign_id, session_id, record, metadata
+
+    def _attach_death_checkpoint_hooks(self, record: ManagedSession) -> None:
+        """Keep campaign-owned state inside Python's Normal-mode checkpoint."""
+        session = record.game_session
+
+        def capture() -> dict[str, Any]:
+            return {
+                "journal": copy.deepcopy(record.journal),
+                "narrative_memory": copy.deepcopy(record.narrative_memory),
+                "lore_authority": record.lore_authority.to_dict(),
+                "world_metadata": copy.deepcopy(
+                    getattr(session, "world_metadata", None)
+                ),
+            }
+
+        def restore(snapshot: dict[str, Any]) -> None:
+            if not isinstance(snapshot, dict):
+                raise CampaignStorageError(
+                    "Campaign death checkpoint is invalid."
+                )
+            journal = snapshot.get("journal")
+            narrative_memory = snapshot.get("narrative_memory")
+            lore_authority = snapshot.get("lore_authority")
+            if (
+                not isinstance(journal, dict)
+                or not isinstance(narrative_memory, dict)
+                or not isinstance(lore_authority, dict)
+            ):
+                raise CampaignStorageError(
+                    "Campaign death checkpoint is incomplete."
+                )
+            restored_narrative_memory = validate_narrative_memory(
+                narrative_memory
+            )
+            restored_lore_authority = CampaignLoreState.from_mapping(
+                lore_authority
+            )
+            restored_world_metadata = copy.deepcopy(
+                snapshot.get("world_metadata")
+            )
+            record.journal = copy.deepcopy(journal)
+            record.narrative_memory = restored_narrative_memory
+            record.lore_authority = restored_lore_authority
+            session.world_metadata = restored_world_metadata
+
+        session.death_checkpoint_provider = capture
+        session.death_checkpoint_restorer = restore
 
     def _install_canonical_start_location(
         self,
@@ -289,11 +345,27 @@ class SessionManager:
 
         if session_id is None or record is None:
             raise CampaignStorageError("Campaign runtime could not be created.")
+        saved_campaign_id = record.game_session.world_state.get("campaign_id")
+        if saved_campaign_id not in (None, campaign_id):
+            raise CampaignStorageError(
+                "Campaign engine state belongs to another campaign."
+            )
+        record.game_session.world_state["campaign_id"] = campaign_id
+        record.game_session.world_state.setdefault(
+            "death_state", game._death_state_defaults()
+        )
+        self._attach_death_checkpoint_hooks(record)
         with record.turn_lock:
             stored = store.get_campaign(campaign_id)
             needs_migration = (
                 stored.payload.get("engine_save", {}).get("version")
                 != game.SAVE_FORMAT_VERSION
+                or "campaign_id"
+                not in stored.payload.get("engine_save", {})
+                .get("world_state", {})
+                or "death_state"
+                not in stored.payload.get("engine_save", {})
+                .get("world_state", {})
                 or
                 "world_metadata" not in stored.payload
                 or "journal" not in stored.payload

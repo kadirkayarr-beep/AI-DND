@@ -278,7 +278,10 @@ def _validated_combat_result(
     value: Any,
     error_type: type[Exception],
 ) -> dict[str, Any]:
-    if not isinstance(value, dict) or value.get("action") != "attack":
+    if not isinstance(value, dict) or value.get("action") not in {
+        "attack",
+        "death_save",
+    }:
         raise error_type("Campaign combat history is invalid.")
     try:
         validated = CombatTurnResult.model_validate(value, strict=True)

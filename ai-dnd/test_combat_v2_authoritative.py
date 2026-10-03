@@ -143,12 +143,27 @@ class CombatV2(unittest.TestCase):
 
     def test_I_enemy_knocks_out_player(self):
         self.session.character['current_hp'] = 2
-        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5)):
+        with self.rolls(
+            (20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5),
+            (20, 10), (20, 1), (20, 1),
+            (20, 10), (20, 1), (20, 1),
+            (20, 10), (20, 1), (20, 1),
+        ):
             result = self.attack()
         self.assertEqual(self.session.character['current_hp'], 0)
         self.assertEqual(self.w['player_combat_status'], 'unconscious')
         self.assertEqual(result['enemy_action']['target_hp_before'], 2)
-        self.assertEqual(result['end_reason'], 'player_defeated')
+        self.assertTrue(self.w['death_state']['stable'])
+        self.assertTrue(result['combat']['active'])
+        death_saves = [
+            action for action in result['enemy_actions']
+            if action.get('action') == 'death_save'
+        ]
+        self.assertEqual(len(death_saves), 3)
+        self.assertEqual(
+            [action['outcome'] for action in death_saves],
+            ['success', 'success', 'stable'],
+        )
         self.assert_snapshot(result)
         self.session.end_combat()
         self.session.end_combat()
@@ -177,6 +192,7 @@ class CombatV2(unittest.TestCase):
             self.session.ensure_combat_state()
             self.assertEqual(self.w['combat'], INITIAL_WORLD['combat'])
             self.assertEqual(self.w['player_combat_status'], 'unconscious')
+        self.w['player_combat_status'] = 'active'
         self.start()
         for index in (-1, 100, None, 'bad'):
             self.w['combat']['current_turn_index'] = index
@@ -288,14 +304,26 @@ class CombatV2(unittest.TestCase):
         self.npc['current_hp'] = 1
         with self.rolls((20, 15), (20, 5), (20, 20), (8, 3), (8, 4)):
             result = self.attack()
-        narration = self.session.finalize_narration('Hedef dimdik ayakta kalır.', 'saldırıyorum', self.npc, result)
+        narration = game.finalize_narration(
+            'Hedef dimdik ayakta kalır.',
+            'saldırıyorum',
+            self.npc,
+            result,
+            session=self.session,
+        )
         self.assertIn('kritik', narration)
         self.assertIn('bilincini kaybeder', narration)
         self.assertEqual(self.npc['memory'], [])
         result = {'action': 'attack', 'outcome': 'hit', 'target_name': 'Sentinel', 'damage': 4,
                   'target_status': 'active', 'enemy_action': {'outcome': 'critical_hit', 'damage': 9},
                   'combat': {'player_combat_status': 'unconscious'}}
-        narration = self.session.finalize_narration('Rakibin ıskalar; sapasağlamsın.', 'saldırıyorum', self.npc, result)
+        narration = game.finalize_narration(
+            'Rakibin ıskalar; sapasağlamsın.',
+            'saldırıyorum',
+            self.npc,
+            result,
+            session=self.session,
+        )
         self.assertIn('9 hasar', narration)
         self.assertIn('Bilincini kaybedersin', narration)
 

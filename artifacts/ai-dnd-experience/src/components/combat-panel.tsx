@@ -22,6 +22,7 @@ function percentage(current: number, maximum: number): number {
 function combatStatusLabel(value: string | null | undefined): string | undefined {
   if (value === 'active') return 'Ayakta';
   if (value === 'unconscious') return 'Bilinçsiz';
+  if (value === 'dead') return 'Ölü';
   if (value === 'defeated') return 'Etkisiz';
   return value ?? undefined;
 }
@@ -40,6 +41,13 @@ function outcomeLabel(value: string | undefined): string | undefined {
     player_unconscious: 'Karakter bilincini kaybetti',
     enemy_turn_resolved: 'Rakip hamlesini yaptı',
     out_of_turn: 'Sıra sende değil',
+    success: 'Başarılı',
+    failure: 'Başarısız',
+    natural_1: 'Doğal 1',
+    stable: 'Sabit',
+    revived: 'Canlandı',
+    dead: 'Öldü',
+    rolled_back: 'Çatışma öncesine dönüldü',
   };
   return labels[value] ?? value;
 }
@@ -47,14 +55,30 @@ function outcomeLabel(value: string | undefined): string | undefined {
 function actionLabel(value: string | undefined): string | undefined {
   if (value === 'attack') return 'Saldırı';
   if (value === 'enemy_attack') return 'Karşı saldırı';
+  if (value === 'death_save') return 'Otomatik ölüm kurtarma zarı';
   return value;
 }
 
 function endReasonLabel(value: string | undefined): string | undefined {
   if (value === 'target_defeated') return 'Rakip etkisiz hale getirildi';
   if (value === 'player_defeated') return 'Karakter bilinç kaybetti';
+  if (value === 'player_dead') return 'Karakter öldü';
+  if (value === 'player_stable') return 'Karakter sabit ve bilinçsiz';
   if (value === 'combat_ended') return 'Çatışma sonlandırıldı';
   return value;
+}
+
+function deathModeLabel(mode: GameState['death_state']['mode']): string {
+  if (mode === 'PERMADEATH') return 'Permadeath';
+  if (mode === 'IRONMAN') return 'Ironman';
+  return 'Normal';
+}
+
+function deathStatusLabel(status: GameState['death_state']['status']): string {
+  if (status === 'unconscious') return 'Bilinçsiz';
+  if (status === 'stable') return 'Sabit, bilinçsiz';
+  if (status === 'dead') return 'Ölü';
+  return 'Ayakta';
 }
 
 function outcomeMarkers(result: AttackResult): string[] {
@@ -196,6 +220,7 @@ function AttackReadout({
   const hasRollData = [result.attack_roll, result.attack_bonus, result.attack_total, result.target_ac].some(hasValue);
   const hasHpWindow = hasValue(result.target_hp_before) || hasValue(result.target_hp_after);
   const naturalRoll = result.attack_roll === 20 ? 'DOĞAL 20' : result.attack_roll === 1 ? 'DOĞAL 1' : undefined;
+  const deathResolution = result.death_resolution ?? result.death_save?.death_resolution;
 
   return (
     <article className={`combat-result-card ${enemy ? 'combat-result-enemy' : ''} ${naturalRoll === 'DOĞAL 20' ? 'combat-result-critical' : ''} ${naturalRoll === 'DOĞAL 1' ? 'combat-result-fumble' : ''}`} data-testid={prefix}>
@@ -253,6 +278,24 @@ function AttackReadout({
       )}
 
       {result.target_status && <div className="combat-target-status" data-testid={`${prefix}-target-status`}>{combatStatusLabel(result.target_status)}</div>}
+      {result.death_save && (
+        <div className="combat-death-save" data-testid={`${prefix}-death-save`}>
+          <strong>Ölüm kurtarma zarı · d20: {result.death_save.roll}</strong>
+          <span>{outcomeLabel(result.death_save.outcome)}</span>
+          <small>
+            Başarı {result.death_save.successes}/3 · Başarısızlık {result.death_save.failures}/3
+          </small>
+        </div>
+      )}
+      {deathResolution && (
+        <div className="combat-death-resolution" data-testid={`${prefix}-death-resolution`}>
+          {deathResolution.rolled_back
+            ? 'Normal mod: çatışma öncesi durum geri yüklendi.'
+            : deathResolution.terminal
+              ? 'Ironman: karakter öldü ve kampanya sona erdi.'
+              : 'Karakter öldü.'}
+        </div>
+      )}
     </article>
   );
 }
@@ -331,6 +374,7 @@ export function CombatPanel({
   const currentActorName = combatants.find(
     (participant) => participant.id === state.combat.current_actor_id,
   )?.name;
+  const death = state.death_state;
 
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
@@ -345,6 +389,19 @@ export function CombatPanel({
           {ended ? 'Sona erdi' : active ? 'Sürüyor' : 'Pasif'}
         </div>
       </header>
+
+      {(death.status !== 'active' || death.last_death_save) && (
+        <aside className="combat-death-state" data-testid="death-state-panel" aria-live="polite">
+          <div>
+            <span className="combat-overline">{deathModeLabel(death.mode)} · ÖLÜM KURTARMA</span>
+            <strong>{deathStatusLabel(death.status)}</strong>
+          </div>
+          {(death.status === 'unconscious' || death.status === 'stable') && (
+            <span>Başarı {death.successes}/3 · Başarısızlık {death.failures}/3</span>
+          )}
+          {death.terminal && <span>Kampanya sona erdi.</span>}
+        </aside>
+      )}
 
       {ended ? (
         <div className="combat-ended-state" data-testid="combat-ended-state">

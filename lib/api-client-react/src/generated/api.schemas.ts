@@ -543,6 +543,7 @@ export type GameCombatStatus = typeof GameCombatStatus[keyof typeof GameCombatSt
 export const GameCombatStatus = {
   active: 'active',
   ended: 'ended',
+  death_resolution: 'death_resolution',
 } as const;
 
 export type CombatParticipantStateKind = typeof CombatParticipantStateKind[keyof typeof CombatParticipantStateKind];
@@ -597,12 +598,126 @@ export interface GameCombat {
   end_reason: string | null;
 }
 
+export type DeathStateProjectionMode = typeof DeathStateProjectionMode[keyof typeof DeathStateProjectionMode];
+
+
+export const DeathStateProjectionMode = {
+  NORMAL: 'NORMAL',
+  PERMADEATH: 'PERMADEATH',
+  IRONMAN: 'IRONMAN',
+} as const;
+
+export type DeathStateProjectionStatus = typeof DeathStateProjectionStatus[keyof typeof DeathStateProjectionStatus];
+
+
+export const DeathStateProjectionStatus = {
+  active: 'active',
+  unconscious: 'unconscious',
+  stable: 'stable',
+  dead: 'dead',
+} as const;
+
+export type DeathSaveResultOutcome = typeof DeathSaveResultOutcome[keyof typeof DeathSaveResultOutcome];
+
+
+export const DeathSaveResultOutcome = {
+  success: 'success',
+  failure: 'failure',
+  natural_1: 'natural_1',
+  stable: 'stable',
+  revived: 'revived',
+  dead: 'dead',
+  rolled_back: 'rolled_back',
+} as const;
+
+export type DeathResolutionResultMode = typeof DeathResolutionResultMode[keyof typeof DeathResolutionResultMode];
+
+
+export const DeathResolutionResultMode = {
+  NORMAL: 'NORMAL',
+  PERMADEATH: 'PERMADEATH',
+  IRONMAN: 'IRONMAN',
+} as const;
+
+export type DeathResolutionResultOutcome = typeof DeathResolutionResultOutcome[keyof typeof DeathResolutionResultOutcome];
+
+
+export const DeathResolutionResultOutcome = {
+  rolled_back: 'rolled_back',
+  dead: 'dead',
+} as const;
+
+export type DeathResolutionResultCause = typeof DeathResolutionResultCause[keyof typeof DeathResolutionResultCause];
+
+
+export const DeathResolutionResultCause = {
+  massive_damage: 'massive_damage',
+  failed_death_saves: 'failed_death_saves',
+} as const;
+
+export interface DeathResolutionResult {
+  mode: DeathResolutionResultMode;
+  outcome: DeathResolutionResultOutcome;
+  cause: DeathResolutionResultCause;
+  rolled_back: boolean;
+  terminal: boolean;
+}
+
+export interface DeathSaveResult {
+  /**
+     * @minimum 1
+     * @maximum 20
+     */
+  roll: number;
+  outcome: DeathSaveResultOutcome;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  successes: number;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  failures: number;
+  stable: boolean;
+  dead: boolean;
+  prone: boolean;
+  /** @nullable */
+  action_id?: string | null;
+  /** @nullable */
+  resolution_id?: string | null;
+  death_resolution?: DeathResolutionResult | null;
+}
+
+export interface DeathStateProjection {
+  mode: DeathStateProjectionMode;
+  status: DeathStateProjectionStatus;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  successes: number;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  failures: number;
+  stable: boolean;
+  dead: boolean;
+  terminal: boolean;
+  prone: boolean;
+  last_death_save?: DeathSaveResult | null;
+  last_resolution?: DeathResolutionResult | null;
+}
+
 export type GameStatePlayerCombatStatus = typeof GameStatePlayerCombatStatus[keyof typeof GameStatePlayerCombatStatus];
 
 
 export const GameStatePlayerCombatStatus = {
   active: 'active',
   unconscious: 'unconscious',
+  dead: 'dead',
 } as const;
 
 export type QuestStateStatus = typeof QuestStateStatus[keyof typeof QuestStateStatus];
@@ -711,6 +826,7 @@ export interface GameState {
   features: GameFeature[];
   doors: GameDoor[];
   combat: GameCombat;
+  death_state: DeathStateProjection;
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;
@@ -827,6 +943,8 @@ export interface CombatAttackResult {
   /** @nullable */
   critical_state?: string | null;
   resolution?: CombatAttackResultResolution;
+  death_save?: DeathSaveResult | null;
+  death_resolution?: DeathResolutionResult | null;
 }
 
 export type CombatTurnResultSpeciesEffectsItem = { [key: string]: unknown };
@@ -911,6 +1029,8 @@ export interface CombatTurnResult {
   /** @nullable */
   critical_state?: string | null;
   resolution?: CombatTurnResultResolution;
+  death_save?: DeathSaveResult | null;
+  death_resolution?: DeathResolutionResult | null;
   /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
@@ -1174,6 +1294,15 @@ export interface SpeciesTraitCommandResult {
   result: SpeciesTraitActionResult;
 }
 
+export type CampaignCreateInputDeathMode = typeof CampaignCreateInputDeathMode[keyof typeof CampaignCreateInputDeathMode];
+
+
+export const CampaignCreateInputDeathMode = {
+  NORMAL: 'NORMAL',
+  PERMADEATH: 'PERMADEATH',
+  IRONMAN: 'IRONMAN',
+} as const;
+
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];
 
 
@@ -1328,6 +1457,7 @@ export interface CampaignCreateInput {
   name?: string | null;
   character?: CharacterCreateInput | null;
   campaign_start?: CampaignStartSelection | null;
+  death_mode?: CampaignCreateInputDeathMode;
 }
 
 export interface CampaignStartLocationOption {

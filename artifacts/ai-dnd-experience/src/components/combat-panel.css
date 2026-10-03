@@ -528,6 +528,64 @@
   text-transform: none;
 }
 
+.combat-death-state,
+.combat-death-save,
+.combat-death-resolution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  border: 1px solid rgba(183, 145, 77, .55);
+  background: rgba(87, 62, 33, .2);
+  color: #d7c49a;
+}
+
+.combat-death-state {
+  margin: 12px 0;
+  padding: 11px 13px;
+}
+
+.combat-death-state > div,
+.combat-death-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.combat-death-state > div {
+  flex-wrap: wrap;
+}
+
+.combat-death-state > span,
+.combat-death-save small {
+  color: #ad9b7a;
+  font-size: 11px;
+}
+
+.combat-death-save {
+  justify-content: flex-start;
+  margin-top: 9px;
+  padding: 9px;
+  font-size: 12px;
+}
+
+.combat-death-save strong {
+  color: #e1c688;
+}
+
+.combat-death-save small {
+  flex-basis: 100%;
+}
+
+.combat-death-resolution {
+  justify-content: flex-start;
+  margin-top: 8px;
+  padding: 9px;
+  color: #e1c688;
+  font-size: 12px;
+}
+
 .combat-idle-state,
 .combat-ended-state {
   position: relative;

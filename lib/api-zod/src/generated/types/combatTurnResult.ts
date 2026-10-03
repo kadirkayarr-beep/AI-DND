@@ -8,6 +8,8 @@
 import type { CombatAttackResult } from './combatAttackResult';
 import type { CombatTurnResultResolution } from './combatTurnResultResolution';
 import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
+import type { DeathResolutionResult } from './deathResolutionResult';
+import type { DeathSaveResult } from './deathSaveResult';
 
 export interface CombatTurnResult {
   /** @nullable */
@@ -87,6 +89,8 @@ export interface CombatTurnResult {
   /** @nullable */
   critical_state?: string | null;
   resolution?: CombatTurnResultResolution;
+  death_save?: DeathSaveResult | null;
+  death_resolution?: DeathResolutionResult | null;
   /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */

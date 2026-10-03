@@ -12,4 +12,5 @@ export type GameCombatStatus = typeof GameCombatStatus[keyof typeof GameCombatSt
 export const GameCombatStatus = {
   active: 'active',
   ended: 'ended',
+  death_resolution: 'death_resolution',
 } as const;

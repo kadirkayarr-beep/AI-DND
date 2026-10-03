@@ -67,7 +67,7 @@ class CombatStateProjection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     active: bool
-    status: Literal["active", "ended"]
+    status: Literal["active", "ended", "death_resolution"]
     round: int = Field(ge=0)
     initiative_order: list[str]
     current_turn_index: int = Field(ge=0)
@@ -77,6 +77,56 @@ class CombatStateProjection(BaseModel):
     participant_records: list[CombatParticipantState]
     target_id: str | None = None
     end_reason: str | None = None
+
+
+class DeathResolutionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"]
+    outcome: Literal["rolled_back", "dead"]
+    cause: Literal["massive_damage", "failed_death_saves"]
+    rolled_back: bool
+    terminal: bool
+
+
+class DeathSaveResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    roll: int = Field(ge=1, le=20)
+    outcome: Literal[
+        "success",
+        "failure",
+        "natural_1",
+        "stable",
+        "revived",
+        "dead",
+        "rolled_back",
+    ]
+    successes: int = Field(ge=0, le=3)
+    failures: int = Field(ge=0, le=3)
+    stable: bool
+    dead: bool
+    prone: bool
+    action_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    death_resolution: DeathResolutionResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+
+class DeathStateProjection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"]
+    status: Literal["active", "unconscious", "stable", "dead"]
+    successes: int = Field(ge=0, le=3)
+    failures: int = Field(ge=0, le=3)
+    stable: bool
+    dead: bool
+    terminal: bool
+    prone: bool
+    last_death_save: DeathSaveResult | None = None
+    last_resolution: DeathResolutionResult | None = None
 
 
 class CombatAttackResult(BaseModel):
@@ -113,6 +163,12 @@ class CombatAttackResult(BaseModel):
     resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     critical_state: str | None = Field(default=None, exclude_if=lambda value: value is None)
     resolution: dict[str, Any] | None = Field(default=None, exclude_if=lambda value: value is None)
+    death_save: DeathSaveResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    death_resolution: DeathResolutionResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class CombatTurnResult(CombatAttackResult):
@@ -497,6 +553,7 @@ class CampaignCreateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     character: CharacterCreateInput | None = None
     campaign_start: CampaignStartSelection | None = None
+    death_mode: Literal["NORMAL", "PERMADEATH", "IRONMAN"] = "NORMAL"
 
     @field_validator("name")
     @classmethod

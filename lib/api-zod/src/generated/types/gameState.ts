@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CampaignJournal } from './campaignJournal';
+import type { DeathStateProjection } from './deathStateProjection';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
@@ -35,6 +36,7 @@ export interface GameState {
   features: GameFeature[];
   doors: GameDoor[];
   combat: GameCombat;
+  death_state: DeathStateProjection;
   player_combat_status: GameStatePlayerCombatStatus;
   /** @minimum 0 */
   turn_index: number;

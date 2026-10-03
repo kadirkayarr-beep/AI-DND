@@ -520,6 +520,7 @@ def create_app(
                     if request.campaign_start is not None
                     else None
                 ),
+                death_mode=request.death_mode,
             )
             return redact_sensitive_values(
                 {
@@ -697,6 +698,9 @@ def create_app(
                 getattr(session, "world_metadata", {})
             )
             journal_snapshot = copy.deepcopy(record.journal)
+            narrative_memory_snapshot = copy.deepcopy(
+                record.narrative_memory
+            )
             lore_authority_snapshot = getattr(
                 record,
                 "lore_authority",
@@ -858,25 +862,47 @@ def create_app(
                     },
                 ) from None
 
-            set_session_world_metadata(session, metadata_snapshot)
             action_result = (
                 result.get("action_result")
                 if isinstance(result, dict)
                 else None
             )
+            def contains_death_rollback(value: Any) -> bool:
+                if not isinstance(value, dict):
+                    return False
+                resolution = value.get("death_resolution")
+                if isinstance(resolution, dict) and resolution.get("rolled_back") is True:
+                    return True
+                for nested_key in ("death_save", "enemy_action"):
+                    if contains_death_rollback(value.get(nested_key)):
+                        return True
+                nested_actions = value.get("enemy_actions")
+                return isinstance(nested_actions, list) and any(
+                    contains_death_rollback(item) for item in nested_actions
+                )
+
+            death_rolled_back = contains_death_rollback(action_result)
+            if not death_rolled_back:
+                set_session_world_metadata(session, metadata_snapshot)
             try:
-                staged_lore_authority = _stage_engine_lore_state(
-                    lore_authority_snapshot,
-                    engine_evidence,
-                    action_result,
-                    snapshot["save"].get("world_state", {}),
-                    session.world_state,
+                staged_lore_authority = (
+                    record.lore_authority
+                    if death_rolled_back
+                    else _stage_engine_lore_state(
+                        lore_authority_snapshot,
+                        engine_evidence,
+                        action_result,
+                        snapshot["save"].get("world_state", {}),
+                        session.world_state,
+                    )
                 )
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
                     record.journal = journal_snapshot
+                    record.narrative_memory = narrative_memory_snapshot
+                    record.lore_authority = lore_authority_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after lore-evidence error (error_type=%s)",
@@ -894,26 +920,32 @@ def create_app(
                     },
                 ) from None
             try:
-                staged_narrative_memory = update_narrative_memory(
-                    record.narrative_memory,
-                    player_message=narrative_player_message,
-                    narration=redact_sensitive_values(narration),
-                    action_result=action_result,
-                    world_state_before=snapshot["save"].get(
-                        "world_state",
-                        {},
-                    ),
-                    world_state_after=session.world_state,
-                    world_metadata=world_metadata_for_state(
-                        session.world_state,
-                        getattr(session, "world_metadata", None),
-                    ),
+                staged_narrative_memory = (
+                    copy.deepcopy(record.narrative_memory)
+                    if death_rolled_back
+                    else update_narrative_memory(
+                        record.narrative_memory,
+                        player_message=narrative_player_message,
+                        narration=redact_sensitive_values(narration),
+                        action_result=action_result,
+                        world_state_before=snapshot["save"].get(
+                            "world_state",
+                            {},
+                        ),
+                        world_state_after=session.world_state,
+                        world_metadata=world_metadata_for_state(
+                            session.world_state,
+                            getattr(session, "world_metadata", None),
+                        ),
+                    )
                 )
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
                     record.journal = journal_snapshot
+                    record.narrative_memory = narrative_memory_snapshot
+                    record.lore_authority = lore_authority_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after narrative-memory error (error_type=%s)",
@@ -960,23 +992,26 @@ def create_app(
                         requested_location
                         or session.world_state.get("location")
                     )
-                record.journal = update_campaign_journal(
-                    record.journal,
-                    snapshot["save"],
-                    session.serialize_game_state(),
-                    action_result,
-                    world_metadata_for_state(
-                        session.world_state,
-                        getattr(session, "world_metadata", None),
-                    ),
-                    presence_location_id=presence_location_id,
-                )
+                if not death_rolled_back:
+                    record.journal = update_campaign_journal(
+                        record.journal,
+                        snapshot["save"],
+                        session.serialize_game_state(),
+                        action_result,
+                        world_metadata_for_state(
+                            session.world_state,
+                            getattr(session, "world_metadata", None),
+                        ),
+                        presence_location_id=presence_location_id,
+                    )
                 state = serialize_session_state(session, record.journal)
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
                     record.journal = journal_snapshot
+                    record.narrative_memory = narrative_memory_snapshot
+                    record.lore_authority = lore_authority_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after journal update error (error_type=%s)",
@@ -1052,6 +1087,8 @@ def create_app(
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
                     record.journal = journal_snapshot
+                    record.narrative_memory = narrative_memory_snapshot
+                    record.lore_authority = lore_authority_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after persistence error (error_type=%s)",
@@ -1068,6 +1105,8 @@ def create_app(
                     _restore_session(session, snapshot)
                     session.world_metadata = metadata_snapshot
                     record.journal = journal_snapshot
+                    record.narrative_memory = narrative_memory_snapshot
+                    record.lore_authority = lore_authority_snapshot
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed after unexpected persistence error (error_type=%s)",

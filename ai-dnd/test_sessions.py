@@ -574,10 +574,15 @@ class SessionTests(unittest.TestCase):
             before_a = self.a.serialize_game_state()
             before_b = self.b.serialize_game_state()
             rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
-            # Both scripts are exhausted: any further roll fails immediately.
-            follow_up = game.resolve_enemy_attack(enemies[0], session=self.a)
+            # An attack against an unconscious player has advantage. Script a
+            # miss to confirm it consumes only session A's dice and state.
+            with self.rolls(self.a, (20, 1), (20, 2)), \
+                 self.rolls(self.b), \
+                 self.rolls(game._DEFAULT_SESSION):
+                follow_up = game.resolve_enemy_attack(enemies[0], session=self.a)
             self.assertFalse(follow_up["success"])
-            self.assertEqual(follow_up["outcome"], "player_unconscious")
+            self.assertEqual(follow_up["outcome"], "miss")
+            self.assertEqual(follow_up["attack_rolls"], [1, 2])
             self.assertEqual(follow_up["damage"], 0)
             self.assertEqual(self.a.serialize_game_state(), before_a)
             self.assertEqual(self.b.serialize_game_state(), before_b)
