@@ -1,0 +1,194 @@
+CORE RESOLUTION V1 — CLARIFICATION ADDENDUM
+
+Mevcut Core Resolution promptunu yeniden yazma. Aşağıdaki maddeleri mevcut kapsamın bağlayıcı netleştirmeleri olarak kabul et.
+
+Henüz uygulamaya başlama. Önce bu ek maddeleri mevcut promptla birlikte değerlendir ve yalnızca gerçekten çelişen veya eksik kalan bir nokta varsa belirt. Ben "BAŞLA" demeden hiçbir dosyayı değiştirme.
+
+1. NATURAL 20 / NATURAL 1
+
+2024 kurallarına göre:
+
+- Attack Roll:
+  - Natural 20 = otomatik isabet + critical hit.
+  - Natural 1 = otomatik miss.
+- Ability Check / Skill Check:
+  - Natural 20 veya Natural 1 otomatik başarı/başarısızlık değildir.
+  - Sonuç normal d20 + modifier vs DC çözümünden gelir.
+- Saving Throw:
+  - Natural 20 veya Natural 1 otomatik başarı/başarısızlık değildir.
+  - Sonuç normal d20 + modifier vs DC çözümünden gelir.
+
+Mevcut game.py davranışında skill check için farklı bir natural 20/1 davranışı varsa, bunun Core Resolution V1 kapsamında bilinçli olarak 2024 kurallarına uyarlanacağını kabul et.
+
+"Mevcut davranışı koru" ilkesi bu açık kural değişikliğiyle çelişmemelidir.
+
+2. MONSTER ATTACK BONUSLARI
+
+Oyuncu karakterlerinin attack bonus hesaplaması ile monster stat block attack bonuslarını birbirinden ayır.
+
+Player character attack:
+- doğrulanmış ability modifier
+- proficiency
+- uygulanabilir doğrulanmış bonuslar
+
+Monster attack:
+- doğrulanmış monster stat block attack bonusunu kullan.
+- Monster saldırı bonusunu oyuncu karakter formülünden yeniden hesaplayıp üzerine tekrar proficiency/ability bonusu ekleme.
+- Qwen veya frontend monster bonusu belirleyemez.
+
+3. DC / AC / ADVANTAGE / DISADVANTAGE / CIRCUMSTANTIAL MODIFIERS
+
+Core Resolution hiçbir zaman kendi başına DC, AC, advantage, disadvantage veya situational modifier icat etmemeli.
+
+Bu değerlerin kaynağı yalnızca:
+- Python-authoritative game state,
+- doğrulanmış D&D kuralları,
+- mevcut yetkili oyun/motor kararları
+
+olabilir.
+
+Oyuncu metni, Qwen anlatımı veya frontend bu değerleri doğrudan authority olarak sağlayamaz.
+
+Qwen yalnızca oyuncunun niyetini anlamaya yardımcı olabilir.
+
+Örnek:
+
+Oyuncu:
+"Kapıyı zorlayarak açıyorum."
+
+Qwen:
+"Bu bir Strength check olabilir."
+
+Python:
+"Bu eylem için Strength (Athletics), DC 15 gerekiyor."
+
+Core:
+"d20 + modifier vs DC 15 çöz."
+
+Qwen:
+"Doğrulanmış sonucu hikâyeleştir."
+
+4. ROLL GEREKLİLİĞİ
+
+Core Resolution kendi başına gereksiz check üretmemeli.
+
+Bir eylemin:
+- roll gerektirdiği,
+- otomatik başarı olduğu,
+- imkânsız olduğu,
+- başka bir doğrulanmış resolution gerektirdiği
+
+Python-authoritative oyun mantığı tarafından belirlenmeli.
+
+Core, kendisine verilen resolution context'i çözmeli; oyun dünyasının kurallarını veya DC'yi kendi başına icat etmemeli.
+
+5. IDEMPOTENCY
+
+Her resolution için kararlı bir action_id / resolution_id kullanılmalı.
+
+Aynı action_id ile aynı resolution tekrar gönderilirse:
+
+- ikinci kez zar atılmamalı,
+- ikinci kez state mutation yapılmamalı,
+- aynı canonical resolution sonucu döndürülmeli.
+
+Aynı action_id farklı bir action/resolution ile kullanılırsa reddedilmeli.
+
+Bu davranış yalnızca process-memory ile sınırlı olmamalı; mevcut persistence/session mimarisi içinde güvenilir olmalı.
+
+Save/load veya API retry sonrasında da aynı garanti korunmalı.
+
+6. TEST KAPSAMI — GEREKSİZ TEST YIĞINI YOK
+
+Bu iş için devasa bir test matrisi oluşturma.
+
+Yalnızca Core Resolution'ın temel doğruluğunu kanıtlayan hedefli deterministic testler yeterli:
+
+- normal d20 resolution
+- advantage
+- disadvantage
+- advantage + disadvantage cancellation
+- attack natural 20
+- attack natural 1
+- ability/skill check natural 20
+- ability/skill check natural 1
+- saving throw
+- attack vs AC
+- modifier/proficiency uygulaması
+- monster stat-block attack bonusunun ayrı kullanılması
+- aynı action_id retry
+- farklı action ile aynı action_id kullanımı
+- persistence sonrası idempotency
+
+Mevcut test altyapısı bunları zaten kapsıyorsa gereksiz yeni testler yazma.
+
+7. KAPSAM SINIRI
+
+Bu iş yalnızca Core Resolution V1 içindir.
+
+Şunları bu aşamada implement etme:
+- yeni combat sistemi
+- yeni quest sistemi
+- ekonomi
+- inventory overhaul
+- NPC relationship system
+- yeni memory architecture
+- yeni ambient event sistemi
+- frontend redesign
+- Qwen architecture değişikliği
+
+Mevcut sistemleri yalnızca Core Resolution'a güvenli şekilde bağlamak gerekiyorsa minimum değişiklik yap.
+
+8. MİMARİ DEĞİŞMEZ
+
+Python oyun mekaniğinin ve state'in tek otoritesidir.
+
+Qwen:
+- intent understanding
+- narration
+
+Python:
+- action interpretation sonucu
+- resolution context
+- dice
+- modifiers
+- DC/AC
+- advantage/disadvantage
+- canonical result
+- state mutation
+
+Frontend:
+- yalnızca doğrulanmış sonucu gösterir.
+
+Model çıktısı hiçbir koşulda doğrudan canonical state oluşturamaz.
+
+9. UYGULAMA FELSEFESİ
+
+Mevcut çalışan sistemleri gereksiz yere yeniden yazma.
+
+Önce mevcut resolution/check/attack yollarını tespit et.
+
+Sonra ortak Core Resolution primitive'lerini mevcut yetkili akışlara bağla.
+
+Kullanılmayan paralel bir ikinci resolution sistemi oluşturma.
+
+Mevcut persistence ve session isolation korunmalı.
+
+Maximum 2 model calls per player turn korunmalı.
+
+Rejected narration deterministik fallback ile devam etmeli; Core Resolution yeni model çağrısı üretmemeli.
+
+10. ÇALIŞMA ŞEKLİ
+
+Önce mevcut kodu ve mevcut resolution yollarını incele.
+
+Sonra:
+- hangi mevcut fonksiyonların Core'a bağlanacağını,
+- hangilerinin değişeceğini,
+- hangi mevcut davranışın 2024 kurallarına göre bilinçli olarak değişeceğini
+
+kısa bir plan halinde raporla.
+
+Ben "BAŞLA" demeden kod değişikliği yapma.
+
+Amaç büyük bir refactor yapmak değil; Combat, Quest, NPC interaction ve diğer gelecekteki sistemlerin güvenle kullanabileceği tek ve güvenilir bir resolution authority oluşturmaktır.
