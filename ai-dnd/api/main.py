@@ -11,7 +11,7 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -632,17 +632,42 @@ def create_app(
     def play_turn(session_id: str, request: TurnRequest) -> TurnResponse:
         record = get_record(session_id)
         active_adapter = application.state.ollama_adapter
-        if active_adapter is None:
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "code": "ollama_unavailable",
-                    "message": "Authenticated Ollama service is not configured.",
-                },
-            )
-
+        action_id = str(request.action_id or uuid4())
+        request_hash = hashlib.sha256(
+            json.dumps(
+                {"message": request.message, "target_id": request.target_id},
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
         session = record.game_session
         with record.turn_lock:
+            try:
+                previous_action = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if previous_action is not None:
+                if previous_action["request_hash"] != request_hash:
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different turn.",
+                        },
+                    )
+                replay = copy.deepcopy(previous_action["response"])
+                replay["session_id"] = session_id
+                replay["action_id"] = action_id
+                return replay
+            if active_adapter is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "code": "ollama_unavailable",
+                        "message": "Authenticated Ollama service is not configured.",
+                    },
+                )
             try:
                 active_adapter.ensure_required_model()
             except OllamaUnavailableError as error:
@@ -743,6 +768,10 @@ def create_app(
                                 run_kwargs = {}
                                 if "scene_plan" in run_parameters:
                                     run_kwargs["scene_plan"] = scene_plan
+                                if "action_id" in run_parameters:
+                                    run_kwargs["action_id"] = action_id
+                                if "session_id" in run_parameters:
+                                    run_kwargs["session_id"] = session_id
                                 if request.target_id is not None:
                                     run_kwargs["target_id"] = request.target_id
                                 result = run_turn(request.message, **run_kwargs)
@@ -987,6 +1016,23 @@ def create_app(
                     },
                 ) from None
             record.lore_authority = staged_lore_authority
+            response = TurnResponse(
+                session_id=session_id,
+                action_id=action_id,
+                narration=narration,
+                state=state,
+                combat_result=combat_result,
+                combat_history_entry=combat_history_entry,
+                skill_check_result=skill_check_result,
+                quest_outcomes=(
+                    action_result.get("quest_outcomes", [])
+                    if isinstance(action_result, dict)
+                    else []
+                ),
+            )
+            response_payload = redact_sensitive_values(
+                response.model_dump(mode="json")
+            )
             try:
                 manager.autosave_turn(
                     record,
@@ -994,6 +1040,11 @@ def create_app(
                     narration,
                     combat_history_entry=combat_history_entry,
                     narrative_memory=staged_narrative_memory,
+                    turn_action_receipt={
+                        "action_id": action_id,
+                        "request_hash": request_hash,
+                        "response": response_payload,
+                    },
                 )
             except CampaignError as error:
                 record.lore_authority = lore_authority_snapshot
@@ -1056,20 +1107,7 @@ def create_app(
                 narrative_frame.diagnostics.get("selected_counts", {}),
                 len(narrative_frame.diagnostics.get("ambiguities", [])),
             )
-            response = TurnResponse(
-                session_id=session_id,
-                narration=narration,
-                state=state,
-                combat_result=combat_result,
-                combat_history_entry=combat_history_entry,
-                skill_check_result=skill_check_result,
-                quest_outcomes=(
-                    action_result.get("quest_outcomes", [])
-                    if isinstance(action_result, dict)
-                    else []
-                ),
-            )
-            return redact_sensitive_values(response.model_dump())
+            return response_payload
 
     def _quest_command(session_id: str, quest_id: str, command: str) -> dict[str, Any]:
         record = get_record(session_id)

@@ -65,6 +65,85 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
+    async def test_turn_action_replays_after_resume_and_rejects_reused_payload(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        calls = []
+
+        def deterministic_turn(_message, **_kwargs):
+            calls.append(True)
+            return {
+                "narration": "Kapıdan hafif bir ses geliyor.",
+                "action_result": {
+                    "action": "world_interaction",
+                    "status": "resolved",
+                    "success": True,
+                    "state_changes": [],
+                },
+            }
+
+        session.run_player_turn = deterministic_turn
+        action_id = str(uuid.uuid4())
+        body = {
+            "message": "Kapının arkasından ses dinliyorum.",
+            "action_id": action_id,
+        }
+        first = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json=body,
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json()["action_id"], action_id)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(self.store.get_campaign(created["campaign_id"]).history), 1)
+
+        same_session_retry = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json=body,
+        )
+        self.assertEqual(same_session_retry.status_code, 200, same_session_retry.text)
+        self.assertEqual(same_session_retry.json(), first.json())
+        self.assertEqual(len(calls), 1)
+
+        reloaded_manager = SessionManager(
+            campaign_store=CampaignStore(self.store.path)
+        )
+        resumed_id, _, _, _, _ = reloaded_manager.resume_campaign(
+            created["campaign_id"]
+        )
+        reloaded_app = create_app(
+            session_manager=reloaded_manager,
+            ollama_adapter=None,
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reloaded_app),
+            base_url="http://testserver",
+        ) as reloaded_http:
+            after_resume = await reloaded_http.post(
+                f"/api/game/sessions/{resumed_id}/turn",
+                json=body,
+            )
+            self.assertEqual(after_resume.status_code, 200, after_resume.text)
+            self.assertEqual(after_resume.json()["action_id"], action_id)
+            self.assertEqual(after_resume.json()["narration"], first.json()["narration"])
+            self.assertEqual(
+                after_resume.json()["state"],
+                first.json()["state"],
+            )
+
+            conflicting = await reloaded_http.post(
+                f"/api/game/sessions/{resumed_id}/turn",
+                json={**body, "message": "Kapıyı açıyorum."},
+            )
+            self.assertEqual(conflicting.status_code, 409)
+            self.assertEqual(
+                conflicting.json()["detail"]["code"],
+                "action_id_conflict",
+            )
+        self.assertEqual(len(self.store.get_campaign(created["campaign_id"]).history), 1)
+        self.assertEqual(len(calls), 1)
+
     def install_test_ambient_event(self, session, event_type="BLUE"):
         world = session.world_state
         if world.get("location") == "Henüz belirlenmedi":

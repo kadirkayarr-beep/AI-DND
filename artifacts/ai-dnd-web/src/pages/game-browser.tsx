@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -486,6 +486,49 @@ function StartScreen({
   );
 }
 
+function actionFingerprint(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function stableTurnActionId(scope: string, signature: string) {
+  const storageKey = `ai-dnd-pending-turns:${scope}`;
+  const fingerprint = actionFingerprint(signature);
+  try {
+    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
+    const existing = pending[fingerprint];
+    if (typeof existing === 'string') return existing;
+    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
+    const actionId = window.crypto.randomUUID();
+    pending[fingerprint] = actionId;
+    window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
+    return actionId;
+  } catch {
+    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
+    return window.crypto.randomUUID();
+  }
+}
+
+function clearPendingTurnAction(scope: string, actionId: string) {
+  const storageKey = `ai-dnd-pending-turns:${scope}`;
+  try {
+    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
+    for (const [fingerprint, pendingId] of Object.entries(pending)) {
+      if (pendingId === actionId) delete pending[fingerprint];
+    }
+    if (Object.keys(pending).length) {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
+    } else {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  } catch {
+    // The server receipt remains authoritative if browser storage is unavailable.
+  }
+}
+
 export default function GameBrowser() {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState(() => window.localStorage.getItem(SESSION_STORAGE_KEY) ?? '');
@@ -506,6 +549,7 @@ export default function GameBrowser() {
   });
   const createSession = useCreateGameSession();
   const playTurn = usePlayGameTurn();
+  const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
 
   useEffect(() => {
     if (!sessionId || !stateQuery.isError) return;
@@ -555,8 +599,16 @@ export default function GameBrowser() {
     event.preventDefault();
     if (!message.trim() || !sessionId || isSending) return;
     setNotice(null);
-    playTurn.mutate({ sessionId, data: { message } }, {
+    const turnMessage = message.trim();
+    const signature = JSON.stringify([sessionId, turnMessage, null]);
+    const actionId = pendingTurnRef.current?.signature === signature
+      ? pendingTurnRef.current.actionId
+      : stableTurnActionId(sessionId, signature);
+    pendingTurnRef.current = { signature, actionId };
+    playTurn.mutate({ sessionId, data: { message: turnMessage, action_id: actionId } }, {
       onSuccess: (result) => {
+        if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
+        clearPendingTurnAction(sessionId, actionId);
         setNarration(result.narration);
         setMessage('');
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);

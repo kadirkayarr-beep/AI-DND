@@ -59,6 +59,7 @@ class ManagedSession:
     lore_authority: CampaignLoreState = field(
         default_factory=CampaignLoreState.legacy_unbound
     )
+    turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 class SessionManager:
@@ -374,6 +375,7 @@ class SessionManager:
         narration: str,
         combat_history_entry: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
+        turn_action_receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """Persist a successful turn; caller holds record.turn_lock."""
         candidate_memory = validate_narrative_memory(
@@ -384,6 +386,10 @@ class SessionManager:
         if record.campaign_id is None:
             record.narrative_memory = candidate_memory
             self._remember_combat_entry(record, combat_history_entry)
+            if turn_action_receipt is not None:
+                record.turn_action_receipts[
+                    turn_action_receipt["action_id"]
+                ] = copy.deepcopy(turn_action_receipt)
             return None
         set_session_world_metadata(
             record.game_session,
@@ -400,10 +406,25 @@ class SessionManager:
             combat_history_entry=combat_history_entry,
             narrative_memory=candidate_memory,
             lore_authority=record.lore_authority,
+            turn_action_receipt=turn_action_receipt,
         )
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)
         return metadata
+
+    def get_turn_action(
+        self,
+        record: ManagedSession,
+        action_id: str,
+    ) -> dict[str, Any] | None:
+        """Look up an action receipt inside its session or campaign scope."""
+        if record.campaign_id is not None:
+            return self._require_campaign_store().get_turn_action(
+                record.campaign_id,
+                action_id,
+            )
+        receipt = record.turn_action_receipts.get(action_id)
+        return copy.deepcopy(receipt) if receipt is not None else None
 
     @staticmethod
     def _remember_combat_entry(

@@ -10,8 +10,6 @@ export type SkillCheckResultOutcome = typeof SkillCheckResultOutcome[keyof typeo
 
 
 export const SkillCheckResultOutcome = {
-  critical_success: 'critical_success',
   success: 'success',
   failure: 'failure',
-  critical_failure: 'critical_failure',
 } as const;

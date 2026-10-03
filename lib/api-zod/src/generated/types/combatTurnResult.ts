@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatAttackResult } from './combatAttackResult';
+import type { CombatTurnResultResolution } from './combatTurnResultResolution';
 import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
 
 export interface CombatTurnResult {
@@ -79,6 +80,13 @@ export interface CombatTurnResult {
   temporary_hp_after?: number | null;
   /** @nullable */
   species_effects?: CombatTurnResultSpeciesEffectsItem[] | null;
+  /** @nullable */
+  action_id?: string | null;
+  /** @nullable */
+  resolution_id?: string | null;
+  /** @nullable */
+  critical_state?: string | null;
+  resolution?: CombatTurnResultResolution;
   /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */

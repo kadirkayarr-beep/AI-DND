@@ -799,6 +799,49 @@ function StateSkeleton() {
   return <div className="state-column" data-testid="state-loading">{[1, 2].map((panel) => <div className="state-panel" key={panel}><div className="dnd-skeleton h-3 w-24" /><div className="dnd-skeleton mt-4 h-7 w-40" /><div className="dnd-skeleton mt-3 h-16 w-full" /><div className="dnd-skeleton mt-3 h-8 w-full" /></div>)}</div>;
 }
 
+function actionFingerprint(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function stableTurnActionId(scope: string, signature: string) {
+  const storageKey = `ai-dnd-pending-turns:${scope}`;
+  const fingerprint = actionFingerprint(signature);
+  try {
+    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
+    const existing = pending[fingerprint];
+    if (typeof existing === 'string') return existing;
+    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
+    const actionId = window.crypto.randomUUID();
+    pending[fingerprint] = actionId;
+    window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
+    return actionId;
+  } catch {
+    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
+    return window.crypto.randomUUID();
+  }
+}
+
+function clearPendingTurnAction(scope: string, actionId: string) {
+  const storageKey = `ai-dnd-pending-turns:${scope}`;
+  try {
+    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
+    for (const [fingerprint, pendingId] of Object.entries(pending)) {
+      if (pendingId === actionId) delete pending[fingerprint];
+    }
+    if (Object.keys(pending).length) {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
+    } else {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  } catch {
+    // The server receipt remains authoritative if browser storage is unavailable.
+  }
+}
+
 export default function GameBrowser() {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState('');
@@ -847,6 +890,7 @@ export default function GameBrowser() {
     },
   });
   const playTurn = usePlayGameTurn();
+  const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const resolveAmbientEventAction = useResolveAmbientEventAction();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
@@ -1105,14 +1149,24 @@ export default function GameBrowser() {
     const trimmed = message.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
+    const targetId = combatTargetId || null;
+    const actionScope = campaignId || sessionId;
+    const signature = JSON.stringify([actionScope, trimmed, targetId]);
+    const actionId = pendingTurnRef.current?.signature === signature
+      ? pendingTurnRef.current.actionId
+      : stableTurnActionId(actionScope, signature);
+    pendingTurnRef.current = { signature, actionId };
     playTurn.mutate({
       sessionId,
       data: {
         message: trimmed,
-        ...(combatTargetId ? { target_id: combatTargetId } : {}),
+        action_id: actionId,
+        ...(targetId ? { target_id: targetId } : {}),
       },
     }, {
       onSuccess: (result) => {
+        if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
+        clearPendingTurnAction(actionScope, actionId);
         const next = [
           ...entries,
           { kind: 'player' as const, text: trimmed },

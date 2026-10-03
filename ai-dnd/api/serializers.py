@@ -115,6 +115,10 @@ _COMBAT_ATTACK_FIELDS = (
     "temporary_hp_absorbed",
     "temporary_hp_after",
     "species_effects",
+    "action_id",
+    "resolution_id",
+    "critical_state",
+    "resolution",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -274,7 +278,10 @@ def serialize_skill_check_result(
     dc = action_result.get("dc")
     outcome = action_result.get("outcome")
     advantage = action_result.get("advantage", False)
+    disadvantage = action_result.get("disadvantage", False)
+    expertise = action_result.get("expertise", False)
     dice_rolls = action_result.get("dice_rolls", [d20])
+    resolution = action_result.get("resolution")
 
     if not isinstance(skill, str) or skill not in game.SKILLS:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
@@ -304,6 +311,10 @@ def serialize_skill_check_result(
     if not isinstance(proficient_skills, (list, tuple)):
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
     proficient = skill in proficient_skills
+    expertise_skills = character.get("expertise_skills", ())
+    if not isinstance(expertise_skills, (list, tuple, set)):
+        raise SkillCheckResultSerializationError("Invalid skill-check result.")
+    expected_expertise = proficient and skill in expertise_skills
     character_proficiency_bonus = character.get("proficiency_bonus")
     modifiers = character.get("modifiers")
     if (
@@ -315,7 +326,9 @@ def serialize_skill_check_result(
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
 
     expected_proficiency_modifier = (
-        character_proficiency_bonus if proficient else 0
+        character_proficiency_bonus * (2 if expected_expertise else 1)
+        if proficient
+        else 0
     )
     total_modifier = ability_modifier + proficiency_modifier
     if (
@@ -324,11 +337,31 @@ def serialize_skill_check_result(
         or proficiency_modifier < 0
         or proficiency_modifier != expected_proficiency_modifier
         or total != d20 + total_modifier
+        or expertise is not expected_expertise
         or type(advantage) is not bool
+        or type(disadvantage) is not bool
         or not isinstance(dice_rolls, list)
         or any(type(roll) is not int or not 1 <= roll <= 20 for roll in dice_rolls)
-        or (advantage and (len(dice_rolls) != 2 or max(dice_rolls) != d20))
-        or (not advantage and (len(dice_rolls) != 1 or dice_rolls[0] != d20))
+        or (
+            (advantage != disadvantage)
+            and (
+                len(dice_rolls) != 2
+                or (max(dice_rolls) if advantage else min(dice_rolls)) != d20
+            )
+        )
+        or (
+            (advantage == disadvantage)
+            and (len(dice_rolls) != 1 or dice_rolls[0] != d20)
+        )
+        or (
+            resolution is not None
+            and (
+                not isinstance(resolution, Mapping)
+                or resolution.get("resolution_type") != "skill_check"
+                or resolution.get("selected_roll") != d20
+                or resolution.get("total") != total
+            )
+        )
     ):
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
 
@@ -346,9 +379,18 @@ def serialize_skill_check_result(
             dc=dc,
             outcome=outcome,
         )
-        if advantage:
+        if advantage != disadvantage:
             projected_values["d20_rolls"] = dice_rolls
-            projected_values["advantage"] = True
+        if "advantage" in action_result:
+            projected_values["advantage"] = advantage
+        if "disadvantage" in action_result:
+            projected_values["disadvantage"] = disadvantage
+        if "expertise" in action_result:
+            projected_values["expertise"] = expertise
+        if isinstance(resolution, Mapping):
+            for field in ("action_id", "resolution_id"):
+                if resolution.get(field) is not None:
+                    projected_values[field] = resolution[field]
         projected = SkillCheckResult(**projected_values)
     except ValidationError:
         raise SkillCheckResultSerializationError(

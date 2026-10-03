@@ -154,6 +154,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameTurnResult"
+        "409":
+          $ref: "#/components/responses/ApiError"
         "404":
           $ref: "#/components/responses/ApiError"
         "422":
@@ -697,11 +699,18 @@ components:
           type: ["string", "null"]
           minLength: 1
           maxLength: 128
+        action_id:
+          type: ["string", "null"]
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
       required: [message]
     GameTurnResult:
       type: object
       properties:
         session_id:
+          type: string
+          format: uuid
+        action_id:
           type: string
           format: uuid
         narration:
@@ -726,7 +735,7 @@ components:
         quest_outcomes:
           type: array
           items: {$ref: "#/components/schemas/QuestOutcome"}
-      required: [session_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes]
+      required: [session_id, action_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes]
     QuestObjective:
       type: object
       additionalProperties: false
@@ -963,7 +972,11 @@ components:
             maximum: 20
         advantage:
           type: boolean
+        disadvantage:
+          type: boolean
         proficient:
+          type: boolean
+        expertise:
           type: boolean
         ability_modifier:
           type: integer
@@ -983,7 +996,12 @@ components:
           maximum: 30
         outcome:
           type: string
-          enum: [critical_success, success, failure, critical_failure]
+          enum: [success, failure]
+        action_id:
+          type: string
+          format: uuid
+        resolution_id:
+          type: ["string", "null"]
       required:
         - skill
         - ability
@@ -1065,6 +1083,18 @@ components:
           items:
             type: object
             additionalProperties: true
+        action_id:
+          type: ["string", "null"]
+          format: uuid
+        resolution_id:
+          type: ["string", "null"]
+        critical_state:
+          type: ["string", "null"]
+        resolution:
+          anyOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
     CombatTurnResult:
       type: object
       additionalProperties: false
@@ -1134,6 +1164,18 @@ components:
           items:
             type: object
             additionalProperties: true
+        action_id:
+          type: ["string", "null"]
+          format: uuid
+        resolution_id:
+          type: ["string", "null"]
+        critical_state:
+          type: ["string", "null"]
+        resolution:
+          anyOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
         combat_started:
           type: ["boolean", "null"]
         combat_ended:

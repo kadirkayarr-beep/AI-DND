@@ -13,6 +13,7 @@ import type { SkillCheckResult } from './skillCheckResult';
 
 export interface GameTurnResult {
   session_id: string;
+  action_id: string;
   narration: string;
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */

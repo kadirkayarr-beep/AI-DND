@@ -737,9 +737,16 @@ export interface GameTurnInput {
      * @nullable
      */
   target_id?: string | null;
+  /**
+     * @nullable
+     * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+     */
+  action_id?: string | null;
 }
 
 export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
+
+export type CombatAttackResultResolution = { [key: string]: unknown } | null;
 
 export interface CombatAttackResult {
   /** @nullable */
@@ -812,9 +819,18 @@ export interface CombatAttackResult {
   temporary_hp_after?: number | null;
   /** @nullable */
   species_effects?: CombatAttackResultSpeciesEffectsItem[] | null;
+  /** @nullable */
+  action_id?: string | null;
+  /** @nullable */
+  resolution_id?: string | null;
+  /** @nullable */
+  critical_state?: string | null;
+  resolution?: CombatAttackResultResolution;
 }
 
 export type CombatTurnResultSpeciesEffectsItem = { [key: string]: unknown };
+
+export type CombatTurnResultResolution = { [key: string]: unknown } | null;
 
 export interface CombatTurnResult {
   /** @nullable */
@@ -888,6 +904,13 @@ export interface CombatTurnResult {
   /** @nullable */
   species_effects?: CombatTurnResultSpeciesEffectsItem[] | null;
   /** @nullable */
+  action_id?: string | null;
+  /** @nullable */
+  resolution_id?: string | null;
+  /** @nullable */
+  critical_state?: string | null;
+  resolution?: CombatTurnResultResolution;
+  /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
   combat_ended?: boolean | null;
@@ -937,10 +960,8 @@ export type SkillCheckResultOutcome = typeof SkillCheckResultOutcome[keyof typeo
 
 
 export const SkillCheckResultOutcome = {
-  critical_success: 'critical_success',
   success: 'success',
   failure: 'failure',
-  critical_failure: 'critical_failure',
 } as const;
 
 export interface SkillCheckResult {
@@ -963,7 +984,9 @@ export interface SkillCheckResult {
      */
   d20_rolls?: number[];
   advantage?: boolean;
+  disadvantage?: boolean;
   proficient: boolean;
+  expertise?: boolean;
   ability_modifier: number;
   /** @minimum 0 */
   proficiency_modifier: number;
@@ -976,6 +999,9 @@ export interface SkillCheckResult {
      */
   dc: number;
   outcome: SkillCheckResultOutcome;
+  action_id?: string;
+  /** @nullable */
+  resolution_id?: string | null;
 }
 
 export type QuestOutcomeTransition = typeof QuestOutcomeTransition[keyof typeof QuestOutcomeTransition];
@@ -1008,6 +1034,7 @@ export interface QuestOutcome {
 
 export interface GameTurnResult {
   session_id: string;
+  action_id: string;
   narration: string;
   state: GameState;
   /** Structured combat outcome returned by Python; null for non-combat turns. */

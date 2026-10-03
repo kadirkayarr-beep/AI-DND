@@ -67,6 +67,12 @@
   color: #e2ce9f;
 }
 
+.skill-check-result__roll-context {
+  margin: 0.55rem 0 0;
+  color: rgba(238, 233, 223, 0.72);
+  font-size: 0.68rem;
+}
+
 .skill-check-result__difficulty {
   margin: 0.65rem 0 0;
   color: rgba(238, 233, 223, 0.62);

@@ -35,7 +35,7 @@ from api.persistence.campaign_validation import (
 )
 
 
-_DATABASE_SCHEMA_VERSION = 2
+_DATABASE_SCHEMA_VERSION = 3
 MAX_COMBAT_HISTORY_ENTRIES = 50
 
 
@@ -159,6 +159,28 @@ class CampaignStore:
                     )
                     connection.execute("PRAGMA user_version = 2")
                     connection.commit()
+                    current_version = 2
+                except Exception:
+                    connection.rollback()
+                    raise
+            if current_version == 2:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    connection.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS campaign_turn_actions (
+                            campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id)
+                                ON DELETE CASCADE,
+                            action_id TEXT NOT NULL,
+                            request_hash TEXT NOT NULL,
+                            response_json TEXT NOT NULL,
+                            created_at TEXT NOT NULL,
+                            PRIMARY KEY (campaign_id, action_id)
+                        )
+                        """
+                    )
+                    connection.execute("PRAGMA user_version = 3")
+                    connection.commit()
                 except Exception:
                     connection.rollback()
                     raise
@@ -192,12 +214,22 @@ class CampaignStore:
                 "PRAGMA table_info(campaign_combat_history)"
             ).fetchall()
         }
+        turn_action_columns = {
+            str(row["name"])
+            for row in connection.execute(
+                "PRAGMA table_info(campaign_turn_actions)"
+            ).fetchall()
+        }
         if not expected.issubset(columns) or not {
             "campaign_id", "sequence", "player_message", "narration", "created_at"
         }.issubset(history_columns) or not {
             "campaign_id", "sequence", "event_id", "turn_index", "result_json",
             "created_at",
         }.issubset(combat_history_columns):
+            raise CampaignStorageError("Campaign database schema is incomplete.")
+        if not {
+            "campaign_id", "action_id", "request_hash", "response_json", "created_at"
+        }.issubset(turn_action_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
 
     @staticmethod
@@ -314,6 +346,7 @@ class CampaignStore:
         combat_history_entry: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
         lore_authority: CampaignLoreState | dict[str, Any] | None = None,
+        turn_action_receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
         if journal is None or narrative_memory is None or lore_authority is None:
@@ -339,6 +372,32 @@ class CampaignStore:
             combat_history_entry = serialize_combat_history_entry(
                 combat_history_entry
             )
+        action_json = None
+        if turn_action_receipt is not None:
+            action_id = turn_action_receipt.get("action_id")
+            request_hash = turn_action_receipt.get("request_hash")
+            response = turn_action_receipt.get("response")
+            if (
+                not isinstance(action_id, str)
+                or not _is_uuid4(action_id)
+                or not isinstance(request_hash, str)
+                or len(request_hash) != 64
+                or any(char not in "0123456789abcdef" for char in request_hash)
+                or not isinstance(response, dict)
+                or response.get("action_id") != action_id
+            ):
+                raise CampaignValidationError("Turn action receipt is invalid.")
+            try:
+                action_json = json.dumps(
+                    response,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+            except (TypeError, ValueError):
+                raise CampaignValidationError(
+                    "Turn action receipt is invalid."
+                ) from None
         payload_json = json.dumps(
             payload,
             ensure_ascii=False,
@@ -355,6 +414,18 @@ class CampaignStore:
                 ).fetchone()
                 if existing is None:
                     raise CampaignNotFoundError("Campaign not found.")
+                if turn_action_receipt is not None:
+                    prior_action = connection.execute(
+                        """
+                        SELECT request_hash FROM campaign_turn_actions
+                        WHERE campaign_id = ? AND action_id = ?
+                        """,
+                        (campaign_id, turn_action_receipt["action_id"]),
+                    ).fetchone()
+                    if prior_action is not None:
+                        raise CampaignValidationError(
+                            "Turn action has already been committed."
+                        )
                 connection.execute(
                     """
                     UPDATE campaigns SET
@@ -428,22 +499,37 @@ class CampaignStore:
                             now,
                         ),
                     )
+                if turn_action_receipt is not None and action_json is not None:
                     connection.execute(
                         """
-                        DELETE FROM campaign_combat_history
-                        WHERE campaign_id = ? AND sequence NOT IN (
-                            SELECT sequence FROM campaign_combat_history
-                            WHERE campaign_id = ?
-                            ORDER BY sequence DESC
-                            LIMIT ?
-                        )
+                        INSERT INTO campaign_turn_actions (
+                            campaign_id, action_id, request_hash, response_json, created_at
+                        ) VALUES (?, ?, ?, ?, ?)
                         """,
                         (
                             campaign_id,
-                            campaign_id,
-                            MAX_COMBAT_HISTORY_ENTRIES,
+                            turn_action_receipt["action_id"],
+                            turn_action_receipt["request_hash"],
+                            action_json,
+                            now,
                         ),
                     )
+                connection.execute(
+                    """
+                    DELETE FROM campaign_combat_history
+                    WHERE campaign_id = ? AND sequence NOT IN (
+                        SELECT sequence FROM campaign_combat_history
+                        WHERE campaign_id = ?
+                        ORDER BY sequence DESC
+                        LIMIT ?
+                    )
+                    """,
+                    (
+                        campaign_id,
+                        campaign_id,
+                        MAX_COMBAT_HISTORY_ENTRIES,
+                    ),
+                )
                 row = connection.execute(
                     "SELECT * FROM campaigns WHERE campaign_id = ?",
                     (campaign_id,),
@@ -455,6 +541,45 @@ class CampaignStore:
             raise
         except (sqlite3.Error, OSError, TypeError, ValueError):
             raise CampaignStorageError("Campaign could not be saved safely.") from None
+
+    def get_turn_action(
+        self,
+        campaign_id: str,
+        action_id: str,
+    ) -> dict[str, Any] | None:
+        self._validate_campaign_id(campaign_id)
+        if not _is_uuid4(action_id):
+            raise CampaignValidationError("Turn action ID is invalid.")
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT request_hash, response_json
+                FROM campaign_turn_actions
+                WHERE campaign_id = ? AND action_id = ?
+                """,
+                (campaign_id, action_id),
+            ).fetchone()
+            if row is None:
+                return None
+            response = json.loads(str(row["response_json"]))
+            request_hash = str(row["request_hash"])
+            if (
+                not isinstance(response, dict)
+                or response.get("action_id") != action_id
+                or len(request_hash) != 64
+                or any(char not in "0123456789abcdef" for char in request_hash)
+            ):
+                raise CampaignCorruptError("Campaign action receipt is invalid.")
+            return {"request_hash": request_hash, "response": response}
+        except CampaignCorruptError:
+            raise
+        except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError):
+            raise CampaignStorageError(
+                "Campaign action receipt could not be loaded safely."
+            ) from None
+        finally:
+            connection.close()
 
     def mark_played(self, campaign_id: str) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)

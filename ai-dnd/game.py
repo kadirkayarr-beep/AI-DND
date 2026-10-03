@@ -15,6 +15,12 @@ import living_world
 import local_dialogue
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
+from api.core_resolution import (
+    resolution_action_scope,
+    resolve_attack_roll,
+    resolve_saving_throw,
+    resolve_skill_check,
+)
 
 @dataclass
 class ResolvedTurn:
@@ -774,41 +780,35 @@ def perform_skill_check(
     proficient_skills,
     proficiency_bonus,
     advantage=False,
+    disadvantage=False,
+    expertise_skills=None,
 ):
-
     ability = SKILLS[skill]
-
     modifier = modifiers[ability]
-
     is_proficient = skill in proficient_skills
-
-    if is_proficient:
-        total_bonus = modifier + proficiency_bonus
-    else:
-        total_bonus = modifier
-
-    dice_rolls = [roll_d20()]
-    if advantage:
-        dice_rolls.append(roll_d20())
-    dice = max(dice_rolls) if advantage else dice_rolls[0]
-
-    total = dice + total_bonus
-
-    if dice == 20:
-
-        result = "KRİTİK BAŞARI"
-
-    elif dice == 1:
-
-        result = "KRİTİK BAŞARISIZLIK"
-
-    elif total >= dc:
-
-        result = "BAŞARILI"
-
-    else:
-
-        result = "BAŞARISIZ"
+    expertise_skills = expertise_skills or ()
+    has_expertise = is_proficient and skill in expertise_skills
+    proficiency_modifier = (
+        proficiency_bonus * (2 if has_expertise else 1)
+        if is_proficient
+        else 0
+    )
+    resolution = resolve_skill_check(
+        roll_fn=roll_d20,
+        skill=skill,
+        ability=ability,
+        dc=dc,
+        ability_modifier=modifier,
+        proficiency_modifier=proficiency_modifier,
+        proficient=is_proficient,
+        expertise=has_expertise,
+        advantage=advantage,
+        disadvantage=disadvantage,
+    )
+    dice_rolls = resolution["raw_rolls"]
+    dice = resolution["selected_roll"]
+    total = resolution["total"]
+    result = "BAŞARILI" if resolution["outcome"] == "SUCCESS" else "BAŞARISIZ"
 
     return {
         "skill": skill,
@@ -816,13 +816,16 @@ def perform_skill_check(
         "dice": dice,
         "dice_rolls": dice_rolls,
         "advantage": advantage,
+        "disadvantage": disadvantage,
         "modifier": modifier,
         "proficient": is_proficient,
-        "proficiency_bonus": proficiency_bonus if is_proficient else 0,
-        "total_bonus": total_bonus,
+        "expertise": has_expertise,
+        "proficiency_bonus": proficiency_modifier,
+        "total_bonus": modifier + proficiency_modifier,
         "total": total,
         "dc": dc,
-        "result": result
+        "result": result,
+        "resolution": resolution,
     }
 
 
@@ -2826,14 +2829,20 @@ def _apply_species_on_hit_effects(target_npc):
                 }
             )
         elif ancestry == "hill":
-            save_roll = roll_d20()
             save_bonus = target_npc.get(
                 "strength_save_bonus", target_npc.get("strength_modifier", 0)
             )
             if type(save_bonus) is not int:
                 save_bonus = 0
             dc = 8 + proficiency_bonus + character.get("strength_mod", 0)
-            knocked_prone = save_roll + save_bonus < dc
+            resolution = resolve_saving_throw(
+                roll_fn=roll_d20,
+                ability="strength",
+                dc=dc,
+                ability_modifier=save_bonus,
+            )
+            save_roll = resolution["selected_roll"]
+            knocked_prone = resolution["outcome"] == "FAILURE"
             if knocked_prone:
                 target_npc["prone"] = True
             effects.append(
@@ -2843,6 +2852,7 @@ def _apply_species_on_hit_effects(target_npc):
                     "save_bonus": save_bonus,
                     "save_dc": dc,
                     "knocked_prone": knocked_prone,
+                    "resolution": resolution,
                 }
             )
         elif ancestry == "storm":
@@ -3015,11 +3025,17 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
                     or (combat["active"] and npc.get("id") not in combat["participants"])
                 ):
                     continue
-                save_roll = roll_d20()
                 save_bonus = npc.get("charisma_save_bonus", npc.get("charisma_modifier", 0))
                 if type(save_bonus) is not int:
                     save_bonus = 0
-                frightened = save_roll + save_bonus < save_dc
+                resolution = resolve_saving_throw(
+                    roll_fn=roll_d20,
+                    ability="charisma",
+                    dc=save_dc,
+                    ability_modifier=save_bonus,
+                )
+                save_roll = resolution["selected_roll"]
+                frightened = resolution["outcome"] == "FAILURE"
                 if frightened:
                     npc["frightened_until_player_turn"] = state["player_turn_counter"] + 2
                 saves.append(
@@ -3029,6 +3045,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
                         "save_bonus": save_bonus,
                         "save_dc": save_dc,
                         "frightened": frightened,
+                        "resolution": resolution,
                     }
                 )
             effects["saves"] = saves
@@ -3185,35 +3202,35 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
             "reason": "Target not combat active"
         }
     
-    # Roll attack
-    attack_roll = roll_attack()
     attack_bonus = calculate_attack_bonus()
-    attack_total = attack_roll + attack_bonus
     target_ac = target_npc.get("armor_class", 10)
-    
-    # Natural 1 = auto miss
-    if attack_roll == 1:
-        outcome = "miss"
-        critical = False
-    # Natural 20 = critical hit
-    elif attack_roll == 20:
-        critical = True
-        outcome = "critical_hit"
+    resolution = resolve_attack_roll(
+        roll_fn=roll_attack,
+        attack_bonus=attack_bonus,
+        target_ac=target_ac,
+        actor_id="player",
+        target_id=target_npc.get("id"),
+    )
+    attack_roll = resolution["selected_roll"]
+    attack_total = resolution["total"]
+    outcome = {
+        "CRITICAL_HIT": "critical_hit",
+        "HIT": "hit",
+        "MISS": "miss",
+    }[resolution["outcome"]]
+    critical = resolution["critical_state"] == "critical_hit"
+
+    if critical:
         damage_die = WEAPONS[weapon_name]["damage_die"]
         damage_dice = WEAPONS[weapon_name]["damage_dice"] * 2
         ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
         damage = roll_damage(damage_die, damage_dice, ability_mod)
-    # Normal hit/miss
-    elif attack_total >= target_ac:
-        outcome = "hit"
-        critical = False
+    elif outcome == "hit":
         damage_die = WEAPONS[weapon_name]["damage_die"]
         damage_dice = WEAPONS[weapon_name]["damage_dice"]
         ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
         damage = roll_damage(damage_die, damage_dice, ability_mod)
     else:
-        outcome = "miss"
-        critical = False
         damage = 0
     
     # Apply damage if hit
@@ -3253,6 +3270,9 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
         "attack_total": attack_total,
         "target_ac": target_ac,
         "critical": critical,
+        "action_id": resolution.get("action_id"),
+        "resolution_id": resolution.get("resolution_id"),
+        "resolution": resolution,
         "damage": damage if outcome in ("hit", "critical_hit") else 0,
         "target_hp_before": target_hp_before,
         "target_hp_after": target_hp_after,
@@ -3489,14 +3509,20 @@ def resolve_enemy_attack(target_npc):
         type(target_npc.get("frightened_until_player_turn")) is int
         and current_player_turn < target_npc["frightened_until_player_turn"]
     ) or target_npc.get("prone") is True
-    attack_rolls = [roll_d20()]
-    if disadvantage:
-        attack_rolls.append(roll_d20())
-    attack_roll = min(attack_rolls) if disadvantage else attack_rolls[0]
     attack_bonus = target_npc["attack_bonus"]
-    attack_total = attack_roll + attack_bonus
-    critical = attack_roll == 20
-    hit = attack_roll != 1 and (critical or attack_total >= _session().character["armor_class"])
+    resolution = resolve_attack_roll(
+        roll_fn=roll_d20,
+        attack_bonus=attack_bonus,
+        target_ac=_session().character["armor_class"],
+        disadvantage=disadvantage,
+        actor_id=target_npc["id"],
+        target_id="player",
+    )
+    attack_rolls = resolution["raw_rolls"]
+    attack_roll = resolution["selected_roll"]
+    attack_total = resolution["total"]
+    critical = resolution["critical_state"] == "critical_hit"
+    hit = resolution["outcome"] in {"HIT", "CRITICAL_HIT"}
     damage = 0
     player_hp_before = _session().character["current_hp"]
     damage_type = target_npc.get(
@@ -3576,7 +3602,10 @@ def resolve_enemy_attack(target_npc):
             "temporary_hp_before": temporary_hp_before,
             "temporary_hp_absorbed": temporary_hp_absorbed,
             "temporary_hp_after": trait_state["temporary_hit_points"],
-            "species_effects": species_effects}
+            "species_effects": species_effects,
+            "action_id": resolution.get("action_id"),
+            "resolution_id": resolution.get("resolution_id"),
+            "resolution": resolution}
 
 
 def end_combat(reason="combat_ended"):
@@ -4950,7 +4979,7 @@ def apply_check_outcome_to_world_state(player_input, result):
     """Resolve simple stealth/door facts in Python after the actual roll."""
     world_state = _session().world_state
     text = player_input.casefold()
-    succeeded = result["result"] in ("BAŞARILI", "KRİTİK BAŞARI")
+    succeeded = result["result"] == "BAŞARILI"
 
     if "gizlen" in text or "saklan" in text:
         world_state["flags"]["player_hidden"] = succeeded
@@ -8482,9 +8511,7 @@ def _changed_state_fields(before):
 
 def _skill_result_category(result):
     return {
-        "KRİTİK BAŞARI": "critical_success",
         "BAŞARILI": "success",
-        "KRİTİK BAŞARISIZLIK": "critical_failure",
         "BAŞARISIZ": "failure",
     }.get(result, "failure")
 
@@ -8722,6 +8749,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             _session().character["modifiers"],
             _session().character["proficient_skills"],
             _session().character["proficiency_bonus"],
+            expertise_skills=_session().character.get("expertise_skills", ()),
             advantage=(
                 ability == "strength"
                 and trait_state.get("large_form_turns_remaining", 0) > 0
@@ -8737,10 +8765,16 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             "dice": check_result["dice"],
             "modifier": check_result["modifier"],
             "proficiency_bonus": check_result["proficiency_bonus"],
+            "expertise": check_result["expertise"],
+            "advantage": check_result["advantage"],
+            "disadvantage": check_result["disadvantage"],
+            "action_id": check_result["resolution"].get("action_id"),
+            "resolution_id": check_result["resolution"].get("resolution_id"),
+            "resolution": check_result["resolution"],
             "total": check_result["total"],
             "dc": check_result["dc"],
             "outcome": outcome,
-            "success": outcome in ("success", "critical_success"),
+            "success": outcome == "success",
             "status": "resolved",
             "state_changes": _changed_state_fields(before),
             "target_type": "door" if ("kapı" in player_input.casefold() or "kilit" in player_input.casefold()) else None,
@@ -9822,11 +9856,32 @@ class TurnResolved(Exception):
         self.resolved_turn = resolved_turn
 
 
-def run_player_turn(player_input, messages=None, target_id=None, scene_plan=None):
-    try:
-        return _run_player_turn_internal(player_input, messages, target_id, scene_plan)
-    except TurnResolved as e:
-        return _narrate_resolved_turn(e.resolved_turn, player_input, messages, target_id)
+def run_player_turn(
+    player_input,
+    messages=None,
+    target_id=None,
+    scene_plan=None,
+    action_id=None,
+    session_id=None,
+):
+    if action_id is None:
+        try:
+            return _run_player_turn_internal(
+                player_input, messages, target_id, scene_plan
+            )
+        except TurnResolved as e:
+            return _narrate_resolved_turn(
+                e.resolved_turn, player_input, messages, target_id
+            )
+    with resolution_action_scope(action_id, session_id):
+        try:
+            return _run_player_turn_internal(
+                player_input, messages, target_id, scene_plan
+            )
+        except TurnResolved as e:
+            return _narrate_resolved_turn(
+                e.resolved_turn, player_input, messages, target_id
+            )
 
 
 def _current_procedural_entity_ids():

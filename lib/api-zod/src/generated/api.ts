@@ -1699,11 +1699,13 @@ export const playGameTurnBodyMessageMax = 4000;
 
 export const playGameTurnBodyTargetIdMax = 128;
 
+export const playGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 
 
 export const PlayGameTurnBody = zod.object({
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
-  "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish()
+  "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
+  "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
 export const playGameTurnResponseStateSceneOneVisitRevisionMin = 0;
@@ -1938,6 +1940,7 @@ export const playGameTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
 export const PlayGameTurnResponse = zod.object({
   "session_id": zod.string().uuid(),
+  "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
   "location": zod.string(),
@@ -2222,6 +2225,10 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -2254,7 +2261,11 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -2283,7 +2294,11 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -2317,6 +2332,10 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -2349,7 +2368,11 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -2378,7 +2401,11 @@ export const PlayGameTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -2388,14 +2415,18 @@ export const PlayGameTurnResponse = zod.object({
   "d20": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20Max),
   "d20_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20RollsItemMax)).min(playGameTurnResponseSkillCheckResultOneD20RollsMin).max(playGameTurnResponseSkillCheckResultOneD20RollsMax).optional(),
   "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
   "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
   "ability_modifier": zod.number().int(),
   "proficiency_modifier": zod.number().int().min(playGameTurnResponseSkillCheckResultOneProficiencyModifierMin),
   "total_modifier": zod.number().int(),
   "total": zod.number().int(),
   "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
   "dc": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneDcMax),
-  "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
 }),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.'),
   "quest_outcomes": zod.array(zod.object({
   "event_id": zod.string().max(playGameTurnResponseQuestOutcomesItemEventIdMax),
@@ -4399,6 +4430,10 @@ export const CreateCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -4431,7 +4466,11 @@ export const CreateCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -4460,7 +4499,11 @@ export const CreateCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -4956,6 +4999,10 @@ export const GetCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -4988,7 +5035,11 @@ export const GetCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5017,7 +5068,11 @@ export const GetCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -5503,6 +5558,10 @@ export const ResumeCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5535,7 +5594,11 @@ export const ResumeCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5564,7 +5627,11 @@ export const ResumeCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -6505,11 +6572,13 @@ export const playLegacyTurnBodyMessageMax = 4000;
 
 export const playLegacyTurnBodyTargetIdMax = 128;
 
+export const playLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 
 
 export const PlayLegacyTurnBody = zod.object({
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
-  "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish()
+  "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
+  "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
 export const playLegacyTurnResponseStateSceneOneVisitRevisionMin = 0;
@@ -6744,6 +6813,7 @@ export const playLegacyTurnResponseQuestOutcomesItemTurnIndexMin = 0;
 
 export const PlayLegacyTurnResponse = zod.object({
   "session_id": zod.string().uuid(),
+  "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
   "location": zod.string(),
@@ -7028,6 +7098,10 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7060,7 +7134,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7089,7 +7167,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -7123,6 +7205,10 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7155,7 +7241,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7184,7 +7274,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -7194,14 +7288,18 @@ export const PlayLegacyTurnResponse = zod.object({
   "d20": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20Max),
   "d20_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20RollsItemMax)).min(playLegacyTurnResponseSkillCheckResultOneD20RollsMin).max(playLegacyTurnResponseSkillCheckResultOneD20RollsMax).optional(),
   "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
   "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
   "ability_modifier": zod.number().int(),
   "proficiency_modifier": zod.number().int().min(playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin),
   "total_modifier": zod.number().int(),
   "total": zod.number().int(),
   "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
   "dc": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneDcMax),
-  "outcome": zod.enum(['critical_success', 'success', 'failure', 'critical_failure'])
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
 }),zod.null()]).describe('Structured Python-owned skill-check result; null when no skill check occurred.'),
   "quest_outcomes": zod.array(zod.object({
   "event_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemEventIdMax),
@@ -7775,6 +7873,10 @@ export const CreateLegacyCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7807,7 +7909,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -7836,7 +7942,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -8333,6 +8443,10 @@ export const GetLegacyCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -8365,7 +8479,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8394,7 +8512,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))
@@ -8881,6 +9003,10 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
   "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -8913,7 +9039,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -8942,7 +9072,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "temporary_hp_before": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
   "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
   "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
-  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "critical_state": zod.string().nullish(),
+  "resolution": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]).optional()
 })).nullish()
 })
 }))

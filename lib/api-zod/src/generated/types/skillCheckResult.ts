@@ -29,7 +29,9 @@ export interface SkillCheckResult {
      */
   d20_rolls?: number[];
   advantage?: boolean;
+  disadvantage?: boolean;
   proficient: boolean;
+  expertise?: boolean;
   ability_modifier: number;
   /** @minimum 0 */
   proficiency_modifier: number;
@@ -42,4 +44,7 @@ export interface SkillCheckResult {
      */
   dc: number;
   outcome: SkillCheckResultOutcome;
+  action_id?: string;
+  /** @nullable */
+  resolution_id?: string | null;
 }

@@ -268,7 +268,7 @@ class ContractParityTests(unittest.TestCase):
         status_expectations = {
             ("/game/sessions/{session_id}/state", "get"): {"200", "404", "422"},
             ("/game/sessions/{session_id}/turn", "post"): {
-                "200", "404", "422", "500", "503"
+                "200", "404", "409", "422", "500", "503"
             },
             ("/game/campaigns", "post"): {"200", "422", "500", "503"},
             ("/game/campaigns/{campaign_id}", "get"): {

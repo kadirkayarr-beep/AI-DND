@@ -22,12 +22,20 @@ class TurnRequest(BaseModel):
 
     message: str = Field(min_length=1, max_length=4000)
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
+    action_id: UUID | None = None
 
     @field_validator("message")
     @classmethod
     def message_must_not_be_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Message must not be empty.")
+        return value
+
+    @field_validator("action_id")
+    @classmethod
+    def action_id_must_be_uuid4(cls, value: UUID | None) -> UUID | None:
+        if value is not None and value.version != 4:
+            raise ValueError("Action ID must be a UUIDv4.")
         return value
 
     @field_validator("target_id")
@@ -101,6 +109,10 @@ class CombatAttackResult(BaseModel):
     temporary_hp_absorbed: int | None = None
     temporary_hp_after: int | None = None
     species_effects: list[dict[str, Any]] | None = None
+    action_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    critical_state: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    resolution: dict[str, Any] | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class CombatTurnResult(CombatAttackResult):
@@ -149,7 +161,11 @@ class SkillCheckResult(BaseModel):
     total: int
     difficulty: Literal["easy", "medium", "hard", "very_hard", "extreme"]
     dc: int = Field(ge=1, le=30)
-    outcome: Literal["critical_success", "success", "failure", "critical_failure"]
+    outcome: Literal["success", "failure"]
+    disadvantage: bool | None = Field(default=None, exclude_if=lambda value: value is None)
+    expertise: bool | None = Field(default=None, exclude_if=lambda value: value is None)
+    action_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    resolution_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class QuestOutcome(BaseModel):
@@ -254,6 +270,7 @@ class AmbientEventCommandResult(BaseModel):
 
 class TurnResponse(BaseModel):
     session_id: str
+    action_id: str
     narration: str
     state: dict[str, Any]
     combat_result: CombatTurnResult | None = None
