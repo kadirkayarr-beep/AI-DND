@@ -6,12 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatParticipantState } from './combatParticipantState';
+import type { GameCombatActionEconomy } from './gameCombatActionEconomy';
 import type { GameCombatStatus } from './gameCombatStatus';
 
 /**
  * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
+  /** @nullable */
+  action_economy?: GameCombatActionEconomy;
   /** @nullable */
   combat_id?: string | null;
   active: boolean;

@@ -281,6 +281,7 @@ def _validated_combat_result(
     if not isinstance(value, dict) or value.get("action") not in {
         "attack",
         "death_save",
+        "action_economy",
     }:
         raise error_type("Campaign combat history is invalid.")
     try:

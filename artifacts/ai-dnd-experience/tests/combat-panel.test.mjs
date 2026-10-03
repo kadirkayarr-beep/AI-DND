@@ -12,6 +12,7 @@ let renderCombatPanel;
 let renderSkillCheckResult;
 let renderQuestJournalSection;
 let mergeCombatHistory;
+let renderActionEconomy;
 
 before(async () => {
   const { createServer } = await import('vite');
@@ -25,10 +26,14 @@ before(async () => {
   const history = await vite.ssrLoadModule('/src/lib/combat-history.ts');
   const skillResult = await vite.ssrLoadModule('/src/components/skill-check-result.tsx');
   const questJournal = await vite.ssrLoadModule('/src/components/quest-journal-section.tsx');
+  const economy = await vite.ssrLoadModule('/src/components/action-economy-panel.tsx');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   mergeCombatHistory = history.mergeCombatHistory;
+  renderActionEconomy = (state) => renderToStaticMarkup(React.createElement(economy.ActionEconomyPanel, {
+    state, targetId: 'npc-test', sending: false, onCommand: () => {},
+  }));
   renderCombatPanel = (state, entries = []) => {
     const queryClient = new QueryClient();
     return renderToStaticMarkup(
@@ -51,6 +56,36 @@ after(async () => {
   await vite?.close();
 });
 
+test('action economy displays server resources without creating rolls or budgets', () => {
+  const html = renderActionEconomy(makeState({ combat: {
+    active: true, current_actor_id: 'player', action_economy: { actors: { player: {
+      base_action_spent: true, additional_actions: [], bonus_action_spent: false,
+      bonus_action_available: false, bonus_rules: [], reaction_available: true,
+      movement_remaining: 17, speed_ft: 30, ready: null, opportunity: null,
+      legal_actions: [{ kind: 'attack', legal: false, reason: 'spent' }],
+    } } },
+  } }));
+  assert.match(html, /Action: kullanıldı/);
+  assert.match(html, /Bonus: uygun yetenek yok/);
+  assert.match(html, /Hareket: 17 ft/);
+  assert.match(html, /tetikleyici gerekir/);
+  assert.doesNotMatch(html, /d20|İSABET|ISKA/);
+});
+
+test('economy combat history restores nested server attack results once', () => {
+  const event = { event_id: 'economy-server-event', turn_index: 7, result: {
+    action: 'action_economy', economy_steps: [{ kind: 'attack', result: {
+      action: 'attack', outcome: 'miss', attack_roll: 1, attack_bonus: 3,
+      attack_total: 4, target_ac: 15, target_name: 'Gromm', damage: 0,
+    } }],
+  } };
+  const entries = mergeCombatHistory([event, event], []);
+  assert.equal(entries.length, 1);
+  const html = renderCombatPanel(makeState(), entries);
+  assert.match(html, /ISKA/);
+  assert.match(html, /DOĞAL 1/);
+});
+
 function makeState(overrides = {}) {
   const { combat: combatOverrides = {}, ...stateOverrides } = overrides;
   return {
@@ -61,6 +96,10 @@ function makeState(overrides = {}) {
       armor_class: 15,
     },
     player_combat_status: 'active',
+    death_state: {
+      mode: 'CHECKPOINT_ROLLBACK', status: 'conscious', successes: 0,
+      failures: 0, terminal: false, last_death_save: null,
+    },
     combat: {
       active: false,
       status: 'ended',

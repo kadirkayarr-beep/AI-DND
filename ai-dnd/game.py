@@ -18,6 +18,8 @@ import campaign_time
 import scheduled_events
 import timed_gameplay
 import combat_lifecycle
+import action_economy
+import initiative
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from api.dnd_2024_rules import get_expertise_choice_count
@@ -1669,14 +1671,14 @@ def _validate_combat_v3_payload(combat):
 
     if (
         round_number < 1
-        or len(order) < 2
+        or len(order) < (1 if combat_status == "death_resolution" else 2)
         or "player" not in participants
         or set(order) != set(participants)
         or len(order) != len(participants)
         or type(actor_index) is not int
         or not 0 <= actor_index < len(order)
         or actor_id != order[actor_index]
-        or target_id is None
+        or (target_id is None and combat_status != "death_resolution")
         or len(records) != len(participants)
     ):
         raise ValueError("Kayıt etkin çatışma sırası tutarsız.")
@@ -1690,7 +1692,7 @@ def _validate_combat_v3_payload(combat):
         participant_id = record.get("id")
         kind = record.get("kind")
         name = record.get("name")
-        initiative = record.get("initiative")
+        initiative_count = record.get("initiative")
         current_hp = record.get("current_hp")
         max_hp = record.get("max_hp")
         armor_class = record.get("armor_class")
@@ -1703,7 +1705,7 @@ def _validate_combat_v3_payload(combat):
             or (participant_id == "player") != (kind == "player")
             or not isinstance(name, str)
             or not name.strip()
-            or (initiative is not None and type(initiative) is not int)
+            or (initiative_count is not None and type(initiative_count) is not int)
             or type(current_hp) is not int
             or type(max_hp) is not int
             or type(armor_class) is not int
@@ -1719,6 +1721,8 @@ def _validate_combat_v3_payload(combat):
         record_ids.append(participant_id)
     if len(set(record_ids)) != len(record_ids) or set(record_ids) != set(participants):
         raise ValueError("Kayıt çatışma katılımcı listesi tutarsız.")
+    action_economy.validate_saved(combat)
+    initiative.validate_saved(combat)
 
 
 def _validate_save_payload(payload):
@@ -2603,6 +2607,7 @@ def ensure_combat_state():
             else "active"
         )
     if combat["active"]:
+        action_economy.ensure(_session())
         _sync_combat_participant_records(combat)
         _validate_combat_v3_payload(combat)
     return combat
@@ -3127,13 +3132,13 @@ def _species_bonus_action():
         return None
     if (
         combat["current_actor_id"] != "player"
-        or "player" in combat["actions_used"]
     ):
         raise ValueError("Bu bonus eylem için sıra sende değil.")
     state = _species_trait_state()
-    if state["bonus_action_used_round"] == combat["round"]:
+    if action_economy.ensure(_session())["player"]["bonus_action_spent"]:
         raise ValueError("Bu tur bonus eylemini zaten kullandın.")
     state["bonus_action_used_round"] = combat["round"]
+    action_economy.ensure(_session())["player"]["bonus_action_spent"] = True
     return combat
 
 
@@ -3341,11 +3346,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             raise ValueError("Bu tür yeteneği karakterin için kullanılamaz.")
 
     def require_action_turn():
-        if combat["active"] and (
-            combat["current_actor_id"] != "player"
-            or "player" in combat["actions_used"]
-        ):
-            raise ValueError("Bu eylem için sıra sende değil.")
+        if combat["active"]:
+            action_economy.validate_actor(_session())
 
     if action == "choose_giant_ancestry":
         require_species({"Goliath"})
@@ -3363,6 +3365,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
     elif action == "healing_hands":
         require_species({"Aasimar"})
         require_action_turn()
+        if combat["active"]:
+            action_economy.action_slot(_session(), "player", "feature")
         if state["healing_hands_uses_remaining"] <= 0:
             raise ValueError("Şifa Veren Eller uzun dinlenmeye kadar kullanıldı.")
         if character["current_hp"] >= character["max_hp"]:
@@ -3377,9 +3381,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         effects = {"dice": rolls, "healing": healing, "current_hp": character["current_hp"]}
         message = f"Şifa Veren Eller {healing} can puanı yeniledi."
         if combat["active"]:
-            _mark_combat_action_used("player")
-            effects["turn_end"] = _finish_species_player_turn()
-            if not _combat_end_if_decided():
+            _mark_combat_action_used("player", "feature")
+            effects["turn_end"] = [] if action_economy.holding(_session()) else _finish_species_player_turn()
+            if not action_economy.holding(_session()) and not _combat_end_if_decided():
                 advanced, _, _ = advance_combat_turn()
                 if advanced:
                     effects["enemy_actions"] = _resolve_enemy_turns_until_player()
@@ -3453,6 +3457,10 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["large_form_uses_remaining"] -= 1
         state["large_form_turns_remaining"] = 100
+        if combat["active"]:
+            resources = action_economy.ensure(_session())["player"]
+            resources["movement_available"] = max(
+                resources["movement_used"], action_economy.movement_limit(_session(), "player"))
         state["movement_effect"] = {
             "kind": "large_form",
             "size": "Large",
@@ -3481,6 +3489,11 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         )
         state["movement_budget_ft"] = speed * 2
         state["movement_effect"] = {"kind": "dash", "distance_ft": speed * 2}
+        if combat["active"]:
+            resources = action_economy.ensure(_session())["player"]
+            resources["dash_count"] = resources.get("dash_count", 0) + 1
+            resources["movement_available"] = max(
+                resources["movement_used"], action_economy.movement_limit(_session(), "player"))
         effects = {
             "temporary_hit_points": state["temporary_hit_points"],
             "dash_distance_ft": speed * 2,
@@ -3592,8 +3605,7 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
         if (not canonical or canonical["id"] not in combat["participants"]
             or canonical.get("combat_status") != "active" or canonical.get("current_hp", 0) <= 0):
             raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
-        if combat["current_actor_id"] != "player" or "player" in combat["actions_used"]:
-            raise combat_lifecycle.CombatRequestError("out_of_turn", "It is not the player's action turn.")
+        action_economy.attack_permission(_session(), "player")
         target_npc = canonical
     elif combat.get("combat_id"):
         raise combat_lifecycle.CombatRequestError("combat_closed", "Combat is closed.")
@@ -3723,6 +3735,9 @@ def _combat_participant_can_act(combat, participant_id):
             # Keep an unconscious player's initiative slot so the scheduler
             # can resolve death saves or stop cleanly after they stabilize.
             return True
+    elif record and record.get("current_hp") == 0 and record.get("status") in ("active", "unconscious"):
+        # Preserve its boundary without inventing NPC death mechanics.
+        return True
     return bool(
         record
         and record.get("status") == "active"
@@ -3731,12 +3746,16 @@ def _combat_participant_can_act(combat, participant_id):
     )
 
 
-def _mark_combat_action_used(participant_id):
+def _mark_combat_action_used(participant_id, action_type="attack"):
     combat = ensure_combat_state()
     if participant_id not in combat["participants"]:
         raise ValueError("Combat action actor is not a participant.")
     if not combat["active"] or participant_id != combat["current_actor_id"]:
         raise combat_lifecycle.CombatRequestError("out_of_turn", "Actor is not the current combat participant.")
+    if action_economy.can_act(_session(), participant_id):
+        action_economy.consume_action(_session(), participant_id, action_type)
+    else:
+        action_economy.ensure(_session())[participant_id]["base_action_spent"] = True
     if participant_id not in combat["actions_used"]:
         combat["actions_used"].append(participant_id)
     _sync_combat_participant_records(combat)
@@ -3828,7 +3847,7 @@ def _resolve_player_death_turn():
     return death_save
 
 
-def _combat_end_if_decided():
+def _combat_end_if_decided(excluded_participant_ids=()):
     combat = ensure_combat_state()
     world_state = _session().world_state
     if not combat["active"]:
@@ -3836,10 +3855,12 @@ def _combat_end_if_decided():
     death = ensure_death_state()
     if death["dead"] or world_state.get("player_combat_status") == "dead":
         return end_combat("player_dead")
+    # Retaining a death boundary is not the same as being able to fight.
+    # Preserve the existing lifecycle's no-active-opponents end decision.
     has_active_enemy = any(
-        participant_id != "player"
-        and _combat_participant_can_act(combat, participant_id)
-        for participant_id in combat["participants"]
+        r["id"] != "player" and r["id"] not in excluded_participant_ids
+        and r["status"] == "active" and r["current_hp"] > 0
+        for r in combat["participant_records"]
     )
     if not has_active_enemy and death["stable"]:
         return end_combat("player_stable")
@@ -3851,7 +3872,8 @@ def _combat_end_if_decided():
         return None
     if not has_active_enemy:
         relocated = any(r.get("status") == "inactive" for r in combat["participant_records"])
-        return end_combat("opponents_relocated" if relocated else "target_defeated")
+        reason = "opponents_relocated" if relocated else "participants_left" if excluded_participant_ids else "target_defeated"
+        return end_combat(reason)
     combat["status"] = "active"
     return None
 
@@ -3923,6 +3945,14 @@ def _resolve_enemy_turns_until_player():
         )
         if npc is None:
             raise ValueError("Current combat actor is missing from canonical state.")
+        if npc.get("current_hp") == 0 and npc.get("combat_status", "active") in ("active", "unconscious"):
+            break  # The authoritative Death owner must handle this slot.
+        if not action_economy.can_act(_session(), actor_id):
+            _mark_combat_action_used(actor_id)
+            advanced, _, _ = advance_combat_turn()
+            if not advanced:
+                break
+            continue
         action = resolve_enemy_attack(npc)
         if action.get("outcome") == "invalid_target":
             raise ValueError("Current combat actor could not resolve a legal action.")
@@ -3931,6 +3961,9 @@ def _resolve_enemy_turns_until_player():
         if not combat["active"]:
             break
         _mark_combat_action_used(actor_id)
+        action_economy.publish_event(_session(), "actor_attacks", actor_id)
+        if action_economy.pending_reaction(_session()):
+            break
         ended = _combat_end_if_decided()
         if ended:
             break
@@ -3953,6 +3986,11 @@ def find_weapon_in_inventory(weapon_name):
 
 
 def start_combat(player_target_npc):
+    with initiative.atomic(_session()), initiative.starting(_session()):
+        return _start_combat_with_initiative(player_target_npc)
+
+
+def _start_combat_with_initiative(player_target_npc):
     """Initialize a canonical initiative scheduler for the target and local hostiles."""
     require_player_can_act()
     world_state = _session().world_state
@@ -3993,21 +4031,6 @@ def start_combat(player_target_npc):
 
     _capture_combat_death_checkpoint()
     participant_ids = ["player", *[npc["id"] for npc in enemies]]
-    initiatives = {"player": roll_initiative_player()}
-    for npc in enemies:
-        modifier = npc.get("initiative_modifier", 0)
-        if type(modifier) is not int:
-            modifier = 0
-        initiatives[npc["id"]] = roll_initiative(modifier)
-    initiative_order = sorted(
-        participant_ids,
-        key=lambda participant_id: (
-            -initiatives[participant_id],
-            0 if participant_id == "player" else 1,
-            participant_id,
-        ),
-    )
-
     combat = world_state["combat"]
     combat.clear()
     combat.update({
@@ -4016,9 +4039,9 @@ def start_combat(player_target_npc):
         "status": "active",
         "combat_id": str(uuid4()),
         "round": 1,
-        "initiative_order": initiative_order,
+        "initiative_order": list(participant_ids),
         "current_turn_index": 0,
-        "current_actor_id": initiative_order[0],
+        "current_actor_id": "player",
         "participants": participant_ids,
         "participant_records": [],
         "actions_used": [],
@@ -4028,11 +4051,24 @@ def start_combat(player_target_npc):
     combat["participant_records"] = [
         _combat_record_for_actor(
             participant_id,
-            initiative=initiatives[participant_id],
+            initiative=None,
             actions_used=combat["actions_used"],
         )
         for participant_id in participant_ids
     ]
+    metadata = initiative.initialize(_session(), participant_ids)
+    effects = metadata.pop("effects_to_apply")
+    combat.update(metadata)
+    for record in combat["participant_records"]:
+        record["initiative"] = combat["initiative_results"][record["id"]]["final_total"]
+    initiative.apply_effects(_session(), combat, effects)
+    initiative.after_order(_session(), combat, participant_ids)
+    initiative_order = combat["initiative_order"]
+    combat["current_actor_id"] = initiative_order[0]
+    initiatives = {r["id"]: r["initiative"] for r in combat["participant_records"]}
+    action_economy.ensure(_session())
+    action_economy.begin_turn(_session(), combat["current_actor_id"])
+    _sync_combat_participant_records(combat)
     _validate_combat_v3_payload(combat)
 
     # Preserve legacy summary keys while the API/UI adopt the scheduler projection.
@@ -4068,10 +4104,8 @@ def resolve_enemy_attack(target_npc):
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "invalid_target", "damage": 0}
     target_npc = ensure_npc_enemy_stats(canonical)
-    if combat["active"] and (
-        combat["current_actor_id"] != target_npc["id"] or target_npc["id"] in combat["actions_used"]
-    ):
-        raise combat_lifecycle.CombatRequestError("out_of_turn", "Enemy is not the current actor.")
+    if combat["active"]:
+        action_economy.attack_permission(_session(), target_npc["id"])
     if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
         if combat["active"]:
             raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Enemy cannot act.", 400)
@@ -4132,6 +4166,10 @@ def resolve_enemy_attack(target_npc):
             and trait_state.get("giant_ancestry_armed")
             and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
             and damage > 0
+            and (not combat["active"] or (
+                action_economy.can_act(_session(), "player")
+                and not action_economy.ensure(_session())["player"]["reaction_spent"]
+            ))
         ):
             reduction = max(
                 0,
@@ -4139,6 +4177,8 @@ def resolve_enemy_attack(target_npc):
                 + _session().character.get("constitution_mod", 0),
             )
             damage = max(0, damage - reduction)
+            if combat["active"]:
+                action_economy.ensure(_session())["player"]["reaction_spent"] = True
             trait_state["giant_ancestry_uses_remaining"] -= 1
             trait_state["giant_ancestry_armed"] = False
             species_effects.append(
@@ -4225,6 +4265,27 @@ def end_combat(reason="combat_ended"):
     return {"combat_ended": True, "reason": reason, "combat_id": identity}
 
 
+def _begin_combat_actor_turn(participant_id):
+    combat = _session().world_state["combat"]
+    combat["current_turn_index"] = combat["initiative_order"].index(participant_id)
+    combat["current_actor_id"] = participant_id
+    action_economy.begin_turn(_session(), participant_id)
+    _sync_combat_participant_records(combat)
+    _validate_combat_v3_payload(combat)
+
+
+def join_combat_participants(actor_ids):
+    return initiative.join(_session(), actor_ids)
+
+
+def remove_combat_participant(actor_id):
+    return initiative.leave(_session(), actor_id)
+
+
+def register_initiative_hook(event, callback):
+    return initiative.register_hook(_session(), event, callback)
+
+
 def advance_combat_turn():
     """Advance initiative to the next living actor and roll over completed rounds."""
     combat = ensure_combat_state()
@@ -4255,10 +4316,7 @@ def advance_combat_turn():
             continue
         if not _combat_participant_can_act(combat, participant_id):
             continue
-        combat["current_turn_index"] = index
-        combat["current_actor_id"] = participant_id
-        _sync_combat_participant_records(combat)
-        _validate_combat_v3_payload(combat)
+        _begin_combat_actor_turn(participant_id)
         return True, participant_id, round_changed
     return False, None, round_changed
 
@@ -9498,19 +9556,16 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
         combat = ensure_combat_state()
         result["action"] = "attack"
-        if combat["active"] and (
-            combat["current_actor_id"] != "player"
-            or "player" in combat["actions_used"]
-        ):
+        if combat["active"] and combat["current_actor_id"] != "player":
             result.update(
-                success=False,
-                status="out_of_turn",
-                outcome="out_of_turn",
+                success=False, status="out_of_turn", outcome="out_of_turn",
                 current_actor_id=combat["current_actor_id"],
                 turn_owner=combat["current_actor_id"],
                 direct_response="Bu hamle için sıra sende değil.",
             )
             return _finish_combat_result(result, before)
+        if combat["active"]:
+            action_economy.action_slot(_session(), "player", "attack")
 
         weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
         if not weapon_name:
@@ -9612,6 +9667,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             return _finish_combat_result(result, before)
 
         _mark_combat_action_used("player")
+        if action_economy.holding(_session()):
+            _combat_end_if_decided()
+            return _finish_combat_result(result, before)
         turn_effects = _finish_species_player_turn()
         if turn_effects:
             result["species_effects"] = [
@@ -10553,7 +10611,13 @@ def run_player_turn(
     scene_plan=None,
     action_id=None,
     session_id=None,
+    combat_action=None,
 ):
+    command = combat_action or action_economy.natural_command(_session(), player_input, target_id)
+    if command:
+        return action_economy.execute(_session(), command, action_id, session_id)
+    if action_economy.pending_reaction(_session()):
+        raise combat_lifecycle.CombatRequestError("reaction_pending", "Resolve or decline the reaction opportunity.", 400)
     combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
         try:

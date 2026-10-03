@@ -691,6 +691,10 @@ components:
       description: The message must contain at least one non-whitespace character.
       additionalProperties: false
       properties:
+        combat_action:
+          anyOf:
+            - $ref: "#/components/schemas/CombatActionInput"
+            - type: "null"
         combat_id: {type: ["string", "null"], minLength: 1, maxLength: 128}
         combat_round: {type: ["integer", "null"], minimum: 1}
         combat_turn_index: {type: ["integer", "null"], minimum: 0}
@@ -707,6 +711,54 @@ components:
           format: uuid
           pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
       required: [message]
+    CombatActionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        steps:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/EconomyStepInput"
+      required: [steps]
+    EconomyStepInput:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [attack, continue_attack, move, dash, ready, react, decline_reaction, end_turn, species, disengage, dodge, help, hide, influence, magic, search, study, utilize]
+        resource: {type: string, enum: [action, bonus], default: action}
+        target_id: {type: ["string", "null"], minLength: 1, maxLength: 128}
+        distance_ft: {type: ["integer", "null"], minimum: 1}
+        opportunity_id: {type: ["string", "null"]}
+        ability: {type: ["string", "null"]}
+        form: {type: ["string", "null"]}
+        trigger:
+          anyOf:
+            - $ref: "#/components/schemas/ReadyTriggerInput"
+            - type: "null"
+        response:
+          anyOf:
+            - $ref: "#/components/schemas/ReadyResponseInput"
+            - type: "null"
+      required: [kind]
+    ReadyTriggerInput:
+      type: object
+      additionalProperties: false
+      properties:
+        event: {type: string, enum: [actor_moves, actor_attacks]}
+        actor_id: {type: string, minLength: 1, maxLength: 128}
+      required: [event, actor_id]
+    ReadyResponseInput:
+      type: object
+      additionalProperties: false
+      properties:
+        kind: {type: string, enum: [attack, move]}
+        target_id: {type: ["string", "null"]}
+        distance_ft: {type: ["integer", "null"], minimum: 1}
+      required: [kind]
     GameTurnResult:
       type: object
       properties:
@@ -1115,6 +1167,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        economy_steps:
+          type: ["array", "null"]
+          items: {type: object, additionalProperties: true}
         combat_id: {type: ["string", "null"]}
         combat_status: {type: ["string", "null"]}
         round: {type: ["integer", "null"]}
@@ -2181,6 +2236,9 @@ components:
       description: >-
         Allowlisted public projection of Python-owned combat scheduler state.
       properties:
+        action_economy:
+          type: ["object", "null"]
+          additionalProperties: true
         combat_id: {type: ["string", "null"]}
         active:
           type: boolean

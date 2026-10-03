@@ -637,6 +637,8 @@ def create_app(
         active_adapter = application.state.ollama_adapter
         action_id = str(request.action_id or uuid4())
         hash_payload = {"message": request.message, "target_id": request.target_id}
+        if request.combat_action is not None:
+            hash_payload["combat_action"] = request.combat_action.model_dump(exclude_none=True)
         if request.combat_id is not None:
             hash_payload.update(combat_id=request.combat_id, combat_round=request.combat_round,
                                 combat_turn_index=request.combat_turn_index)
@@ -789,6 +791,8 @@ def create_app(
                                         game.run_player_turn
                                     ).parameters
                                 run_kwargs = {}
+                                if request.combat_action is not None:
+                                    run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
                                 if "scene_plan" in run_parameters:
                                     run_kwargs["scene_plan"] = scene_plan
                                 if "action_id" in run_parameters:

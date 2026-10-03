@@ -667,9 +667,16 @@ export interface CombatParticipantState {
 }
 
 /**
+ * @nullable
+ */
+export type GameCombatActionEconomy = { [key: string]: unknown } | null;
+
+/**
  * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
+  /** @nullable */
+  action_economy?: GameCombatActionEconomy;
   /** @nullable */
   combat_id?: string | null;
   active: boolean;
@@ -934,10 +941,111 @@ export interface GameSession {
   state: GameState;
 }
 
+export type EconomyStepInputKind = typeof EconomyStepInputKind[keyof typeof EconomyStepInputKind];
+
+
+export const EconomyStepInputKind = {
+  attack: 'attack',
+  continue_attack: 'continue_attack',
+  move: 'move',
+  dash: 'dash',
+  ready: 'ready',
+  react: 'react',
+  decline_reaction: 'decline_reaction',
+  end_turn: 'end_turn',
+  species: 'species',
+  disengage: 'disengage',
+  dodge: 'dodge',
+  help: 'help',
+  hide: 'hide',
+  influence: 'influence',
+  magic: 'magic',
+  search: 'search',
+  study: 'study',
+  utilize: 'utilize',
+} as const;
+
+export type EconomyStepInputResource = typeof EconomyStepInputResource[keyof typeof EconomyStepInputResource];
+
+
+export const EconomyStepInputResource = {
+  action: 'action',
+  bonus: 'bonus',
+} as const;
+
+export type ReadyTriggerInputEvent = typeof ReadyTriggerInputEvent[keyof typeof ReadyTriggerInputEvent];
+
+
+export const ReadyTriggerInputEvent = {
+  actor_moves: 'actor_moves',
+  actor_attacks: 'actor_attacks',
+} as const;
+
+export interface ReadyTriggerInput {
+  event: ReadyTriggerInputEvent;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  actor_id: string;
+}
+
+export type ReadyResponseInputKind = typeof ReadyResponseInputKind[keyof typeof ReadyResponseInputKind];
+
+
+export const ReadyResponseInputKind = {
+  attack: 'attack',
+  move: 'move',
+} as const;
+
+export interface ReadyResponseInput {
+  kind: ReadyResponseInputKind;
+  /** @nullable */
+  target_id?: string | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  distance_ft?: number | null;
+}
+
+export interface EconomyStepInput {
+  kind: EconomyStepInputKind;
+  resource?: EconomyStepInputResource;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     * @nullable
+     */
+  target_id?: string | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  distance_ft?: number | null;
+  /** @nullable */
+  opportunity_id?: string | null;
+  /** @nullable */
+  ability?: string | null;
+  /** @nullable */
+  form?: string | null;
+  trigger?: ReadyTriggerInput | null;
+  response?: ReadyResponseInput | null;
+}
+
+export interface CombatActionInput {
+  /**
+     * @minItems 1
+     * @maxItems 8
+     */
+  steps: EconomyStepInput[];
+}
+
 /**
  * The message must contain at least one non-whitespace character.
  */
 export interface GameTurnInput {
+  combat_action?: CombatActionInput | null;
   /**
      * @minLength 1
      * @maxLength 128
@@ -1058,11 +1166,15 @@ export interface CombatAttackResult {
   death_resolution?: DeathResolutionResult | null;
 }
 
+export type CombatTurnResultEconomyStepsItem = { [key: string]: unknown };
+
 export type CombatTurnResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export type CombatTurnResultResolution = { [key: string]: unknown } | null;
 
 export interface CombatTurnResult {
+  /** @nullable */
+  economy_steps?: CombatTurnResultEconomyStepsItem[] | null;
   /** @nullable */
   combat_id?: string | null;
   /** @nullable */

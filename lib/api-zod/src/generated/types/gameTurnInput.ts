@@ -5,11 +5,13 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CombatActionInput } from './combatActionInput';
 
 /**
  * The message must contain at least one non-whitespace character.
  */
 export interface GameTurnInput {
+  combat_action?: CombatActionInput | null;
   /**
      * @minLength 1
      * @maxLength 128

@@ -138,6 +138,7 @@ _COMBAT_TURN_FIELDS = (
     "end_reason",
     "current_actor_id",
     "turn_owner",
+    "economy_steps",
 )
 
 
@@ -174,6 +175,7 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     if not isinstance(action_result, Mapping) or action_result.get("action") not in {
         "attack",
         "death_save",
+        "action_economy",
     }:
         return None
     if not action_result.get("combat_started") and not action_result.get("enemy_actions") and action_result.get("outcome") in {
@@ -575,7 +577,11 @@ def serialize_session_state(
         "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),
         "doors": _project_list(world.get("doors"), _DOOR_FIELDS),
-        "combat": serialize_combat_state(world.get("combat", {})),
+        "combat": {
+            **serialize_combat_state(world.get("combat", {})),
+            "action_economy": game.action_economy.projection(session)
+            if isinstance(session, game.GameSession) and world.get("combat", {}).get("active") else None,
+        },
         "player_combat_status": copy.deepcopy(
             world.get("player_combat_status", "active")
         ),

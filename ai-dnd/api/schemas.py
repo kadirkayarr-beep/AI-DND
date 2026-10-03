@@ -17,12 +17,45 @@ class SessionResponse(BaseModel):
     state: dict[str, Any]
 
 
+class ReadyTriggerInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    event: Literal["actor_moves", "actor_attacks"]
+    actor_id: str = Field(min_length=1, max_length=128)
+
+
+class ReadyResponseInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["attack", "move"]
+    target_id: str | None = None
+    distance_ft: int | None = Field(default=None, gt=0, strict=True)
+
+
+class EconomyStepInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["attack", "continue_attack", "move", "dash", "ready", "react", "decline_reaction", "end_turn", "species",
+                  "disengage", "dodge", "help", "hide", "influence", "magic", "search", "study", "utilize"]
+    resource: Literal["action", "bonus"] = "action"
+    target_id: str | None = Field(default=None, min_length=1, max_length=128)
+    distance_ft: int | None = Field(default=None, gt=0, strict=True)
+    trigger: ReadyTriggerInput | None = None
+    response: ReadyResponseInput | None = None
+    opportunity_id: str | None = None
+    ability: str | None = None
+    form: str | None = None
+
+
+class CombatActionInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    steps: list[EconomyStepInput] = Field(min_length=1, max_length=8)
+
+
 class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str = Field(min_length=1, max_length=4000)
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     action_id: UUID | None = None
+    combat_action: CombatActionInput | None = None
     combat_id: str | None = Field(default=None, min_length=1, max_length=128)
     combat_round: int | None = Field(default=None, ge=1, strict=True)
     combat_turn_index: int | None = Field(default=None, ge=0, strict=True)
@@ -88,6 +121,7 @@ class CombatStateProjection(BaseModel):
     participant_records: list[CombatParticipantState]
     target_id: str | None = None
     end_reason: str | None = None
+    action_economy: dict[str, Any] | None = None
 
 
 class DeathResolutionResult(BaseModel):
@@ -183,6 +217,7 @@ class CombatAttackResult(BaseModel):
 
 
 class CombatTurnResult(CombatAttackResult):
+    economy_steps: list[dict[str, Any]] | None = None
     combat_id: str | None = None
     combat_status: str | None = None
     round: int | None = None

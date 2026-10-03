@@ -15,3 +15,5 @@
 - [D&D species source versions](species-source-versions.md) — keep 2014 Half species selectable, edition-labeled, and backward-compatible in saved campaigns.
 - [Campaign Time boundaries](campaign-time-boundaries.md) — gameplay drives time, events do not; owner-fixed baseline and explicit recovery/simulation scope exclusions.
 - [Combat lifecycle boundaries](combat-lifecycle-boundaries.md) — preserve adjacent mechanics; replay precedes stale-context checks; do not narrate uncommitted combat outcomes to Qwen.
+- [Action Economy compatibility](action-economy-compatibility.md) — retain plain-attack auto completion and explicit open-turn commands; unsupported mechanics must not claim success.
+- [Initiative boundaries](initiative-boundaries.md) — joining must not replay progress; retained unconscious slots do not replace lifecycle end criteria.

@@ -6,12 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatAttackResult } from './combatAttackResult';
+import type { CombatTurnResultEconomyStepsItem } from './combatTurnResultEconomyStepsItem';
 import type { CombatTurnResultResolution } from './combatTurnResultResolution';
 import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
 import type { DeathResolutionResult } from './deathResolutionResult';
 import type { DeathSaveResult } from './deathSaveResult';
 
 export interface CombatTurnResult {
+  /** @nullable */
+  economy_steps?: CombatTurnResultEconomyStepsItem[] | null;
   /** @nullable */
   combat_id?: string | null;
   /** @nullable */

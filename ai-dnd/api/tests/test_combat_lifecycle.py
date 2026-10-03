@@ -267,7 +267,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
         npc = session.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
         npc.update(current_hp=40, max_hp=40, armor_class=20)
         data = {"message": "Rakip'e saldırıyorum.", "target_id": npc["id"], "action_id": str(uuid4())}
-        with patch("game.roll_initiative_player", return_value=1), patch("game.roll_initiative", return_value=20), \
+        with patch("game.roll_initiative_player", return_value=session.character["dexterity_mod"] + 1), patch("game.roll_initiative", return_value=20), \
              patch("game.roll_attack", return_value=1), patch("game.roll_d20", return_value=1):
             response = await self.post(data)
         self.assertEqual(response.status_code, 200, response.text)

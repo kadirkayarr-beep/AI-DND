@@ -54,7 +54,8 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
     if combat.get("active"):
         session._validate_combat_v3_payload(combat)
         if attack and session.character.get("current_hp", 0) > 0:
-            if combat["current_actor_id"] != "player" or "player" in combat["actions_used"]:
+            import action_economy
+            if combat["current_actor_id"] != "player":
                 raise CombatRequestError("out_of_turn", "It is not the player's action turn.")
         # Also validate a selected target on an NPC-turn pulse; never run a
         # real automatic turn on behalf of a forged target request.

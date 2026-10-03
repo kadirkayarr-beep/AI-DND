@@ -324,6 +324,32 @@ function InitiativeStrip({ state }: { state: GameState }) {
 
 function EntryCard({ entry }: { entry: CombatLogEntry }) {
   const result = entry.result;
+  if (result.action === 'action_economy') {
+    return <div className="combat-entry" data-testid={`combat-log-entry-${entry.id}`}>
+      <div className="combat-entry-index">{String(entry.turnIndex).padStart(2, '0')}</div>
+      <div className="combat-entry-body">
+        {(result.economy_steps ?? []).map((step, index) => {
+          const kind = typeof step.kind === 'string' ? step.kind : 'hamle';
+          const rawAttack = kind === 'attack' ? step.result : kind === 'react' ? step.response : null;
+          const attack = rawAttack !== null && typeof rawAttack === 'object' && 'action' in rawAttack && rawAttack.action === 'attack'
+            ? rawAttack as AttackResult : null;
+          const npcAttacks = kind === 'end_turn' && Array.isArray(step.enemy_actions) ? step.enemy_actions : [];
+          return <div key={index}>
+            <div className="combat-event">{kind === 'move' ? `Hareket · ${String(step.distance_ft)} ft · maliyet ${String(step.movement_cost_ft)} ft`
+              : kind === 'dash' ? `Dash · ${String(step.resource)} · +${String(step.movement_added_ft)} ft`
+              : kind === 'ready' ? 'Ready Action hazırlandı'
+              : kind === 'end_turn' ? 'Tur tamamlandı'
+              : kind === 'decline_reaction' ? 'Reaction fırsatı atlandı'
+              : kind === 'species' ? 'Tür yeteneği çözüldü'
+              : kind === 'react' ? 'Ready Reaction çözüldü' : 'Attack Action çözüldü'}</div>
+            {attack !== null && <AttackReadout result={attack} entryId={`${entry.id}-${index}`} heading="Sunucu saldırı sonucu" />}
+            {npcAttacks.map((npcAttack, npcIndex) => <AttackReadout key={npcIndex}
+              result={npcAttack as AttackResult} entryId={`${entry.id}-${index}-${npcIndex}`} heading="Rakibin saldırısı" enemy />)}
+          </div>;
+        })}
+      </div>
+    </div>;
+  }
   const enemyActions = result.enemy_actions?.length
     ? result.enemy_actions
     : result.enemy_action

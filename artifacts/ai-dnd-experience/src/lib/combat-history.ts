@@ -12,7 +12,7 @@ function fromServerEntry(value: unknown): CombatLogEntry | null {
     || !Number.isInteger(candidate.turn_index)
     || typeof candidate.result !== 'object'
     || candidate.result === null
-    || candidate.result.action !== 'attack'
+    || !['attack', 'death_save', 'action_economy'].includes(candidate.result.action ?? '')
   ) {
     return null;
   }
@@ -32,7 +32,7 @@ function fromLocalEntry(value: unknown): CombatLogEntry | null {
     || !Number.isInteger(candidate.turnIndex)
     || typeof candidate.result !== 'object'
     || candidate.result === null
-    || candidate.result.action !== 'attack'
+    || !['attack', 'death_save', 'action_economy'].includes(candidate.result.action ?? '')
   ) {
     return null;
   }

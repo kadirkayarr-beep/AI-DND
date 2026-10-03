@@ -65,6 +65,8 @@ import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { SkillCheckResultCard } from '@/components/skill-check-result';
+import { ActionEconomyPanel } from '@/components/action-economy-panel';
+import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions } from '@/lib/action-suggestions';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
@@ -484,6 +486,7 @@ function StoryColumn({
   message,
   setMessage,
   onSubmit,
+  onEconomyCommand,
   sending,
   notice,
   scrollRef,
@@ -504,6 +507,7 @@ function StoryColumn({
   message: string;
   setMessage: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onEconomyCommand: (message: string, command: CombatActionInput) => void;
   sending: boolean;
   notice: Notice | null;
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -543,6 +547,7 @@ function StoryColumn({
         <div><Kicker>Anlatıcı</Kicker><div className="story-meta mt-1">Sahnenin sözü burada yankılanır</div></div>
         <div className="ml-auto story-meta hidden sm:block">Tur {state.turn_index}</div>
       </div>
+      <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
       <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
         <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div>
       </div>
@@ -1188,14 +1193,13 @@ export default function GameBrowser() {
     submitAmbientEventAction(request);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = message.trim();
+  const submitTurn = (text: string, combatAction?: CombatActionInput) => {
+    const trimmed = text.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
     const targetId = combatTargetId || null;
     const actionScope = campaignId || sessionId;
-    const signature = JSON.stringify([actionScope, trimmed, targetId]);
+    const signature = JSON.stringify([actionScope, trimmed, targetId, combatAction ?? null]);
     const actionId = pendingTurnRef.current?.signature === signature
       ? pendingTurnRef.current.actionId
       : stableTurnActionId(actionScope, signature, state?.combat.active && state.combat.combat_id ? {
@@ -1208,6 +1212,7 @@ export default function GameBrowser() {
       data: {
         message: trimmed,
         action_id: actionId,
+        ...(combatAction ? { combat_action: combatAction } : {}),
         ...storedTurnContext(actionScope, actionId),
         ...(targetId ? { target_id: targetId } : {}),
       },
@@ -1291,6 +1296,10 @@ export default function GameBrowser() {
   };
 
   const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submitTurn(message);
+  };
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} />;
   if (phase === 'creation') return (
     <CharacterCreationScreen
@@ -1350,6 +1359,7 @@ export default function GameBrowser() {
                 message={message}
                 setMessage={setMessage}
                 onSubmit={handleSubmit}
+                onEconomyCommand={submitTurn}
                 sending={playTurn.isPending}
                 notice={notice}
                 scrollRef={storyScrollRef}
