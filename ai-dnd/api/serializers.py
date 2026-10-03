@@ -385,8 +385,12 @@ def serialize_session_state(
     character["species_trait_state"] = copy.deepcopy(
         trait_state
         if isinstance(trait_state, Mapping)
-        else game._new_species_trait_state(
-            character["species"], player.get("proficiency_bonus", 2)
+        else (
+            game._new_species_trait_state(
+                character["species"], player.get("proficiency_bonus", 2)
+            )
+            if character["species"] in game.SPECIES_WITH_TRAIT_STATE
+            else None
         )
     )
     character["speed_ft"] = player.get(

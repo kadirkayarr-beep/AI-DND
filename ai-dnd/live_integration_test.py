@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Live qwen3:8b Integration Smoke Tests
-Runs 12 scenarios against real Ollama qwen3:8b
-"""
+"""Offline integration smoke tests using a mocked Ollama client."""
 import sys
 import io
 import json
@@ -19,9 +16,10 @@ sys.path.insert(0, str(PROJECT_DIR))
 # Mock ollama BEFORE loading game source
 from unittest.mock import MagicMock
 ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
+NARRATIVE_INTENT_RESPONSE = {
     "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
 }
+ollama_mock.chat.return_value = NARRATIVE_INTENT_RESPONSE
 sys.modules['ollama'] = ollama_mock
 
 import game as engine
@@ -123,31 +121,37 @@ def print_result(test_name, result, intent=None):
 def main():
     results = []
 
-    # Check Ollama availability
+    # Check the mocked client; this script does not make external requests.
     try:
         test_resp = ollama_mock.chat(
             model="qwen3:8b",
             messages=[{"role": "user", "content": "ping"}],
             options={"temperature": 0.0, "num_predict": 5}
         )
-        print("✅ Ollama erreichbar, qwen3:8b bereit")
+        print("✅ Mocked Ollama client ready; no external connection")
     except Exception as e:
         print(f"❌ Ollama nicht erreichbar: {e}")
         return
 
     # ---- TEST 1: SELF QUERY ----
     print("\n" + "="*70)
-    print("LIVE TEST 1: SELF QUERY - 'benim adım ne?'")
+    print("MOCK TEST 1: SELF QUERY - 'benim adım ne?'")
     print("="*70)
     reset_world_state()
     result = run_turn("benim adım ne?")
     ar = result["action_result"]
-    passed = ar.get("action") in ("character_query", "query") and "benim adım ne" in ar.get("direct_response", "").lower()
+    expected_name = game.character.get("name", "").casefold()
+    direct_response = ar.get("direct_response", "").casefold()
+    passed = (
+        ar.get("action") == "character_query"
+        and bool(expected_name)
+        and expected_name in direct_response
+    )
     results.append(("SELF QUERY", passed, ar.get("action"), ar.get("status")))
 
     # ---- TEST 2: NPC IDENTITY ----
     print("\n" + "="*70)
-    print("LIVE TEST 2: NPC IDENTITY - 'senin adın ne?' (mit NPC)")
+    print("MOCK TEST 2: NPC IDENTITY - 'senin adın ne?' (mit NPC)")
     print("="*70)
     reset_world_state()
     game.world_state["npcs"].append({
@@ -163,7 +167,7 @@ def main():
 
     # ---- TEST 3: LOCATION QUERY ----
     print("\n" + "="*70)
-    print("LIVE TEST 3: LOCATION QUERY - 'buranın adı ne?'")
+    print("MOCK TEST 3: LOCATION QUERY - 'buranın adı ne?'")
     print("="*70)
     reset_world_state()
     result = run_turn("buranın adı ne?")
@@ -173,7 +177,7 @@ def main():
 
     # ---- TEST 4: PRESENCE ----
     print("\n" + "="*70)
-    print("LIVE TEST 4: PRESENCE - 'burada kimler var?'")
+    print("MOCK TEST 4: PRESENCE - 'burada kimler var?'")
     print("="*70)
     reset_world_state()
     game.world_state["npcs"].append({
@@ -189,7 +193,7 @@ def main():
 
     # ---- TEST 5: UNLOCKED DOOR ----
     print("\n" + "="*70)
-    print("LIVE TEST 5: UNLOCKED DOOR - 'kapıyı açıyorum'")
+    print("MOCK TEST 5: UNLOCKED DOOR - 'kapıyı açıyorum'")
     print("="*70)
     reset_world_state()
     game.world_state["doors"].append({
@@ -204,7 +208,7 @@ def main():
 
     # ---- TEST 6: ENTER THROUGH DOOR ----
     print("\n" + "="*70)
-    print("LIVE TEST 6: ENTER THROUGH DOOR - 'içeri giriyorum'")
+    print("MOCK TEST 6: ENTER THROUGH DOOR - 'içeri giriyorum'")
     print("="*70)
     reset_world_state()
     game.world_state["doors"].append({
@@ -219,7 +223,7 @@ def main():
 
     # ---- TEST 7: FAILED STEALTH / NARRATOR SAFETY ----
     print("\n" + "="*70)
-    print("LIVE TEST 7: FAILED STEALTH / NARRATOR SAFETY - 'gizleniyorum'")
+    print("MOCK TEST 7: FAILED STEALTH / NARRATOR SAFETY - 'gizleniyorum'")
     print("="*70)
     reset_world_state()
     original_roll = engine.roll_d20
@@ -235,7 +239,7 @@ def main():
 
     # ---- TEST 8: GROUND ITEM LOCATION ----
     print("\n" + "="*70)
-    print("LIVE TEST 8: GROUND ITEM LOCATION - tavernada bırak, forestta al")
+    print("MOCK TEST 8: GROUND ITEM LOCATION - tavernada bırak, forestta al")
     print("="*70)
     reset_world_state()
     game.world_state["ground_items_by_location"]["tavern"] = ["Kılıç"]
@@ -248,7 +252,7 @@ def main():
 
     # ---- TEST 9: DYNAMIC LOCATION ----
     print("\n" + "="*70)
-    print("LIVE TEST 9: DYNAMIC LOCATION - 'Eski Ay Kulesi'ne gidiyorum'")
+    print("MOCK TEST 9: DYNAMIC LOCATION - 'Eski Ay Kulesi'ne gidiyorum'")
     print("="*70)
     reset_world_state()
     result = run_turn("Eski Ay Kulesi'ne gidiyorum")
@@ -256,9 +260,9 @@ def main():
     passed = ar.get("action") in ("travel", "narrative") and ar.get("status") in ("completed", "intended", "awaiting_proposal", "resolved")
     results.append(("DYNAMIC LOCATION", passed, ar.get("action"), ar.get("status")))
 
-    # ---- TEST 10: REAL ATTACK CLASSIFICATION ----
+    # ---- TEST 10: MOCKED ATTACK INTENT RESOLUTION ----
     print("\n" + "="*70)
-    print("LIVE TEST 10: REAL ATTACK CLASSIFICATION - 'Gromm'a kılıcımla saldırıyorum'")
+    print("MOCK TEST 10: ATTACK INTENT RESOLUTION - 'Gromm'a kılıcımla saldırıyorum'")
     print("="*70)
     reset_world_state()
     game.world_state["npcs"].append({
@@ -267,14 +271,42 @@ def main():
         "relationship": "neutral", "knowledge": [], "memory": [],
         "backstory": ""
     })
-    result = run_turn("Gromm'a kılıcımla saldırıyorum")
+    attack_intent_response = {
+        "message": {
+            "content": json.dumps({
+                "intent": "attack",
+                "action": "attack",
+                "target": {"type": "npc", "reference": "Gromm"},
+                "completion": "unclear",
+                "confidence": 1.0,
+            })
+        }
+    }
+    chat_call_count = 0
+
+    def mock_attack_intent_then_narrative(*args, **kwargs):
+        nonlocal chat_call_count
+        chat_call_count += 1
+        return (
+            attack_intent_response
+            if chat_call_count == 1
+            else NARRATIVE_INTENT_RESPONSE
+        )
+
+    previous_side_effect = ollama_mock.chat.side_effect
+    ollama_mock.chat.side_effect = mock_attack_intent_then_narrative
+    try:
+        result = run_turn("Gromm'a kılıcımla saldırıyorum")
+    finally:
+        ollama_mock.chat.side_effect = previous_side_effect
+        ollama_mock.chat.return_value = NARRATIVE_INTENT_RESPONSE
     ar = result["action_result"]
-    passed = ar.get("action") in ("attack", "combat") and ar.get("status") == "unsupported"
-    results.append(("REAL ATTACK CLASSIFICATION", passed, ar.get("action"), ar.get("status")))
+    passed = ar.get("action") == "attack" and ar.get("status") == "resolved"
+    results.append(("MOCKED ATTACK RESOLUTION", passed, ar.get("action"), ar.get("status")))
 
     # ---- TEST 11: NPC MEMORY ----
     print("\n" + "="*70)
-    print("LIVE TEST 11: NPC MEMORY - 'Benim adım Ardan.' sonra hatırlatma")
+    print("MOCK TEST 11: NPC MEMORY - 'Benim adım Ardan.' sonra hatırlatma")
     print("="*70)
     reset_world_state()
     game.world_state["npcs"].append({
@@ -291,7 +323,7 @@ def main():
 
     # ---- TEST 12: FALSE MEMORY ----
     print("\n" + "="*70)
-    print("LIVE TEST 12: FALSE MEMORY - 'ejderha hazinesi' iddiası")
+    print("MOCK TEST 12: FALSE MEMORY - 'ejderha hazinesi' iddiası")
     print("="*70)
     reset_world_state()
     game.world_state["npcs"].append({
@@ -308,7 +340,7 @@ def main():
 
     # ---- SUMMARY ----
     print("\n" + "="*70)
-    print("LIVE INTEGRATION TEST SUMMARY")
+    print("OFFLINE MOCK INTEGRATION TEST SUMMARY")
     print("="*70)
     passed = sum(1 for _, p, _, _ in results if p)
     total = len(results)

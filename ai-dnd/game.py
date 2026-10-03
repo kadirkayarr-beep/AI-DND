@@ -1397,6 +1397,7 @@ CELESTIAL_REVELATION_FORMS = (
     "inner_radiance",
     "necrotic_shroud",
 )
+SPECIES_WITH_TRAIT_STATE = frozenset({"Aasimar", "Goliath", "Orc", "Half-Orc"})
 
 
 def _new_species_trait_state(species, proficiency_bonus):
@@ -1421,6 +1422,12 @@ def _new_species_trait_state(species, proficiency_bonus):
         "movement_effect": None,
         "player_turn_counter": 0,
     }
+
+
+def _new_persisted_species_trait_state(species, proficiency_bonus):
+    if species not in SPECIES_WITH_TRAIT_STATE:
+        return None
+    return _new_species_trait_state(species, proficiency_bonus)
 
 
 def _validate_species_trait_state(value, species, proficiency_bonus=2):
@@ -1512,7 +1519,7 @@ def initialize_species_trait_state(giant_ancestry=None):
         raise ValueError("Giant Ancestry is only available to Goliaths.")
     character["giant_ancestry"] = giant_ancestry
     character["speed_ft"] = 35 if species == "Goliath" else 30
-    character["species_trait_state"] = _new_species_trait_state(
+    character["species_trait_state"] = _new_persisted_species_trait_state(
         species, proficiency_bonus
     )
     return copy.deepcopy(character["species_trait_state"])
@@ -2725,7 +2732,14 @@ def _species_trait_state():
         initialize_species_trait_state(
             giant_ancestry=character.get("giant_ancestry")
         )
-        state = character["species_trait_state"]
+        state = character.get("species_trait_state")
+    if not isinstance(state, dict):
+        # Non-trait species need neutral mechanics defaults without persisting
+        # new state that would change their legacy save representation.
+        state = _new_species_trait_state(
+            character.get("species", character.get("race")),
+            character.get("proficiency_bonus", 2),
+        )
     return state
 
 
@@ -3132,7 +3146,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
         }
         character["current_hp"] = character["max_hp"]
         _session().world_state["player_combat_status"] = "active"
-        character["species_trait_state"] = _new_species_trait_state(
+        character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
         )
         for npc in _session().world_state.get("npcs", []):

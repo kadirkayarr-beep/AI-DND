@@ -136,8 +136,12 @@ class SkillCheckResult(BaseModel):
         "charisma",
     ]
     d20: int = Field(ge=1, le=20)
-    d20_rolls: list[int] | None = None
-    advantage: bool | None = None
+    d20_rolls: list[int] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    advantage: bool | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     proficient: bool
     ability_modifier: int
     proficiency_modifier: int = Field(ge=0)
