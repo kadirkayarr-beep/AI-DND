@@ -1,0 +1,499 @@
+Tabii kanka. Bence **Combat'a körlemesine dalmadan önce mevcut tabloyu bir checklist'e çevirelim.** Şu ana kadar yaptıklarımızı ve gerçekten eksik olanları ayırınca durum çok daha net.
+
+# AI-DND — Sistem Durum Listesi
+
+## 1. 🧱 TEMEL MİMARİ — BÜYÜK ÖLÇÜDE TAMAM ✅
+
+1. **Python authoritative game engine** ✅
+   - Oyun mekaniğinin sahibi Python.
+   - Frontend state üretmiyor.
+   - Qwen mekanik kararı vermiyor.
+
+2. **Session / campaign persistence** ✅
+   - Kampanya kaydı
+   - Save / resume
+   - Session isolation
+   - Legacy save uyumluluğu
+
+3. **Campaign journal / memory altyapısı** ✅
+   - Kanonik olayların kaydı
+   - NPC konuşma hafızasının temelleri
+   - Campaign event geçmişi
+
+4. **API / OpenAPI / generated client sistemi** ✅
+   - Python API
+   - OpenAPI source
+   - Generated TS/Zod client
+   - Contract parity
+
+5. **Model çağrı sınırı** ✅
+   - Turn başına model-call sınırı korunuyor.
+   - Model prose → state mutation yapamıyor.
+
+---
+
+# 2. 🧙 KARAKTER SİSTEMİ — ÇOK BÜYÜK KISMI TAMAM ✅
+
+1. **D&D 2024 karakter oluşturma** ✅
+2. **Class seçimi** ✅
+3. **Background seçimi** ✅
+4. **Species seçimi** ✅
+5. **Ability scores**
+   - Standard Array ✅
+   - Point Buy ✅
+6. **Skill seçimleri** ✅
+7. **Cantrip / spell seçimleri** ✅
+8. **Equipment seçimleri** ✅
+9. **Fighting Style** ✅
+10. **Identity / languages / origin bilgileri** ✅
+11. **HP / AC preview** ✅
+12. **Random character creation** ✅
+13. **Aasimar** ✅
+14. **Goliath** ✅
+15. **Orc** ✅
+16. **2014 Half-Elf / Half-Orc uyumluluğu** ✅
+17. **Species abilities** ✅
+18. **Expertise** ✅ — az önce tamamlandı.
+19. **Save / resume character state** ✅
+
+### Burada kalanlar:
+
+- Daha ileri **level progression** ❌
+- Subclass progression ❌
+- Level-up sistemi ❌
+- Tüm sınıfların ileri seviye özelliklerinin eksiksiz uygulanması ❌
+- Feat progression'ın tamamı ❌
+
+Bunlar **Combat'tan önce şart değil.**
+
+---
+
+# 3. 🎲 CORE RESOLUTION — TAMAM ✅🔥
+
+Burası bizim en önemli kilometre taşımızdı.
+
+1. **Ortak D20 resolver** ✅
+2. **Ability check** ✅
+3. **Skill check** ✅
+4. **Saving throw** ✅
+5. **Attack roll** ✅
+6. **Ability modifier** ✅
+7. **Proficiency** ✅
+8. **Expertise** ✅
+9. **Advantage** ✅
+10. **Disadvantage** ✅
+11. **Advantage + disadvantage cancellation** ✅
+12. **DC resolution** ✅
+13. **AC resolution** ✅
+14. **Attack natural 20 → critical hit** ✅
+15. **Attack natural 1 → automatic miss** ✅
+16. **Skill/save natural 20/1 normal DC resolution** ✅
+17. **Deterministic action ID** ✅
+18. **Idempotent retry** ✅
+19. **Resolution persistence** ✅
+20. **API contract** ✅
+
+### Özellikle önemli:
+
+Artık Combat'ın kendi zar sistemi olmayacak.
+
+**Combat → Core Resolution → Python sonucu**
+
+Bu bizim mimari olarak istediğimiz şey.
+
+---
+
+# 4. 🌍 LIVING WORLD — TEMELİ TAMAM ✅
+
+1. Context-aware ambient events ✅
+2. GREEN atmospheric events ✅
+3. BLUE temporary scene events ✅
+4. Campaign/location/time/weather context ✅
+5. Event history / repetition control ✅
+6. Character background/origin opening narrative ✅
+7. Temporary scene referents ✅
+8. BLUE → canonical NPC promotion ✅
+9. Event action IDs ✅
+10. APPLIED / REJECTED / NO_EFFECT / ALREADY_APPLIED ✅
+11. Persistence / idempotency ✅
+12. Campaign isolation ✅
+
+### Kalan:
+
+- Daha fazla kalıcı world consequence ❌
+- Event → quest ❌
+- Event → item ❌
+- Event → economy ❌
+- Event → combat ❌
+- Event → reputation/relationship ❌
+
+Bunları **Combat ve Quest altyapısı geldikten sonra** bağlamak daha doğru.
+
+---
+
+# 5. 🗺️ EXPLORATION / WORLD INTERACTION — KISMEN VAR ⚠️
+
+Şu anda:
+
+- Location state ✅
+- Movement/travel temelleri ✅
+- Scene/environment metadata ✅
+- NPC interaction temelleri ✅
+- Ambient world events ✅
+
+Ama tam RPG exploration sistemi olarak:
+
+- Travel resolution
+- Random encounters
+- Structured exploration
+- Search / perception consequences
+- Doors / locks
+- traps
+- environmental hazards
+- structured discovery
+- map/dungeon navigation
+
+henüz **tam bir sistem halinde değil.**
+
+---
+
+# 6. ⚔️ COMBAT — SIRADAKİ BÜYÜK SİSTEM 🔴
+
+**Bence şu anda asıl hedef bu.**
+
+Eksikler:
+
+1. Initiative
+2. Combat encounter state
+3. Combatant listesi
+4. Turn order
+5. Round
+6. Player action
+7. Attack → Core Resolution
+8. Hit / miss
+9. Critical hit
+10. Damage
+11. HP reduction
+12. 0 HP / unconsciousness
+13. Death rules
+14. Enemy turn
+15. Combat end
+16. Combat persistence
+17. Combat replay/retry safety
+18. Combat UI
+19. Conditions
+20. Multiple combatants
+
+Ama bunların hepsini **tek promptta devasa şekilde yaptırmak zorunda değiliz.**
+
+Bence:
+
+### Combat V1
+**Initiative → turns → attack → hit/miss → damage → HP → death/end**
+
+önce.
+
+Sonra:
+
+### Combat V1.1
+Conditions / special actions / reactions vb.
+
+Sonra:
+
+### Combat V2
+Daha gelişmiş tactical mechanics.
+
+---
+
+# 7. 🎒 INVENTORY / EQUIPMENT — KISMEN VAR ⚠️
+
+Şu anda karakter başlangıç ekipmanı ve inventory temeli var.
+
+Ama gerçek gameplay inventory sistemi:
+
+- item pickup
+- item drop
+- equip / unequip
+- weapon switching
+- armor switching
+- consumables
+- item quantities
+- weight/capacity
+- loot
+- container
+- treasure
+
+henüz tam değil.
+
+**Combat'tan sonra önemli.**
+
+---
+
+# 8. 💰 ECONOMY — EKSİK 🔴
+
+Şu anda altın karakter başlangıcında bulunabiliyor.
+
+Ama:
+
+- gold balance
+- buy
+- sell
+- prices
+- merchants
+- transactions
+- economic persistence
+
+tam bir authoritative sistem değil.
+
+Bu da Quest + Inventory + World ile birlikte ele alınmalı.
+
+---
+
+# 9. 📜 QUEST SYSTEM — TEMEL VAR, TAM OYUN SİSTEMİ DEĞİL ⚠️
+
+Mevcut:
+
+- Quest accept ✅
+- Quest cancel ✅
+- Quest evidence evaluation ✅
+- Quest event IDs / idempotency ✅
+
+Ama eksik:
+
+- Quest generation/catalog
+- Quest offers
+- objectives
+- multi-step quests
+- quest state machine
+- rewards
+- quest failure
+- quest completion
+- quest journal UI
+- world consequences
+
+Yani **Quest altyapısı var ama RPG quest sistemi henüz tamamlanmış değil.**
+
+---
+
+# 10. 🧑 NPC / RELATIONSHIP — TEMEL VAR ⚠️
+
+Mevcut:
+
+- NPC creation/promote ✅
+- NPC conversation ✅
+- Conversation memory temeli ✅
+
+Eksik:
+
+- relationship values
+- disposition
+- faction reputation
+- NPC goals
+- persistent NPC state
+- NPC combat participation
+- NPC death
+- NPC quest relationships
+
+Bunları Combat + Quest + World sistemlerinden sonra bağlamak daha sağlıklı.
+
+---
+
+# 11. 🪄 SPELL / MAGIC SYSTEM — KISMEN VAR ⚠️
+
+Karakter creation tarafında:
+
+- Spell catalog ✅
+- Cantrips ✅
+- Spell selection ✅
+- Class spell requirements'ın bir kısmı ✅
+
+Ama gerçek gameplay:
+
+- spell casting
+- spell slots
+- spell attack
+- spell save DC
+- spell damage
+- conditions
+- concentration
+- duration
+- targeting
+- AoE
+- spell effects
+
+henüz tam resolution/gameplay sistemi değil.
+
+**Combat'ın hemen ardından önemli.**
+
+---
+
+# 12. ❤️ CONDITIONS / REST / DEATH — EKSİK 🔴
+
+Bunlar Combat'ın devamı:
+
+- Conditions
+- temporary HP
+- death saves / dying state
+- short rest
+- long rest
+- exhaustion
+- healing
+- unconsciousness
+
+Bunların bir kısmının tür yeteneklerinde altyapısı var ama **genel gameplay sistemi olarak tamamlanmış değiller.**
+
+---
+
+# 13. 📈 LEVELING / PROGRESSION — EKSİK 🔴
+
+Şimdilik karakter yaratabiliyoruz ama gerçek RPG progression:
+
+- XP
+- level up
+- HP increase
+- proficiency bonus progression
+- class features
+- subclass
+- feats
+- spell progression
+- Expertise progression
+
+tam değil.
+
+Bu **Combat sonrası** yapılmalı.
+
+---
+
+# 14. 🤖 QWEN / REAL MODEL INTEGRATION — TEMEL VAR ⚠️
+
+Mevcut:
+
+- Intent understanding
+- Narration
+- Context injection
+- Model-call limit
+- Mock integration tests
+
+Ama **#57 gerçek Ollama smoke testini özellikle çalıştırmamayı seçtik.**
+
+Dolayısıyla:
+
+> "Gerçek Qwen/Ollama Türkçe intent classification'ı tamamen doğrulandı"
+
+diyemiyoruz.
+
+Bu kritik bir mimari eksik değil; daha çok **canlı entegrasyon doğrulaması**.
+
+İleride gerçek model acceptance testinde bakarız.
+
+---
+
+# 15. 🖥️ FRONTEND — TEMEL OYUN DENEYİMİ VAR ⚠️
+
+Şu anda:
+
+- Landing ✅
+- Character creation ✅
+- Character review ✅
+- Adventure start ✅
+- Game browser ✅
+- Inventory display ✅
+- World/environment panel ✅
+- Narration UI ✅
+- Resolution display ✅
+
+Ama:
+
+- Combat UI ❌
+- Quest UI ❌
+- Full spell UI ❌
+- Advanced inventory interaction ❌
+- Conditions display ❌
+- NPC relationship UI ❌
+
+---
+
+# 🎯 ÖZET: ŞU AN NEREDEYİZ?
+
+Ben bunu şöyle görüyorum:
+
+### 🟢 TAMAMLANMIŞ TEMEL
+
+**1. Architecture**  
+**2. Persistence**  
+**3. Character Creation**  
+**4. Living World foundation**  
+**5. Core Resolution V1**  
+**6. Expertise**
+
+⬇️
+
+### 🟡 TEMELİ VAR AMA GELİŞTİRİLECEK
+
+**7. Exploration**  
+**8. Inventory**  
+**9. Quest**  
+**10. NPC**  
+**11. Magic**
+
+⬇️
+
+### 🔴 BÜYÜK EKSİK
+
+**12. Combat**  
+**13. Conditions / Rest / Death**  
+**14. Leveling / Progression**  
+**15. Economy**  
+**16. Full Quest system**
+
+---
+
+# 🧭 BENİM ÖNERDİĞİM YOL
+
+**Şimdi:**
+
+### #1 → Combat V1 ⚔️
+
+↓
+
+### #2 → Combat sonrası Conditions / HP / Rest / Death
+
+↓
+
+### #3 → Inventory + Equipment gameplay
+
+↓
+
+### #4 → Spellcasting / Magic resolution
+
+↓
+
+### #5 → Quest V1
+
+↓
+
+### #6 → NPC / Relationship / Reputation
+
+↓
+
+### #7 → Economy / Merchants
+
+↓
+
+### #8 → Leveling / Progression
+
+↓
+
+### #9 → Living World'ün bu sistemlere bağlanması
+
+↓
+
+### #10 → Full end-to-end acceptance / gerçek Qwen smoke
+
+---
+
+Ve en önemlisi kanka:
+
+**Şu anda "oyunun her şeyi eksik" durumunda değiliz.** Tam tersine, en riskli altyapı parçalarından bazılarını artık oturttuk. Özellikle **Core Resolution + Persistence + Character State + Living World** birleşimi Combat'ın düzgün kurulabileceği noktaya getirdi bizi.
+
+Bu yüzden ben şu anda **Combat'a geçmemizi destekliyorum**, ama Combat promptunu da "oyunu baştan yaz" şeklinde değil, **mevcut Core Resolution'ın üzerine oturan küçük ve authoritative bir Combat V1** olarak hazırlardım.
