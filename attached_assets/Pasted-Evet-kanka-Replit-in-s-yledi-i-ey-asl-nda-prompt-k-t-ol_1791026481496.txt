@@ -1,0 +1,802 @@
+Evet kanka. Replit'in söylediği şey aslında **“prompt kötü olmuş” değil**. Tam tersine, promptun büyük kısmını kabul ediyor; fakat uygularken sonradan patlayabilecek **8–9 mimari boşluğu** önceden yakalamış.
+
+Ben tek tek çok basit anlatayım. Özellikle **5. madde önemli**.
+
+---
+
+# 1. En önemli açık: 0 HP olunca combat bitmemeli
+
+Şu anki sistemde muhtemelen:
+
+> Oyuncu → 0 HP → Combat bitti
+
+gibi davranıyor.
+
+Ama bizim istediğimiz:
+
+> Oyuncu → 0 HP → Unconscious → combat DEVAM
+
+Çünkü D&D 2024'te karakter **0 HP ile kendi turuna başladığında Death Save atıyor.** Üç başarı Stable, üç başarısızlık Dead. :chatgpt-content-reference{index="0"}
+
+### Örnek
+
+Initiative:
+
+```text
+Goblin
+Kadir
+Goblin 2
+```
+
+Kadir'in HP'si 0 oldu.
+
+**Yanlış:**
+
+```text
+Kadir 0 HP
+↓
+Combat END
+```
+
+Death Save hiç çalışmaz.
+
+**Doğru:**
+
+```text
+Kadir 0 HP
+↓
+Unconscious
+↓
+Combat devam
+↓
+Goblin
+↓
+Kadir'in turu
+↓
+Death Save otomatik atılır
+↓
+Başarılı / başarısız
+↓
+Combat devam
+```
+
+Kadir artık oyuncu olarak:
+
+> “Saldır”
+
+diyemez.
+
+Ama sistem onun turunu **otomatik Death Save çözmek için** kullanır.
+
+Bence bu kesinlikle prompta eklenmeli.
+
+---
+
+# 2. “Unconscious eylem yapamaz” sadece butonları gizlemekle olmaz
+
+Burada Replit'in çok haklı olduğu başka bir nokta var.
+
+Diyelim frontend şöyle yapıyor:
+
+```text
+[Attack]
+[Spell]
+[Use Item]
+[Rest]
+```
+
+Unconscious olunca bunları gizledik.
+
+Güzel.
+
+Ama kötü niyetli biri API'ye direkt:
+
+```text
+/use-item healing-potion
+```
+
+gönderirse ne olacak?
+
+Eğer Python endpoint'i:
+
+> “HP 0 mı? Kontrol etmedim.”
+
+derse karakter kendini API üzerinden iyileştirebilir.
+
+Bu yüzden:
+
+### Frontend
+
+Butonları gizler.
+
+### Python
+
+Ayrıca:
+
+> “Bu karakter şu anda Unconscious mı?”
+
+diye kontrol eder.
+
+Yani frontend güvenlik değildir.
+
+Bu AI-DND mimarisine de tamamen uyuyor:
+
+**Frontend state yaratamaz. Python karar verir.**
+
+---
+
+## Replit'in verdiği örnekler neden önemli?
+
+Özellikle:
+
+- turn command
+- racial/species ability
+- item use
+- short rest
+- long rest
+- diğer state değiştiren endpoint'ler
+
+kontrol edilmeli.
+
+Mesela:
+
+```text
+0 HP
+Unconscious
+↓
+Long Rest
+↓
+HP geri geldi
+```
+
+gibi bir açık istemiyoruz.
+
+Ya da:
+
+```text
+0 HP
+Unconscious
+↓
+Healing Hands / başka ability
+↓
+kendini iyileştirdi
+```
+
+gibi bir açık varsa bunu bilinçli olarak tanımlamamız lazım.
+
+**Ama bu “genel Action Economy'yi şimdi yapalım” demek değil.**
+
+Sadece:
+
+> Mevcut bütün state-mutating yollar, Unconscious/Dead durumunu authoritative olarak kontrol etsin.
+
+demek.
+
+---
+
+# 3. Help ile stabilize meselesi
+
+2024 kurallarında 0 HP'deki bir karakteri stabilize etmek için **Help action + DC 10 Wisdom (Medicine)** kullanılabiliyor. :chatgpt-content-reference{index="1"}
+
+Örneğin:
+
+```text
+Kadir: 0 HP
+Death Saves:
+Success 1
+Failure 2
+
+Yasemin:
+Help → Medicine DC 10
+→ Success
+
+Kadir:
+STABLE
+```
+
+Stable olunca artık Death Save atmaz.
+
+Ama hâlâ:
+
+```text
+0 HP
+Unconscious
+```
+
+kalır. :chatgpt-content-reference{index="2"}
+
+### Burada önemli nokta:
+
+Biz daha **Action Economy sistemini** yapmıyoruz.
+
+Dolayısıyla bütün Help sistemini şimdi yapmak zorunda değiliz.
+
+Bence bunu şöyle çözebiliriz:
+
+**Bu fazda sadece stabilization için gereken minimal mekanik eklenir.**
+
+Yani komple:
+
+> Help sistemi
+
+yazmayız.
+
+Sadece:
+
+> `stabilize_unconscious_character`
+
+gibi authoritative bir mekanik yol olur.
+
+Sonra gerçek Action Economy geldiğinde bunu normal **Help Action** üzerinden bağlarız.
+
+Bu bence çok daha temiz.
+
+---
+
+# 4. İyileşince neden hâlâ Prone?
+
+Burası küçük ama önemli.
+
+Karakter:
+
+```text
+0 HP
+Unconscious
+Prone
+```
+
+Sonra birisi heal etti:
+
+```text
+HP = 8
+```
+
+Unconscious artık biter.
+
+Ama:
+
+```text
+Prone
+```
+
+devam eder.
+
+2024 Unconscious kuralında da durum sona erdiğinde karakterin **Prone kalacağı** belirtiliyor. :chatgpt-content-reference{index="3"}
+
+Yani:
+
+```text
+0 HP
+↓
+Unconscious + Prone
+↓
+Healing
+↓
+8 HP
+↓
+Conscious + Prone
+```
+
+Sonra ileride Movement/Action sistemi geldiğinde:
+
+> “Stand Up”
+
+mekaniği ile ayağa kalkar.
+
+### Doğal 20 de aynı.
+
+Death Save:
+
+```text
+20
+↓
++1 HP
+↓
+Unconscious biter
+↓
+Prone devam
+```
+
+Bu yüzden promptta bunun açıkça yazılması iyi.
+
+---
+
+# 5. Asıl kafa karıştırıcı olan: CHECKPOINT + RNG + IDEMPOTENCY
+
+Burası Replit'in en teknik ve en önemli uyarısı.
+
+Senin istediğin:
+
+```text
+Combat başladı
+↓
+CHECKPOINT
+↓
+Combat
+↓
+Kadir öldü
+↓
+NORMAL MODE
+↓
+CHECKPOINT'E GERİ DÖN
+```
+
+Gayet güzel.
+
+Ama bilgisayarın arka tarafında başka şeyler de olmuş oluyor.
+
+Örneğin:
+
+```text
+Combat başladı
+↓
+initiative zarları atıldı
+↓
+Goblin saldırdı
+↓
+Kadir saldırdı
+↓
+20 tane action işlendi
+↓
+Death Save atıldı
+↓
+Kadir öldü
+```
+
+Bunların hepsinin kayıtları var.
+
+Şimdi komple geri sararsak:
+
+> “Bu action ID'ler de geri mi sarılacak?”
+
+sorusu çıkıyor.
+
+---
+
+## Neden problem?
+
+Diyelim:
+
+```text
+action_id = ABC123
+```
+
+ile Kadir saldırdı.
+
+Python:
+
+```text
+ABC123 → attack result
+```
+
+kaydetti.
+
+Sonra Kadir öldü.
+
+Rollback yaptık.
+
+Eğer `ABC123` kaydını da silersek, istemci aynı isteği tekrar gönderdiğinde Python:
+
+> “Bu yeni action.”
+
+sanabilir.
+
+Ve **aynı action ikinci kez çalışabilir.**
+
+Bu istemediğimiz şey.
+
+---
+
+# Ben burada nasıl yapardım?
+
+Bence çok net bir ayrım yapalım:
+
+### Gameplay state rollback olur.
+
+Örneğin:
+
+- HP
+- combat
+- initiative
+- round
+- enemy state
+- inventory değişiklikleri
+- campaign state
+
+geri alınabilir.
+
+### Ama operation/idempotency receipt rollback olmaz.
+
+Yani:
+
+```text
+ABC123
+↓
+Bu action daha önce işlendi.
+↓
+Receipt kalıcı.
+```
+
+kalır.
+
+Böylece eski bir request tekrar gelirse:
+
+> “Bunu zaten çözmüştüm.”
+
+der.
+
+**Tekrar zar atmaz.**
+
+Bu, mevcut idempotency sistemimizle de uyumlu.
+
+---
+
+# RNG konusu daha da önemli
+
+Şimdi başka bir soru:
+
+Combat başladı.
+
+İlk zarlar:
+
+```text
+Initiative → 13
+Attack → 17
+Damage → 8
+Death Save → 4
+```
+
+Kadir öldü.
+
+Rollback yaptık.
+
+### RNG'yi de geri sararsak:
+
+Aynı combat tekrar:
+
+```text
+Initiative → 13
+Attack → 17
+Damage → 8
+...
+```
+
+üretebilir.
+
+Bu, oyuncuya:
+
+> “Öldüm, tekrar deneyeyim.”
+
+durumunda aynı zar dizisini verebilir.
+
+### RNG'yi geri sarmazsak:
+
+İkinci deneme:
+
+```text
+Initiative → başka sonuç
+Attack → başka sonuç
+Damage → başka sonuç
+```
+
+olabilir.
+
+Bence **bizim oyun için daha sağlıklı olan ikinci seçenek.**
+
+Yani:
+
+> **Normal Mode rollback gameplay state'i geri alsın ama RNG ilerlemesini geri almasın.**
+
+Böylece rollback:
+
+**save-scum gibi aynı zarları tekrar oynatma mekanizmasına dönüşmez.**
+
+Bu bir D&D 2024 kuralı değil; **AI-DND'nin kendi oyun tasarımı kararı.**
+
+Ve bence bunu prompta açıkça kilitlemeliyiz.
+
+---
+
+# 6. Game Mode sonradan değiştirilememeli
+
+Şu anda prompt:
+
+> Combat sırasında değiştirme.
+
+diyor.
+
+Ama bu açık bırakır:
+
+```text
+Normal Mode
+↓
+Combat yok
+↓
+Permadeath'e geç
+↓
+Combat
+↓
+Öl
+```
+
+veya:
+
+```text
+Permadeath
+↓
+Combat yok
+↓
+Normal'e geç
+↓
+Öl
+↓
+Rollback
+```
+
+Bu olmaz.
+
+Bence:
+
+> **Campaign oluşturulduğu anda mode seçilir ve campaign lifetime boyunca immutable olur.**
+
+Yani:
+
+```text
+NORMAL
+PERMADEATH
+IRONMAN
+```
+
+seçildi mi?
+
+**Bitti.**
+
+Sonradan değişmez.
+
+---
+
+# 7. Combat dışında ölürse ne olacak?
+
+Bu da çok önemli.
+
+Biz checkpoint'i:
+
+> Combat başladı
+
+anında oluşturuyoruz.
+
+Ama oyuncu şu anda combat dışında da zarar görebilir.
+
+Mesela ileride:
+
+```text
+Trap
+↓
+12 damage
+↓
+0 HP
+```
+
+olabilir.
+
+Ama ortada:
+
+```text
+combat checkpoint
+```
+
+yok.
+
+Şimdi Normal Mode ne yapacak?
+
+İki seçenek var:
+
+### A — Bu fazda sadece Combat Death
+
+Bu fazda:
+
+> Death System yalnızca combat içindeki player death'i yönetir.
+
+Combat dışı ölüm sonraki sistem.
+
+### B — Global death checkpoint
+
+Her tehlikeli state değişiminde checkpoint.
+
+Ama bu şu anda **çok daha büyük bir persistence sistemi** olur.
+
+Ben burada **A'yı tercih ederim.**
+
+Çünkü şu anda görevimiz:
+
+> **Combat Death System V1**
+
+Bunu yaparken dünya çapında rollback sistemi kurmaya gerek yok.
+
+Prompta:
+
+> “Bu fazda Normal Mode rollback yalnızca aktif combat başlangıcında oluşturulan checkpoint için geçerlidir. Combat dışı ölüm bu fazın kapsamı dışındadır.”
+
+yazılır.
+
+Bu açık tamamen kapanır.
+
+---
+
+# 8. Normal Mode'da tekrar tekrar savaşabilme
+
+Bu aslında teknik hata değil.
+
+Senin tasarım kararın.
+
+Normal:
+
+```text
+Combat
+↓
+Öldün
+↓
+geri dön
+↓
+tekrar dene
+```
+
+Bu olabilir.
+
+Hatta AI-DND'nin daha erişilebilir modu olabilir.
+
+Permadeath:
+
+```text
+Combat
+↓
+Öldün
+↓
+karakter öldü
+```
+
+Ironman:
+
+```text
+Combat
+↓
+Öldün
+↓
+kalıcı ölüm
+↓
+resurrection yok
+```
+
+Dolayısıyla Replit burada:
+
+> “Bunun farkında mısınız?”
+
+diyor.
+
+**Biz farkındayız.**
+
+Bence ekstra “bir kere öldün, checkpoint tüketildi” gibi cezalar eklemeyelim. Çünkü sen zaten üç farklı mode ile bu farkı bilinçli olarak yaratıyorsun.
+
+---
+
+# Benim gözümde şu anda durum
+
+Replit'in feedback'ini önem sırasına koyarsam:
+
+### 🔴 MUTLAKA KAPATILMALI
+
+**1. 0 HP'de combat devam edecek.**
+
+**2. Unconscious/Dead server-side bütün state mutation yollarında korunacak.**
+
+**5. Checkpoint + idempotency + RNG davranışı kesin tanımlanacak.**
+
+**6. Game mode campaign boyunca değiştirilemeyecek.**
+
+### 🟠 NETLEŞTİRİLMELİ
+
+**4. Healing → Conscious ama Prone kalır.**
+
+**7. Combat dışı death bu fazın dışında kalır.**
+
+### 🟢 TASARIM KARARI OLARAK ZATEN TAMAM
+
+**8. Normal Mode ölüm sonrası tekrar denenebilir.**
+
+### 🟡 KÜÇÜK EK
+
+**3. Stabilization için minimal Help/Medicine mekanizması.**
+
+---
+
+## Ve bence bizim final tasarımımız şu olmalı
+
+```text
+                    COMBAT START
+                         │
+                         ▼
+                 CREATE CHECKPOINT
+                         │
+                         ▼
+                    INITIATIVE
+                         │
+                         ▼
+                  NORMAL COMBAT
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+            HP > 0                HP = 0
+              │                     │
+              ▼                     ▼
+        Normal combat          UNCONSCIOUS
+                                    │
+                              Combat devam eder
+                                    │
+                              Oyuncu eylem yapamaz
+                                    │
+                         ┌──────────┴──────────┐
+                         │                     │
+                    Player turn           Damage
+                         │                     │
+                         ▼                     ▼
+                    DEATH SAVE         Death failure
+                         │
+                  ┌──────┼──────┐
+                  │      │      │
+                3 S    3 F    Nat 20
+                  │      │      │
+                  ▼      ▼      ▼
+               STABLE   DEAD    +1 HP
+                  │      │        │
+                  │      │        ▼
+                  │      │    Conscious
+                  │      │    + Prone
+                  │      │
+                  │      ▼
+                  │   ┌───────────────┐
+                  │   │               │
+                  │ Normal       Permadeath/
+                  │ Mode          Ironman
+                  │   │               │
+                  ▼   ▼               ▼
+               Stable  Rollback      DEAD
+                         │
+                         ▼
+                  Combat checkpoint
+```
+
+Ve **Normal rollback'da**:
+
+```text
+GAMEPLAY STATE
+    ↓
+geri alınır
+
+IDEMPOTENCY RECEIPTS
+    ↓
+geri alınmaz
+
+RNG PROGRESS
+    ↓
+geri alınmaz
+
+CAMPAIGN MODE
+    ↓
+geri alınmaz
+```
+
+Bence bu son dört satır özellikle çok değerli.
+
+Çünkü böylece Replit'in korktuğu:
+
+> “Rollback yaptık ama sistem aynı request'i yeniden oynatır mı?”
+
+ve:
+
+> “Aynı zarları tekrar mı üretir?”
+
+sorularını da kapatmış oluyoruz.
+
+2024 kurallarının Death Save tarafı zaten net: 0 HP ile tur başlatınca save, 3 success/3 failure, nat 1 = iki failure, nat 20 = 1 HP, 0 HP'de alınan hasar failure ve stabilize olma davranışı. :chatgpt-content-reference{index="4"}
+
+**Yani kanka, ben Replit'in bu denetimini olumlu görüyorum.** Önceki promptu çöpe atmayalım. Sadece bu 8 maddeyi prompta ekleyip **“Death System V1 final lock”** haline getirelim. Ondan sonra Replit'e verip **uygulamaya geçebiliriz.**
