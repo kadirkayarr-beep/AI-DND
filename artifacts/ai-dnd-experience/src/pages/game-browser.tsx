@@ -65,6 +65,7 @@ import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { SkillCheckResultCard } from '@/components/skill-check-result';
+import { getContextualActionSuggestions } from '@/lib/action-suggestions';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -523,6 +524,8 @@ function StoryColumn({
       && participant.status === 'active'
       && participant.current_hp > 0,
   );
+  const actionSuggestions = getContextualActionSuggestions(state);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const currentActor = state.combat.participant_records.find(
     (participant) => participant.id === state.combat.current_actor_id,
   );
@@ -560,6 +563,29 @@ function StoryColumn({
       <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       <div className="command-box">
+        <div className="action-suggestions" role="group" aria-label="Bu sahne için önerilen hamleler" data-testid="action-suggestions">
+          <div className="action-suggestions-heading">
+            <span><Sparkles size={12} aria-hidden="true" /> Bu sahnede deneyebilirsin</span>
+            <small>Seçim metin kutusuna aktarılır; gönderilmez.</small>
+          </div>
+          <div className="action-suggestion-list">
+            {actionSuggestions.map((suggestion) => (
+              <button
+                className="action-suggestion"
+                data-testid={`button-suggestion-${suggestion.id}`}
+                disabled={sending}
+                key={suggestion.id}
+                onClick={() => {
+                  setMessage(suggestion.message);
+                  messageInputRef.current?.focus();
+                }}
+                type="button"
+              >
+                {suggestion.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <form className="command-form" onSubmit={onSubmit}>
           {state.combat.active && combatTargets.length > 0 && (
             <label className="command-target-label" htmlFor="combat-target-select">
@@ -580,7 +606,7 @@ function StoryColumn({
             </label>
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Dünya yanıt veriyor' : 'Gönder'}

@@ -199,6 +199,84 @@ class CombatV2Turns(unittest.TestCase):
         self.session.merge_world_updates(self.session.validate_world_updates(updates))
         self.assertEqual(self.world, before)
 
+    def test_explicitly_negated_attack_does_not_start_combat_or_roll(self):
+        rng_before = self.session.rng.getstate()
+        for phrase in (
+            "Gromm'a saldırmak istemiyorum",
+            "Gromm'a saldırmıyorum",
+            "Gromm'a saldırmayacağım",
+        ):
+            with self.subTest(phrase=phrase):
+                result = self.session.execute_intent(
+                    {"intent": "attack"}, phrase
+                )
+                self.assertEqual(result["action"], "narrative")
+                self.assertEqual(result["status"], "not_executed")
+                self.assertEqual(result["outcome"], "negated_action")
+                self.assertEqual(self.npc["current_hp"], 100)
+                self.assertFalse(self.world["combat"]["active"])
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_targetless_attack_asks_before_resolving_combat(self):
+        rng_before = self.session.rng.getstate()
+        result = self.session.execute_intent(
+            {"intent": "attack"}, "Saldırıyorum"
+        )
+        self.assertEqual(result["action"], "attack")
+        self.assertEqual(result["status"], "clarification")
+        self.assertEqual(result["outcome"], "missing_target")
+        self.assertIn("Gromm", result["direct_response"])
+        self.assertEqual(self.npc["current_hp"], 100)
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_ambiguous_pronoun_attack_does_not_choose_a_target(self):
+        second_npc = dict(
+            self.npc,
+            id="npc_002",
+            name="Lyra",
+            role="Muhafız",
+            current_hp=24,
+            max_hp=24,
+        )
+        self.world["npcs"].append(second_npc)
+        rng_before = self.session.rng.getstate()
+        result = self.session.execute_intent(
+            {"intent": "attack"}, "Ona saldırıyorum"
+        )
+        self.assertEqual(result["action"], "attack")
+        self.assertEqual(result["status"], "clarification")
+        self.assertEqual(result["outcome"], "ambiguous_target")
+        self.assertIn("Gromm", result["direct_response"])
+        self.assertIn("Lyra", result["direct_response"])
+        self.assertNotIn("target_id", result)
+        self.assertEqual(self.npc["current_hp"], 100)
+        self.assertEqual(second_npc["current_hp"], 24)
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_ambiguous_attack_in_player_turn_keeps_attack_clarification(self):
+        second_npc = dict(
+            self.npc,
+            id="npc_002",
+            name="Lyra",
+            role="Muhafız",
+            current_hp=24,
+            max_hp=24,
+        )
+        self.world["npcs"].append(second_npc)
+        result = self.session.run_player_turn(
+            "Ona saldırıyorum", []
+        )["action_result"]
+
+        self.assertEqual(result["action"], "attack")
+        self.assertEqual(result["status"], "clarification")
+        self.assertEqual(result["outcome"], "ambiguous_target")
+        self.assertIn("Gromm", result["direct_response"])
+        self.assertIn("Lyra", result["direct_response"])
+        self.assertFalse(self.world["combat"]["active"])
+        game.parse_player_intent.assert_not_called()
+
     def test_wrong_location_blocked(self):
         self.npc["location"] = "forest"
         with self.rolls():

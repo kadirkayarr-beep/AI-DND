@@ -1013,12 +1013,16 @@ def known_player_action_narration(player_input):
 
 
 def known_character_answer(player_input):
-    text = player_input.casefold()
-    asks_identity = any(phrase in text for phrase in ("ben kimim", "karakterim kim", "kim oynuyorum"))
-    asks_class = any(phrase in text for phrase in ("hangi sınıfım", "sınıfım ne", "hangi class"))
-    asks_race = any(phrase in text for phrase in ("hangi ırktayım", "ırkım ne", "hangi ırkım"))
-    asks_level = any(phrase in text for phrase in ("seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim"))
-    asks_name_self = any(phrase in text for phrase in (
+    text = _normalize_turkish_typos(player_input)
+
+    def asks_any(phrases):
+        return any(_normalize_turkish_typos(phrase) in text for phrase in phrases)
+
+    asks_identity = asks_any(("ben kimim", "karakterim kim", "kim oynuyorum"))
+    asks_class = asks_any(("hangi sınıfım", "sınıfım ne", "hangi class"))
+    asks_race = asks_any(("hangi ırktayım", "ırkım ne", "hangi ırkım"))
+    asks_level = asks_any(("seviyem kaç", "levelim kaç", "kaçıncı seviyedeyim"))
+    asks_name_self = asks_any((
         "benim adım ne", "benim ismim ne", "karakterimin adı ne", "karakterimin ismi ne"
     ))
     if not (asks_identity or asks_class or asks_race or asks_level or asks_name_self):
@@ -4626,6 +4630,8 @@ def parse_player_intent(player_input):
         "dünya veya karakter state'i değiştirme. Sadece schema'daki JSON'u döndür. "
         "intent değerleri: narrative, travel, query, explore, dialogue, observe, perception, investigation, stealth, "
         "persuasion, deception, acrobatics, survival, attack, combat, inventory, interact, door, search, rest, use_item, unknown. "
+        "ÖNEMLİ: 'saldırmıyorum', 'saldırmayacağım' ve 'saldırmak istemiyorum' saldırı değildir; bunlarda narrative seç. "
+        "Saldırı fiilinin görünmesi olumsuzluk ekini veya 'istemiyorum' ifadesini geçersiz kılmaz. "
         "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
         "Oyuncu kendi adı, sınıfı, ırkı veya seviyesi hakkında sorarsa query_type=self seç; target.type=none ve target.reference boş olsun. "
         "Bu sorular konum sorusu değildir; target.type=location seçme. Örnek: 'Benim adım ne?' için "
@@ -4637,6 +4643,9 @@ def parse_player_intent(player_input):
         "Duyularla fark etme perception; sistemli inceleme investigation; saklanma stealth. "
         "İkna/pazarlık persuasion; yalan, blöf veya yanıltma deception; denge/takla/akrobatik geçiş acrobatics; "
         "iz sürme, doğada yön bulma veya yiyecek arama survival. Sıradan konuşma ve soruları skill check olarak etiketleme. "
+        "Açık olumsuz saldırı niyetini attack olarak etiketleme; 'Gromm'a saldırmak istemiyorum' saldırı değildir. "
+        "Hedef oyuncu mesajında açıkça yoksa yakındaki NPC listesinden tahmin etme; 'Saldırıyorum' için target.type=none ve target.reference boş olsun. "
+        "Birden fazla kişiye uyabilecek 'ona' gibi zamirlerde de hedefi tahmin etme; target.type=none ve target.reference boş olsun. "
         "Doğada hayvan/ayak izlerini takip edip rota veya avın yönünü bulma survival'dır; yapıyı/nesneyi sistemli inceleme investigation, "
         "gizli ipucu arama search olur. "
         "Yalnızca intent seç; skill, ability, proficiency, DC, zar veya sonucu asla üretme. "
@@ -8530,6 +8539,36 @@ def _commit_travel_action(action_result):
     return True
 
 
+_ATTACK_VERB_PATTERN = r"(?:saldir|vur|dov|kes|sapla|bicakla|yumrukla)"
+
+
+def _has_explicit_attack_verb(player_input):
+    text = _normalize_turkish_typos(player_input)
+    return bool(re.search(rf"\b{_ATTACK_VERB_PATTERN}\w*\b", text))
+
+
+def _is_explicitly_negated_attack(player_input):
+    """Recognize clear Turkish attack negation before any combat state can change."""
+    text = _normalize_turkish_typos(player_input)
+    if not _has_explicit_attack_verb(player_input):
+        return False
+
+    inflected_negation = re.search(
+        rf"\b{_ATTACK_VERB_PATTERN}\w*?"
+        r"(?:miyorum|miyor|muyor|muyorum|madim|medim|"
+        r"mayacag\w*|meyeceg\w*|mayin|meyin|maz\w*|mez\w*|ma|me)\b",
+        text,
+    )
+    if inflected_negation:
+        return True
+
+    return bool(re.search(
+        rf"\b{_ATTACK_VERB_PATTERN}\w*\s+"
+        r"(?:istem\w*|dusunm\w*|niyetim\s+yok|arzu\s+etm\w*)\b",
+        text,
+    ))
+
+
 def execute_intent(intent, player_input, npc_target=None, target_id=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
     world_state = _session().world_state
@@ -8542,6 +8581,22 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         "status": "resolved",
         "state_changes": [],
     }
+
+    if (
+        intent_type in {"attack", "combat"}
+        and _is_explicitly_negated_attack(player_input)
+    ):
+        result.update(
+            action="narrative",
+            success=None,
+            status="not_executed",
+            outcome="negated_action",
+            direct_response=(
+                "Anlaşıldı; saldırmak istemediğini anladım. "
+                "Saldırı başlatmadım."
+            ),
+        )
+        return result
 
     combat_was_active = bool(ensure_combat_state()["active"])
     if intent_type in {"attack", "combat"} and (_session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious"):
@@ -8757,12 +8812,39 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             target_id=target_id,
         )
         if target_npc == "ambiguous":
+            candidate_names = [
+                npc.get("name")
+                for npc in active_npcs()
+                if isinstance(npc.get("name"), str) and npc.get("name")
+            ]
+            clarification = "Hangi hedefe saldırıyorsun?"
+            if candidate_names:
+                clarification += f" Yakındaki kişiler: {', '.join(candidate_names[:4])}."
             result.update(success=False, status="clarification", outcome="ambiguous_target",
-                          direct_response="Hangi hedefe saldırıyorsun?")
+                          direct_response=clarification)
             return _finish_combat_result(result, before)
         if not target_npc:
-            result.update(success=False, outcome="no_target",
-                          direct_response="Burada saldırabileceğin o hedef bulunmuyor.")
+            candidate_names = [
+                npc.get("name")
+                for npc in active_npcs()
+                if isinstance(npc.get("name"), str) and npc.get("name")
+            ]
+            if candidate_names and target_id is None and npc_target is None:
+                result.update(
+                    success=False,
+                    status="clarification",
+                    outcome="missing_target",
+                    direct_response=(
+                        "Kime saldırmak istiyorsun? Yakındaki kişiler: "
+                        f"{', '.join(candidate_names[:4])}."
+                    ),
+                )
+            else:
+                result.update(
+                    success=False,
+                    outcome="no_target",
+                    direct_response="Bu sahnede saldırabileceğin bir hedef yok.",
+                )
             return _finish_combat_result(result, before)
         if combat["active"] and target_npc["id"] not in combat["participants"]:
             result.update(success=False, outcome="target_mismatch",
@@ -9486,13 +9568,23 @@ def plan_living_world_turn(player_input, target_id=None):
                 ),
             }
         elif ref_resolution["status"] == "ambiguous":
-            direct = {
-                "action": "referent",
-                "status": "clarification",
-                "success": False,
-                "state_changes": [],
-                "direct_response": "Birden fazla kişi bu tarife uyuyor. Hangisini kastettiğini biraz daha tarif eder misin?",
-            }
+            if _has_explicit_attack_verb(player_input):
+                direct = {
+                    "action": "attack",
+                    "status": "clarification",
+                    "success": False,
+                    "outcome": "ambiguous_target",
+                    "state_changes": [],
+                    "direct_response": "Birden fazla kişi bu tarife uyuyor. Kime saldırmak istiyorsun?",
+                }
+            else:
+                direct = {
+                    "action": "referent",
+                    "status": "clarification",
+                    "success": False,
+                    "state_changes": [],
+                    "direct_response": "Birden fazla kişi bu tarife uyuyor. Hangisini kastettiğini biraz daha tarif eder misin?",
+                }
         elif ref_resolution["status"] in ("found", "promoted") and referent:
             if _is_scene_referent_activity_observation(player_input):
                 description = referent.get("description")
@@ -9541,13 +9633,23 @@ def plan_living_world_turn(player_input, target_id=None):
         if resolved_npc is None:
             npc_resolution = resolve_npc_reference(player_input)
             if npc_resolution.get("status") == "ambiguous":
-                direct = {
-                    "action": "dialogue",
-                    "status": "clarification",
-                    "success": False,
-                    "state_changes": [],
-                    "direct_response": npc_ambiguity_response(npc_resolution),
-                }
+                if _has_explicit_attack_verb(player_input):
+                    direct = {
+                        "action": "attack",
+                        "status": "clarification",
+                        "success": False,
+                        "outcome": "ambiguous_target",
+                        "state_changes": [],
+                        "direct_response": npc_ambiguity_response(npc_resolution),
+                    }
+                else:
+                    direct = {
+                        "action": "dialogue",
+                        "status": "clarification",
+                        "success": False,
+                        "state_changes": [],
+                        "direct_response": npc_ambiguity_response(npc_resolution),
+                    }
             elif npc_resolution.get("status") == "found":
                 resolved_npc = npc_resolution.get("npc")
 
@@ -10341,6 +10443,16 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             else resolve_npc_reference(player_input)
         )
         if npc_resolution["status"] == "ambiguous":
+            if _has_explicit_attack_verb(player_input):
+                action_result = execute_intent(
+                    {"intent": "attack"},
+                    player_input,
+                )
+                return finish_turn(
+                    action_result,
+                    action_result.get("direct_response")
+                    or "Hangi hedefe saldırmak istiyorsun?",
+                )
             result = {"action": "dialogue", "status": "clarification", "success": False, "state_changes": []}
             return finish_turn(
                 result,

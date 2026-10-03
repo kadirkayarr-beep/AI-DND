@@ -136,11 +136,60 @@ LIVE_INTENT_CASES = (
         "expected_kind": "self_name",
     },
     {
+        "label": "self_name_without_turkish_diacritics",
+        "message": "Benim adim ne?",
+        "expected_kind": "self_name",
+    },
+    {
         "label": "attack_named_npc",
         "message": "Gromm'a kılıcımla saldırıyorum",
         "expected_kind": "attack",
+        "npc_count": 1,
+    },
+    {
+        "label": "attack_curly_apostrophe",
+        "message": "Gromm’a kılıcımla saldırıyorum",
+        "expected_kind": "attack",
+        "npc_count": 1,
+    },
+    {
+        "label": "attack_accusative_verb_variant",
+        "message": "Gromm'u kılıçla vuruyorum",
+        "expected_kind": "attack",
+        "npc_count": 1,
+    },
+    {
+        "label": "negated_attack",
+        "message": "Gromm'a saldırmak istemiyorum",
+        "expected_kind": "negative_attack",
+        "npc_count": 1,
+    },
+    {
+        "label": "attack_without_target",
+        "message": "Saldırıyorum",
+        "expected_kind": "targetless_attack",
+        "npc_count": 1,
+    },
+    {
+        "label": "attack_with_ambiguous_pronoun",
+        "message": "Ona saldırıyorum",
+        "expected_kind": "ambiguous_pronoun_attack",
+        "npc_count": 2,
     },
 )
+
+ATTACK_EXPECTED_KINDS = {"attack"}
+TARGETLESS_ATTACK_EXPECTED_KINDS = {
+    "targetless_attack",
+    "ambiguous_pronoun_attack",
+}
+
+
+def _gromm_reference_matches(reference):
+    return bool(re.fullmatch(
+        r"gromm(?:['’](?:ya|ye|yı|yi|yu|yü|a|e|ı|i|u|ü))?",
+        str(reference).casefold().strip(),
+    ))
 
 
 def _intent_fields(raw, live_engine):
@@ -171,15 +220,19 @@ def _intent_fields(raw, live_engine):
 def _classification_matches(expected_kind, fields):
     if expected_kind == "self_name":
         return fields["intent"] == "query" and fields["query_type"] == "self"
-    if expected_kind == "attack":
-        reference = fields["target_reference"].casefold().strip()
-        reference_matches = bool(
-            re.fullmatch(r"gromm(?:['’]a)?", reference)
-        )
+    if expected_kind in ATTACK_EXPECTED_KINDS:
         return (
             fields["intent"] in {"attack", "combat"}
             and fields["target_type"] == "npc"
-            and reference_matches
+            and _gromm_reference_matches(fields["target_reference"])
+        )
+    if expected_kind == "negative_attack":
+        return fields["intent"] not in {"attack", "combat"}
+    if expected_kind in TARGETLESS_ATTACK_EXPECTED_KINDS:
+        return (
+            fields["intent"] in {"attack", "combat"}
+            and fields["target_type"] == "none"
+            and not fields["target_reference"].strip()
         )
     return False
 
@@ -195,12 +248,35 @@ def _engine_execution_matches(expected_kind, session, action_result):
             and bool(expected_name)
             and expected_name.casefold() in response.casefold()
         )
-    if expected_kind == "attack":
+    if expected_kind in ATTACK_EXPECTED_KINDS:
         return (
             action_result.get("action") == "attack"
             and action_result.get("status") == "resolved"
             and action_result.get("target_id") == "npc_001"
             and action_result.get("target_name") == "Gromm"
+        )
+    if expected_kind == "negative_attack":
+        npc = session.world_state.get("npcs", [{}])[0]
+        combat = session.world_state.get("combat", {})
+        return (
+            action_result.get("action") != "attack"
+            and npc.get("current_hp") == 20
+            and not combat.get("active")
+        )
+    if expected_kind in TARGETLESS_ATTACK_EXPECTED_KINDS:
+        npc = session.world_state.get("npcs", [{}])[0]
+        combat = session.world_state.get("combat", {})
+        expected_outcome = (
+            "missing_target"
+            if expected_kind == "targetless_attack"
+            else "ambiguous_target"
+        )
+        return (
+            action_result.get("action") == "attack"
+            and action_result.get("status") == "clarification"
+            and action_result.get("outcome") == expected_outcome
+            and npc.get("current_hp") == 20
+            and not combat.get("active")
         )
     return False
 
@@ -224,14 +300,10 @@ def _public_classification(fields, expected_kind):
         "query_type": fields["query_type"],
         "target_type": fields["target_type"],
         "target_matches_expected": (
-            fields["target_reference"].casefold().strip() == "gromm"
-            or bool(
-                re.fullmatch(
-                    r"gromm(?:['’]a)?",
-                    fields["target_reference"].casefold().strip(),
-                )
-            )
-        ) if expected_kind == "attack" else None,
+            _gromm_reference_matches(fields["target_reference"])
+            if expected_kind in ATTACK_EXPECTED_KINDS
+            else None
+        ),
     }
 
 
@@ -290,11 +362,11 @@ def run_live_model_smoke():
             turn_call_attempts = 0
             turn_cap_hit = False
 
-            if case["expected_kind"] == "attack":
-                session.world_state["npcs"] = [{
-                    "id": "npc_001",
-                    "name": "Gromm",
-                    "role": "Barmen",
+            session.world_state["npcs"] = [
+                {
+                    "id": f"npc_{npc_index:03d}",
+                    "name": "Gromm" if npc_index == 1 else "Lyra",
+                    "role": "Barmen" if npc_index == 1 else "Muhafız",
                     "location": "tavern",
                     "personality": "",
                     "appearance": "",
@@ -303,10 +375,12 @@ def run_live_model_smoke():
                     "memory": [],
                     "backstory": "",
                     "combat_status": "active",
-                    "current_hp": 20,
-                    "max_hp": 20,
+                    "current_hp": 20 if npc_index == 1 else 24,
+                    "max_hp": 20 if npc_index == 1 else 24,
                     "armor_class": 10,
-                }]
+                }
+                for npc_index in range(1, case.get("npc_count", 0) + 1)
+            ]
 
             def tracked_chat(*args, **kwargs):
                 nonlocal classifier_call_count
@@ -416,7 +490,7 @@ def run_live_model_smoke():
                     ),
                     "target_matches_expected": (
                         action_result.get("target_id") == "npc_001"
-                        if case["expected_kind"] == "attack"
+                        if case["expected_kind"] in ATTACK_EXPECTED_KINDS
                         and isinstance(action_result, dict)
                         else None
                     ),
