@@ -18,6 +18,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import game
+import combat_lifecycle
 import scheduled_events
 import living_world
 from api.campaign_journal import (
@@ -635,9 +636,13 @@ def create_app(
         record = get_record(session_id)
         active_adapter = application.state.ollama_adapter
         action_id = str(request.action_id or uuid4())
+        hash_payload = {"message": request.message, "target_id": request.target_id}
+        if request.combat_id is not None:
+            hash_payload.update(combat_id=request.combat_id, combat_round=request.combat_round,
+                                combat_turn_index=request.combat_turn_index)
         request_hash = hashlib.sha256(
             json.dumps(
-                {"message": request.message, "target_id": request.target_id},
+                hash_payload,
                 sort_keys=True,
                 ensure_ascii=False,
                 separators=(",", ":"),
@@ -662,6 +667,19 @@ def create_app(
                 replay["session_id"] = session_id
                 replay["action_id"] = action_id
                 return replay
+            if isinstance(session, game.GameSession):
+                try:
+                    combat_lifecycle.validate_request(
+                        session, request.message, request.target_id, combat_id=request.combat_id,
+                        combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
+                    )
+                except combat_lifecycle.CombatRequestError as error:
+                    raise HTTPException(status_code=error.status_code,
+                                        detail={"code": error.code, "message": str(error)}) from None
+                except ValueError:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "invalid_combat_state", "message": "Combat state is invalid."
+                    }) from None
             if active_adapter is None:
                 raise HTTPException(
                     status_code=503,
@@ -792,6 +810,9 @@ def create_app(
                     "Engine turn failed (error_type=%s)",
                     type(error).__name__,
                 )
+                if isinstance(error, combat_lifecycle.CombatRequestError):
+                    raise HTTPException(status_code=error.status_code,
+                                        detail={"code": error.code, "message": str(error)}) from None
                 raise HTTPException(
                     status_code=500,
                     detail={

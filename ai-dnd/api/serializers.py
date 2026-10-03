@@ -129,6 +129,10 @@ _COMBAT_ATTACK_FIELDS = (
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
+    "combat_id",
+    "combat_status",
+    "round",
+    "current_turn_index",
     "combat_started",
     "combat_ended",
     "end_reason",
@@ -172,6 +176,11 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
         "death_save",
     }:
         return None
+    if not action_result.get("combat_started") and not action_result.get("enemy_actions") and action_result.get("outcome") in {
+        "invalid_target", "no_target", "no_weapon", "out_of_turn", "target_mismatch",
+        "ambiguous_target", "missing_target", "attack_negated",
+    }:
+        return None  # Rejection/clarification is not a canonical combat result.
 
     projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)
     enemy_action = action_result.get("enemy_action")
@@ -204,6 +213,7 @@ def serialize_combat_state(value: Any) -> dict[str, Any]:
     records = combat.get("participant_records")
     projected = {
         "active": combat.get("active", False),
+        "combat_id": combat.get("combat_id"),
         "status": combat.get(
             "status",
             "active" if combat.get("active") is True else "ended",

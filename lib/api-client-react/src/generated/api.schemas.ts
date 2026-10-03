@@ -670,6 +670,8 @@ export interface CombatParticipantState {
  * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
+  /** @nullable */
+  combat_id?: string | null;
   active: boolean;
   status: GameCombatStatus;
   round: number;
@@ -938,6 +940,22 @@ export interface GameSession {
 export interface GameTurnInput {
   /**
      * @minLength 1
+     * @maxLength 128
+     * @nullable
+     */
+  combat_id?: string | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  combat_round?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  combat_turn_index?: number | null;
+  /**
+     * @minLength 1
      * @maxLength 4000
      */
   message: string;
@@ -1045,6 +1063,14 @@ export type CombatTurnResultSpeciesEffectsItem = { [key: string]: unknown };
 export type CombatTurnResultResolution = { [key: string]: unknown } | null;
 
 export interface CombatTurnResult {
+  /** @nullable */
+  combat_id?: string | null;
+  /** @nullable */
+  combat_status?: string | null;
+  /** @nullable */
+  round?: number | null;
+  /** @nullable */
+  current_turn_index?: number | null;
   /** @nullable */
   action?: string | null;
   /** @nullable */

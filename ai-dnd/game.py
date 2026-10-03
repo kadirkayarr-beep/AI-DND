@@ -17,6 +17,7 @@ import local_dialogue
 import campaign_time
 import scheduled_events
 import timed_gameplay
+import combat_lifecycle
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from api.dnd_2024_rules import get_expertise_choice_count
@@ -1617,6 +1618,8 @@ def _validate_combat_v3_payload(combat):
         not isinstance(combat["combat_id"], str) or not combat["combat_id"]
     ):
         raise ValueError("Kayıt çatışma kimliği geçersiz.")
+    if combat["active"] and not combat.get("combat_id"):
+        raise ValueError("Etkin çatışmanın kimliği eksik.")
 
     round_number = combat.get("round")
     order = combat.get("initiative_order")
@@ -1656,7 +1659,6 @@ def _validate_combat_v3_payload(combat):
             or actor_id is not None
             or actions_used
             or target_id is not None
-            or combat.get("combat_id") is not None
         ):
             raise ValueError("Pasif çatışma kaydı tutarsız.")
         if combat.get("end_reason") is not None and not isinstance(
@@ -1709,7 +1711,7 @@ def _validate_combat_v3_payload(combat):
             or max_hp < 1
             or current_hp > max_hp
             or armor_class < 0
-            or participant_status not in ("active", "unconscious", "defeated", "dead")
+            or participant_status not in ("active", "unconscious", "defeated", "dead", "inactive")
             or type(action_available) is not bool
             or action_available != (participant_id not in actions_used)
         ):
@@ -2450,7 +2452,7 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
          if isinstance(item, dict) and item.get("id") == participant_id),
         None,
     )
-    if npc is None or npc.get("location") != session.world_state.get("location"):
+    if npc is None:
         raise ValueError("Active combat participant is missing from the current location.")
     ensure_npc_enemy_stats(npc)
     current_hp = int(npc.get("current_hp", 0))
@@ -2458,6 +2460,8 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
     status = npc.get("combat_status", "active")
     if status not in ("active", "unconscious", "defeated", "dead"):
         raise ValueError("Active combat participant has an invalid status.")
+    if npc.get("location") != session.world_state.get("location"):
+        status = "inactive"  # Real authoritative relocation, not a fabricated turn.
     return {
         "id": participant_id,
         "kind": "npc",
@@ -2557,6 +2561,11 @@ def _migrate_legacy_combat_state(legacy):
 
 
 def _sync_combat_participant_records(combat):
+    for identity in combat["participants"]:
+        if identity != "player" and sum(
+            isinstance(n, dict) and n.get("id") == identity for n in _session().world_state.get("npcs", [])
+        ) != 1:
+            raise ValueError("Combat participant identity is missing or duplicated.")
     records = []
     initiative_by_id = {
         record.get("id"): record.get("initiative")
@@ -2583,9 +2592,7 @@ def ensure_combat_state():
         combat = _migrate_legacy_combat_state(combat)
         world_state["combat"] = combat
     else:
-        if combat.get("active") and not combat.get("combat_id"):
-            combat["combat_id"] = str(uuid4())
-        elif not combat.get("active"):
+        if not combat.get("active"):
             combat.setdefault("combat_id", None)
         _validate_combat_v3_payload(combat)
 
@@ -3579,6 +3586,17 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
 
 def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
     """Resolve a melee attack against a target NPC."""
+    combat = ensure_combat_state()
+    if combat["active"]:
+        canonical = resolve_combat_target("", target_npc)
+        if (not canonical or canonical["id"] not in combat["participants"]
+            or canonical.get("combat_status") != "active" or canonical.get("current_hp", 0) <= 0):
+            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
+        if combat["current_actor_id"] != "player" or "player" in combat["actions_used"]:
+            raise combat_lifecycle.CombatRequestError("out_of_turn", "It is not the player's action turn.")
+        target_npc = canonical
+    elif combat.get("combat_id"):
+        raise combat_lifecycle.CombatRequestError("combat_closed", "Combat is closed.")
     ensure_npc_combat_stats(target_npc)
     
     # Check if target is valid for combat
@@ -3650,6 +3668,7 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
     
     return {
         "action": "attack",
+        **({"combat_id": combat["combat_id"]} if combat["active"] else {}),
         "status": "resolved",
         "success": outcome in ("hit", "critical_hit"),
         "outcome": outcome_mapping.get(outcome, outcome),
@@ -3716,6 +3735,8 @@ def _mark_combat_action_used(participant_id):
     combat = ensure_combat_state()
     if participant_id not in combat["participants"]:
         raise ValueError("Combat action actor is not a participant.")
+    if not combat["active"] or participant_id != combat["current_actor_id"]:
+        raise combat_lifecycle.CombatRequestError("out_of_turn", "Actor is not the current combat participant.")
     if participant_id not in combat["actions_used"]:
         combat["actions_used"].append(participant_id)
     _sync_combat_participant_records(combat)
@@ -3829,7 +3850,8 @@ def _combat_end_if_decided():
         combat["status"] = "death_resolution"
         return None
     if not has_active_enemy:
-        return end_combat("target_defeated")
+        relocated = any(r.get("status") == "inactive" for r in combat["participant_records"])
+        return end_combat("opponents_relocated" if relocated else "target_defeated")
     combat["status"] = "active"
     return None
 
@@ -4018,6 +4040,7 @@ def start_combat(player_target_npc):
     player_init = initiatives["player"]
     return {
         "combat_started": True,
+        "combat_id": combat["combat_id"],
         "round": 1,
         "initiative_order": initiative_order,
         "player_initiative": player_init,
@@ -4032,16 +4055,26 @@ def resolve_enemy_attack(target_npc):
     """Resolve one canonical local enemy attack, retaining exact HP values."""
     world_state = _session().world_state
     combat = ensure_combat_state()
+    if combat.get("combat_id") and not combat["active"]:
+        raise combat_lifecycle.CombatRequestError("combat_closed", "Combat is closed.")
     canonical = resolve_combat_target("", target_npc)
     if (
         not canonical
         or canonical == "ambiguous"
         or (combat["active"] and canonical["id"] not in combat["participants"])
     ):
+        if combat["active"]:
+            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Enemy is not a participant.", 400)
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "invalid_target", "damage": 0}
     target_npc = ensure_npc_enemy_stats(canonical)
+    if combat["active"] and (
+        combat["current_actor_id"] != target_npc["id"] or target_npc["id"] in combat["actions_used"]
+    ):
+        raise combat_lifecycle.CombatRequestError("out_of_turn", "Enemy is not the current actor.")
     if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
+        if combat["active"]:
+            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Enemy cannot act.", 400)
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "invalid_target", "damage": 0}
     death = ensure_death_state()
@@ -4181,11 +4214,15 @@ def resolve_enemy_attack(target_npc):
 def end_combat(reason="combat_ended"):
     """Clear the encounter idempotently; HP and incapacitation are unchanged."""
     combat = ensure_combat_state()
+    if not combat["active"]:
+        return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
+    identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
+    combat["combat_id"] = identity
     scheduled_events.combat_finished(_session().world_state)
     ensure_death_state()["combat_checkpoint"] = None
-    return {"combat_ended": True, "reason": reason}
+    return {"combat_ended": True, "reason": reason, "combat_id": identity}
 
 
 def advance_combat_turn():
@@ -4193,6 +4230,8 @@ def advance_combat_turn():
     combat = ensure_combat_state()
     order = combat["initiative_order"]
     if not combat["active"] or not order:
+        return False, None, False
+    if _combat_end_if_decided():
         return False, None, False
     start_index = combat["current_turn_index"]
     round_changed = False
@@ -4208,6 +4247,9 @@ def advance_combat_turn():
                     6, "combat_round",
                     source=f"combat:{combat.get('combat_id')}:{combat['round'] - 1}",
                 )
+                _sync_combat_participant_records(combat)
+                if _combat_end_if_decided():
+                    return False, None, round_changed
         participant_id = order[index]
         if participant_id in combat["actions_used"]:
             continue
@@ -9224,6 +9266,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
     world_state = _session().world_state
     intent = intent if isinstance(intent, dict) else {"intent": "unknown"}
     intent_type = intent.get("intent", "unknown")
+    if intent_type == "travel" and ensure_combat_state()["active"]:
+        raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
+    if intent_type in {"attack", "combat"} and not _is_explicitly_negated_attack(player_input) and not combat_lifecycle.is_attack_decision(_session(), player_input):
+        raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
     before = _world_snapshot()
     result = {
         "action": intent_type,
@@ -9293,6 +9339,8 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             return result
 
     if intent_type == "travel":
+        if ensure_combat_state()["active"]:
+            raise combat_lifecycle.CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)
         reference = intent.get("target", {}).get("reference", "")
         pending = world_state.get("flags", {}).get("pending_destination")
         if (not reference or reference in ("orada", "oraya", "içeri")) and pending:
@@ -9446,6 +9494,8 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         return result
 
     if intent_type in {"attack", "combat"}:
+        if not combat_lifecycle.is_attack_decision(_session(), player_input):
+            raise combat_lifecycle.CombatRequestError("unconfirmed_combat", "Combat needs a real player attack decision.", 400)
         combat = ensure_combat_state()
         result["action"] = "attack"
         if combat["active"] and (
@@ -9521,6 +9571,7 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         enemy_actions = []
         if started:
             start_result = start_combat(target_npc)
+            result["combat_id"] = start_result["combat_id"]
             if start_result["current_actor_id"] != "player":
                 enemy_actions.extend(_resolve_enemy_turns_until_player())
                 if (
@@ -10503,6 +10554,7 @@ def run_player_turn(
     action_id=None,
     session_id=None,
 ):
+    combat_lifecycle.validate_request(_session(), player_input, target_id)
     if action_id is None:
         try:
             return _run_player_turn_internal(
@@ -10795,6 +10847,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     world_state = _session().world_state
     entry_death_state = ensure_death_state()
     entry_combat = ensure_combat_state()
+    entry_identity = entry_combat.get("combat_id") if entry_combat["active"] else None
+    entry_actor = entry_combat.get("current_actor_id")
     if entry_death_state["dead"]:
         raise ValueError("Ölü karakter eylem gerçekleştiremez.")
     if (
@@ -10870,6 +10924,18 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         record_safety=True,
         is_final=False,
     ):
+        if isinstance(action_result, dict) and action_result.get("action") in {"attack", "death_save"}:
+            current = ensure_combat_state()
+            identity = entry_identity or current.get("combat_id")
+            if identity:
+                action_result.setdefault("combat_id", identity)
+                action_result.setdefault("actor", entry_actor if
+                                         action_result.get("outcome") == "enemy_turn_resolved" else "player")
+                action_result["combat_status"] = current["status"]
+                action_result["round"] = current["round"]
+                action_result["current_turn_index"] = current["current_turn_index"]
+                action_result["current_actor_id"] = current["current_actor_id"]
+                action_result["turn_owner"] = current["current_actor_id"]
         if isinstance(action_result, dict) and "campaign_time" in world_state:
             previous_clock = quest_world_before.get("campaign_time", {})
             elapsed = world_state["campaign_time"]["elapsed_seconds"] - previous_clock.get(
@@ -11699,6 +11765,11 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     if DEBUG_MODE:
         print("[RULE ENGINE]")
         print(json.dumps({key: value for key, value in action_result.items() if key != "direct_response"}, ensure_ascii=False, indent=2))
+
+    if action_result.get("action") in {"attack", "death_save"}:
+        # Reuse the existing mechanical renderer. Do not send a not-yet-saved
+        # combat outcome to a model before the API receipt transaction succeeds.
+        return finish_turn(action_result, _combat_narration(action_result), is_final=True)
 
     proposed_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
     allow_new_locations = bool(action_result.get("proposal_required"))

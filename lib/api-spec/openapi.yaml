@@ -691,6 +691,9 @@ components:
       description: The message must contain at least one non-whitespace character.
       additionalProperties: false
       properties:
+        combat_id: {type: ["string", "null"], minLength: 1, maxLength: 128}
+        combat_round: {type: ["integer", "null"], minimum: 1}
+        combat_turn_index: {type: ["integer", "null"], minimum: 0}
         message:
           type: string
           minLength: 1
@@ -1112,6 +1115,10 @@ components:
       type: object
       additionalProperties: false
       properties:
+        combat_id: {type: ["string", "null"]}
+        combat_status: {type: ["string", "null"]}
+        round: {type: ["integer", "null"]}
+        current_turn_index: {type: ["integer", "null"]}
         action:
           type: ["string", "null"]
         status:
@@ -2174,6 +2181,7 @@ components:
       description: >-
         Allowlisted public projection of Python-owned combat scheduler state.
       properties:
+        combat_id: {type: ["string", "null"]}
         active:
           type: boolean
         status:

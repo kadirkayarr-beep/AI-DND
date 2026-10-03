@@ -23,6 +23,16 @@ class TurnRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     action_id: UUID | None = None
+    combat_id: str | None = Field(default=None, min_length=1, max_length=128)
+    combat_round: int | None = Field(default=None, ge=1, strict=True)
+    combat_turn_index: int | None = Field(default=None, ge=0, strict=True)
+
+    @model_validator(mode="after")
+    def complete_combat_context(self):
+        fields = (self.combat_id, self.combat_round, self.combat_turn_index)
+        if any(v is not None for v in fields) and any(v is None for v in fields):
+            raise ValueError("Combat context must include ID, round and turn index.")
+        return self
 
     @field_validator("message")
     @classmethod
@@ -67,6 +77,7 @@ class CombatStateProjection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     active: bool
+    combat_id: str | None = None
     status: Literal["active", "ended", "death_resolution"]
     round: int = Field(ge=0)
     initiative_order: list[str]
@@ -172,6 +183,10 @@ class CombatAttackResult(BaseModel):
 
 
 class CombatTurnResult(CombatAttackResult):
+    combat_id: str | None = None
+    combat_status: str | None = None
+    round: int | None = None
+    current_turn_index: int | None = None
     combat_started: bool | None = None
     combat_ended: bool | None = None
     end_reason: str | None = None

@@ -12,6 +12,8 @@ import type { GameCombatStatus } from './gameCombatStatus';
  * Allowlisted public projection of Python-owned combat scheduler state.
  */
 export interface GameCombat {
+  /** @nullable */
+  combat_id?: string | null;
   active: boolean;
   status: GameCombatStatus;
   round: number;

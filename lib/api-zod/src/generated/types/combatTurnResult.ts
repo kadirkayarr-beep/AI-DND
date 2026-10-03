@@ -13,6 +13,14 @@ import type { DeathSaveResult } from './deathSaveResult';
 
 export interface CombatTurnResult {
   /** @nullable */
+  combat_id?: string | null;
+  /** @nullable */
+  combat_status?: string | null;
+  /** @nullable */
+  round?: number | null;
+  /** @nullable */
+  current_turn_index?: number | null;
+  /** @nullable */
   action?: string | null;
   /** @nullable */
   status?: string | null;

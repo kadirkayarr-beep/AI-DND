@@ -12,6 +12,22 @@
 export interface GameTurnInput {
   /**
      * @minLength 1
+     * @maxLength 128
+     * @nullable
+     */
+  combat_id?: string | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  combat_round?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  combat_turn_index?: number | null;
+  /**
+     * @minLength 1
      * @maxLength 4000
      */
   message: string;

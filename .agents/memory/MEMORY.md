@@ -14,3 +14,4 @@
 - [Scanned PDF OCR](scanned-pdf-ocr.md) — for image-only D&D scans, page-by-page high-resolution Tesseract with one OpenMP thread avoids parallel stalls.
 - [D&D species source versions](species-source-versions.md) — keep 2014 Half species selectable, edition-labeled, and backward-compatible in saved campaigns.
 - [Campaign Time boundaries](campaign-time-boundaries.md) — gameplay drives time, events do not; owner-fixed baseline and explicit recovery/simulation scope exclusions.
+- [Combat lifecycle boundaries](combat-lifecycle-boundaries.md) — preserve adjacent mechanics; replay precedes stale-context checks; do not narrate uncommitted combat outcomes to Qwen.

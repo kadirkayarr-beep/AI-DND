@@ -836,7 +836,9 @@ function actionFingerprint(value: string) {
   return (hash >>> 0).toString(36);
 }
 
-function stableTurnActionId(scope: string, signature: string) {
+type CombatRequestContext = { combat_id?: string; combat_round?: number; combat_turn_index?: number };
+
+function stableTurnActionId(scope: string, signature: string, context: CombatRequestContext = {}) {
   const storageKey = `ai-dnd-pending-turns:${scope}`;
   const fingerprint = actionFingerprint(signature);
   try {
@@ -846,6 +848,7 @@ function stableTurnActionId(scope: string, signature: string) {
     if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
     const actionId = window.crypto.randomUUID();
     pending[fingerprint] = actionId;
+    window.sessionStorage.setItem(`ai-dnd-turn-context:${scope}:${actionId}`, JSON.stringify(context));
     window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
     return actionId;
   } catch {
@@ -854,9 +857,18 @@ function stableTurnActionId(scope: string, signature: string) {
   }
 }
 
+function storedTurnContext(scope: string, actionId: string): CombatRequestContext {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(`ai-dnd-turn-context:${scope}:${actionId}`) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
 function clearPendingTurnAction(scope: string, actionId: string) {
   const storageKey = `ai-dnd-pending-turns:${scope}`;
   try {
+    window.sessionStorage.removeItem(`ai-dnd-turn-context:${scope}:${actionId}`);
     const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
     for (const [fingerprint, pendingId] of Object.entries(pending)) {
       if (pendingId === actionId) delete pending[fingerprint];
@@ -1186,13 +1198,17 @@ export default function GameBrowser() {
     const signature = JSON.stringify([actionScope, trimmed, targetId]);
     const actionId = pendingTurnRef.current?.signature === signature
       ? pendingTurnRef.current.actionId
-      : stableTurnActionId(actionScope, signature);
+      : stableTurnActionId(actionScope, signature, state?.combat.active && state.combat.combat_id ? {
+        combat_id: state.combat.combat_id, combat_round: state.combat.round,
+        combat_turn_index: state.combat.current_turn_index,
+      } : {});
     pendingTurnRef.current = { signature, actionId };
     playTurn.mutate({
       sessionId,
       data: {
         message: trimmed,
         action_id: actionId,
+        ...storedTurnContext(actionScope, actionId),
         ...(targetId ? { target_id: targetId } : {}),
       },
     }, {
@@ -1263,7 +1279,14 @@ export default function GameBrowser() {
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle işlenemedi', detail: friendlyError(error, 'Dünya bu hamleyi kabul etmedi.') }),
+      onError: (error) => {
+        if ([400, 409, 422].includes(statusCode(error) ?? 0)) {
+          pendingTurnRef.current = null;
+          clearPendingTurnAction(actionScope, actionId);
+          void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
+        }
+        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle işlenemedi', detail: friendlyError(error, 'Dünya bu hamleyi kabul etmedi.') });
+      },
     });
   };
 

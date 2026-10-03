@@ -435,6 +435,7 @@ export const CreateGameSessionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -940,6 +941,7 @@ export const GetGameSessionStateResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -1457,6 +1459,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -1981,6 +1984,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -2083,6 +2087,11 @@ export const PlayGameTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const playGameTurnBodyCombatIdMax = 128;
+
+
+export const playGameTurnBodyCombatTurnIndexMin = 0;
+
 export const playGameTurnBodyMessageMax = 4000;
 
 export const playGameTurnBodyTargetIdMax = 128;
@@ -2091,6 +2100,9 @@ export const playGameTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{
 
 
 export const PlayGameTurnBody = zod.object({
+  "combat_id": zod.string().min(1).max(playGameTurnBodyCombatIdMax).nullish(),
+  "combat_round": zod.number().int().min(1).nullish(),
+  "combat_turn_index": zod.number().int().min(playGameTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
@@ -2642,6 +2654,7 @@ export const PlayGameTurnResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -2730,6 +2743,10 @@ export const PlayGameTurnResponse = zod.object({
 }))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -2912,6 +2929,10 @@ export const PlayGameTurnResponse = zod.object({
   "event_id": zod.string().uuid().regex(playGameTurnResponseCombatHistoryEntryOneEventIdRegExp),
   "turn_index": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -3569,6 +3590,7 @@ export const AcceptGameQuestResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -4129,6 +4151,7 @@ export const CancelGameQuestResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -4678,6 +4701,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -5399,6 +5423,7 @@ export const CreateCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -5495,6 +5520,10 @@ export const CreateCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(createCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(createCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -6163,6 +6192,7 @@ export const GetCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -6259,6 +6289,10 @@ export const GetCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(getCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(getCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -6917,6 +6951,7 @@ export const ResumeCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -7013,6 +7048,10 @@ export const ResumeCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(resumeCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(resumeCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -7714,6 +7753,7 @@ export const CreateLegacySessionResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -8220,6 +8260,7 @@ export const GetLegacySessionStateResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -8317,6 +8358,11 @@ export const PlayLegacyTurnParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const playLegacyTurnBodyCombatIdMax = 128;
+
+
+export const playLegacyTurnBodyCombatTurnIndexMin = 0;
+
 export const playLegacyTurnBodyMessageMax = 4000;
 
 export const playLegacyTurnBodyTargetIdMax = 128;
@@ -8325,6 +8371,9 @@ export const playLegacyTurnBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f
 
 
 export const PlayLegacyTurnBody = zod.object({
+  "combat_id": zod.string().min(1).max(playLegacyTurnBodyCombatIdMax).nullish(),
+  "combat_round": zod.number().int().min(1).nullish(),
+  "combat_turn_index": zod.number().int().min(playLegacyTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
@@ -8876,6 +8925,7 @@ export const PlayLegacyTurnResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -8964,6 +9014,10 @@ export const PlayLegacyTurnResponse = zod.object({
 }))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -9146,6 +9200,10 @@ export const PlayLegacyTurnResponse = zod.object({
   "event_id": zod.string().uuid().regex(playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp),
   "turn_index": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -9915,6 +9973,7 @@ export const CreateLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -10011,6 +10070,10 @@ export const CreateLegacyCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(createLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -10680,6 +10743,7 @@ export const GetLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -10776,6 +10840,10 @@ export const GetLegacyCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(getLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
@@ -11435,6 +11503,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "broken": zod.boolean()
 })),
   "combat": zod.object({
+  "combat_id": zod.string().nullish(),
   "active": zod.boolean(),
   "status": zod.enum(['active', 'ended', 'death_resolution']),
   "round": zod.number().int(),
@@ -11531,6 +11600,10 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "event_id": zod.string().uuid().regex(resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp),
   "turn_index": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin),
   "result": zod.object({
+  "combat_id": zod.string().nullish(),
+  "combat_status": zod.string().nullish(),
+  "round": zod.number().int().nullish(),
+  "current_turn_index": zod.number().int().nullish(),
   "action": zod.string().nullish(),
   "status": zod.string().nullish(),
   "success": zod.boolean().nullish(),
