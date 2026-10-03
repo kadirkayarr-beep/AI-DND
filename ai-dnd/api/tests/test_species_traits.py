@@ -46,6 +46,7 @@ def make_session(species: str, *, ancestry: str | None = None, level: int = 5):
         }
     )
     session.initialize_species_trait_state(giant_ancestry=ancestry)
+    session.commit_location_change("tavern")
     return session
 
 

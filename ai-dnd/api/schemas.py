@@ -354,6 +354,14 @@ class SpeciesTraitActionRequest(BaseModel):
     ] | None = None
     ancestry: Literal["cloud", "fire", "frost", "hill", "stone", "storm"] | None = None
     armed: bool | None = None
+    action_id: UUID | None = None
+
+    @field_validator("action_id")
+    @classmethod
+    def valid_action_identity(cls, value: UUID | None) -> UUID | None:
+        if value is not None and value.version != 4:
+            raise ValueError("Action ID must be a UUIDv4.")
+        return value
 
     @model_validator(mode="after")
     def optional_fields_match_action(self) -> "SpeciesTraitActionRequest":
@@ -378,6 +386,7 @@ class SpeciesTraitCommandResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     session_id: str
+    action_id: str | None = None
     state: dict[str, Any]
     result: SpeciesTraitActionResult
 

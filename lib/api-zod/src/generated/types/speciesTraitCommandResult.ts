@@ -10,6 +10,8 @@ import type { SpeciesTraitActionResult } from './speciesTraitActionResult';
 
 export interface SpeciesTraitCommandResult {
   session_id: string;
+  /** @nullable */
+  action_id?: string | null;
   state: GameState;
   result: SpeciesTraitActionResult;
 }

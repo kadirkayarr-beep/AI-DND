@@ -32,6 +32,88 @@ export interface HealthResponse {
   model: HealthResponseModel;
 }
 
+export type CampaignTimeCalendar = typeof CampaignTimeCalendar[keyof typeof CampaignTimeCalendar];
+
+
+export const CampaignTimeCalendar = {
+  Harptos: 'Harptos',
+} as const;
+
+export type CampaignTimeTimeOfDay = typeof CampaignTimeTimeOfDay[keyof typeof CampaignTimeTimeOfDay];
+
+
+export const CampaignTimeTimeOfDay = {
+  dawn: 'dawn',
+  day: 'day',
+  evening: 'evening',
+  night: 'night',
+} as const;
+
+export interface CampaignTime {
+  year: number;
+  month: string;
+  day: number;
+  /**
+     * @minimum 0
+     * @maximum 23
+     */
+  hour: number;
+  /**
+     * @minimum 0
+     * @maximum 59
+     */
+  minute: number;
+  /**
+     * @minimum 0
+     * @maximum 59
+     */
+  second: number;
+  /** @minimum 0 */
+  day_index: number;
+  calendar: CampaignTimeCalendar;
+  local_convention: string;
+  time_of_day: CampaignTimeTimeOfDay;
+  display: string;
+  detail: string;
+}
+
+export type KnownScheduledEventStatus = typeof KnownScheduledEventStatus[keyof typeof KnownScheduledEventStatus];
+
+
+export const KnownScheduledEventStatus = {
+  PENDING: 'PENDING',
+  OCCURRED: 'OCCURRED',
+  EXPIRED: 'EXPIRED',
+} as const;
+
+export interface KnownScheduledEvent {
+  summary: string;
+  window_start: number;
+  window_end: number;
+  status: KnownScheduledEventStatus;
+}
+
+export type GameJourneyStatus = typeof GameJourneyStatus[keyof typeof GameJourneyStatus];
+
+
+export const GameJourneyStatus = {
+  TRAVELLING: 'TRAVELLING',
+  INTERRUPTED: 'INTERRUPTED',
+  STOPPED: 'STOPPED',
+  ARRIVED: 'ARRIVED',
+} as const;
+
+export interface GameJourney {
+  destination: string;
+  status: GameJourneyStatus;
+  /** @minimum 1 */
+  stage: number;
+  /** @minimum 1 */
+  stage_count: number;
+  /** @nullable */
+  encounter: string | null;
+}
+
 export type GameSceneAmbientEventEventType = typeof GameSceneAmbientEventEventType[keyof typeof GameSceneAmbientEventEventType];
 
 
@@ -814,6 +896,9 @@ export type GameStateLocations = {[key: string]: GameLocation};
  * Public state projection produced by the API serializers.
  */
 export interface GameState {
+  campaign_time: CampaignTime | null;
+  known_scheduled_events: KnownScheduledEvent[];
+  journey: GameJourney | null;
   location: string;
   scene: GameScene | null;
   world: GameWorldMetadata;
@@ -1267,6 +1352,11 @@ export const SpeciesTraitActionInputAncestry = {
 } as const;
 
 export interface SpeciesTraitActionInput {
+  /**
+     * UUIDv4 action receipt identity; reuse on network retry.
+     * @nullable
+     */
+  action_id?: string | null;
   action: SpeciesTraitActionInputAction;
   /** @nullable */
   form?: SpeciesTraitActionInputForm;
@@ -1290,6 +1380,8 @@ export interface SpeciesTraitActionResult {
 
 export interface SpeciesTraitCommandResult {
   session_id: string;
+  /** @nullable */
+  action_id?: string | null;
   state: GameState;
   result: SpeciesTraitActionResult;
 }

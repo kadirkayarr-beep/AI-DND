@@ -25,6 +25,19 @@ export const GetGameHealthResponse = zod.object({
 /**
  * @summary Create a new isolated game session
  */
+export const createGameSessionResponseStateCampaignTimeOneHourMin = 0;
+export const createGameSessionResponseStateCampaignTimeOneHourMax = 23;
+
+export const createGameSessionResponseStateCampaignTimeOneMinuteMin = 0;
+export const createGameSessionResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const createGameSessionResponseStateCampaignTimeOneSecondMin = 0;
+export const createGameSessionResponseStateCampaignTimeOneSecondMax = 59;
+
+export const createGameSessionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const createGameSessionResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createGameSessionResponseStateSceneOneActivityRevisionMin = 0;
@@ -186,6 +199,33 @@ export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequired
 export const CreateGameSessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(createGameSessionResponseStateCampaignTimeOneHourMin).max(createGameSessionResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(createGameSessionResponseStateCampaignTimeOneMinuteMin).max(createGameSessionResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(createGameSessionResponseStateCampaignTimeOneSecondMin).max(createGameSessionResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(createGameSessionResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -486,6 +526,19 @@ export const GetGameSessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getGameSessionStateResponseCampaignTimeOneHourMin = 0;
+export const getGameSessionStateResponseCampaignTimeOneHourMax = 23;
+
+export const getGameSessionStateResponseCampaignTimeOneMinuteMin = 0;
+export const getGameSessionStateResponseCampaignTimeOneMinuteMax = 59;
+
+export const getGameSessionStateResponseCampaignTimeOneSecondMin = 0;
+export const getGameSessionStateResponseCampaignTimeOneSecondMax = 59;
+
+export const getGameSessionStateResponseCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const getGameSessionStateResponseSceneOneVisitRevisionMin = 0;
 
 export const getGameSessionStateResponseSceneOneActivityRevisionMin = 0;
@@ -645,6 +698,33 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCou
 
 
 export const GetGameSessionStateResponse = zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(getGameSessionStateResponseCampaignTimeOneHourMin).max(getGameSessionStateResponseCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(getGameSessionStateResponseCampaignTimeOneMinuteMin).max(getGameSessionStateResponseCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(getGameSessionStateResponseCampaignTimeOneSecondMin).max(getGameSessionStateResponseCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(getGameSessionStateResponseCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -945,11 +1025,25 @@ export const ResolveSpeciesTraitActionParams = zod.object({
 })
 
 export const ResolveSpeciesTraitActionBody = zod.object({
+  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
   "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest']),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "armed": zod.boolean().nullish()
 })
+
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMin = 0;
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMax = 23;
+
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneMinuteMin = 0;
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMin = 0;
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resolveSpeciesTraitActionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
 
 export const resolveSpeciesTraitActionResponseStateSceneOneVisitRevisionMin = 0;
 
@@ -1113,7 +1207,35 @@ export const resolveSpeciesTraitActionResponseResultMessageMax = 500;
 
 export const ResolveSpeciesTraitActionResponse = zod.object({
   "session_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().nullish(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMin).max(resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resolveSpeciesTraitActionResponseStateCampaignTimeOneMinuteMin).max(resolveSpeciesTraitActionResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMin).max(resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resolveSpeciesTraitActionResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -1421,11 +1543,25 @@ export const ResolveSpeciesTraitActionCompatParams = zod.object({
 })
 
 export const ResolveSpeciesTraitActionCompatBody = zod.object({
+  "action_id": zod.string().uuid().nullish().describe('UUIDv4 action receipt identity; reuse on network retry.'),
   "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest']),
   "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
   "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "armed": zod.boolean().nullish()
 })
+
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMax = 23;
+
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneMinuteMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
 
 export const resolveSpeciesTraitActionCompatResponseStateSceneOneVisitRevisionMin = 0;
 
@@ -1589,7 +1725,35 @@ export const resolveSpeciesTraitActionCompatResponseResultMessageMax = 500;
 
 export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "session_id": zod.string().uuid(),
+  "action_id": zod.string().uuid().nullish(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMin).max(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneMinuteMin).max(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMin).max(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -1908,6 +2072,19 @@ export const PlayGameTurnBody = zod.object({
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
+export const playGameTurnResponseStateCampaignTimeOneHourMin = 0;
+export const playGameTurnResponseStateCampaignTimeOneHourMax = 23;
+
+export const playGameTurnResponseStateCampaignTimeOneMinuteMin = 0;
+export const playGameTurnResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const playGameTurnResponseStateCampaignTimeOneSecondMin = 0;
+export const playGameTurnResponseStateCampaignTimeOneSecondMax = 59;
+
+export const playGameTurnResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const playGameTurnResponseStateSceneOneVisitRevisionMin = 0;
 
 export const playGameTurnResponseStateSceneOneActivityRevisionMin = 0;
@@ -2205,6 +2382,33 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(playGameTurnResponseStateCampaignTimeOneHourMin).max(playGameTurnResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(playGameTurnResponseStateCampaignTimeOneMinuteMin).max(playGameTurnResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(playGameTurnResponseStateCampaignTimeOneSecondMin).max(playGameTurnResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(playGameTurnResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -2899,6 +3103,19 @@ export const AcceptGameQuestParams = zod.object({
   "quest_id": zod.coerce.string().max(acceptGameQuestPathQuestIdMax)
 })
 
+export const acceptGameQuestResponseStateCampaignTimeOneHourMin = 0;
+export const acceptGameQuestResponseStateCampaignTimeOneHourMax = 23;
+
+export const acceptGameQuestResponseStateCampaignTimeOneMinuteMin = 0;
+export const acceptGameQuestResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const acceptGameQuestResponseStateCampaignTimeOneSecondMin = 0;
+export const acceptGameQuestResponseStateCampaignTimeOneSecondMax = 59;
+
+export const acceptGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const acceptGameQuestResponseStateSceneOneVisitRevisionMin = 0;
 
 export const acceptGameQuestResponseStateSceneOneActivityRevisionMin = 0;
@@ -3086,6 +3303,33 @@ export const acceptGameQuestResponseOutcomeOneTurnIndexMin = 0;
 export const AcceptGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(acceptGameQuestResponseStateCampaignTimeOneHourMin).max(acceptGameQuestResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(acceptGameQuestResponseStateCampaignTimeOneMinuteMin).max(acceptGameQuestResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(acceptGameQuestResponseStateCampaignTimeOneSecondMin).max(acceptGameQuestResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(acceptGameQuestResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -3413,6 +3657,19 @@ export const CancelGameQuestParams = zod.object({
   "quest_id": zod.coerce.string().max(cancelGameQuestPathQuestIdMax)
 })
 
+export const cancelGameQuestResponseStateCampaignTimeOneHourMin = 0;
+export const cancelGameQuestResponseStateCampaignTimeOneHourMax = 23;
+
+export const cancelGameQuestResponseStateCampaignTimeOneMinuteMin = 0;
+export const cancelGameQuestResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const cancelGameQuestResponseStateCampaignTimeOneSecondMin = 0;
+export const cancelGameQuestResponseStateCampaignTimeOneSecondMax = 59;
+
+export const cancelGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const cancelGameQuestResponseStateSceneOneVisitRevisionMin = 0;
 
 export const cancelGameQuestResponseStateSceneOneActivityRevisionMin = 0;
@@ -3600,6 +3857,33 @@ export const cancelGameQuestResponseOutcomeOneTurnIndexMin = 0;
 export const CancelGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(cancelGameQuestResponseStateCampaignTimeOneHourMin).max(cancelGameQuestResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(cancelGameQuestResponseStateCampaignTimeOneMinuteMin).max(cancelGameQuestResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(cancelGameQuestResponseStateCampaignTimeOneSecondMin).max(cancelGameQuestResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(cancelGameQuestResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -3935,6 +4219,19 @@ export const ResolveAmbientEventActionBody = zod.object({
   "action": zod.enum(['interact', 'observe'])
 })
 
+export const resolveAmbientEventActionResponseStateCampaignTimeOneHourMin = 0;
+export const resolveAmbientEventActionResponseStateCampaignTimeOneHourMax = 23;
+
+export const resolveAmbientEventActionResponseStateCampaignTimeOneMinuteMin = 0;
+export const resolveAmbientEventActionResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resolveAmbientEventActionResponseStateCampaignTimeOneSecondMin = 0;
+export const resolveAmbientEventActionResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resolveAmbientEventActionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const resolveAmbientEventActionResponseStateSceneOneVisitRevisionMin = 0;
 
 export const resolveAmbientEventActionResponseStateSceneOneActivityRevisionMin = 0;
@@ -4103,6 +4400,33 @@ export const resolveAmbientEventActionResponseResultTransitionIdMax = 160;
 export const ResolveAmbientEventActionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resolveAmbientEventActionResponseStateCampaignTimeOneHourMin).max(resolveAmbientEventActionResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resolveAmbientEventActionResponseStateCampaignTimeOneMinuteMin).max(resolveAmbientEventActionResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resolveAmbientEventActionResponseStateCampaignTimeOneSecondMin).max(resolveAmbientEventActionResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resolveAmbientEventActionResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -4558,6 +4882,19 @@ export const CreateCampaignBody = zod.object({
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createCampaignBodyDeathModeDefault)
 })
 
+export const createCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const createCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const createCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const createCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const createCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const createCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const createCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const createCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -4778,6 +5115,33 @@ export const CreateCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(createCampaignResponseStateCampaignTimeOneHourMin).max(createCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(createCampaignResponseStateCampaignTimeOneMinuteMin).max(createCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(createCampaignResponseStateCampaignTimeOneSecondMin).max(createCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(createCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -5266,6 +5630,19 @@ export const GetCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const getCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const getCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const getCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const getCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const getCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const getCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const getCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const getCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const getCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -5496,6 +5873,33 @@ export const GetCampaignResponse = zod.object({
   "location": zod.string()
 }),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(getCampaignResponseStateCampaignTimeOneHourMin).max(getCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(getCampaignResponseStateCampaignTimeOneMinuteMin).max(getCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(getCampaignResponseStateCampaignTimeOneSecondMin).max(getCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(getCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -5984,6 +6388,19 @@ export const ResumeCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const resumeCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const resumeCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const resumeCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const resumeCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resumeCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const resumeCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resumeCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const resumeCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const resumeCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -6204,6 +6621,33 @@ export const ResumeCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resumeCampaignResponseStateCampaignTimeOneHourMin).max(resumeCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resumeCampaignResponseStateCampaignTimeOneMinuteMin).max(resumeCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resumeCampaignResponseStateCampaignTimeOneSecondMin).max(resumeCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resumeCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -6794,6 +7238,19 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
  * Compatibility alias for /game/sessions. Prefer the /game route family for new clients.
  * @summary Legacy session-creation alias
  */
+export const createLegacySessionResponseStateCampaignTimeOneHourMin = 0;
+export const createLegacySessionResponseStateCampaignTimeOneHourMax = 23;
+
+export const createLegacySessionResponseStateCampaignTimeOneMinuteMin = 0;
+export const createLegacySessionResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const createLegacySessionResponseStateCampaignTimeOneSecondMin = 0;
+export const createLegacySessionResponseStateCampaignTimeOneSecondMax = 59;
+
+export const createLegacySessionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const createLegacySessionResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createLegacySessionResponseStateSceneOneActivityRevisionMin = 0;
@@ -6955,6 +7412,33 @@ export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequir
 export const CreateLegacySessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(createLegacySessionResponseStateCampaignTimeOneHourMin).max(createLegacySessionResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(createLegacySessionResponseStateCampaignTimeOneMinuteMin).max(createLegacySessionResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(createLegacySessionResponseStateCampaignTimeOneSecondMin).max(createLegacySessionResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(createLegacySessionResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -7256,6 +7740,19 @@ export const GetLegacySessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getLegacySessionStateResponseCampaignTimeOneHourMin = 0;
+export const getLegacySessionStateResponseCampaignTimeOneHourMax = 23;
+
+export const getLegacySessionStateResponseCampaignTimeOneMinuteMin = 0;
+export const getLegacySessionStateResponseCampaignTimeOneMinuteMax = 59;
+
+export const getLegacySessionStateResponseCampaignTimeOneSecondMin = 0;
+export const getLegacySessionStateResponseCampaignTimeOneSecondMax = 59;
+
+export const getLegacySessionStateResponseCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const getLegacySessionStateResponseSceneOneVisitRevisionMin = 0;
 
 export const getLegacySessionStateResponseSceneOneActivityRevisionMin = 0;
@@ -7415,6 +7912,33 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredC
 
 
 export const GetLegacySessionStateResponse = zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(getLegacySessionStateResponseCampaignTimeOneHourMin).max(getLegacySessionStateResponseCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(getLegacySessionStateResponseCampaignTimeOneMinuteMin).max(getLegacySessionStateResponseCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(getLegacySessionStateResponseCampaignTimeOneSecondMin).max(getLegacySessionStateResponseCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(getLegacySessionStateResponseCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -7728,6 +8252,19 @@ export const PlayLegacyTurnBody = zod.object({
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
+export const playLegacyTurnResponseStateCampaignTimeOneHourMin = 0;
+export const playLegacyTurnResponseStateCampaignTimeOneHourMax = 23;
+
+export const playLegacyTurnResponseStateCampaignTimeOneMinuteMin = 0;
+export const playLegacyTurnResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const playLegacyTurnResponseStateCampaignTimeOneSecondMin = 0;
+export const playLegacyTurnResponseStateCampaignTimeOneSecondMax = 59;
+
+export const playLegacyTurnResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const playLegacyTurnResponseStateSceneOneVisitRevisionMin = 0;
 
 export const playLegacyTurnResponseStateSceneOneActivityRevisionMin = 0;
@@ -8025,6 +8562,33 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(playLegacyTurnResponseStateCampaignTimeOneHourMin).max(playLegacyTurnResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(playLegacyTurnResponseStateCampaignTimeOneMinuteMin).max(playLegacyTurnResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(playLegacyTurnResponseStateCampaignTimeOneSecondMin).max(playLegacyTurnResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(playLegacyTurnResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -8798,6 +9362,19 @@ export const CreateLegacyCampaignBody = zod.object({
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createLegacyCampaignBodyDeathModeDefault)
 })
 
+export const createLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const createLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const createLegacyCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const createLegacyCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const createLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const createLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const createLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const createLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const createLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -9018,6 +9595,33 @@ export const CreateLegacyCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(createLegacyCampaignResponseStateCampaignTimeOneHourMin).max(createLegacyCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(createLegacyCampaignResponseStateCampaignTimeOneMinuteMin).max(createLegacyCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(createLegacyCampaignResponseStateCampaignTimeOneSecondMin).max(createLegacyCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(createLegacyCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -9507,6 +10111,19 @@ export const GetLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const getLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const getLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const getLegacyCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const getLegacyCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const getLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const getLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const getLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const getLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const getLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -9737,6 +10354,33 @@ export const GetLegacyCampaignResponse = zod.object({
   "location": zod.string()
 }),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(getLegacyCampaignResponseStateCampaignTimeOneHourMin).max(getLegacyCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(getLegacyCampaignResponseStateCampaignTimeOneMinuteMin).max(getLegacyCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(getLegacyCampaignResponseStateCampaignTimeOneSecondMin).max(getLegacyCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(getLegacyCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -10226,6 +10870,19 @@ export const ResumeLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const resumeLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
+export const resumeLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
+
+export const resumeLegacyCampaignResponseStateCampaignTimeOneMinuteMin = 0;
+export const resumeLegacyCampaignResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resumeLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
+export const resumeLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resumeLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+
 export const resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
 
 export const resumeLegacyCampaignResponseStateSceneOneActivityRevisionMin = 0;
@@ -10446,6 +11103,33 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resumeLegacyCampaignResponseStateCampaignTimeOneHourMin).max(resumeLegacyCampaignResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resumeLegacyCampaignResponseStateCampaignTimeOneMinuteMin).max(resumeLegacyCampaignResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resumeLegacyCampaignResponseStateCampaignTimeOneSecondMin).max(resumeLegacyCampaignResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resumeLegacyCampaignResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "journey": zod.union([zod.object({
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),

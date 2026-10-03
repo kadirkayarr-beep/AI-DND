@@ -110,7 +110,7 @@ export function SpeciesTraitControls({
   const notBusy = !action.isPending;
   const send = (data: SpeciesTraitActionInput) => {
     action.reset();
-    action.mutate({ sessionId, data });
+    action.mutate({ sessionId, data: { ...data, action_id: crypto.randomUUID() } });
   };
   const ancestryLabel = ANCESTRIES.find(
     (ancestry) => ancestry.id === character.giant_ancestry,
@@ -283,7 +283,7 @@ export function SpeciesTraitControls({
           disabled={!notBusy || inCombat}
           onClick={() => send({ action: 'short_rest' })}
         >
-          Kısa dinlen
+          Kısa dinlen · 1 saat
         </button>
         <button
           type="button"
@@ -292,7 +292,7 @@ export function SpeciesTraitControls({
           disabled={!notBusy || inCombat}
           onClick={() => send({ action: 'long_rest' })}
         >
-          Uzun dinlen
+          Uzun dinlen · 8 saat
         </button>
       </div>
 
@@ -305,10 +305,10 @@ export function SpeciesTraitControls({
       {action.data && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
           <strong>{action.data.result.message}</strong>
-          {Object.keys(action.data.result.effects).length > 0 && (
+          {Object.keys(action.data.result.effects).filter((key) => key !== 'time_result').length > 0 && (
             <details>
               <summary>Sunucunun çözdüğü etki</summary>
-              <pre>{JSON.stringify(action.data.result.effects, null, 2)}</pre>
+              <pre>{JSON.stringify(Object.fromEntries(Object.entries(action.data.result.effects).filter(([key]) => key !== 'time_result')), null, 2)}</pre>
             </details>
           )}
         </div>

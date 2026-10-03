@@ -499,7 +499,8 @@ def create_initial_campaign_journal(
 
 
 def _snapshot_maps(world_state: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    value = world_state.get("npcs")
+    from scheduled_events import visible_npcs
+    value = visible_npcs(world_state)
     if not isinstance(value, list):
         return {}
     return {

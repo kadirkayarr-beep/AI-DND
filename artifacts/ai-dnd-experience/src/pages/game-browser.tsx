@@ -218,6 +218,13 @@ function WorldPanel({ state }: { state: GameState }) {
   return <section className="state-panel" data-testid="panel-world">
      <div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Dünyanın izleri</Kicker><h2>Çevre</h2></div></div>
     <div className="location-current" data-testid="text-current-location"><small><MapPinned size={11} className="mr-1 inline" /> Şu anki konum</small>{state.locations[state.location]?.name ?? state.location}</div>
+    {state.campaign_time && <details className="data-row mt-3" data-testid="world-time">
+      <summary>{state.campaign_time.display}</summary>
+      <div className="data-row-desc">{state.campaign_time.detail}</div>
+    </details>}
+    {state.known_scheduled_events?.map((event, index) => <div className="data-row mt-2" key={`${event.window_start}-${index}`}>
+      <div className="data-row-desc">{event.summary}</div>
+    </div>)}
     {scene && <div className="data-row mt-3" data-testid={`scene-${scene.id}`}>
        <div className="data-row-head"><span>Şu anki sahne</span></div>
       <div className="data-row-desc">{scene.last_activity ?? 'Sahne sakin; çevredeki ayrıntılar değişmedi.'}</div>
@@ -587,6 +594,17 @@ function StoryColumn({
           </div>
         </div>
         <form className="command-form" onSubmit={onSubmit}>
+          {state.journey && <div className="data-row mb-3" data-testid="journey-decision">
+            <p>{state.locations[state.journey.destination]?.name ?? state.journey.destination} yolunda · {state.journey.stage} / {state.journey.stage_count}</p>
+            {state.journey.encounter && <p>{state.journey.encounter}</p>}
+            <div className="action-suggestion-list">
+              {[
+                ['Yola devam', 'Yolculuğa devam ediyorum.'],
+                ['Dur', 'Yolculuğu durduruyorum.'],
+                ['Geri dön', 'Geri dönüyorum.'],
+              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => { setMessage(intent); messageInputRef.current?.focus(); }}>{label}</button>)}
+            </div>
+          </div>}
           {state.combat.active && combatTargets.length > 0 && (
             <label className="command-target-label" htmlFor="combat-target-select">
               <span>Hedef seç <small>· isteğe bağlı</small></span>
@@ -627,7 +645,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
           <MapPinned size={13} />
           <div className="header-location-copy">
             <span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span>
-            <small data-testid="text-neutral-atmosphere">Yolculuğun kaydediliyor</small>
+            <small data-testid="text-neutral-atmosphere" title={state.campaign_time?.detail}>{state.campaign_time?.display ?? 'Yolculuğun kaydediliyor'}</small>
           </div>
           <span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span>
         </div>

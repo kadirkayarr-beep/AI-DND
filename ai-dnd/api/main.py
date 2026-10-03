@@ -18,6 +18,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 import game
+import scheduled_events
 import living_world
 from api.campaign_journal import (
     append_ambient_event_outcome,
@@ -178,7 +179,7 @@ def _lore_context_for_turn(
         current_location_id = state.current_location_entity_id
     present_npc_ids = {
         entity_id
-        for npc in world.get("npcs", [])
+        for npc in scheduled_events.visible_npcs(world)
         if isinstance(npc, dict) and npc.get("location") == location
         for entity_id in [_lore_entity_reference(registry, npc)]
         if entity_id is not None
@@ -1230,9 +1231,36 @@ def create_app(
         request: SpeciesTraitActionRequest,
     ) -> dict[str, Any]:
         record = get_record(session_id)
+        action_id = str(request.action_id or uuid4())
+        request_hash = hashlib.sha256(json.dumps(
+            {"command": "species_action", **request.model_dump(mode="json", exclude={"action_id"})},
+            sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
         with record.turn_lock:
             session = record.game_session
+            previous = manager.get_turn_action(record, action_id)
+            if previous is not None:
+                if previous["request_hash"] != request_hash:
+                    raise HTTPException(status_code=409, detail={
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different action.",
+                    })
+                replay = copy.deepcopy(previous["response"])
+                replay["session_id"] = session_id
+                return replay
             snapshot = _capture_session(session)
+            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
+            journal_snapshot = copy.deepcopy(record.journal)
+            memory_snapshot = copy.deepcopy(record.narrative_memory)
+            lore_snapshot = record.lore_authority
+
+            def restore_command():
+                _restore_session(session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = memory_snapshot
+                record.lore_authority = lore_snapshot
+
             try:
                 result = session.resolve_species_trait_action(
                     request.action,
@@ -1242,15 +1270,22 @@ def create_app(
                 )
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
+                    action_id=action_id,
                     state=serialize_session_state(session, record.journal),
                     result=SpeciesTraitActionResult.model_validate(result),
                 )
-                if record.campaign_id is not None:
-                    manager.save_campaign_locked(record)
-                return redact_sensitive_values(response.model_dump())
+                response_payload = redact_sensitive_values(response.model_dump(mode="json"))
+                manager.autosave_turn(
+                    record, request.action, result["message"],
+                    turn_action_receipt={
+                        "action_id": action_id, "request_hash": request_hash,
+                        "response": response_payload,
+                    },
+                )
+                return response_payload
             except ValueError as error:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_command()
                 except Exception:
                     pass
                 raise HTTPException(
@@ -1262,13 +1297,13 @@ def create_app(
                 ) from None
             except CampaignError as error:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_command()
                 except Exception:
                     pass
                 raise campaign_http_exception(error) from None
             except Exception:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_command()
                 except Exception:
                     pass
                 raise

@@ -6,17 +6,20 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CampaignJournal } from './campaignJournal';
+import type { CampaignTime } from './campaignTime';
 import type { DeathStateProjection } from './deathStateProjection';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
 import type { GameFeature } from './gameFeature';
+import type { GameJourney } from './gameJourney';
 import type { GameNpc } from './gameNpc';
 import type { GameScene } from './gameScene';
 import type { GameShop } from './gameShop';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
+import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
 
@@ -24,6 +27,9 @@ import type { QuestState } from './questState';
  * Public state projection produced by the API serializers.
  */
 export interface GameState {
+  campaign_time: CampaignTime | null;
+  known_scheduled_events: KnownScheduledEvent[];
+  journey: GameJourney | null;
   location: string;
   scene: GameScene | null;
   world: GameWorldMetadata;

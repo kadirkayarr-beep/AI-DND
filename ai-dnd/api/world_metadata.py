@@ -146,6 +146,10 @@ def world_metadata_for_state(
         validated = validate_world_metadata(metadata)
         time_of_day = validated["time_of_day"]
         weather = validated["weather"]
+    from campaign_time import public_time
+    clock = public_time(world_state) if isinstance(world_state, dict) else None
+    if clock is not None:
+        time_of_day = clock["time_of_day"]
     return {
         "environment": infer_environment(world_state),
         "time_of_day": time_of_day,

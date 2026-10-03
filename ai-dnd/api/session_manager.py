@@ -140,6 +140,7 @@ class SessionManager:
                     "Campaign start selection is not an installed verified option."
                 ) from None
         # Resolve environment and journal only after the selected place is active.
+        session.ensure_campaign_clock()
         set_session_world_metadata(session)
         journal = create_initial_campaign_journal(
             session.world_state,
@@ -147,6 +148,7 @@ class SessionManager:
         )
         campaign_id = str(uuid.uuid4())
         initialize_campaign_opening(session, campaign_id)
+        session.ensure_campaign_clock()
         session.world_state["campaign_id"] = campaign_id
         death_state = session.world_state.setdefault(
             "death_state", game._death_state_defaults()

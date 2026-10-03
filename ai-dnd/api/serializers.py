@@ -10,6 +10,9 @@ from typing import Any
 
 import game
 import living_world
+import campaign_time
+import scheduled_events
+import timed_gameplay
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -544,6 +547,9 @@ def serialize_session_state(
     ]
     return {
         "location": copy.deepcopy(world.get("location")),
+        "campaign_time": campaign_time.public_time(world),
+        "known_scheduled_events": scheduled_events.public_events(world),
+        "journey": timed_gameplay.public_journey(world),
         "scene": living_world.public_scene_projection(
             world, flags.get("turn_index", 0)
         ),
@@ -554,7 +560,7 @@ def serialize_session_state(
         "locations": locations,
         "character": character,
         "inventory": copy.deepcopy(world.get("inventory", [])),
-        "npcs": _project_list(world.get("npcs"), _NPC_FIELDS),
+        "npcs": _project_list(scheduled_events.visible_npcs(world), _NPC_FIELDS),
         "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),
         "doors": _project_list(world.get("doors"), _DOOR_FIELDS),

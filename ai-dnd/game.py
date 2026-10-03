@@ -14,6 +14,9 @@ from uuid import uuid4
 from quest_catalog import catalog as quest_catalog, find_quest
 import living_world
 import local_dialogue
+import campaign_time
+import scheduled_events
+import timed_gameplay
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from api.dnd_2024_rules import get_expertise_choice_count
@@ -1729,6 +1732,10 @@ def _validate_save_payload(payload):
     saved_world = payload.get("world_state")
     if not isinstance(player, dict) or not isinstance(saved_world, dict):
         raise ValueError("Kayıt oyuncu veya dünya verisini içermiyor.")
+    if "campaign_time" in saved_world:
+        campaign_time.validate_clock(saved_world["campaign_time"])
+    scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
+    timed_gameplay.validate_state(saved_world)
 
     required_player = {
         "name", "race", "class", "strength", "dexterity", "constitution",
@@ -2625,7 +2632,7 @@ def feature_descriptions(location=None):
 def active_npcs(location=None):
     world_state = _session().world_state
     location = location or world_state["location"]
-    return [npc for npc in world_state["npcs"] if npc.get("location") == location]
+    return [npc for npc in scheduled_events.visible_npcs(world_state) if npc.get("location") == location]
 
 
 def generate_npc_id():
@@ -3297,8 +3304,17 @@ def _finish_species_player_turn():
     return effects
 
 
-def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, elapsed_seconds=None):
     require_player_can_act()
+    if action in {"short_rest", "long_rest"}:
+        ensure_campaign_clock()
+        if "campaign_time" not in _session().world_state:
+            raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
+        minimum = 3600 if action == "short_rest" else 8 * 3600
+        if elapsed_seconds is not None and (
+            type(elapsed_seconds) is not int or not minimum <= elapsed_seconds <= campaign_time.DAY * 365
+        ):
+            raise ValueError("Dinlenme süresi geçersiz.")
     character = _session().character
     species = character.get("species", character.get("race"))
     state = _species_trait_state()
@@ -3497,6 +3513,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
     elif action == "short_rest":
         if combat["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if elapsed_seconds is not None and (type(elapsed_seconds) is not int or elapsed_seconds < 3600):
+            raise ValueError("Kısa dinlenme en az bir saat sürer.")
         refreshed = 0
         if species == "Orc":
             maximum = character.get("proficiency_bonus", 2)
@@ -3514,6 +3532,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
     elif action == "long_rest":
         if combat["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
+        if elapsed_seconds is not None and (type(elapsed_seconds) is not int or elapsed_seconds < 8 * 3600):
+            raise ValueError("Uzun dinlenme en az sekiz saat sürer.")
         old_state = state
         refreshed = {
             "healing_hands": max(0, (1 if species == "Aasimar" else 0) - old_state["healing_hands_uses_remaining"]),
@@ -3541,6 +3561,14 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
     else:
         raise ValueError("Bilinmeyen tür yeteneği.")
 
+    if action in {"short_rest", "long_rest"}:
+        ensure_campaign_clock()
+        if "campaign_time" not in _session().world_state:
+            raise ValueError("Dinlenmeden önce başlangıç sahnesi belirlenmeli.")
+        duration = elapsed_seconds if elapsed_seconds is not None else (
+            3600 if action == "short_rest" else 8 * 3600
+        )
+        effects["time_result"] = advance_campaign_time(duration, action)
     return {"action": action, "message": message, "effects": effects}
 
 
@@ -4168,6 +4196,12 @@ def advance_combat_turn():
             combat["round"] += 1
             combat["actions_used"] = []
             round_changed = True
+            ensure_campaign_clock()
+            if "campaign_time" in _session().world_state:
+                advance_campaign_time(
+                    6, "combat_round",
+                    source=f"combat:{combat.get('combat_id')}:{combat['round'] - 1}",
+                )
         participant_id = order[index]
         if participant_id in combat["actions_used"]:
             continue
@@ -4768,9 +4802,17 @@ def build_world_context(npc_target=None):
     world_state = _session().world_state
     _normalize_ground_items()
     npcs = active_npcs()
+    if npc_target and not any(
+        npc.get("id") == npc_target.get("id")
+        for npc in scheduled_events.visible_npcs(world_state)
+    ):
+        npc_target = None
     if npc_target and all(npc.get("id") != npc_target.get("id") for npc in npcs):
         npcs.append(npc_target)
     context = {
+        "current_campaign_time": campaign_time.public_time(world_state),
+        "player_known_events": scheduled_events.public_events(world_state),
+        "journey": timed_gameplay.public_journey(world_state),
         "character": {
             "name": _session().character["name"],
             "race": _session().character["race"],
@@ -5075,6 +5117,23 @@ def create_location_from_proposal(proposal):
     return location
 
 
+def ensure_campaign_clock():
+    """Initialize only after Python has a registered current world scene."""
+    world = _session().world_state
+    if world.get("location") in world.get("locations", {}):
+        return campaign_time.initialize(world)
+    return None
+
+
+def advance_campaign_time(seconds, reason, source=None, observation=None):
+    world = _session().world_state
+    return campaign_time.advance(
+        world, seconds, reason,
+        source or f"turn:{world.get('flags', {}).get('turn_index', 0)}",
+        observation=observation,
+    )
+
+
 def commit_location_change(location_id, turn_index=None):
     """Commit a location transition after Python has resolved its destination."""
     world_state = _session().world_state
@@ -5082,6 +5141,7 @@ def commit_location_change(location_id, turn_index=None):
         return False
     previous_location = world_state.get("location")
     world_state["location"] = location_id
+    ensure_campaign_clock()
     _ensure_location_entities(location_id)
     effective_turn = (
         turn_index
@@ -5980,6 +6040,16 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     if not isinstance(narration, str) or not narration.strip():
         return reject("EMPTY_NARRATION")
     action_result = action_result or {}
+    elapsed_claim = re.search(
+        r"((?:\d+|bir|iki|üç|dört|beş|altı|yarım)\s+(?:saniye|dakika|saat|gün))"
+        r"\s+(?:geçti|geçiyor|sonra|boyunca)",
+        narration, re.IGNORECASE,
+    )
+    if elapsed_claim:
+        claimed = campaign_time.requested_duration(elapsed_claim.group(1))
+        verified = action_result.get("time_result", {}).get("elapsed_seconds", 0)
+        if claimed != verified:
+            return reject("UNVERIFIED_ELAPSED_TIME", elapsed_claim.group(0))
     if action_result.get("action") == "attack":
         # Combat narration stays tied to Python's exact actor, target, and result.
         if narration.strip() != _combat_narration(action_result):
@@ -9087,6 +9157,9 @@ def _commit_travel_action(action_result):
         action_result.update({"success": None, "status": "intended"})
         action_result["state_changes"] = ["flags.pending_destination"]
         return True
+    if world_state.get("location") in world_state.get("locations", {}):
+        action_result.update(timed_gameplay.start_travel(_session(), target_id))
+        return action_result.get("success") is True
     combat_was_active = ensure_combat_state()["active"]
     changed = commit_location_change(target_id)
     if changed and combat_was_active:
@@ -9235,6 +9308,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             flags["pending_destination"] = target_id
             result.update({"status": "intended", "state_changes": ["flags.pending_destination"]})
         else:
+            if previous in world_state.get("locations", {}):
+                timed = timed_gameplay.start_travel(_session(), target_id)
+                result.update(timed)
+                return result
             changed = commit_location_change(target_id)
             flags["pending_destination"] = None
             result.update({
@@ -9919,6 +9996,7 @@ def plan_living_world_turn(player_input, target_id=None):
     )
 
     current = world_state.get("location")
+    ensure_campaign_clock()
     action = living_world.classify_scene_action(player_input)
     inspect_action = bool(
         isinstance(player_input, str)
@@ -9949,6 +10027,15 @@ def plan_living_world_turn(player_input, target_id=None):
         )
     )
     combat = ensure_combat_state()
+    if current in world_state.get("locations", {}) and (
+        campaign_time.requested_duration(player_input) is not None
+        or timed_gameplay.clock.normalize(player_input).startswith(
+            ("sabaha kadar", "yola devam", "yolculuga devam", "geri don")
+        )
+    ):
+        # Do not perform an instant scene inspection before a bounded task.
+        return {"direct_result": None, "state_changes": [],
+                "procedural_entity_ids_before": procedural_before}
     if (
         scene_attention
         and not combat.get("active")
@@ -10769,6 +10856,16 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         record_safety=True,
         is_final=False,
     ):
+        if isinstance(action_result, dict) and "campaign_time" in world_state:
+            previous_clock = quest_world_before.get("campaign_time", {})
+            elapsed = world_state["campaign_time"]["elapsed_seconds"] - previous_clock.get(
+                "elapsed_seconds", world_state["campaign_time"]["elapsed_seconds"]
+            )
+            action_result.setdefault("time_result", {
+                "elapsed_seconds": max(0, elapsed),
+                "after": campaign_time.public_time(world_state),
+                "player_known_events": scheduled_events.public_events(world_state),
+            })
         if _is_internal_player_facing_text(narration):
             narration = _natural_unresolved_action_response(
                 player_input, action_result
@@ -10895,6 +10992,14 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         )
         raise TurnResolved(result, resolved)
 
+    ensure_campaign_clock()
+    if "campaign_time" in world_state and not ensure_combat_state()["active"]:
+        timed_result = timed_gameplay.resolve_input(_session(), player_input)
+        if timed_result is not None:
+            return finish_turn(
+                timed_result, timed_result["direct_response"], is_final=True
+            )
+
     combat = ensure_combat_state()
     if (
         combat["active"]
@@ -11002,6 +11107,24 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     planned_direct = scene_plan.get("direct_result") if isinstance(scene_plan, dict) else None
     if isinstance(planned_direct, dict):
         action_result = copy.deepcopy(planned_direct)
+        if (
+            "campaign_time" in world_state
+            and scene_plan.get("action") in {"look", "presence"}
+            and not (
+                isinstance(world_state.get("journey"), dict)
+                and world_state["journey"]["status"] != "ARRIVED"
+            )
+        ):
+            now = world_state["campaign_time"]["elapsed_seconds"]
+            observed = scheduled_events.process_events(
+                world_state, now, now,
+                observation={"kind": "look", "location_id": world_state["location"]},
+            )
+            if observed:
+                action_result["direct_response"] = (
+                    action_result.get("direct_response", "") + " "
+                    + " ".join(event["summary"] for event in observed)
+                ).strip()
         quest_transitions = _session().evaluate_quest_events(
             quest_world_before, action_result
         )

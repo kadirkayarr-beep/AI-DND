@@ -10,6 +10,11 @@ import type { SpeciesTraitActionInputAncestry } from './speciesTraitActionInputA
 import type { SpeciesTraitActionInputForm } from './speciesTraitActionInputForm';
 
 export interface SpeciesTraitActionInput {
+  /**
+     * UUIDv4 action receipt identity; reuse on network retry.
+     * @nullable
+     */
+  action_id?: string | null;
   action: SpeciesTraitActionInputAction;
   /** @nullable */
   form?: SpeciesTraitActionInputForm;

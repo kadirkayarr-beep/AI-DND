@@ -862,6 +862,10 @@ components:
       type: object
       additionalProperties: false
       properties:
+        action_id:
+          type: ["string", "null"]
+          format: uuid
+          description: UUIDv4 action receipt identity; reuse on network retry.
         action:
           type: string
           enum:
@@ -901,6 +905,7 @@ components:
       additionalProperties: false
       properties:
         session_id: {type: string, format: uuid}
+        action_id: {type: ["string", "null"], format: uuid}
         state: {$ref: "#/components/schemas/GameState"}
         result: {$ref: "#/components/schemas/SpeciesTraitActionResult"}
       required: [session_id, state, result]
@@ -1325,6 +1330,17 @@ components:
       description: Public state projection produced by the API serializers.
       additionalProperties: false
       properties:
+        campaign_time:
+          anyOf:
+            - $ref: "#/components/schemas/CampaignTime"
+            - type: "null"
+        known_scheduled_events:
+          type: array
+          items: {$ref: "#/components/schemas/KnownScheduledEvent"}
+        journey:
+          anyOf:
+            - $ref: "#/components/schemas/GameJourney"
+            - type: "null"
         location:
           type: string
         scene:
@@ -1378,6 +1394,9 @@ components:
           type: array
           items: {$ref: "#/components/schemas/QuestOffer"}
       required:
+        - campaign_time
+        - known_scheduled_events
+        - journey
         - location
         - scene
         - world
@@ -1395,6 +1414,42 @@ components:
         - turn_index
         - quests
         - quest_offers
+    CampaignTime:
+      type: object
+      additionalProperties: false
+      required: [year, month, day, hour, minute, second, day_index, calendar, local_convention, time_of_day, display, detail]
+      properties:
+        year: {type: integer}
+        month: {type: string}
+        day: {type: integer}
+        hour: {type: integer, minimum: 0, maximum: 23}
+        minute: {type: integer, minimum: 0, maximum: 59}
+        second: {type: integer, minimum: 0, maximum: 59}
+        day_index: {type: integer, minimum: 0}
+        calendar: {type: string, enum: [Harptos]}
+        local_convention: {type: string}
+        time_of_day: {type: string, enum: [dawn, day, evening, night]}
+        display: {type: string}
+        detail: {type: string}
+    KnownScheduledEvent:
+      type: object
+      additionalProperties: false
+      required: [summary, window_start, window_end, status]
+      properties:
+        summary: {type: string}
+        window_start: {type: integer}
+        window_end: {type: integer}
+        status: {type: string, enum: [PENDING, OCCURRED, EXPIRED]}
+    GameJourney:
+      type: object
+      additionalProperties: false
+      required: [destination, status, stage, stage_count, encounter]
+      properties:
+        destination: {type: string}
+        status: {type: string, enum: [TRAVELLING, INTERRUPTED, STOPPED, ARRIVED]}
+        stage: {type: integer, minimum: 1}
+        stage_count: {type: integer, minimum: 1}
+        encounter: {type: ["string", "null"]}
     CampaignJournal:
       type: object
       description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.
