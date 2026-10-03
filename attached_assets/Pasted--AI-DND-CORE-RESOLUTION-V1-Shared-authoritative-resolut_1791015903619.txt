@@ -1,0 +1,846 @@
+# AI-DND — CORE RESOLUTION V1
+# Shared authoritative resolution layer
+# IMPLEMENTATION TASK
+
+Artık AI-DND'nin Core Resolution katmanını oluşturuyoruz.
+
+Bu görev Combat veya Quest sisteminin tamamını yazmak değildir.
+
+Amaç:
+Combat, Quest, Exploration, Skill Checks, Saving Throws ve ileride
+diğer gameplay sistemlerinin kullanacağı ortak, deterministik ve
+Python-authoritative çözüm omurgasını oluşturmak.
+
+==================================================
+1. MİMARİ ANAYASA — DEĞİŞMEZ
+==================================================
+
+PYTHON DECIDES GAME REALITY.
+
+LORE AUTHORITY DECIDES SETTING REALITY.
+
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+
+QWEN UNDERSTANDS INTENT, USES VERIFIED CONTEXT, AND TELLS THE STORY.
+
+FRONTEND PRESENTS REALITY.
+
+Qwen:
+
+- zar atamaz
+- zar sonucunu seçemez
+- DC belirleyemez
+- AC belirleyemez
+- hasar belirleyemez
+- HP değiştiremez
+- inventory değiştiremez
+- quest tamamlayamaz
+- canonical state oluşturamaz
+- combat sonucunu belirleyemez
+- Python resolution sonucunu değiştiremez
+
+Frontend:
+
+- zar atamaz
+- modifier hesaplayamaz
+- DC/AC belirleyemez
+- outcome üretemez
+- state değiştiremez
+- optimistic gameplay sonucu oluşturamaz
+
+Core Resolution tamamen Python tarafında authoritative olmalıdır.
+
+==================================================
+2. NEDEN CORE RESOLUTION?
+==================================================
+
+Combat ve Quest sistemlerini ayrı ayrı mekaniklerle yazma.
+
+Önce ortak çözüm katmanını oluştur.
+
+İleride:
+
+Combat
+Quest
+Exploration
+Skill Checks
+Saving Throws
+Social actions
+Hazards
+Spell effects
+NPC actions
+
+aynı resolution primitives'i kullanabilmeli.
+
+Aynı kural iki farklı sistemde iki farklı şekilde uygulanmamalı.
+
+Örneğin:
+
+Skill Check için ayrı zar sistemi,
+Combat için başka zar sistemi,
+Quest için başka check sistemi
+
+oluşturmak YASAK.
+
+Hepsi Core Resolution üzerinden ilerlemeli.
+
+==================================================
+3. İLK AŞAMA — KISA CURRENT-CODE AUDIT
+==================================================
+
+Önce repository'deki mevcut mekanik çözüm yollarını incele.
+
+Özellikle:
+
+- mevcut dice/roll yardımcıları
+- skill check sistemi
+- ability modifier hesapları
+- proficiency bonus
+- advantage/disadvantage
+- mevcut attack roll mantığı
+- mevcut saving throw mantığı
+- mevcut combat sonuçları
+- mevcut structured action_result
+- mevcut state mutation boundary
+- mevcut journal/event kayıtları
+- mevcut session/turn/action ID sistemi
+
+araştırılmalı.
+
+AMA:
+
+Bu audit'i devasa rapora dönüştürme.
+
+Yalnızca Core Resolution açısından gerekli mevcut yapıları
+sınıflandır.
+
+Sonra IMPLEMENT ET.
+
+Kapsam açık olduğu için audit sonucunda kullanıcıdan tekrar onay isteme.
+
+Gerçek bir mimari blocker varsa dur ve yalnızca blocker'ı bildir.
+
+==================================================
+4. CORE RESOLUTION V1 KAPSAMI
+==================================================
+
+V1 aşağıdaki ortak primitives'i sağlamalı:
+
+A. Dice rolling
+
+B. D20 resolution
+
+C. Ability modifier
+
+D. Proficiency bonus
+
+E. Skill proficiency
+
+F. Advantage / Disadvantage
+
+G. Ability check
+
+H. Skill check
+
+I. Saving throw
+
+J. Attack roll primitive
+
+K. DC / AC comparison
+
+L. Structured resolution result
+
+M. Validated state-transition boundary
+
+N. Resolution/action idempotency
+
+O. Canonical result recording için mevcut persistence/journal
+yapısıyla uyumlu çıkış
+
+Bunların hepsi mevcut architecture ile uyumlu şekilde yapılmalı.
+
+==================================================
+5. DICE SYSTEM
+==================================================
+
+Mevcut güvenilir dice altyapısı varsa onu yeniden kullan.
+
+Yeni bir ikinci RNG sistemi oluşturma.
+
+Roll sonucu Python tarafından üretilmeli.
+
+Bir resolution gerektiğinde sonuçta en azından:
+
+- resolution_id
+- roll type
+- raw die roll(s)
+- selected roll
+- modifier breakdown
+- total
+- target/DC/AC
+- outcome
+
+bulunabilecek şekilde yapılandır.
+
+Advantage:
+
+- iki d20 at
+- yüksek olanı kullan
+
+Disadvantage:
+
+- iki d20 at
+- düşük olanı kullan
+
+Hem Advantage hem Disadvantage varsa birbirini götürür
+ve normal tek d20 kullanılır.
+
+Birden fazla Advantage veya Disadvantage yeni zarlar üretmemeli.
+
+==================================================
+6. MODIFIER SYSTEM
+==================================================
+
+Modifier hesaplamasını tek bir ortak yapı haline getir.
+
+Mümkünse:
+
+ability modifier
++
+proficiency bonus
++
+circumstantial modifiers
+
+ayrı ayrı izlenebilir olsun.
+
+Örneğin:
+
+ability_modifier: +3
+proficiency_bonus: +2
+circumstantial_modifier: +1
+total_modifier: +6
+
+gibi.
+
+Modifier'ı Qwen hesaplamamalı.
+
+Frontend hesaplamamalı.
+
+Python hesaplamalı.
+
+Aynı modifier iki kere uygulanmamalı.
+
+==================================================
+7. ABILITY CHECK
+==================================================
+
+Ability check:
+
+d20
++
+relevant ability modifier
++
+relevant proficiency/circumstantial modifiers
+
+sonucunu authoritative şekilde hesaplamalı.
+
+Target:
+
+DC
+
+olmalı.
+
+Total >= DC:
+
+SUCCESS
+
+Total < DC:
+
+FAILURE
+
+Ancak check gerekmeyen trivial/otomatik durumlarda
+resolution zorlamak zorunda değilsin.
+
+Mevcut engine'in doğrudan cevap verebildiği durumlar
+Core Resolution'a zorla sokulmamalı.
+
+==================================================
+8. SKILL CHECK
+==================================================
+
+Skill check, ability check'in ayrı bir kopyası olmamalı.
+
+Skill:
+
+- ilgili ability
+- proficiency
+- expertise varsa ilgili bonus
+- advantage/disadvantage
+- circumstantial modifier
+
+bilgilerini Core Resolution'a aktarmalı.
+
+Skill check sonunda yapılandırılmış sonuç dönmeli.
+
+Örnek:
+
+skill
+ability
+d20
+ability_modifier
+proficiency_modifier
+circumstantial_modifier
+total_modifier
+total
+dc
+outcome
+
+Bu yapı daha sonra frontend ve narration tarafından
+read-only olarak kullanılabilir.
+
+==================================================
+9. SAVING THROW
+==================================================
+
+Saving throw da aynı Core Resolution altyapısını kullanmalı.
+
+Gerekli:
+
+- ability
+- saving throw proficiency
+- proficiency bonus
+- advantage/disadvantage
+- circumstantial modifiers
+- DC
+- roll
+- total
+- outcome
+
+Qwen save sonucunu belirleyemez.
+
+==================================================
+10. ATTACK ROLL PRIMITIVE
+==================================================
+
+Combat henüz tamamen yazılmayacak.
+
+Ancak ileride Combat'ın kullanacağı attack-roll primitive
+Core Resolution içinde bulunmalı.
+
+Attack roll:
+
+d20
++
+relevant ability modifier
++
+proficiency bonus if applicable
++
+circumstantial modifiers
+
+vs
+
+target AC
+
+şeklinde Python tarafından çözülmeli.
+
+Attack roll sonucu en az:
+
+- attacker
+- target
+- d20 roll
+- attack modifier breakdown
+- attack total
+- target AC
+- outcome
+
+taşıyabilmeli.
+
+2024 kurallarındaki attack roll için doğal 20 / doğal 1 davranışı
+yalnızca attack roll bağlamında uygulanmalı.
+
+GENEL ability check veya saving throw için kendi başına
+"natural 20 = automatic success" veya
+"natural 1 = automatic failure" gibi kurallar uydurma.
+
+Kuralları yüklenmiş 2024 kaynaklardan doğrula.
+
+==================================================
+11. STATE TRANSITION BOUNDARY
+==================================================
+
+Core Resolution sonucu ile state mutation'ı birbirine karıştırma.
+
+Tercih edilen sınır:
+
+Intent / Action
+→ validation
+→ Core Resolution
+→ structured ResolutionResult
+→ validated StateTransition
+→ canonical state commit
+
+Core Resolution kendi başına model prose'una göre state değiştirmemeli.
+
+Bir state değişikliği gerekiyorsa yalnızca Python tarafından
+doğrulanmış transition üzerinden uygulanmalı.
+
+Örneğin:
+
+resolution sonucu SUCCESS oldu diye otomatik olarak
+"her zaman quest tamamla" veya "item ver" gibi genel davranış
+ekleme.
+
+State transition, ilgili gameplay sisteminin yetkisi olmalı.
+
+Core Resolution sonuç üretir.
+
+Combat Combat state'ini yönetir.
+
+Quest Quest state'ini yönetir.
+
+Inventory Inventory state'ini yönetir.
+
+Bu separation korunmalı.
+
+==================================================
+12. IDEMPOTENCY
+==================================================
+
+Aynı player action / resolution ikinci kez işlendiğinde
+ikinci kez zar atılmamalı veya ikinci kez state mutation
+oluşmamalı.
+
+Mevcut action/turn/request ID mekanizması varsa onu kullan.
+
+Yeni ve paralel bir kimlik sistemi oluşturma.
+
+Retry durumunda aynı authoritative resolution sonucu
+yeniden kullanılabilmeli.
+
+Bu özellikle ileride:
+
+- browser retry
+- API retry
+- network retry
+- model retry
+
+gibi durumlarda aynı mekanik sonucun iki kez uygulanmasını
+engellemek için korunmalı.
+
+==================================================
+13. RESULT CONTRACT
+==================================================
+
+Core Resolution'ın çıktısı narration string'i olmamalı.
+
+Structured result üret.
+
+Örnek kavramsal yapı:
+
+ResolutionResult
+
+- resolution_id
+- action_id
+- resolution_type
+- actor_id
+- target_id (gerekiyorsa)
+- ability
+- skill
+- roll(s)
+- selected_roll
+- modifier_breakdown
+- total
+- target_value
+- outcome
+- critical_state (yalnız ilgili resolution türlerinde)
+- state_transition_id (varsa)
+- reason_code
+
+Alan isimlerini mevcut API/engine sözleşmelerine göre uyarla.
+
+Yeni duplicate contract yaratma.
+
+Mevcut structured action result / skill result yapıları
+uygunsa onları genişlet veya ortaklaştır.
+
+==================================================
+14. JOURNAL / MEMORY
+==================================================
+
+Core Resolution sonucu gerektiğinde mevcut canonical journal
+ve persistence katmanıyla uyumlu olmalı.
+
+Ancak bu görevde yeni büyük Memory sistemi yazma.
+
+Narration:
+
+canonical memory değildir.
+
+Qwen'in ürettiği prose:
+
+canonical state değildir.
+
+Bir resolution'ın gerçek sonucu Python tarafından kaydedilebilir.
+
+Narration daha sonra bu sonucu anlatabilir.
+
+==================================================
+15. MODEL CALL BUDGET
+==================================================
+
+Core Resolution hiçbir şekilde Qwen çağrısı yapmamalı.
+
+Resolution:
+
+0 model call.
+
+Intent gerekiyorsa üst katman çağırır.
+
+Narration gerekiyorsa çözümden sonra çağırır.
+
+Global:
+
+MAX 2 MODEL CALL / PLAYER TURN
+
+değişmeyecek.
+
+Core Resolution nedeniyle yeni retry loop oluşturma.
+
+==================================================
+16. COMBAT İÇİN HAZIRLIK
+==================================================
+
+Bu görev Combat V2/V3'ü uygulamak değildir.
+
+Ancak Combat daha sonra şu yapıyı kullanabilmeli:
+
+player action
+→ target validation
+→ attack roll
+→ hit/miss
+→ damage resolution
+→ HP/state transition
+→ combat event
+→ narration
+
+Core Resolution yalnızca gerekli ortak mekanik çekirdeği
+hazırlamalı.
+
+Şunları BU GÖREVDE YAZMA:
+
+- initiative sistemi
+- enemy turn
+- combat round manager
+- multi-enemy combat
+- flee/disengage sistemi
+- death saves
+- full combat UI
+- spell combat
+- gelişmiş combat AI
+
+Bunlar sonraki aşamadır.
+
+==================================================
+17. QUEST İÇİN HAZIRLIK
+==================================================
+
+Quest sistemi de daha sonra aynı resolution layer'ı kullanmalı.
+
+Örneğin:
+
+Quest objective
+→ player action
+→ Core Resolution
+→ success/failure
+→ Quest engine transition
+
+Ancak bu görevde:
+
+- yeni quest catalog
+- quest offer sistemi
+- quest state machine
+- quest completion
+- quest rewards
+
+yazma.
+
+Sadece Core Resolution'ın bunlara uygun bir contract
+sunmasını sağla.
+
+==================================================
+18. EXISTING CODE'U KORU
+==================================================
+
+Mevcut doğru çalışan mekanikleri mümkün olduğunca reuse et.
+
+Aynı mekanik için ikinci implementation oluşturma.
+
+Özellikle:
+
+- mevcut skill check
+- existing dice
+- existing structured results
+- session isolation
+- campaign persistence
+- action IDs
+- current combat helpers
+
+incelenmeli.
+
+Bir mevcut helper zaten doğru işi yapıyorsa yeniden yazma.
+
+==================================================
+19. game.py KURALI
+==================================================
+
+`game.py` üzerinde değişiklik yalnızca Core Resolution boundary'si
+gerçekten bunu gerektiriyorsa yapılabilir.
+
+Ancak:
+
+- büyük refactor yapma
+- dosyayı parçalama
+- architecture rewrite yapma
+- unrelated cleanup yapma
+
+Core Resolution için gereken minimum değişiklik dışında
+`game.py`'ye dokunma.
+
+Yeni bağımsız module oluşturmak mevcut architecture ile uyumlu
+ve gerçekten daha güvenliyse kullanılabilir.
+
+Ancak sırf "temiz mimari" amacıyla geniş decomposition başlatma.
+
+==================================================
+20. API / FRONTEND
+==================================================
+
+İlk Core Resolution implementasyonunda frontend redesign yapma.
+
+API contract değişikliği gerçekten gerekiyorsa:
+
+1. OpenAPI source'u güncelle
+2. generated client'ı codegen ile üret
+3. generated dosyaları elle düzenleme
+
+Ancak gereksiz API genişletme yapma.
+
+Core Resolution backend-first ilerlemeli.
+
+==================================================
+21. TEST STRATEJİSİ — ÖNEMLİ
+==================================================
+
+BU GÖREVDE TEST BOMBARDIMANI İSTEMİYORUM.
+
+Yalnızca Core Resolution için gerekli küçük ve hedefli testler ekle.
+
+Minimum hedef:
+
+- normal d20
+- advantage
+- disadvantage
+- advantage + disadvantage cancellation
+- ability check success
+- ability check failure
+- skill proficiency
+- saving throw
+- attack hit
+- attack miss
+- natural 20 attack
+- natural 1 attack
+- modifier breakdown
+- idempotent retry
+
+Bunların her biri için küçük deterministic test yeterlidir.
+
+Mevcut test suite'in tamamını gereksiz yere çalıştırma.
+
+Önce yeni Core Resolution testlerini çalıştır.
+
+Sonra yalnızca doğrudan etkilenen mevcut test gruplarını çalıştır.
+
+Full repository test suite'i ancak gerçek bir regression şüphesi
+oluşursa çalıştır.
+
+Mock testleri kullanabilirsin.
+
+Gerçek Ollama bu mekanik testlerinde kullanılmayacak.
+
+Core Resolution deterministic olmalı.
+
+==================================================
+22. SOURCE AUTHORITY
+==================================================
+
+D&D mechanics için:
+
+- Player's Handbook 2024
+- Dungeon Master's Guide 2024
+- Monster Manual mevcut yüklenmiş edition
+
+birincil referanslardır.
+
+Bir mekanik bu kaynaklarda doğrulanamıyorsa uydurma.
+
+Bir setting-specific mechanic açıkça genel kuralı değiştiriyorsa
+specific rule'u dikkate al.
+
+Qwen kaynak metninden mekanik sonuç çıkarıp uygulayamaz.
+
+==================================================
+23. ACCEPTANCE CRITERIA
+==================================================
+
+Bu görev tamamlandığında:
+
+1. Tek bir ortak Core Resolution yolu bulunmalı.
+
+2. Skill checks ayrı bir özel zar sistemi kullanmamalı.
+
+3. Saving throws aynı core resolution primitives'i kullanmalı.
+
+4. Attack rolls aynı dice/modifier/advantage altyapısını kullanmalı.
+
+5. Advantage/disadvantage tek ve tutarlı şekilde çözülmeli.
+
+6. Modifier breakdown deterministik olmalı.
+
+7. DC/AC comparison Python tarafından yapılmalı.
+
+8. Qwen hiçbir mekanik sonucu belirlememeli.
+
+9. Frontend hiçbir mekanik sonucu belirlememeli.
+
+10. Resolution sonucu structured olmalı.
+
+11. Resolution retry ikinci zar atışına veya ikinci mutation'a
+yol açmamalı.
+
+12. Session/campaign isolation korunmalı.
+
+13. Persistence/save compatibility korunmalı.
+
+14. MAX 2 model calls/turn değişmemeli.
+
+15. Narration Core Resolution'ın parçası olmamalı.
+
+16. Combat ve Quest henüz komple implement edilmemeli.
+
+17. Mevcut çalışan gameplay davranışı gereksiz yere değiştirilmemeli.
+
+==================================================
+24. NON-GOALS
+==================================================
+
+BU TASK İÇİN YASAK KAPSAM:
+
+- Combat V2/V3 tamamlamak
+- Quest system tamamlamak
+- Spells
+- Economy
+- Factions
+- Reputation
+- Time system
+- Travel system
+- Full Memory redesign
+- NPC relationship system
+- UI redesign
+- Engine decomposition
+- Lore ingestion
+- yeni büyük architecture refactor
+
+Core Resolution bunlara temel hazırlayacak.
+Bunları şimdi yazmayacak.
+
+==================================================
+25. ÇALIŞMA ŞEKLİ
+==================================================
+
+Küçük ve review edilebilir değişiklik yap.
+
+Önce mevcut implementation'ı incele.
+
+Sonra Core Resolution için minimum gerekli kodu uygula.
+
+Unrelated cleanup yapma.
+
+Unrelated bug fix yapma.
+
+Yeni feature ekleme.
+
+Yeni commit oluşturma.
+
+Push yapma.
+
+Merge yapma.
+
+Force push yapma.
+
+Reset/rebase yapma.
+
+==================================================
+26. SON RAPOR
+==================================================
+
+İş bitince kısa ama somut rapor ver:
+
+1. Core Resolution hangi dosyalarda uygulandı?
+2. Mevcut hangi mekanikler reuse edildi?
+3. Yeni resolution contract nedir?
+4. Hangi resolution türleri çalışıyor?
+5. State transition boundary nerede?
+6. Idempotency nasıl korunuyor?
+7. Qwen bu sistemde tam olarak nerede ve nerede DEĞİL?
+8. Hangi targeted testler çalıştırıldı?
+9. Kaçı geçti?
+10. Full suite çalıştırılmadıysa bunu açıkça belirt.
+11. Herhangi bir mevcut gameplay davranışı değişti mi?
+12. Combat ve Quest için hangi ortak primitives artık hazır?
+
+Exact changed files listesini ver.
+
+Çalışma ağacını değiştirdiysen belirt.
+
+Commit/push yapma.
+
+==================================================
+FINAL PRINCIPLE
+==================================================
+
+Oyuncu:
+
+"Kapıyı açmayı deniyorum."
+
+Qwen gerekirse bunu:
+
+ACTION = INTERACT_WITH_DOOR
+
+olarak anlayabilir.
+
+Ama bundan sonrası Python'dur:
+
+→ Kapı gerçekten var mı?
+→ Oyuncu oraya erişebilir mi?
+→ Check gerekiyor mu?
+→ Hangi ability?
+→ Hangi skill?
+→ Hangi modifier?
+→ Advantage/Disadvantage var mı?
+→ DC kaç?
+→ Zar kaç?
+→ Sonuç ne?
+→ State değişti mi?
+→ Canonical event ne?
+
+Qwen yalnızca bundan sonra:
+
+"Kapının eski kilidi direniyor..."
+
+gibi çözülmüş gerçeği anlatabilir.
+
+PYTHON RESOLVES.
+QWEN NARRATES.
+FRONTEND PRESENTS.
+
+Bu Core Resolution V1'in temel prensibidir.
