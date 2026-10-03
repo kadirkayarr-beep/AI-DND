@@ -1,0 +1,293 @@
+# AI-DND — CORE RESOLUTION PRE-AUDIT
+# READ ONLY — DO NOT IMPLEMENT
+
+Core Resolution System'e geçmeden önce mevcut kodda zaten bulunan resolution/gameplay mekaniklerini incele.
+
+BU SADECE KOD İNCELEMESİDİR.
+
+HİÇBİR ŞEYİ DEĞİŞTİRME.
+
+- test çalıştırma
+- codegen çalıştırma
+- browser açma
+- smoke test yapma
+- Ollama/Qwen çağırma
+- dosya oluşturma
+- dosya değiştirme
+- commit
+- push
+- reset
+- restore
+- checkout
+- refactor
+
+Amaç:
+Yeni bir resolution sistemi yazmadan önce mevcut sistemde ne olduğunu kesin olarak anlamak.
+
+==================================================
+1. MEVCUT RESOLUTION MEKANİKLERİ
+==================================================
+
+Kodda gerçekten mevcut olanları bul:
+
+- d20
+- ability check
+- skill check
+- saving throw
+- DC
+- ability modifier
+- proficiency
+- advantage
+- disadvantage
+- attack roll
+- damage roll
+- healing
+- critical
+- initiative
+- conditions
+- duration
+- temporary HP
+- resistance
+- vulnerability
+- immunity
+- death/dying
+- spell attack
+- spell save DC
+- resource usage/rest reset
+
+Her biri için sadece:
+
+- EXISTS
+- PARTIAL
+- MISSING
+
+ve dosya/fonksiyon konumunu belirt.
+
+==================================================
+2. PYTHON AUTHORITY
+==================================================
+
+Mevcut oyuncu eyleminin gerçek akışını çıkar:
+
+PLAYER INPUT
+→ INTENT
+→ ACTION
+→ VALIDATION
+→ RESOLUTION
+→ STATE CHANGE
+→ JOURNAL/MEMORY
+→ NARRATION
+
+Kodda gerçekten nasıl çalışıyorsa onu yaz.
+
+Özellikle doğrula:
+
+- Python sonucu belirliyor mu?
+- model sonucu belirliyor mu?
+- frontend state oluşturabiliyor mu?
+
+==================================================
+3. DICE
+==================================================
+
+Mevcut zar mekanizmasını bul:
+
+- RNG
+- d20
+- seed/determinism
+- roll ID varsa
+- persistence varsa
+- modelin zar sonucuna müdahale edip edemediği
+
+Yeni zar sistemi tasarlama.
+
+==================================================
+4. COMBAT
+==================================================
+
+Mevcut combat sisteminde gerçekten çalışan mekanikleri listele:
+
+- initiative
+- attack
+- AC
+- damage
+- HP
+- death
+- conditions
+- turns
+- spells
+
+Her biri için EXISTS / PARTIAL / MISSING yaz.
+
+Mock/test mekanikleri ile gerçek motor mekaniklerini ayır.
+
+==================================================
+5. CHARACTER → RESOLUTION
+==================================================
+
+Character creation'dan resolution'a bugün hangi değerler aktarılıyor?
+
+- ability scores
+- modifiers
+- proficiency
+- skills
+- saves
+- equipment
+- armor
+- shield
+- weapons
+- spells
+- feats
+- fighting styles
+- species abilities
+
+Özellikle Aasimar, Goliath ve Orc yeteneklerinin mevcut resolution mekanikleriyle nasıl çalıştığını belirt.
+
+==================================================
+6. QUEST
+==================================================
+
+Mevcut quest sisteminde resolution gerektiren şeyleri listele:
+
+- checks
+- combat
+- item evidence
+- NPC interaction
+- location
+- success/failure
+
+Yeni quest sistemi tasarlama.
+
+==================================================
+7. LIVING WORLD
+==================================================
+
+Living World V2/V2.1'in mevcut resolution sınırını belirt:
+
+- GREEN
+- BLUE
+- APPLIED
+- REJECTED
+- NO_EFFECT
+- ALREADY_APPLIED
+- NPC promotion
+
+Core Resolution ile mevcut bağlantıyı açıkla.
+
+==================================================
+8. MEMORY / JOURNAL
+==================================================
+
+Bir gameplay sonucunun bugün nasıl kalıcılaştığını açıkla.
+
+Özellikle ayır:
+
+ACTION INTENT
+≠
+RESOLUTION RESULT
+≠
+CANONICAL EVENT
+≠
+NARRATION
+
+Bu ayrım kodda mevcut mu, nerede?
+
+==================================================
+9. MODEL BOUNDARY
+==================================================
+
+Qwen/model bugün ne yapıyor?
+
+Ve ne yapmaması garanti ediliyor?
+
+Özellikle:
+
+- zar sonucu
+- DC
+- hasar
+- HP
+- item
+- quest completion
+- canonical memory
+
+konularında modelin yetkisi var mı?
+
+==================================================
+10. CORE RESOLUTION İÇİN GERÇEK İHTİYAÇLAR
+==================================================
+
+Yukarıdaki incelemeden sonra yalnızca gerçekten gerekli olan
+Core Resolution primitive'lerini listele.
+
+Örneğin:
+
+- Roll
+- Check
+- Save
+- Attack
+- Damage
+- Heal
+- ApplyCondition
+- RemoveCondition
+- ResourceSpend
+- ResourceRestore
+- Duration
+- Advantage/Disadvantage
+- Resistance
+- Critical
+- Death/Dying
+
+Ama mevcut kodda ihtiyaç olmadığı görülen şeyleri sırf listeyi
+büyütmek için ekleme.
+
+==================================================
+11. FINAL RAPOR
+==================================================
+
+Şu formatta kısa ve teknik bir rapor ver:
+
+# CORE RESOLUTION PRE-AUDIT
+
+## Already Exists
+Mevcut ve kullanılabilir mekanikler.
+
+## Partial
+Var ama ortak resolution sistemi değil.
+
+## Missing
+Gerçekten eksik mekanikler.
+
+## Authority
+Python / frontend / model sınırları.
+
+## Combat
+Mevcut durum.
+
+## Quest
+Mevcut durum.
+
+## Living World
+Mevcut durum.
+
+## Memory / Journal
+Mevcut durum.
+
+## Required Core Resolution Primitives
+Core Resolution'ın gerçekten ihtiyaç duyduğu temel parçalar.
+
+## Blockers
+Core Resolution'a başlamamızı gerçekten engelleyen bir şey varsa belirt.
+
+## Recommended Order
+Core Resolution uygulanacaksa hangi sırayla yapılması gerektiğini öner.
+
+ÖNEMLİ:
+
+Bu görevde test çalıştırma.
+
+Test sonuçlarını yeniden üretmeye çalışma.
+
+Sadece mevcut kodu oku ve raporla.
+
+Hedefimiz üç gün daha test yapmak değil;
+mevcut sistemi anlayıp Core Resolution tasarımına geçmek.
