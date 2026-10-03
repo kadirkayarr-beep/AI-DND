@@ -1,0 +1,90 @@
+AI-DND — FINAL CHECK OF CURRENT LOCAL FIXES
+
+Şu anda Core Resolution'a geçmeden önce mevcut çalışma ağacındaki 4 yerel düzeltmeyi kontrol edeceğiz.
+
+SADECE READ-ONLY İNCELEME YAP.
+
+HİÇBİR DOSYAYI DEĞİŞTİRME.
+COMMIT YAPMA.
+PUSH YAPMA.
+RESET / RESTORE / CHECKOUT / REBASE / MERGE YAPMA.
+CODEGEN ÇALIŞTIRMA.
+TEST DOSYALARINI DEĞİŞTİRME.
+
+İncelenecek dosyalar:
+
+- ai-dnd/game.py
+- ai-dnd/api/serializers.py
+- ai-dnd/api/schemas.py
+- ai-dnd/live_integration_test.py
+
+Önce:
+
+git status --short
+git diff --name-only
+git diff --stat
+
+Ardından yalnızca bu dört dosyanın mevcut diff'lerini incele.
+
+Her dosya için kısa ve somut olarak raporla:
+
+1. Tam olarak ne değişmiş?
+2. Değişiklik neden yapılmış?
+3. Gerçek gameplay davranışını değiştiriyor mu?
+4. Save/load veya eski kayıt uyumluluğunu etkiliyor mu?
+5. Python-authoritative mimariye uygun mu?
+6. Değişiklik gerçek bir bug fix mi, yoksa yalnızca yanlış test/mock beklentisinin düzeltilmesi mi?
+7. Core Resolution'a geçmemize engel olacak bir risk oluşturuyor mu?
+
+Özellikle:
+
+`game.py`
+- Tür yeteneği olmayan species'lerde boş species state'in kaydedilmemesi değişikliğini incele.
+- Bunun mevcut karakter/persistence davranışını bozup bozmadığını kontrol et.
+
+`serializers.py` + `schemas.py`
+- Kullanılmayan skill-dice alanlarının null olarak dönmemesi değişikliğini incele.
+- Bunun API contract veya frontend davranışına etkisini kontrol et.
+
+`live_integration_test.py`
+- Mock smoke testindeki self-query beklentisi ve attack mock response düzeltmelerini incele.
+- Bunun yalnızca test/mock davranışı olduğunu doğrula.
+- Gerçek oyun motoru davranışını değiştirmediğini doğrula.
+
+Ayrıca mevcut test sonuçlarını değiştirmeden önceki raporla karşılaştır:
+
+- root Python: 200/200
+- API: 247/247
+- web: 35/35
+- mock integration: 12/12
+
+Bu dört düzeltmenin bu sonuçları neden düzelttiğini mümkün olduğunca somut şekilde açıkla.
+
+SONUÇTA ŞU FORMATTA RAPORLA:
+
+### LOCAL FIX AUDIT
+
+**game.py:** SAFE / NEEDS REVIEW
+Kısa neden.
+
+**serializers.py:** SAFE / NEEDS REVIEW
+Kısa neden.
+
+**schemas.py:** SAFE / NEEDS REVIEW
+Kısa neden.
+
+**live_integration_test.py:** SAFE / NEEDS REVIEW
+Kısa neden.
+
+### Overall
+- Bu dört değişiklik birlikte güvenli görünüyor mu?
+- Core Resolution'a geçmeden önce blocker var mı?
+- Başka beklenmeyen çalışma ağacı değişikliği var mı?
+
+Son olarak mevcut:
+- `git status --short`
+- `git diff --name-only`
+
+çıktılarını tekrar ver.
+
+HİÇBİR DEĞİŞİKLİK YAPMA.
