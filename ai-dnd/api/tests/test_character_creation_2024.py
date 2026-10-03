@@ -31,6 +31,13 @@ class MockSession:
         self.inventory: list[str] = []
         self.world_state: dict[str, Any] = {"inventory": []}
 
+    def initialize_species_trait_state(self, giant_ancestry: str | None = None):
+        species = self.character.get("species", self.character.get("race"))
+        self.character["giant_ancestry"] = giant_ancestry
+        self.character["species_trait_state"] = game._new_species_trait_state(
+            species, self.character.get("proficiency_bonus", 2)
+        )
+
 
 class CharacterCreation2024Tests(unittest.TestCase):
     def test_catalog_returns_all_rules_data(self):

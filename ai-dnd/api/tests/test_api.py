@@ -103,6 +103,41 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(turn.json()["narration"], "Handled: Bekle")
         self.assertEqual(turn.json()["state"], state.json())
 
+    async def test_species_action_returns_authoritative_result_and_state(self):
+        created = await self.create_session()
+        session_id = created["session_id"]
+        session = self.manager.get(session_id).game_session
+        session.character.update(
+            {
+                "species": "Aasimar",
+                "race": "Aasimar",
+                "level": 3,
+                "proficiency_bonus": 2,
+                "current_hp": 1,
+                "max_hp": 20,
+                "charisma_mod": 1,
+            }
+        )
+        session.initialize_species_trait_state()
+
+        with patch.object(session.rng, "randint", return_value=1):
+            response = await self.http.post(
+                f"/api/game/sessions/{session_id}/species-actions",
+                json={"action": "healing_hands"},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = response.json()
+        self.assertEqual(payload["result"]["action"], "healing_hands")
+        self.assertEqual(payload["result"]["effects"]["current_hp"], 3)
+        self.assertEqual(payload["state"]["character"]["current_hp"], 3)
+        self.assertEqual(
+            payload["state"]["character"]["species_trait_state"][
+                "healing_hands_uses_remaining"
+            ],
+            0,
+        )
+
     async def test_new_sessions_have_unique_opaque_uuid4_ids(self):
         first = await self.create_session()
         second = await self.create_session()

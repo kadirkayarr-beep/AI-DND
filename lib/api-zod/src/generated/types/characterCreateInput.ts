@@ -8,6 +8,7 @@
 import type { CharacterCreateInputAbilityScores } from './characterCreateInputAbilityScores';
 import type { CharacterCreateInputBackgroundAbilityBonuses } from './characterCreateInputBackgroundAbilityBonuses';
 import type { CharacterCreateInputBackgroundEquipmentOption } from './characterCreateInputBackgroundEquipmentOption';
+import type { CharacterCreateInputGiantAncestry } from './characterCreateInputGiantAncestry';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
 
 /**
@@ -27,6 +28,8 @@ export interface CharacterCreateInput {
   class?: string | null;
   /** @nullable */
   species?: string | null;
+  /** @nullable */
+  giant_ancestry?: CharacterCreateInputGiantAncestry;
   /** @nullable */
   background?: string | null;
   /** @nullable */

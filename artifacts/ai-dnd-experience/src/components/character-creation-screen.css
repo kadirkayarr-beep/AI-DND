@@ -13,6 +13,18 @@
     linear-gradient(135deg, #d8ccb0, #c8b996 55%, #b5a47f);
 }
 
+.character-creation-screen button.cc-choice-card {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.character-creation-screen button.cc-choice-card:focus-visible {
+  outline: 2px solid #794239;
+  outline-offset: 3px;
+}
+
 .character-creation-screen::before {
   position: fixed;
   z-index: -1;

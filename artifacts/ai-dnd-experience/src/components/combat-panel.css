@@ -626,3 +626,151 @@
   .combat-section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
   .combat-section-note { text-align: left; }
 }
+
+.species-traits {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 15px;
+  border: 1px solid rgba(169, 132, 72, .34);
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(43, 35, 25, .82), rgba(26, 24, 21, .82));
+}
+
+.species-traits-heading,
+.species-trait-control-row,
+.species-trait-rests {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.species-traits-heading h3 {
+  margin: 4px 0 0;
+  color: #e5d5b5;
+  font-family: var(--app-font-serif);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.species-traits-species,
+.species-trait-resource {
+  color: #baa780;
+  font-size: 11px;
+}
+
+.species-trait-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(169, 132, 72, .2);
+}
+
+.species-trait-control-row > * {
+  flex: 1;
+}
+
+.species-trait-select-label {
+  display: grid;
+  gap: 5px;
+  color: #baa780;
+  font-size: 11px;
+}
+
+.species-trait-select-label select {
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid rgba(169, 132, 72, .4);
+  border-radius: 6px;
+  background: #211e19;
+  color: #e3d7c1;
+  font: inherit;
+}
+
+.species-trait-button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid rgba(194, 157, 93, .58);
+  border-radius: 6px;
+  background: rgba(111, 82, 42, .28);
+  color: #e4d0a4;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, opacity .16s ease;
+}
+
+.species-trait-button:hover:not(:disabled) {
+  border-color: #c39e5b;
+  background: rgba(132, 98, 48, .42);
+}
+
+.species-trait-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.species-trait-button-secondary {
+  border-color: rgba(160, 151, 130, .3);
+  background: rgba(64, 58, 49, .25);
+  color: #bdb4a2;
+}
+
+.species-trait-rests {
+  justify-content: flex-start;
+  padding-top: 10px;
+  border-top: 1px solid rgba(169, 132, 72, .2);
+}
+
+.species-trait-feedback {
+  margin: 0;
+  padding: 9px 10px;
+  border-left: 2px solid #b59158;
+  background: rgba(181, 145, 88, .1);
+  color: #dfd0b4;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.species-trait-feedback-error {
+  border-left-color: #bd7062;
+  color: #e1aaa0;
+}
+
+.species-trait-feedback details {
+  margin-top: 7px;
+}
+
+.species-trait-feedback summary {
+  color: #c4ad82;
+  cursor: pointer;
+}
+
+.species-trait-feedback pre {
+  max-width: 100%;
+  overflow-x: auto;
+  color: #b7ad99;
+  font-size: 10px;
+  white-space: pre-wrap;
+}
+
+.combat-species-effects {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 8px 10px 8px 24px;
+  border-left: 2px solid rgba(188, 146, 81, .65);
+  background: rgba(188, 146, 81, .08);
+  color: #d6c39f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .species-trait-control-row,
+  .species-trait-rests {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

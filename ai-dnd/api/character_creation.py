@@ -39,6 +39,7 @@ def configure_character(
     name: str | None = None,
     race: str | None = None,
     species: str | None = None,
+    giant_ancestry: str | None = None,
     character_class: str | None = None,
     background: str | None = None,
     alignment: str | None = None,
@@ -71,6 +72,7 @@ def configure_character(
         name,
         race,
         species,
+        giant_ancestry,
         character_class,
         background,
         alignment,
@@ -104,6 +106,15 @@ def configure_character(
         race = session.rng.choice(game.RACES)
         character_class = session.rng.choice(game.CLASSES)
         species = race
+
+        giant_ancestry_options = SPECIES_DEFINITIONS.get(
+            species, {}
+        ).get("giant_ancestry_options", [])
+        giant_ancestry = (
+            session.rng.choice(giant_ancestry_options)["id"]
+            if giant_ancestry_options
+            else None
+        )
 
         default_bg_map = {
             "Fighter": "Soldier",
@@ -237,6 +248,20 @@ def configure_character(
             raise CharacterCreationError("Choose a race or species supported by the rules.")
         species = chosen_species
         race = chosen_species
+        giant_ancestry_options = SPECIES_DEFINITIONS.get(
+            species, {}
+        ).get("giant_ancestry_options", [])
+        valid_giant_ancestries = {
+            item["id"] for item in giant_ancestry_options
+        }
+        if species == "Goliath" and giant_ancestry not in valid_giant_ancestries:
+            raise CharacterCreationError(
+                "Goliath characters must choose one Giant Ancestry."
+            )
+        if species != "Goliath" and giant_ancestry is not None:
+            raise CharacterCreationError(
+                "Giant Ancestry is only available to Goliaths."
+            )
 
         if not character_class:
             raise CharacterCreationError("Class must be chosen.")
@@ -567,6 +592,7 @@ def configure_character(
             "name": name,
             "race": race,
             "species": species,
+            "giant_ancestry": giant_ancestry,
             "class": character_class,
             "background": background,
             "alignment": alignment,
@@ -608,6 +634,7 @@ def configure_character(
             "modifiers": modifiers,
         }
     )
+    session.initialize_species_trait_state(giant_ancestry=giant_ancestry)
 
     # Transfer verified starting equipment to canonical gameplay inventory
     if hasattr(session, "world_state") and isinstance(session.world_state, dict):

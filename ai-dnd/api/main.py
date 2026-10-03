@@ -72,6 +72,9 @@ from api.schemas import (
     TurnResponse,
     QuestCommandResult,
     QuestState,
+    SpeciesTraitActionRequest,
+    SpeciesTraitActionResult,
+    SpeciesTraitCommandResult,
 )
 from api.serializers import (
     CombatResultSerializationError,
@@ -1139,6 +1142,68 @@ def create_app(
     )
     def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:
         return _quest_command(session_id, quest_id, "cancel")
+
+    @application.post(
+        "/api/game/sessions/{session_id}/species-actions",
+        response_model=SpeciesTraitCommandResult,
+    )
+    def resolve_species_trait_action(
+        session_id: str,
+        request: SpeciesTraitActionRequest,
+    ) -> dict[str, Any]:
+        record = get_record(session_id)
+        with record.turn_lock:
+            session = record.game_session
+            snapshot = _capture_session(session)
+            try:
+                result = session.resolve_species_trait_action(
+                    request.action,
+                    form=request.form,
+                    ancestry=request.ancestry,
+                    armed=request.armed,
+                )
+                response = SpeciesTraitCommandResult(
+                    session_id=session_id,
+                    state=serialize_session_state(session, record.journal),
+                    result=SpeciesTraitActionResult.model_validate(result),
+                )
+                if record.campaign_id is not None:
+                    manager.save_campaign_locked(record)
+                return redact_sensitive_values(response.model_dump())
+            except ValueError as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "species_action_unavailable",
+                        "message": str(error),
+                    },
+                ) from None
+            except CampaignError as error:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise campaign_http_exception(error) from None
+            except Exception:
+                try:
+                    _restore_session(session, snapshot)
+                except Exception:
+                    pass
+                raise
+
+    @application.post(
+        "/api/sessions/{session_id}/species-actions",
+        response_model=SpeciesTraitCommandResult,
+    )
+    def resolve_species_trait_action_compat(
+        session_id: str,
+        request: SpeciesTraitActionRequest,
+    ) -> dict[str, Any]:
+        return resolve_species_trait_action(session_id, request)
 
     @application.post(
         "/api/game/sessions/{session_id}/ambient-events/"

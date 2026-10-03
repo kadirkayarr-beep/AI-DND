@@ -146,6 +146,7 @@ export function CharacterCreationScreen({
   const [characterClass, setCharacterClass] = useState('');
   const [background, setBackground] = useState('');
   const [species, setSpecies] = useState('');
+  const [giantAncestry, setGiantAncestry] = useState('');
   const [name, setName] = useState('');
   const [alignment, setAlignment] = useState('');
 
@@ -497,6 +498,9 @@ export function CharacterCreationScreen({
         return 'İlerlemek için bir geçmiş (background) seçin.';
       case 'species':
         if (!species) return 'İlerlemek için bir tür (species) seçin.';
+        if (species === 'Goliath' && !giantAncestry) {
+          return 'Devsoylu karakterin için bir Dev Atası seçmelisin.';
+        }
         if (
           Number(speciesData?.origin_feat_bonus_count) > 0 &&
           !originFeatOptions.some((feat) => feat.id === speciesBonusFeat)
@@ -603,6 +607,9 @@ export function CharacterCreationScreen({
       race: species, // legacy compatibility
       class: characterClass, // legacy compatibility
       species,
+      giant_ancestry: species === 'Goliath' && giantAncestry
+        ? giantAncestry as CharacterCreateInput['giant_ancestry']
+        : undefined,
       background,
       alignment,
       ability_score_method: abilityMethod!,
@@ -788,7 +795,10 @@ export function CharacterCreationScreen({
                       <div
                         key={raceKey}
                         className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSpecies(raceKey)}
+                        onClick={() => {
+                          if (raceKey !== species) setGiantAncestry('');
+                          setSpecies(raceKey);
+                        }}
                       >
                         <div className="cc-card-top">
                           <span className="cc-card-title">{rc.name_tr ?? raceKey}</span>
@@ -826,6 +836,32 @@ export function CharacterCreationScreen({
                     );
                   })}
                 </div>
+                {species === 'Goliath' && (
+                  <section className="cc-sub-section" data-testid="section-giant-ancestry">
+                    <h3 className="cc-sub-title">Dev Atanı Seç</h3>
+                    <p className="cc-card-desc">
+                      Seçimin, Ustalık Bonusun kadar uzun dinlenmede yenilenen bir yeteneği belirler.
+                    </p>
+                    <div className="cc-cards-grid">
+                      {(speciesData?.giant_ancestry_options ?? []).map(
+                        (option: { id: string; name_tr: string; desc: string }) => (
+                          <button
+                            type="button"
+                            key={option.id}
+                            className={`cc-choice-card ${giantAncestry === option.id ? 'selected' : ''}`}
+                            role="radio"
+                            aria-checked={giantAncestry === option.id}
+                            onClick={() => setGiantAncestry(option.id)}
+                            data-testid={`giant-ancestry-${option.id}`}
+                          >
+                            <span className="cc-card-title">{option.name_tr}</span>
+                            <span className="cc-card-desc">{option.desc}</span>
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </section>
+                )}
                 {Number(speciesData?.origin_feat_bonus_count) > 0 && (
                   <div className="cc-sub-section" data-testid="section-species-bonus-feat">
                     <div className="cc-sub-header">
@@ -1813,7 +1849,14 @@ export function CharacterCreationScreen({
           {/* Hidden legacy test targets to preserve existing testing harnesses */}
           <div style={{ display: 'none' }}>
             <button data-testid="button-mode-custom" onClick={() => setMode('custom')}>Özel</button>
-            <select data-testid="select-character-race" value={species} onChange={(e) => setSpecies(e.target.value)}>
+            <select
+              data-testid="select-character-race"
+              value={species}
+              onChange={(e) => {
+                if (e.target.value !== species) setGiantAncestry('');
+                setSpecies(e.target.value);
+              }}
+            >
               {catalog?.races && Object.keys(catalog.races).map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
             <select data-testid="select-character-class" value={characterClass} onChange={(e) => setCharacterClass(e.target.value)}>

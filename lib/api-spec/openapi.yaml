@@ -62,6 +62,73 @@ paths:
           $ref: "#/components/responses/ApiError"
         "422":
           $ref: "#/components/responses/RequestValidationError"
+  /game/sessions/{session_id}/species-actions:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resolveSpeciesTraitAction
+      tags: [game]
+      summary: Resolve one server-authoritative species trait action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpeciesTraitActionInput"
+      responses:
+        "200":
+          description: Server-rolled effect and updated canonical character state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpeciesTraitCommandResult"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
+  /sessions/{session_id}/species-actions:
+    parameters:
+      - in: path
+        name: session_id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      operationId: resolveSpeciesTraitActionCompat
+      tags: [game]
+      summary: Legacy server-authoritative species action alias
+      description: Compatibility alias for /game/sessions/{session_id}/species-actions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpeciesTraitActionInput"
+      responses:
+        "200":
+          description: Server-rolled effect and updated canonical character state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpeciesTraitCommandResult"
+        "404":
+          $ref: "#/components/responses/ApiError"
+        "409":
+          $ref: "#/components/responses/ApiError"
+        "422":
+          $ref: "#/components/responses/RequestValidationError"
+        "500":
+          $ref: "#/components/responses/ApiError"
   /game/sessions/{session_id}/turn:
     parameters:
       - in: path
@@ -782,6 +849,95 @@ components:
         state: {$ref: "#/components/schemas/GameState"}
         result: {$ref: "#/components/schemas/AmbientEventResult"}
       required: [session_id, state, result]
+    SpeciesTraitActionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+            - healing_hands
+            - celestial_revelation
+            - large_form
+            - adrenaline_rush
+            - cloud_jaunt
+            - arm_giant_ancestry
+            - choose_giant_ancestry
+            - short_rest
+            - long_rest
+        form:
+          type: ["string", "null"]
+          enum: [heavenly_wings, inner_radiance, necrotic_shroud, null]
+        ancestry:
+          type: ["string", "null"]
+          enum: [cloud, fire, frost, hill, stone, storm, null]
+        armed:
+          type: ["boolean", "null"]
+      required: [action]
+    SpeciesTraitActionResult:
+      type: object
+      additionalProperties: false
+      properties:
+        action: {type: string}
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+        effects:
+          type: object
+          additionalProperties: true
+      required: [action, message, effects]
+    SpeciesTraitCommandResult:
+      type: object
+      additionalProperties: false
+      properties:
+        session_id: {type: string, format: uuid}
+        state: {$ref: "#/components/schemas/GameState"}
+        result: {$ref: "#/components/schemas/SpeciesTraitActionResult"}
+      required: [session_id, state, result]
+    SpeciesTraitState:
+      type: object
+      additionalProperties: false
+      properties:
+        healing_hands_uses_remaining: {type: integer, minimum: 0}
+        celestial_revelation_uses_remaining: {type: integer, minimum: 0}
+        active_celestial_form:
+          type: ["string", "null"]
+          enum: [heavenly_wings, inner_radiance, necrotic_shroud, null]
+        celestial_revelation_turns_remaining: {type: integer, minimum: 0}
+        celestial_damage_used_turn: {type: ["integer", "null"], minimum: 0}
+        giant_ancestry_uses_remaining: {type: integer, minimum: 0}
+        giant_ancestry_armed: {type: boolean}
+        large_form_uses_remaining: {type: integer, minimum: 0}
+        large_form_turns_remaining: {type: integer, minimum: 0}
+        adrenaline_rush_uses_remaining: {type: integer, minimum: 0}
+        relentless_endurance_available: {type: boolean}
+        temporary_hit_points: {type: integer, minimum: 0}
+        bonus_action_used_round: {type: ["integer", "null"], minimum: 1}
+        movement_budget_ft: {type: integer, minimum: 0}
+        movement_effect:
+          anyOf:
+            - type: object
+              additionalProperties: true
+            - type: "null"
+        player_turn_counter: {type: integer, minimum: 0}
+      required:
+        - healing_hands_uses_remaining
+        - celestial_revelation_uses_remaining
+        - active_celestial_form
+        - celestial_revelation_turns_remaining
+        - celestial_damage_used_turn
+        - giant_ancestry_uses_remaining
+        - giant_ancestry_armed
+        - large_form_uses_remaining
+        - large_form_turns_remaining
+        - adrenaline_rush_uses_remaining
+        - relentless_endurance_available
+        - temporary_hit_points
+        - bonus_action_used_round
+        - movement_budget_ft
+        - movement_effect
+        - player_turn_counter
     SkillCheckResult:
       type: object
       additionalProperties: false
@@ -797,6 +953,16 @@ components:
           type: integer
           minimum: 1
           maximum: 20
+        d20_rolls:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: integer
+            minimum: 1
+            maximum: 20
+        advantage:
+          type: boolean
         proficient:
           type: boolean
         ability_modifier:
@@ -872,6 +1038,33 @@ components:
           type: ["integer", "null"]
         target_status:
           type: ["string", "null"]
+        damage_type:
+          type: ["string", "null"]
+        attack_rolls:
+          type: ["array", "null"]
+          items:
+            type: integer
+            minimum: 1
+            maximum: 20
+        disadvantage:
+          type: ["boolean", "null"]
+        hp_damage:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_before:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_absorbed:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_after:
+          type: ["integer", "null"]
+          minimum: 0
+        species_effects:
+          type: ["array", "null"]
+          items:
+            type: object
+            additionalProperties: true
     CombatTurnResult:
       type: object
       additionalProperties: false
@@ -914,6 +1107,33 @@ components:
           type: ["integer", "null"]
         target_status:
           type: ["string", "null"]
+        damage_type:
+          type: ["string", "null"]
+        attack_rolls:
+          type: ["array", "null"]
+          items:
+            type: integer
+            minimum: 1
+            maximum: 20
+        disadvantage:
+          type: ["boolean", "null"]
+        hp_damage:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_before:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_absorbed:
+          type: ["integer", "null"]
+          minimum: 0
+        temporary_hp_after:
+          type: ["integer", "null"]
+          minimum: 0
+        species_effects:
+          type: ["array", "null"]
+          items:
+            type: object
+            additionalProperties: true
         combat_started:
           type: ["boolean", "null"]
         combat_ended:
@@ -1343,6 +1563,18 @@ components:
           type: string
         race:
           type: string
+        species:
+          type: string
+        giant_ancestry:
+          type: ["string", "null"]
+          enum: [cloud, fire, frost, hill, stone, storm, null]
+        species_trait_state:
+          anyOf:
+            - $ref: "#/components/schemas/SpeciesTraitState"
+            - type: "null"
+        speed_ft:
+          type: integer
+          minimum: 0
         class:
           type: string
         background:
@@ -1863,6 +2095,9 @@ components:
           type: ["string", "null"]
         species:
           type: ["string", "null"]
+        giant_ancestry:
+          type: ["string", "null"]
+          enum: [cloud, fire, frost, hill, stone, storm, null]
         background:
           type: ["string", "null"]
         alignment:

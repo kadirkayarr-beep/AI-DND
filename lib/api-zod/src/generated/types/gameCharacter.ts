@@ -5,10 +5,18 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
+import type { SpeciesTraitState } from './speciesTraitState';
 
 export interface GameCharacter {
   name: string;
   race: string;
+  species?: string;
+  /** @nullable */
+  giant_ancestry?: GameCharacterGiantAncestry;
+  species_trait_state?: SpeciesTraitState | null;
+  /** @minimum 0 */
+  speed_ft?: number;
   class: string;
   /** @nullable */
   background?: string | null;

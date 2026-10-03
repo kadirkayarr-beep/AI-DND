@@ -376,9 +376,82 @@ export interface GameLocation {
   exit_location_id: string | null;
 }
 
+/**
+ * @nullable
+ */
+export type GameCharacterGiantAncestry = typeof GameCharacterGiantAncestry[keyof typeof GameCharacterGiantAncestry] | null;
+
+
+export const GameCharacterGiantAncestry = {
+  cloud: 'cloud',
+  fire: 'fire',
+  frost: 'frost',
+  hill: 'hill',
+  stone: 'stone',
+  storm: 'storm',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SpeciesTraitStateActiveCelestialForm = typeof SpeciesTraitStateActiveCelestialForm[keyof typeof SpeciesTraitStateActiveCelestialForm] | null;
+
+
+export const SpeciesTraitStateActiveCelestialForm = {
+  heavenly_wings: 'heavenly_wings',
+  inner_radiance: 'inner_radiance',
+  necrotic_shroud: 'necrotic_shroud',
+} as const;
+
+export type SpeciesTraitStateMovementEffect = { [key: string]: unknown } | null;
+
+export interface SpeciesTraitState {
+  /** @minimum 0 */
+  healing_hands_uses_remaining: number;
+  /** @minimum 0 */
+  celestial_revelation_uses_remaining: number;
+  /** @nullable */
+  active_celestial_form: SpeciesTraitStateActiveCelestialForm;
+  /** @minimum 0 */
+  celestial_revelation_turns_remaining: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  celestial_damage_used_turn: number | null;
+  /** @minimum 0 */
+  giant_ancestry_uses_remaining: number;
+  giant_ancestry_armed: boolean;
+  /** @minimum 0 */
+  large_form_uses_remaining: number;
+  /** @minimum 0 */
+  large_form_turns_remaining: number;
+  /** @minimum 0 */
+  adrenaline_rush_uses_remaining: number;
+  relentless_endurance_available: boolean;
+  /** @minimum 0 */
+  temporary_hit_points: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  bonus_action_used_round: number | null;
+  /** @minimum 0 */
+  movement_budget_ft: number;
+  movement_effect: SpeciesTraitStateMovementEffect;
+  /** @minimum 0 */
+  player_turn_counter: number;
+}
+
 export interface GameCharacter {
   name: string;
   race: string;
+  species?: string;
+  /** @nullable */
+  giant_ancestry?: GameCharacterGiantAncestry;
+  species_trait_state?: SpeciesTraitState | null;
+  /** @minimum 0 */
+  speed_ft?: number;
   class: string;
   /** @nullable */
   background?: string | null;
@@ -666,6 +739,8 @@ export interface GameTurnInput {
   target_id?: string | null;
 }
 
+export type CombatAttackResultSpeciesEffectsItem = { [key: string]: unknown };
+
 export interface CombatAttackResult {
   /** @nullable */
   action?: string | null;
@@ -705,7 +780,41 @@ export interface CombatAttackResult {
   target_hp_after?: number | null;
   /** @nullable */
   target_status?: string | null;
+  /** @nullable */
+  damage_type?: string | null;
+  /**
+     * @nullable
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  attack_rolls?: number[] | null;
+  /** @nullable */
+  disadvantage?: boolean | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  hp_damage?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_before?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_absorbed?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_after?: number | null;
+  /** @nullable */
+  species_effects?: CombatAttackResultSpeciesEffectsItem[] | null;
 }
+
+export type CombatTurnResultSpeciesEffectsItem = { [key: string]: unknown };
 
 export interface CombatTurnResult {
   /** @nullable */
@@ -746,6 +855,38 @@ export interface CombatTurnResult {
   target_hp_after?: number | null;
   /** @nullable */
   target_status?: string | null;
+  /** @nullable */
+  damage_type?: string | null;
+  /**
+     * @nullable
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  attack_rolls?: number[] | null;
+  /** @nullable */
+  disadvantage?: boolean | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  hp_damage?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_before?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_absorbed?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_after?: number | null;
+  /** @nullable */
+  species_effects?: CombatTurnResultSpeciesEffectsItem[] | null;
   /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
@@ -814,6 +955,14 @@ export interface SkillCheckResult {
      * @maximum 20
      */
   d20: number;
+  /**
+     * @minItems 2
+     * @maxItems 2
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  d20_rolls?: number[];
+  advantage?: boolean;
   proficient: boolean;
   ability_modifier: number;
   /** @minimum 0 */
@@ -927,12 +1076,97 @@ export interface AmbientEventCommandResult {
   result: AmbientEventResult;
 }
 
+export type SpeciesTraitActionInputAction = typeof SpeciesTraitActionInputAction[keyof typeof SpeciesTraitActionInputAction];
+
+
+export const SpeciesTraitActionInputAction = {
+  healing_hands: 'healing_hands',
+  celestial_revelation: 'celestial_revelation',
+  large_form: 'large_form',
+  adrenaline_rush: 'adrenaline_rush',
+  cloud_jaunt: 'cloud_jaunt',
+  arm_giant_ancestry: 'arm_giant_ancestry',
+  choose_giant_ancestry: 'choose_giant_ancestry',
+  short_rest: 'short_rest',
+  long_rest: 'long_rest',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SpeciesTraitActionInputForm = typeof SpeciesTraitActionInputForm[keyof typeof SpeciesTraitActionInputForm] | null;
+
+
+export const SpeciesTraitActionInputForm = {
+  heavenly_wings: 'heavenly_wings',
+  inner_radiance: 'inner_radiance',
+  necrotic_shroud: 'necrotic_shroud',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SpeciesTraitActionInputAncestry = typeof SpeciesTraitActionInputAncestry[keyof typeof SpeciesTraitActionInputAncestry] | null;
+
+
+export const SpeciesTraitActionInputAncestry = {
+  cloud: 'cloud',
+  fire: 'fire',
+  frost: 'frost',
+  hill: 'hill',
+  stone: 'stone',
+  storm: 'storm',
+} as const;
+
+export interface SpeciesTraitActionInput {
+  action: SpeciesTraitActionInputAction;
+  /** @nullable */
+  form?: SpeciesTraitActionInputForm;
+  /** @nullable */
+  ancestry?: SpeciesTraitActionInputAncestry;
+  /** @nullable */
+  armed?: boolean | null;
+}
+
+export type SpeciesTraitActionResultEffects = { [key: string]: unknown };
+
+export interface SpeciesTraitActionResult {
+  action: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  message: string;
+  effects: SpeciesTraitActionResultEffects;
+}
+
+export interface SpeciesTraitCommandResult {
+  session_id: string;
+  state: GameState;
+  result: SpeciesTraitActionResult;
+}
+
 export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typeof CharacterCreateInputMode];
 
 
 export const CharacterCreateInputMode = {
   custom: 'custom',
   random: 'random',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CharacterCreateInputGiantAncestry = typeof CharacterCreateInputGiantAncestry[keyof typeof CharacterCreateInputGiantAncestry] | null;
+
+
+export const CharacterCreateInputGiantAncestry = {
+  cloud: 'cloud',
+  fire: 'fire',
+  frost: 'frost',
+  hill: 'hill',
+  stone: 'stone',
+  storm: 'storm',
 } as const;
 
 /**
@@ -973,6 +1207,8 @@ export interface CharacterCreateInput {
   class?: string | null;
   /** @nullable */
   species?: string | null;
+  /** @nullable */
+  giant_ancestry?: CharacterCreateInputGiantAncestry;
   /** @nullable */
   background?: string | null;
   /** @nullable */

@@ -93,6 +93,14 @@ class CombatAttackResult(BaseModel):
     target_hp_before: int | None = None
     target_hp_after: int | None = None
     target_status: str | None = None
+    damage_type: str | None = None
+    attack_rolls: list[int] | None = None
+    disadvantage: bool | None = None
+    hp_damage: int | None = None
+    temporary_hp_before: int | None = None
+    temporary_hp_absorbed: int | None = None
+    temporary_hp_after: int | None = None
+    species_effects: list[dict[str, Any]] | None = None
 
 
 class CombatTurnResult(CombatAttackResult):
@@ -128,6 +136,8 @@ class SkillCheckResult(BaseModel):
         "charisma",
     ]
     d20: int = Field(ge=1, le=20)
+    d20_rolls: list[int] | None = None
+    advantage: bool | None = None
     proficient: bool
     ability_modifier: int
     proficiency_modifier: int = Field(ge=0)
@@ -248,6 +258,53 @@ class TurnResponse(BaseModel):
     quest_outcomes: list[QuestOutcome] = []
 
 
+class SpeciesTraitActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal[
+        "healing_hands",
+        "celestial_revelation",
+        "large_form",
+        "adrenaline_rush",
+        "cloud_jaunt",
+        "arm_giant_ancestry",
+        "choose_giant_ancestry",
+        "short_rest",
+        "long_rest",
+    ]
+    form: Literal[
+        "heavenly_wings", "inner_radiance", "necrotic_shroud"
+    ] | None = None
+    ancestry: Literal["cloud", "fire", "frost", "hill", "stone", "storm"] | None = None
+    armed: bool | None = None
+
+    @model_validator(mode="after")
+    def optional_fields_match_action(self) -> "SpeciesTraitActionRequest":
+        if (self.action == "celestial_revelation") != (self.form is not None):
+            raise ValueError("Choose one Celestial Revelation form.")
+        if (self.action == "choose_giant_ancestry") != (self.ancestry is not None):
+            raise ValueError("Choose one Giant Ancestry.")
+        if self.action != "arm_giant_ancestry" and self.armed is not None:
+            raise ValueError("The armed flag is only valid for Giant Ancestry.")
+        return self
+
+
+class SpeciesTraitActionResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: str
+    message: str = Field(min_length=1, max_length=500)
+    effects: dict[str, Any]
+
+
+class SpeciesTraitCommandResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    state: dict[str, Any]
+    result: SpeciesTraitActionResult
+
+
 class CharacterCreateInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -256,6 +313,7 @@ class CharacterCreateInput(BaseModel):
     race: str | None = None
     character_class: str | None = Field(default=None, alias="class")
     species: str | None = None
+    giant_ancestry: Literal["cloud", "fire", "frost", "hill", "stone", "storm"] | None = None
     background: str | None = None
     alignment: str | None = None
     ability_score_method: str | None = None
@@ -295,6 +353,7 @@ class CharacterCreateInput(BaseModel):
             self.race,
             self.character_class,
             self.species,
+            self.giant_ancestry,
             self.background,
             self.alignment,
             self.ability_score_method,
@@ -326,6 +385,11 @@ class CharacterCreateInput(BaseModel):
                 raise ValueError(
                     "Custom character creation requires a name, race, and class."
                 )
+            selected_species = self.species or self.race
+            if selected_species == "Goliath" and self.giant_ancestry is None:
+                raise ValueError("Goliath characters must choose a Giant Ancestry.")
+            if selected_species != "Goliath" and self.giant_ancestry is not None:
+                raise ValueError("Giant Ancestry is only available to Goliaths.")
         elif any(value is not None for value in custom_fields):
             raise ValueError(
                 "Random character creation does not accept custom character fields."

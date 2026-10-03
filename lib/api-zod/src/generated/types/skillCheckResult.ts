@@ -21,6 +21,14 @@ export interface SkillCheckResult {
      * @maximum 20
      */
   d20: number;
+  /**
+     * @minItems 2
+     * @maxItems 2
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  d20_rolls?: number[];
+  advantage?: boolean;
   proficient: boolean;
   ability_modifier: number;
   /** @minimum 0 */

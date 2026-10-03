@@ -37,7 +37,9 @@ import type {
   GameTurnResult,
   HealthResponse,
   QuestCommandResult,
-  RequestValidationErrorResponse
+  RequestValidationErrorResponse,
+  SpeciesTraitActionInput,
+  SpeciesTraitCommandResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -294,6 +296,185 @@ export function useGetGameSessionState<TData = Awaited<ReturnType<typeof getGame
 
 
 
+
+export const getResolveSpeciesTraitActionUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/game/sessions/${sessionId}/species-actions`
+}
+
+/**
+ * @summary Resolve one server-authoritative species trait action
+ */
+export const resolveSpeciesTraitAction = async (sessionId: string,
+    speciesTraitActionInput: SpeciesTraitActionInput, options?: Parameters<typeof customFetch>[1]): Promise<SpeciesTraitCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SpeciesTraitCommandResult>(getResolveSpeciesTraitActionUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(speciesTraitActionInput)
+  }
+);}
+
+
+
+
+
+export const getResolveSpeciesTraitActionMutationKey = () => ['resolveSpeciesTraitAction'] as const;
+
+export const getResolveSpeciesTraitActionMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext> => {
+
+const mutationKey = getResolveSpeciesTraitActionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, ResolveSpeciesTraitActionMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  resolveSpeciesTraitAction(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveSpeciesTraitActionMutationResult = NonNullable<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>>
+    export type ResolveSpeciesTraitActionMutationBody = BodyType<SpeciesTraitActionInput>
+    export type ResolveSpeciesTraitActionMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveSpeciesTraitActionMutationVariables = {sessionId: string;data: BodyType<SpeciesTraitActionInput>}
+
+    /**
+ * @summary Resolve one server-authoritative species trait action
+ */
+export const useResolveSpeciesTraitAction = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveSpeciesTraitAction>>,
+        TError,
+        ResolveSpeciesTraitActionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveSpeciesTraitActionMutationOptions(options));
+    }
+
+export const getResolveSpeciesTraitActionCompatUrl = (sessionId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/species-actions`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/species-actions.
+ * @summary Legacy server-authoritative species action alias
+ */
+export const resolveSpeciesTraitActionCompat = async (sessionId: string,
+    speciesTraitActionInput: SpeciesTraitActionInput, options?: Parameters<typeof customFetch>[1]): Promise<SpeciesTraitCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SpeciesTraitCommandResult>(getResolveSpeciesTraitActionCompatUrl(sessionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(speciesTraitActionInput)
+  }
+);}
+
+
+
+
+
+export const getResolveSpeciesTraitActionCompatMutationKey = () => ['resolveSpeciesTraitActionCompat'] as const;
+
+export const getResolveSpeciesTraitActionCompatMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext> => {
+
+const mutationKey = getResolveSpeciesTraitActionCompatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, ResolveSpeciesTraitActionCompatMutationVariables> = (props) => {
+          const {sessionId,data} = props ?? {};
+
+          return  resolveSpeciesTraitActionCompat(sessionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveSpeciesTraitActionCompatMutationResult = NonNullable<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>>
+    export type ResolveSpeciesTraitActionCompatMutationBody = BodyType<SpeciesTraitActionInput>
+    export type ResolveSpeciesTraitActionCompatMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveSpeciesTraitActionCompatMutationVariables = {sessionId: string;data: BodyType<SpeciesTraitActionInput>}
+
+    /**
+ * @summary Legacy server-authoritative species action alias
+ */
+export const useResolveSpeciesTraitActionCompat = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>,
+        TError,
+        ResolveSpeciesTraitActionCompatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveSpeciesTraitActionCompatMutationOptions(options));
+    }
 
 export const getPlayGameTurnUrl = (sessionId: string,) => {
 

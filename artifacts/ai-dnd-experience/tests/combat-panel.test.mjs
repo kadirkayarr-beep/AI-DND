@@ -27,10 +27,18 @@ before(async () => {
   const questJournal = await vite.ssrLoadModule('/src/components/quest-journal-section.tsx');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
+  const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   mergeCombatHistory = history.mergeCombatHistory;
-  renderCombatPanel = (state, entries = []) => renderToStaticMarkup(
-    React.createElement(component.CombatPanel, { state, entries }),
-  );
+  renderCombatPanel = (state, entries = []) => {
+    const queryClient = new QueryClient();
+    return renderToStaticMarkup(
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(component.CombatPanel, { state, entries, sessionId: 'test-session' }),
+      ),
+    );
+  };
   renderSkillCheckResult = (result) => renderToStaticMarkup(
     React.createElement(skillResult.SkillCheckResultCard, { result }),
   );
@@ -85,6 +93,71 @@ function makeState(overrides = {}) {
     ...stateOverrides,
   };
 }
+
+test('Aasimar ability controls expose uses and the selected Revelation form', () => {
+  const state = makeState();
+  state.character.species = 'Aasimar';
+  state.character.level = 3;
+  state.character.species_trait_state = {
+    healing_hands_uses_remaining: 1,
+    celestial_revelation_uses_remaining: 1,
+    active_celestial_form: null,
+    celestial_revelation_turns_remaining: 0,
+  };
+
+  const html = renderCombatPanel(state);
+  assert.match(html, /data-testid="species-action-healing-hands"/);
+  assert.match(html, /Göksel Tecelli biçimi/);
+  assert.match(html, /data-testid="species-action-celestial-revelation"/);
+});
+
+test('Goliath ancestry controls and combat log render the server species effect', () => {
+  const state = makeState();
+  state.character.species = 'Goliath';
+  state.character.level = 5;
+  state.character.giant_ancestry = 'fire';
+  state.character.species_trait_state = {
+    giant_ancestry_uses_remaining: 1,
+    giant_ancestry_armed: false,
+    large_form_uses_remaining: 1,
+    large_form_turns_remaining: 0,
+  };
+  const entry = {
+    id: 'species-attack',
+    turnIndex: 1,
+    result: {
+      action: 'attack',
+      outcome: 'hit',
+      success: true,
+      damage: 8,
+      target_name: 'Target',
+      species_effects: [{
+        trait: 'fire_giant_ancestry',
+        damage: 6,
+        damage_type: 'fire',
+      }],
+    },
+  };
+
+  const html = renderCombatPanel(state, [entry]);
+  assert.match(html, /data-testid="species-action-arm-giant-ancestry"/);
+  assert.match(html, /data-testid="species-action-large-form"/);
+  assert.match(html, /Ateş Devi kökeni: 6 ateş hasarı/);
+});
+
+test('Orc panel presents Adrenaline Rush and Relentless Endurance state', () => {
+  const state = makeState();
+  state.character.species = 'Orc';
+  state.character.species_trait_state = {
+    adrenaline_rush_uses_remaining: 2,
+    temporary_hit_points: 0,
+    relentless_endurance_available: true,
+  };
+
+  const html = renderCombatPanel(state);
+  assert.match(html, /data-testid="species-action-adrenaline-rush"/);
+  assert.match(html, /Amansız Dayanıklılık/);
+});
 
 const combatantRecords = {
   player: {

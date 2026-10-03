@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { CombatAttackResultSpeciesEffectsItem } from './combatAttackResultSpeciesEffectsItem';
 
 export interface CombatAttackResult {
   /** @nullable */
@@ -45,4 +46,36 @@ export interface CombatAttackResult {
   target_hp_after?: number | null;
   /** @nullable */
   target_status?: string | null;
+  /** @nullable */
+  damage_type?: string | null;
+  /**
+     * @nullable
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  attack_rolls?: number[] | null;
+  /** @nullable */
+  disadvantage?: boolean | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  hp_damage?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_before?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_absorbed?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_after?: number | null;
+  /** @nullable */
+  species_effects?: CombatAttackResultSpeciesEffectsItem[] | null;
 }

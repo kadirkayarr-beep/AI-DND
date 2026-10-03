@@ -24,6 +24,10 @@ from api.campaign_journal import empty_campaign_journal
 _PLAYER_FIELDS = (
     "name",
     "race",
+    "species",
+    "giant_ancestry",
+    "species_trait_state",
+    "speed_ft",
     "class",
     "background",
     "alignment",
@@ -103,6 +107,14 @@ _COMBAT_ATTACK_FIELDS = (
     "target_hp_before",
     "target_hp_after",
     "target_status",
+    "damage_type",
+    "attack_rolls",
+    "disadvantage",
+    "hp_damage",
+    "temporary_hp_before",
+    "temporary_hp_absorbed",
+    "temporary_hp_after",
+    "species_effects",
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
@@ -261,6 +273,8 @@ def serialize_skill_check_result(
     total = action_result.get("total")
     dc = action_result.get("dc")
     outcome = action_result.get("outcome")
+    advantage = action_result.get("advantage", False)
+    dice_rolls = action_result.get("dice_rolls", [d20])
 
     if not isinstance(skill, str) or skill not in game.SKILLS:
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
@@ -310,11 +324,16 @@ def serialize_skill_check_result(
         or proficiency_modifier < 0
         or proficiency_modifier != expected_proficiency_modifier
         or total != d20 + total_modifier
+        or type(advantage) is not bool
+        or not isinstance(dice_rolls, list)
+        or any(type(roll) is not int or not 1 <= roll <= 20 for roll in dice_rolls)
+        or (advantage and (len(dice_rolls) != 2 or max(dice_rolls) != d20))
+        or (not advantage and (len(dice_rolls) != 1 or dice_rolls[0] != d20))
     ):
         raise SkillCheckResultSerializationError("Invalid skill-check result.")
 
     try:
-        projected = SkillCheckResult(
+        projected_values = dict(
             skill=skill,
             ability=ability,
             d20=d20,
@@ -327,11 +346,15 @@ def serialize_skill_check_result(
             dc=dc,
             outcome=outcome,
         )
+        if advantage:
+            projected_values["d20_rolls"] = dice_rolls
+            projected_values["advantage"] = True
+        projected = SkillCheckResult(**projected_values)
     except ValidationError:
         raise SkillCheckResultSerializationError(
             "Invalid skill-check result."
         ) from None
-    return projected.model_dump()
+    return projected.model_dump(exclude_none=True)
 
 
 def serialize_session_state(
@@ -356,6 +379,19 @@ def serialize_session_state(
         getattr(session, "world_metadata", None),
     )
     character = _project_fields(player, _PLAYER_FIELDS)
+    character["species"] = player.get("species", player.get("race"))
+    character["giant_ancestry"] = player.get("giant_ancestry")
+    trait_state = player.get("species_trait_state")
+    character["species_trait_state"] = copy.deepcopy(
+        trait_state
+        if isinstance(trait_state, Mapping)
+        else game._new_species_trait_state(
+            character["species"], player.get("proficiency_bonus", 2)
+        )
+    )
+    character["speed_ft"] = player.get(
+        "speed_ft", 35 if character["species"] == "Goliath" else 30
+    )
     character["origin_feat"] = player.get("origin_feat")
     character["species_bonus_feat"] = player.get("species_bonus_feat")
     species_bonus_skills = player.get("species_bonus_skills")

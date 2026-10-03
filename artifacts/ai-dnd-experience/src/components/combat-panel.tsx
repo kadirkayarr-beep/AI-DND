@@ -1,4 +1,5 @@
 import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
+import { SpeciesTraitControls, speciesEffectText } from './species-trait-controls';
 import './combat-panel.css';
 
 export interface CombatLogEntry {
@@ -234,6 +235,15 @@ function AttackReadout({
           <strong>{result.damage}</strong>
         </div>
       )}
+      {result.species_effects?.length ? (
+        <ul className="combat-species-effects" data-testid={`${prefix}-species-effects`}>
+          {result.species_effects.map((effect, index) => (
+            <li key={`${prefix}-species-effect-${index}`}>
+              {speciesEffectText(effect)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {hasHpWindow && (
         <div className="combat-hp-window" data-testid={`${prefix}-hp-window`}>
@@ -305,7 +315,15 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
   );
 }
 
-export function CombatPanel({ state, entries }: { state: GameState; entries: CombatLogEntry[] }) {
+export function CombatPanel({
+  state,
+  entries,
+  sessionId,
+}: {
+  state: GameState;
+  entries: CombatLogEntry[];
+  sessionId: string;
+}) {
   const active = Boolean(state.combat.active);
   const latest = entries[entries.length - 1]?.result;
   const ended = !active && latest?.combat_ended === true;
@@ -316,6 +334,7 @@ export function CombatPanel({ state, entries }: { state: GameState; entries: Com
 
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
+      <SpeciesTraitControls state={state} sessionId={sessionId} />
       <header className="combat-panel-header">
         <div>
           <span className="combat-overline">KARŞILAŞMANIN SEYRİ</span>

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatAttackResult } from './combatAttackResult';
+import type { CombatTurnResultSpeciesEffectsItem } from './combatTurnResultSpeciesEffectsItem';
 
 export interface CombatTurnResult {
   /** @nullable */
@@ -46,6 +47,38 @@ export interface CombatTurnResult {
   target_hp_after?: number | null;
   /** @nullable */
   target_status?: string | null;
+  /** @nullable */
+  damage_type?: string | null;
+  /**
+     * @nullable
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  attack_rolls?: number[] | null;
+  /** @nullable */
+  disadvantage?: boolean | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  hp_damage?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_before?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_absorbed?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  temporary_hp_after?: number | null;
+  /** @nullable */
+  species_effects?: CombatTurnResultSpeciesEffectsItem[] | null;
   /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */

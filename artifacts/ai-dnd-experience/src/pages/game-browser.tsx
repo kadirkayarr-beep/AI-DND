@@ -459,7 +459,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
   {activeTab === 'npcs' && <PeoplePanel state={state} />}
          {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
-        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} />}
+        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} />}
       </div>
     </aside>
   );

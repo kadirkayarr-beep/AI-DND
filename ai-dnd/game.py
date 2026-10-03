@@ -772,7 +772,8 @@ def perform_skill_check(
     dc,
     modifiers,
     proficient_skills,
-    proficiency_bonus
+    proficiency_bonus,
+    advantage=False,
 ):
 
     ability = SKILLS[skill]
@@ -786,7 +787,10 @@ def perform_skill_check(
     else:
         total_bonus = modifier
 
-    dice = roll_d20()
+    dice_rolls = [roll_d20()]
+    if advantage:
+        dice_rolls.append(roll_d20())
+    dice = max(dice_rolls) if advantage else dice_rolls[0]
 
     total = dice + total_bonus
 
@@ -810,6 +814,8 @@ def perform_skill_check(
         "skill": skill,
         "ability": ability,
         "dice": dice,
+        "dice_rolls": dice_rolls,
+        "advantage": advantage,
         "modifier": modifier,
         "proficient": is_proficient,
         "proficiency_bonus": proficiency_bonus if is_proficient else 0,
@@ -1385,10 +1391,145 @@ INITIAL_WORLD_STATE = copy.deepcopy(world_state)
 SAVE_FORMAT_VERSION = 3
 
 
+GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
+CELESTIAL_REVELATION_FORMS = (
+    "heavenly_wings",
+    "inner_radiance",
+    "necrotic_shroud",
+)
+
+
+def _new_species_trait_state(species, proficiency_bonus):
+    has_aasimar_traits = species == "Aasimar"
+    is_goliath = species == "Goliath"
+    has_orc_endurance = species in {"Orc", "Half-Orc"}
+    return {
+        "healing_hands_uses_remaining": 1 if has_aasimar_traits else 0,
+        "celestial_revelation_uses_remaining": 1 if has_aasimar_traits else 0,
+        "active_celestial_form": None,
+        "celestial_revelation_turns_remaining": 0,
+        "celestial_damage_used_turn": None,
+        "giant_ancestry_uses_remaining": proficiency_bonus if is_goliath else 0,
+        "giant_ancestry_armed": False,
+        "large_form_uses_remaining": 1 if is_goliath else 0,
+        "large_form_turns_remaining": 0,
+        "adrenaline_rush_uses_remaining": proficiency_bonus if species == "Orc" else 0,
+        "relentless_endurance_available": has_orc_endurance,
+        "temporary_hit_points": 0,
+        "bonus_action_used_round": None,
+        "movement_budget_ft": 0,
+        "movement_effect": None,
+        "player_turn_counter": 0,
+    }
+
+
+def _validate_species_trait_state(value, species, proficiency_bonus=2):
+    if not isinstance(value, dict):
+        raise ValueError("Kayıt tür yetenekleri geçersiz.")
+    limits = _new_species_trait_state(species, proficiency_bonus)
+    expected = set(limits)
+    if set(value) != expected:
+        raise ValueError("Kayıt tür yetenek alanları geçersiz.")
+    integer_fields = (
+        "healing_hands_uses_remaining",
+        "celestial_revelation_uses_remaining",
+        "celestial_revelation_turns_remaining",
+        "giant_ancestry_uses_remaining",
+        "large_form_uses_remaining",
+        "large_form_turns_remaining",
+        "adrenaline_rush_uses_remaining",
+        "temporary_hit_points",
+        "movement_budget_ft",
+        "player_turn_counter",
+    )
+    if any(
+        type(value.get(field)) is not int or value[field] < 0
+        for field in integer_fields
+    ):
+        raise ValueError("Kayıt tür yetenek sayacı geçersiz.")
+    if any(
+        type(value.get(field)) is not bool
+        for field in ("giant_ancestry_armed", "relentless_endurance_available")
+    ):
+        raise ValueError("Kayıt tür yetenek durumu geçersiz.")
+    form = value.get("active_celestial_form")
+    if form is not None and form not in CELESTIAL_REVELATION_FORMS:
+        raise ValueError("Kayıt göksel biçimi geçersiz.")
+    if (
+        (form is None and value["celestial_revelation_turns_remaining"])
+        or (form is not None and not 1 <= value["celestial_revelation_turns_remaining"] <= 10)
+        or (form is not None and species != "Aasimar")
+    ):
+        raise ValueError("Kayıt göksel biçim süresi geçersiz.")
+    for field in (
+        "healing_hands_uses_remaining",
+        "celestial_revelation_uses_remaining",
+        "giant_ancestry_uses_remaining",
+        "large_form_uses_remaining",
+        "adrenaline_rush_uses_remaining",
+    ):
+        if value[field] > limits[field]:
+            raise ValueError("Kayıt tür yeteneği kullanım sınırı geçersiz.")
+    if (
+        value["large_form_turns_remaining"] > 100
+        or (species != "Goliath" and value["large_form_turns_remaining"] != 0)
+        or (species != "Goliath" and value["giant_ancestry_armed"])
+        or (
+            value["giant_ancestry_armed"]
+            and value["giant_ancestry_uses_remaining"] == 0
+        )
+        or (species != "Orc" and value["adrenaline_rush_uses_remaining"] != 0)
+        or (
+            species not in {"Orc", "Half-Orc"}
+            and value["relentless_endurance_available"]
+        )
+        or value["temporary_hit_points"] > proficiency_bonus
+    ):
+        raise ValueError("Kayıt tür yeteneği durumu tutarsız.")
+    used_round = value.get("bonus_action_used_round")
+    if used_round is not None and (
+        type(used_round) is not int or used_round < 1
+    ):
+        raise ValueError("Kayıt bonus eylem durumu geçersiz.")
+    used_turn = value.get("celestial_damage_used_turn")
+    if used_turn is not None and (type(used_turn) is not int or used_turn < 0):
+        raise ValueError("Kayıt göksel hasar durumu geçersiz.")
+    movement_effect = value.get("movement_effect")
+    if movement_effect is not None and not isinstance(movement_effect, dict):
+        raise ValueError("Kayıt hareket etkisi geçersiz.")
+
+
+def initialize_species_trait_state(giant_ancestry=None):
+    """Initialize persisted, server-owned species resources for a character."""
+    character = _session().character
+    species = character.get("species", character.get("race"))
+    proficiency_bonus = character.get("proficiency_bonus", 2)
+    if type(proficiency_bonus) is not int or proficiency_bonus < 0:
+        raise ValueError("Character proficiency bonus is invalid.")
+    if giant_ancestry is not None and giant_ancestry not in GIANT_ANCESTRY_IDS:
+        raise ValueError("Choose a valid Giant Ancestry.")
+    if species != "Goliath" and giant_ancestry is not None:
+        raise ValueError("Giant Ancestry is only available to Goliaths.")
+    character["giant_ancestry"] = giant_ancestry
+    character["speed_ft"] = 35 if species == "Goliath" else 30
+    character["species_trait_state"] = _new_species_trait_state(
+        species, proficiency_bonus
+    )
+    return copy.deepcopy(character["species_trait_state"])
+
+
 def _player_state_for_save():
     return {
         "name": _session().character["name"],
         "race": _session().character["race"],
+        "species": _session().character.get(
+            "species", _session().character["race"]
+        ),
+        "giant_ancestry": _session().character.get("giant_ancestry"),
+        "species_trait_state": copy.deepcopy(
+            _session().character.get("species_trait_state")
+        ),
+        "speed_ft": _session().character.get("speed_ft", 30),
         "class": _session().character["class"],
         "strength": _session().character["strength"],
         "dexterity": _session().character["dexterity"],
@@ -1593,6 +1734,24 @@ def _validate_save_payload(payload):
         raise ValueError("Karakter adı geçersiz.")
     if player["race"] not in RACES or player["class"] not in CLASSES:
         raise ValueError("Karakter ırkı veya sınıfı geçersiz.")
+    species = player.get("species", player["race"])
+    if species not in RACES:
+        raise ValueError("Karakter türü geçersiz.")
+    giant_ancestry = player.get("giant_ancestry")
+    if giant_ancestry is not None and (
+        species != "Goliath" or giant_ancestry not in GIANT_ANCESTRY_IDS
+    ):
+        raise ValueError("Kayıt dev atası seçimi geçersiz.")
+    if "species_trait_state" in player and player["species_trait_state"] is not None:
+        _validate_species_trait_state(
+            player["species_trait_state"],
+            species,
+            player.get("proficiency_bonus", 2),
+        )
+    if "speed_ft" in player and (
+        type(player["speed_ft"]) is not int or player["speed_ft"] < 0
+    ):
+        raise ValueError("Kayıt hareket hızı geçersiz.")
     if any(not isinstance(skill, str) or skill not in SKILLS
            for skill in player["proficient_skills"]):
         raise ValueError("Karakter yetenekleri geçersiz.")
@@ -1801,6 +1960,14 @@ def load_game(path):
         living_world.ensure_scene_state(world_state)
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
+        character["species"] = str(player.get("species", player["race"]))
+        character["giant_ancestry"] = player.get("giant_ancestry")
+        character["speed_ft"] = int(
+            player.get(
+                "speed_ft",
+                35 if character["species"] == "Goliath" else 30,
+            )
+        )
         for field in ("strength", "dexterity", "constitution", "intelligence",
                       "wisdom", "charisma", "level", "proficiency_bonus",
                       "max_hp", "current_hp", "armor_class"):
@@ -1809,6 +1976,13 @@ def load_game(path):
         character["species_bonus_skills"] = list(
             player.get("species_bonus_skills", [])
         )
+        saved_trait_state = player.get("species_trait_state")
+        if saved_trait_state is None:
+            initialize_species_trait_state(
+                giant_ancestry=character["giant_ancestry"]
+            )
+        else:
+            character["species_trait_state"] = copy.deepcopy(saved_trait_state)
         character["modifiers"] = {
             ability: get_modifier(character[ability])
             for ability in ("strength", "dexterity", "constitution",
@@ -2544,6 +2718,439 @@ def resolve_combat_target(player_input, npc_target=None, target_id=None):
     return None
 
 
+def _species_trait_state():
+    character = _session().character
+    state = character.get("species_trait_state")
+    if not isinstance(state, dict):
+        initialize_species_trait_state(
+            giant_ancestry=character.get("giant_ancestry")
+        )
+        state = character["species_trait_state"]
+    return state
+
+
+def _species_bonus_action():
+    combat = ensure_combat_state()
+    if not combat["active"]:
+        return None
+    if (
+        combat["current_actor_id"] != "player"
+        or "player" in combat["actions_used"]
+    ):
+        raise ValueError("Bu bonus eylem için sıra sende değil.")
+    state = _species_trait_state()
+    if state["bonus_action_used_round"] == combat["round"]:
+        raise ValueError("Bu tur bonus eylemini zaten kullandın.")
+    state["bonus_action_used_round"] = combat["round"]
+    return combat
+
+
+def _species_player_turn_id():
+    combat = ensure_combat_state()
+    if combat["active"]:
+        return combat["round"]
+    return _session().world_state.get("flags", {}).get("turn_index", 0)
+
+
+def _apply_species_on_hit_effects(target_npc):
+    character = _session().character
+    state = _species_trait_state()
+    proficiency_bonus = character.get("proficiency_bonus", 2)
+    bonus_damage = 0
+    effects = []
+    active_form = state.get("active_celestial_form")
+    turn_id = _species_player_turn_id()
+    if (
+        character.get("species") == "Aasimar"
+        and active_form
+        and state.get("celestial_damage_used_turn") != turn_id
+    ):
+        damage_type = (
+            "necrotic" if active_form == "necrotic_shroud" else "radiant"
+        )
+        bonus_damage += proficiency_bonus
+        state["celestial_damage_used_turn"] = turn_id
+        effects.append(
+            {
+                "trait": "celestial_revelation",
+                "damage": proficiency_bonus,
+                "damage_type": damage_type,
+            }
+        )
+
+    ancestry = character.get("giant_ancestry")
+    if (
+        character.get("species") == "Goliath"
+        and ancestry in GIANT_ANCESTRY_IDS
+        and ancestry not in {"cloud", "stone"}
+        and state.get("giant_ancestry_armed")
+        and state.get("giant_ancestry_uses_remaining", 0) > 0
+    ):
+        state["giant_ancestry_uses_remaining"] -= 1
+        state["giant_ancestry_armed"] = False
+        if ancestry == "fire":
+            damage = _session().rng.randint(1, 10)
+            bonus_damage += damage
+            effects.append(
+                {"trait": "fire_giant_ancestry", "damage": damage, "damage_type": "fire"}
+            )
+        elif ancestry == "frost":
+            damage = _session().rng.randint(1, 6)
+            bonus_damage += damage
+            target_npc["speed_penalty_ft"] = 10
+            target_npc["speed_penalty_turns_remaining"] = 1
+            effects.append(
+                {
+                    "trait": "frost_giant_ancestry",
+                    "damage": damage,
+                    "damage_type": "cold",
+                    "speed_reduction_ft": 10,
+                }
+            )
+        elif ancestry == "hill":
+            save_roll = roll_d20()
+            save_bonus = target_npc.get(
+                "strength_save_bonus", target_npc.get("strength_modifier", 0)
+            )
+            if type(save_bonus) is not int:
+                save_bonus = 0
+            dc = 8 + proficiency_bonus + character.get("strength_mod", 0)
+            knocked_prone = save_roll + save_bonus < dc
+            if knocked_prone:
+                target_npc["prone"] = True
+            effects.append(
+                {
+                    "trait": "hill_giant_ancestry",
+                    "save_roll": save_roll,
+                    "save_bonus": save_bonus,
+                    "save_dc": dc,
+                    "knocked_prone": knocked_prone,
+                }
+            )
+        elif ancestry == "storm":
+            damage = _session().rng.randint(1, 8)
+            bonus_damage += damage
+            effects.append(
+                {
+                    "trait": "storm_giant_ancestry",
+                    "damage": damage,
+                    "damage_type": "thunder",
+                    "push_ft": 10,
+                }
+            )
+    return bonus_damage, effects
+
+
+def _finish_species_player_turn():
+    character = _session().character
+    state = _species_trait_state()
+    effects = []
+    if (
+        character.get("species") == "Aasimar"
+        and state.get("active_celestial_form") == "inner_radiance"
+        and state.get("celestial_revelation_turns_remaining", 0) > 0
+    ):
+        amount = character.get("proficiency_bonus", 2)
+        combat = ensure_combat_state()
+        participant_ids = set(combat.get("participants", [])) if combat["active"] else set()
+        for npc in _session().world_state.get("npcs", []):
+            if (
+                not isinstance(npc, dict)
+                or npc.get("combat_status") != "active"
+                or (participant_ids and npc.get("id") not in participant_ids)
+            ):
+                continue
+            resistances = npc.get("damage_resistances", npc.get("resistances", []))
+            damage = amount // 2 if isinstance(resistances, list) and "radiant" in resistances else amount
+            before = npc.get("current_hp", npc.get("max_hp", 1))
+            after = max(0, before - damage)
+            npc["current_hp"] = after
+            if after == 0:
+                npc["combat_status"] = "unconscious"
+            effects.append(
+                {
+                    "trait": "inner_radiance",
+                    "target_id": npc.get("id"),
+                    "damage": damage,
+                    "damage_type": "radiant",
+                    "target_hp_after": after,
+                }
+            )
+        # The PHB effect includes the Aasimar; its radiant resistance halves this damage.
+        self_damage = amount // 2
+        absorbed = min(state["temporary_hit_points"], self_damage)
+        state["temporary_hit_points"] -= absorbed
+        hp_damage = self_damage - absorbed
+        character["current_hp"] = max(0, character["current_hp"] - hp_damage)
+        if character["current_hp"] == 0:
+            _session().world_state["player_combat_status"] = "unconscious"
+        effects.append(
+            {
+                "trait": "inner_radiance",
+                "target_id": "player",
+                "damage": self_damage,
+                "damage_type": "radiant",
+                "target_hp_after": character["current_hp"],
+            }
+        )
+
+    state["player_turn_counter"] += 1
+    if state.get("active_celestial_form"):
+        state["celestial_revelation_turns_remaining"] = max(
+            0, state["celestial_revelation_turns_remaining"] - 1
+        )
+        state["celestial_damage_used_turn"] = None
+        if state["celestial_revelation_turns_remaining"] == 0:
+            state["active_celestial_form"] = None
+            effects.append({"trait": "celestial_revelation", "expired": True})
+    if state.get("large_form_turns_remaining", 0) > 0:
+        state["large_form_turns_remaining"] -= 1
+        if state["large_form_turns_remaining"] == 0:
+            effects.append({"trait": "large_form", "expired": True})
+    state["movement_budget_ft"] = 0
+    state["movement_effect"] = None
+    return effects
+
+
+def resolve_species_trait_action(action, form=None, ancestry=None, armed=None):
+    character = _session().character
+    species = character.get("species", character.get("race"))
+    state = _species_trait_state()
+    combat = ensure_combat_state()
+    effects = {}
+
+    def require_species(expected):
+        if species not in expected:
+            raise ValueError("Bu tür yeteneği karakterin için kullanılamaz.")
+
+    def require_action_turn():
+        if combat["active"] and (
+            combat["current_actor_id"] != "player"
+            or "player" in combat["actions_used"]
+        ):
+            raise ValueError("Bu eylem için sıra sende değil.")
+
+    if action == "choose_giant_ancestry":
+        require_species({"Goliath"})
+        if combat["active"]:
+            raise ValueError("Dev Atası çatışma sırasında seçilemez.")
+        if ancestry not in GIANT_ANCESTRY_IDS:
+            raise ValueError("Geçerli bir Dev Atası seç.")
+        if character.get("giant_ancestry") is not None:
+            raise ValueError("Dev Atası zaten seçilmiş; kampanya içinde değiştirilemez.")
+        character["giant_ancestry"] = ancestry
+        state["giant_ancestry_uses_remaining"] = character.get("proficiency_bonus", 2)
+        message = "Dev Atası seçimi kaydedildi."
+        effects = {"giant_ancestry": ancestry}
+
+    elif action == "healing_hands":
+        require_species({"Aasimar"})
+        require_action_turn()
+        if state["healing_hands_uses_remaining"] <= 0:
+            raise ValueError("Şifa Veren Eller uzun dinlenmeye kadar kullanıldı.")
+        if character["current_hp"] >= character["max_hp"]:
+            raise ValueError("Can puanın zaten en yüksek düzeyde.")
+        rolls = [
+            _session().rng.randint(1, 4)
+            for _ in range(character.get("proficiency_bonus", 2))
+        ]
+        healing = min(sum(rolls), character["max_hp"] - character["current_hp"])
+        character["current_hp"] += healing
+        state["healing_hands_uses_remaining"] -= 1
+        effects = {"dice": rolls, "healing": healing, "current_hp": character["current_hp"]}
+        message = f"Şifa Veren Eller {healing} can puanı yeniledi."
+        if combat["active"]:
+            _mark_combat_action_used("player")
+            effects["turn_end"] = _finish_species_player_turn()
+            if not _combat_end_if_decided():
+                advanced, _, _ = advance_combat_turn()
+                if advanced:
+                    effects["enemy_actions"] = _resolve_enemy_turns_until_player()
+
+    elif action == "celestial_revelation":
+        require_species({"Aasimar"})
+        require_action_turn()
+        if character.get("level", 1) < 3:
+            raise ValueError("Göksel Tecelli 3. seviyede açılır.")
+        if form not in CELESTIAL_REVELATION_FORMS:
+            raise ValueError("Geçerli bir Göksel Tecelli biçimi seç.")
+        if state["celestial_revelation_uses_remaining"] <= 0:
+            raise ValueError("Göksel Tecelli uzun dinlenmeye kadar kullanıldı.")
+        if state["active_celestial_form"] is not None:
+            raise ValueError("Başka bir Göksel Tecelli biçimi zaten etkin.")
+        _species_bonus_action()
+        state["celestial_revelation_uses_remaining"] -= 1
+        state["active_celestial_form"] = form
+        state["celestial_revelation_turns_remaining"] = 10
+        if form == "heavenly_wings":
+            state["movement_effect"] = {
+                "kind": "flight",
+                "speed_ft": character.get("speed_ft", 30),
+            }
+        elif form == "necrotic_shroud":
+            save_dc = 8 + character.get("proficiency_bonus", 2) + character.get("charisma_mod", 0)
+            saves = []
+            for npc in _session().world_state.get("npcs", []):
+                if (
+                    not isinstance(npc, dict)
+                    or npc.get("combat_status") != "active"
+                    or (combat["active"] and npc.get("id") not in combat["participants"])
+                ):
+                    continue
+                save_roll = roll_d20()
+                save_bonus = npc.get("charisma_save_bonus", npc.get("charisma_modifier", 0))
+                if type(save_bonus) is not int:
+                    save_bonus = 0
+                frightened = save_roll + save_bonus < save_dc
+                if frightened:
+                    npc["frightened_until_player_turn"] = state["player_turn_counter"] + 2
+                saves.append(
+                    {
+                        "target_id": npc.get("id"),
+                        "save_roll": save_roll,
+                        "save_bonus": save_bonus,
+                        "save_dc": save_dc,
+                        "frightened": frightened,
+                    }
+                )
+            effects["saves"] = saves
+        effects.update({"form": form, "duration_turns": 10})
+        message = "Göksel Tecelli etkinleştirildi."
+
+    elif action == "large_form":
+        require_species({"Goliath"})
+        require_action_turn()
+        if character.get("level", 1) < 5:
+            raise ValueError("Büyük Biçim 5. seviyede açılır.")
+        if state["large_form_uses_remaining"] <= 0:
+            raise ValueError("Büyük Biçim uzun dinlenmeye kadar kullanıldı.")
+        if state["large_form_turns_remaining"] > 0:
+            raise ValueError("Büyük Biçim zaten etkin.")
+        _species_bonus_action()
+        state["large_form_uses_remaining"] -= 1
+        state["large_form_turns_remaining"] = 100
+        state["movement_effect"] = {
+            "kind": "large_form",
+            "size": "Large",
+            "speed_bonus_ft": 10,
+        }
+        effects = {
+            "size": "Large",
+            "speed_ft": character.get("speed_ft", 35) + 10,
+            "strength_checks_advantage": True,
+            "duration_turns": 100,
+            "duration_minutes": 10,
+        }
+        message = "Büyük Biçim etkinleştirildi."
+
+    elif action == "adrenaline_rush":
+        require_species({"Orc"})
+        require_action_turn()
+        if state["adrenaline_rush_uses_remaining"] <= 0:
+            raise ValueError("Adrenalin Patlaması için kullanım kalmadı.")
+        _species_bonus_action()
+        state["adrenaline_rush_uses_remaining"] -= 1
+        granted_hp = character.get("proficiency_bonus", 2)
+        state["temporary_hit_points"] = max(state["temporary_hit_points"], granted_hp)
+        speed = character.get("speed_ft", 30) + (
+            10 if state["large_form_turns_remaining"] > 0 else 0
+        )
+        state["movement_budget_ft"] = speed * 2
+        state["movement_effect"] = {"kind": "dash", "distance_ft": speed * 2}
+        effects = {
+            "temporary_hit_points": state["temporary_hit_points"],
+            "dash_distance_ft": speed * 2,
+        }
+        message = "Adrenalin Patlaması kullanıldı; Dash hareketi ve geçici can kazanıldı."
+
+    elif action == "cloud_jaunt":
+        require_species({"Goliath"})
+        require_action_turn()
+        if character.get("giant_ancestry") != "cloud":
+            raise ValueError("Bulut Devi kökeni seçili değil.")
+        if state["giant_ancestry_uses_remaining"] <= 0:
+            raise ValueError("Dev Atası kullanımı kalmadı.")
+        _species_bonus_action()
+        state["giant_ancestry_uses_remaining"] -= 1
+        state["movement_effect"] = {"kind": "teleport", "distance_ft": 30}
+        effects = {
+            "teleport_distance_ft": 30,
+            "ancestry_uses_remaining": state["giant_ancestry_uses_remaining"],
+        }
+        message = "Bulut Devi Işınlanmasıyla 30 fitlik ışınlanma kullanıldı."
+
+    elif action == "arm_giant_ancestry":
+        require_species({"Goliath"})
+        if armed is not None and type(armed) is not bool:
+            raise ValueError("Dev Atası hazır durumu geçersiz.")
+        if character.get("giant_ancestry") not in {"fire", "frost", "hill", "stone", "storm"}:
+            raise ValueError("Bu Dev Atası saldırı veya hasar tepkisiyle etkinleştirilmiyor.")
+        if state["giant_ancestry_uses_remaining"] <= 0:
+            raise ValueError("Dev Atası kullanımı kalmadı.")
+        state["giant_ancestry_armed"] = (
+            not state["giant_ancestry_armed"] if armed is None else armed
+        )
+        message = (
+            "Dev Atası etkisi sonraki uygun durumda kullanılacak."
+            if state["giant_ancestry_armed"]
+            else "Dev Atası etkisi hazır beklemeden çıkarıldı."
+        )
+        effects = {
+            "armed": state["giant_ancestry_armed"],
+            "ancestry": character["giant_ancestry"],
+            "uses_remaining": state["giant_ancestry_uses_remaining"],
+        }
+
+    elif action == "short_rest":
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        refreshed = 0
+        if species == "Orc":
+            maximum = character.get("proficiency_bonus", 2)
+            refreshed = max(0, maximum - state["adrenaline_rush_uses_remaining"])
+            state["adrenaline_rush_uses_remaining"] = maximum
+        state["movement_budget_ft"] = 0
+        state["movement_effect"] = None
+        effects = {"adrenaline_rush_uses_refreshed": refreshed}
+        message = (
+            "Kısa dinlenme tamamlandı; Adrenalin Patlaması kullanımları yenilendi."
+            if species == "Orc"
+            else "Kısa dinlenme tamamlandı; bu türün kısa dinlenmeyle yenilenen yeteneği yok."
+        )
+
+    elif action == "long_rest":
+        if combat["active"]:
+            raise ValueError("Çatışma sırasında dinlenemezsin.")
+        old_state = state
+        refreshed = {
+            "healing_hands": max(0, (1 if species == "Aasimar" else 0) - old_state["healing_hands_uses_remaining"]),
+            "celestial_revelation": max(0, (1 if species == "Aasimar" else 0) - old_state["celestial_revelation_uses_remaining"]),
+            "giant_ancestry": max(0, (character.get("proficiency_bonus", 2) if species == "Goliath" else 0) - old_state["giant_ancestry_uses_remaining"]),
+            "large_form": max(0, (1 if species == "Goliath" else 0) - old_state["large_form_uses_remaining"]),
+            "adrenaline_rush": max(0, (character.get("proficiency_bonus", 2) if species == "Orc" else 0) - old_state["adrenaline_rush_uses_remaining"]),
+            "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
+        }
+        character["current_hp"] = character["max_hp"]
+        _session().world_state["player_combat_status"] = "active"
+        character["species_trait_state"] = _new_species_trait_state(
+            species, character.get("proficiency_bonus", 2)
+        )
+        for npc in _session().world_state.get("npcs", []):
+            if isinstance(npc, dict):
+                npc.pop("frightened_until_player_turn", None)
+                npc.pop("speed_penalty_ft", None)
+                npc.pop("speed_penalty_turns_remaining", None)
+                npc.pop("prone", None)
+        state = character["species_trait_state"]
+        effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
+        message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
+
+    else:
+        raise ValueError("Bilinmeyen tür yeteneği.")
+
+    return {"action": action, "message": message, "effects": effects}
+
+
 def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
     """Resolve a melee attack against a target NPC."""
     ensure_npc_combat_stats(target_npc)
@@ -2594,9 +3201,14 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
     # Apply damage if hit
     target_hp_before = target_npc.get("current_hp", target_npc.get("max_hp", 10))
     target_hp_after = target_hp_before
+    species_effects = []
     
     if outcome in ("hit", "critical_hit"):
         damage = max(1, damage)  # Minimum 1 damage
+        species_bonus_damage, species_effects = _apply_species_on_hit_effects(
+            target_npc
+        )
+        damage += species_bonus_damage
         target_hp_after = max(0, target_hp_before - damage)
         target_npc["current_hp"] = target_hp_after
         
@@ -2626,7 +3238,8 @@ def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
         "damage": damage if outcome in ("hit", "critical_hit") else 0,
         "target_hp_before": target_hp_before,
         "target_hp_after": target_hp_after,
-        "target_status": target_npc.get("combat_status", "active")
+        "target_status": target_npc.get("combat_status", "active"),
+        "species_effects": species_effects,
     }
 
 
@@ -2852,20 +3465,86 @@ def resolve_enemy_attack(target_npc):
     if _session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious":
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "player_unconscious", "damage": 0}
-    attack_roll = roll_d20()
+    trait_state = _species_trait_state()
+    current_player_turn = trait_state.get("player_turn_counter", 0)
+    disadvantage = (
+        type(target_npc.get("frightened_until_player_turn")) is int
+        and current_player_turn < target_npc["frightened_until_player_turn"]
+    ) or target_npc.get("prone") is True
+    attack_rolls = [roll_d20()]
+    if disadvantage:
+        attack_rolls.append(roll_d20())
+    attack_roll = min(attack_rolls) if disadvantage else attack_rolls[0]
     attack_bonus = target_npc["attack_bonus"]
     attack_total = attack_roll + attack_bonus
     critical = attack_roll == 20
     hit = attack_roll != 1 and (critical or attack_total >= _session().character["armor_class"])
     damage = 0
     player_hp_before = _session().character["current_hp"]
+    damage_type = target_npc.get(
+        "attack_damage_type", target_npc.get("damage_type", "untyped")
+    )
+    species_effects = []
     if hit:
         dice = target_npc["damage_dice"] * (2 if critical else 1)
         damage = max(1, roll_damage(target_npc["damage_die"], dice, target_npc["damage_modifier"]))
-    player_hp_after = max(0, player_hp_before - damage)
+        if (
+            _session().character.get("species") == "Aasimar"
+            and isinstance(damage_type, str)
+            and damage_type.casefold() in {"radiant", "necrotic"}
+        ):
+            damage //= 2
+            species_effects.append(
+                {"trait": "celestial_resistance", "damage_type": damage_type}
+            )
+        if (
+            _session().character.get("species") == "Goliath"
+            and _session().character.get("giant_ancestry") == "stone"
+            and trait_state.get("giant_ancestry_armed")
+            and trait_state.get("giant_ancestry_uses_remaining", 0) > 0
+            and damage > 0
+        ):
+            reduction = max(
+                0,
+                _session().rng.randint(1, 12)
+                + _session().character.get("constitution_mod", 0),
+            )
+            damage = max(0, damage - reduction)
+            trait_state["giant_ancestry_uses_remaining"] -= 1
+            trait_state["giant_ancestry_armed"] = False
+            species_effects.append(
+                {
+                    "trait": "stone_giant_ancestry",
+                    "damage_reduced": reduction,
+                    "damage_remaining": damage,
+                }
+            )
+    temporary_hp_before = trait_state.get("temporary_hit_points", 0)
+    temporary_hp_absorbed = min(temporary_hp_before, damage)
+    trait_state["temporary_hit_points"] = temporary_hp_before - temporary_hp_absorbed
+    hp_damage = damage - temporary_hp_absorbed
+    player_hp_after = max(0, player_hp_before - hp_damage)
+    endurance_used = False
+    killed_outright = hp_damage >= (
+        player_hp_before + _session().character["max_hp"]
+    )
+    if (
+        player_hp_after == 0
+        and not killed_outright
+        and _session().character.get("species") in {"Orc", "Half-Orc"}
+        and trait_state.get("relentless_endurance_available")
+    ):
+        player_hp_after = 1
+        trait_state["relentless_endurance_available"] = False
+        endurance_used = True
+        species_effects.append(
+            {"trait": "relentless_endurance", "current_hp": 1}
+        )
     _session().character["current_hp"] = player_hp_after
     if player_hp_after == 0:
         world_state["player_combat_status"] = "unconscious"
+    elif endurance_used:
+        world_state["player_combat_status"] = "active"
     return {"action": "enemy_attack", "status": "resolved", "success": hit,
             "outcome": "critical_hit" if critical else "hit" if hit else "miss",
             "actor": target_npc["id"], "actor_name": target_npc.get("name"),
@@ -2873,7 +3552,13 @@ def resolve_enemy_attack(target_npc):
             "attack_roll": attack_roll,
             "attack_bonus": attack_bonus, "attack_total": attack_total, "target_ac": _session().character["armor_class"],
             "critical": critical, "damage": damage, "target_hp_before": player_hp_before,
-            "target_hp_after": player_hp_after, "target_status": world_state["player_combat_status"]}
+            "target_hp_after": player_hp_after, "target_status": world_state["player_combat_status"],
+            "damage_type": damage_type, "attack_rolls": attack_rolls,
+            "disadvantage": disadvantage, "hp_damage": hp_damage,
+            "temporary_hp_before": temporary_hp_before,
+            "temporary_hp_absorbed": temporary_hp_absorbed,
+            "temporary_hp_after": trait_state["temporary_hit_points"],
+            "species_effects": species_effects}
 
 
 def end_combat(reason="combat_ended"):
@@ -7956,9 +8641,19 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             skill = inferred_skill
     if skill in SKILLS:
         dc = DIFFICULTY_DC.get(difficulty, DIFFICULTY_DC["medium"])
-        check_result = perform_skill_check(skill, dc, _session().character["modifiers"],
-                                           _session().character["proficient_skills"],
-                                           _session().character["proficiency_bonus"])
+        ability = SKILLS[skill]
+        trait_state = _species_trait_state()
+        check_result = perform_skill_check(
+            skill,
+            dc,
+            _session().character["modifiers"],
+            _session().character["proficient_skills"],
+            _session().character["proficiency_bonus"],
+            advantage=(
+                ability == "strength"
+                and trait_state.get("large_form_turns_remaining", 0) > 0
+            ),
+        )
         apply_check_outcome_to_world_state(player_input, check_result)
         outcome = _skill_result_category(check_result.get("result"))
         result.update({
@@ -8105,6 +8800,12 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             return _finish_combat_result(result, before)
 
         _mark_combat_action_used("player")
+        turn_effects = _finish_species_player_turn()
+        if turn_effects:
+            result["species_effects"] = [
+                *result.get("species_effects", []),
+                *turn_effects,
+            ]
         combat = ensure_combat_state()
         if _combat_end_if_decided():
             combat = ensure_combat_state()

@@ -97,6 +97,31 @@ export const createGameSessionResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createGameSessionResponseStateJournalQuestsMax = 100;
 
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const createGameSessionResponseStateCharacterSpeedFtMin = 0;
+
 export const createGameSessionResponseStateCharacterOriginMax = 240;
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -265,6 +290,27 @@ export const CreateGameSessionResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(createGameSessionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(createGameSessionResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -462,6 +508,31 @@ export const getGameSessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getGameSessionStateResponseJournalQuestsMax = 100;
 
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const getGameSessionStateResponseCharacterSpeedFtMin = 0;
+
 export const getGameSessionStateResponseCharacterOriginMax = 240;
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
@@ -628,6 +699,27 @@ export const GetGameSessionStateResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(getGameSessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(getGameSessionStateResponseCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -746,6 +838,857 @@ export const GetGameSessionStateResponse = zod.object({
 
 
 /**
+ * @summary Resolve one server-authoritative species trait action
+ */
+export const ResolveSpeciesTraitActionParams = zod.object({
+  "session_id": zod.coerce.string().uuid()
+})
+
+export const ResolveSpeciesTraitActionBody = zod.object({
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest']),
+  "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
+  "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "armed": zod.boolean().nullish()
+})
+
+export const resolveSpeciesTraitActionResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateSceneOneNpcsMax = 12;
+
+export const resolveSpeciesTraitActionResponseStateSceneOneFeaturesMax = 24;
+
+export const resolveSpeciesTraitActionResponseStateSceneOneReferentsMax = 6;
+
+export const resolveSpeciesTraitActionResponseStateWorldEnvironmentDefault = `unknown`;
+export const resolveSpeciesTraitActionResponseStateWorldTimeOfDayDefault = `day`;
+export const resolveSpeciesTraitActionResponseStateWorldWeatherDefault = `clear`;
+export const resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalKnownNpcsMax = 500;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalNotableEventsMax = 200;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const resolveSpeciesTraitActionResponseStateJournalQuestsMax = 100;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterOriginMax = 240;
+
+export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemQuestIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionResponseResultMessageMax = 500;
+
+
+
+export const ResolveSpeciesTraitActionResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resolveSpeciesTraitActionResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resolveSpeciesTraitActionResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resolveSpeciesTraitActionResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resolveSpeciesTraitActionResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resolveSpeciesTraitActionResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(resolveSpeciesTraitActionResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(resolveSpeciesTraitActionResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(resolveSpeciesTraitActionResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(resolveSpeciesTraitActionResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(resolveSpeciesTraitActionResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(resolveSpeciesTraitActionResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(resolveSpeciesTraitActionResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resolveSpeciesTraitActionResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "turn_index": zod.number().int().min(resolveSpeciesTraitActionResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+}))
+}).describe('Public state projection produced by the API serializers.'),
+  "result": zod.object({
+  "action": zod.string(),
+  "message": zod.string().min(1).max(resolveSpeciesTraitActionResponseResultMessageMax),
+  "effects": zod.record(zod.string(), zod.unknown())
+})
+})
+
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/species-actions.
+ * @summary Legacy server-authoritative species action alias
+ */
+export const ResolveSpeciesTraitActionCompatParams = zod.object({
+  "session_id": zod.coerce.string().uuid()
+})
+
+export const ResolveSpeciesTraitActionCompatBody = zod.object({
+  "action": zod.enum(['healing_hands', 'celestial_revelation', 'large_form', 'adrenaline_rush', 'cloud_jaunt', 'arm_giant_ancestry', 'choose_giant_ancestry', 'short_rest', 'long_rest']),
+  "form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullish(),
+  "ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "armed": zod.boolean().nullish()
+})
+
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneNpcsMax = 12;
+
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneFeaturesMax = 24;
+
+export const resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax = 6;
+
+export const resolveSpeciesTraitActionCompatResponseStateWorldEnvironmentDefault = `unknown`;
+export const resolveSpeciesTraitActionCompatResponseStateWorldTimeOfDayDefault = `day`;
+export const resolveSpeciesTraitActionCompatResponseStateWorldWeatherDefault = `clear`;
+export const resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsMax = 500;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsMax = 200;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const resolveSpeciesTraitActionCompatResponseStateJournalQuestsMax = 100;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax = 240;
+
+export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateTurnIndexMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemQuestIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemTitleMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseResultMessageMax = 500;
+
+
+
+export const ResolveSpeciesTraitActionCompatResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resolveSpeciesTraitActionCompatResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resolveSpeciesTraitActionCompatResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionCompatResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionCompatResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(resolveSpeciesTraitActionCompatResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(resolveSpeciesTraitActionCompatResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(resolveSpeciesTraitActionCompatResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(resolveSpeciesTraitActionCompatResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(resolveSpeciesTraitActionCompatResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int()
+}),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "player_combat_status": zod.enum(['active', 'unconscious']),
+  "turn_index": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+}))
+}).describe('Public state projection produced by the API serializers.'),
+  "result": zod.object({
+  "action": zod.string(),
+  "message": zod.string().min(1).max(resolveSpeciesTraitActionCompatResponseResultMessageMax),
+  "effects": zod.record(zod.string(), zod.unknown())
+})
+})
+
+
+/**
  * @summary Submit one player message to the Python game engine
  */
 export const PlayGameTurnParams = zod.object({
@@ -835,6 +1778,31 @@ export const playGameTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playGameTurnResponseStateJournalQuestsMax = 100;
 
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const playGameTurnResponseStateCharacterSpeedFtMin = 0;
+
 export const playGameTurnResponseStateCharacterOriginMax = 240;
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -880,12 +1848,77 @@ export const playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 1
 
 export const playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const playGameTurnResponseCombatResultOneAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatResultOneHpDamageMin = 0;
+
+export const playGameTurnResponseCombatResultOneTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatResultOneTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatResultOneTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin = 0;
+
 export const playGameTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playGameTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultHpDamageMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 export const playGameTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playGameTurnResponseSkillCheckResultOneD20Max = 20;
+
+export const playGameTurnResponseSkillCheckResultOneD20RollsItemMax = 20;
+
+export const playGameTurnResponseSkillCheckResultOneD20RollsMin = 2;
+export const playGameTurnResponseSkillCheckResultOneD20RollsMax = 2;
 
 export const playGameTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
 
@@ -1025,6 +2058,27 @@ export const PlayGameTurnResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(playGameTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(playGameTurnResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -1160,6 +2214,14 @@ export const PlayGameTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatResultOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatResultOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatResultOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -1184,7 +2246,15 @@ export const PlayGameTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -1205,7 +2275,15 @@ export const PlayGameTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -1231,6 +2309,14 @@ export const PlayGameTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -1255,7 +2341,15 @@ export const PlayGameTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -1276,7 +2370,15 @@ export const PlayGameTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playGameTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -1284,6 +2386,8 @@ export const PlayGameTurnResponse = zod.object({
   "skill": zod.string().min(1).max(playGameTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseSkillCheckResultOneD20RollsItemMax)).min(playGameTurnResponseSkillCheckResultOneD20RollsMin).max(playGameTurnResponseSkillCheckResultOneD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
   "proficient": zod.boolean(),
   "ability_modifier": zod.number().int(),
   "proficiency_modifier": zod.number().int().min(playGameTurnResponseSkillCheckResultOneProficiencyModifierMin),
@@ -1387,6 +2491,31 @@ export const acceptGameQuestResponseStateJournalQuestsItemObjectivesItemDescript
 export const acceptGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const acceptGameQuestResponseStateJournalQuestsMax = 100;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const acceptGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptGameQuestResponseStateCharacterOriginMax = 240;
 
@@ -1582,6 +2711,27 @@ export const AcceptGameQuestResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(acceptGameQuestResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -1806,6 +2956,31 @@ export const cancelGameQuestResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const cancelGameQuestResponseStateJournalQuestsMax = 100;
 
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const cancelGameQuestResponseStateCharacterSpeedFtMin = 0;
+
 export const cancelGameQuestResponseStateCharacterOriginMax = 240;
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -2000,6 +3175,27 @@ export const CancelGameQuestResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(cancelGameQuestResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -2232,6 +3428,31 @@ export const resolveAmbientEventActionResponseStateJournalQuestsItemObjectivesMa
 
 export const resolveAmbientEventActionResponseStateJournalQuestsMax = 100;
 
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterSpeedFtMin = 0;
+
 export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
 
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -2407,6 +3628,27 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -2650,6 +3892,7 @@ export const CreateCampaignBody = zod.object({
   "race": zod.string().nullish(),
   "class": zod.string().nullish(),
   "species": zod.string().nullish(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
   "ability_score_method": zod.string().nullish(),
@@ -2756,6 +3999,31 @@ export const createCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const createCampaignResponseStateJournalQuestsMax = 100;
 
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const createCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const createCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const createCampaignResponseStateCharacterOriginMax = 240;
 
 export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -2803,6 +4071,36 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 
 export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -2929,6 +4227,27 @@ export const CreateCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(createCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(createCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -3072,6 +4391,14 @@ export const CreateCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -3096,7 +4423,15 @@ export const CreateCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -3117,7 +4452,15 @@ export const CreateCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
@@ -3203,6 +4546,31 @@ export const getCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getCampaignResponseStateJournalQuestsMax = 100;
 
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const getCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const getCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const getCampaignResponseStateCharacterOriginMax = 240;
 
 export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -3250,6 +4618,36 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountM
 
 export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -3386,6 +4784,27 @@ export const GetCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(getCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(getCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -3529,6 +4948,14 @@ export const GetCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -3553,7 +4980,15 @@ export const GetCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -3574,7 +5009,15 @@ export const GetCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
@@ -3660,6 +5103,31 @@ export const resumeCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const resumeCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resumeCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const resumeCampaignResponseStateCharacterOriginMax = 240;
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -3707,6 +5175,36 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 
 export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -3833,6 +5331,27 @@ export const ResumeCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resumeCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resumeCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -3976,6 +5495,14 @@ export const ResumeCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -4000,7 +5527,15 @@ export const ResumeCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -4021,7 +5556,15 @@ export const ResumeCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
@@ -4209,6 +5752,31 @@ export const createLegacySessionResponseStateJournalQuestsItemObjectivesMax = 10
 
 export const createLegacySessionResponseStateJournalQuestsMax = 100;
 
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const createLegacySessionResponseStateCharacterSpeedFtMin = 0;
+
 export const createLegacySessionResponseStateCharacterOriginMax = 240;
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -4377,6 +5945,27 @@ export const CreateLegacySessionResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(createLegacySessionResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(createLegacySessionResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -4575,6 +6164,31 @@ export const getLegacySessionStateResponseJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacySessionStateResponseJournalQuestsMax = 100;
 
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const getLegacySessionStateResponseCharacterSpeedFtMin = 0;
+
 export const getLegacySessionStateResponseCharacterOriginMax = 240;
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
@@ -4741,6 +6355,27 @@ export const GetLegacySessionStateResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(getLegacySessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(getLegacySessionStateResponseCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -4949,6 +6584,31 @@ export const playLegacyTurnResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const playLegacyTurnResponseStateJournalQuestsMax = 100;
 
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const playLegacyTurnResponseStateCharacterSpeedFtMin = 0;
+
 export const playLegacyTurnResponseStateCharacterOriginMax = 240;
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -4994,12 +6654,77 @@ export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax =
 
 export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const playLegacyTurnResponseCombatResultOneAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin = 0;
+
 export const playLegacyTurnResponseCombatHistoryEntryOneEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const playLegacyTurnResponseCombatHistoryEntryOneTurnIndexMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 export const playLegacyTurnResponseSkillCheckResultOneSkillMax = 40;
 
 export const playLegacyTurnResponseSkillCheckResultOneD20Max = 20;
+
+export const playLegacyTurnResponseSkillCheckResultOneD20RollsItemMax = 20;
+
+export const playLegacyTurnResponseSkillCheckResultOneD20RollsMin = 2;
+export const playLegacyTurnResponseSkillCheckResultOneD20RollsMax = 2;
 
 export const playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin = 0;
 
@@ -5139,6 +6864,27 @@ export const PlayLegacyTurnResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(playLegacyTurnResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -5274,6 +7020,14 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatResultOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatResultOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5298,7 +7052,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5319,7 +7081,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatResultOneEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatResultOneEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 }),zod.null()]).describe('Structured combat outcome returned by Python; null for non-combat turns.'),
   "combat_history_entry": zod.union([zod.object({
@@ -5345,6 +7115,14 @@ export const PlayLegacyTurnResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5369,7 +7147,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5390,7 +7176,15 @@ export const PlayLegacyTurnResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(playLegacyTurnResponseCombatHistoryEntryOneResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }),zod.null()]).describe('Stable server-owned ID and validated result for durable combat history.'),
@@ -5398,6 +7192,8 @@ export const PlayLegacyTurnResponse = zod.object({
   "skill": zod.string().min(1).max(playLegacyTurnResponseSkillCheckResultOneSkillMax),
   "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
   "d20": zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseSkillCheckResultOneD20RollsItemMax)).min(playLegacyTurnResponseSkillCheckResultOneD20RollsMin).max(playLegacyTurnResponseSkillCheckResultOneD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
   "proficient": zod.boolean(),
   "ability_modifier": zod.number().int(),
   "proficiency_modifier": zod.number().int().min(playLegacyTurnResponseSkillCheckResultOneProficiencyModifierMin),
@@ -5472,6 +7268,7 @@ export const CreateLegacyCampaignBody = zod.object({
   "race": zod.string().nullish(),
   "class": zod.string().nullish(),
   "species": zod.string().nullish(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
   "ability_score_method": zod.string().nullish(),
@@ -5578,6 +7375,31 @@ export const createLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const createLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const createLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -5625,6 +7447,36 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 
 export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -5751,6 +7603,27 @@ export const CreateLegacyCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(createLegacyCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -5894,6 +7767,14 @@ export const CreateLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -5918,7 +7799,15 @@ export const CreateLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -5939,7 +7828,15 @@ export const CreateLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(createLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
@@ -6026,6 +7923,31 @@ export const getLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 100;
 
 export const getLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const getLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -6073,6 +7995,36 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequired
 
 export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -6209,6 +8161,27 @@ export const GetLegacyCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(getLegacyCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -6352,6 +8325,14 @@ export const GetLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -6376,7 +8357,15 @@ export const GetLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -6397,7 +8386,15 @@ export const GetLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(getLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
@@ -6484,6 +8481,31 @@ export const resumeLegacyCampaignResponseStateJournalQuestsItemObjectivesMax = 1
 
 export const resumeLegacyCampaignResponseStateJournalQuestsMax = 100;
 
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
+
 export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
@@ -6531,6 +8553,36 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 
 export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultHpDamageMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax = 20;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin = 0;
+
+export const resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin = 0;
 
 
 
@@ -6657,6 +8709,27 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "character": zod.object({
   "name": zod.string(),
   "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpeedFtMin).optional(),
   "class": zod.string(),
   "background": zod.string().nullish(),
   "alignment": zod.string().nullish(),
@@ -6800,6 +8873,14 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
   "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -6824,7 +8905,15 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionOneTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 }),zod.null()]).optional(),
   "enemy_actions": zod.array(zod.object({
   "action": zod.string().nullish(),
@@ -6845,7 +8934,15 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "damage": zod.number().int().nullish(),
   "target_hp_before": zod.number().int().nullish(),
   "target_hp_after": zod.number().int().nullish(),
-  "target_status": zod.string().nullish()
+  "target_status": zod.string().nullish(),
+  "damage_type": zod.string().nullish(),
+  "attack_rolls": zod.array(zod.number().int().min(1).max(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemAttackRollsItemMax)).nullish(),
+  "disadvantage": zod.boolean().nullish(),
+  "hp_damage": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemHpDamageMin).nullish(),
+  "temporary_hp_before": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpBeforeMin).nullish(),
+  "temporary_hp_absorbed": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAbsorbedMin).nullish(),
+  "temporary_hp_after": zod.number().int().min(resumeLegacyCampaignResponseCombatHistoryItemResultEnemyActionsItemTemporaryHpAfterMin).nullish(),
+  "species_effects": zod.array(zod.record(zod.string(), zod.unknown())).nullish()
 })).nullish()
 })
 }))
