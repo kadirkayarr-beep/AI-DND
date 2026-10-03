@@ -1,0 +1,134 @@
+AI-DND — CAMPAIGN TIME V1
+READ-ONLY IMPLEMENTATION AUDIT
+
+Campaign Time V1 Design Lock'ı uygulamaya başlamadan önce mevcut sistemi yalnızca salt-okunur olarak denetle.
+
+ÖNEMLİ:
+- Hiçbir dosyayı değiştirme.
+- Kod yazma.
+- Refactor yapma.
+- Test çalıştırma.
+- Workflow restart etme.
+- Commit/push/merge yapma.
+- Yeni dependency ekleme.
+- Campaign Time implementasyonuna başlama.
+
+AMAÇ:
+
+Mevcut AI-DND kodunu Campaign Time V1 Design Lock ile karşılaştır ve yalnızca gerçek mevcut durum ile gerekli durum arasındaki farkları çıkar.
+
+Aşağıdaki alanları özellikle incele:
+
+1. Campaign/world state içinde mevcut zaman yapısı
+2. World metadata ve mevcut time_of_day davranışı
+3. Persistence / save / resume
+4. Session isolation
+5. Action ID / resolution ID / receipt idempotency
+6. Mevcut combat round ve turn sistemi
+7. Mevcut rest sistemi
+8. Mevcut travel sistemi
+9. Mevcut world/event sistemleri
+10. Event scheduling veya event queue varsa mevcut davranışı
+11. Player Knowledge / Campaign Canon ayrımı
+12. Qwen context ve narration pipeline
+13. API schemas / endpoints
+14. Experience UI'daki mevcut zaman/world-state gösterimi
+15. Normal Mode death rollback ve checkpoint sistemi
+16. RNG persistence / rollback davranışı
+
+Her alan için:
+
+- MEVCUT
+- DESIGN LOCK'TA GEREKLİ
+- GAP VAR MI?
+- VARSA EN KÜÇÜK GEREKLİ DEĞİŞİKLİK
+- İLGİLİ DOSYALAR
+
+şeklinde raporla.
+
+Özellikle şu ayrımı koru:
+
+Campaign Time yalnızca Python authoritative gameplay resolution tarafından ilerletilebilir.
+
+Frontend zamanı değiştiremez.
+
+Qwen zamanı değiştiremez.
+
+Gerçek dünya saati Campaign Time değildir.
+
+Sunucu kapalıyken Campaign Time ilerlemez.
+
+Aynı request retry edildiğinde zaman ikinci kez ilerlememelidir.
+
+Due event'ler ikinci kez çözülmemelidir.
+
+Player Knowledge ile Campaign Canon birbirine karıştırılmamalıdır.
+
+Travel Event Dice ile Scheduled World Events birbirine karıştırılmamalıdır.
+
+Combat round zamanı yaklaşık 6 saniyelik round mantığıyla Campaign Time'a bağlanmalıdır.
+
+Normal Mode death rollback Campaign Time'ı combat öncesi checkpoint'e döndürmelidir; daha önce kilitlediğimiz RNG/action-receipt/idempotency korumaları bozulmamalıdır.
+
+Oyuncuya gösterilen zaman doğal olabilir:
+“bir süre sonra”, “akşamüstüne doğru”, “yaklaşık yarım saat sonra” vb.
+Ancak bu anlatım Campaign Time üretmemelidir.
+
+ACTIVE TASKS için oyuncunun söylediği süre ile gerçek çözülme süresini ayır:
+“1 saat araştırıyorum” demek otomatik olarak 1 saat geçirmek anlamına gelmez.
+Task 6 dakikada tamamlanıyorsa yalnızca gerekli süre ilerlemelidir.
+Oyuncu açıkça yalnızca belirli bir süre beklemek/çalışmak istiyorsa bu süre bir zaman sınırı olarak ele alınmalıdır.
+
+TRAVEL için:
+- journey stages
+- gerçek travel duration
+- Travel Event Dice
+- interruption
+- event window
+- player decision
+akışlarının mevcut sistemle nasıl bağlanabileceğini değerlendir.
+
+COMBAT için:
+- round progression
+- Campaign Time advancement
+- scheduled event boundary crossing
+- combat sonrası otomatik time skip olmaması
+kontrol edilsin.
+
+TEST FELSEFESİ:
+
+Test sayısını gereksiz yere büyütme.
+
+Bu aşamada test çalıştırma.
+
+Yalnızca mevcut testlerin hangi kritik davranışları zaten kapsadığını raporla.
+
+Eksik olanları “hedefli doğrulama gerekir” şeklinde listele.
+
+GENİŞ KAPSAM YOK:
+
+Bu audit sırasında aşağıdakileri önermeye veya uygulamaya çalışma:
+
+- yeni spell duration sistemi
+- poison timer sistemi
+- weather simulation
+- komple NPC life simulation
+- yeni combat engine
+- yeni action economy
+- Monster Manual combat overhaul
+- yeni quest scheduler
+- frontend timer sistemi
+
+Bunlar Campaign Time V1 kapsamı değildir.
+
+ÇIKTI:
+
+Sonunda şu üç bölümü ver:
+
+A) ALREADY IMPLEMENTED
+B) REQUIRED CHANGES
+C) OUT OF SCOPE
+
+Ayrıca “Campaign Time V1 implementation için kaç dosyada ve hangi minimum değişikliklerin gerektiğini” özetle.
+
+Tekrar: BU AŞAMADA HİÇBİR DOSYAYA DOKUNMA.

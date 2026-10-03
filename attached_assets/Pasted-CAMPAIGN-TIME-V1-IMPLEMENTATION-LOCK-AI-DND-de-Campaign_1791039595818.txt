@@ -1,0 +1,671 @@
+CAMPAIGN TIME V1 — IMPLEMENTATION LOCK
+
+AI-DND'de Campaign Time V1'i uygula.
+
+Bu sistemin temel amacı oyuncuya zaman baskısı veya otomatik yönlendirme uygulamak değil; Python'ın yönettiği, kalıcı ve deterministik bir oyun içi saat oluşturmaktır.
+
+EN ÖNEMLİ TASARIM İLKESİ:
+
+OYUNCU ÖZGÜRLÜĞÜ KORUNMALIDIR.
+
+Campaign Time oyuncunun yerine karar vermez.
+Event sistemi oyuncuyu zorla bir olaya sürüklemez.
+Zamanlayıcılar gerçek dünya saatine bağlı değildir.
+Qwen veya frontend oyun zamanını belirleyemez.
+
+==================================================
+1. MİMARİ DEĞİŞMEZ
+==================================================
+
+Mevcut AI-DND mimarisini koru:
+
+PYTHON = oyun gerçekliğinin tek otoritesi
+CAMPAIGN EVENTS = gerçekleşmiş kampanya olaylarının kanonu
+QWEN = niyet anlama + doğrulanmış sonucu anlatma
+FRONTEND = mevcut gerçekliği gösterme
+
+Qwen:
+- Campaign Time belirleyemez.
+- Bir action'ın süresini kendi başına canonical state olarak yazamaz.
+- Event oluşturup gerçekleştiremez.
+- Event'in sonucunu belirleyemez.
+
+Frontend:
+- zamanı değiştiremez.
+- event oluşturamaz.
+- event sonucu üretemez.
+- yalnızca Python tarafından dönen zamanı/event durumunu gösterebilir.
+
+Campaign Time kesinlikle gerçek bilgisayar saati, UTC timestamp veya browser clock değildir.
+
+Bu bir IN-GAME TIME sistemidir.
+
+==================================================
+2. CAMPAIGN TIME'IN BAŞLANGICI
+==================================================
+
+Yeni kampanyada Campaign Time, karakter yaratıldığı anda rastgele başlatılmamalıdır.
+
+İlk gerçek dünya/sahne oluşturulduğunda canonical kampanya başlangıç zamanı belirlenmelidir.
+
+Örnek:
+
+Campaign created
+→ character created
+→ starting location/world resolved
+→ opening scene created
+→ Campaign Time initialized
+
+Başlangıç zamanı mevcut canonical campaign/world/opening-scene metadata'sından alınmalıdır.
+
+Mevcut sistemde böyle bir tarih/saat bilgisi varsa onu yeniden kullan.
+
+Gerçek sistem saatini başlangıç zamanı olarak kullanma.
+
+Eski save'lerde Campaign Time alanı yoksa:
+- save uyumluluğunu bozma;
+- mevcut canonical campaign metadata'sından deterministik şekilde başlat;
+- bunun için gerçek saat kullanma;
+- uygun canonical başlangıç bilgisi bulunmuyorsa güvenli ve belgelenmiş deterministic fallback kullan.
+
+==================================================
+3. CAMPAIGN CLOCK
+==================================================
+
+Python tarafından authoritative bir Campaign Time tutulmalıdır.
+
+En azından:
+- in-game date
+- in-game time
+- gerekli takvim/yıl bilgisi
+
+saklanabilmelidir.
+
+Mevcut world metadata yapısını gereksiz yere parçalama.
+Mevcut world/campaign persistence mimarisini mümkün olduğunca genişlet.
+
+Campaign Time:
+- save edilir;
+- load edilir;
+- resume edilir;
+- server restart sonrası korunur;
+- session isolation'a uyar.
+
+Gerçek bilgisayar zamanı ile Campaign Time arasında otomatik senkronizasyon OLMAYACAK.
+
+==================================================
+4. ZAMAN NASIL İLERLER?
+==================================================
+
+Campaign Time yalnızca Python tarafından çözülen gerçek bir gameplay sonucu sonucunda ilerler.
+
+Örnek zaman ilerleten sistemler:
+- combat
+- rest
+- travel
+- explicit wait
+- mevcut veya gelecekteki zaman tüketen activity'ler
+
+Ancak:
+
+EVENT ZAMANI İLERLETMEZ.
+
+Bir event'in due/window zamanı geldi diye engine kendi kendine zamanı ileri sarmaz.
+
+ÖZELLİKLE YAPMA:
+
+"Bir sonraki event 18:00'de, o zamana fast-forward edelim."
+
+Bu AI-DND'nin oyuncu özgürlüğünü bozar.
+
+Oyuncu:
+- konuşabilir,
+- araştırabilir,
+- dolaşabilir,
+- bekleyebilir,
+- başka yere gidebilir,
+- bir planı bırakabilir,
+- tamamen farklı bir şey yapabilir.
+
+Campaign Time bu kararları engellememelidir.
+
+==================================================
+5. COMBAT TIME
+==================================================
+
+D&D 2024 kuralına uygun olarak bir combat round yaklaşık 6 saniyedir.
+
+Combat sırasında:
+- tamamlanan her round Campaign Time'a +6 saniye ekler.
+
+ÖNEMLİ:
+
+Bir oyuncu mesajı = +6 saniye değildir.
+Bir turn = ayrı bir 6 saniye değildir.
+Her combatant'ın turn'ünü ayrı ayrı toplayıp süreyi şişirme.
+
+6 saniye tamamlanan ROUND'a aittir.
+
+Mevcut combat round mantığını yeniden yazma.
+Sadece Campaign Time'a authoritative bir time-advance hook bağla.
+
+Combat dışındaki sistemleri combat'a zorla bağlama.
+
+==================================================
+6. FREEFORM ACTION'LARDA ZAMAN
+==================================================
+
+Her oyuncu mesajına otomatik süre ekleme.
+
+Örneğin:
+
+"NPC ile konuşuyorum."
+
+→ otomatik olarak +5 dakika verme.
+
+"Masaya bakıyorum."
+
+→ otomatik olarak +2 dakika verme.
+
+"Biraz etrafı inceliyorum."
+
+→ rastgele bir süre üretme.
+
+Qwen'in prose'undan zaman çıkarıp canonical state'e yazma.
+
+D&D'deki zaman takibi bağlama göre esnek olmalıdır.
+
+Bir action'ın süresi yalnızca:
+- mevcut authoritative gameplay mekanizması,
+- açıkça tanımlanmış zaman tüketen action,
+- veya oyuncunun açıkça belirttiği/istediği bekleme gibi bir zaman ilerletme eylemi
+
+üzerinden Python tarafından çözülmelidir.
+
+Gereksiz yere her freeform action için yeni dakika kuralları icat etme.
+
+Bu V1'in amacı "her action kaç dakika sürer?" problemini tamamen çözmek değildir.
+
+Ama explicit wait gibi mevcut/uygun bir mekanizma varsa Campaign Time'a bağla.
+
+==================================================
+7. EVENT'LER KESİN SAAT OLMAK ZORUNDA DEĞİL
+==================================================
+
+Event sisteminde yalnızca:
+
+event_at = 18:00
+
+gibi katı timestamp kullanmak zorunda değiliz.
+
+V1 time window desteklemelidir.
+
+Örnek:
+
+window_start = 18:00
+window_end   = 18:30
+
+Anlamı:
+
+Event 18:00'den önce encounterable değildir.
+18:00–18:30 arasında uygun koşullarda karşılaşılabilir.
+Pencere geçtikten sonra oyuncu o fırsatı kaçırabilir.
+
+Bu pencere:
+- event'in kesin gerçekleşme saniyesi değildir;
+- oyuncuya doğal bir fırsat aralığı sağlar.
+
+==================================================
+8. EVENT OLUŞMASI VE EVENT'İN GÖRÜLMESİ AYRI OLMALI
+==================================================
+
+Çok önemli:
+
+WORLD EVENT ≠ PLAYER OBSERVATION
+
+Örneğin:
+
+NPC leaves tavern
+18:00–18:30
+
+Oyuncu 17:50–19:00 arasında başka bir yerdeyse:
+
+Dünya:
+→ NPC gerçekten tavernadan ayrıldı.
+
+Oyuncu:
+→ bunu görmemiş olabilir.
+
+Campaign canon:
+→ event gerçekleşmiş olabilir.
+
+Player knowledge:
+→ event hakkında bilgisi olmayabilir.
+
+Bir olayın gerçekleşmesi otomatik olarak oyuncunun onu bildiği anlamına gelmez.
+
+Frontend'e event'in tüm gizli state'ini oyuncuya gösterme.
+
+==================================================
+9. ACTION EVENT WINDOW'UNU OTOMATİK OLARAK TETİKLEMEZ
+==================================================
+
+BU MADDE ÖZELLİKLE ÖNEMLİDİR.
+
+Örneğin:
+
+Player action:
+15:00 → 20:00
+
+Event:
+18:00 → 18:30
+
+Oyuncunun action'ı bu zaman aralığından geçiyor diye event otomatik olarak oyuncunun önüne çıkarılmayacak.
+
+Oyuncu event'i kaçırabilir.
+
+Sonuç:
+
+World event:
+RESOLVED / OCCURRED
+
+Player encounter:
+MISSED
+
+Bu nedenle:
+
+"15:00 → 20:00 action var, event 18:00'de, o zaman action'ı 18:00'de kes."
+
+gibi otomatik davranış V1'de YAPILMAYACAK.
+
+Bu, oyuncu özgürlüğünü korumak için bilinçli bir tasarım kararıdır.
+
+==================================================
+10. EVENT BEHAVIOR
+==================================================
+
+Event modelinde gelecekte kullanılabilecek davranış ayrımı için:
+
+NON_INTERRUPTIVE
+INTERRUPTIVE
+OBSERVABLE
+
+gibi behavior alanlarını destekleyebilirsin.
+
+Fakat:
+
+INTERRUPTIVE olması tek başına "zaman aralığına denk gelen her action'ı zorla böl" anlamına GELMEZ.
+
+Bir event ancak mevcut gameplay çözümünde gerçek bir encounter/observation noktası oluştuğunda oyuncunun eylemini etkileyebilir.
+
+Arbitrary time-overlap nedeniyle uzun bir action'ı zorla bölme.
+
+V1'de event behavior altyapısını gelecekte genişletilebilir şekilde tut.
+
+Gereksiz yere yeni genel encounter engine oluşturma.
+
+==================================================
+11. EVENT DURUMLARI
+==================================================
+
+Event'lerin en azından birbirinden ayrılabilen yaşam durumları olmalı:
+
+PENDING
+OCCURRED / RESOLVED
+MISSED / EXPIRED gerektiğinde
+
+Ayrıca mümkünse:
+
+player_observed = true/false
+
+gibi oyuncunun bilgisi ile dünya gerçekliğini ayıran bir alan kullan.
+
+Aynı event'in iki kez canonical olarak uygulanmasını engelle.
+
+Event resolution idempotent olmalıdır.
+
+==================================================
+12. EVENT PROCESSING
+==================================================
+
+Bir authoritative action zamanı:
+
+15:00 → 18:12
+
+şeklinde ilerletiyorsa Python zamanı günceller.
+
+Ardından event sistemi, yeni zaman aralığında ilgili event'leri kontrol edebilir.
+
+Ancak bu kontrol:
+
+"event varsa oyuncuyu zorla karşılaştır"
+
+anlamına gelmez.
+
+Kontrolün amacı:
+- dünya state'ini güncellemek,
+- zamanı geçmiş event'leri canonical olarak resolve etmek,
+- uygun encounter/observation fırsatlarını işaretlemek,
+- player knowledge ile world state'i ayırmak
+
+olmalıdır.
+
+Event processing deterministic olmalıdır.
+
+Qwen event sonucunu belirleyemez.
+
+==================================================
+13. EVENT WINDOW ÖRNEĞİ
+==================================================
+
+Örnek:
+
+Campaign Time:
+15:12
+
+Event:
+NPC leaves tavern
+18:00–18:30
+OBSERVABLE
+
+Player:
+"Üç saat boyunca tavernada oturup insanları gözlemliyorum."
+
+Eğer mevcut gameplay sistemi bu action için 15:12 → 18:12 zaman ilerlemesini authoritative şekilde çözüyorsa:
+
+Campaign Time:
+18:12
+
+Event:
+18:00–18:30 window aktif.
+
+Fakat engine oyuncuyu otomatik olarak:
+"NPC'yi gördün."
+
+diye sonuçlandırmamalıdır.
+
+Oyuncunun event'i gerçekten gözlemleyip gözlemlemediği:
+- konum,
+- action bağlamı,
+- mevcut gameplay resolution,
+- event visibility
+
+gibi canonical bilgilerle belirlenmelidir.
+
+Bunlar mevcut değilse event'i oyuncuya zorla gösterme.
+
+==================================================
+14. PLAYER FREEDOM INVARIANTS
+==================================================
+
+Aşağıdakiler test edilmelidir:
+
+1. Oyuncu bir event window'u bilmeden başka bir action yapabilir.
+
+2. Event window oyuncuyu otomatik olarak event'e çekmez.
+
+3. Oyuncu event'i kaçırabilir.
+
+4. Dünya event'i gerçekleşmiş olabilirken oyuncu bunu bilmeyebilir.
+
+5. Campaign Time oyuncunun yerine "en yakın event'e" fast-forward yapmaz.
+
+6. Event sistemi oyuncunun özgürce:
+   - konuşmasını,
+   - araştırmasını,
+   - dolaşmasını,
+   - beklemesini,
+   - seyahat etmesini,
+   - başka bir plana geçmesini
+   engellemez.
+
+7. Qwen zaman veya event sonucu icat edemez.
+
+==================================================
+15. PERSISTENCE
+==================================================
+
+Campaign Time ve event state campaign save/load sistemine dahil edilmelidir.
+
+Save/resume sonrasında:
+- Campaign Time korunmalı.
+- Pending events korunmalı.
+- Resolved events korunmalı.
+- Player observation/knowledge state korunmalı.
+- Missed/expired event state gerekiyorsa korunmalı.
+
+Legacy save'ler bozulmamalı.
+
+Mevcut save format/version mimarisini gereksiz yere değiştirme.
+
+Yeni alanları backward-compatible şekilde initialize et.
+
+==================================================
+16. IDEMPOTENCY
+==================================================
+
+Zaman ilerleten gameplay action'ları mevcut action_id / resolution_id sistemine uyumlu olmalıdır.
+
+Aynı request retry edildiğinde:
+
+Campaign Time iki kez ilerlememeli.
+
+Örneğin:
+
+15:00
++ 3 saat
+= 18:00
+
+Aynı action retry edilirse:
+
+18:00 → tekrar +3 saat YAPILMAMALI.
+
+Aynı şekilde event resolution iki kez uygulanmamalı.
+
+Mevcut receipt/idempotency mekanizmasını yeniden kullan.
+
+Yeni ve paralel bir idempotency sistemi icat etme.
+
+==================================================
+17. PERSISTENCE ATOMICITY
+==================================================
+
+Mümkün olduğu kadar:
+
+gameplay resolution
++
+Campaign Time advancement
++
+event resolution
++
+campaign event/journal changes
+
+aynı authoritative persistence sınırı içinde korunmalıdır.
+
+Save başarısız olursa istemciye başarılı zaman ilerlemesi olmuş gibi davranma.
+
+Crash/retry durumlarında:
+- zaman iki kez ilerlememeli;
+- event iki kez resolve olmamalı;
+- campaign canon iki kez yazılmamalı.
+
+==================================================
+18. DEATH / STABLE RECOVERY İLE İLİŞKİ
+==================================================
+
+Campaign Time, daha önce uygulanan death lifecycle sisteminin yerine geçmez.
+
+Stable / unconscious recovery için Campaign Time kullanılabilecek bir temel sağlar.
+
+Ancak:
+
+"Stable oyuncu hareket edemiyor → motor otomatik olarak 1d4 saat ileri sarıyor"
+
+şeklinde genel bir fast-forward mekanizması oluşturma.
+
+Campaign Time yalnızca zamanın gerçekten ilerlediği authoritative bir gameplay event'i olduğunda ilerlemelidir.
+
+Recovery mekanizması Campaign Time'a ayrı bir gameplay consumer olarak bağlanabilir.
+
+==================================================
+19. FRONTEND
+==================================================
+
+Frontend yalnızca doğrulanmış Campaign Time'ı göstermeli.
+
+Gerekiyorsa:
+- tarih,
+- saat,
+- gün/gece,
+- ilgili event bilgisi
+
+gösterilebilir.
+
+Ancak frontend:
+- timer çalıştırmamalı;
+- browser clock ile campaign time değiştirmemeli;
+- event tetiklememeli;
+- countdown'u canonical state olarak kullanmamalı.
+
+UI sunum amaçlıdır.
+
+Oyuncuya teknik terimler gösterme:
+- Campaign Time
+- event state
+- engine
+- backend
+- canonical record
+
+gibi ifadeleri player-facing UI'ya koyma.
+
+Oyuncu bunun yerine doğal bir dünya zamanı görmeli.
+
+==================================================
+20. KAPSAM SINIRI
+==================================================
+
+BU FAZDA YAPMA:
+
+- yeni genel combat sistemi
+- yeni movement sistemi
+- yeni quest sistemi
+- yeni spell duration engine
+- poison duration system
+- weather scheduler
+- generic event scripting engine
+- gerçek zamanlı clock
+- browser timer
+- Qwen-based time authority
+- otomatik "next event" fast-forward
+- bütün freeform player action'larına zorunlu dakika değerleri
+- kapsamlı travel rewrite
+- geniş çaplı refactor
+
+Campaign Time V1 küçük, genişletilebilir bir temel olmalı.
+
+Mevcut mekanizmaları mümkün olduğunca yeniden kullan.
+
+==================================================
+21. TEST STRATEJİSİ — GEREKSİZ TEST ÇILGINLIĞI YOK
+==================================================
+
+Bu görev için yüzlerce test çalıştırıp işi gereksiz yere büyütme.
+
+Önce hedefli regresyon testleri oluştur/çalıştır.
+
+En az şu davranışlar doğrulansın:
+
+1. Campaign Time yeni kampanyada doğru canonical başlangıçtan oluşuyor.
+
+2. Save/resume Campaign Time'ı koruyor.
+
+3. Combat round tamamlandığında +6 saniye ilerliyor.
+
+4. Aynı combat round veya action retry'si zamanı iki kez ilerletmiyor.
+
+5. Event window doğru şekilde saklanıyor.
+
+6. Event zamanı kendi başına ilerletmiyor.
+
+7. Player action'ın event window ile çakışması oyuncuyu otomatik event'e sürüklemiyor.
+
+8. Player event'i kaçırabiliyor.
+
+9. World event ile player observation birbirinden ayrılabiliyor.
+
+10. Aynı event iki kez canonical olarak resolve edilmiyor.
+
+11. Restart/save/load sonrasında zaman ve event state korunuyor.
+
+12. Legacy save bozulmuyor.
+
+Frontend'e dokunulduysa:
+- typecheck
+- production build
+- bir temel browser/preview kontrolü
+
+yeterli.
+
+Backend için ilgili hedefli testler yeterli.
+
+Full workspace suite ancak:
+- hedefli testlerde sorun çıkarsa,
+- persistence/API sözleşmesi ciddi şekilde değişirse,
+- veya değişiklik kapsamı gerçekten bunu gerektirirse
+çalıştırılsın.
+
+Test sayısını artırmak için test ekleme.
+
+Testlerin gerçekten çalıştırıldığını kanıt olmadan "passed" deme.
+
+==================================================
+22. DOĞRULAMA RAPORU
+==================================================
+
+İş bitince kısa bir rapor ver:
+
+1. Hangi dosyalar değişti?
+2. Campaign Time nerede tutuluyor?
+3. Zamanı hangi authoritative action'lar ilerletiyor?
+4. Event window nasıl çalışıyor?
+5. Event'in oyuncu tarafından kaçırılması nasıl mümkün?
+6. Save/resume nasıl korunuyor?
+7. Idempotency nasıl korunuyor?
+8. Hangi hedefli testler gerçekten çalıştırıldı?
+9. Typecheck/build çalıştırıldıysa sonuç ne?
+10. Bilinçli olarak kapsam dışında bırakılan şeyler neler?
+
+Test çalıştırılmadıysa bunu açıkça söyle.
+
+==================================================
+23. EN ÖNEMLİ SON KURAL
+==================================================
+
+AI-DND'nin Campaign Time sistemi oyuncuya:
+
+"Senin için dünyayı ben oynatıyorum."
+
+hissi vermemeli.
+
+Şunu vermeli:
+
+"Sen ne yapmak istediğine karar veriyorsun.
+Dünya bunun sonucunda zaman içinde değişiyor."
+
+Oyuncunun özgürlüğü sistemin temel ürün gereksinimidir.
+
+Özellikle event'ler konusunda:
+
+EVENT → TIME DRIVER DEĞİL.
+
+EVENT → WORLD STATE / OPPORTUNITY.
+
+GAMEPLAY ACTION → TIME DRIVER.
+
+PYTHON → RESOLUTION AUTHORITY.
+
+QWEN → INTENT + NARRATION.
+
+FRONTEND → PRESENTATION.
+
+Bu mimariyi bozacak bir çözüm görürsen genişletmeye çalışma; önce dur ve bildir.
