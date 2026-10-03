@@ -4627,6 +4627,10 @@ def parse_player_intent(player_input):
         "intent değerleri: narrative, travel, query, explore, dialogue, observe, perception, investigation, stealth, "
         "persuasion, deception, acrobatics, survival, attack, combat, inventory, interact, door, search, rest, use_item, unknown. "
         "Bilgi sorularında query_type kullan: self, location, presence veya npc_identity. "
+        "Oyuncu kendi adı, sınıfı, ırkı veya seviyesi hakkında sorarsa query_type=self seç; target.type=none ve target.reference boş olsun. "
+        "Bu sorular konum sorusu değildir; target.type=location seçme. Örnek: 'Benim adım ne?' için "
+        '{"intent":"query","action":"query","target":{"type":"none","reference":""},'
+        '"completion":"unclear","confidence":1.0,"query_type":"self"}. '
         "Çevreye sıradan bakış explore_type=observe; ayrıntılı inceleme inspect; ipucu/nesne arama search olur. "
         "Bir konum adının veya 'var' kelimesinin geçmesi tek başına seyahat değildir. "
         "Kibar soru, selam veya duygu dialogue/narrative olur; kendiliğinden skill check değildir. "
