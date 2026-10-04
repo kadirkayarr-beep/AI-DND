@@ -27,7 +27,7 @@ def git(*args):
     return subprocess.check_output(["git", *args], cwd=ROOT)
 
 
-def source_snapshot(archive):
+def source_snapshot(archive, *, excluded_paths=()):
     """Fingerprint tracked + nonignored untracked content, not just git status.
 
     Generated suite evidence is excluded to avoid self-referential hashes.
@@ -37,7 +37,8 @@ def source_snapshot(archive):
     def repo_git(*args):
         return subprocess.check_output(["git", "-C", str(repo), *args])
 
-    excluded = {DEFAULT_ARCHIVE.resolve(), Path(archive).resolve()}
+    excluded = {DEFAULT_ARCHIVE.resolve(), Path(archive).resolve(),
+                *(Path(path).resolve() for path in excluded_paths)}
     paths = sorted(set(repo_git("ls-files", "-z", "--cached", "--others",
                            "--exclude-standard").decode().split("\0")) - {""})
     files = []

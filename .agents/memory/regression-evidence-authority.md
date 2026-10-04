@@ -6,7 +6,8 @@ description: Historical claims and real HTTP acceptance cannot be certified by n
 Treat every newly executed AI-DND regression run as new evidence, never as
 certification of an older run whose durable execution evidence is missing.
 Keep suite-run evidence distinct from real-network HTTP acceptance evidence.
-The historical bounded encounter 563/563 claim remains independently unverified.
+Verify historical claims against the original evidence actually available in
+the environment performing the review; never substitute a newly executed run.
 
 **Why:** The owner requires verifiable future runs without retroactive historical
 certification, and explicitly excludes push, publication and commit-provenance
@@ -26,6 +27,16 @@ run or produce a misleading real-network acceptance claim.
 
 **How to apply:** Validate archive behavior offline unless the owner separately
 approves live acceptance; distinguish those contract checks from gameplay proof.
+
+A local verifier source fingerprint never proves the source revision of the
+server under test, including servers reached through localhost.
+
+**Why:** The owner explicitly requires verifier/server identity separation;
+the verifier checkout and the running server need not contain the same code.
+
+**How to apply:** Keep server identity unknown/unverified unless independently
+established. Exclude generated archives and exports from local source hashing
+so evidence writes do not look like source edits.
 
 Retain combined legacy/API regression evidence in both selector orders when
 changing shared model-mock ownership. A passing isolated run does not turn a

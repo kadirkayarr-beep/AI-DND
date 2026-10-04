@@ -1,5 +1,6 @@
 """Offline archive contracts; never contact a live campaign or model."""
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -29,6 +30,26 @@ class HttpEvidenceTests(unittest.TestCase):
         self.network = patch.object(owner, "urlopen", side_effect=RuntimeError("offline sentinel"))
         self.urlopen = self.network.start()
         self.addCleanup(self.network.stop)
+        # Hash real temporary files through the shared algorithm, using only
+        # read-only Git-command fixtures. Never modify this repository's source.
+        (self.root / "verifier.py").write_text("# offline verifier fixture\n")
+        self.git = patch.object(owner.suite_evidence.subprocess, "check_output",
+                                side_effect=self.fixture_git)
+        self.git.start()
+        self.addCleanup(self.git.stop)
+
+    def fixture_git(self, argv, **kwargs):
+        if "ls-files" in argv:
+            paths = sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*")
+                           if p.is_file() or p.is_symlink())
+            return ("\0".join(paths) + "\0").encode()
+        if "status" in argv or "diff" in argv:
+            return b""
+        if argv[-1] == "--show-toplevel":
+            return str(self.root).encode()
+        if argv[-1] == "HEAD":
+            return b"1111111111111111111111111111111111111111"
+        raise AssertionError(f"Unexpected Git fixture call: {argv}")
 
     def run_attempt(self, **kwargs):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -230,6 +251,112 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertIsNone(record["exit_status"])
         self.assertIsNone(record["ended_at"])
         self.assertEqual(record["run_label"], "NEW RUN")
+        self.assertIsNotNone(record["verifier_source"]["before"])
+        self.assertIsNone(record["verifier_source"]["after"])
+        self.assertIsNone(record["source_change_detection"]["changed"])
+        self.assertFalse(record["source_change_detection"]["unchanged_verifier_source"])
+
+    def test_shared_verifier_fingerprint_manifest_is_deterministic(self):
+        before = owner.capture_verifier_source(self.archive, None)
+        after = owner.capture_verifier_source(self.archive, None)
+        self.assertEqual(before["algorithm"], "sha256")
+        self.assertEqual(before["fingerprint"], after["fingerprint"])
+        self.assertEqual(before["fingerprint"], before["working_tree_sha256"])
+        self.assertEqual(before["identity_scope"], "local_verifier_checkout_only")
+        self.assertEqual([f["path"] for f in before["files"]], ["verifier.py"])
+        self.assertEqual(before["files"][0]["sha256"],
+                         hashlib.sha256((self.root / "verifier.py").read_bytes()).hexdigest())
+        canonical = {"files": before["files"], "index_diff_sha256": before["index_diff_sha256"]}
+        self.assertEqual(before["fingerprint"], hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest())
+
+    def test_before_after_are_checkpointed_and_unchanged_is_explicit(self):
+        def offline(base, resume, record, checkpoint):
+            stored = self.records()[0]
+            self.assertIsNotNone(stored["verifier_source"]["before"])
+            self.assertIsNone(stored["verifier_source"]["after"])
+            self.assertFalse(stored["source_change_detection"]["unchanged_verifier_source"])
+        with patch.object(owner, "execute", side_effect=offline):
+            self.assertEqual(self.run_attempt(), 0)
+        record = self.records()[0]
+        before, after = record["verifier_source"]["before"], record["verifier_source"]["after"]
+        self.assertEqual(before["fingerprint"], after["fingerprint"])
+        self.assertLessEqual(before["captured_at"], after["captured_at"])
+        self.assertEqual(record["source_change_detection"],
+                         {"changed": False, "status": "unchanged", "unchanged_verifier_source": True})
+
+    def test_source_modification_during_acceptance_preserves_both_fingerprints(self):
+        def offline(*args):
+            (self.root / "verifier.py").write_text("# modified offline source\n")
+        with patch.object(owner, "execute", side_effect=offline):
+            self.assertEqual(self.run_attempt(), 0)
+        record = self.records()[0]
+        self.assertNotEqual(record["verifier_source"]["before"]["fingerprint"],
+                            record["verifier_source"]["after"]["fingerprint"])
+        self.assertEqual(record["status"], "PASS")  # Acceptance is retained, not source certification.
+        self.assertEqual(record["source_change_detection"],
+                         {"changed": True, "status": "changed", "unchanged_verifier_source": False})
+
+    def test_server_identity_is_unverified_even_for_localhost(self):
+        with patch.object(owner, "execute"), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(owner.run("http://localhost:8000", "http://localhost:8008",
+                                       archive_root=self.archive), 0)
+        record = self.records()[0]
+        for role, endpoint in (("acceptance", "http://localhost:8000"),
+                               ("resume", "http://localhost:8008")):
+            server = record["server_source_identity"][role]
+            self.assertEqual(server["endpoint"], endpoint)
+            self.assertEqual(server["status"], "unverified")
+            self.assertIsNone(server["revision"])
+            self.assertIsNone(server["fingerprint"])
+            self.assertNotEqual(server["revision"], record["verifier_source"]["before"]["revision"])
+        self.urlopen.assert_not_called()
+
+    def test_generated_archives_and_export_do_not_change_fingerprint(self):
+        default = self.root / "default-http-runs"
+        default.mkdir()
+        (default / "old.json").write_text('{"historical": true}\n')
+        export = self.root / "export.json"
+        with patch.object(owner, "DEFAULT_ARCHIVE", default), patch.object(owner, "execute"):
+            self.assertEqual(self.run_attempt(output=export), 0)
+        record = self.records()[0]
+        self.assertFalse(record["source_change_detection"]["changed"])
+        self.assertEqual([f["path"] for f in record["verifier_source"]["before"]["files"]],
+                         ["verifier.py"])
+        self.assertEqual(json.loads(export.read_text()), record)
+
+    def test_failure_and_interrupt_preserve_source_and_unknown_server_identity(self):
+        for failure, code in ((RuntimeError("offline failure"), 2), (KeyboardInterrupt(), 130)):
+            with patch.object(owner, "execute", side_effect=failure):
+                self.assertEqual(self.run_attempt(), code)
+        for record in self.records():
+            self.assertIsNotNone(record["verifier_source"]["before"])
+            self.assertIsNotNone(record["verifier_source"]["after"])
+            self.assertFalse(record["source_change_detection"]["changed"])
+            self.assertEqual(record["server_source_identity"]["acceptance"]["status"], "unverified")
+        self.urlopen.assert_not_called()
+
+    def test_capture_failure_never_claims_unchanged_or_success(self):
+        actual = owner.capture_verifier_source
+        with patch.object(owner, "execute") as execute, patch.object(
+            owner, "capture_verifier_source",
+            side_effect=[RuntimeError("before unavailable"), actual(self.archive, None)],
+        ):
+            self.assertEqual(self.run_attempt(), 2)
+            execute.assert_not_called()
+        first = self.records()[0]
+        self.assertIn("before", first["verifier_source"]["capture_errors"])
+        self.assertFalse(first["source_change_detection"]["unchanged_verifier_source"])
+        with patch.object(owner, "execute"), patch.object(
+            owner, "capture_verifier_source",
+            side_effect=[actual(self.archive, None), RuntimeError("after unavailable")],
+        ):
+            self.assertEqual(self.run_attempt(), 2)
+        after_failure = next(r for r in self.records()
+                             if "after" in r["verifier_source"]["capture_errors"])
+        self.assertIsNone(after_failure["source_change_detection"]["changed"])
+        self.assertFalse(after_failure["source_change_detection"]["unchanged_verifier_source"])
 
 
 if __name__ == "__main__":

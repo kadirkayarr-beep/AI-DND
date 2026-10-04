@@ -1,0 +1,338 @@
+# #67 FINAL REPAIR — HTTP ACCEPTANCE SOURCE IDENTITY
+
+The final push review found exactly one remaining conditional blocker:
+
+`ai-dnd/scripts/verify_bounded_encounter_http.py` currently preserves
+HTTP acceptance archives and prevents overwrites, but the current
+checkout does NOT record:
+
+1. verifier source fingerprint
+2. source-change detection during the run
+3. explicit distinction between verifier source and server source identity
+
+Implement ONLY this missing #67 functionality.
+
+============================================================
+STRICT SCOPE
+============================================================
+
+This is a final, narrowly scoped repair.
+
+DO NOT:
+
+- change gameplay behavior
+- change #60 bounded encounter behavior
+- change #65 regression behavior
+- change #68 travel behavior
+- change #69 mock isolation
+- change #70 campaign-time behavior
+- change Monster Combat
+- change Action Economy
+- change Weapon & Attack
+- change Initiative
+- change Death System
+- start #08
+- change persistence
+- change RNG
+- change receipts
+- change Qwen behavior
+- change frontend behavior
+- run live HTTP acceptance
+- modify historical HTTP evidence
+- overwrite any existing archive
+- alter Git history
+- commit
+- push
+- merge
+- publish
+- reset
+- rebase
+- cherry-pick
+- force-push
+
+Do NOT create #74, #75 or any other follow-up task.
+
+Do not broaden the scope into general provenance architecture.
+
+============================================================
+SOURCE OF TRUTH
+============================================================
+
+Use the existing suite fingerprint approach already implemented in:
+
+`ai-dnd/scripts/run_regression_evidence.py`
+
+Reuse its established hashing/fingerprint conventions where appropriate.
+
+Do not create a second incompatible fingerprint system.
+
+============================================================
+REQUIRED IMPLEMENTATION
+============================================================
+
+Update:
+
+`ai-dnd/scripts/verify_bounded_encounter_http.py`
+
+so every FUTURE HTTP acceptance archive records a verifier-side source
+identity.
+
+At minimum record:
+
+- verifier source fingerprint
+- the source files included in that fingerprint
+- fingerprint algorithm
+- fingerprint value
+- source capture timestamp if already supported by the evidence model
+- source fingerprint immediately before the acceptance execution
+- source fingerprint immediately after the acceptance execution
+- whether source changed during the run
+
+Use clear explicit fields.
+
+Example semantic structure is acceptable:
+
+`verifier_source`
+- `fingerprint`
+- `algorithm`
+- `files`
+
+`source_change_detection`
+- `before`
+- `after`
+- `changed`
+
+Do not require these exact field names if the existing evidence
+architecture has a better established naming convention, but the
+information must be unambiguous.
+
+============================================================
+VERIFIER VS SERVER IDENTITY
+============================================================
+
+This distinction is mandatory.
+
+The archive must clearly distinguish:
+
+A) the local verifier source identity
+
+from
+
+B) the source/revision identity of the server being tested.
+
+The local verifier fingerprint MUST NOT be presented as proof of the
+remote server's revision.
+
+If the server independently exposes no trustworthy revision/source
+identity, explicitly record the server identity as:
+
+- unknown
+- unavailable
+- unverified
+
+or the equivalent established representation.
+
+Do NOT invent a server revision.
+
+Do NOT infer a remote revision from the local working tree.
+
+The final evidence must make it impossible to mistake:
+
+"verifier source fingerprint"
+
+for:
+
+"server source revision".
+
+============================================================
+SOURCE-CHANGE DETECTION
+============================================================
+
+Capture the verifier source fingerprint before execution.
+
+Capture it again after execution.
+
+If the source changed during the run:
+
+- mark the archive accordingly
+- preserve both fingerprints
+- do NOT report the run as unchanged-source certified.
+
+The acceptance result itself may still be preserved, but its evidence
+must clearly state that source changed during capture.
+
+If the source did not change:
+
+- record matching before/after fingerprints
+- explicitly mark the source as unchanged.
+
+Do not silently discard failed or interrupted runs.
+
+============================================================
+ARCHIVE SAFETY
+============================================================
+
+Preserve all existing #66 behavior:
+
+- unique NEW RUN archives
+- exact command
+- start time
+- end time
+- exit status
+- failure information
+- interruption information
+- partial checkpoints
+- existing archive overwrite protection
+
+An existing evidence file MUST NEVER be overwritten.
+
+Do not modify:
+
+`ai-dnd/docs/evidence/bounded-encounter-http.json`
+
+Do not rewrite historical acceptance records.
+
+Do not migrate old archives merely to add the new fields.
+
+Historical records may remain without the new source identity fields.
+
+============================================================
+OFFLINE TESTS
+============================================================
+
+Add/update offline contract tests in:
+
+`ai-dnd/api/tests/test_http_acceptance_evidence.py`
+
+The tests must verify at minimum:
+
+1. verifier fingerprint is recorded
+2. fingerprint algorithm/value are present
+3. source files contributing to the fingerprint are identifiable
+4. before/after fingerprints are recorded
+5. unchanged source is explicitly detected
+6. source modification during the run is detected
+7. verifier source and server source identity are separate
+8. unknown/unverified server identity is represented honestly
+9. existing archive cannot be overwritten
+10. failed/interrupted acceptance still produces identifiable evidence
+11. historical `bounded-encounter-http.json` remains untouched
+
+Use temporary/offline fixtures where necessary.
+
+Do NOT run live HTTP acceptance.
+
+============================================================
+REGRESSION SAFETY
+============================================================
+
+Run the relevant offline tests only.
+
+At minimum verify:
+
+- new HTTP acceptance evidence tests
+- existing evidence/archive tests
+- relevant regression evidence tests if they are directly affected.
+
+Do not unnecessarily rerun the full gameplay suite.
+
+Do not change gameplay code to make evidence tests pass.
+
+If an unrelated existing test fails, preserve the failure and report it;
+do not expand scope.
+
+============================================================
+EVIDENCE
+============================================================
+
+The implementation must itself produce durable offline evidence that
+the new source-identity contract works.
+
+Do not claim a live HTTP acceptance result.
+
+Do not manufacture historical provenance.
+
+Do not claim that a local fingerprint proves the server revision.
+
+============================================================
+COMPLETION CRITERIA
+============================================================
+
+#67 is COMPLETE only if ALL are true:
+
+1. Current HTTP verifier records local verifier source identity.
+2. Source fingerprint is deterministic and compatible with the existing
+   evidence fingerprint approach.
+3. Before/after source fingerprints are recorded.
+4. Source changes during execution are explicitly detected.
+5. Verifier source and server source identity are explicitly separate.
+6. Unknown server revision remains unknown/unverified rather than being
+   invented.
+7. Existing archives cannot be overwritten.
+8. Failed/interrupted runs remain identifiable.
+9. Historical HTTP acceptance records remain byte-for-byte unchanged.
+10. Offline contract tests pass.
+11. No gameplay code or architecture was changed.
+12. No live HTTP acceptance was performed.
+13. No Git history or publication operation was performed.
+
+If any completion criterion cannot be satisfied, STOP and report exactly
+which criterion remains unresolved.
+
+Do not create another task to address it.
+
+============================================================
+FINAL REPORT
+============================================================
+
+When finished, report:
+
+## #67 FINAL REPAIR
+
+### IMPLEMENTED
+- verifier source fingerprint:
+- source file manifest:
+- before/after fingerprint:
+- source-change detection:
+- verifier/server identity separation:
+- unknown server identity handling:
+- archive overwrite protection:
+- failure/interruption preservation:
+
+### VERIFIED
+- new offline evidence tests:
+- existing evidence tests:
+- exact pass/fail/error/skip counts:
+- historical evidence unchanged:
+- live HTTP acceptance: NOT RUN
+
+### SCOPE
+Explicitly confirm:
+- no gameplay changes
+- no #08 changes
+- no persistence/RNG/receipt changes
+- no live HTTP
+- no commit
+- no push
+- no merge
+- no publish
+- no reset/rebase/cherry-pick
+
+### FINAL STATUS
+
+Return exactly one:
+
+COMPLETE
+
+or
+
+BLOCKED
+
+If COMPLETE, state:
+
+`#67 COMPLETE — ready for final read-only push review.`
+
+Then STOP.
+
+Do not create another task.
+Do not suggest another implementation task.

@@ -19,6 +19,10 @@ from uuid import uuid4
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts import run_regression_evidence as suite_evidence
+
 DEFAULT_ARCHIVE = ROOT / "docs/evidence/http-runs"
 SUITE_ARCHIVE = ROOT / "docs/evidence/suite-runs"
 HISTORICAL = ROOT / "docs/evidence/bounded-encounter-http.json"
@@ -26,6 +30,23 @@ HISTORICAL = ROOT / "docs/evidence/bounded-encounter-http.json"
 
 def now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def capture_verifier_source(archive_root, output):
+    """Reuse suite hashes; generated HTTP records are not verifier source.
+
+    This identifies only the local checkout. It cannot identify a server,
+    even if that server happens to use a localhost URL.
+    """
+    excluded = [DEFAULT_ARCHIVE]
+    if output is not None:
+        excluded.append(Path(output))
+    snapshot = suite_evidence.source_snapshot(archive_root, excluded_paths=excluded)
+    return {
+        **snapshot, "captured_at": now(), "algorithm": "sha256",
+        "fingerprint": snapshot["working_tree_sha256"],
+        "identity_scope": "local_verifier_checkout_only",
+    }
 
 
 def require_http_path(path):
@@ -59,6 +80,19 @@ def run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
         "transport": "real HTTP", "fixture_injection": False,
         "base": base, "resume_base": resume_base, "turns": [],
         "requests": [], "requested_output": str(output) if output else None,
+        "verifier_source": {"before": None, "after": None, "capture_errors": {}},
+        "source_change_detection": {
+            "changed": None, "status": "unverified", "unchanged_verifier_source": False,
+        },
+        "server_source_identity": {
+            role: {
+                "endpoint": endpoint, "status": "unverified", "revision": None,
+                "fingerprint": None,
+                "basis": "No independent server source identity captured; "
+                         "the local verifier fingerprint does not identify this server.",
+            }
+            for role, endpoint in (("acceptance", base), ("resume", resume_base))
+        },
     }
 
     def checkpoint():
@@ -81,6 +115,14 @@ def run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
     code = 2
     try:
         signal.signal(signal.SIGTERM, terminate)
+        try:
+            evidence["verifier_source"]["before"] = capture_verifier_source(root, output)
+        except Exception as error:
+            evidence["verifier_source"]["capture_errors"]["before"] = {
+                "type": type(error).__name__, "message": str(error),
+            }
+            raise
+        checkpoint()
         if output is not None:
             destination = require_http_path(output)
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -107,6 +149,25 @@ def run(base, resume_base, output=None, archive_root=DEFAULT_ARCHIVE):
         # Do not let another SIGTERM interrupt final evidence retention.
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         try:
+            try:
+                after = capture_verifier_source(root, output)
+                evidence["verifier_source"]["after"] = after
+                before = evidence["verifier_source"]["before"]
+                if before is not None:
+                    changed = (before["fingerprint"] != after["fingerprint"]
+                               or before["revision"] != after["revision"])
+                    evidence["source_change_detection"].update(
+                        changed=changed, status="changed" if changed else "unchanged",
+                        unchanged_verifier_source=not changed,
+                    )
+            except Exception as error:
+                evidence["verifier_source"]["capture_errors"]["after"] = {
+                    "type": type(error).__name__, "message": str(error),
+                }
+                # Retain the original failed/interrupted result. A successful
+                # acceptance without a final source capture is not certified.
+                if code == 0:
+                    evidence["status"], code = "FAIL", 2
             evidence["ended_at"], evidence["exit_status"] = now(), code
             for event in evidence["requests"]:
                 if event["status"] == "RUNNING":
