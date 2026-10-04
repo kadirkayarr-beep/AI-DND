@@ -31,7 +31,9 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
         raise CombatRequestError("stale_combat", "Combat or turn context is stale.")
     attack = is_attack_decision(session, message)
     if attack and session.character.get("current_hp", 0) > 0:
-        if not session.find_weapon_in_inventory("Kılıç")[0]:
+        import weapon_attack
+        weapon, choice = weapon_attack.natural_choice(session, message)
+        if weapon != "unarmed" and not session.find_weapon_in_inventory(weapon)[0]:
             raise CombatRequestError("no_weapon", "No valid weapon is available.", 400)
         text = session._normalize_turkish_typos(message)
         targets = [n for n in world.get("npcs", []) if n.get("location") == world.get("location") and (
@@ -47,10 +49,20 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
             reference = flags.get("active_npc_id") or flags.get("last_npc_id")
             referenced = [n for n in available if n.get("id") == reference]
             targets = referenced if referenced else available
-        if len(targets) != 1 or targets[0].get("combat_status", "active") != "active" or targets[0].get("current_hp", 1) <= 0:
+        if (len(targets) != 1
+            or targets[0].get("combat_status", "active") not in (
+                {"active", "unconscious"} if combat.get("active") else {"active"})
+            or (not combat.get("active") and targets[0].get("current_hp", 1) <= 0)):
             raise CombatRequestError("invalid_combat_target", "Select one valid local target.", 400)
         if combat.get("active") and targets[0]["id"] not in combat["participants"]:
             raise CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
+        if combat.get("active") and combat["current_actor_id"] != "player":
+            raise CombatRequestError("out_of_turn", "It is not the player's action turn.")
+        import action_economy
+        command = action_economy.natural_command(session, message, targets[0]["id"])
+        origin = (command["steps"][0].get("attack_origin", "action")
+                  if command and command["steps"][0]["kind"] == "attack" else "action")
+        weapon_attack.preview(session, "player", targets[0]["id"], weapon, choice, origin=origin)
     if combat.get("active"):
         session._validate_combat_v3_payload(combat)
         if attack and session.character.get("current_hp", 0) > 0:
@@ -63,8 +75,7 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
             npc = next((n for n in world.get("npcs", []) if n.get("id") == target_id), None)
             if (not npc or target_id not in combat["participants"]
                 or npc.get("location") != world.get("location")
-                or npc.get("combat_status", "active") != "active"
-                or npc.get("current_hp", 1) <= 0):
+                or npc.get("combat_status", "active") not in {"active", "unconscious"}):
                 raise CombatRequestError("invalid_combat_target", "Target is not an active local participant.", 400)
         text = session._normalize_turkish_typos(message)
         if re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text):

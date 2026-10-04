@@ -23,7 +23,8 @@ def actors(configs=None, player=None):
     ns = []
     for i, config in enumerate(configs or [{}]):
         n = s.create_npc_from_ai({"name": f"Rakip {i}", "role": "Guard", "location": "tavern"})
-        n.update(id=f"npc-{i}", current_hp=100, max_hp=100, armor_class=20, hostile=True, initiative_modifier=0)
+        n.update(id=f"npc-{i}", current_hp=100, max_hp=100, armor_class=20, hostile=True, initiative_modifier=0,
+                 distance_ft=5, attack_damage_type="bludgeoning")
         n.update(config)
         ns.append(n)
     return s, ns
@@ -38,7 +39,8 @@ def battle(configs=None, player=None, rolls=None):
 
 def newcomer(s, identity="new", **config):
     n = s.create_npc_from_ai({"name": identity, "role": "Guard", "location": "tavern"})
-    n.update(id=identity, current_hp=100, max_hp=100, armor_class=20, initiative_modifier=0)
+    n.update(id=identity, current_hp=100, max_hp=100, armor_class=20, initiative_modifier=0,
+             distance_ft=5, attack_damage_type="bludgeoning")
     n.update(config)
     return n
 

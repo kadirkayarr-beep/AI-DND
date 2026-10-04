@@ -9,6 +9,13 @@ from unittest.mock import patch
 import game
 
 
+def attack_fixture(session, creature):
+    """Explicit geometry/type facts; #06 no longer guesses missing attack facts."""
+    creature.update(location=session.world_state["location"], distance_ft=5,
+                    attack_damage_type="bludgeoning")
+    session.world_state["npcs"].append(creature)
+
+
 def make_session(species: str, *, ancestry: str | None = None, level: int = 5):
     session = game.GameSession(seed=17)
     session.character.update(
@@ -76,6 +83,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "armor_class": 10,
             "combat_status": "active",
         }
+        attack_fixture(session, target)
 
         with (
             patch("game.roll_attack", return_value=15),
@@ -117,7 +125,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "damage_modifier": 0,
             "charisma_save_bonus": 0,
         }
-        session.world_state["npcs"].append(enemy)
+        attack_fixture(session, enemy)
 
         with patch("game.roll_d20", return_value=1):
             result = session.resolve_species_trait_action(
@@ -145,6 +153,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "armor_class": 10,
             "combat_status": "active",
         }
+        attack_fixture(session, target)
 
         with (
             patch("game.roll_attack", return_value=15),
@@ -198,7 +207,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "damage_dice": 1,
             "damage_modifier": 0,
         }
-        session.world_state["npcs"].append(enemy)
+        attack_fixture(session, enemy)
 
         with (
             patch("game.roll_d20", return_value=15),
@@ -227,7 +236,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "damage_dice": 1,
             "damage_modifier": 0,
         }
-        session.world_state["npcs"].append(enemy)
+        attack_fixture(session, enemy)
 
         with (
             patch("game.roll_d20", return_value=15),
@@ -273,7 +282,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "damage_dice": 1,
             "damage_modifier": 10,
         }
-        session.world_state["npcs"].append(enemy)
+        attack_fixture(session, enemy)
 
         with (
             patch("game.roll_d20", return_value=20),
@@ -307,7 +316,7 @@ class SpeciesTraitTests(unittest.TestCase):
             "damage_dice": 1,
             "damage_modifier": 10,
         }
-        session.world_state["npcs"].append(enemy)
+        attack_fixture(session, enemy)
 
         with (
             patch("game.roll_d20", return_value=20),

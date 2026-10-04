@@ -52,6 +52,7 @@ def start_test_combat(session):
         "damage_dice": 1,
         "damage_modifier": 0,
     }
+    enemy.update(distance_ft=5, attack_damage_type="bludgeoning")
     session.world_state["npcs"].append(enemy)
     with patch("game.roll_d20", side_effect=[20, 10]):
         session.start_combat(enemy)
@@ -95,6 +96,7 @@ class DeathSystemTests(unittest.TestCase):
             "damage_dice": 1,
             "damage_modifier": 0,
         }
+        enemy.update(distance_ft=5, attack_damage_type="bludgeoning")
         session.world_state["npcs"].append(enemy)
 
         with (

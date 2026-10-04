@@ -20,6 +20,8 @@ import timed_gameplay
 import combat_lifecycle
 import action_economy
 import initiative
+import weapon_attack
+from weapon_catalog import WEAPONS
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from api.dnd_2024_rules import get_expertise_choice_count
@@ -307,18 +309,6 @@ CLASS_HIT_DICE = {
 # =========================================================
 # SILAHLAR
 # =========================================================
-
-WEAPONS = {
-    "Kılıç": {
-        "damage_die": 8,
-        "damage_dice": 1,
-        "ability": "strength",
-        "proficient": True,
-        "damage_type": "slashing",
-        "aliases": ["kılıç", "kılıcı", "kılıcımla", "kilic", "kilici", "kilicimla"]
-    }
-}
-
 
 # =========================================================
 # SKILLER
@@ -1372,6 +1362,7 @@ world_state = {
     "shops": [],
     "next_shop_number": 1,
     "inventory": ["Macera çantası", "Kılıç"],
+    "equipment": {"main_hand": "longsword", "off_hand": None},
     "ground_items_by_location": {},
     "ground_items": [],
     "doors": [],
@@ -3064,12 +3055,15 @@ def roll_attack():
     return roll_d20()
 
 
-def roll_damage(damage_die, damage_dice, ability_mod):
+def roll_damage(damage_die, damage_dice, ability_mod, *, rolls=None):
     """Roll damage dice."""
     random = _session().rng
     total = 0
     for _ in range(damage_dice):
-        total += random.randint(1, damage_die)
+        value = random.randint(1, damage_die)
+        if rolls is not None:
+            rolls.append(value)
+        total += value
     return total + ability_mod
 
 
@@ -3149,7 +3143,7 @@ def _species_player_turn_id():
     return _session().world_state.get("flags", {}).get("turn_index", 0)
 
 
-def _apply_species_on_hit_effects(target_npc):
+def _apply_species_on_hit_effects(target_npc, *, critical=False):
     character = _session().character
     state = _species_trait_state()
     proficiency_bonus = character.get("proficiency_bonus", 2)
@@ -3185,14 +3179,17 @@ def _apply_species_on_hit_effects(target_npc):
     ):
         state["giant_ancestry_uses_remaining"] -= 1
         state["giant_ancestry_armed"] = False
+        def bonus_roll(sides):
+            rolls = [_session().rng.randint(1, sides) for _ in range(2 if critical else 1)]
+            return sum(rolls), {"damage_die": sides, "raw_rolls": rolls}
         if ancestry == "fire":
-            damage = _session().rng.randint(1, 10)
+            damage, audit = bonus_roll(10)
             bonus_damage += damage
             effects.append(
-                {"trait": "fire_giant_ancestry", "damage": damage, "damage_type": "fire"}
+                {"trait": "fire_giant_ancestry", "damage": damage, "damage_type": "fire", **audit}
             )
         elif ancestry == "frost":
-            damage = _session().rng.randint(1, 6)
+            damage, audit = bonus_roll(6)
             bonus_damage += damage
             target_npc["speed_penalty_ft"] = 10
             target_npc["speed_penalty_turns_remaining"] = 1
@@ -3202,6 +3199,7 @@ def _apply_species_on_hit_effects(target_npc):
                     "damage": damage,
                     "damage_type": "cold",
                     "speed_reduction_ft": 10,
+                    **audit,
                 }
             )
         elif ancestry == "hill":
@@ -3232,7 +3230,7 @@ def _apply_species_on_hit_effects(target_npc):
                 }
             )
         elif ancestry == "storm":
-            damage = _session().rng.randint(1, 8)
+            damage, audit = bonus_roll(8)
             bonus_damage += damage
             effects.append(
                 {
@@ -3240,6 +3238,7 @@ def _apply_species_on_hit_effects(target_npc):
                     "damage": damage,
                     "damage_type": "thunder",
                     "push_ft": 10,
+                    **audit,
                 }
             )
     return bonus_damage, effects
@@ -3597,110 +3596,18 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
     return {"action": action, "message": message, "effects": effects}
 
 
-def resolve_attack(player_input, weapon_name, weapon_data, target_npc):
-    """Resolve a melee attack against a target NPC."""
-    combat = ensure_combat_state()
-    if combat["active"]:
-        canonical = resolve_combat_target("", target_npc)
-        if (not canonical or canonical["id"] not in combat["participants"]
-            or canonical.get("combat_status") != "active" or canonical.get("current_hp", 0) <= 0):
-            raise combat_lifecycle.CombatRequestError("invalid_combat_target", "Target is not a participant.", 400)
-        action_economy.attack_permission(_session(), "player")
-        target_npc = canonical
-    elif combat.get("combat_id"):
-        raise combat_lifecycle.CombatRequestError("combat_closed", "Combat is closed.")
-    ensure_npc_combat_stats(target_npc)
-    
-    # Check if target is valid for combat
-    if target_npc.get("combat_status") != "active":
-        return {
-            "action": "attack",
-            "status": "resolved",
-            "success": False,
-            "outcome": "invalid_target",
-            "target_id": target_npc.get("id"),
-            "target_name": target_npc.get("name"),
-            "reason": "Target not combat active"
-        }
-    
-    attack_bonus = calculate_attack_bonus()
-    target_ac = target_npc.get("armor_class", 10)
-    resolution = resolve_attack_roll(
-        roll_fn=roll_attack,
-        attack_bonus=attack_bonus,
-        target_ac=target_ac,
-        actor_id="player",
-        target_id=target_npc.get("id"),
+def resolve_attack(player_input, weapon_name, weapon_data, target_npc, *,
+                   attack_choice=None, origin="action"):
+    """Compatibility caller; catalog/inventory, never caller stats, are authority."""
+    ensure_combat_state()
+    return weapon_attack.resolve(
+        _session(), "player", target_npc["id"], weapon_name,
+        attack_choice, origin=origin,
     )
-    attack_roll = resolution["selected_roll"]
-    attack_total = resolution["total"]
-    outcome = {
-        "CRITICAL_HIT": "critical_hit",
-        "HIT": "hit",
-        "MISS": "miss",
-    }[resolution["outcome"]]
-    critical = resolution["critical_state"] == "critical_hit"
 
-    if critical:
-        damage_die = WEAPONS[weapon_name]["damage_die"]
-        damage_dice = WEAPONS[weapon_name]["damage_dice"] * 2
-        ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
-        damage = roll_damage(damage_die, damage_dice, ability_mod)
-    elif outcome == "hit":
-        damage_die = WEAPONS[weapon_name]["damage_die"]
-        damage_dice = WEAPONS[weapon_name]["damage_dice"]
-        ability_mod = _session().character.get(f"{WEAPONS[weapon_name]['ability']}_mod", 0)
-        damage = roll_damage(damage_die, damage_dice, ability_mod)
-    else:
-        damage = 0
-    
-    # Apply damage if hit
-    target_hp_before = target_npc.get("current_hp", target_npc.get("max_hp", 10))
-    target_hp_after = target_hp_before
-    species_effects = []
-    
-    if outcome in ("hit", "critical_hit"):
-        damage = max(1, damage)  # Minimum 1 damage
-        species_bonus_damage, species_effects = _apply_species_on_hit_effects(
-            target_npc
-        )
-        damage += species_bonus_damage
-        target_hp_after = max(0, target_hp_before - damage)
-        target_npc["current_hp"] = target_hp_after
-        
-        # Check if unconscious
-        if target_hp_after <= 0:
-            target_npc["combat_status"] = "unconscious"
-    
-    outcome_mapping = {
-        "hit": "hit",
-        "critical_hit": "critical_hit",
-        "miss": "miss"
-    }
-    
-    return {
-        "action": "attack",
-        **({"combat_id": combat["combat_id"]} if combat["active"] else {}),
-        "status": "resolved",
-        "success": outcome in ("hit", "critical_hit"),
-        "outcome": outcome_mapping.get(outcome, outcome),
-        "target_id": target_npc.get("id"),
-        "target_name": target_npc.get("name"),
-        "weapon": weapon_name,
-        "attack_roll": attack_roll,
-        "attack_bonus": attack_bonus,
-        "attack_total": attack_total,
-        "target_ac": target_ac,
-        "critical": critical,
-        "action_id": resolution.get("action_id"),
-        "resolution_id": resolution.get("resolution_id"),
-        "resolution": resolution,
-        "damage": damage if outcome in ("hit", "critical_hit") else 0,
-        "target_hp_before": target_hp_before,
-        "target_hp_after": target_hp_after,
-        "target_status": target_npc.get("combat_status", "active"),
-        "species_effects": species_effects,
-    }
+
+def register_attack_hook(event, callback):
+    return weapon_attack.register_hook(_session(), event, callback)
 
 
 def roll_initiative(dex_mod=0):
@@ -3881,6 +3788,7 @@ def _combat_end_if_decided(excluded_participant_ids=()):
 def _resolve_enemy_turns_until_player():
     """Run NPC turns and automatic player death saves until control returns."""
     actions = []
+    actions.extend(_session().world_state.pop("monster_interrupt_results", []))
     combat = ensure_combat_state()
     limit = max(64, len(combat["initiative_order"]) * 64)
     steps = 0
@@ -3953,21 +3861,24 @@ def _resolve_enemy_turns_until_player():
             if not advanced:
                 break
             continue
-        action = resolve_enemy_attack(npc)
-        if action.get("outcome") == "invalid_target":
-            raise ValueError("Current combat actor could not resolve a legal action.")
-        actions.append(action)
+        import monster_combat
+        monster_turn = monster_combat.run_turn(_session(), actor_id)
+        actions.extend(monster_turn["outcomes"])
         combat = ensure_combat_state()
         if not combat["active"]:
             break
-        _mark_combat_action_used(actor_id)
-        action_economy.publish_event(_session(), "actor_attacks", actor_id)
+        if not action_economy.ensure(_session())[actor_id]["base_action_spent"]:
+            _mark_combat_action_used(actor_id)
+        if any(action.get("action") == "enemy_attack" for action in monster_turn["outcomes"]):
+            action_economy.publish_event(_session(), "actor_attacks", actor_id)
+        actions.extend(_session().world_state.pop("monster_interrupt_results", []))
         if action_economy.pending_reaction(_session()):
             break
         ended = _combat_end_if_decided()
         if ended:
             break
         advanced, _, _ = advance_combat_turn()
+        actions.extend(_session().world_state.pop("monster_interrupt_results", []))
         if not advanced:
             break
         combat = ensure_combat_state()
@@ -3977,11 +3888,19 @@ def _resolve_enemy_turns_until_player():
 def find_weapon_in_inventory(weapon_name):
     """Find a specific weapon in inventory by name/aliases."""
     world_state = _session().world_state
-    for item in world_state.get("inventory", []):
-        for w_name, weapon_data in WEAPONS.items():
-            if w_name.casefold() == weapon_name.casefold() or any(weapon_name.casefold() == alias.casefold() for alias in weapon_data.get("aliases", [])):
-                if item.casefold() == w_name.casefold() or any(item.casefold() == alias.casefold() for alias in weapon_data.get("aliases", [])):
-                    return w_name, weapon_data
+    from weapon_catalog import lookup
+    requested = lookup(weapon_name)
+    if not requested:
+        owned = [item for item in world_state.get("inventory", []) if isinstance(item, dict)
+                 and item.get("item_id") == weapon_name]
+        if len(owned) == 1:
+            requested = lookup(owned[0].get("weapon_id", owned[0].get("name")))
+    if requested:
+        for item in world_state.get("inventory", []):
+            identity = item.get("weapon_id", item.get("name")) if isinstance(item, dict) else item
+            found = lookup(identity)
+            if found and found["weapon_id"] == requested["weapon_id"]:
+                return ("Kılıç" if requested["weapon_id"] == "longsword" else requested["name"]), requested
     return None, None
 
 
@@ -4115,51 +4034,25 @@ def resolve_enemy_attack(target_npc):
     if death["dead"] or world_state["player_combat_status"] == "dead":
         return {"action": "enemy_attack", "status": "resolved", "success": False,
                 "outcome": "player_dead", "damage": 0}
-    player_unconscious = (
-        _session().character["current_hp"] <= 0
-        or world_state["player_combat_status"] == "unconscious"
-    )
+    if target_npc.get("weapon_id"):
+        return weapon_attack.resolve(_session(), target_npc["id"], "player", target_npc["weapon_id"])
+    profile = {
+        "weapon_id": "stat_block_attack", "name": "Stat-block attack",
+        "kind": "melee", "category": None, "properties": [], "mastery": None,
+        "damage_die": target_npc["damage_die"], "damage_dice": target_npc["damage_dice"],
+        "damage_modifier": target_npc["damage_modifier"], "attack_bonus": target_npc["attack_bonus"],
+        "damage_type": target_npc.get("attack_damage_type", target_npc.get("damage_type")),
+        "magic_attack_bonus": 0, "magic_damage_bonus": 0,
+    }
+    return weapon_attack.resolve(_session(), target_npc["id"], "player", profile=profile)
+
+
+def _reduce_attack_damage_to_player(damage):
+    """Existing Stone reaction; flat reduction precedes typed mitigation."""
+    combat = ensure_combat_state()
     trait_state = _species_trait_state()
-    current_player_turn = trait_state.get("player_turn_counter", 0)
-    disadvantage = (
-        type(target_npc.get("frightened_until_player_turn")) is int
-        and current_player_turn < target_npc["frightened_until_player_turn"]
-    ) or target_npc.get("prone") is True
-    attack_bonus = target_npc["attack_bonus"]
-    resolution = resolve_attack_roll(
-        roll_fn=roll_d20,
-        attack_bonus=attack_bonus,
-        target_ac=_session().character["armor_class"],
-        advantage=player_unconscious,
-        disadvantage=disadvantage,
-        actor_id=target_npc["id"],
-        target_id="player",
-    )
-    attack_rolls = resolution["raw_rolls"]
-    attack_roll = resolution["selected_roll"]
-    attack_total = resolution["total"]
-    hit = resolution["outcome"] in {"HIT", "CRITICAL_HIT"}
-    critical = resolution["critical_state"] == "critical_hit" or (
-        hit and player_unconscious
-    )
-    damage = 0
-    player_hp_before = _session().character["current_hp"]
-    damage_type = target_npc.get(
-        "attack_damage_type", target_npc.get("damage_type", "untyped")
-    )
     species_effects = []
-    if hit:
-        dice = target_npc["damage_dice"] * (2 if critical else 1)
-        damage = max(1, roll_damage(target_npc["damage_die"], dice, target_npc["damage_modifier"]))
-        if (
-            _session().character.get("species") == "Aasimar"
-            and isinstance(damage_type, str)
-            and damage_type.casefold() in {"radiant", "necrotic"}
-        ):
-            damage //= 2
-            species_effects.append(
-                {"trait": "celestial_resistance", "damage_type": damage_type}
-            )
+    if damage > 0:
         if (
             _session().character.get("species") == "Goliath"
             and _session().character.get("giant_ancestry") == "stone"
@@ -4188,6 +4081,16 @@ def resolve_enemy_attack(target_npc):
                     "damage_remaining": damage,
                 }
             )
+    return damage, species_effects
+
+
+def _apply_attack_damage_to_player(damage, critical, hit):
+    """Existing temporary HP/species survival and Death owner handoff."""
+    world_state = _session().world_state
+    death = ensure_death_state()
+    trait_state = _species_trait_state()
+    player_hp_before = _session().character["current_hp"]
+    species_effects = []
     temporary_hp_before = trait_state.get("temporary_hit_points", 0)
     temporary_hp_absorbed = min(temporary_hp_before, damage)
     trait_state["temporary_hit_points"] = temporary_hp_before - temporary_hp_absorbed
@@ -4231,23 +4134,13 @@ def resolve_enemy_attack(target_npc):
         player_status_after = world_state["player_combat_status"]
     if endurance_used:
         player_status_after = "active"
-    return {"action": "enemy_attack", "status": "resolved", "success": hit,
-            "outcome": "critical_hit" if critical else "hit" if hit else "miss",
-            "actor": target_npc["id"], "actor_name": target_npc.get("name"),
-            "target": "player", "target_name": _session().character.get("name"),
-            "attack_roll": attack_roll,
-            "attack_bonus": attack_bonus, "attack_total": attack_total, "target_ac": _session().character["armor_class"],
-            "critical": critical, "damage": damage, "target_hp_before": player_hp_before,
+    return {"damage": damage, "target_hp_before": player_hp_before,
             "target_hp_after": player_hp_after, "target_status": player_status_after,
-            "damage_type": damage_type, "attack_rolls": attack_rolls,
-            "disadvantage": resolution.get("disadvantage", disadvantage), "hp_damage": hp_damage,
+            "hp_damage": hp_damage,
             "temporary_hp_before": temporary_hp_before,
             "temporary_hp_absorbed": temporary_hp_absorbed,
             "temporary_hp_after": trait_state["temporary_hit_points"],
             "species_effects": species_effects,
-            "action_id": resolution.get("action_id"),
-            "resolution_id": resolution.get("resolution_id"),
-            "resolution": resolution,
             "death_resolution": death_resolution}
 
 
@@ -4260,6 +4153,8 @@ def end_combat(reason="combat_ended"):
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
     combat["combat_id"] = identity
+    if "attack_effects" in _session().world_state:
+        _session().world_state["attack_effects"] = []
     scheduled_events.combat_finished(_session().world_state)
     ensure_death_state()["combat_checkpoint"] = None
     return {"combat_ended": True, "reason": reason, "combat_id": identity}
@@ -4270,6 +4165,8 @@ def _begin_combat_actor_turn(participant_id):
     combat["current_turn_index"] = combat["initiative_order"].index(participant_id)
     combat["current_actor_id"] = participant_id
     action_economy.begin_turn(_session(), participant_id)
+    import monster_combat
+    monster_combat.begin_turn(_session(), participant_id)
     _sync_combat_participant_records(combat)
     _validate_combat_v3_payload(combat)
 
@@ -4289,6 +4186,9 @@ def register_initiative_hook(event, callback):
 def advance_combat_turn():
     """Advance initiative to the next living actor and roll over completed rounds."""
     combat = ensure_combat_state()
+    if combat["active"]:
+        weapon_attack.boundary(_session(), combat["current_actor_id"], "end")
+        action_economy.monster_event(_session(), "after_turn", combat["current_actor_id"])
     order = combat["initiative_order"]
     if not combat["active"] or not order:
         return False, None, False
@@ -4363,6 +4263,13 @@ def _combat_narration(result):
         text += f" Rakibinin {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
     if result.get("combat", {}).get("player_combat_status") == "unconscious":
         text += " Bilincini kaybedersin."
+    monster_text = {
+        "dodge": " Rakibin savunmaya geçer.",
+        "parley_proposed": " Rakibin konuşmayı önerir; yanıtını bekler.",
+        "surrender_proposed": " Rakibin teslim olmayı önerir; yanıtını bekler.",
+        "flee_declared": " Rakibin bildiği çıkışa doğru çekilir.",
+    }
+    text += monster_text.get(enemy.get("outcome"), "")
     return text
 
 
@@ -9567,7 +9474,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         if combat["active"]:
             action_economy.action_slot(_session(), "player", "attack")
 
-        weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
+        weapon_id, attack_choice = weapon_attack.natural_choice(_session(), player_input)
+        weapon_name, weapon_data = find_weapon_in_inventory(weapon_id)
+        if weapon_id == "unarmed":
+            weapon_name, weapon_data = "unarmed", None
         if not weapon_name:
             result.update(success=False, outcome="no_weapon",
                           direct_response="Envanterinde saldırmak için kullanabileceğin bir kılıç yok.")
@@ -9618,7 +9528,8 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
                           direct_response="Bu kişi mevcut çatışmanın katılımcısı değil.")
             return _finish_combat_result(result, before)
         ensure_npc_enemy_stats(target_npc)
-        if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
+        if (target_npc["combat_status"] not in {"active", "unconscious"}
+            or (not combat["active"] and target_npc["current_hp"] <= 0)):
             result.update(success=False, outcome="invalid_target", target_id=target_npc["id"],
                           direct_response="Bu hedef savaşabilecek durumda değil.")
             return _finish_combat_result(result, before)
@@ -9657,7 +9568,8 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             )
             return _finish_combat_result(result, before)
         combat["target_id"] = target_npc["id"]
-        result = resolve_attack(player_input, weapon_name, weapon_data, target_npc)
+        result = resolve_attack(player_input, weapon_name, weapon_data, target_npc,
+                                attack_choice=attack_choice)
         result["combat_started"] = started
         if result.get("outcome") in ("invalid_target", "no_target"):
             result["combat_started"] = started
@@ -10613,6 +10525,12 @@ def run_player_turn(
     session_id=None,
     combat_action=None,
 ):
+    import monster_combat
+    if combat_action is None and _session().world_state.get("combat", {}).get("active"):
+        with initiative.atomic(_session()):
+            proposal_result = monster_combat.player_response(_session(), player_input, target_id)
+            if proposal_result is not None:
+                return proposal_result
     command = combat_action or action_economy.natural_command(_session(), player_input, target_id)
     if command:
         return action_economy.execute(_session(), command, action_id, session_id)

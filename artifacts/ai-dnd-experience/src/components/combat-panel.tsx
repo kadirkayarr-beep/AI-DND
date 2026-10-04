@@ -53,6 +53,12 @@ function outcomeLabel(value: string | undefined): string | undefined {
 }
 
 function actionLabel(value: string | undefined): string | undefined {
+  if (value === 'monster_dodge') return 'Savunmaya geçti';
+  if (value === 'monster_flee_declared') return 'Geri çekildi';
+  if (value === 'monster_dash') return 'Hızla ilerledi';
+  if (value === 'monster_disengage') return 'Yakın dövüşten ayrıldı';
+  if (value === 'monster_parley_proposed') return 'Konuşmayı önerdi';
+  if (value === 'monster_surrender_proposed') return 'Teslim olmayı önerdi';
   if (value === 'attack') return 'Saldırı';
   if (value === 'enemy_attack') return 'Karşı saldırı';
   if (value === 'death_save') return 'Otomatik ölüm kurtarma zarı';
@@ -215,6 +221,15 @@ function AttackReadout({
   heading: string;
   enemy?: boolean;
 }) {
+  if (result.action?.startsWith('monster_')) {
+    return <div className="combat-roll-block" data-testid={`combat-monster-action-${entryId}`}>
+      <div className="combat-result-title">{result.actor_name ?? heading}</div>
+      <div className="combat-outcome">{actionLabel(result.action)}
+        {result.target_name ? ` · ${result.target_name}` : ''}
+        {result.action.includes('proposed') ? ' · Yanıtını bekliyor' : ''}
+      </div>
+    </div>;
+  }
   const markers = outcomeMarkers(result);
   const prefix = `combat-entry-${entryId}${enemy ? '-enemy' : ''}`;
   const hasRollData = [result.attack_roll, result.attack_bonus, result.attack_total, result.target_ac].some(hasValue);

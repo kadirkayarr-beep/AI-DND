@@ -1,0 +1,2931 @@
+AI-DND — #08 DEATH SYSTEM LOCK
+FINAL IMPLEMENTATION / HARDENING PROMPT
+
+============================================================
+MISSION
+============================================================
+
+Implement and harden:
+
+#08 — Death System Lock
+
+The following phases are already COMPLETE and authoritative:
+
+01 — Campaign Time V1
+02 — Campaign Time Edge Cases
+03 — Combat Design Lock
+04 — Action Economy Lock
+05 — Initiative Lock
+06 — Weapon & Attack Lock
+07 — Monster Combat Lock
+
+Do NOT redesign those systems.
+
+The Death System already has an existing V1 implementation.
+
+This task is therefore NOT:
+
+"rewrite the death system from scratch."
+
+This task is:
+
+AUDIT → HARDEN → COMPLETE → VERIFY
+
+the authoritative player-character death lifecycle while preserving all
+existing architecture and the already-implemented behavior.
+
+Do NOT start #09.
+
+Do NOT redesign the spell system.
+
+Do NOT redesign persistence.
+
+Do NOT redesign combat.
+
+Do NOT redesign Action Economy.
+
+Do NOT redesign Initiative.
+
+Do NOT redesign Monster Combat.
+
+Do NOT create a second death engine.
+
+============================================================
+1. NON-NEGOTIABLE ARCHITECTURAL INVARIANT
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+
+Python owns:
+
+- HP
+- 0 HP transitions
+- Unconscious
+- Death Saving Throws
+- Stable
+- Dead
+- lethal damage
+- death-state transitions
+- healing consequences
+- recovery timing
+- death mode behavior
+- rollback
+- persistence
+- RNG
+- receipts
+- idempotency.
+
+Qwen may narrate verified death/recovery outcomes.
+
+Qwen must NEVER:
+
+- decide whether a character dies
+- decide a Death Saving Throw
+- roll a Death Saving Throw
+- decide whether damage is lethal
+- decide whether a character is Stable
+- decide when Stable recovery occurs
+- decide whether Normal rollback occurs
+- decide whether Permadeath applies
+- decide whether Ironman resurrection is allowed
+- modify HP
+- modify death counters
+- modify campaign time
+- modify death mode.
+
+Frontend only presents verified state.
+
+Frontend must NEVER determine:
+
+- dead/alive
+- unconscious/stable
+- death-save result
+- recovery time
+- rollback
+- mode behavior.
+
+============================================================
+2. RULE AUTHORITY
+============================================================
+
+Use the uploaded:
+
+- D&D 5e — Player's Handbook 2024
+- D&D 5e — Dungeon Master Guide 2024
+- D&D 5e — Monster Manual 2024
+
+as the authoritative source material for this task.
+
+Player-character death rules come primarily from the 2024 PHB.
+
+The PHB 2024 death lifecycle includes:
+
+- dropping to 0 HP
+- Instant Death
+- Falling Unconscious
+- Death Saving Throws
+- Stable
+- Damage at 0 HP
+- Stabilizing a Character.
+
+Do not substitute 2014 rules where the 2024 rules differ.
+
+Python remains the implementation authority.
+
+============================================================
+3. READ-ONLY AUDIT FIRST
+============================================================
+
+Before changing anything:
+
+perform a READ-ONLY audit.
+
+Inspect the actual current repository.
+
+Do NOT assume the previous Death System report perfectly describes
+current code.
+
+Inspect:
+
+- game.py
+- combat lifecycle
+- death state implementation
+- HP/damage resolver
+- saving throw resolver
+- healing resolver
+- action economy
+- initiative
+- campaign time
+- scheduled/timed gameplay
+- persistence
+- session manager
+- receipts
+- RNG
+- API schemas
+- serializers
+- Experience UI
+- existing death tests
+- existing combat tests
+- existing recovery tests.
+
+Determine:
+
+1. What Death System behavior already exists.
+2. What is authoritative.
+3. What is already correct.
+4. What is incomplete.
+5. What is duplicated.
+6. What is unsafe.
+7. What is missing.
+8. Which existing interfaces should be reused.
+9. Which parts must NOT be rewritten.
+
+Do not replace working architecture unnecessarily.
+
+============================================================
+4. CHARACTER DEATH STATE MACHINE
+============================================================
+
+The authoritative player-character lifecycle is:
+
+HP > 0
+    ↓
+normal
+
+HP = 0
+    ↓
+check Instant Death
+    ↓
+if not dead:
+    Unconscious
+    ↓
+Death Saving Throws
+    ↓
+    ├── 3 successes → Stable
+    │                  ↓
+    │              Unconscious
+    │                  ↓
+    │              recovery / healing
+    │
+    ├── 3 failures → Dead
+    │
+    └── healing / Natural 20
+                       ↓
+                   HP > 0
+                       ↓
+                 Unconscious ends
+                       ↓
+                 Prone remains
+                       ↓
+                    normal play
+
+Do not create additional unofficial death states unless the existing
+architecture already requires an internal representation.
+
+Internal implementation states may exist, but the player-facing
+mechanical behavior must match this lifecycle.
+
+============================================================
+5. INSTANT DEATH
+============================================================
+
+When a character reaches 0 HP:
+
+FIRST:
+
+determine whether Instant Death applies.
+
+Do NOT immediately start Death Saving Throws.
+
+Instant Death includes:
+
+1. Massive Damage.
+
+If damage reduces a character to 0 HP and damage remaining after reaching
+0 equals or exceeds the character's HP maximum:
+
+the character dies immediately.
+
+Example:
+
+Max HP = 20
+Current HP = 5
+Incoming damage = 25
+
+Character reaches 0.
+
+Remaining damage = 20.
+
+20 >= Max HP 20.
+
+Result:
+
+DEAD.
+
+No Death Saving Throw.
+
+2. Other authoritative effects that explicitly kill the character.
+
+Use the existing rules/effect resolver.
+
+Do not let Qwen decide.
+
+============================================================
+6. MASSIVE DAMAGE
+============================================================
+
+Massive Damage must be evaluated against:
+
+- HP before damage
+- incoming damage
+- HP maximum.
+
+Do not use:
+
+current HP <= half maximum
+
+for Instant Death.
+
+Do not confuse Bloodied with Massive Damage.
+
+Do not use percentage-based death rules.
+
+============================================================
+7. 0 HP WITHOUT INSTANT DEATH
+============================================================
+
+If a player character reaches 0 HP and does not die instantly:
+
+set:
+
+HP = 0
+condition = Unconscious
+death_state = UNCONSCIOUS
+death_save_successes = existing count or 0 according to transition rules
+death_save_failures = existing count or 0 according to transition rules
+
+The character is now subject to Death Saving Throws.
+
+Do not allow the player to continue normal actions.
+
+============================================================
+8. UNCONSCIOUS ACTION GUARD
+============================================================
+
+An Unconscious character cannot perform ordinary player actions.
+
+The restriction MUST be enforced server-side.
+
+Do NOT rely on the UI disabling buttons.
+
+Audit all existing state-mutating entry points.
+
+At minimum inspect:
+
+- normal turn/action endpoint
+- attack
+- movement
+- item use
+- equipment changes
+- species abilities
+- class abilities
+- rest
+- short rest
+- long rest
+- Help
+- Search
+- Study
+- Influence
+- Utilize
+- Ready
+- Dodge
+- Dash
+- Hide
+- other state-mutating commands
+- any direct API endpoint.
+
+An Unconscious character must not use self-directed actions to bypass the
+death state.
+
+Examples of invalid behavior:
+
+Unconscious character:
+→ Healing Hands on self
+
+Unconscious character:
+→ Long Rest
+
+Unconscious character:
+→ Short Rest
+
+Unconscious character:
+→ use potion
+
+Unconscious character:
+→ move
+
+Unconscious character:
+→ attack
+
+These must be rejected deterministically.
+
+Do not create a special exception merely because the frontend hides the
+action.
+
+============================================================
+9. DEAD ACTION GUARD
+============================================================
+
+A DEAD character cannot act.
+
+Reject:
+
+- turns
+- attacks
+- movement
+- abilities
+- rests
+- item use
+- healing self
+- species abilities
+- normal player commands.
+
+The exception is any future authoritative resurrection mechanism that
+explicitly exists and is legal for the current campaign mode.
+
+Do not implement resurrection in #08.
+
+============================================================
+10. DEATH SAVING THROW
+============================================================
+
+Death Saving Throw is:
+
+1d20
+
+No ability modifier.
+
+No proficiency bonus.
+
+No advantage/disadvantage unless an explicit future authoritative rule
+provides it.
+
+Default:
+
+10 or higher = success
+9 or lower = failure.
+
+The roll must be generated by Python's existing authoritative RNG.
+
+Do not create a new Death RNG.
+
+============================================================
+11. DEATH SAVE TIMING
+============================================================
+
+A Death Saving Throw occurs automatically when the Unconscious character
+starts their authoritative turn with 0 HP.
+
+The system must resolve it:
+
+ONCE PER TURN.
+
+It must never:
+
+- roll twice for the same turn
+- roll on command
+- roll because the frontend refreshed
+- roll because the browser retried
+- roll because narration was rejected
+- roll because the combat state was serialized
+- roll again during the same turn.
+
+Use the existing Initiative/turn identity.
+
+============================================================
+12. DEATH SAVE IDEMPOTENCY
+============================================================
+
+Every Death Saving Throw resolution must have an authoritative identity.
+
+Conceptually:
+
+death_save_receipt:
+
+- action_id / receipt_id
+- campaign_id
+- session_id
+- combat_id if applicable
+- character_id
+- round
+- turn_id
+- roll
+- success/failure
+- resulting counters
+- resulting death state
+- RNG metadata where the existing architecture requires it.
+
+If the same request is replayed:
+
+return the original result.
+
+DO NOT:
+
+- reroll
+- add another success
+- add another failure
+- spend RNG again
+- transition state twice.
+
+============================================================
+13. NATURAL 1
+============================================================
+
+If Death Saving Throw result = 1:
+
+apply TWO failures.
+
+Do not apply one.
+
+Do not perform an additional roll.
+
+Do not roll again.
+
+If this reaches three failures:
+
+character dies.
+
+============================================================
+14. NATURAL 20
+============================================================
+
+If Death Saving Throw result = 20:
+
+character regains 1 HP.
+
+Result:
+
+HP = 1
+
+Unconscious ends.
+
+Death-save successes/failures reset.
+
+Character becomes capable of normal action again.
+
+The character remains Prone.
+
+Do NOT automatically stand the character up.
+
+Do NOT spend movement.
+
+Do NOT spend an action.
+
+Do NOT invent additional healing.
+
+============================================================
+15. THREE SUCCESSES
+============================================================
+
+When Death Saving Throw successes reach 3:
+
+character becomes:
+
+STABLE
+
+Stable means:
+
+- HP = 0
+- Unconscious remains
+- no further Death Saving Throws
+- death-save counters reset
+- character is not dead.
+
+Do not automatically restore HP.
+
+Do not automatically end Unconscious.
+
+Do not end Stable merely because combat ended.
+
+============================================================
+16. THREE FAILURES
+============================================================
+
+When Death Saving Throw failures reach 3:
+
+character becomes:
+
+DEAD
+
+Do not allow:
+
+- a fourth Death Save
+- automatic stabilization
+- automatic healing
+- automatic resurrection.
+
+The applicable campaign death mode is then evaluated.
+
+============================================================
+17. DAMAGE AT 0 HP
+============================================================
+
+If a character has 0 HP and takes damage:
+
+the character suffers a Death Saving Throw failure.
+
+This applies whether the character is:
+
+- Unconscious
+- Stable.
+
+If the damage is from a Critical Hit:
+
+apply TWO Death Saving Throw failures.
+
+If the damage equals or exceeds the character's HP maximum:
+
+the character dies immediately.
+
+Do not:
+
+- roll a normal Death Save for the damage
+- roll a second damage-related die
+- allow Stable to absorb the damage without consequence
+- treat the damage as ordinary HP loss.
+
+============================================================
+18. DAMAGE TO STABLE
+============================================================
+
+When a Stable character takes damage:
+
+1. Stable ends.
+2. Character remains at 0 HP unless another authoritative effect changes
+   HP.
+3. Apply the appropriate Death Saving Throw failure(s).
+4. Character returns to the normal Unconscious/death-save lifecycle.
+5. If the damage causes Massive Damage / another instant-death rule:
+   character dies immediately.
+
+Stable does not protect against damage.
+
+============================================================
+19. HEALING AT 0 HP
+============================================================
+
+Any genuine healing that restores HP ends:
+
+- Unconscious
+- Stable
+- Death Saving Throw state.
+
+Reset:
+
+- death-save successes = 0
+- death-save failures = 0.
+
+The character becomes conscious when HP becomes greater than 0.
+
+The character remains Prone if the Unconscious transition caused them to
+be Prone.
+
+Do NOT automatically stand them up.
+
+Do NOT remove Prone merely because healing occurred.
+
+============================================================
+20. TEMPORARY HIT POINTS
+============================================================
+
+Temporary Hit Points are not genuine healing.
+
+If a character has 0 HP:
+
+receiving Temporary Hit Points does NOT restore consciousness.
+
+Do not allow Temporary HP to bypass the Death System.
+
+============================================================
+21. STABILIZATION WITH HELP
+============================================================
+
+Support the 2024 PHB stabilization rule through the existing Action
+Economy / Help infrastructure.
+
+A conscious, capable ally may use Help to attempt to stabilize a creature
+at 0 HP.
+
+The Medicine check is:
+
+Wisdom (Medicine)
+DC 10.
+
+On success:
+
+target becomes Stable.
+
+On failure:
+
+target remains in its current death-save state.
+
+Do NOT automatically kill the target on failure.
+
+Do NOT consume an additional death save merely because Medicine failed.
+
+============================================================
+22. STABILIZATION ACTOR VALIDATION
+============================================================
+
+The helper must be an authoritative actor capable of acting.
+
+The Unconscious target cannot stabilize itself.
+
+The DEAD target cannot be stabilized.
+
+Do not let the frontend submit:
+
+"stabilize self"
+
+and bypass the guard.
+
+Use existing action validation.
+
+Do not create a parallel Help system.
+
+============================================================
+23. MEDICINE CHECK AUTHORITY
+============================================================
+
+Use the existing authoritative skill-check resolver.
+
+Do not implement a second Medicine roller.
+
+The check must respect the existing character:
+
+- Wisdom modifier
+- proficiency
+- relevant skill data.
+
+Do not let Qwen determine success.
+
+Do not let the UI determine success.
+
+============================================================
+24. STABILIZATION IDEMPOTENCY
+============================================================
+
+The Help/Medicine stabilization attempt must be idempotent.
+
+Replay of the same action:
+
+must not:
+
+- reroll Medicine
+- consume another Action
+- change Stable twice
+- consume RNG twice
+- reset state twice.
+
+Use the existing action receipt system.
+
+============================================================
+25. STABLE RECOVERY — CAMPAIGN TIME
+============================================================
+
+This is an essential part of #08.
+
+Campaign Time V1 already exists.
+
+Use the authoritative Campaign Time system.
+
+Do NOT create:
+
+- real-time timers
+- browser timers
+- asyncio timers
+- wall-clock recovery
+- frontend countdowns
+- a second time system.
+
+When a character becomes Stable:
+
+roll:
+
+1d4 hours
+
+using the existing authoritative RNG.
+
+Persist:
+
+stable_recovery_due_at
+
+as an absolute Campaign Time value.
+
+Example:
+
+Current campaign time:
+
+15:20
+
+Recovery roll:
+
+3 hours
+
+Recovery due:
+
+18:20
+
+Do not reroll this on:
+
+- save
+- load
+- restart
+- browser refresh
+- narration retry
+- API retry.
+
+============================================================
+26. STABLE RECOVERY MUST NOT BE MISSED
+============================================================
+
+Stable recovery is an authoritative timed state transition.
+
+If Campaign Time advances:
+
+15:20 → 20:00
+
+and:
+
+stable_recovery_due_at = 18:20
+
+the recovery must occur.
+
+The system must NOT say:
+
+"18:20 was missed, so recovery never happened."
+
+The character should be recovered by the time canonical state reaches
+20:00.
+
+Do not create a player-facing scheduled event for this.
+
+This is a mechanical timed transition, not a world event.
+
+============================================================
+27. RECOVERY DURING A LONG ACTION
+============================================================
+
+If the player performs an action that advances Campaign Time across the
+recovery_due_at:
+
+the recovery must still occur exactly once.
+
+Example:
+
+15:00 Stable
+recovery_due_at = 17:00
+
+Player performs a 5-hour travel/action:
+
+15:00 → 20:00
+
+At canonical resolution:
+
+the character must be recovered.
+
+Do not require the player to explicitly notice 17:00.
+
+Do not create an interruption merely because the recovery occurred.
+
+The final canonical state must be correct.
+
+============================================================
+28. RECOVERY DURING SAVE/RESUME
+============================================================
+
+Test:
+
+Stable
+↓
+save
+↓
+Campaign Time advances
+↓
+reload
+↓
+recovery_due_at has passed.
+
+The character must recover exactly once.
+
+Do not reroll 1d4.
+
+Do not duplicate recovery.
+
+Do not reset the timer.
+
+============================================================
+29. RECOVERY DURING RESTART
+============================================================
+
+Test:
+
+Stable
+↓
+recovery_due_at persisted
+↓
+application restart
+↓
+campaign load.
+
+The same:
+
+recovery_due_at
+
+must be used.
+
+Do not use real-world elapsed time.
+
+Do not recalculate from save timestamp.
+
+Do not roll a new 1d4.
+
+============================================================
+30. RECOVERY RESULT
+============================================================
+
+When stable recovery completes:
+
+HP = 1
+
+Stable = false
+
+Unconscious = false
+
+Death-save successes = 0
+
+Death-save failures = 0
+
+Character remains Prone if Prone is still present.
+
+The character can act normally according to the existing Action Economy.
+
+Do not automatically:
+
+- stand up
+- heal to full
+- start a rest
+- restore resources
+- move the character.
+
+============================================================
+31. RECOVERY INTERRUPTED BY DAMAGE
+============================================================
+
+If a Stable character takes damage before recovery_due_at:
+
+cancel the pending Stable recovery.
+
+Stable ends.
+
+Apply the 0 HP damage rules.
+
+If the character survives:
+
+they return to the Death Save lifecycle.
+
+The previous recovery_due_at must not later restore the character
+incorrectly.
+
+Do not allow:
+
+damage
+↓
+unstable
+↓
+old timer fires
+↓
+automatic 1 HP
+
+That would be incorrect.
+
+============================================================
+32. RECOVERY INTERRUPTED BY HEALING
+============================================================
+
+If a Stable character receives genuine healing before recovery_due_at:
+
+cancel the pending Stable recovery.
+
+The character is already recovered by healing.
+
+Do not later apply the old recovery transition.
+
+============================================================
+33. RECOVERY INTERRUPTED BY DEATH
+============================================================
+
+If the character becomes Dead before recovery_due_at:
+
+the recovery timer becomes invalid.
+
+It must never resurrect the character.
+
+This applies especially to:
+
+- Stable damage
+- critical damage
+- massive damage
+- other lethal effects.
+
+============================================================
+34. NO AUTOMATIC RESURRECTION
+============================================================
+
+The Stable 1d4-hour recovery is NOT resurrection.
+
+It only applies to:
+
+STABLE + ALIVE + 0 HP + UNCONSCIOUS.
+
+It cannot apply to:
+
+DEAD.
+
+Never convert:
+
+DEAD
+→
+Stable recovery
+→
+1 HP.
+
+That is forbidden.
+
+============================================================
+35. DEATH MODES
+============================================================
+
+The campaign has exactly three death modes:
+
+NORMAL
+PERMADEATH
+IRONMAN
+
+The mode is selected at campaign creation.
+
+The mode becomes immutable for the lifetime of that campaign.
+
+Do NOT allow:
+
+Normal → Permadeath
+
+or:
+
+Ironman → Normal
+
+after campaign creation.
+
+Do not add a combat-time mode switch.
+
+Do not expose a hidden API override.
+
+============================================================
+36. NORMAL MODE
+============================================================
+
+Normal Mode is intentionally forgiving.
+
+When the player character dies during a combat that has an authoritative
+pre-initiative checkpoint:
+
+restore the checkpoint from before the combat's initiative was resolved.
+
+This is the canonical Normal Mode behavior.
+
+The rollback must restore:
+
+- character HP
+- conditions
+- combat state
+- combat participants
+- position
+- campaign time
+- world metadata
+- event state
+- campaign journal state
+- narrative memory
+- other campaign state captured by the checkpoint.
+
+The death itself must NOT become campaign canon.
+
+============================================================
+37. NORMAL MODE — WHAT MUST NOT ROLLBACK
+============================================================
+
+Normal death rollback must preserve the existing authoritative
+non-rewound systems already defined by the project.
+
+At minimum:
+
+DO NOT rewind:
+
+- authoritative RNG progression
+- action receipts
+- idempotency receipts.
+
+This prevents a repeated death attempt from becoming a different request
+solely because rollback restored RNG/receipt state.
+
+Do not invent a second receipt system.
+
+Do not create a second RNG system.
+
+============================================================
+38. NORMAL MODE — NO DEATH MEMORY
+============================================================
+
+The failed timeline must not create permanent:
+
+- campaign journal entries
+- narrative memory entries
+- campaign canon
+- world facts
+- completed events
+- quest outcomes
+- NPC memory.
+
+A narration may be shown to the player as part of the death result,
+but it must not survive the rollback as campaign truth.
+
+Do not let Qwen narration poison the rolled-back campaign.
+
+============================================================
+39. NORMAL MODE — PLAYER EXPERIENCE
+============================================================
+
+The player should receive a clear indication that death occurred and the
+campaign was restored.
+
+Example conceptual behavior:
+
+"You fall..."
+
+followed by:
+
+"Your journey returns to the moment before the encounter began."
+
+Do not expose:
+
+- checkpoint
+- rollback engine
+- RNG
+- receipt
+- Python
+- backend
+- database terminology.
+
+The exact wording remains a UI/narration concern.
+
+Canonical state is still Python-owned.
+
+============================================================
+40. NORMAL MODE — CHECKPOINT TIMING
+============================================================
+
+The death checkpoint must be captured:
+
+BEFORE:
+
+- Initiative rolls
+- first combat action
+- first attack
+- first combat mutation.
+
+It must not be created after combat has already started.
+
+Do not overwrite the original checkpoint during the same combat.
+
+If the same combat-start request is retried:
+
+return/reuse the original checkpoint.
+
+============================================================
+41. NORMAL MODE — RETRY SAFETY
+============================================================
+
+Test:
+
+combat
+→ death
+→ rollback
+→ same original action replay.
+
+The replay must not:
+
+- create another checkpoint
+- rewind RNG again
+- duplicate journal entries
+- duplicate memory
+- duplicate campaign events
+- corrupt combat state.
+
+============================================================
+42. PERMADEATH MODE
+============================================================
+
+Permadeath means:
+
+NO DEATH ROLLBACK.
+
+When the character dies:
+
+DEAD becomes campaign canon.
+
+The state must persist through:
+
+- save
+- resume
+- restart
+- reconnect.
+
+The character must remain DEAD.
+
+Do not restore the pre-combat checkpoint.
+
+Do not reset HP.
+
+Do not erase the encounter.
+
+Do not erase the death from campaign canon.
+
+============================================================
+43. PERMADEATH RESURRECTION
+============================================================
+
+Permadeath does NOT disable ordinary future resurrection forever.
+
+Future resurrection may be supported by a later authoritative system.
+
+However:
+
+#08 must NOT implement resurrection.
+
+#08 must NOT fake resurrection.
+
+#08 must only ensure that:
+
+DEAD
+
+is a persistent canonical state.
+
+If a future #09+ system provides a legal resurrection mechanic:
+
+that system may transition the character from DEAD according to its own
+rules.
+
+Until such a mechanic exists:
+
+do not invent one.
+
+============================================================
+44. IRONMAN MODE
+============================================================
+
+Ironman is the strictest mode.
+
+When the player character dies:
+
+- NO rollback
+- DEAD is permanent
+- resurrection is disabled
+- save/resume remains DEAD
+- campaign enters its terminal death behavior.
+
+Do not provide a resurrection API.
+
+Do not allow future systems to bypass this mode accidentally.
+
+============================================================
+45. IRONMAN TERMINAL STATE
+============================================================
+
+Once an Ironman campaign reaches terminal character death:
+
+the campaign must not accept ordinary gameplay turns.
+
+Reject:
+
+- player actions
+- movement
+- attacks
+- exploration actions
+- rest
+- item use
+- species abilities
+- normal combat commands.
+
+The campaign may remain persisted and inspectable.
+
+Do NOT delete the campaign automatically.
+
+Do NOT destroy save data.
+
+Do NOT silently create a new character.
+
+Do NOT reset the campaign.
+
+If the existing project already has a terminal campaign-state field,
+reuse it.
+
+============================================================
+46. DEATH MODE MUST BE SERVER-AUTHORITATIVE
+============================================================
+
+Never trust client-supplied:
+
+- death mode
+- HP
+- dead state
+- stable state
+- death counters
+- recovery_due_at
+- rollback request.
+
+The server loads the campaign's authoritative mode.
+
+============================================================
+47. MONSTER DEATH BOUNDARY
+============================================================
+
+#08 owns PLAYER CHARACTER death lifecycle.
+
+Do NOT redesign Monster Death.
+
+Monster Manual 2024 generally treats a monster that reaches 0 HP as
+dead, although specific stat blocks can provide exceptions.
+
+Therefore:
+
+- preserve #07 Monster Combat behavior
+- preserve stat-block-specific monster death traits
+- do not add generic monster Death Saves
+- do not add generic monster Stable
+- do not add generic monster 1d4-hour recovery.
+
+If a specific monster stat block contains a resurrection/regeneration/
+restoration mechanic:
+
+that belongs to the monster's authoritative stat block behavior.
+
+Do not replace it with the player Death System.
+
+============================================================
+48. UNCONSCIOUS VS OTHER EFFECTS
+============================================================
+
+Do not confuse:
+
+- Unconscious caused by 0 HP
+- Unconscious caused by a spell
+- Unconscious caused by another effect
+- Knocking Out
+- sleep-related Unconscious.
+
+The Death Saving Throw lifecycle applies specifically to the 0 HP
+character death state.
+
+Do not make every Unconscious condition trigger Death Saves.
+
+============================================================
+49. KNOCKING OUT
+============================================================
+
+Preserve the 2024 PHB Knocking Out rule separately from death.
+
+A creature knocked out by the appropriate melee attack can be reduced to
+1 HP and become Unconscious instead of being reduced to 0 HP.
+
+This is NOT:
+
+- 0 HP
+- Death Save
+- Stable
+- Dead.
+
+Do not route Knock Out through the player death lifecycle.
+
+============================================================
+50. HEALING VS WAKE-UP
+============================================================
+
+If an effect genuinely restores HP:
+
+Unconscious from 0 HP ends.
+
+If an effect merely:
+
+- grants Temporary HP
+- changes a condition without healing
+- provides narrative encouragement
+
+it does not automatically restore the character from 0 HP.
+
+Use the authoritative effect resolver.
+
+============================================================
+51. PRONE AFTER RECOVERY
+============================================================
+
+When Unconscious ends because of:
+
+- Natural 20
+- healing
+- Stable 1d4-hour recovery
+- future authoritative resurrection/healing where appropriate
+
+do not automatically remove Prone.
+
+The character must remain Prone until the normal rules allow them to stand.
+
+Do not silently spend movement.
+
+Do not invent a free stand-up.
+
+============================================================
+52. COMBAT MUST NOT END JUST BECAUSE PLAYER REACHES 0 HP
+============================================================
+
+A player reaching 0 HP does NOT by itself end combat.
+
+The existing combat lifecycle must continue so the character's Death Save
+can be resolved on the appropriate turn.
+
+Do not:
+
+0 HP
+→ close combat
+→ never resolve Death Save.
+
+This was a previously identified critical failure mode.
+
+============================================================
+53. UNCONSCIOUS INITIATIVE SLOT
+============================================================
+
+An Unconscious player retains their authoritative Initiative slot.
+
+When their turn arrives:
+
+- they cannot perform normal actions
+- Death Save resolution occurs automatically if applicable
+- the turn is consumed according to the existing Initiative system.
+
+Do not remove the character from Initiative merely because they are
+Unconscious.
+
+============================================================
+54. STABLE INITIATIVE SLOT
+============================================================
+
+Stable + Unconscious character remains represented in the combat state.
+
+They do not make Death Saving Throws.
+
+Their slot must not cause the scheduler to:
+
+- skip unpredictably
+- reroll Initiative
+- duplicate turns
+- end combat incorrectly.
+
+Preserve the existing #05 Initiative behavior.
+
+============================================================
+55. DEATH SAVE WHEN STABLE
+============================================================
+
+Stable character:
+
+does NOT roll a Death Save.
+
+Even if:
+
+- their Initiative turn occurs
+- combat continues
+- the frontend asks for an action.
+
+Return the stable state.
+
+============================================================
+56. DEATH SAVE WHEN DEAD
+============================================================
+
+Dead character:
+
+does NOT roll a Death Save.
+
+Any attempted Death Save request must be rejected.
+
+Do not consume RNG.
+
+============================================================
+57. DEATH SAVE AND HEALING RACE
+============================================================
+
+If a healing effect and a Death Save could occur in the same turn/request
+window:
+
+resolve according to the authoritative event/action ordering.
+
+Do not:
+
+- roll Death Save after the character has already been healed above 0 HP
+- heal a character after it has already become Dead
+- apply both competing terminal transitions.
+
+Use a single atomic resolution.
+
+============================================================
+58. ATOMIC DEATH TRANSITIONS
+============================================================
+
+Each death-related transition must be atomic.
+
+A single authoritative operation should not leave partial state such as:
+
+- HP = 0 but character marked alive
+- DEAD but Unconscious only
+- Stable + death timer active after damage
+- death timer active after healing
+- death counters reset but character still DEAD
+- character revived without HP
+- rollback completed but receipt missing.
+
+Either the complete state transition succeeds or the existing transaction/
+rollback mechanism restores the prior state.
+
+============================================================
+59. PERSISTENCE
+============================================================
+
+Persist all state required to resume Death System correctly.
+
+At minimum, where applicable:
+
+- HP
+- max HP
+- Unconscious
+- Stable
+- Dead
+- death-save successes
+- death-save failures
+- death mode
+- stable_recovery_due_at
+- combat ID
+- round
+- turn identity
+- action receipts
+- relevant RNG state
+- checkpoint reference
+- terminal campaign state
+- Prone state.
+
+Do not persist redundant derived state unless the existing architecture
+already does.
+
+============================================================
+60. SAVE / RESUME TEST
+============================================================
+
+Test all states:
+
+A. HP > 0
+B. Unconscious
+C. Unconscious with 1 success
+D. Unconscious with 1 failure
+E. Unconscious with 2 failures
+F. Stable
+G. Stable with recovery_due_at in future
+H. Stable with recovery_due_at already passed
+I. Dead / Permadeath
+J. Dead / Ironman
+K. Normal rollback checkpoint.
+
+After save/resume:
+
+the state must be equivalent.
+
+============================================================
+61. SAVE / RESUME MUST NOT REROLL
+============================================================
+
+Save/load must never reroll:
+
+- Death Save
+- Medicine stabilization
+- Stable recovery 1d4
+- lethal damage
+- any death-related RNG.
+
+The already chosen canonical result must survive.
+
+============================================================
+62. ACTION RECEIPTS
+============================================================
+
+Reuse the existing action receipt/idempotency architecture.
+
+Do NOT create:
+
+death_receipt_db
+
+or another parallel persistence layer.
+
+Use the existing receipt mechanism.
+
+Receipts must cover:
+
+- Death Save
+- stabilization attempt
+- recovery transition
+- death transition where applicable
+- rollback operation where existing architecture requires it.
+
+============================================================
+63. RNG ROLLBACK RULE
+============================================================
+
+Normal death rollback:
+
+DO NOT rewind authoritative RNG progression.
+
+DO NOT rewind action receipts.
+
+The death attempt may consume RNG.
+
+The checkpoint restores campaign/gameplay state but does not make the
+random stream pretend that the death never happened.
+
+This is intentional.
+
+============================================================
+64. NORMAL ROLLBACK ATOMICITY
+============================================================
+
+Normal death rollback must be atomic.
+
+Do not return:
+
+"rollback successful"
+
+if only half the state was restored.
+
+If persistence fails:
+
+restore the pre-request state using the existing transaction mechanism.
+
+The client must never be told:
+
+"you are safely back at the checkpoint"
+
+when the server could not persist that state.
+
+============================================================
+65. JOURNAL / MEMORY SAFETY
+============================================================
+
+Normal death rollback:
+
+must not leave permanent journal/memory records from the failed timeline.
+
+Permadeath / Ironman:
+
+the death is real campaign canon.
+
+Any campaign-journal entry for the death must be created only through the
+existing authoritative campaign event/journal mechanism.
+
+Do not let Qwen create the death event by narration.
+
+============================================================
+66. NARRATION BOUNDARY
+============================================================
+
+Qwen receives only verified death results.
+
+Example:
+
+Python:
+
+DEAD
+death_mode = PERMADEATH
+
+Qwen may narrate:
+
+"The blow finally overwhelms you..."
+
+Qwen may NOT decide:
+
+"You are dead."
+
+The canonical state is already resolved.
+
+Similarly:
+
+Python:
+
+Stable recovery occurred.
+
+Qwen may narrate the character slowly regaining consciousness.
+
+Qwen may NOT decide that recovery occurred.
+
+============================================================
+67. NARRATION REJECTION
+============================================================
+
+If death narration is rejected:
+
+use the existing deterministic fallback.
+
+Do NOT:
+
+- reroll death
+- reroll Death Save
+- reroll damage
+- reroll recovery
+- change campaign mode
+- call Qwen again.
+
+Maximum model-call contract remains unchanged.
+
+============================================================
+68. MODEL CALL BUDGET
+============================================================
+
+Death System must not increase:
+
+MAX 2 MODEL CALLS / PLAYER TURN.
+
+Death mechanics themselves require:
+
+ZERO model calls.
+
+Possible narration remains within the existing budget.
+
+Never create:
+
+Death Save model call
++
+Death narration call
++
+player intent call.
+
+============================================================
+69. API VALIDATION
+============================================================
+
+Audit every death-related API endpoint.
+
+Reject invalid client attempts for:
+
+- fake Death Save result
+- fake death counter
+- fake Stable
+- fake HP
+- fake recovery_due_at
+- fake death mode
+- fake rollback success
+- fake resurrection
+- acting while Unconscious
+- acting while Dead.
+
+The server must derive these values.
+
+============================================================
+70. FRONTEND
+============================================================
+
+Frontend may display:
+
+- 0 HP
+- Unconscious
+- Death Save result
+- Stable
+- Dead
+- recovery status
+- recovery outcome
+- death mode where appropriate
+- Normal rollback result
+- terminal Ironman state.
+
+Frontend must not decide any of these.
+
+Do not redesign the UI.
+
+Only add missing presentation necessary to make the existing authoritative
+state understandable.
+
+Player-facing language must remain RPG-oriented.
+
+Avoid technical wording such as:
+
+- Python
+- backend
+- rollback engine
+- RNG
+- receipt
+- checkpoint database
+- canonical resolver.
+
+============================================================
+71. PLAYER AGENCY
+============================================================
+
+Death System must not remove meaningful player choice beyond what the
+rules require.
+
+When Unconscious:
+
+the character cannot act.
+
+But allies/other authorized actors may:
+
+- heal
+- stabilize
+- protect
+- continue combat
+- retreat
+- attempt other legal actions.
+
+Do not create artificial restrictions beyond the rules and current
+architecture.
+
+============================================================
+72. NO SELF-RESCUE CHEATS
+============================================================
+
+Do not let the unconscious player bypass the system through natural
+language.
+
+Examples:
+
+"I heal myself."
+
+"I drink my potion."
+
+"I use Healing Hands."
+
+"I take a long rest."
+
+"I stand up."
+
+These must not mutate state unless the actual rules and authoritative
+state allow it.
+
+============================================================
+73. DEATH OUTSIDE COMBAT
+============================================================
+
+Do not create a new general non-combat death/checkpoint engine in #08.
+
+If an existing authoritative non-combat effect can reduce a player to
+0 HP:
+
+apply the 0 HP / Instant Death rules.
+
+However, Normal Mode rollback specifically depends on an authoritative
+pre-combat checkpoint.
+
+If no such checkpoint exists outside combat:
+
+DO NOT invent a fake checkpoint.
+
+Report the exact limitation.
+
+Do not silently use:
+
+- current save
+- previous save
+- wall-clock time
+- browser history
+- last narration.
+
+This keeps #08 scoped.
+
+============================================================
+74. CAMPAIGN TIME INTEGRATION
+============================================================
+
+Use Campaign Time V1.
+
+Do not create another time system.
+
+Stable recovery is the primary #08 integration with Campaign Time.
+
+The recovery transition must:
+
+- use campaign time
+- persist due time
+- survive save/load
+- survive restart
+- not use wall-clock time
+- not use browser timers
+- not create a scheduled world event
+- not become player-visible event lore.
+
+============================================================
+75. CAMPAIGN TIME CROSSING
+============================================================
+
+If one authoritative operation advances time:
+
+T0 → T1
+
+and:
+
+recovery_due_at ∈ (T0, T1]
+
+then the recovery must be applied exactly once.
+
+If multiple Stable characters exist:
+
+resolve each independently.
+
+Do not use:
+
+"first recovery only."
+
+Do not lose later recovery transitions.
+
+============================================================
+76. MULTIPLE DEATH STATES
+============================================================
+
+If the project ever supports multiple characters in the same campaign,
+each character's death state must remain isolated.
+
+For the current single-player campaign:
+
+do not introduce unnecessary party simulation.
+
+Still ensure the state model is keyed to the actual character identity.
+
+============================================================
+77. SESSION ISOLATION
+============================================================
+
+Session A's death must never affect Session B.
+
+Test:
+
+- HP
+- death state
+- death counters
+- mode
+- recovery timer
+- RNG
+- receipts
+- checkpoint
+- terminal state.
+
+============================================================
+78. CONCURRENT REQUESTS
+============================================================
+
+Protect against duplicate/concurrent requests.
+
+Example:
+
+Two identical Death Save requests arrive simultaneously.
+
+Only one canonical roll may occur.
+
+Both requests must resolve to the same receipt/result.
+
+Do not:
+
+- roll twice
+- add two failures
+- create two journal entries
+- create two recovery timers.
+
+============================================================
+79. STALE TURN REQUESTS
+============================================================
+
+If a Death Save request belongs to:
+
+- old combat ID
+- old turn
+- old round
+- old session
+- old character state
+
+reject or replay according to the existing authoritative receipt rules.
+
+Do not mutate current combat.
+
+============================================================
+80. COMBAT END WHILE UNCONSCIOUS
+============================================================
+
+This is an important edge case.
+
+If combat ends while a player is:
+
+UNCONSCIOUS but NOT STABLE
+
+do not silently:
+
+- stabilize them
+- kill them
+- restore HP
+- erase death-save counters.
+
+Preserve the authoritative death state.
+
+Do not invent a general new combat system.
+
+If the existing implementation has a dedicated death-resolution continuation
+after combat, preserve it.
+
+If it does not, use the smallest deterministic mechanism necessary to
+continue the already-defined Death System and document exactly how it
+works.
+
+Do NOT leave the character in an impossible state where:
+
+0 HP + unstable
+cannot ever be resolved.
+
+============================================================
+81. STABLE AFTER COMBAT
+============================================================
+
+If combat ends and the character is Stable:
+
+the character remains:
+
+- HP 0
+- Stable
+- Unconscious
+- Prone where applicable.
+
+The Campaign Time recovery timer continues.
+
+The character can be recovered by:
+
+- genuine healing
+- successful Help/Medicine stabilization is no longer necessary because
+  they are already Stable
+- automatic 1d4-hour Stable recovery.
+
+Do not start a Short/Long Rest automatically.
+
+============================================================
+82. PLAYER DEATH DURING TRAVEL / TIMED ACTION
+============================================================
+
+If a player reaches 0 HP through an existing authoritative action that
+also advances Campaign Time:
+
+resolve:
+
+1. canonical action
+2. HP/damage
+3. Instant Death
+4. Unconscious/death state
+5. time advancement
+6. any applicable Stable recovery crossing
+
+according to the existing atomic ordering.
+
+Do not allow a later time advancement to resurrect a Dead character.
+
+============================================================
+83. NO TIME-BASED DEATH SAVE INVENTION
+============================================================
+
+Do NOT invent:
+
+"Death Save every 6 seconds outside combat."
+
+Do not convert Campaign Time into a universal death-save timer.
+
+Death Saves remain tied to the authoritative turn lifecycle already
+established by Combat/Initiative.
+
+If the existing project requires a special post-combat resolution state,
+keep it narrow and explicitly document it.
+
+============================================================
+84. CRITICAL DAMAGE INTERACTION
+============================================================
+
+Test all combinations:
+
+- normal damage at 0 HP
+- critical damage at 0 HP
+- massive damage
+- critical + massive damage
+- damage while Stable
+- damage while Unconscious
+- damage after Natural 20
+- damage after healing
+- damage immediately before recovery_due_at
+- damage after recovery_due_at.
+
+The final result must be deterministic and rule-correct.
+
+============================================================
+85. DEATH COUNTER RESET
+============================================================
+
+Counters reset to zero when:
+
+- character regains any HP
+- character becomes Stable.
+
+Do not reset counters merely because:
+
+- combat ends
+- save occurs
+- reload occurs
+- player changes UI
+- narration occurs
+- a turn is skipped.
+
+============================================================
+86. DEATH COUNTER PERSISTENCE
+============================================================
+
+Save:
+
+successes
+failures
+
+exactly as authoritative state.
+
+Example:
+
+2 successes
+1 failure
+
+save
+reload
+
+must remain:
+
+2 successes
+1 failure.
+
+Do not normalize or recompute them.
+
+============================================================
+87. RECOVERY TIMER PERSISTENCE
+============================================================
+
+Once Stable:
+
+roll 1d4 once.
+
+Persist the resulting due time.
+
+Example:
+
+roll = 4
+
+DO NOT persist only:
+
+"4 hours remaining"
+
+because that can become ambiguous across save/load.
+
+Prefer an absolute Campaign Time due point.
+
+============================================================
+88. RECOVERY RNG
+============================================================
+
+The 1d4 recovery roll must:
+
+- use existing authoritative RNG
+- be consumed once
+- be included in the existing persistence/replay semantics
+- not be rerolled after save/load
+- not be rerolled after restart
+- not be rerolled after browser retry.
+
+============================================================
+89. HELP/MEDICINE RNG
+============================================================
+
+Medicine stabilization must:
+
+- use existing skill-check RNG
+- be consumed once
+- persist through receipt
+- replay identically.
+
+Do not reroll because the UI asks again.
+
+============================================================
+90. DEATH SAVE RNG
+============================================================
+
+Death Saving Throw must:
+
+- use existing RNG
+- be consumed once
+- be receipt-protected
+- survive save/load correctly.
+
+Do not restore the RNG to the pre-death-save state during ordinary
+save/load.
+
+============================================================
+91. NORMAL ROLLBACK RNG
+============================================================
+
+Normal rollback restores gameplay state but preserves the existing
+non-rewound RNG/action-receipt semantics.
+
+This is intentional.
+
+Do not change this behavior merely because it feels unusual.
+
+============================================================
+92. MODE-SPECIFIC PERSISTENCE
+============================================================
+
+NORMAL:
+
+death timeline is rolled back.
+
+PERMADEATH:
+
+death persists.
+
+IRONMAN:
+
+death persists and campaign becomes terminal.
+
+Do not let a generic "death handler" apply the same post-death action to
+all three modes.
+
+============================================================
+93. MODE-SPECIFIC TESTS
+============================================================
+
+Test:
+
+NORMAL
+
+combat
+→ death
+→ checkpoint restore
+→ no permanent death
+→ campaign playable.
+
+PERMADEATH
+
+combat
+→ death
+→ no rollback
+→ DEAD persisted
+→ save
+→ reload
+→ DEAD.
+
+IRONMAN
+
+combat
+→ death
+→ no rollback
+→ DEAD persisted
+→ save
+→ reload
+→ DEAD
+→ ordinary gameplay rejected
+→ resurrection rejected.
+
+============================================================
+94. MODE IMMUTABILITY TEST
+============================================================
+
+After campaign creation:
+
+attempt:
+
+Normal → Permadeath
+Permadeath → Normal
+Normal → Ironman
+Ironman → Normal
+Permadeath → Ironman
+Ironman → Permadeath.
+
+All must be rejected.
+
+No hidden API override.
+
+============================================================
+95. NORMAL CHECKPOINT TESTS
+============================================================
+
+Verify checkpoint occurs:
+
+BEFORE initiative.
+
+Verify:
+
+- first attack not included
+- first damage not included
+- first round not included
+- death does not overwrite it.
+
+Verify duplicate combat-start request does not create a second checkpoint.
+
+============================================================
+96. DEATH SYSTEM TEST MATRIX
+============================================================
+
+At minimum:
+
+1. HP > 0 remains normal.
+2. HP reaches 0.
+3. HP reaches 0 with massive damage.
+4. HP reaches 0 without massive damage.
+5. Death Save success.
+6. Death Save failure.
+7. Natural 1 = two failures.
+8. Natural 20 = 1 HP.
+9. Three successes = Stable.
+10. Three failures = Dead.
+11. Damage at 0 HP = one failure.
+12. Critical damage at 0 HP = two failures.
+13. Damage >= max HP at 0 HP = Dead.
+14. Stable character does not roll Death Save.
+15. Stable character takes damage.
+16. Stable character becomes unstable.
+17. Stable character receives healing.
+18. Unconscious character receives healing.
+19. Temporary HP does not restore consciousness.
+20. Unconscious character cannot attack.
+21. Unconscious character cannot move.
+22. Unconscious character cannot rest.
+23. Unconscious character cannot self-heal through ability.
+24. Dead character cannot act.
+25. Help/Medicine stabilization succeeds.
+26. Help/Medicine stabilization fails.
+27. Unconscious target cannot self-stabilize.
+28. Stable recovery rolls 1d4 once.
+29. Stable recovery occurs at due time.
+30. Stable recovery does not occur early.
+31. Stable recovery occurs when Campaign Time crosses due time.
+32. Recovery survives save/load.
+33. Recovery survives restart.
+34. Damage cancels recovery.
+35. Healing cancels recovery.
+36. Death cancels recovery.
+37. Recovery does not resurrect Dead.
+38. Recovery leaves character Prone.
+39. Natural 20 leaves character Prone.
+40. Healing leaves character Prone.
+41. Death counters reset after healing.
+42. Death counters reset after Stable.
+43. Death Save is once per turn.
+44. Duplicate Death Save request does not reroll.
+45. Duplicate Medicine request does not reroll.
+46. Duplicate recovery request does not reroll.
+
+============================================================
+97. COMBAT TEST MATRIX
+============================================================
+
+47. 0 HP does not end combat.
+48. Unconscious Initiative slot remains.
+49. Death Save occurs on the correct turn.
+50. Death Save occurs once.
+51. Stable slot does not roll.
+52. Dead slot does not roll.
+53. Current actor remains correct.
+54. Initiative order is not rerolled.
+55. Round is not duplicated.
+56. Death state survives combat continuation.
+57. Combat end does not silently stabilize.
+58. Combat end does not silently kill.
+59. Combat end does not erase death counters.
+
+============================================================
+98. PERSISTENCE TEST MATRIX
+============================================================
+
+60. Unconscious save/load.
+61. Death-save counter save/load.
+62. Stable save/load.
+63. Stable timer save/load.
+64. Dead Permadeath save/load.
+65. Dead Ironman save/load.
+66. Normal checkpoint persistence.
+67. Receipt replay.
+68. RNG persistence.
+69. Session isolation.
+70. restart.
+
+============================================================
+99. NORMAL ROLLBACK TEST MATRIX
+============================================================
+
+71. Death restores HP.
+72. Death restores position.
+73. Death restores combat state.
+74. Death restores campaign time.
+75. Death restores event state.
+76. Death restores world metadata.
+77. Death restores journal state.
+78. Death restores narrative memory.
+79. Death does not rewind RNG.
+80. Death does not rewind action receipts.
+81. Death does not create permanent journal entry.
+82. Death does not create permanent narrative memory.
+83. Duplicate death request does not double rollback.
+84. Failed persistence does not falsely report success.
+
+============================================================
+100. PERMADEATH TEST MATRIX
+============================================================
+
+85. Death remains DEAD.
+86. Save/resume remains DEAD.
+87. Encounter remains canonical.
+88. Death is not rolled back.
+89. Future resurrection hook remains possible.
+90. No fake resurrection is implemented.
+
+============================================================
+101. IRONMAN TEST MATRIX
+============================================================
+
+91. Death remains DEAD.
+92. No rollback.
+93. Save/resume remains DEAD.
+94. Ordinary commands rejected.
+95. Resurrection rejected.
+96. Campaign is not deleted.
+97. Campaign terminal state persists.
+98. Client cannot bypass terminal state.
+
+============================================================
+102. API SECURITY TEST MATRIX
+============================================================
+
+99. Client cannot set HP.
+100. Client cannot set death counters.
+101. Client cannot set Stable.
+102. Client cannot set Dead.
+103. Client cannot set recovery_due_at.
+104. Client cannot set death mode.
+105. Client cannot force rollback.
+106. Client cannot request fake successful Death Save.
+107. Client cannot request fake Medicine success.
+108. Client cannot resurrect Ironman character.
+
+============================================================
+103. MODEL BOUNDARY TEST MATRIX
+============================================================
+
+109. Death Save uses 0 model calls.
+110. Medicine uses 0 model calls.
+111. Stable recovery uses 0 model calls.
+112. Death mode selection uses 0 model calls.
+113. Normal rollback uses 0 model calls.
+114. Ironman terminal transition uses 0 model calls.
+115. Qwen only receives verified result.
+116. Narration rejection does not retry.
+117. Model-call ceiling remains <= 2 per player turn.
+
+============================================================
+104. REGRESSION TESTS
+============================================================
+
+Run relevant regressions for:
+
+#01 Campaign Time V1
+#02 Campaign Time Edge Cases
+#03 Combat Design Lock
+#04 Action Economy
+#05 Initiative Lock
+#06 Weapon & Attack Lock
+#07 Monster Combat Lock
+
+Do not rewrite these systems to make Death tests pass.
+
+If a regression fails:
+
+diagnose the actual integration issue.
+
+Do not silently change unrelated mechanics.
+
+============================================================
+105. BUILD / TYPE / STATIC VERIFICATION
+============================================================
+
+Where applicable run:
+
+- Python compilation
+- targeted Death tests
+- relevant combat tests
+- persistence tests
+- session tests
+- Experience typecheck
+- API schema/codegen if changed
+- production build if affected
+- git diff --check.
+
+Only report a check as PASS if it actually ran.
+
+============================================================
+106. LIVE QWEN VERIFICATION
+============================================================
+
+Death mechanics do not require Qwen.
+
+Do NOT call a mocked Qwen path:
+
+"live verification."
+
+If narration integration is changed:
+
+run the smallest relevant live verification.
+
+Otherwise explicitly state:
+
+Live Qwen smoke not required for Death System mechanics.
+
+============================================================
+107. NO UNRELATED CHANGES
+============================================================
+
+Do NOT modify unrelated:
+
+- Campaign Time architecture
+- travel
+- scheduled world events
+- lore
+- quest system
+- Monster AI architecture
+- spell engine
+- general persistence architecture
+- UI architecture
+- Qwen architecture.
+
+Only make the smallest integration changes required.
+
+============================================================
+108. NO SECOND DEATH ENGINE
+============================================================
+
+There must be ONE authoritative player Death System.
+
+Do not create parallel:
+
+- death handlers
+- death-save engines
+- recovery timers
+- death databases
+- death RNG
+- frontend death state.
+
+If duplicate logic already exists:
+
+consolidate carefully around the existing authoritative path.
+
+Do not silently create two sources of truth.
+
+============================================================
+109. NO GENERAL HEALING ENGINE
+============================================================
+
+#08 may connect existing authoritative healing.
+
+Do NOT build a new general healing system.
+
+Do NOT redesign:
+
+- spells
+- potions
+- rests
+- species healing
+- class healing.
+
+Use existing interfaces.
+
+If a healing path is missing:
+
+create only the smallest integration hook required for Death System
+correctness.
+
+Report it.
+
+============================================================
+110. NO GENERAL TIME ENGINE
+============================================================
+
+Campaign Time V1 already exists.
+
+Do not create:
+
+- recovery timer service
+- wall-clock timer
+- browser timer
+- background scheduler
+- asyncio sleep loop.
+
+Use canonical Campaign Time.
+
+============================================================
+111. NO GENERAL EVENT ENGINE
+============================================================
+
+Stable recovery is NOT a world event.
+
+Do not place it in the normal player-facing scheduled-event queue.
+
+It is a mechanical timed state transition.
+
+============================================================
+112. PLAYER-FACING EXPERIENCE
+============================================================
+
+The player should experience:
+
+"I am badly wounded."
+
+"I am unconscious."
+
+"I am stable."
+
+"I am dying."
+
+"I wake up."
+
+"I died."
+
+not:
+
+"death_state=UNCONSCIOUS"
+
+or:
+
+"recovery_due_at=..."
+
+Technical state may exist internally.
+
+Do not expose implementation terminology.
+
+============================================================
+113. NARRATIVE EXAMPLES
+============================================================
+
+Python result:
+
+Unconscious.
+
+Qwen may narrate:
+
+"The blow knocks the breath from you. The world goes dark."
+
+Python result:
+
+Death Save failure.
+
+Qwen may narrate:
+
+"Your body clings to life, but only barely."
+
+Python result:
+
+Stable.
+
+Qwen may narrate:
+
+"Your breathing steadies, though you remain unconscious."
+
+Python result:
+
+Natural 20 → 1 HP.
+
+Qwen may narrate:
+
+"A ragged breath tears back into your lungs. You are alive."
+
+Python result:
+
+Dead.
+
+Qwen may narrate:
+
+"The last of your strength leaves you."
+
+But Qwen does not determine any of these states.
+
+============================================================
+114. FINAL IMPLEMENTATION RULE
+============================================================
+
+Prefer the smallest reviewable implementation.
+
+Do NOT perform a large rewrite.
+
+Do NOT refactor unrelated architecture.
+
+Do NOT rename large portions of the project merely for elegance.
+
+Do NOT replace working code without evidence.
+
+============================================================
+115. FINAL COMPLETION CONDITIONS
+============================================================
+
+#08 is COMPLETE only when:
+
+- 0 HP lifecycle is authoritative.
+- Instant Death is authoritative.
+- Massive Damage works.
+- Unconscious works.
+- Death Saves work.
+- Natural 1 works.
+- Natural 20 works.
+- 3 successes → Stable.
+- 3 failures → Dead.
+- Damage at 0 HP works.
+- Critical damage at 0 HP works.
+- Stable damage works.
+- Healing works.
+- Temporary HP cannot fake healing.
+- Help/Medicine stabilization works.
+- Stable recovery uses Campaign Time.
+- 1d4 recovery is rolled exactly once.
+- Recovery survives save/load.
+- Recovery survives restart.
+- Recovery cannot resurrect Dead.
+- Recovery is cancelled by damage.
+- Recovery is cancelled by healing.
+- Unconscious action guards are server-authoritative.
+- Dead action guards are server-authoritative.
+- 0 HP does not automatically end combat.
+- Death Save happens on the correct turn.
+- Death Save is idempotent.
+- Medicine is idempotent.
+- recovery is idempotent.
+- Normal rollback works.
+- Normal rollback restores campaign state.
+- Normal rollback preserves RNG.
+- Normal rollback preserves receipts.
+- Normal death does not become campaign canon.
+- Permadeath persists DEAD.
+- Permadeath allows future resurrection only through a future authoritative
+  system.
+- Ironman persists DEAD.
+- Ironman has no resurrection.
+- Ironman campaign terminal behavior persists.
+- Campaign death mode is immutable.
+- Monster death remains owned by Monster Combat/stat blocks.
+- No second death engine exists.
+- No second time engine exists.
+- No second healing engine exists.
+- Qwen has no mechanical authority.
+- frontend has no mechanical authority.
+- maximum 2 model calls per player turn remains unchanged.
+- save/resume is correct.
+- session isolation is correct.
+- receipt replay is correct.
+- RNG replay is correct.
+- rollback is atomic.
+- no unrelated architecture is changed.
+
+============================================================
+116. FINAL REPORT FORMAT
+============================================================
+
+Return exactly:
+
+A) IMPLEMENTED
+
+Report:
+
+- Death System audit result
+- 0 HP lifecycle
+- Instant Death
+- Massive Damage
+- Unconscious
+- Death Saves
+- Natural 1
+- Natural 20
+- Stable
+- Damage at 0 HP
+- Help/Medicine stabilization
+- Stable recovery
+- Campaign Time integration
+- Normal
+- Permadeath
+- Ironman
+- action guards
+- persistence
+- idempotency
+- exact production files changed
+- exact test files changed.
+
+B) VERIFIED
+
+Report exact evidence:
+
+- Death targeted tests
+- Campaign Time regression
+- Campaign Time edge-case regression
+- Combat regression
+- Action Economy regression
+- Initiative regression
+- Weapon & Attack regression
+- Monster Combat regression
+- persistence
+- save/load
+- restart
+- idempotency
+- RNG replay
+- rollback
+- session isolation
+- typecheck
+- compile
+- build
+- git diff --check
+- model-call verification.
+
+Never claim a test passed unless it actually ran.
+
+C) NOT IMPLEMENTED / OUT OF SCOPE
+
+Explicitly confirm:
+
+- #01 Campaign Time was not redesigned.
+- #02 Edge Cases was not redesigned.
+- #03 Combat was not redesigned.
+- #04 Action Economy was not redesigned.
+- #05 Initiative was not redesigned.
+- #06 Weapon & Attack was not redesigned.
+- #07 Monster Combat was not redesigned.
+- #09 Spell System was NOT implemented.
+- resurrection was NOT implemented.
+- general healing system was NOT implemented.
+- general event system was NOT implemented.
+- general time engine was NOT implemented.
+- persistence architecture was NOT redesigned.
+- UI architecture was NOT redesigned.
+
+D) KNOWN LIMITATIONS
+
+Report only evidence-backed limitations.
+
+Do not invent limitations.
+
+If non-combat Normal-mode death lacks an authoritative pre-initiative
+checkpoint, report that exact limitation.
+
+If an existing healing/Help integration is incomplete, report it.
+
+If a specific future resurrection mechanism is absent, report that it is
+out of scope rather than pretending it exists.
+
+E) SCOPE CHECK
+
+Explicitly confirm preservation of:
+
+- Python authority
+- PHB 2024 rules authority
+- DMG 2024 guidance
+- Monster Manual 2024 authority
+- Qwen boundary
+- frontend boundary
+- Campaign Time V1
+- Campaign Time Edge Cases
+- Combat lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Monster Combat
+- existing persistence
+- existing receipts
+- existing RNG
+- session isolation
+- maximum 2 model calls
+- player agency.
+
+F) FILE DIFF SUMMARY
+
+Separate:
+
+PRODUCTION
+TEST
+GENERATED
+DOCUMENTATION
+
+Explicitly distinguish:
+
+- #08 changes
+- pre-existing changes
+- #01 changes
+- #02 changes
+- #03 changes
+- #04 changes
+- #05 changes
+- #06 changes
+- #07 changes.
+
+Do not attribute earlier work to #08.
+
+============================================================
+117. FINAL STOP CONDITION
+============================================================
+
+When #08 is complete:
+
+01 — Campaign Time V1              COMPLETE
+02 — Campaign Time Edge Cases      COMPLETE
+03 — Combat Design Lock            COMPLETE
+04 — Action Economy Lock           COMPLETE
+05 — Initiative Lock               COMPLETE
+06 — Weapon & Attack Lock          COMPLETE
+07 — Monster Combat Lock           COMPLETE
+08 — Death System Lock             COMPLETE
+
+STOP.
+
+Do NOT start:
+
+#09 Spell Scope.
+
+Do NOT start:
+
+#10 Combat Test Matrix.
+
+Do NOT start:
+
+#11 Persistence / Idempotency Rules.
+
+Do NOT start:
+
+#12 UI Presentation Rules.
+
+Do NOT:
+
+- merge
+- push
+- publish
+- reset
+- force push.
+
+Return the evidence report only after implementation and verification.
+
+START.

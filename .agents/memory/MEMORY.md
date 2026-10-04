@@ -17,3 +17,6 @@
 - [Combat lifecycle boundaries](combat-lifecycle-boundaries.md) — preserve adjacent mechanics; replay precedes stale-context checks; do not narrate uncommitted combat outcomes to Qwen.
 - [Action Economy compatibility](action-economy-compatibility.md) — retain plain-attack auto completion and explicit open-turn commands; unsupported mechanics must not claim success.
 - [Initiative boundaries](initiative-boundaries.md) — joining must not replay progress; retained unconscious slots do not replace lifecycle end criteria.
+- [Weapon attack boundaries](weapon-attack-boundaries.md) — missing geometry must fail safely; feature grants and weapon choices remain separate.
+- [Monster owner evidence](monster-owner-evidence.md) — fixture executors prove contracts, not native mechanic coverage; report missing owners explicitly.
+- [Partial patch results](partial-patch-results.md) — a failed multi-file patch may already have applied earlier changes; inspect before retrying.

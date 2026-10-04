@@ -31,7 +31,9 @@ class ControlledModel(v1.NoModel):
 def ready(session=None):
     session = session or v1.scene()
     npc = session.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
-    npc.update(current_hp=40, max_hp=40, armor_class=20, hostile=True)
+    npc.update(current_hp=40, max_hp=40, armor_class=20, hostile=True,
+               distance_ft=5, attack_damage_type="bludgeoning")
+    session.world_state.setdefault("monster_perception", {})[npc["id"]] = {"player": {"visible": True}}
     if not session.find_weapon_in_inventory("Kılıç")[0]:
         session.world_state["inventory"].append({"name": "Kılıç"})
     with patch("game.roll_initiative_player", return_value=20), patch("game.roll_initiative", return_value=1):
@@ -265,7 +267,8 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_player_attack_starts_authoritative_combat_with_npc_first(self):
         session = self.manager.get(self.sid).game_session
         npc = session.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
-        npc.update(current_hp=40, max_hp=40, armor_class=20)
+        npc.update(current_hp=40, max_hp=40, armor_class=20, distance_ft=5,
+                   attack_damage_type="bludgeoning")
         data = {"message": "Rakip'e saldırıyorum.", "target_id": npc["id"], "action_id": str(uuid4())}
         with patch("game.roll_initiative_player", return_value=session.character["dexterity_mod"] + 1), patch("game.roll_initiative", return_value=20), \
              patch("game.roll_attack", return_value=1), patch("game.roll_d20", return_value=1):

@@ -5,6 +5,7 @@ Only engine code can grant resources and publish perceivable trigger events.
 """
 import copy
 import re
+import weapon_attack
 from contextlib import contextmanager
 from contextvars import ContextVar
 from uuid import uuid4
@@ -61,6 +62,7 @@ def speed(session, actor):
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
             value += 10
     value -= int(data.get("speed_penalty_ft", 0))
+    value -= weapon_attack.slow_penalty(session, actor)
     return max(0, value)
 
 
@@ -169,6 +171,8 @@ def validate_saved(combat):
 
 def begin_turn(session, actor):
     r = ensure(session)[actor]
+    weapon_attack.boundary(session, actor, "begin")
+    r.pop("weapon_sequence", None)
     r["base_action_spent"] = False
     r["bonus_action_spent"] = False
     r["reaction_spent"] = False
@@ -179,6 +183,8 @@ def begin_turn(session, actor):
     r["ready"] = None
     r["opportunity"] = None
     r["attack_action"] = None
+    r.pop("dodging", None)
+    r.pop("disengaging", None)
     for name in ("additional_actions", "bonus_grants"):
         r[name] = [g for g in r[name] if g.get("refresh_each_turn")]
         for grant in r[name]:
@@ -269,19 +275,153 @@ def holding(session):
 
 
 def attack_permission(session, actor):
-    if _execution.get() == (id(session), "reaction", actor):
+    if _execution.get() in {(id(session), "reaction", actor), (id(session), "monster_capability", actor)}:
         validate_actor(session, actor, reaction=True)
     else:
         action_slot(session, actor, "attack")
+
+
+def monster_resource(session, actor, source, kind, capability_id):
+    """#04 owns generic slots; #07 owns only stat-block-specific counters."""
+    from monster_capabilities import capabilities
+    cap = next((c for c in capabilities(session, actor) if c["capability_id"] == capability_id), None)
+    if not cap or cap["action_source"] != source:
+        fail("capability_unavailable", "No authoritative monster capability grants this resource.")
+    if source == "resistance":
+        data = actor_data(session, actor)
+        if data.get("current_hp", 0) <= 0 or data.get("combat_status") == "dead":
+            fail("incapacitated", "A dead monster cannot use Legendary Resistance.")
+    else:
+        validate_actor(session, actor, reaction=source in {"reaction", "legendary"})
+    resources = ensure(session)[actor]
+    if source == "action":
+        consume_action(session, actor, kind if kind in ACTION_TYPES else "feature")
+    elif source == "bonus":
+        if resources["bonus_action_spent"]:
+            fail("bonus_action_spent", "The Bonus Action was already spent.")
+        resources["bonus_action_spent"] = True
+    elif source == "reaction":
+        if resources["reaction_spent"]:
+            fail("reaction_spent", "The Reaction was already spent.")
+        resources["reaction_spent"] = True
+    elif source not in {"legendary", "resistance"}:
+        fail("invalid_resource_type", "Unknown monster action source.")
+    if kind == "dodge":
+        resources["dodging"] = True
+    if kind == "disengage":
+        resources["disengaging"] = True
+    if kind == "dash":
+        resources["dash_count"] += 1
+        resources["movement_available"] += speed(session, actor)
+    if kind == "multiattack":
+        resources["attack_action"] = {"remaining_attacks": len(cap["attack_slots"]) - 1,
+                                      "total_attacks": len(cap["attack_slots"]), "action_resource_cost": 1}
+
+
+def monster_followup_complete(session, actor):
+    r = ensure(session)[actor].get("attack_action")
+    if not r or r["remaining_attacks"] <= 0:
+        fail("no_attack_continuation", "No stat-block attack continuation remains.")
+    r["remaining_attacks"] -= 1
+
+
+def monster_routes(session, actor, kind):
+    """Small endpoint-facts adapter, not pathfinding or a geometry engine.
+
+    An existing/campaign positioning producer must supply known, clear routes.
+    Route facts never come from a client or narration.
+    """
+    from monster_perception import relationship
+    resources = ensure(session)[actor]
+    routes = session.world_state.get("monster_routes", {}).get(actor, [])
+    legal = []
+    if not isinstance(routes, list) or len(routes) > 32:
+        fail("invalid_movement_routes", "Routes must be a bounded canonical list.")
+    for route in routes:
+        if not isinstance(route, dict) or route.get("known") is not True or route.get("clear") is not True:
+            continue
+        if not isinstance(route.get("route_id"), str) or not isinstance(route.get("destination"), str):
+            continue
+        distance = route.get("distance_ft")
+        if type(distance) is not int or distance <= 0:
+            continue
+        mode = route.get("mode", "walk")
+        if mode != "walk":
+            continue  # A special-movement owner must supply its validated adapter.
+        multiplier = 1 + int("prone" in conditions(session, actor)) + int(route.get("difficult_terrain") is True)
+        limit = movement_limit(session, actor) + (speed(session, actor) if kind == "dash" else 0)
+        if speed(session, actor) <= 0 or resources["movement_used"] + distance * multiplier > limit:
+            continue
+        distances = route.get("target_distances")
+        starts = route.get("start_distances")
+        if (not isinstance(distances, dict) or not distances
+                or not isinstance(starts, dict) or set(starts) != set(distances)):
+            continue
+        if "frightened" in conditions(session, actor):
+            fear = actor_data(session, actor).get("frightened_by")
+            if (fear not in starts or type(starts[fear]) not in (float, int)
+                    or type(distances[fear]) not in (float, int) or distances[fear] < starts[fear]):
+                continue  # No source/distance evidence means no legal native route.
+        valid = True
+        for target, new_distance in distances.items():
+            if target not in session.world_state["combat"]["participants"] or target == actor:
+                valid = False
+                break
+            if type(new_distance) not in (float, int) or not 0 <= new_distance < 100000:
+                valid = False
+                break
+            try:
+                old = weapon_attack.pair(session, actor, target)["distance_ft"]
+            except CombatRequestError:
+                valid = False
+                break
+            if starts[target] != old:
+                valid = False
+                break
+            if abs(new_distance - old) > distance:
+                valid = False
+                break
+            if (old <= 5 < new_distance and relationship(session, actor, target) == "enemy"
+                    and not ensure(session)[target]["reaction_spent"] and kind != "disengage"):
+                valid = False  # Missing OA resolver is not permission to escape freely.
+                break
+        if valid:
+            legal.append(copy.deepcopy(route))
+    return legal
+
+
+def resolve_monster_route(session, actor, route_id, kind):
+    route = next((r for r in monster_routes(session, actor, kind) if r["route_id"] == route_id), None)
+    if route is None:
+        fail("movement_unavailable", "The authoritative route is unavailable.")
+    # Dash has already been consumed/added by #04; avoid adding it a second time.
+    multiplier = 1 + int("prone" in conditions(session, actor)) + int(route.get("difficult_terrain") is True)
+    r = ensure(session)[actor]
+    cost = route["distance_ft"] * multiplier
+    if cost > movement_limit(session, actor) - r["movement_used"]:
+        fail("movement_unavailable", "Movement exceeds the legal budget.")
+    r["movement_used"] += cost
+    r["movement_available"] = max(r["movement_available"], r["movement_used"])
+    pairs = session.world_state.setdefault("attack_environment", {}).setdefault("pairs", {})
+    for key in list(pairs):
+        if actor in key.split("|"):
+            del pairs[key]  # Endpoint facts replace, never retain stale geometry.
+    for target, distance in route["target_distances"].items():
+        pairs[f"{actor}|{target}"] = {"distance_ft": distance}
+        if target == "player":
+            actor_data(session, actor)["distance_ft"] = distance
+    actor_data(session, actor)["position"] = route["destination"]
+    publish_event(session, "actor_moves", actor)
+    return {"kind": "move", "distance_ft": route["distance_ft"], "movement_cost_ft": cost,
+            "destination": route["destination"], "movement_intent": route.get("movement_intent", "REPOSITION")}
 
 
 def target(session, identity):
     combat = session.world_state["combat"]
     values = [n for n in session.active_npcs() if n.get("id") == identity]
     if (len(values) != 1 or identity not in combat["participants"]
-        or values[0].get("current_hp", 0) <= 0
-        or values[0].get("combat_status", "active") != "active"):
-        fail("invalid_combat_target", "Select an active local combat participant.")
+        or values[0].get("combat_status", "active") not in {"active", "unconscious"}):
+        fail("invalid_combat_target", "Select a targetable local combat participant.")
     return values[0]
 
 
@@ -373,6 +513,31 @@ def publish_event(session, event, actor):
         if (ready and not r["reaction_spent"] and can_act(session, owner)
             and ready["trigger"] == {"event": event, "actor_id": actor}):
             r["opportunity"] = {"id": str(uuid4()), "event": event, "actor_id": actor}
+    monster_event(session, event, actor)
+
+
+def monster_event(session, kind, actor, **verified):
+    """Mechanic owners publish actual boundaries/effects, never HTTP fields."""
+    combat = session.world_state["combat"]
+    if not combat["active"]:
+        return []
+    allowed = {"actor_moves", "actor_attacks", "after_turn", "failed_save", "incoming_hit"}
+    if kind not in allowed or actor not in combat["participants"]:
+        fail("invalid_monster_event", "Invalid authoritative monster trigger.")
+    counter = combat.get("monster_event_counter", 0) + 1
+    combat["monster_event_counter"] = counter
+    combat["monster_event"] = {"event_id": f"{combat['combat_id']}:{counter}",
+                             "kind": kind, "actor_id": actor, **copy.deepcopy(verified)}
+    if kind == "failed_save":
+        return []  # Saving-throw owner queries the affected creature explicitly.
+    import monster_combat
+    outcomes = monster_combat.after_event(session)
+    if outcomes:
+        queue = session.world_state.setdefault("monster_interrupt_results", [])
+        queue.extend(copy.deepcopy(outcomes))
+        if len(queue) > 4096:
+            fail("too_many_monster_interrupts", "The bounded interrupt result buffer is full.")
+    return outcomes
 
 
 def pending_reaction(session):
@@ -392,11 +557,11 @@ def react(session, opportunity_id, actor="player"):
         fail("spell_mechanic_unavailable", "Spell resolution is outside this lock.")
     if response["kind"] == "attack":
         npc = target(session, response["target_id"])
-        weapon, data = session.find_weapon_in_inventory("Kılıç")
+        weapon, data = session.find_weapon_in_inventory(session.world_state.get("equipment", {}).get("main_hand"))
         if not weapon:
             fail("no_weapon", "No configured weapon is available.")
         with executing(session, "reaction", actor):
-            result = session.resolve_attack("Saldırıyorum.", weapon, data, npc)
+            result = session.resolve_attack("Saldırıyorum.", weapon, data, npc, origin="reaction")
     else:
         distance = response["distance_ft"]
         cost = distance * (2 if actor_data(session, actor).get("prone") or "prone" in conditions(session, actor) else 1)
@@ -448,36 +613,46 @@ def movement_limit(session, actor):
     return speed(session, actor) * (1 + r.get("dash_count", 0)) + r.get("ready_movement_grant", 0)
 
 
-def attack_step(session, identity, continuation=False):
+def attack_step(session, identity, continuation=False, *, weapon_id=None, choice=None, origin=None):
     validate_actor(session)
     r = ensure(session)["player"]
     ongoing = r.get("attack_action")
+    origin = origin or ("continuation" if continuation else "action")
+    extra = origin in {"light", "nick"}
     if continuation:
         if not ongoing or ongoing["remaining_attacks"] <= 0:
             fail("no_attack_continuation", "No rule-granted attack remains inside this Attack Action.")
-    else:
+    elif not extra:
         slot = action_slot(session, "player", "attack")
         limit = (slot["restrictions"].get("max_attacks", 1) if slot else
                  actor_data(session, "player").get("attacks_per_action", 1))
         if type(limit) is not int or limit < 1:
             fail("invalid_attack_allowance", "Invalid server-defined attacks-per-Action.")
     npc = target(session, identity)
-    weapon, data = session.find_weapon_in_inventory("Kılıç")
+    selected = weapon_id or session.world_state.get("equipment", {}).get("main_hand")
+    weapon, data = session.find_weapon_in_inventory(selected)
+    if any(isinstance(item, dict) and item.get("item_id") == selected for item in session.world_state["inventory"]):
+        choice = {**(choice or {}), "weapon_instance_id": selected}
+    if weapon_id == "unarmed":
+        weapon, data = "unarmed", None
     if not weapon:
         fail("no_weapon", "No configured weapon is available.")
+    result = session.resolve_attack("Saldırıyorum.", weapon, data, npc,
+                                   attack_choice=choice, origin=origin)
     if continuation:
-        with executing(session, "reaction"):
-            result = session.resolve_attack("Saldırıyorum.", weapon, data, npc)
         ongoing["remaining_attacks"] -= 1
+    elif extra:
+        if origin == "light":
+            # The Light rule grants this Bonus Action; #04 remains its owner.
+            r["bonus_action_spent"] = True
     else:
-        result = session.resolve_attack("Saldırıyorum.", weapon, data, npc)
         consume_action(session, "player", "attack")
         r["attack_action"] = {"remaining_attacks": limit - 1, "total_attacks": limit,
                               "action_resource_cost": 1}
     session._combat_end_if_decided()
     publish_event(session, "actor_attacks", "player")
     return {"kind": "attack", "continuation": continuation, "result": result,
-            "action_resource_cost": 0 if continuation else 1}
+            "action_resource_cost": 0 if continuation or extra else 1}
 
 
 def natural_command(session, message, selected_target=None):
@@ -492,6 +667,13 @@ def natural_command(session, message, selected_target=None):
         return {"steps": [{"kind": "decline_reaction", "opportunity_id": opportunity["id"]}]}
     if text in {"turumu bitiriyorum", "turumu bitir", "end turn", "sirami bitiriyorum"}:
         return {"steps": [{"kind": "end_turn"}]}
+    if re.search(r"\b(?:nick|bonus|ekstra|extra)\b", text) and (
+        session._has_explicit_attack_verb(text) or "attack" in text
+    ):
+        weapon, choice = weapon_attack.natural_choice(session, message)
+        origin = "nick" if "nick" in text else "light"
+        return {"steps": [{"kind": "attack", "target_id": selected_target or session.world_state["combat"]["target_id"],
+                           "weapon_id": weapon, "attack_choice": choice, "attack_origin": origin}]}
     if "ready" in text or "hazir bekliyorum" in text:
         found = session.resolve_npc_reference(message)
         identity = selected_target or (found["npc"]["id"] if found["status"] == "found" else None)
@@ -561,7 +743,7 @@ def _execute(session, command, action_id=None, session_id=None):
     with resolution_action_scope(action_id or str(uuid4()), session_id):
         for step in steps:
             kind = step["kind"]
-            if step.get("resource", "action") == "bonus" and kind != "dash":
+            if step.get("resource", "action") == "bonus" and kind not in {"dash", "attack"}:
                 fail("invalid_resource_type", "This action has no configured Bonus Action rule.")
             if pending_reaction(session) and kind not in {"react", "decline_reaction"}:
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
@@ -586,7 +768,11 @@ def _execute(session, command, action_id=None, session_id=None):
             elif kind == "ready":
                 results.append(prepare_ready(session, "player", step.get("trigger"), step.get("response")))
             elif kind in {"attack", "continue_attack"}:
-                results.append(attack_step(session, step.get("target_id"), kind == "continue_attack"))
+                results.append(attack_step(
+                    session, step.get("target_id"), kind == "continue_attack",
+                    weapon_id=step.get("weapon_id"), choice=step.get("attack_choice"),
+                    origin=step.get("attack_origin", "light" if step.get("resource") == "bonus" else None),
+                ))
             elif kind == "species":
                 with executing(session):
                     try:
