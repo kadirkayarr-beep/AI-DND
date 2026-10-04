@@ -575,6 +575,11 @@ def serialize_session_state(
         "locations": locations,
         "character": character,
         "inventory": copy.deepcopy(world.get("inventory", [])),
+        "spellcasting": (
+            {key: copy.deepcopy(world["spellcasting_v1"][key])
+             for key in ("cantrips", "prepared", "slots", "slot_turn")}
+            if world.get("spellcasting_v1") is not None else None
+        ),
         "npcs": _project_list(scheduled_events.visible_npcs(world), _NPC_FIELDS),
         "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),

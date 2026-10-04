@@ -1,0 +1,27 @@
+{
+  "assignmentId": "e7ec6347-3605-4e21-ba87-2ba258776e79",
+  "jobId": "spell-presentation-browser:958",
+  "kind": "testing",
+  "name": "spell-presentation-browser",
+  "screenshots": [
+    {
+      "description": "Reveal screen for SP12-SuByeo showing the read-only spellcasting panel after live UI creation.",
+      "id": "prypot"
+    },
+    {
+      "description": "Desktop adventure screen showing LeftColumn spell lists and slot count alongside the adventure UI.",
+      "id": "pfnyai"
+    },
+    {
+      "description": "At 390×844, the character drawer is scrolled to show the full cantrip list, prepared spells, level-1 slot count, and explanatory text.",
+      "id": "gkrxwf"
+    },
+    {
+      "description": "After closing the mobile drawer, the main story page is restored and the Karakter opener is focused.",
+      "id": "s4s9cc"
+    }
+  ],
+  "status": "completed",
+  "text": "Completed the requested single journey through the live AI-DND Campaign Browser with the actual eight-step character-creation UI; no source files were changed and no existing campaign was opened or modified.\n\n**Disposable data created**\n- Character: `SP12-SuByeo` (generated name format `SP12-<nanoid6>`)\n- Campaign ID: `8829977c-8f4b-422e-9e9e-37e5d8f94885`\n- Session ID: `c54baf5a-f39f-40a9-99ad-55a3ce1e3d9e`\n- Creation selections included Sorcerer, Sage, Human (with required distinct Alert bonus feat), Standard Array, valid Sage ability bonuses, required skills, four cantrips, two prepared spells, and equipment choices. The final review identified the new character as a level-1 Human Sorcerer.\n\n**Spell presentation and real API state**\n- Creation completed and the reveal rendered `panel-spellcasting`.\n- Adventure LeftColumn displayed cantrips: `Fire Bolt`, `Ray of Frost`, `Mage Hand`, `Minor Illusion`; prepared spells: `Magic Missile`, `Shield`; level-1 slots: `2`.\n- Read-only `GET /api/game/sessions/c54baf5a-f39f-40a9-99ad-55a3ce1e3d9e/state` returned HTTP 200. Its `spellcasting` projection matched exactly: `cantrips: [\"Fire Bolt\", \"Ray of Frost\", \"Mage Hand\", \"Minor Illusion\"]`, `prepared: [\"Magic Missile\", \"Shield\"]`, `slots: {\"1\": 2}`, `slot_turn: null`. The response also had `turn_index: 0` and `combat_id: null`. A second GET after the presentation checks returned the same values.\n- The rendered spell panel had zero interactive casting controls and contained no Python/API/Qwen/backend/receipt text or session-ID match. No casting or gameplay action was taken; resources remained at 2 slots and the turn index stayed 0. Because `slot_turn` was null, no turn marker or combat ID was rendered.\n\n**Mobile drawer (390×844)**\n- Opened the existing character drawer and scrolled it to show the full spell panel. All spells, slot count, and explanatory text were visible and readable.\n- No horizontal overflow: document client/scroll widths `375/375` (390-pixel viewport with scrollbar); drawer `360/360`; spell panel `330/330`.\n- Closing the drawer dismissed it and returned focus to the `Karakter` opener.\n\nNo browser errors were observed during the journey. The GET was the only API verification performed; native slot-consumption/replay was not exercised here, consistent with the request to keep this journey read-only beyond creating the disposable campaign.\n\nScreenshots: reveal panel `prypot`; desktop adventure panel `pfnyai`; full mobile drawer spell panel `gkrxwf`; closed drawer with `Karakter` trigger focused `s4s9cc`.",
+  "verdict": "success"
+}

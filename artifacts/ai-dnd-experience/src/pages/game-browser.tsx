@@ -66,6 +66,7 @@ import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
 import { SkillCheckResultCard } from '@/components/skill-check-result';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
+import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions } from '@/lib/action-suggestions';
 
@@ -292,7 +293,7 @@ function DetailsPanel({ state }: { state: GameState }) {
 }
 
 function LeftColumn({ state }: { state: GameState }) {
-  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></aside>;
+  return <aside className="state-column workspace-left" data-testid="panel-character-column"><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></aside>;
 }
 
 const JOURNAL_ENVIRONMENT_LABELS: Record<string, string> = {
@@ -716,7 +717,7 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -798,6 +799,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
                 ))}
               </div>
             </div>
+            <SpellcastingPanel spellcasting={state.spellcasting} />
             <div className="reveal-skills">
               <Kicker>Usta olunan beceriler</Kicker>
               <div className="mt-3 flex flex-wrap gap-2">

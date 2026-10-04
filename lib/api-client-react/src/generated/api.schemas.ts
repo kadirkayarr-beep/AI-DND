@@ -578,6 +578,19 @@ export interface GameCharacter {
   armor_class: number;
 }
 
+export type GameSpellcastingSlots = {[key: string]: number};
+
+/**
+ * Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.
+ */
+export interface GameSpellcasting {
+  cantrips: string[];
+  prepared: string[];
+  slots: GameSpellcastingSlots;
+  /** Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal. */
+  slot_turn: (string | number)[] | null;
+}
+
 export interface GameNpc {
   id: string;
   name: string;
@@ -922,6 +935,8 @@ export interface GameState {
   journal: CampaignJournal;
   locations: GameStateLocations;
   character: GameCharacter;
+  /** Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision. */
+  spellcasting?: GameSpellcasting | null;
   inventory: string[];
   npcs: GameNpc[];
   shops: GameShop[];

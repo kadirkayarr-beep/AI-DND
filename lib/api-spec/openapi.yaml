@@ -1450,6 +1450,11 @@ components:
             $ref: "#/components/schemas/GameLocation"
         character:
           $ref: "#/components/schemas/GameCharacter"
+        spellcasting:
+          description: Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.
+          anyOf:
+            - $ref: "#/components/schemas/GameSpellcasting"
+            - type: "null"
         inventory:
           type: array
           items:
@@ -1861,6 +1866,35 @@ components:
         - description
         - parent_location_id
         - exit_location_id
+    GameSpellcasting:
+      type: object
+      additionalProperties: false
+      description: Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.
+      properties:
+        cantrips:
+          type: array
+          items: {type: string}
+        prepared:
+          type: array
+          items: {type: string}
+        slots:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        slot_turn:
+          description: Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.
+          anyOf:
+            - type: array
+              minItems: 3
+              maxItems: 3
+              items:
+                anyOf:
+                  - type: string
+                  - type: integer
+                    minimum: 1
+            - type: "null"
+      required: [cantrips, prepared, slots, slot_turn]
     GameCharacter:
       type: object
       additionalProperties: false

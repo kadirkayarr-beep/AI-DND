@@ -97,6 +97,8 @@ export * from './gameSceneReferent';
 export * from './gameSceneReferentLifecycle';
 export * from './gameSession';
 export * from './gameShop';
+export * from './gameSpellcasting';
+export * from './gameSpellcastingSlots';
 export * from './gameState';
 export * from './gameStateLocations';
 export * from './gameStatePlayerCombatStatus';

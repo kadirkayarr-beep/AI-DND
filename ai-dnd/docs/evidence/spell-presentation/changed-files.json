@@ -1,0 +1,31 @@
+{
+  "tracked": [
+    ".agents/memory/spell-scope-boundaries.md",
+    "ai-dnd/api/serializers.py",
+    "artifacts/ai-dnd-experience/package.json",
+    "artifacts/ai-dnd-experience/src/pages/game-browser.tsx",
+    "lib/api-client-react/src/generated/api.schemas.ts",
+    "lib/api-spec/openapi.yaml",
+    "lib/api-zod/src/generated/api.ts",
+    "lib/api-zod/src/generated/types/gameState.ts",
+    "lib/api-zod/src/generated/types/index.ts"
+  ],
+  "new": [
+    "ai-dnd/api/tests/test_spell_presentation.py",
+    "ai-dnd/docs/evidence/spell-presentation/attempts.md",
+    "ai-dnd/docs/evidence/spell-presentation/browser.json",
+    "ai-dnd/docs/evidence/spell-presentation/production-guard.json",
+    "ai-dnd/docs/evidence/spell-presentation/start.json",
+    "ai-dnd/docs/evidence/suite-runs/20261004T162836Z-d6e4806af47d463da1ffc20a227cdcb2/output.log",
+    "ai-dnd/docs/evidence/suite-runs/20261004T162836Z-d6e4806af47d463da1ffc20a227cdcb2/run.json",
+    "ai-dnd/docs/evidence/suite-runs/20261004T163056Z-475a7d7a99cc40169dfc4622dd4389df/output.log",
+    "ai-dnd/docs/evidence/suite-runs/20261004T163056Z-475a7d7a99cc40169dfc4622dd4389df/run.json",
+    "ai-dnd/docs/spell-presentation-projection.md",
+    "artifacts/ai-dnd-experience/src/components/spellcasting-panel.tsx",
+    "artifacts/ai-dnd-experience/tests/spellcasting-panel.test.mjs",
+    "lib/api-zod/src/generated/types/gameSpellcasting.ts",
+    "lib/api-zod/src/generated/types/gameSpellcastingSlots.ts"
+  ],
+  "head": "84aa3c3911e9b3186b0490cd5eac60cb5c1d5ba1",
+  "diff_check": "passed"
+}

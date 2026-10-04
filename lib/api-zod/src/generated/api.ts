@@ -137,6 +137,12 @@ export const createGameSessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createGameSessionResponseStateCharacterOriginMax = 240;
 
+export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const createGameSessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const createGameSessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createGameSessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -396,6 +402,12 @@ export const CreateGameSessionResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createGameSessionResponseStateSpellcastingOneSlotTurnOneMin).max(createGameSessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -645,6 +657,12 @@ export const getGameSessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnC
 export const getGameSessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getGameSessionStateResponseCharacterOriginMax = 240;
+
+export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
+
+
+export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
+export const getGameSessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
 
 export const getGameSessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -903,6 +921,12 @@ export const GetGameSessionStateResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getGameSessionStateResponseSpellcastingOneSlotTurnOneMin).max(getGameSessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -1159,6 +1183,12 @@ export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOne
 export const resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterOriginMax = 240;
+
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
 export const resolveSpeciesTraitActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -1422,6 +1452,12 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -1686,6 +1722,12 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin = 0
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax = 240;
 
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resolveSpeciesTraitActionCompatResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -1948,6 +1990,12 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -2252,6 +2300,12 @@ export const playGameTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnCou
 export const playGameTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playGameTurnResponseStateCharacterOriginMax = 240;
+
+export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const playGameTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
 export const playGameTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -2648,6 +2702,12 @@ export const PlayGameTurnResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playGameTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playGameTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -3302,6 +3362,12 @@ export const acceptGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptGameQuestResponseStateCharacterOriginMax = 240;
 
+export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const acceptGameQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -3587,6 +3653,12 @@ export const AcceptGameQuestResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -3863,6 +3935,12 @@ export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurn
 export const cancelGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const cancelGameQuestResponseStateCharacterOriginMax = 240;
+
+export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
 export const cancelGameQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -4149,6 +4227,12 @@ export const CancelGameQuestResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelGameQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -4434,6 +4518,12 @@ export const resolveAmbientEventActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
 
+export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resolveAmbientEventActionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -4700,6 +4790,12 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -5105,6 +5201,12 @@ export const createCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createCampaignResponseStateCharacterOriginMax = 240;
 
+export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const createCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const createCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const createCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -5423,6 +5525,12 @@ export const CreateCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -5879,6 +5987,12 @@ export const getCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getCampaignResponseStateCharacterOriginMax = 240;
 
+export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const getCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const getCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const getCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -6207,6 +6321,12 @@ export const GetCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -6650,6 +6770,12 @@ export const resumeCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const resumeCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -6968,6 +7094,12 @@ export const ResumeCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -7513,6 +7645,12 @@ export const createLegacySessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacySessionResponseStateCharacterOriginMax = 240;
 
+export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const createLegacySessionResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacySessionResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -7772,6 +7910,12 @@ export const CreateLegacySessionResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacySessionResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -8022,6 +8166,12 @@ export const getLegacySessionStateResponseCharacterSpeciesTraitStateOnePlayerTur
 export const getLegacySessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getLegacySessionStateResponseCharacterOriginMax = 240;
+
+export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
+
+
+export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin = 3;
+export const getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax = 3;
 
 export const getLegacySessionStateResponseCombatParticipantRecordsItemIdMax = 128;
 
@@ -8280,6 +8430,12 @@ export const GetLegacySessionStateResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMin).max(getLegacySessionStateResponseSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -8579,6 +8735,12 @@ export const playLegacyTurnResponseStateCharacterSpeciesTraitStateOnePlayerTurnC
 export const playLegacyTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playLegacyTurnResponseStateCharacterOriginMax = 240;
+
+export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax = 3;
 
 export const playLegacyTurnResponseStateCombatParticipantRecordsItemIdMax = 128;
 
@@ -8975,6 +9137,12 @@ export const PlayLegacyTurnResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMin).max(playLegacyTurnResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -9708,6 +9876,12 @@ export const createLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const createLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -10026,6 +10200,12 @@ export const CreateLegacyCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(createLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -10470,6 +10650,12 @@ export const getLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const getLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -10798,6 +10984,12 @@ export const GetLegacyCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(getLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),
@@ -11242,6 +11434,12 @@ export const resumeLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemIdMax = 128;
 
 export const resumeLegacyCampaignResponseStateCombatParticipantRecordsItemNameMax = 120;
@@ -11560,6 +11758,12 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "current_hp": zod.number().int(),
   "armor_class": zod.number().int()
 }),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMin).max(resumeLegacyCampaignResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
   "inventory": zod.array(zod.string()),
   "npcs": zod.array(zod.object({
   "id": zod.string(),

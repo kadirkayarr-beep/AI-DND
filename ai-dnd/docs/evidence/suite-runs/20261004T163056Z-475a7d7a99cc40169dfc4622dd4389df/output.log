@@ -1,0 +1,84 @@
+test_get_turn_replay_and_resume_use_actual_resources (api.tests.test_spell_presentation.SpellProjectionApiTests.test_get_turn_replay_and_resume_use_actual_resources) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_missing_state_is_null_and_never_inferred_from_character (api.tests.test_spell_presentation.SpellProjectionTests.test_missing_state_is_null_and_never_inferred_from_character) ... ok
+test_projection_copies_exact_values_and_does_not_alias_owner (api.tests.test_spell_presentation.SpellProjectionTests.test_projection_copies_exact_values_and_does_not_alias_owner) ... ok
+test_repeated_projection_does_not_consume_slots_rng_or_time (api.tests.test_spell_presentation.SpellProjectionTests.test_repeated_projection_does_not_consume_slots_rng_or_time) ... ok
+test_wizard_spellbook_is_not_projected_as_preparation (api.tests.test_spell_presentation.SpellProjectionTests.test_wizard_spellbook_is_not_projected_as_preparation) ... ok
+test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist (api.tests.test_spell_scope.SpellApiTests.test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=CombatRequestError)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=CombatRequestError)
+ok
+test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_cantrip_scaling_at_source_thresholds (api.tests.test_spell_scope.SpellEngineTests.test_cantrip_scaling_at_source_thresholds) ... ok
+test_creation_records_only_selected_access (api.tests.test_spell_scope.SpellEngineTests.test_creation_records_only_selected_access) ... ok
+test_damage_mitigation_and_policy_a (api.tests.test_spell_scope.SpellEngineTests.test_damage_mitigation_and_policy_a) ... ok
+test_fire_bolt_hit_miss_critical_modifier_and_no_slot (api.tests.test_spell_scope.SpellEngineTests.test_fire_bolt_hit_miss_critical_modifier_and_no_slot) ... ok
+test_healing_uses_existing_owner_and_hp_cap (api.tests.test_spell_scope.SpellEngineTests.test_healing_uses_existing_owner_and_hp_cap) ... ok
+test_magic_missile_auto_hit_and_single_damage_handoff (api.tests.test_spell_scope.SpellEngineTests.test_magic_missile_auto_hit_and_single_damage_handoff) ... ok
+test_no_target_invention_or_unsupported_mode_from_prose (api.tests.test_spell_scope.SpellEngineTests.test_no_target_invention_or_unsupported_mode_from_prose) ... ok
+test_one_slot_per_turn_even_with_additional_magic_action (api.tests.test_spell_scope.SpellEngineTests.test_one_slot_per_turn_even_with_additional_magic_action) ... ok
+test_rejections_are_atomic (api.tests.test_spell_scope.SpellEngineTests.test_rejections_are_atomic) ... ok
+test_rest_slot_recovery_and_invalid_saved_state (api.tests.test_spell_scope.SpellEngineTests.test_rest_slot_recovery_and_invalid_saved_state) ... ok
+test_sacred_flame_save_and_cover_exception (api.tests.test_spell_scope.SpellEngineTests.test_sacred_flame_save_and_cover_exception) ... ok
+test_zero_hp_and_dead_self_cannot_cast_or_resurrect (api.tests.test_spell_scope.SpellEngineTests.test_zero_hp_and_dead_self_cannot_cast_or_resurrect) ... ok
+test_zero_hp_npc_damage_and_deferred_defenses (api.tests.test_spell_scope.SpellEngineTests.test_zero_hp_npc_damage_and_deferred_defenses) ... ok
+test_concurrent_different_actions_serialize_without_lost_time (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_concurrent_different_actions_serialize_without_lost_time) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_concurrent_duplicate_spell_executes_once_and_replays (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_concurrent_duplicate_spell_executes_once_and_replays) ... Executing <Task finished name='Task-25' coro=<CampaignApiTests.asyncSetUp() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_campaign_api.py:44> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.100 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect) ... ok
+test_event_action_id_cannot_be_reused_for_other_event_or_turn (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_event_action_id_cannot_be_reused_for_other_event_or_turn) ... ok
+test_independently_loaded_stale_save_cannot_overwrite_newer_truth (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_independently_loaded_stale_save_cannot_overwrite_newer_truth) ... ok
+test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_legacy_v3_upgrade_preserves_payload_receipt_and_rng (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_legacy_v3_upgrade_preserves_payload_receipt_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_structured_conflict_response_loss_reload_and_campaign_scoped_ids (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_structured_conflict_response_loss_reload_and_campaign_scoped_ids) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_stable_resume_preserves_spent_spell_action_and_recovery_episode (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode) ... ok
+test_long_rest_reaches_spell_resource_hook_and_authoritative_clock (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_long_rest_reaches_spell_resource_hook_and_authoritative_clock) ... ok
+test_multiattack_stops_after_first_component_kills_npc (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_multiattack_stops_after_first_component_kills_npc) ... ok
+test_native_monster_damage_keeps_player_slot_and_schedules_death_save (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_native_monster_damage_keeps_player_slot_and_schedules_death_save) ... ok
+test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) ... ok
+test_spell_lethal_damage_preserves_surviving_opponent_and_cursor (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_spell_lethal_damage_preserves_surviving_opponent_and_cursor) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 2.814s
+
+OK

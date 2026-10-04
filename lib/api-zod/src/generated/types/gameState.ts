@@ -16,6 +16,7 @@ import type { GameJourney } from './gameJourney';
 import type { GameNpc } from './gameNpc';
 import type { GameScene } from './gameScene';
 import type { GameShop } from './gameShop';
+import type { GameSpellcasting } from './gameSpellcasting';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
@@ -38,6 +39,8 @@ export interface GameState {
   journal: CampaignJournal;
   locations: GameStateLocations;
   character: GameCharacter;
+  /** Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision. */
+  spellcasting?: GameSpellcasting | null;
   inventory: string[];
   npcs: GameNpc[];
   shops: GameShop[];

@@ -1,0 +1,27 @@
+{
+  "head": "84aa3c3911e9b3186b0490cd5eac60cb5c1d5ba1",
+  "python_before": "5614d6deb58b13c70ac37ee25570cf8c4ab54e685bf1462c6725aca1501dc6ae",
+  "python_after": "ece6c8ccb6c804a1c130310627fa5b06ff78ec2b293a5ed48ecb8dfce2e569d5",
+  "python_changes": {
+    "ai-dnd/api/serializers.py": {
+      "before": "367ae166e91d8c106785c4485b6227e34bb55ecca92d5d3c740b357b86d84c20",
+      "after": "5cb9cdf297d4cbedcb9e8b40dad2b3da5f84b465e2541392bafb86b5beaaae18"
+    }
+  },
+  "frontend_changes": [
+    "artifacts/ai-dnd-experience/src/components/spellcasting-panel.tsx",
+    "artifacts/ai-dnd-experience/src/pages/game-browser.tsx",
+    "artifacts/ai-dnd-experience/tests/spellcasting-panel.test.mjs"
+  ],
+  "git_diff_stat": " ai-dnd/api/serializers.py                          |   5 +\n artifacts/ai-dnd-experience/package.json           |   2 +-\n .../ai-dnd-experience/src/pages/game-browser.tsx   |   6 +-\n lib/api-client-react/src/generated/api.schemas.ts  |  15 ++\n lib/api-spec/openapi.yaml                          |  34 ++++\n lib/api-zod/src/generated/api.ts                   | 204 +++++++++++++++++++++\n lib/api-zod/src/generated/types/gameState.ts       |   3 +\n lib/api-zod/src/generated/types/index.ts           |   2 +\n 8 files changed, 268 insertions(+), 3 deletions(-)\n",
+  "changed_tracked_files": [
+    "ai-dnd/api/serializers.py",
+    "artifacts/ai-dnd-experience/package.json",
+    "artifacts/ai-dnd-experience/src/pages/game-browser.tsx",
+    "lib/api-client-react/src/generated/api.schemas.ts",
+    "lib/api-spec/openapi.yaml",
+    "lib/api-zod/src/generated/api.ts",
+    "lib/api-zod/src/generated/types/gameState.ts",
+    "lib/api-zod/src/generated/types/index.ts"
+  ]
+}

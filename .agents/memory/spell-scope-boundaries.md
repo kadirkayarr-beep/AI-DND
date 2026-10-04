@@ -25,3 +25,12 @@ inventing missing actor architecture; an unconscious player cannot self-cast.
 
 **How to apply:** Report the exact reachable recipient mode, retaining engine
 healing authority without claiming an external caster is production-connected.
+
+Listed spell access/preparation is not permission for a current cast.
+
+**Why:** Creation can record spells whose resolution modes are deferred, and
+current legality also depends on authoritative targets, resources and turn state.
+
+**How to apply:** Present the supplied lists and remaining resources read-only.
+Do not turn a listed spell into an enabled cast control based only on its presence,
+or fill an empty prepared list from a spellbook.

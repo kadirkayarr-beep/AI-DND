@@ -1,0 +1,272 @@
+#12 FOLLOW-UP — SPELL PRESENTATION PROJECTION GAP
+BOUNDED READ-ONLY API PROJECTION FIX
+
+The previous #12 UI Presentation Rules audit correctly stopped with:
+
+PARTIAL — FOLLOW-UP REQUIRED
+
+Do NOT restart #12 from scratch.
+
+Do NOT redesign the frontend.
+
+Do NOT implement new spell mechanics.
+
+Do NOT modify spell resolution.
+
+Do NOT modify spell preparation rules.
+
+Do NOT modify spell resources.
+
+Do NOT create frontend-owned spell state.
+
+The audit found:
+
+Python already owns the authoritative spellcasting state in:
+
+world_state["spellcasting_v1"]
+
+including:
+
+- Cantrips
+- Prepared spells
+- Remaining slots
+- Slot-turn state
+
+However, the public:
+
+- GameState
+- GameCharacter
+
+projections currently omit the required spell information.
+
+This prevents #12 completion because the UI cannot honestly present actual
+spell availability and remaining resources.
+
+============================================================
+ALLOWED SCOPE
+============================================================
+
+Make the SMALLEST possible read-only public API projection change so that
+the existing authoritative spellcasting state becomes available to the
+frontend.
+
+Required architecture:
+
+authoritative Python spell state
+        ↓
+existing public state projection
+        ↓
+frontend presentation
+
+Do NOT create a second spell state.
+
+Do NOT calculate spell state in React/TypeScript.
+
+Do NOT infer spell state from:
+
+- class
+- level
+- creation selections
+- character metadata
+
+Do NOT locally decrement spell slots.
+
+Do NOT reconstruct preparation state in the frontend.
+
+============================================================
+FIRST: INSPECT
+============================================================
+
+Before editing:
+
+1. Identify the exact owner of:
+
+   world_state["spellcasting_v1"]
+
+2. Identify the exact current GameState projection.
+
+3. Identify the exact current GameCharacter projection.
+
+4. Identify where frontend consumes character/state data.
+
+5. Determine the smallest compatible place to expose the already-existing
+   authoritative values.
+
+6. Check whether an existing public type/schema already has a natural
+   spellcasting field.
+
+Do not create duplicate representations if one already exists.
+
+============================================================
+COMPATIBILITY
+============================================================
+
+Preserve existing API consumers.
+
+Prefer additive, backwards-compatible projection fields.
+
+Do not rename unrelated fields.
+
+Do not change existing spell behavior.
+
+Do not change persistence schema unless absolutely required.
+
+The goal is exposure of already-existing authoritative state, not creation
+of new state.
+
+============================================================
+FRONTEND
+============================================================
+
+Only after the projection is available may you make the minimum #12 UI
+changes required to present:
+
+- available cantrips
+- prepared spells
+- remaining spell slots
+- relevant slot-turn state
+
+Use the authoritative values exactly as supplied.
+
+Do NOT add client-side calculations that can diverge from Python.
+
+Do NOT add optimistic spell resource updates.
+
+Do NOT make the UI decide whether a spell is legal.
+
+============================================================
+AUTHORITY CHECK
+============================================================
+
+After implementation prove:
+
+Python remains the sole authority for:
+
+- spell availability
+- preparation
+- spell slots
+- resource consumption
+- spell legality
+- spell resolution
+
+Frontend only displays those values.
+
+============================================================
+GUARDS
+============================================================
+
+Do NOT modify:
+
+- Campaign Time
+- Combat Lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Monster Combat
+- Death System
+- spell resolution mechanics
+- persistence/idempotency
+- RNG
+- Qwen authority
+- lore authority
+
+Do NOT begin #13.
+
+Do NOT perform unrelated refactoring.
+
+Do NOT reset existing work.
+
+============================================================
+VERIFICATION
+============================================================
+
+After the bounded change:
+
+1. Run focused API/state projection tests.
+
+2. Run relevant frontend tests.
+
+3. Run frontend typecheck.
+
+4. Run frontend build.
+
+5. Perform bounded browser verification for:
+
+   - character creation/reveal
+   - adventure screen
+   - spell presentation
+   - remaining spell slots
+   - prepared spells
+   - responsive presentation
+
+6. Verify no frontend-owned spell state exists.
+
+7. Verify no gameplay Python source outside the bounded projection
+   requirement changed.
+
+8. Inspect git diff carefully.
+
+Do not claim tests passed unless they actually ran.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return:
+
+## A) CHECKOUT
+- path
+- branch
+- full HEAD
+- starting status
+
+## B) ROOT CAUSE
+- exact authoritative spell state owner
+- exact missing projection
+- exact reason frontend could not safely present it
+
+## C) CHANGES
+- exact files changed
+- exact projection fields added
+- exact UI changes
+- no unrelated changes
+
+## D) AUTHORITY
+Confirm:
+
+Python owns spell reality.
+Frontend only presents spell reality.
+
+## E) TESTS
+Exact commands and results.
+
+## F) TYPECHECK / BUILD
+Exact results.
+
+## G) BROWSER
+Exact flows checked.
+
+## H) PRODUCTION DIFF
+Confirm no unrelated gameplay mechanics changed.
+
+## I) #12 STATUS
+
+Return exactly one:
+
+COMPLETE
+
+or
+
+PARTIAL — FOLLOW-UP REQUIRED
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+STOP.
+
+Do not commit.
+Do not push.
+Do not merge.
+Do not rebase.
+Do not reset.
