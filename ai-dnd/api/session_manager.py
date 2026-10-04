@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 import uuid
 import copy
+import hashlib
+import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -389,6 +391,12 @@ class SessionManager:
         self._attach_death_checkpoint_hooks(record)
         with record.turn_lock:
             stored = store.get_campaign(campaign_id)
+            if getattr(record.game_session, "_campaign_persistence_version", None) != (
+                campaign_id, stored.metadata["revision"]
+            ):
+                # Explicit resume replaces a stale cache with accepted durable truth.
+                record.journal = restore_stored_campaign(record.game_session, stored)
+                record.turn_action_receipts.clear()
             needs_migration = (
                 stored.payload.get("engine_save", {}).get("version")
                 != game.SAVE_FORMAT_VERSION
@@ -456,7 +464,9 @@ class SessionManager:
                 lore_authority=record.lore_authority,
             )
 
-    def save_campaign_locked(self, record: ManagedSession) -> dict[str, Any]:
+    def save_campaign_locked(
+        self, record: ManagedSession, turn_action_receipt: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Persist a campaign when the caller already holds its turn lock."""
         if record.campaign_id is None:
             raise CampaignNotActiveError("Campaign has no active session.")
@@ -470,6 +480,7 @@ class SessionManager:
             journal=record.journal,
             narrative_memory=record.narrative_memory,
             lore_authority=record.lore_authority,
+            turn_action_receipt=turn_action_receipt,
         )
 
     def autosave_turn(
@@ -525,12 +536,41 @@ class SessionManager:
     ) -> dict[str, Any] | None:
         """Look up an action receipt inside its session or campaign scope."""
         if record.campaign_id is not None:
-            return self._require_campaign_store().get_turn_action(
+            receipt = self._require_campaign_store().get_turn_action(
                 record.campaign_id,
                 action_id,
             )
+            if receipt is not None:
+                return receipt
+            # Pre-hardening event outcomes stored their structured identity in
+            # the canonical journal, not the SQL receipt table. Reserve those IDs
+            # without fabricating a historical response or historical prose.
+            for event in reversed(record.journal.get("notable_events", [])):
+                prior = event.get("event_result")
+                if not isinstance(prior, dict) or prior.get("action_id") != action_id:
+                    continue
+                if event.get("event_type") != "ambient_event_outcome" or not all(
+                    isinstance(prior.get(key), str) for key in ("event_instance_id", "action")
+                ):
+                    raise CampaignStorageError("Legacy action identity cannot be verified safely.")
+                request_hash = hashlib.sha256(json.dumps(
+                    {"command": "ambient_event", "event_instance_id": prior["event_instance_id"],
+                     "action": prior["action"]},
+                    sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+                ).encode("utf-8")).hexdigest()
+                return {"request_hash": request_hash, "legacy_ambient_result": {
+                    "transition_id": prior.get("transition_id"),
+                    "canonical_event_id": event.get("event_id"),
+                }}
+            return None
         receipt = record.turn_action_receipts.get(action_id)
         return copy.deepcopy(receipt) if receipt is not None else None
+
+    def assert_current(self, record: ManagedSession) -> None:
+        if record.revoked:
+            raise CampaignNotFoundError("Campaign session has been revoked.")
+        if record.campaign_id is not None:
+            self._require_campaign_store().assert_current(record.campaign_id, record.game_session)
 
     @staticmethod
     def _remember_combat_entry(

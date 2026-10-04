@@ -55,6 +55,7 @@ from api.persistence.campaign_models import (
     CampaignNotActiveError,
     CampaignNotFoundError,
     CampaignStorageError,
+    CampaignStaleError,
 )
 from api.persistence.campaign_store import CampaignStore
 from api.dnd_2024_rules import get_character_creation_catalog
@@ -398,6 +399,10 @@ def create_app(
             ) from None
 
     def campaign_http_exception(error: CampaignError) -> HTTPException:
+        if isinstance(error, CampaignStaleError):
+            return HTTPException(status_code=409, detail={
+                "code": "campaign_stale", "message": str(error),
+            })
         if isinstance(error, CampaignNotFoundError):
             return HTTPException(
                 status_code=404,
@@ -437,6 +442,12 @@ def create_app(
                 "message": "Macera işlemi tamamlanamadı.",
             },
         )
+
+    def require_current(record: Any) -> None:
+        try:
+            manager.assert_current(record)
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
 
     @application.get("/api/game/health", response_model=HealthResponse)
     @application.get("/api/health", response_model=HealthResponse)
@@ -627,6 +638,7 @@ def create_app(
         record = get_record(session_id)
         with record.turn_lock:
             record = get_record(session_id)
+            require_current(record)
             state = serialize_session_state(
                 record.game_session,
                 record.journal,
@@ -681,6 +693,7 @@ def create_app(
                 replay["session_id"] = session_id
                 replay["action_id"] = action_id
                 return replay
+            require_current(record)
             if isinstance(session, game.GameSession):
                 try:
                     combat_lifecycle.validate_request(
@@ -1203,6 +1216,7 @@ def create_app(
         record = get_record(session_id)
         with record.turn_lock:
             record = get_record(session_id)
+            require_current(record)
             session = record.game_session
             snapshot = _capture_session(session)
             try:
@@ -1300,6 +1314,7 @@ def create_app(
                 replay = copy.deepcopy(previous["response"])
                 replay["session_id"] = session_id
                 return replay
+            require_current(record)
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
             journal_snapshot = copy.deepcopy(record.journal)
@@ -1386,6 +1401,11 @@ def create_app(
             session = record.game_session
             event_instance_key = str(event_instance_id)
             action_id = str(request.action_id)
+            request_hash = hashlib.sha256(json.dumps(
+                {"command": "ambient_event", "event_instance_id": event_instance_key,
+                 "action": request.action},
+                sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+            ).encode("utf-8")).hexdigest()
 
             def response_for(
                 status: str,
@@ -1407,8 +1427,27 @@ def create_app(
                 )
                 return redact_sensitive_values(response.model_dump())
 
+            try:
+                previous = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
+            if previous is not None:
+                if previous["request_hash"] != request_hash:
+                    return response_for("REJECTED", "action_id_conflict")
+                prior = previous.get("legacy_ambient_result") or previous.get("response", {}).get("legacy_ambient_result")
+                if prior is None:
+                    prior = previous["response"]["ambient_event_response"]["result"]
+                # Preserve the locked event owner's ALREADY_APPLIED projection.
+                return response_for("ALREADY_APPLIED", "event_already_resolved",
+                                    prior.get("transition_id"), prior.get("canonical_event_id"))
+            require_current(record)
             for event in reversed(record.journal.get("notable_events", [])):
                 prior = event.get("event_result")
+                if isinstance(prior, dict) and prior.get("action_id") == action_id and (
+                    prior.get("event_instance_id") != event_instance_key
+                    or prior.get("action") != request.action
+                ):
+                    return response_for("REJECTED", "action_id_conflict")
                 if (
                     event.get("event_type") != "ambient_event_outcome"
                     or not isinstance(prior, dict)
@@ -1503,8 +1542,12 @@ def create_app(
                         canonical_event_id=canonical_event["event_id"],
                     ),
                 )
-                manager.save_campaign_locked(record)
-                return redact_sensitive_values(response.model_dump())
+                response_payload = redact_sensitive_values(response.model_dump())
+                manager.save_campaign_locked(record, turn_action_receipt={
+                    "action_id": action_id, "request_hash": request_hash,
+                    "response": {"action_id": action_id, "ambient_event_response": response_payload},
+                })
+                return response_payload
             except Exception as error:
                 try:
                     _restore_session(session, snapshot)

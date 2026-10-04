@@ -1,0 +1,62 @@
+{
+  "utc": "2026-10-04T13:45:21.895405+00:00",
+  "head": "05bf0f1155db6848ab5a364af22b0e1f364deb8a",
+  "starting_source_sha256": "d3a179dbda0dd52dfed4ac45b18b6f06081e857535b2a9593873936b16e9fd4c",
+  "ending_source_sha256": "5614d6deb58b13c70ac37ee25570cf8c4ab54e685bf1462c6725aca1501dc6ae",
+  "production_files_changed": [
+    "ai-dnd/api/main.py",
+    "ai-dnd/api/persistence/campaign_models.py",
+    "ai-dnd/api/persistence/campaign_serializer.py",
+    "ai-dnd/api/persistence/campaign_store.py",
+    "ai-dnd/api/session_manager.py"
+  ],
+  "per_file_comparison": {
+    "ai-dnd/api/main.py": {
+      "before": "033f9afc9a8fb7cbc3899a2310b4b2c652100d8802d8cde5e5bf8a17e98ecdd5",
+      "after": "17b9642c93928752299b17b021b4f8a2c7c6eef9ad5b55b51eef30f3a7167907"
+    },
+    "ai-dnd/api/persistence/campaign_models.py": {
+      "before": "8209bca754195a45ee6c3d25f9a3e176b115c5f253bf5a52dab1f12a491d0086",
+      "after": "c4a42015a81edb810c8ebefacc36d97505333559c82435057a3454f798a98bea"
+    },
+    "ai-dnd/api/persistence/campaign_serializer.py": {
+      "before": "e9e723e9a845a2e214bf6b25112c3acb8f4f45b5a9ac57894b5f5d01f389a873",
+      "after": "c3be8b83e4fffb5b4d8edc2f6b2e9ec4fe17bd2d9ca3ee18b9d5722a0770a8ab"
+    },
+    "ai-dnd/api/persistence/campaign_store.py": {
+      "before": "40195799cab39f3feb0b1f8e2c35b8c19c18283c74d3e3a7751d9b2708bf38ae",
+      "after": "7a1f334544beb54ea7f18e6408c69424801658f1f1620d8ef22f5df8c33edc11"
+    },
+    "ai-dnd/api/session_manager.py": {
+      "before": "b4d4ba19e228b9cc16036905a480b379bee8a8d43088375962c582e23f09107f",
+      "after": "baf070ef1be46197bba7ffdc5b0a8831378d83c5c4dbb4f33825b2865e33b733"
+    }
+  },
+  "unchanged_guarded_files": 126,
+  "prior_600_missing_ids": [],
+  "focused": {
+    "tests_run": 31,
+    "per_test_outcomes": {
+      "pass": 31
+    },
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "combined": {
+    "tests_run": 643,
+    "per_test_outcomes": {
+      "pass": 643
+    },
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "suite_fingerprint": "90ff909caa6775651ac8a9d92f8133a936fe949c796c0f95fed3113bc2587726",
+  "source_changed_during_run": false,
+  "ending_status": " M ai-dnd/api/main.py\n M ai-dnd/api/persistence/campaign_models.py\n M ai-dnd/api/persistence/campaign_serializer.py\n M ai-dnd/api/persistence/campaign_store.py\n M ai-dnd/api/session_manager.py\n M ai-dnd/api/tests/test_campaign_persistence.py\n?? ai-dnd/api/tests/test_persistence_idempotency.py\n?? ai-dnd/docs/evidence/persistence-idempotency/\n?? ai-dnd/docs/evidence/suite-runs/20261004T132523Z-b66bef1e60824ce38840c9b96092a4f8/\n?? ai-dnd/docs/evidence/suite-runs/20261004T132814Z-556499a59e4543c882ed7b1ee2d4c0f7/\n?? ai-dnd/docs/evidence/suite-runs/20261004T133222Z-c7f07c4b823e449999650c356d4a98cc/\n?? ai-dnd/docs/evidence/suite-runs/20261004T133354Z-1ef28f1062b644fe94af6197f1e9c8c7/\n?? ai-dnd/docs/evidence/suite-runs/20261004T133608Z-b8df02af2f6e4864922b5c9ef7bd3814/\n?? ai-dnd/docs/evidence/suite-runs/20261004T134310Z-1a37be2d55934349ac793a6394605563/\n?? ai-dnd/docs/evidence/suite-runs/20261004T134325Z-353a94756065413c81b5a95647300ccb/\n?? ai-dnd/docs/persistence-idempotency-rules.md\n?? attached_assets/Pasted--11-PERSISTENCE-IDEMPOTENCY-RULES-SINGLE-PASS-AUDIT-BOU_1791120104123.txt\n"
+}

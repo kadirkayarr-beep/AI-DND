@@ -21,6 +21,7 @@ from api.persistence.campaign_models import (
     CampaignIdConflictError,
     CampaignNotFoundError,
     CampaignStorageError,
+    CampaignStaleError,
     CampaignValidationError,
     StoredCampaign,
 )
@@ -35,7 +36,7 @@ from api.persistence.campaign_validation import (
 )
 
 
-_DATABASE_SCHEMA_VERSION = 3
+_DATABASE_SCHEMA_VERSION = 4
 MAX_COMBAT_HISTORY_ENTRIES = 50
 
 
@@ -181,10 +182,43 @@ class CampaignStore:
                     )
                     connection.execute("PRAGMA user_version = 3")
                     connection.commit()
+                    current_version = 3
+                except Exception:
+                    connection.rollback()
+                    raise
+            if current_version == 3:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    # A different opener may have migrated while we waited for the lock.
+                    if int(connection.execute("PRAGMA user_version").fetchone()[0]) == 3:
+                        columns = {row["name"] for row in connection.execute("PRAGMA table_info(campaigns)")}
+                        if "revision" not in columns:
+                            connection.execute(
+                                "ALTER TABLE campaigns ADD COLUMN revision INTEGER NOT NULL DEFAULT 0"
+                            )
+                        connection.execute("PRAGMA user_version = 4")
+                    connection.commit()
                 except Exception:
                     connection.rollback()
                     raise
             self._validate_schema(connection)
+            # Reserve identities that old event APIs kept in canonical journals.
+            # Do this before a later bounded journal trim can discard provenance.
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                for row in connection.execute("SELECT campaign_id, payload_json FROM campaigns").fetchall():
+                    try:
+                        payload = json.loads(row["payload_json"])
+                    except (json.JSONDecodeError, TypeError):
+                        # A corrupt campaign must not prevent unrelated ones opening.
+                        continue
+                    journal = payload.get("journal", {}) if isinstance(payload, dict) else {}
+                    if isinstance(journal, dict) and isinstance(journal.get("notable_events", []), list):
+                        self._reserve_legacy_events(connection, str(row["campaign_id"]), journal)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
         except CampaignStorageError:
             raise
         except (sqlite3.Error, TypeError, ValueError):
@@ -198,7 +232,7 @@ class CampaignStore:
             "campaign_id", "name", "created_at", "updated_at", "last_played_at",
             "campaign_version", "save_version", "engine_hash", "character_name",
             "character_race", "character_class", "character_level", "location",
-            "payload_json",
+            "payload_json", "revision",
         }
         columns = {
             str(row["name"])
@@ -231,6 +265,41 @@ class CampaignStore:
             "campaign_id", "action_id", "request_hash", "response_json", "created_at"
         }.issubset(turn_action_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
+
+    @staticmethod
+    def _reserve_legacy_events(connection: sqlite3.Connection, campaign_id: str,
+                               journal: dict[str, Any]) -> None:
+        candidates = {}
+        for event in journal.get("notable_events", []):
+            if not isinstance(event, dict):
+                continue
+            prior = event.get("event_result")
+            if event.get("event_type") != "ambient_event_outcome" or not isinstance(prior, dict):
+                continue
+            action_id = prior.get("action_id")
+            if not _is_uuid4(action_id):
+                continue
+            if not all(isinstance(prior.get(k), str) for k in ("event_instance_id", "action")):
+                request = {"unverifiable_legacy_id": action_id}
+            else:
+                request = {"command": "ambient_event", "event_instance_id": prior["event_instance_id"],
+                           "action": prior["action"]}
+            digest = hashlib.sha256(json.dumps(
+                request, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+            ).encode("utf-8")).hexdigest()
+            if action_id in candidates and candidates[action_id][0] != digest:
+                digest = hashlib.sha256(("ambiguous_legacy_id:" + action_id).encode()).hexdigest()
+            candidates[action_id] = (digest, {"action_id": action_id, "legacy_ambient_result": {
+                "transition_id": prior.get("transition_id"), "canonical_event_id": event.get("event_id"),
+            }})
+        for action_id, (digest, response) in candidates.items():
+            connection.execute(
+                """INSERT OR IGNORE INTO campaign_turn_actions
+                   (campaign_id, action_id, request_hash, response_json, created_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (campaign_id, action_id, digest, json.dumps(response, ensure_ascii=False,
+                                                          separators=(",", ":"), allow_nan=False), _now()),
+            )
 
     @staticmethod
     def _engine_metadata(payload: dict[str, Any]) -> dict[str, Any]:
@@ -267,12 +336,35 @@ class CampaignStore:
             "character_class": str(row["character_class"]),
             "character_level": int(row["character_level"]),
             "location": str(row["location"]),
+            "revision": int(row["revision"]),
         }
 
     @staticmethod
     def _validate_campaign_id(campaign_id: str) -> None:
         if not _is_uuid4(campaign_id):
             raise CampaignNotFoundError("Campaign not found.")
+
+    def assert_current(self, campaign_id: str, session: Any,
+                       connection: sqlite3.Connection | None = None) -> None:
+        """Check the server-owned load token, again inside the write transaction."""
+        self._validate_campaign_id(campaign_id)
+        own_connection = connection is None
+        connection = connection or self._connect()
+        try:
+            row = connection.execute(
+                "SELECT revision FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+            ).fetchone()
+            if row is None:
+                raise CampaignNotFoundError("Campaign not found.")
+            token = getattr(session, "_campaign_persistence_version", None)
+            world_id = session.world_state.get("campaign_id")
+            if token != (campaign_id, int(row["revision"])) or world_id not in (None, campaign_id):
+                raise CampaignStaleError("Campaign changed; resume it before submitting a new action.")
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign revision could not be checked safely.") from None
+        finally:
+            if own_connection:
+                connection.close()
 
     def create_campaign(
         self,
@@ -327,7 +419,9 @@ class CampaignStore:
                     "SELECT * FROM campaigns WHERE campaign_id = ?",
                     (campaign_id,),
                 ).fetchone()
-                return self._metadata(row)
+                metadata = self._metadata(row)
+            session._campaign_persistence_version = (campaign_id, metadata["revision"])
+            return metadata
         except sqlite3.IntegrityError:
             raise CampaignIdConflictError("Campaign identifier already exists.") from None
         except CampaignValidationError:
@@ -414,6 +508,7 @@ class CampaignStore:
                 ).fetchone()
                 if existing is None:
                     raise CampaignNotFoundError("Campaign not found.")
+                self.assert_current(campaign_id, session, connection)
                 if turn_action_receipt is not None:
                     prior_action = connection.execute(
                         """
@@ -432,7 +527,8 @@ class CampaignStore:
                         updated_at = ?, last_played_at = ?,
                         campaign_version = ?, save_version = ?, engine_hash = ?,
                         character_name = ?, character_race = ?, character_class = ?,
-                        character_level = ?, location = ?, payload_json = ?
+                        character_level = ?, location = ?, payload_json = ?,
+                        revision = revision + 1
                     WHERE campaign_id = ?
                     """,
                     (
@@ -534,7 +630,9 @@ class CampaignStore:
                     "SELECT * FROM campaigns WHERE campaign_id = ?",
                     (campaign_id,),
                 ).fetchone()
-                return self._metadata(row)
+                metadata = self._metadata(row)
+            session._campaign_persistence_version = (campaign_id, metadata["revision"])
+            return metadata
         except CampaignNotFoundError:
             raise
         except CampaignValidationError:
@@ -645,6 +743,8 @@ class CampaignStore:
         self._validate_campaign_id(campaign_id)
         connection = self._connect()
         try:
+            # Payload and dependent history must come from one committed snapshot.
+            connection.execute("BEGIN")
             row = connection.execute(
                 "SELECT * FROM campaigns WHERE campaign_id = ?",
                 (campaign_id,),

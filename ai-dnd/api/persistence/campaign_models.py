@@ -26,6 +26,10 @@ class CampaignStorageError(CampaignError):
     """Persistent storage could not complete an operation."""
 
 
+class CampaignStaleError(CampaignError):
+    """A runtime copy no longer owns the current committed campaign revision."""
+
+
 class CampaignValidationError(CampaignError):
     """The current session could not be serialized as a safe campaign."""
 

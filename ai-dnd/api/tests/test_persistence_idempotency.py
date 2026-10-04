@@ -1,0 +1,281 @@
+"""Persistence boundaries missing from the existing subsystem/CTM suites."""
+import copy
+import asyncio
+from contextlib import closing
+import threading
+import unittest
+from unittest.mock import patch
+from uuid import uuid4
+
+import game
+import httpx
+from api.main import create_app
+
+from api.persistence.campaign_models import CampaignError
+from api.persistence.campaign_store import CampaignStore
+from api.session_manager import SessionManager
+from api.tests import test_campaign_api as fixtures
+from api.tests import test_spell_scope as spells
+from api.tests import test_campaign_time as clocks
+
+
+class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = fixtures.CampaignApiTests.asyncSetUp
+    asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
+    create_campaign = fixtures.CampaignApiTests.create_campaign
+    install_test_ambient_event = fixtures.CampaignApiTests.install_test_ambient_event
+
+    def prepare_spell(self, a):
+        record = self.manager.get(a["session_id"])
+        s, enemy = spells.caster(record.game_session)
+        s.ensure_combat_state()
+        self.manager.save_campaign(a["campaign_id"])
+        command = {"message": "Resolve the selected spell.", "action_id": str(uuid4()),
+                   "combat_action": {"steps": [{"kind": "magic", "ability": "Magic Missile",
+                                               "target_id": enemy["id"]}]}}
+        return record, command
+
+    def snapshot(self, record):
+        return copy.deepcopy((record.game_session.serialize_game_state(),
+                              record.game_session.rng.getstate(), record.journal,
+                              record.narrative_memory, record.lore_authority.to_dict(),
+                              record.combat_history, record.turn_action_receipts,
+                              self.store.get_campaign(record.campaign_id)))
+
+    async def post(self, a, body):
+        return await self.http.post(f"/api/game/sessions/{a['session_id']}/turn", json=body)
+
+    async def simultaneous(self, a, bodies):
+        # Both real sync FastAPI worker handlers arrive before either can lock.
+        barrier = threading.Barrier(2)
+        original = self.manager.get
+
+        def rendezvous(sid):
+            record = original(sid)
+            barrier.wait(timeout=10)
+            return record
+
+        with patch.object(self.manager, "get", side_effect=rendezvous):
+            return await asyncio.wait_for(asyncio.gather(
+                *(self.post(a, body) for body in bodies)
+            ), timeout=20)
+
+    async def test_independently_loaded_stale_save_cannot_overwrite_newer_truth(self):
+        a = await self.create_campaign()
+        first = SessionManager(campaign_store=CampaignStore(self.store.path))
+        second = SessionManager(campaign_store=CampaignStore(self.store.path))
+        _, current, *_ = first.resume_campaign(a["campaign_id"])
+        _, stale, *_ = second.resume_campaign(a["campaign_id"])
+        current.game_session.character["current_hp"] -= 1
+        first.save_campaign(a["campaign_id"])
+        committed = copy.deepcopy(self.store.get_campaign(a["campaign_id"]))
+        stale.game_session.character["current_hp"] -= 2
+        with self.assertRaises(CampaignError):
+            second.save_campaign(a["campaign_id"])
+        self.assertEqual(self.store.get_campaign(a["campaign_id"]), committed)
+
+    async def test_structured_conflict_response_loss_reload_and_campaign_scoped_ids(self):
+        a, b = await self.create_campaign(), await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        other, second_command = self.prepare_spell(b)
+        isolated = self.snapshot(other)
+        first = await self.post(a, command)
+        self.assertEqual(first.status_code, 200, first.text)
+        committed = self.snapshot(record)
+        conflict = copy.deepcopy(command)
+        conflict["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
+        rejected = await self.post(a, conflict)
+        self.assertEqual(rejected.status_code, 409, rejected.text)
+        self.assertEqual(rejected.json()["detail"]["code"], "action_id_conflict")
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        # Discard the first response as if lost; reconstruct without the old object.
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        before = self.snapshot(restored)
+        with patch("spell_scope.cast", side_effect=AssertionError("replayed mechanics")):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                        base_url="http://reload") as client:
+                replay = await client.post(f"/api/game/sessions/{sid}/turn",
+                                           json=dict(reversed(list(command.items()))))
+        expected = first.json()
+        expected["session_id"] = sid
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), expected)
+        self.assertEqual(self.snapshot(restored), before)
+        self.assertIsNot(restored.game_session, record.game_session)
+        self.assertEqual(restored.game_session.rng.random(), record.game_session.rng.random())
+
+        second_command["action_id"] = command["action_id"]
+        result_b = await self.post(b, second_command)
+        self.assertEqual(result_b.status_code, 200, result_b.text)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
+        self.assertEqual(len(self.store.get_campaign(b["campaign_id"]).history), 1)
+        with self.assertRaises(CampaignError):
+            self.store.save_campaign(b["campaign_id"], record.game_session)
+
+    async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
+        a = await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        before = self.snapshot(record)
+        with closing(self.store._connect()) as db:
+            db.execute("""CREATE TRIGGER reject_receipt BEFORE INSERT ON campaign_turn_actions
+                          BEGIN SELECT RAISE(ABORT, 'injected late failure'); END""")
+        with patch("game.apply_npc_damage", wraps=game.apply_npc_damage) as damage, patch.object(
+            record.game_session.rng, "randint", wraps=record.game_session.rng.randint
+        ) as dice:
+            failed = await self.post(a, command)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(damage.call_count, 1)
+        self.assertEqual(dice.call_count, 3)
+        self.assertEqual(self.snapshot(record), before)
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        with closing(self.store._connect()) as db:
+            db.execute("DROP TRIGGER reject_receipt")
+        successful = await self.post(a, command)
+        self.assertEqual(successful.status_code, 200, successful.text)
+        committed = self.snapshot(record)
+        replay = await self.post(a, command)
+        self.assertEqual(replay.json(), successful.json())
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
+
+    async def test_concurrent_duplicate_spell_executes_once_and_replays(self):
+        a = await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        with patch("game.apply_npc_damage", wraps=game.apply_npc_damage) as damage, patch.object(
+            record.game_session.rng, "randint", wraps=record.game_session.rng.randint
+        ) as dice:
+            results = await self.simultaneous(a, [command, copy.deepcopy(command)])
+        self.assertEqual([r.status_code for r in results], [200, 200])
+        self.assertEqual(results[0].json(), results[1].json())
+        self.assertEqual(damage.call_count, 1)
+        self.assertEqual(dice.call_count, 3)
+        self.assertEqual(record.game_session.world_state["spellcasting_v1"]["slots"]["1"], 1)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
+        with closing(self.store._connect()) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM campaign_turn_actions").fetchone()[0], 1)
+
+    async def test_concurrent_different_actions_serialize_without_lost_time(self):
+        self.manager._session_factory = clocks.scene
+        a = await self.create_campaign()
+        record = self.manager.get(a["session_id"])
+        before_time = record.game_session.world_state["campaign_time"]["elapsed_seconds"]
+        before_rng = record.game_session.rng.getstate()
+        commands = [{"message": message, "action_id": str(uuid4())}
+                    for message in ("1 saat bekle.", "2 saat bekle.")]
+        results = await self.simultaneous(a, commands)
+        self.assertEqual([r.status_code for r in results], [200, 200])
+        self.assertEqual(record.game_session.world_state["campaign_time"]["elapsed_seconds"] - before_time, 10800)
+        self.assertEqual(record.game_session.rng.getstate(), before_rng)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 2)
+        committed = self.snapshot(record)
+        for command in commands:
+            self.assertEqual((await self.post(a, command)).status_code, 200)
+        self.assertEqual(self.snapshot(record), committed)
+
+    async def test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes(self):
+        self.manager._session_factory = clocks.scene
+        a = await self.create_campaign()
+        record = self.manager.get(a["session_id"])
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        _, newer, *_ = fresh.resume_campaign(a["campaign_id"])
+        newer.game_session.advance_campaign_time(600, "wait")
+        fresh.save_campaign(a["campaign_id"])
+        before = self.snapshot(record)
+        command = {"message": "1 saat bekle.", "action_id": str(uuid4())}
+        with patch("game.run_player_turn", side_effect=AssertionError("stale resolution")):
+            rejected = await self.post(a, command)
+        self.assertEqual(rejected.status_code, 409, rejected.text)
+        self.assertEqual(rejected.json()["detail"]["code"], "campaign_stale")
+        self.assertEqual(self.snapshot(record), before)
+        sid, refreshed, *_ = self.manager.resume_campaign(a["campaign_id"])
+        self.assertEqual(sid, a["session_id"])
+        self.assertEqual(refreshed.game_session.rng.getstate(), newer.game_session.rng.getstate())
+        self.assertEqual(refreshed.game_session.serialize_game_state(), newer.game_session.serialize_game_state())
+        self.assertEqual((await self.post(a, command)).status_code, 200)
+
+    async def test_legacy_v3_upgrade_preserves_payload_receipt_and_rng(self):
+        self.manager._session_factory = clocks.scene
+        a = await self.create_campaign()
+        command = {"message": "1 saat bekle.", "action_id": str(uuid4())}
+        original = await self.post(a, command)
+        self.assertEqual(original.status_code, 200, original.text)
+        with closing(self.store._connect()) as db:
+            payload = db.execute("SELECT payload_json FROM campaigns").fetchone()[0]
+            receipt = tuple(db.execute("SELECT * FROM campaign_turn_actions").fetchone())
+            db.execute("ALTER TABLE campaigns DROP COLUMN revision")
+            db.execute("PRAGMA user_version = 3")
+        upgraded = CampaignStore(self.store.path)
+        with closing(upgraded._connect()) as db:
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(db.execute("SELECT payload_json FROM campaigns").fetchone()[0], payload)
+            self.assertEqual(tuple(db.execute("SELECT * FROM campaign_turn_actions").fetchone()), receipt)
+        fresh = SessionManager(campaign_store=upgraded)
+        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        self.assertEqual(restored.game_session.rng.getstate(), self.manager.get(a["session_id"]).game_session.rng.getstate())
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://legacy") as client:
+            replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+        expected = original.json()
+        expected["session_id"] = sid
+        self.assertEqual(replay.json(), expected)
+
+    async def test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect(self):
+        a, b = await self.create_campaign(), await self.create_campaign()
+        other = SessionManager(campaign_store=CampaignStore(self.store.path))
+        sid, stale, *_ = other.resume_campaign(a["campaign_id"])
+        isolated = self.store.get_campaign(b["campaign_id"])
+        self.assertTrue(self.manager.delete_campaign(a["campaign_id"])["deleted"])
+        with self.assertRaises(LookupError):
+            other.get(sid)
+        self.assertTrue(stale.revoked)
+        with self.assertRaises(CampaignError):
+            other.save_campaign_locked(stale)
+        with self.assertRaises(CampaignError):
+            SessionManager(campaign_store=CampaignStore(self.store.path)).resume_campaign(a["campaign_id"])
+        self.assertFalse(self.manager.delete_campaign(a["campaign_id"])["deleted"])
+        self.assertEqual(self.store.get_campaign(b["campaign_id"]), isolated)
+
+    async def test_event_action_id_cannot_be_reused_for_other_event_or_turn(self):
+        a = await self.create_campaign()
+        record = self.manager.get(a["session_id"])
+        event_a = self.install_test_ambient_event(record.game_session)
+        action_id = str(uuid4())
+        path = f"/api/game/sessions/{a['session_id']}/ambient-events"
+        applied = await self.http.post(f"{path}/{event_a}/actions",
+                                       json={"action_id": action_id, "action": "interact"})
+        self.assertEqual(applied.status_code, 200, applied.text)
+        self.assertEqual(applied.json()["result"]["status"], "APPLIED")
+        # Existing public outcome remains ALREADY_APPLIED, with the same resolution.
+        replay = await self.http.post(f"{path}/{event_a}/actions",
+                                      json={"action_id": action_id, "action": "interact"})
+        self.assertEqual(replay.json()["result"]["status"], "ALREADY_APPLIED")
+        self.assertEqual(replay.json()["result"]["canonical_event_id"],
+                         applied.json()["result"]["canonical_event_id"])
+        event_b = self.install_test_ambient_event(record.game_session)
+        self.manager.save_campaign(a["campaign_id"])
+        before = self.snapshot(record)
+        conflict = await self.http.post(f"{path}/{event_b}/actions",
+                                        json={"action_id": action_id, "action": "interact"})
+        self.assertEqual(conflict.json()["result"]["reason_code"], "action_id_conflict")
+        turn = await self.post(a, {"message": "1 saat bekle.", "action_id": action_id})
+        self.assertEqual(turn.status_code, 409, turn.text)
+        self.assertEqual(self.snapshot(record), before)
+        # Simulate the pre-hardening event representation; canonical identity is
+        # still in the journal, so the ID must not become a new turn.
+        with closing(self.store._connect()) as db:
+            db.execute("DELETE FROM campaign_turn_actions WHERE action_id = ?", (action_id,))
+        CampaignStore(self.store.path)  # Startup imports known structured legacy identities.
+        record.journal["notable_events"] = []  # Simulate the existing bounded journal trim.
+        self.manager.save_campaign(a["campaign_id"])
+        legacy_before = self.snapshot(record)
+        legacy_replay = await self.http.post(f"{path}/{event_a}/actions",
+                                             json={"action_id": action_id, "action": "interact"})
+        self.assertEqual(legacy_replay.json()["result"]["status"], "ALREADY_APPLIED")
+        self.assertEqual(legacy_replay.json()["result"]["canonical_event_id"],
+                         applied.json()["result"]["canonical_event_id"])
+        self.assertEqual((await self.post(a, {"message": "1 saat bekle.", "action_id": action_id})).status_code, 409)
+        self.assertEqual(self.snapshot(record), legacy_before)

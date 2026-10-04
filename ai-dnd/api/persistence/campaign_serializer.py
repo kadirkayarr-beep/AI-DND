@@ -12,4 +12,8 @@ def restore_stored_campaign(
     session: Any,
     campaign: StoredCampaign,
 ) -> dict[str, Any]:
-    return restore_campaign_session(session, campaign.payload)
+    journal = restore_campaign_session(session, campaign.payload)
+    session._campaign_persistence_version = (
+        campaign.metadata["campaign_id"], campaign.metadata["revision"]
+    )
+    return journal

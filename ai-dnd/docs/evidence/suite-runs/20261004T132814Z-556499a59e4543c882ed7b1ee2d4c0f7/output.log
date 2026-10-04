@@ -1,0 +1,34 @@
+test_independently_loaded_stale_save_cannot_overwrite_newer_truth (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_independently_loaded_stale_save_cannot_overwrite_newer_truth) ... ok
+test_campaign_ids_are_opaque_and_campaigns_are_isolated (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_ids_are_opaque_and_campaigns_are_isolated) ... ok
+test_campaign_list_contains_only_safe_metadata (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_list_contains_only_safe_metadata) ... ok
+test_campaign_save_and_runtime_rng_survive_manager_restart (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_save_and_runtime_rng_survive_manager_restart) ... ok
+test_combat_history_is_bounded_isolated_and_not_duplicated_by_save (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_combat_history_is_bounded_isolated_and_not_duplicated_by_save) ... ok
+test_completed_combat_result_survives_resume (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_completed_combat_result_survives_resume) ... ok
+test_configured_secret_is_never_persisted (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_configured_secret_is_never_persisted) ... ok
+test_corrupt_campaign_is_rejected_without_affecting_other_campaigns (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_corrupt_campaign_is_rejected_without_affecting_other_campaigns) ... ok
+test_corrupt_combat_history_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_corrupt_combat_history_is_rejected) ... ok
+test_engine_version_mismatch_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_engine_version_mismatch_is_rejected) ... ok
+test_invalid_ids_cannot_be_used_as_paths (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_invalid_ids_cannot_be_used_as_paths) ... ok
+test_invalid_new_state_does_not_replace_the_last_good_save (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_invalid_new_state_does_not_replace_the_last_good_save) ... ok
+test_narrative_memory_survives_campaign_resume_and_manager_restart (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_narrative_memory_survives_campaign_resume_and_manager_restart) ... ok
+test_resume_updates_last_played_without_rewriting_save_timestamp (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_resume_updates_last_played_without_rewriting_save_timestamp) ... ok
+test_unsupported_campaign_version_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_unsupported_campaign_version_is_rejected) ... ok
+test_v1_database_migrates_to_empty_combat_history (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_v1_database_migrates_to_empty_combat_history) ... ERROR
+
+======================================================================
+ERROR: test_v1_database_migrates_to_empty_combat_history (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_v1_database_migrates_to_empty_combat_history)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_campaign_persistence.py", line 338, in test_v1_database_migrates_to_empty_combat_history
+    migrated_store = CampaignStore(self.database_path)
+  File "/home/runner/workspace/ai-dnd/api/persistence/campaign_store.py", line 72, in __init__
+    self._initialize()
+    ~~~~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/persistence/campaign_store.py", line 206, in _initialize
+    raise CampaignStorageError("Campaign database could not be opened safely.") from None
+api.persistence.campaign_models.CampaignStorageError: Campaign database could not be opened safely.
+
+----------------------------------------------------------------------
+Ran 16 tests in 2.018s
+
+FAILED (errors=1)

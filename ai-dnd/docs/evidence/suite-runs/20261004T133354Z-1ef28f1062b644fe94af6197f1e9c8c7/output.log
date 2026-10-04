@@ -1,0 +1,63 @@
+test_concurrent_different_actions_serialize_without_lost_time (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_concurrent_different_actions_serialize_without_lost_time) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_concurrent_duplicate_spell_executes_once_and_replays (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_concurrent_duplicate_spell_executes_once_and_replays) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect) ... ok
+test_event_action_id_cannot_be_reused_for_other_event_or_turn (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_event_action_id_cannot_be_reused_for_other_event_or_turn) ... ok
+test_independently_loaded_stale_save_cannot_overwrite_newer_truth (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_independently_loaded_stale_save_cannot_overwrite_newer_truth) ... ok
+test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_legacy_v3_upgrade_preserves_payload_receipt_and_rng (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_legacy_v3_upgrade_preserves_payload_receipt_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_stale_request_rejects_before_resolution_then_explicit_resume_refreshes) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_structured_conflict_response_loss_reload_and_campaign_scoped_ids (api.tests.test_persistence_idempotency.PersistenceIdempotencyTests.test_structured_conflict_response_loss_reload_and_campaign_scoped_ids) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_stable_resume_preserves_spent_spell_action_and_recovery_episode (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode) ... Executing <Task finished name='Task-68' coro=<CombatMatrixApiTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py:135> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.106 seconds
+ok
+test_long_rest_reaches_spell_resource_hook_and_authoritative_clock (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_long_rest_reaches_spell_resource_hook_and_authoritative_clock) ... ok
+test_multiattack_stops_after_first_component_kills_npc (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_multiattack_stops_after_first_component_kills_npc) ... ok
+test_native_monster_damage_keeps_player_slot_and_schedules_death_save (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_native_monster_damage_keeps_player_slot_and_schedules_death_save) ... ok
+test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) ... ok
+test_spell_lethal_damage_preserves_surviving_opponent_and_cursor (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_spell_lethal_damage_preserves_surviving_opponent_and_cursor) ... ok
+test_campaign_ids_are_opaque_and_campaigns_are_isolated (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_ids_are_opaque_and_campaigns_are_isolated) ... ok
+test_campaign_list_contains_only_safe_metadata (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_list_contains_only_safe_metadata) ... ok
+test_campaign_save_and_runtime_rng_survive_manager_restart (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_campaign_save_and_runtime_rng_survive_manager_restart) ... ok
+test_combat_history_is_bounded_isolated_and_not_duplicated_by_save (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_combat_history_is_bounded_isolated_and_not_duplicated_by_save) ... ok
+test_completed_combat_result_survives_resume (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_completed_combat_result_survives_resume) ... ok
+test_configured_secret_is_never_persisted (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_configured_secret_is_never_persisted) ... ok
+test_corrupt_campaign_is_rejected_without_affecting_other_campaigns (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_corrupt_campaign_is_rejected_without_affecting_other_campaigns) ... ok
+test_corrupt_combat_history_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_corrupt_combat_history_is_rejected) ... ok
+test_engine_version_mismatch_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_engine_version_mismatch_is_rejected) ... ok
+test_invalid_ids_cannot_be_used_as_paths (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_invalid_ids_cannot_be_used_as_paths) ... ok
+test_invalid_new_state_does_not_replace_the_last_good_save (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_invalid_new_state_does_not_replace_the_last_good_save) ... ok
+test_narrative_memory_survives_campaign_resume_and_manager_restart (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_narrative_memory_survives_campaign_resume_and_manager_restart) ... ok
+test_resume_updates_last_played_without_rewriting_save_timestamp (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_resume_updates_last_played_without_rewriting_save_timestamp) ... ok
+test_unsupported_campaign_version_is_rejected (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_unsupported_campaign_version_is_rejected) ... ok
+test_v1_database_migrates_to_empty_combat_history (api.tests.test_campaign_persistence.CampaignPersistenceTests.test_v1_database_migrates_to_empty_combat_history) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 3.364s
+
+OK
