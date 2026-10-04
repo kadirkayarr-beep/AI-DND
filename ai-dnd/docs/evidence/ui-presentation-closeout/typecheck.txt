@@ -1,0 +1,4 @@
+
+> @workspace/ai-dnd-experience@0.0.0 typecheck /home/runner/workspace/artifacts/ai-dnd-experience
+> tsc -p tsconfig.json --noEmit
+

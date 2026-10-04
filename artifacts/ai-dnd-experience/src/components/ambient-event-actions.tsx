@@ -143,7 +143,7 @@ export function AmbientEventActionPanel({
           <div className="ambient-event-retry">
             {hasError && (
               <span role="alert" data-testid="ambient-action-network-error">
-                Sunucu yanıtı alınamadı. Aynı isteği güvenle tekrar deneyebilirsin.
+                Hamlenin sonucu ulaşmadı. Aynı hamleyi güvenle yeniden deneyebilirsin.
               </span>
             )}
             <button

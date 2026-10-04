@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { playerAbilityMessage } from '@/lib/campaign-presentation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetGameSessionStateQueryKey,
@@ -296,18 +297,18 @@ export function SpeciesTraitControls({
         </button>
       </div>
 
-      {action.isPending && <p className="species-trait-feedback" role="status">Sunucu yeteneği çözüyor…</p>}
+      {action.isPending && <p className="species-trait-feedback" role="status">Yeteneğinin etkisi belirleniyor…</p>}
       {action.isError && (
         <p className="species-trait-feedback species-trait-feedback-error" role="alert">
-          {action.error instanceof Error ? action.error.message : 'Tür yeteneği kullanılamadı.'}
+          Yeteneğin kullanılamadı. Durumunu ve seçimini kontrol edip yeniden dene.
         </p>
       )}
       {action.data && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
-          <strong>{action.data.result.message}</strong>
-          {Object.keys(action.data.result.effects).filter((key) => key !== 'time_result').length > 0 && (
+          <strong>{playerAbilityMessage(action.data.result.message)}</strong>
+          {import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1' && Object.keys(action.data.result.effects).filter((key) => key !== 'time_result').length > 0 && (
             <details>
-              <summary>Sunucunun çözdüğü etki</summary>
+              <summary>Geliştirici tanılaması</summary>
               <pre>{JSON.stringify(Object.fromEntries(Object.entries(action.data.result.effects).filter(([key]) => key !== 'time_result')), null, 2)}</pre>
             </details>
           )}

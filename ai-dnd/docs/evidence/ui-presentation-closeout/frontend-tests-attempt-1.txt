@@ -1,0 +1,86 @@
+
+> @workspace/ai-dnd-experience@0.0.0 test /home/runner/workspace/artifacts/ai-dnd-experience
+> node --test tests/combat-panel.test.mjs tests/character-creation.test.mjs tests/ambient-event-actions.test.mjs tests/action-suggestions.test.mjs tests/spellcasting-panel.test.mjs tests/campaign-presentation.test.mjs
+
+✔ suggestions use the current scene and actual inventory (257.899539ms)
+✔ combat suggestions require the player turn, a live target, and a sword (0.729023ms)
+✔ empty scenes offer a grounded presence question rather than an invented target (0.117958ms)
+✔ only a presented BLUE ambient event exposes Interact and Observe controls (438.175304ms)
+✔ GREEN events and BLUE events without a presented referent remain atmospheric (0.450955ms)
+✔ action requests use a single generated UUIDv4 and preserve the selected action (0.770167ms)
+✔ all four server statuses and their reason codes render without synthesized outcomes (2.453889ms)
+✔ a failed request exposes retry while keeping its original request ID (0.467962ms)
+✔ persisted applied outcomes are reconstructed only from the server journal (0.18632ms)
+✔ calendar renders changed authoritative year/day/time, never a fixed era (902.616119ms)
+✔ missing campaign time supplies no invented date or browser clock (0.300834ms)
+✔ valid scene membership takes priority over same-location global candidates (0.837138ms)
+✔ absent or stale scene falls back only to exact canonical location membership (0.217223ms)
+✔ world panel excludes unrelated locations and NPCs without changing state (1.77018ms)
+✔ only accepted quests, actual combat actor and canonical condition are presented (1.227389ms)
+✔ technical ability text is neutralized without inventing a successful effect (0.392658ms)
+✖ library empty and populated surfaces use player language and preserve deletion controls (1.853155ms)
+✔ presentation sources contain no fixed date, client clock, gameplay commands or spell reconstruction (5.176775ms)
+✔ character creation screen renders all 8 progression steps and navigation controls (839.720082ms)
+✔ presents genuine player choices for class, species, background, and alignment (3.911721ms)
+✔ species cards render API-shaped trait objects without passing objects to React (4.534899ms)
+✔ species picker shows 2024 additions and retains the 2014 Half species with source labels (6.538247ms)
+✔ normalizes server catalog fields and keeps spell selection keyed by unique IDs (0.822951ms)
+✔ species bonus skill selections stay separate from class skills (0.18048ms)
+✔ Expertise choices follow each class and level progression (0.138687ms)
+✔ species bonus feat options exclude the background feat base name (0.250218ms)
+✔ Fighter style options come from the complete class rules catalog (0.27507ms)
+✔ HP and AC previews follow package, armor, shield, Defense, Dwarf, and Tough rules (0.488545ms)
+✔ review does not invent Tough when a background feat is missing (2.94476ms)
+✔ background cards render the server ability and feat fields (2.187927ms)
+✔ never exposes developer terminology or internal server jargon in normal player UI (2.043156ms)
+✔ starting location options are bound to canonical verified regions (3.587875ms)
+✔ initial state contains zero silent preselected choices and blocks progression (4.306662ms)
+✔ identity step exposes player-owned appearance, personality, and backstory fields (10.591036ms)
+✔ review step renders comprehensive summary including roleplay identity box (8.286139ms)
+✔ action economy displays server resources without creating rolls or budgets (681.707605ms)
+✔ economy combat history restores nested server attack results once (5.17073ms)
+✔ Aasimar ability controls expose uses and the selected Revelation form (1.490125ms)
+✔ Goliath ancestry controls and combat log render the server species effect (2.048678ms)
+✔ Orc panel presents Adrenaline Rush and Relentless Endurance state (1.276631ms)
+✔ inactive combat renders without invented round, target, or roll data (1.281451ms)
+✔ the existing skill result card renders all four newly routed skills (3.070497ms)
+✔ active panel displays only canonical HP, AC, round, target, and initiative order (3.568344ms)
+✔ structured critical and multi-enemy results show returned rolls, modifiers, and damage (6.05759ms)
+✔ ended state follows Python result while active canonical state takes precedence (7.255912ms)
+✔ resumed combat history renders returned cards once per stable event ID (2.961112ms)
+✔ result animation is brief and disabled for reduced motion (10.082703ms)
+✔ quest journal remains empty and shows no commands without server offers (0.619959ms)
+✔ quest offers render server-owned giver, objectives, and both quest-ID commands (0.636876ms)
+✔ accepted quest progress and cancellation use canonical returned state (0.573727ms)
+✔ missing and null legacy projections grant nothing and render no invented state (410.728228ms)
+✔ renders exact supplied lists, zero slots and turn values without technical identity (3.257266ms)
+✔ empty prepared list stays empty and does not infer from cantrips (0.578482ms)
+✔ rerenders new authoritative slots without mutation or casting controls (2.719998ms)
+✔ panel has no local state, requests, legality calculation or resource consumption (8.06185ms)
+ℹ tests 55
+ℹ suites 0
+ℹ pass 54
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1613.573747
+
+✖ failing tests:
+
+test at tests/campaign-presentation.test.mjs:84:1
+✖ library empty and populated surfaces use player language and preserve deletion controls (1.853155ms)
+  Error: No QueryClient set, use QueryClientProvider to set one
+      at useQueryClient (file:///home/runner/workspace/node_modules/.pnpm/@tanstack+react-query@5.102.8_react@19.1.0/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:9:21)
+      at useMutation (file:///home/runner/workspace/node_modules/.pnpm/@tanstack+react-query@5.102.8_react@19.1.0/node_modules/@tanstack/react-query/build/modern/useMutation.js:7:17)
+      at useDeleteCampaign (/home/runner/workspace/lib/api-client-react/src/generated/api.ts:640:47)
+      at CampaignLibrary (/home/runner/workspace/artifacts/ai-dnd-experience/src/components/campaign-library.tsx:36:63)
+      at react-stack-bottom-frame (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:8970:18)
+      at renderWithHooks (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:4699:19)
+      at renderElement (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5134:23)
+      at retryNode (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5899:31)
+      at renderNodeDestructive (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5849:11)
+      at renderElement (/home/runner/workspace/node_modules/.pnpm/react-dom@19.1.0_react@19.1.0/node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5586:15)
+/home/runner/workspace/artifacts/ai-dnd-experience:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/ai-dnd-experience@0.0.0 test: `node --test tests/combat-panel.test.mjs tests/character-creation.test.mjs tests/ambient-event-actions.test.mjs tests/action-suggestions.test.mjs tests/spellcasting-panel.test.mjs tests/campaign-presentation.test.mjs`
+Exit status 1

@@ -1,0 +1,35 @@
+{
+  "assignmentId": "f772d362-969d-45d6-b434-63ccb7f09113",
+  "jobId": "ui-presentation-closeout-browser:984",
+  "kind": "testing",
+  "name": "ui-presentation-closeout-browser",
+  "screenshots": [
+    {
+      "description": "Initial opening screen before campaign selection; no hardcoded 1501/1492 date is visible.",
+      "id": "47597o"
+    },
+    {
+      "description": "New Sorcerer reveal showing 1 Mirtul 1501 DR · 09:00 and API-matched spell/slot presentation.",
+      "id": "0cx04b"
+    },
+    {
+      "description": "390×844 World drawer with current location/date and the empty scene-people state.",
+      "id": "o96mt3"
+    },
+    {
+      "description": "New test campaign card in the library; shows untranslated Human Sorcerer and raw fr:city:neverwinter location.",
+      "id": "3qtmo5"
+    },
+    {
+      "description": "After the synthetic 503 delete response, the target card remains; the associated layout snapshot showed the friendly deletion-failure alert.",
+      "id": "606288"
+    },
+    {
+      "description": "Final 390×844 library after real deletion; UI12 test card is absent and remaining campaigns are preserved.",
+      "id": "qfcdom"
+    }
+  ],
+  "status": "completed",
+  "text": "**Acceptance pass: partial failure — required flows worked, but visible localization/location identifiers remain.**\n\n**Verified live:** Opened `http://127.0.0.1:80/ai-dnd-experience/`; the opening screen showed no 1501/1492-era date before a campaign existed. Captured the initial library set of 23 campaign IDs without opening or changing any existing campaign. Used the real eight-step creation flow to create one disposable level-1 Human Sorcerer named **UI12-5qPkmd**. Session ID: `5557f7d7-a934-43b9-914e-fe0ed2743d57`; campaign/delete ID: `29a6d40b-72b6-4d4e-83e2-4d70f863c26d`.\n\nA live GET of `/api/game/sessions/5557f7d7-a934-43b9-914e-fe0ed2743d57/state` returned `campaign_time` for **1 Mirtul 1501 DR, 09:00:00**. Reveal, game header, and World/context each displayed **1 Mirtul 1501 DR · 09:00**, matching the live state. No alternate-year fixture was used. API `spellcasting` was `{cantrips:[Fire Bolt, Ray of Frost, Mage Hand, Minor Illusion], prepared:[Magic Missile, Shield], slots:{1:2}, slot_turn:null}`; reveal/character UI showed the same four cantrips, two prepared spells, and two level-1 slots. No spell was cast and no resources were changed.\n\nWorld/NPC/Journal/Combat tabs were visited. The live state had location `fr:city:neverwinter`, `scene.last_activity:null`, no NPCs/features/doors, empty `quests` and `quest_offers`, inactive combat, and Normal/active death state. UI showed the Neverwinter scene narrative, no nearby people, no doors/features, no quests, and passive “Çatışma yok”; it did not expose `last_activity` IDs/JSON or diagnostics. HP remained 7/7. Rest controls and Normal death-mode presentation were visible but deliberately not activated. No combat was started. At 390×844, character/world drawers and all four tabs were reachable; Escape closed the character drawer and restored focus to its trigger. Document/body widths were 375px within a 390px viewport; text wrapped and no horizontal overflow was observed. The date is small on mobile but discernible.\n\n**Failure:** The library and game still render untranslated location values/identifiers in normal UI: campaign cards show `fr:city:neverwinter` (and some show `location_001`); the active location context exposes `city`; the game header includes **“Solo campaign · Forgotten Realms.”** This falls short of the requested readable-Turkish presentation and leaves technical-looking IDs visible. Reproduce by opening the library or resuming a campaign and viewing its location metadata/context (`data-testid=campaign-location`); existing cards show the same issue. Campaign card character metadata also includes English labels such as “Human Sorcerer.”\n\n**Deletion acceptance, exact target only:** (1) Dismissed the target’s native confirmation; recorded **no DELETE**, the card remained, and live GET `/api/game/campaigns` returned 24 campaigns including the target. (2) Intercepted only DELETE for the target campaign ID and returned one synthetic **503** with deliberately technical body text. The UI showed the friendly alert **“Macera silinemedi. Kaydın listede korunuyor; yeniden deneyebilirsin.”**, retained the card, and the technical body was not shown as success or surfaced to the user. The live list still contained the target and all initial IDs. The expected browser console 503 resource error came from this injected response. (3) Removed interception, accepted confirmation for that same target, and allowed the real DELETE; it returned **200** and only that card disappeared. Final live GET `/api/game/campaigns` returned 23 IDs: target absent, all 23 initial IDs preserved, no extras. No existing campaign was deleted or opened.\n\nNo source files were edited and no Git operations were run. No live cast/consumption replay was attempted, per instruction; the spell comparison above is against the real state response. The optional alternate-year fixture was not used. The requested live creation, reveal/adventure, tab, mobile, and deletion flows otherwise completed.",
+  "verdict": "failure"
+}

@@ -24,3 +24,4 @@
 - [Death and save policy](death-policy.md) — Policy A governs new lethal NPC damage; preserve historical unconscious canon; no mode automatically deletes saves.
 - [Spell scope boundaries](spell-scope-boundaries.md) — only approved, owner-compatible spell modes; never infer preparation, external actors or deferred mechanics.
 - [Primary campaign UI](primary-campaign-ui.md) — preserve the experience artifact as the primary frontend; switching to the web artifact needs proven compatibility grounds.
+- [SSR context identity](ssr-context-identity.md) — test providers and workspace hooks must share a dependency instance, even when a provider is visibly mounted.

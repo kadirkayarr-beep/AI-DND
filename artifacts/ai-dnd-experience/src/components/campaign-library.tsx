@@ -9,7 +9,8 @@ import {
   RefreshCw,
   ScrollText,
 } from 'lucide-react';
-import type { CampaignSummary } from '@workspace/api-client-react';
+import type { CampaignSummary, CampaignStartOptionsResponse } from '@workspace/api-client-react';
+import { campaignLocationLabel, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import { getGetCampaignsQueryKey, useDeleteCampaign } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -25,6 +26,7 @@ function formatPlayedAt(value: string) {
 
 type CampaignLibraryProps = {
   campaigns?: CampaignSummary[];
+  locationCatalog?: CampaignStartOptionsResponse;
   loading: boolean;
   error: unknown;
   resuming: boolean;
@@ -39,6 +41,7 @@ type CampaignLibraryProps = {
 
 export function CampaignLibrary({
   campaigns,
+  locationCatalog,
   loading,
   error,
   resuming,
@@ -84,7 +87,7 @@ export function CampaignLibrary({
             <div className="opening-eyebrow"><span className="dnd-kicker">Kayıtlı yolculuklar</span></div>
             <h1 className="dnd-display mt-4 text-4xl text-[#eddfc5] sm:text-5xl">Yarım kalan<br /><span className="text-[#c09a61]">hikâyeler.</span></h1>
             <p className="dnd-serif mt-4 max-w-xl text-lg leading-7 text-[#a99a80]">
-              Her kayıt, sunucudaki aynı dünyaya açılır. Bir yolculuğu seç ya da yeni bir sayfa başlat.
+              Her macera, bıraktığın dünyaya açılır. Bir yolculuğu seç ya da yeni bir sayfa başlat.
             </p>
           </div>
 
@@ -131,7 +134,7 @@ export function CampaignLibrary({
                           <div className="dnd-kicker">Kayıtlı macera · Seviye {campaign.character_level}</div>
                           <h2 className="dnd-display mt-2 text-2xl text-[#eddfc5] sm:text-3xl">{campaign.name}</h2>
                           <p className="mt-2 font-serif text-base text-[#c09a61]">
-                            {campaign.character_race} {campaign.character_class} · {campaign.character_name}
+                            {speciesLabel(campaign.character_race)} {classLabel(campaign.character_class)} · {campaign.character_name}
                           </p>
                         </div>
                         <BookOpen className="mt-1 text-[#9b7946]" size={20} aria-hidden="true" />
@@ -141,7 +144,7 @@ export function CampaignLibrary({
                       <div className="flex flex-col gap-3 text-sm text-[#a99a80] sm:flex-row sm:items-center sm:gap-8">
                         <div className="flex items-center gap-2" data-testid="campaign-location">
                           <MapPinned size={14} className="text-[#c09a61]" />
-                          <span><span className="text-[#83745e]">Son konum:</span> {campaign.location}</span>
+                          <span><span className="text-[#83745e]">Son konum:</span> {campaignLocationLabel(campaign.location, locationCatalog)}</span>
                         </div>
                         <div className="flex items-center gap-2" data-testid="campaign-last-played">
                           <CalendarDays size={14} className="text-[#c09a61]" />
@@ -177,7 +180,7 @@ export function CampaignLibrary({
                 </div>
                 <h2 className="dnd-display mt-5 text-2xl text-[#eddfc5]">Henüz kayıtlı macera yok.</h2>
                 <p className="dnd-serif mx-auto mt-3 max-w-md text-lg text-[#a99a80]">
-                  Yeni maceran sunucuda hemen kaydedilir; daha sonra buradan sürdürebilirsin.
+                  Yeni yolculuğunu daha sonra buradan kaldığın yerden sürdürebilirsin.
                 </p>
                 <button className="dnd-button mt-6" type="button" onClick={onNew} data-testid="button-create-from-library">
                   <Plus size={14} /> Yeni macera

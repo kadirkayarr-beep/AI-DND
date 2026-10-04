@@ -358,7 +358,7 @@ function EntryCard({ entry }: { entry: CombatLogEntry }) {
               : kind === 'decline_reaction' ? 'Reaction fırsatı atlandı'
               : kind === 'species' ? 'Tür yeteneği çözüldü'
               : kind === 'react' ? 'Ready Reaction çözüldü' : 'Attack Action çözüldü'}</div>
-            {attack !== null && <AttackReadout result={attack} entryId={`${entry.id}-${index}`} heading="Sunucu saldırı sonucu" />}
+            {attack !== null && <AttackReadout result={attack} entryId={`${entry.id}-${index}`} heading="Saldırının sonucu" />}
             {npcAttacks.map((npcAttack, npcIndex) => <AttackReadout key={npcIndex}
               result={npcAttack as AttackResult} entryId={`${entry.id}-${index}-${npcIndex}`} heading="Rakibin saldırısı" enemy />)}
           </div>;

@@ -52,7 +52,7 @@ export function ActionEconomyPanel({ state, targetId, sending, onCommand }: {
       </p>}
       {pending ? (
         <div className="action-suggestion-list mt-2" data-testid="reaction-opportunity">
-          <span className="story-meta">Sunucu Ready tetikleyicisini doğruladı.</span>
+          <span className="story-meta">Hazırladığın hamlenin koşulu gerçekleşti.</span>
           <button type="button" className="action-suggestion" disabled={sending || !resources.reaction_available}
             onClick={() => send('Ready Reaction kullanıyorum.', { kind: 'react', opportunity_id: resources.opportunity!.id })}>Reaction kullan</button>
           <button type="button" className="action-suggestion" disabled={sending}

@@ -1,0 +1,68 @@
+
+> @workspace/ai-dnd-experience@0.0.0 test /home/runner/workspace/artifacts/ai-dnd-experience
+> node --test tests/combat-panel.test.mjs tests/character-creation.test.mjs tests/ambient-event-actions.test.mjs tests/action-suggestions.test.mjs tests/spellcasting-panel.test.mjs tests/campaign-presentation.test.mjs
+
+✔ suggestions use the current scene and actual inventory (910.986819ms)
+✔ combat suggestions require the player turn, a live target, and a sword (3.456493ms)
+✔ empty scenes offer a grounded presence question rather than an invented target (0.340981ms)
+✔ only a presented BLUE ambient event exposes Interact and Observe controls (1041.756402ms)
+✔ GREEN events and BLUE events without a presented referent remain atmospheric (0.541907ms)
+✔ action requests use a single generated UUIDv4 and preserve the selected action (0.741988ms)
+✔ all four server statuses and their reason codes render without synthesized outcomes (2.42855ms)
+✔ a failed request exposes retry while keeping its original request ID (0.514179ms)
+✔ persisted applied outcomes are reconstructed only from the server journal (0.224441ms)
+✔ calendar renders changed authoritative year/day/time, never a fixed era (1467.710473ms)
+✔ missing campaign time supplies no invented date or browser clock (0.709143ms)
+✔ canonical catalog names resolve identifiers; unknown legacy identifiers never become guessed locations (0.57371ms)
+✔ valid scene membership takes priority over same-location global candidates (2.084122ms)
+✔ absent or stale scene falls back only to exact canonical location membership (0.406582ms)
+✔ world panel excludes unrelated locations and NPCs without changing state (3.456104ms)
+✔ only accepted quests, actual combat actor and canonical condition are presented (2.724014ms)
+✔ technical ability text is neutralized without inventing a successful effect (0.659255ms)
+✔ library empty and populated surfaces use player language and preserve deletion controls (28.424917ms)
+✔ presentation sources contain no fixed date, client clock, gameplay commands or spell reconstruction (12.141318ms)
+✔ character creation screen renders all 8 progression steps and navigation controls (1792.488415ms)
+✔ presents genuine player choices for class, species, background, and alignment (5.409452ms)
+✔ species cards render API-shaped trait objects without passing objects to React (3.977934ms)
+✔ species picker shows 2024 additions and retains the 2014 Half species with source labels (7.47558ms)
+✔ normalizes server catalog fields and keeps spell selection keyed by unique IDs (0.889567ms)
+✔ species bonus skill selections stay separate from class skills (0.167054ms)
+✔ Expertise choices follow each class and level progression (0.188548ms)
+✔ species bonus feat options exclude the background feat base name (0.211308ms)
+✔ Fighter style options come from the complete class rules catalog (0.264378ms)
+✔ HP and AC previews follow package, armor, shield, Defense, Dwarf, and Tough rules (0.379933ms)
+✔ review does not invent Tough when a background feat is missing (3.151323ms)
+✔ background cards render the server ability and feat fields (2.591618ms)
+✔ never exposes developer terminology or internal server jargon in normal player UI (2.90633ms)
+✔ starting location options are bound to canonical verified regions (4.410947ms)
+✔ initial state contains zero silent preselected choices and blocks progression (5.014975ms)
+✔ identity step exposes player-owned appearance, personality, and backstory fields (7.802037ms)
+✔ review step renders comprehensive summary including roleplay identity box (8.44444ms)
+✔ action economy displays server resources without creating rolls or budgets (1453.823701ms)
+✔ economy combat history restores nested server attack results once (12.952548ms)
+✔ Aasimar ability controls expose uses and the selected Revelation form (2.059017ms)
+✔ Goliath ancestry controls and combat log render the server species effect (3.253444ms)
+✔ Orc panel presents Adrenaline Rush and Relentless Endurance state (1.344263ms)
+✔ inactive combat renders without invented round, target, or roll data (1.387936ms)
+✔ the existing skill result card renders all four newly routed skills (2.327379ms)
+✔ active panel displays only canonical HP, AC, round, target, and initiative order (3.741588ms)
+✔ structured critical and multi-enemy results show returned rolls, modifiers, and damage (5.751794ms)
+✔ ended state follows Python result while active canonical state takes precedence (8.115827ms)
+✔ resumed combat history renders returned cards once per stable event ID (2.84204ms)
+✔ result animation is brief and disabled for reduced motion (12.868807ms)
+✔ quest journal remains empty and shows no commands without server offers (0.741069ms)
+✔ quest offers render server-owned giver, objectives, and both quest-ID commands (0.598042ms)
+✔ accepted quest progress and cancellation use canonical returned state (0.589597ms)
+✔ missing and null legacy projections grant nothing and render no invented state (1035.167177ms)
+✔ renders exact supplied lists, zero slots and turn values without technical identity (5.943809ms)
+✔ empty prepared list stays empty and does not infer from cantrips (0.61018ms)
+✔ rerenders new authoritative slots without mutation or casting controls (1.514391ms)
+✔ panel has no local state, requests, legality calculation or resource consumption (11.91893ms)
+ℹ tests 56
+ℹ suites 0
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2424.81703

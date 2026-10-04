@@ -1,0 +1,29 @@
+{
+  "head": "cf5ba56a950231f47c7e499140f4444e735f7f07",
+  "python_before": "ece6c8ccb6c804a1c130310627fa5b06ff78ec2b293a5ed48ecb8dfce2e569d5",
+  "python_after": "ece6c8ccb6c804a1c130310627fa5b06ff78ec2b293a5ed48ecb8dfce2e569d5",
+  "python_changed": [],
+  "frontend_changed": [
+    "artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx",
+    "artifacts/ai-dnd-experience/src/components/ambient-event-actions.tsx",
+    "artifacts/ai-dnd-experience/src/components/campaign-context-panel.tsx",
+    "artifacts/ai-dnd-experience/src/components/campaign-library.tsx",
+    "artifacts/ai-dnd-experience/src/components/combat-panel.tsx",
+    "artifacts/ai-dnd-experience/src/components/error-boundary.tsx",
+    "artifacts/ai-dnd-experience/src/components/species-trait-controls.tsx",
+    "artifacts/ai-dnd-experience/src/lib/campaign-presentation.ts",
+    "artifacts/ai-dnd-experience/src/pages/game-browser.tsx",
+    "artifacts/ai-dnd-experience/tests/campaign-presentation.test.mjs"
+  ],
+  "tracked_changed": [
+    "artifacts/ai-dnd-experience/package.json",
+    "artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx",
+    "artifacts/ai-dnd-experience/src/components/ambient-event-actions.tsx",
+    "artifacts/ai-dnd-experience/src/components/campaign-library.tsx",
+    "artifacts/ai-dnd-experience/src/components/combat-panel.tsx",
+    "artifacts/ai-dnd-experience/src/components/error-boundary.tsx",
+    "artifacts/ai-dnd-experience/src/components/species-trait-controls.tsx",
+    "artifacts/ai-dnd-experience/src/pages/game-browser.tsx"
+  ],
+  "git_diff_check_exit": 0
+}

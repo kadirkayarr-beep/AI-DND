@@ -67,6 +67,8 @@ import { CharacterCreationScreen } from '@/components/character-creation-screen'
 import { SkillCheckResultCard } from '@/components/skill-check-result';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
+import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
+import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions } from '@/lib/action-suggestions';
 
@@ -97,7 +99,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand" data-testid="brand-ai-dnd">
       <div className="brand-mark"><Compass size={17} strokeWidth={1.3} /></div>
-      {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Solo campaign · Forgotten Realms</div></div>}
+      {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Tek oyunculu macera · Forgotten Realms</div></div>}
     </div>
   );
 }
@@ -172,7 +174,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
         </header>
         <div className="opening-grid">
           <section className="opening-copy dnd-enter">
-            <div className="opening-eyebrow"><Kicker>Kapılar açılıyor · 1501 DR</Kicker></div>
+            <div className="opening-eyebrow"><Kicker>Kapılar açılıyor</Kicker></div>
             <h1 className="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
             <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
             <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
@@ -201,7 +203,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
   const hp = character.max_hp > 0 ? Math.max(0, Math.min(100, character.current_hp / character.max_hp * 100)) : 0;
   return (
     <section className={`state-panel ${compact ? 'compact-character' : ''}`} data-testid="panel-character">
-      <div className="character-top"><div><Kicker>Yolcu kaydı</Kicker><h2 data-testid="text-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div>
+      <div className="character-top"><div><Kicker>Yolcu kaydı</Kicker><h2 data-testid="text-character-name">{character.name}</h2><div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div>
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
       <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
@@ -216,40 +218,14 @@ function InventoryPanel({ items }: { items: string[] }) {
 }
 
 function WorldPanel({ state }: { state: GameState }) {
-  const locations = Object.values(state.locations);
-  const scene = state.scene;
-  return <section className="state-panel" data-testid="panel-world">
-     <div className="flex items-end justify-between"><div><Kicker><Map size={12} className="mr-1 inline" /> Dünyanın izleri</Kicker><h2>Çevre</h2></div></div>
-    <div className="location-current" data-testid="text-current-location"><small><MapPinned size={11} className="mr-1 inline" /> Şu anki konum</small>{state.locations[state.location]?.name ?? state.location}</div>
-    {state.campaign_time && <details className="data-row mt-3" data-testid="world-time">
-      <summary>{state.campaign_time.display}</summary>
-      <div className="data-row-desc">{state.campaign_time.detail}</div>
-    </details>}
-    {state.known_scheduled_events?.map((event, index) => <div className="data-row mt-2" key={`${event.window_start}-${index}`}>
-      <div className="data-row-desc">{event.summary}</div>
-    </div>)}
-    {scene && <div className="data-row mt-3" data-testid={`scene-${scene.id}`}>
-       <div className="data-row-head"><span>Şu anki sahne</span></div>
-      <div className="data-row-desc">{scene.last_activity ?? 'Sahne sakin; çevredeki ayrıntılar değişmedi.'}</div>
-    </div>}
-    <div className="mt-3 grid gap-2">{locations.length ? locations.map((location) => <div className="data-row" key={location.id} data-testid={`location-${location.id}`}>
-      <div className="data-row-head"><span>{location.name}</span>{location.id === state.location && <Check size={14} className="text-[#c09a61]" />}</div>
-      <div className="data-row-meta">{location.type}</div>
-      <div className="data-row-desc">{location.description}</div>
-      {(location.parent_location_id || location.exit_location_id) && <div className="subtle-text mt-2">
-        {location.parent_location_id && <>Yakınında: {state.locations[location.parent_location_id]?.name ?? location.parent_location_id}</>}
-        {location.parent_location_id && location.exit_location_id && ' · '}
-        {location.exit_location_id && <>Dışarı çıkış: {state.locations[location.exit_location_id]?.name ?? location.exit_location_id}</>}
-      </div>}
-    </div>) : <div className="empty-line">Yakında başka bir yer görünmüyor.</div>}</div>
-  </section>;
+  return <CampaignContextPanel state={state} />;
 }
 
 function PeoplePanel({ state }: { state: GameState }) {
-  const scenePeople = state.scene?.npcs ?? [];
+  const scenePeople = currentSceneContext(state).people;
   const sceneIds = new Set(scenePeople.map((npc) => npc.id));
-  const otherPeople = state.npcs.filter((npc) => !sceneIds.has(npc.id));
-  const referents = state.scene?.referents ?? [];
+  const otherPeople = currentSceneContext(state).scene ? [] : state.npcs.filter((npc) => npc.location === state.location && !sceneIds.has(npc.id));
+  const referents = currentSceneContext(state).scene?.referents ?? [];
   return <section className="state-panel" data-testid="panel-npcs">
     <div className="flex items-end justify-between"><div><Kicker><Users size={12} className="mr-1 inline" /> Karşılaşılanlar</Kicker><h2>Kişiler</h2></div><span className="character-badge">{String(scenePeople.length + otherPeople.length).padStart(2, '0')}</span></div>
     <div className="mt-4">
@@ -278,10 +254,10 @@ function PeoplePanel({ state }: { state: GameState }) {
 }
 
 function DetailsPanel({ state }: { state: GameState }) {
-  const features = state.scene?.features ?? state.features;
+  const { features, doors } = currentSceneContext(state);
   return <section className="state-panel" data-testid="panel-details">
     <Kicker><DoorOpen size={12} className="mr-1 inline" /> İncelenebilir</Kicker><h2>Ayrıntılar</h2>
-    <div className="mt-4">{state.doors.length ? state.doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}>
+    <div className="mt-4">{doors.length ? doors.map((door: GameDoor) => <div className="data-row" key={door.id} data-testid={`door-${door.id}`}>
       <div className="data-row-head"><span className="flex items-center gap-2">{door.locked ? <LockKeyhole size={14} className="text-[#bc7062]" /> : <KeyRound size={14} className="text-[#c09a61]" />}{door.name}</span><span className="status-pill">{door.broken ? 'kırık' : door.open ? 'açık' : door.locked ? 'kilitli' : 'kapalı'}</span></div>
       <div className="data-row-desc">{door.description}</div>
     </div>) : <div className="empty-line">Bu bölgede kapı veya geçit görünmüyor.</div>}</div>
@@ -550,7 +526,7 @@ function StoryColumn({
       </div>
       <ActionEconomyPanel state={state} targetId={combatTargetId} sending={sending} onCommand={onEconomyCommand} />
       <div className={`location-ribbon ${locationChanged ? 'location-ribbon-new' : ''}`} data-testid="status-location">
-        <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? state.location}</strong>{location?.type && <span>{location.type}</span>}</div>
+        <MapPinned size={14} /><div><Kicker>Şu anki konum</Kicker><strong>{location?.name ?? 'Konum ayrıntıları henüz görünmüyor.'}</strong>{location?.type && JOURNAL_ENVIRONMENT_LABELS[location.type] && <span>{JOURNAL_ENVIRONMENT_LABELS[location.type]}</span>}</div>
       </div>
       <AmbientEventActionPanel
         event={ambientEvent}
@@ -661,8 +637,8 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
         <div className="header-location">
           <MapPinned size={13} />
           <div className="header-location-copy">
-            <span data-testid="header-location">{state.locations[state.location]?.name ?? state.location}</span>
-            <small data-testid="text-neutral-atmosphere" title={state.campaign_time?.detail}>{state.campaign_time?.display ?? 'Yolculuğun kaydediliyor'}</small>
+            <span data-testid="header-location">{state.locations[state.location]?.name ?? 'Konum ayrıntıları henüz görünmüyor.'}</span>
+            <small data-testid="text-neutral-atmosphere"><CampaignDate state={state} /></small>
           </div>
           <span className="header-hp" data-testid="header-character-hp" aria-label={`Can ${state.character.current_hp} / ${state.character.max_hp}`}><Heart size={13} aria-hidden="true" />{state.character.current_hp} / {state.character.max_hp}</span>
         </div>
@@ -755,7 +731,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
               <div>
                 <Kicker>Karakter</Kicker>
                 <h2 data-testid="reveal-character-name">{character.name}</h2>
-                <div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div>
+                <div className="character-sub">{speciesLabel(character.race)} {classLabel(character.class)} · Seviye {character.level}</div>
               </div>
               <span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span>
             </div>
@@ -788,6 +764,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
               <div><Kicker>Zırh</Kicker><strong>{character.armor_class}</strong></div>
               <div><Kicker>Ustalık</Kicker><strong>+{character.proficiency_bonus}</strong></div>
             </div>
+            <p className="subtle-text mt-3"><CampaignDate state={state} /></p>
             <div className="reveal-stats">
               <Kicker>Yetenekler</Kicker>
               <div className="stat-strip">
@@ -933,7 +910,7 @@ export default function GameBrowser() {
   const campaignStartOptionsQuery = useGetCampaignStartOptions({
     query: {
       queryKey: getGetCampaignStartOptionsQueryKey(),
-      enabled: phase === 'creation',
+      enabled: phase === 'creation' || phase === 'library',
       retry: false,
     },
   });
@@ -1302,7 +1279,7 @@ export default function GameBrowser() {
     event.preventDefault();
     submitTurn(message);
   };
-  if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
+  if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} locationCatalog={campaignStartOptionsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
   if (phase === 'creation') return (
     <CharacterCreationScreen
       options={characterOptionsQuery.data}

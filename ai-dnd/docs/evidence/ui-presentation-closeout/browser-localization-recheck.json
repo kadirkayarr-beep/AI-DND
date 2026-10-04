@@ -1,0 +1,15 @@
+{
+  "assignmentId": "96a84df0-d252-4c32-ad06-0a32f7bf4d90",
+  "jobId": "ui-presentation-closeout-browser:1002",
+  "kind": "testing",
+  "name": "ui-presentation-closeout-browser",
+  "screenshots": [
+    {
+      "description": "Corrected 390×844 campaign library showing Turkish “İnsan Büyücü” labels and catalog-resolved “Son konum: Neverwinter” without raw location IDs.",
+      "id": "g5q6jx"
+    }
+  ],
+  "status": "completed",
+  "text": "**Focused localization/location-ID recheck: passed.** Reloaded the artifact, returned to the library using “Maceraya devam et,” and made no campaign resume, creation, deletion, or gameplay actions.\n\n- Live GET `/api/game/campaign-start-options` returned 200. Its existing catalog maps `entity_id: fr:city:neverwinter` to `name: Neverwinter`; the library displays **Neverwinter** for matching cards.\n- Scanned all 23 rendered campaign cards: no `fr:city:` or `location_001` raw IDs, and no English `Human`/`Sorcerer` class/race labels. Example display: **İnsan Büyücü**. Unknown legacy locations use the honest fallback **“Konum ayrıntıları macera açıldığında görünür.”** rather than an inferred place.\n- Live GET `/api/game/campaigns` returned 200 with 23 IDs; the set exactly matches the initial 23 IDs captured in the earlier pass.\n- The opening brand now reads **“Tek oyunculu macera · Forgotten Realms.”**\n\nThe earlier reported localization issue was present during the original acceptance pass; this focused recheck confirms the corrected library presentation. No source edits were made.",
+  "verdict": "success"
+}
