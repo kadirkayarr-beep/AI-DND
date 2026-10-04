@@ -1,0 +1,20 @@
+
+AI-DND HEALTH CHECK
+HEAD                         PASS       a65bd14c8a7774ba16576989f269ac3c07ea326b
+Branch                       PASS       main
+Working tree                 FAIL       Dirty: 0 staged, 0 unstaged, 10 untracked; see repository_state.entries
+Project structure            FAIL       {'missing': ['ai-dnd/lore_authority']}
+Evidence infrastructure      PASS       Existing regression runner, source_snapshot and timestamp/UUID archives
+Architecture structure       PASS       Structural presence only: Python backend, presentation client, offline model guards; not a semantic proof of gameplay authority
+Infrastructure scope         PASS       {'protected_changes': [], 'baseline': 'HEAD + untracked', 'scope': 'Only infrastructure work is approved for this package'}
+Verification commands        PASS       {'missing_frontend_scripts': [], 'missing_tools': [], 'regression_selectors': ['api.tests.test_bounded_encounter', 'test_regression', 'api.tests.test_campaign_time', 'api.tests.test_combat_lifecycle', 'api.tests.test_model_isolation', 'test_narrative_rebalance.TestNarrativeRebalance.test_03_no_turn_exceeds_2_model_calls', 'test_narrative_rebalance.TestNarrativeRebalance.test_04_narration_validation_failure_does_not_retry_model', 'api.tests.test_regression_evidence', 'api.tests.test_development_tooling']}
+Python regression            NOT RUN    Explicit bounded/static mode
+frontend_libraries           NOT RUN    Explicit bounded/static mode
+frontend_typecheck           NOT RUN    Explicit bounded/static mode
+frontend_test                NOT RUN    Explicit bounded/static mode
+frontend_build               NOT RUN    Explicit bounded/static mode
+Live HTTP                    NOT RUN    Not performed by local tooling
+Live Qwen                    NOT RUN    Not performed by local tooling
+Remote GitHub Actions run    NOT RUN    Not performed by local tooling
+Stable verifier source       PASS       Generated evidence excluded using existing source_snapshot
+RESULT: UNHEALTHY

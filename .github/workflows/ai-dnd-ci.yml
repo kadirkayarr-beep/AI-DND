@@ -1,0 +1,55 @@
+name: AI-DND bounded verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-dnd-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bounded-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.26.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.24"
+      - name: Install locked Python dependencies
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt --output-file "$RUNNER_TEMP/ai-dnd-requirements.txt"
+          uv pip install --system --require-hashes -r "$RUNNER_TEMP/ai-dnd-requirements.txt"
+      - name: Install locked workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Health Check (structural, no tests)
+        run: python ai-dnd/scripts/project_health_check.py --archive-root "$RUNNER_TEMP/ai-dnd-evidence"
+      - name: Final Gate (bounded offline regression and frontend)
+        if: ${{ !cancelled() }}
+        run: python ai-dnd/scripts/final_gate.py --archive-root "$RUNNER_TEMP/ai-dnd-evidence"
+      - name: Retain new execution evidence including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-dnd-evidence-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ai-dnd-evidence/
+          if-no-files-found: warn
+          retention-days: 30
