@@ -1,0 +1,478 @@
+#08 — DEATH SYSTEM LOCK
+PHASE 1: READ-ONLY DESIGN / GAP AUDIT
+
+We are starting roadmap item #08 only now.
+
+IMPORTANT:
+The project already has an existing Death System.
+
+This phase is NOT permission to implement, refactor, fix, migrate,
+commit, push, merge, or create follow-up tasks.
+
+READ ONLY.
+
+============================================================
+ARCHITECTURAL INVARIANT
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT, USES VERIFIED CONTEXT, AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+Death, unconsciousness, stabilization, death saves, recovery,
+revival eligibility, rollback/checkpoint behavior, and campaign-mode
+consequences are canonical mechanics and therefore Python-owned.
+
+Qwen may narrate verified outcomes only.
+
+Frontend must never decide whether a character lives, dies, stabilizes,
+recovers, revives, or rolls back.
+
+============================================================
+SOURCE AUTHORITY
+============================================================
+
+Use the uploaded current rules as mechanical authority:
+
+1. Player's Handbook 2024
+2. Dungeon Master's Guide 2024
+3. Monster Manual current uploaded edition where relevant
+
+Use project architecture/current implementation as implementation
+authority, but it does not override official rules.
+
+Do not silently import 2014 rules where 2024 rules differ.
+
+If current code intentionally implements a project-specific campaign
+mode rule rather than RAW, identify it explicitly.
+
+Do not invent reconciliation for conflicts.
+
+============================================================
+KNOWN 2024 BASELINE TO VERIFY
+============================================================
+
+Verify against the uploaded books rather than trusting this prompt
+blindly.
+
+At minimum inspect:
+
+- dropping to 0 HP
+- instant death
+- monster death
+- HP maximum reaching 0
+- massive damage
+- falling unconscious
+- Death Saving Throws
+- three successes / failures
+- natural 1
+- natural 20
+- damage while at 0 HP
+- stabilization
+- Stable state
+- natural recovery from Stable
+- healing from 0 HP
+- Temporary HP at 0 HP
+- Unconscious condition
+- Incapacitated interaction
+- Prone interaction
+- attacks against Unconscious creatures
+- automatic critical hits where applicable
+- Strength/Dexterity save effects while Unconscious
+- revival/resurrection interfaces where currently supported
+
+Do NOT add optional DMG variants merely because they exist.
+
+If "Defeated, Not Dead" or similar optional rules are found, identify
+them as optional and do not silently make them core behavior.
+
+============================================================
+CURRENT PROJECT BEHAVIOR TO AUDIT
+============================================================
+
+Locate the existing production owners for:
+
+- player HP reaching 0
+- unconscious state
+- death-save scheduling
+- death-save RNG
+- death-save success/failure counters
+- natural 1 / natural 20
+- damage while at 0 HP
+- massive damage / instant death
+- stabilization
+- healing from 0 HP
+- Stable recovery
+- dead state
+- combat participation after unconsciousness/death
+- initiative-slot behavior while unconscious
+- action restrictions while unconscious/dead
+- combat termination interaction
+- save/resume
+- action receipt replay
+- RNG persistence
+- session isolation
+- campaign time
+- rollback/checkpoints
+- resurrection/revival if implemented
+
+Also inspect the existing campaign modes:
+
+- Normal
+- Permadeath
+- Ironman
+
+Determine exactly what each currently does.
+
+Do not infer behavior from documentation if production code differs.
+
+============================================================
+NORMAL MODE
+============================================================
+
+Audit the existing Normal-mode rollback/checkpoint design.
+
+Known intended project direction:
+
+- death can trigger the existing authoritative recovery/rollback policy
+  in Normal mode
+- rollback must be Python-owned
+- narration must not perform rollback
+- receipt/RNG safety must be preserved
+- rollback must not duplicate actions, rewards, events, or time
+- pre-initiative checkpoint behavior already exists and should be
+  preserved unless evidence proves it incorrect
+
+Determine:
+
+- exact checkpoint creation point
+- exact state included
+- what state is intentionally excluded
+- how RNG state behaves
+- how action receipts behave
+- how journal/narrative/memory/world metadata behave
+- whether Campaign Time is restored consistently
+- whether scheduled/occurred events can duplicate
+- whether travel state can duplicate
+- whether inventory/XP/rewards can duplicate
+- whether save/resume after rollback is deterministic
+
+Do not redesign Normal mode in this phase.
+
+============================================================
+PERMADEATH MODE
+============================================================
+
+Audit exactly what Permadeath currently means.
+
+Determine:
+
+- whether character death is final
+- what remains persisted
+- whether the campaign remains accessible
+- whether resurrection is permitted or prohibited by mode
+- whether a replacement character path exists
+- whether dead-character actions are rejected
+- whether save/reload can accidentally restore a living state
+
+Do not invent replacement-character UX if it does not exist.
+
+============================================================
+IRONMAN MODE
+============================================================
+
+Audit exactly what Ironman currently means.
+
+Determine its difference from Permadeath.
+
+Inspect:
+
+- checkpoint behavior
+- rollback behavior
+- save behavior
+- death persistence
+- retry/replay behavior
+- campaign continuation behavior
+
+If Ironman and Permadeath are insufficiently distinguished in current
+production code, report that as a gap rather than inventing a
+distinction.
+
+============================================================
+CAMPAIGN TIME INTEGRATION — IMPORTANT
+============================================================
+
+Campaign Time now exists and is authoritative.
+
+This is one of the main reasons #08 was deferred.
+
+Audit all death-related time behavior.
+
+Especially verify the 2024 Stable recovery rule:
+
+A Stable creature at 0 HP that is not healed eventually regains
+1 HP after the authoritative rules-defined random duration.
+
+Determine how this should integrate with the existing Campaign Time
+scheduler/event system WITHOUT implementing it yet.
+
+The design must preserve:
+
+- Python-owned timing
+- authoritative RNG
+- save/resume
+- receipt replay
+- long actions
+- travel
+- scheduled events
+- interruption rules
+- combat/noncombat transition
+
+Do not use real-world wall-clock time.
+
+Closing the game must not advance recovery.
+
+Do not let Qwen decide when recovery occurs.
+
+Do not create a second scheduler if Campaign Time already owns timed
+world/mechanical progression.
+
+Identify whether the current implementation already handles this
+correctly or whether #08 requires a bounded integration.
+
+============================================================
+COMBAT INTEGRATION
+============================================================
+
+Audit against the already locked systems:
+
+03 Combat Lifecycle
+04 Action Economy
+05 Initiative
+06 Weapon & Attack
+07 Monster Combat
+
+Do not reopen those systems.
+
+Death System must consume their canonical results.
+
+Verify:
+
+- an unconscious/dead actor cannot take illegal actions
+- initiative ordering is not rerolled merely because someone becomes
+  unconscious
+- unconscious initiative slots behave consistently with death-save
+  scheduling
+- healing/recovery interacts correctly with the existing slot/order
+- dead creatures cannot act
+- monster target selection sees authoritative conditions
+- attacks against 0-HP/unconscious targets use existing attack/damage
+  owners rather than a second attack implementation
+- damage at 0 HP feeds the Death System exactly once
+- combat closure does not erase unresolved death-state mechanics
+
+============================================================
+IDEMPOTENCY / PERSISTENCE
+============================================================
+
+Audit:
+
+- duplicate request
+- receipt replay
+- retry after response loss
+- save/reload while unconscious
+- save/reload while Stable
+- save/reload with 1 or 2 death-save successes
+- save/reload with 1 or 2 failures
+- save/reload immediately after death
+- rollback followed by replay
+- process restart
+- multiple campaigns/sessions
+
+No repeated request may:
+
+- roll another Death Save
+- apply another failure
+- heal again
+- kill again
+- advance Campaign Time again
+- consume another RNG value
+- duplicate rollback
+- duplicate a death/recovery campaign event
+
+============================================================
+MODEL-CALL CONTRACT
+============================================================
+
+Preserve the maximum of 2 model calls per player turn.
+
+Death mechanics must require 0 model calls to resolve.
+
+Narration receives only resolved canonical facts.
+
+Rejected narration falls back deterministically with no model retry.
+
+No narration text may mutate:
+
+- HP
+- death saves
+- Stable
+- Unconscious
+- dead/alive state
+- campaign mode
+- checkpoint
+- rollback
+- Campaign Time
+
+============================================================
+PLAYER-FACING EXPERIENCE
+============================================================
+
+Do not implement UI in this phase.
+
+Audit what canonical information frontend can safely receive.
+
+Player-facing experience should feel like an RPG, not a developer
+dashboard.
+
+Do not expose technical wording such as:
+
+- Python
+- backend
+- model
+- canonical record
+- receipt
+- rollback implementation
+- RNG state
+
+But frontend presentation must never hide mechanically necessary player
+information such as meaningful death-save state when the rules/game
+mode require it.
+
+============================================================
+TEST AUDIT
+============================================================
+
+Locate existing Death System tests.
+
+Classify them into:
+
+A. current authoritative tests
+B. useful but incomplete tests
+C. legacy/outdated tests
+D. tests conflicting with 2024 rules
+E. missing coverage
+
+Do NOT run a huge repo-wide suite.
+
+You may inspect retained evidence.
+
+Only run a small targeted read-only-safe test selection if necessary to
+understand current behavior.
+
+Do not modify tests.
+
+Do not repair legacy tests.
+
+============================================================
+REQUIRED OUTPUT
+============================================================
+
+Return ONE report:
+
+# #08 DEATH SYSTEM LOCK — READ-ONLY AUDIT
+
+## 1. CURRENT OWNERS
+For each death-related mechanic:
+- production owner/file/function
+- authoritative state
+- persistence owner
+- RNG owner
+- time owner
+
+## 2. 2024 RULES BASELINE
+For each relevant rule:
+- exact rule behavior
+- source/book/page
+- current implementation status:
+  MATCH / PARTIAL / MISSING / CONFLICT
+
+## 3. CURRENT MODE BEHAVIOR
+### Normal
+### Permadeath
+### Ironman
+
+Describe only behavior supported by actual production evidence.
+
+## 4. CAMPAIGN TIME INTEGRATION
+Report:
+- current Stable recovery behavior
+- required 1d4-hour ownership
+- scheduler integration point
+- persistence/replay requirements
+- any current gap
+
+## 5. COMBAT INTEGRATION
+Report compatibility with:
+- Combat Lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Monster Combat
+
+Do not propose reopening them unless a direct invariant violation is
+proven.
+
+## 6. PERSISTENCE / IDEMPOTENCY
+Report exact behavior and gaps for:
+- save/resume
+- receipt replay
+- RNG
+- rollback
+- process restart
+- session isolation
+
+## 7. TEST COVERAGE
+List:
+- authoritative existing coverage
+- legacy/out-of-scope coverage
+- exact missing tests required for #08
+
+Do not propose unrelated tests.
+
+## 8. GAPS
+Classify every real gap:
+
+P0 — architecture/canonical corruption risk
+P1 — required #08 correctness
+P2 — desirable but non-blocking
+
+Do not create tasks for them.
+
+## 9. MINIMAL IMPLEMENTATION PLAN
+Give the smallest reviewable implementation needed to lock #08.
+
+Prefer hardening existing owners over adding new systems.
+
+Explicitly state what MUST NOT change.
+
+## 10. DECISION
+
+Return exactly one:
+
+READY FOR BOUNDED IMPLEMENTATION
+
+or
+
+BLOCKED — SOURCE/RULE CONFLICT
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+Do not implement anything.
+Do not create a follow-up task.
+Do not commit or push.
+STOP after the decision.

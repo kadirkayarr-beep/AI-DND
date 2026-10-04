@@ -1,0 +1,269 @@
+# #08 AUDIT ADDENDUM — SAVE / CAMPAIGN DELETION
+
+This is an ADDENDUM to the currently running:
+
+#08 — DEATH SYSTEM LOCK
+PHASE 1: READ-ONLY DESIGN / GAP AUDIT
+
+Do NOT restart the audit.
+
+Incorporate this additional scope into the same final #08 audit report.
+
+The original READ-ONLY restrictions remain fully in force.
+
+DO NOT implement anything yet.
+DO NOT modify files.
+DO NOT create a new task.
+DO NOT commit or push.
+
+============================================================
+ADDITIONAL SCOPE — SAVE / CAMPAIGN DELETION
+============================================================
+
+Current product gap:
+
+Players can currently accumulate campaign/save entries, but we also
+need a proper player-facing way to permanently delete an unwanted
+campaign/save.
+
+Audit the current implementation and determine the smallest safe
+implementation for this capability.
+
+This is SAVE MANAGEMENT.
+
+It must remain mechanically separate from character death.
+
+============================================================
+ARCHITECTURAL OWNERSHIP
+============================================================
+
+Deletion of persisted campaign/save data must be authoritative on the
+Python/backend persistence side.
+
+Frontend may:
+
+- display saves
+- let the player select one
+- request deletion
+- ask for confirmation
+- update presentation after confirmed success
+
+Frontend must NOT directly create persistence truth or pretend that a
+save was deleted when authoritative persistence still contains it.
+
+Qwen has no authority over save deletion.
+
+No model call should be required.
+
+============================================================
+AUDIT CURRENT OWNERS
+============================================================
+
+Locate and report:
+
+- campaign/save persistence owner
+- stable campaign/save identifier
+- save creation owner
+- save listing owner
+- save loading owner
+- active campaign/session ownership
+- existing API routes related to save management
+- existing frontend save/campaign selection UI
+- whether any delete route/function already exists
+- database tables/relationships belonging to a campaign
+- related checkpoints
+- action receipts
+- campaign events
+- journal/history/memory records
+- any other campaign-owned persisted data
+
+Determine whether deleting the parent campaign already has safe
+database cascade behavior or whether dependent records require explicit
+authoritative cleanup.
+
+Do NOT change database schema during this audit.
+
+============================================================
+REQUIRED FUTURE BEHAVIOR
+============================================================
+
+The bounded implementation should eventually allow:
+
+1. Player selects one specific campaign/save.
+2. Deletion targets its stable authoritative ID, not only its display
+   name.
+3. Player receives an explicit destructive-action confirmation.
+4. Only after confirmation does frontend send the delete request.
+5. Python/backend validates the target and performs the deletion.
+6. Successful deletion removes the complete intended persisted campaign
+   boundary.
+7. Other campaigns remain completely untouched.
+8. Deleted campaign cannot subsequently be loaded.
+9. Deleted campaign does not reappear after process restart.
+10. Stale browser/session references fail safely.
+11. A stale reference must NOT recreate the deleted campaign.
+12. Repeating the same delete request must be safe and deterministic.
+13. Unknown/invalid campaign IDs must never affect another campaign.
+14. Persistence failure must not be presented to the player as success.
+15. Session isolation must remain intact.
+
+============================================================
+ACTIVE CAMPAIGN
+============================================================
+
+Explicitly audit what happens if the player attempts to delete the
+campaign that is currently active.
+
+Recommend the smallest safe authoritative policy.
+
+The system must not leave an active session pointing at deleted
+canonical state.
+
+Do not invent a complicated campaign manager if one is unnecessary.
+
+============================================================
+PLAYER CONFIRMATION
+============================================================
+
+Deletion is destructive.
+
+The future UI must require explicit confirmation before the destructive
+request.
+
+Player-facing wording should remain immersive and simple.
+
+For example:
+
+"Bu macerayı kalıcı olarak silmek istediğine emin misin?"
+
+A similarly clear confirmation is acceptable.
+
+Do NOT expose terms such as:
+
+- database
+- backend
+- canonical state
+- persistence record
+- server
+- Python
+
+to the player.
+
+============================================================
+DEATH SYSTEM SEPARATION
+============================================================
+
+This distinction is mandatory.
+
+SAVE DELETION != CHARACTER DEATH.
+
+Do NOT:
+
+- delete a campaign automatically because the character dies
+- use save deletion to implement Normal-mode rollback
+- make Permadeath automatically mean database deletion
+- make Ironman automatically mean database deletion
+
+unless an already-established explicit project contract independently
+requires one of those behaviors.
+
+If no such contract exists, preserve campaign/save data after character
+death.
+
+Normal / Permadeath / Ironman determine gameplay consequences.
+
+Manual Save Delete is a separate explicit player account/save-management
+operation.
+
+============================================================
+IDEMPOTENCY / FAILURE SAFETY
+============================================================
+
+Audit the future deletion contract for:
+
+- duplicate delete request
+- retry after response loss
+- process restart
+- stale frontend state
+- stale active session
+- unknown campaign ID
+- already-deleted campaign ID
+- persistence failure during deletion
+- multiple campaigns
+- multiple sessions
+
+A retry must never delete a different campaign.
+
+============================================================
+MINIMUM FUTURE TEST MATRIX
+============================================================
+
+Add only the required future coverage to the #08 implementation plan.
+
+At minimum:
+
+1. selected campaign is deleted
+2. unrelated campaigns remain byte/state-equivalent
+3. deleted campaign cannot be loaded
+4. deleted campaign remains deleted after restart/reload
+5. repeated delete is deterministic and safe
+6. unknown ID cannot affect another campaign
+7. active-campaign deletion is handled safely
+8. stale session cannot mutate/recreate deleted campaign
+9. persistence failure cannot report false success
+10. deletion requires explicit frontend confirmation
+11. Normal-mode death cannot invoke save deletion
+12. Permadeath death cannot invoke save deletion unless an explicit
+    pre-existing contract requires it
+13. Ironman death cannot invoke save deletion unless an explicit
+    pre-existing contract requires it
+
+Do not create a huge unrelated persistence test suite.
+
+============================================================
+FINAL #08 REPORT ADDITION
+============================================================
+
+Add one additional section to the ORIGINAL requested audit report:
+
+## SAVE MANAGEMENT / DELETE SAVE
+
+Report:
+
+- current persistence owner
+- current save/campaign ID
+- current API support
+- current frontend support
+- active-session behavior
+- dependent persisted data
+- cascade/cleanup behavior
+- current deletion capability: PRESENT / PARTIAL / MISSING
+- architecture risks
+- smallest safe implementation
+- exact required tests
+
+Include any real issue in the existing P0/P1/P2 gap classification.
+
+Include the smallest required save-delete work in the existing:
+
+## 9. MINIMAL IMPLEMENTATION PLAN
+
+But keep it clearly separated from Death System mechanics.
+
+The original final decision remains:
+
+READY FOR BOUNDED IMPLEMENTATION
+
+or
+
+BLOCKED — SOURCE/RULE CONFLICT
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+Do not implement the save deletion now.
+
+Finish the existing #08 audit with this addendum incorporated.
+
+STOP after the original final decision.
