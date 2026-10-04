@@ -71,3 +71,7 @@ __pycache__/
 # Private keys / credentials
 *.pem
 *.key
+
+# Retain suite logs alongside their durable JSON evidence, even where *.log
+# is ignored by a machine-wide git configuration.
+!ai-dnd/docs/evidence/suite-runs/**/output.log
