@@ -1,0 +1,73 @@
+test_rest_replay_and_failed_save_restores_time_and_rng (api.tests.test_campaign_time.ClockApiTests.test_rest_replay_and_failed_save_restores_time_and_rng) ... ok
+test_wait_atomic_replay_conflict_and_restart (api.tests.test_campaign_time.ClockApiTests.test_wait_atomic_replay_conflict_and_restart) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_calendar_rollovers_and_no_wall_clock (api.tests.test_campaign_time.ClockTests.test_calendar_rollovers_and_no_wall_clock) ... ok
+test_encounter_inside_window_and_hidden_projections (api.tests.test_campaign_time.ClockTests.test_encounter_inside_window_and_hidden_projections) ... ok
+test_first_scene_anchor_and_canonical_start (api.tests.test_campaign_time.ClockTests.test_first_scene_anchor_and_canonical_start) ... ok
+test_frontend_cannot_supply_time_and_narration_cannot_invent_duration (api.tests.test_campaign_time.ClockTests.test_frontend_cannot_supply_time_and_narration_cannot_invent_duration) ... ok
+test_round_once_partial_end_and_normal_rollback_rng (api.tests.test_campaign_time.ClockTests.test_round_once_partial_end_and_normal_rollback_rng) ... ok
+test_save_resume_isolation_and_corrupt_time_rejection (api.tests.test_campaign_time.ClockTests.test_save_resume_isolation_and_corrupt_time_rejection) ... ok
+test_task_check_uses_existing_core_and_public_result (api.tests.test_campaign_time.ClockTests.test_task_check_uses_existing_core_and_public_result) ... ok
+test_travel_dice_no_event_and_decisions (api.tests.test_campaign_time.ClockTests.test_travel_dice_no_event_and_decisions) ... ok
+test_wait_task_budget_and_sleep_rest (api.tests.test_campaign_time.ClockTests.test_wait_task_budget_and_sleep_rest) ... ok
+test_window_long_action_missed_aftermath_and_idempotent_effect (api.tests.test_campaign_time.ClockTests.test_window_long_action_missed_aftermath_and_idempotent_effect) ... ok
+test_event_combat_handoff_uses_public_combat_contract (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_event_combat_handoff_uses_public_combat_contract) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_failed_save_rolls_back_time_event_progress_rng_and_receipt (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_failed_save_rolls_back_time_event_progress_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_interrupted_return_save_resume_and_action_replay_charge_once (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_save_resume_and_action_replay_charge_once) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_pending_task_receipt_lost_response_and_restart_are_atomic (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_pending_task_receipt_lost_response_and_restart_are_atomic) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_active_arrival_and_late_aftermath_never_assume_success (api.tests.test_campaign_time_edges.EventEdgeTests.test_active_arrival_and_late_aftermath_never_assume_success) ... ok
+test_calendar_and_windows_cross_midnight_festival_month_and_year (api.tests.test_campaign_time_edges.EventEdgeTests.test_calendar_and_windows_cross_midnight_festival_month_and_year) ... ok
+test_chains_recheck_prerequisites_and_followups_once (api.tests.test_campaign_time_edges.EventEdgeTests.test_chains_recheck_prerequisites_and_followups_once) ... ok
+test_cycles_and_missing_dependencies_diagnose_without_mutating_canon (api.tests.test_campaign_time_edges.EventEdgeTests.test_cycles_and_missing_dependencies_diagnose_without_mutating_canon) ... Scheduled event dependency cycle/missing reference; blocked_count=3
+ok
+test_event_processing_no_time_autoforward_and_old_v1_fields_load (api.tests.test_campaign_time_edges.EventEdgeTests.test_event_processing_no_time_autoforward_and_old_v1_fields_load) ... ok
+test_forced_route_obstacle_preserves_progress_until_player_reroutes (api.tests.test_campaign_time_edges.EventEdgeTests.test_forced_route_obstacle_preserves_progress_until_player_reroutes) ... ok
+test_hidden_context_journal_npc_projection_and_legitimate_aftermath (api.tests.test_campaign_time_edges.EventEdgeTests.test_hidden_context_journal_npc_projection_and_legitimate_aftermath) ... ok
+test_hostile_fact_uses_existing_combat_then_returns_to_decision (api.tests.test_campaign_time_edges.EventEdgeTests.test_hostile_fact_uses_existing_combat_then_returns_to_decision) ... ok
+test_interrupted_rest_does_not_grant_unearned_healing_or_resources (api.tests.test_campaign_time_edges.EventEdgeTests.test_interrupted_rest_does_not_grant_unearned_healing_or_resources) ... ok
+test_interrupted_return_keeps_retrace_progress_without_extra_dice (api.tests.test_campaign_time_edges.EventEdgeTests.test_interrupted_return_keeps_retrace_progress_without_extra_dice) ... ok
+test_interruptible_task_keeps_actual_progress_and_remaining_budget (api.tests.test_campaign_time_edges.EventEdgeTests.test_interruptible_task_keeps_actual_progress_and_remaining_budget) ... ok
+test_long_action_crosses_many_windows_without_retroactive_splitting (api.tests.test_campaign_time_edges.EventEdgeTests.test_long_action_crosses_many_windows_without_retroactive_splitting) ... ok
+test_long_skip_bulk_order_decision_and_no_travel_rolls (api.tests.test_campaign_time_edges.EventEdgeTests.test_long_skip_bulk_order_decision_and_no_travel_rolls) ... ok
+test_noninterruptive_and_remote_decisions_do_not_stop_actions (api.tests.test_campaign_time_edges.EventEdgeTests.test_noninterruptive_and_remote_decisions_do_not_stop_actions) ... ok
+test_normal_death_checkpoint_retains_pending_progress_but_not_rng (api.tests.test_campaign_time_edges.EventEdgeTests.test_normal_death_checkpoint_retains_pending_progress_but_not_rng) ... ok
+test_same_time_independent_events_survive_a_decision_stop (api.tests.test_campaign_time_edges.EventEdgeTests.test_same_time_independent_events_survive_a_decision_stop) ... ok
+test_simultaneous_dependency_priority_causal_location_and_stable_order (api.tests.test_campaign_time_edges.EventEdgeTests.test_simultaneous_dependency_priority_causal_location_and_stable_order) ... ok
+test_travel_rolls_persist_and_repetition_exclusion_is_not_permanent (api.tests.test_campaign_time_edges.EventEdgeTests.test_travel_rolls_persist_and_repetition_exclusion_is_not_permanent) ... ok
+
+----------------------------------------------------------------------
+Ran 35 tests in 1.539s
+
+OK

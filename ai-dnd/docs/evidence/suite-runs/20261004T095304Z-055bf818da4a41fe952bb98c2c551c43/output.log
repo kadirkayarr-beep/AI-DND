@@ -1,0 +1,47 @@
+test_interrupted_return_save_resume_and_action_replay_charge_once (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_save_resume_and_action_replay_charge_once) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+FAIL
+test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+FAIL
+
+======================================================================
+FAIL: test_interrupted_return_save_resume_and_action_replay_charge_once (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_save_resume_and_action_replay_charge_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_campaign_time_edges.py", line 464, in test_interrupted_return_save_resume_and_action_replay_charge_once
+    record = await self.prepare_return()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_campaign_time_edges.py", line 372, in prepare_return
+    self.assertEqual(session.world_state["flags"]["pending_destination"], "forest")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 'forest'
+
+======================================================================
+FAIL: test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_campaign_time_edges.py", line 477, in test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload
+    record = await self.prepare_return()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_campaign_time_edges.py", line 372, in prepare_return
+    self.assertEqual(session.world_state["flags"]["pending_destination"], "forest")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: None != 'forest'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.303s
+
+FAILED (failures=2)

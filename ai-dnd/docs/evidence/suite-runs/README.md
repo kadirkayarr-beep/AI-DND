@@ -36,3 +36,30 @@ See [the evidence contract](../../regression-evidence.md).
 
 HTTP acceptance evidence remains at `../bounded-encounter-http.json`, unchanged
 and separate from these suite records. No live acceptance was rerun.
+
+## Interrupted return persistence and replay
+
+- `20261004T095418Z-52c801b635484251a21a0b42858db8ea/run.json`:
+  **35/35 pass**, no skips, exit status **0**. Command (from `ai-dnd`):
+  `python scripts/run_regression_evidence.py api.tests.test_campaign_time api.tests.test_campaign_time_edges`.
+  The matching `output.log` and manifest retain exact test IDs and source fingerprints.
+- The two new offline API regressions combine an interrupted return with campaign
+  autosave, explicit save, a fresh store/manager/API resume, same-action replay,
+  encounter resolution, and completion of the remaining 240 seconds. Receipt
+  replay changes only the transport session ID after resume and never reruns
+  the engine, saves another turn, changes current state/history, or rolls dice.
+- The failed-autosave case proves the engine already advanced the return before
+  the save failed, then checks restoration of engine state, clock, RNG, messages,
+  journal, narrative memory, persisted history, and absence of a failed receipt.
+  Retrying the same action ID succeeds once and remains replayable after reload.
+- `20261004T095355Z-4c5b5895978245098bdad2359282745f/run.json`:
+  focused development run, **2/2 pass**, exit status **0**.
+- `20261004T095304Z-055bf818da4a41fe952bb98c2c551c43/run.json`:
+  initial development run, **0/2 pass**, two fixture expectation failures, exit
+  status **1**. The fixture initially assumed travel created a pending goal;
+  it now explicitly sets that goal before travel and checks its persistence.
+  This failed attempt is retained, not replaced by the passing runs.
+
+These runs use an in-process API, temporary campaign databases, and a model
+adapter that rejects model calls. They are not live HTTP acceptance evidence;
+no live acceptance or provenance work was run or changed.

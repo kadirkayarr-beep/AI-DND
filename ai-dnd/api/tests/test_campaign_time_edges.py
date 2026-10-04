@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
+import httpx
 import campaign_time as clock
 import game
 import scheduled_events as events
@@ -355,6 +356,164 @@ class EventEdgeTests(unittest.TestCase):
 class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = v1.ClockApiTests.asyncSetUp
     asyncTearDown = v1.ClockApiTests.asyncTearDown
+
+    async def prepare_return(self):
+        """Persist an outward midpoint encounter and the upcoming return stop."""
+        record = self.manager.get(self.sid)
+        session = record.game_session
+        session.world_state["flags"]["pending_destination"] = "forest"
+        with patch.object(session.rng, "randint", side_effect=[1, 1, 1]) as dice:
+            outward = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json={
+                "message": "Ormana gidiyorum.", "action_id": str(uuid4()),
+            })
+        self.assertEqual(outward.status_code, 200, outward.text)
+        self.assertEqual(dice.call_count, 3)
+        self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 300)
+        self.assertEqual(session.world_state["journey"]["status"], "INTERRUPTED")
+        self.assertEqual(session.world_state["flags"]["pending_destination"], "forest")
+        event(session, "saved-return-stop", 360, 400, behavior="INTERRUPTIVE",
+              requires_decision=True, route_destination="tavern",
+              summary="Dönüş yolunda bir yolcu var.", effects=[flag("saved-return-stop")])
+        self.manager.save_campaign(self.created["campaign_id"])
+        return record
+
+    def assert_pending_return(self, session):
+        world = session.world_state
+        journey = world["journey"]
+        self.assertTrue(journey["returning"])
+        self.assertEqual(journey["destination"], "tavern")
+        self.assertEqual(journey["status"], "INTERRUPTED")
+        self.assertEqual(journey["stages"], [300])
+        self.assertEqual(journey["stage_index"], 0)
+        self.assertEqual(journey["stage_spent_seconds"], 60)
+        self.assertEqual(sum(journey["stages"][journey["stage_index"]:]) -
+                         journey["stage_spent_seconds"], 240)
+        self.assertTrue(journey["stage_checked"])
+        self.assertEqual(world["location"], "tavern")
+        # The selected goal stays pending until arrival, even while retracing.
+        self.assertEqual(world["flags"]["pending_destination"], "forest")
+        self.assertEqual(world["campaign_time"]["elapsed_seconds"], 360)
+        pending = events.pending_events(world)
+        self.assertEqual(len(pending), 1)
+        self.assertEqual(pending[0]["event_id"], "saved-return-stop")
+        self.assertEqual(pending[0]["decision_status"], "PENDING")
+        self.assertTrue(world["flags"]["scheduled:saved-return-stop"])
+        self.assertEqual(pending[0]["canonical_result"]["effects_applied"], 1)
+
+    async def assert_return_replay(self, http, manager, sid, request, response):
+        """A replay may replace only the transport session ID after a restart."""
+        record = manager.get(sid)
+        session = record.game_session
+        saved = copy.deepcopy(session.serialize_game_state())
+        rng = session.rng.getstate()
+        journal = copy.deepcopy(record.journal)
+        stored = self.store.get_campaign(self.created["campaign_id"])
+        receipt = copy.deepcopy(manager.get_turn_action(record, request["action_id"]))
+        self.assertEqual(receipt["response"], response)
+        with patch.object(session, "run_player_turn", side_effect=AssertionError("Replay ran the engine")), \
+             patch.object(session.rng, "randint", side_effect=AssertionError("Replay rolled travel dice")), \
+             patch.object(manager, "autosave_turn", side_effect=AssertionError("Replay saved another turn")):
+            replay = await http.post(f"/api/game/sessions/{sid}/turn", json=request)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), {**response, "session_id": sid})
+        self.assertEqual(session.serialize_game_state(), saved)
+        self.assertEqual(session.rng.getstate(), rng)
+        self.assertEqual(record.journal, journal)
+        self.assertEqual(self.store.get_campaign(self.created["campaign_id"]), stored)
+        self.assertEqual(manager.get_turn_action(record, request["action_id"]), receipt)
+
+    async def assert_reloaded_return(self, request, response, saved_session):
+        """Use a fresh store, manager and in-process API, never the live service."""
+        store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=store)
+        app = v1.create_app(session_manager=manager,
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                     base_url="http://test") as http:
+            resumed = await http.post(f"/api/game/campaigns/{self.created['campaign_id']}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = manager.get(sid).game_session
+            self.assertIsNot(restored, saved_session)
+            self.assert_pending_return(restored)
+            for key in ("journey", "campaign_time", "scheduled_events", "flags"):
+                self.assertEqual(restored.world_state[key], saved_session.world_state[key])
+            self.assertEqual(resumed.json()["state"]["journey"], response["state"]["journey"])
+            self.assertEqual(resumed.json()["state"]["pending_event_decisions"],
+                             response["state"]["pending_event_decisions"])
+            await self.assert_return_replay(http, manager, sid, request, response)
+            with patch.object(restored.rng, "randint", side_effect=AssertionError("Return rerolled traversed road")):
+                decision = await http.post(f"/api/game/sessions/{sid}/turn", json={
+                    "message": "Devam etmeyi seçiyorum.", "action_id": str(uuid4()),
+                })
+                self.assertEqual(decision.status_code, 200, decision.text)
+                self.assertEqual(restored.world_state["campaign_time"]["elapsed_seconds"], 360)
+                self.assertEqual(restored.world_state["journey"]["stage_spent_seconds"], 60)
+                self.assertEqual(restored.world_state["scheduled_events"][0]["decision_status"], "RESOLVED")
+                completed = await http.post(f"/api/game/sessions/{sid}/turn", json={
+                    "message": "Yolculuğa devam ediyorum.", "action_id": str(uuid4()),
+                })
+                self.assertEqual(completed.status_code, 200, completed.text)
+            self.assertEqual(restored.world_state["campaign_time"]["elapsed_seconds"], 600)
+            self.assertEqual(restored.world_state["journey"]["status"], "ARRIVED")
+            self.assertEqual(restored.world_state["location"], "tavern")
+            self.assertIsNone(restored.world_state["flags"]["pending_destination"])
+            self.assertIsNone(completed.json()["state"]["journey"])
+            # Even an old return receipt after arrival must not restore its old state.
+            await self.assert_return_replay(http, manager, sid, request, response)
+
+    async def test_interrupted_return_save_resume_and_action_replay_charge_once(self):
+        record = await self.prepare_return()
+        session = record.game_session
+        rng = session.rng.getstate()
+        request = {"message": "Geri dönüyorum.", "action_id": str(uuid4())}
+        with patch.object(session.rng, "randint", side_effect=AssertionError("Return must not roll travel dice")):
+            first = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=request)
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assert_pending_return(session)
+        self.assertEqual(session.rng.getstate(), rng)
+        await self.assert_return_replay(self.http, self.manager, self.sid, request, first.json())
+        # An explicit save must preserve the autosaved response receipt.
+        self.manager.save_campaign(self.created["campaign_id"])
+        await self.assert_reloaded_return(request, first.json(), session)
+
+    async def test_interrupted_return_failed_autosave_rolls_back_before_retry_and_reload(self):
+        record = await self.prepare_return()
+        session = record.game_session
+        before = copy.deepcopy(session.serialize_game_state())
+        rng = session.rng.getstate()
+        messages = copy.deepcopy(session.messages)
+        journal = copy.deepcopy(record.journal)
+        memory = copy.deepcopy(record.narrative_memory)
+        stored = self.store.get_campaign(self.created["campaign_id"])
+        request = {"message": "Geri dönüyorum.", "action_id": str(uuid4())}
+
+        def reject_interrupted_return(*args, **kwargs):
+            # Prove the failure happens after the return advances, not at an early gate.
+            self.assert_pending_return(session)
+            self.assertEqual(kwargs["turn_action_receipt"]["action_id"], request["action_id"])
+            raise CampaignStorageError("test return autosave failure")
+
+        with patch.object(session.rng, "randint", side_effect=AssertionError("Return must not roll travel dice")), \
+             patch.object(self.store, "save_campaign", side_effect=reject_interrupted_return) as save:
+            failed = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=request)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(session.serialize_game_state(), before)
+        self.assertEqual(session.rng.getstate(), rng)
+        self.assertEqual(session.messages, messages)
+        self.assertEqual(record.journal, journal)
+        self.assertEqual(record.narrative_memory, memory)
+        self.assertEqual(self.store.get_campaign(self.created["campaign_id"]), stored)
+        self.assertIsNone(self.manager.get_turn_action(record, request["action_id"]))
+        with patch.object(session.rng, "randint", side_effect=AssertionError("Retry must not roll travel dice")):
+            retried = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=request)
+        self.assertEqual(retried.status_code, 200, retried.text)
+        self.assert_pending_return(session)
+        self.assertEqual(len(self.store.get_campaign(self.created["campaign_id"]).history),
+                         len(stored.history) + 1)
+        await self.assert_return_replay(self.http, self.manager, self.sid, request, retried.json())
+        await self.assert_reloaded_return(request, retried.json(), session)
 
     async def test_event_combat_handoff_uses_public_combat_contract(self):
         session = self.manager.get(self.sid).game_session
