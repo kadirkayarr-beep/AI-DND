@@ -583,6 +583,8 @@ def react(session, opportunity_id, actor="player"):
         r["ready_movement_grant"] = r.get("ready_movement_grant", 0) + cost
         r["movement_used"] += cost
         r["movement_available"] = max(r["movement_used"], movement_limit(session, actor))
+        import bounded_encounter
+        bounded_encounter.unlocated_move(session, actor)
         result = {"kind": "move", "distance_ft": distance, "movement_cost_ft": cost}
     r["reaction_spent"] = True
     r["ready"] = None

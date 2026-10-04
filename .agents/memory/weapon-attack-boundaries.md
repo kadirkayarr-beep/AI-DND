@@ -14,3 +14,16 @@ Keep class-specific feature implementation separate from the shared attack exten
 **Why:** The owner explicitly excluded class-feature bundles, Monster Combat, Spell Scope and UI redesign from this weapon-mechanics phase.
 
 **How to apply:** Let existing feature owners provide trusted grants and overrides; do not infer eligibility from class names or add adjacent systems merely to demonstrate a weapon property.
+
+Finite authored geometry must lose its authority after any successful
+displacement whose endpoint is unknown, including reactions and species
+teleports. Spending movement or an ability use does not establish a position.
+
+**Why:** Passing ordinary-movement and native encounter tests did not cover
+cross-owner movement; stale anchors could still recreate known distance and
+visibility after supported displacement.
+
+**How to apply:** Invalidate at the actual successful movement owner, covering
+direct and structured calls. Reuse the existing bounded invalidation; never
+invent an endpoint. Failed actions and transaction rollback must preserve the
+previous geometry, resources and RNG.

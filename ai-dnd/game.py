@@ -3509,6 +3509,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         _species_bonus_action()
         state["giant_ancestry_uses_remaining"] -= 1
         state["movement_effect"] = {"kind": "teleport", "distance_ft": 30}
+        import bounded_encounter
+        bounded_encounter.unlocated_move(_session(), "player")
         effects = {
             "teleport_distance_ft": 30,
             "ancestry_uses_remaining": state["giant_ancestry_uses_remaining"],

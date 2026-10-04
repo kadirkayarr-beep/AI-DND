@@ -270,5 +270,191 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         self.assertEqual(before, self.canonical())
 
 
+class MovementRegressionBase(NativeBase):
+    def assert_geometry_unknown(self):
+        world = self.session.world_state
+        actor = world["bounded_encounter"]["npc_id"]
+        self.assertNotIn("bounded_node_id", world["scene_state"]["player_position"])
+        self.assertNotIn(actor, world["monster_routes"])
+        self.assertNotIn(actor, world["monster_perception"])
+        self.assertNotIn(f"{actor}|player", world["attack_environment"]["pairs"])
+        self.assertNotIn(f"player|{actor}", world["attack_environment"]["pairs"])
+        self.assertIsNone(owner.public_projection(self.session)["visible_opponent"])
+        for observer, target in ((actor, "player"), ("player", actor)):
+            with self.assertRaisesRegex(Exception, "distance"):
+                weapon_attack.pair(self.session, observer, target)
+        owner.refresh(self.session)
+        self.assertNotIn(actor, world["monster_perception"])
+        self.assertNotIn(f"{actor}|player", world["attack_environment"]["pairs"])
+
+    def assert_saved_replay(self, body, original, *, species_endpoint=False):
+        before = self.canonical()
+        self.assertEqual(self.client.post(
+            f"/api/campaigns/{self.campaign['campaign_id']}/save"
+        ).status_code, 200)
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
+        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None))
+        response = self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.sid = response.json()["session_id"]
+        self.assertEqual(before, self.canonical())
+        self.assert_geometry_unknown()
+        history = self.client.get(f"/api/campaigns/{self.campaign['campaign_id']}").json()["history"]
+        messages = copy.deepcopy(self.session.messages)
+        endpoint = "species-actions" if species_endpoint else "turn"
+        replay = self.client.post(f"/api/sessions/{self.sid}/{endpoint}", json=body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), dict(original, session_id=self.sid))
+        self.assertEqual(before, self.canonical())
+        self.assertEqual(messages, self.session.messages)
+        self.assertEqual(history, self.client.get(
+            f"/api/campaigns/{self.campaign['campaign_id']}"
+        ).json()["history"])
+
+
+class ReadiedMovementRegressionTests(MovementRegressionBase):
+    def prepare_movement(self):
+        self.walk_to_contact()
+        actor = self.session.world_state["bounded_encounter"]["npc_id"]
+        self.call("Hareket için hazırlanıyorum", [{
+            "kind": "ready", "trigger": {"event": "actor_attacks", "actor_id": actor},
+            "response": {"kind": "move", "distance_ft": 10},
+        }])
+        self.call("Turumu bitiriyorum", [{"kind": "end_turn"}])
+        return action_economy.ensure(self.session)["player"]["opportunity"]["id"]
+
+    def test_http_readied_move_invalidates_geometry_and_survives_resume_replay(self):
+        identity = self.prepare_movement()
+        body, result = self.call("Tepkimi kullanıyorum", [{
+            "kind": "react", "opportunity_id": identity,
+        }])
+        reaction = result["combat_result"]["economy_steps"][0]["response"]
+        self.assertEqual(reaction, {"kind": "move", "distance_ft": 10, "movement_cost_ft": 10})
+        self.assert_geometry_unknown()
+        self.assert_saved_replay(body, result)
+
+    def test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources(self):
+        self.prepare_movement()
+        before = self.canonical()
+        with self.assertRaisesRegex(Exception, "matching"):
+            action_economy.execute(self.session, {"steps": [{
+                "kind": "react", "opportunity_id": "not-the-opportunity",
+            }]})
+        self.assertEqual(before, self.canonical())
+        self.assertIn("bounded_node_id", self.session.world_state["scene_state"]["player_position"])
+
+    def test_failed_compound_reaction_restores_geometry_resources_and_rng(self):
+        identity = self.prepare_movement()
+        before = self.canonical()
+        with self.assertRaises(Exception):
+            action_economy.execute(self.session, {"steps": [
+                {"kind": "react", "opportunity_id": identity},
+                {"kind": "attack", "target_id": "foreign"},
+            ]})
+        self.assertEqual(before, self.canonical())
+
+    def test_newly_unavailable_readied_movement_keeps_known_geometry(self):
+        identity = self.prepare_movement()
+        # Negative fixture: the actor becomes unable to move after readying.
+        self.session.character.setdefault("conditions", []).append("grappled")
+        before = self.canonical()
+        with self.assertRaisesRegex(Exception, "movement"):
+            action_economy.execute(self.session, {"steps": [
+                {"kind": "react", "opportunity_id": identity},
+            ]})
+        self.assertEqual(before, self.canonical())
+
+
+class CloudJauntRegressionTests(MovementRegressionBase):
+    def create_campaign(self):
+        # Normal character choices, not injected species/resources/geometry.
+        response = self.client.post("/api/campaigns", json={
+            "name": "Disposable Cloud Goliath regression", "campaign_start": self.start,
+            "character": {
+                "mode": "custom", "name": "Cloud traveller", "species": "Goliath",
+                "giant_ancestry": "cloud", "class": "Fighter", "background": "Soldier",
+                "alignment": "Neutral Good", "ability_score_method": "standard_array",
+                "ability_scores": {"strength": 15, "dexterity": 14, "constitution": 13,
+                                   "wisdom": 12, "intelligence": 10, "charisma": 8},
+                "background_ability_bonuses": {"strength": 2, "constitution": 1},
+                "proficient_skills": ["Athletics", "Intimidation", "Perception", "Survival"],
+                "fighting_style": "Defense", "equipment_package": "A",
+                "background_equipment_option": "A",
+                "languages": ["Common", "Dwarvish", "Elvish"],
+            },
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    def test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets(self):
+        self.walk_to_contact()
+        uses = self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"]
+        budget = copy.deepcopy(action_economy.ensure(self.session)["player"])
+        body, result = self.call("Işınlanıyorum", [{"kind": "species", "ability": "cloud_jaunt"}])
+        after = action_economy.ensure(self.session)["player"]
+        self.assertTrue(after["bonus_action_spent"])
+        self.assertEqual(after["base_action_spent"], budget["base_action_spent"])
+        self.assertEqual(after["movement_used"], budget["movement_used"])
+        self.assertEqual(self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"],
+                         uses - 1)
+        self.assert_geometry_unknown()
+        self.assert_saved_replay(body, result)
+
+    def test_species_endpoint_outside_combat_also_invalidates_geometry(self):
+        self.enter()
+        body = {"action": "cloud_jaunt", "action_id": str(uuid4())}
+        uses = self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"]
+        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"],
+                         uses - 1)
+        self.assertFalse(self.session.world_state["combat"]["active"])
+        self.assert_geometry_unknown()
+        self.assert_saved_replay(body, response.json(), species_endpoint=True)
+
+    def test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources(self):
+        self.walk_to_contact()
+        # Negative fixture: consume the shared Bonus Action, not the teleport.
+        action_economy.use_species_bonus(self.session, "cloud_jaunt")
+        before = self.canonical()
+        with self.assertRaises(Exception):
+            action_economy.execute(self.session, {"steps": [
+                {"kind": "species", "ability": "cloud_jaunt"},
+            ]})
+        self.assertEqual(before, self.canonical())
+        self.assertIn("bounded_node_id", self.session.world_state["scene_state"]["player_position"])
+
+    def test_exhausted_cloud_jaunt_does_not_invalidate_geometry(self):
+        self.enter()
+        # Negative fixture only: exhaust uses, never supply geometry.
+        self.session.character["species_trait_state"]["giant_ancestry_uses_remaining"] = 0
+        before = self.canonical()
+        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json={
+            "action": "cloud_jaunt", "action_id": str(uuid4()),
+        })
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertEqual(before, self.canonical())
+
+    def test_compound_failure_restores_cloud_jaunt_anchor_and_use(self):
+        self.walk_to_contact()
+        before = self.canonical()
+        with self.assertRaises(Exception):
+            action_economy.execute(self.session, {"steps": [
+                {"kind": "species", "ability": "cloud_jaunt"},
+                {"kind": "attack", "target_id": "foreign"},
+            ]})
+        self.assertEqual(before, self.canonical())
+
+    def test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng(self):
+        world = copy.deepcopy(self.session.world_state)
+        rng = self.session.rng.getstate()
+        response = self.client.post(f"/api/sessions/{self.sid}/species-actions", json={
+            "action": "cloud_jaunt", "action_id": str(uuid4()),
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(world, self.session.world_state)
+        self.assertEqual(rng, self.session.rng.getstate())
+
+
 if __name__ == "__main__":
     unittest.main()

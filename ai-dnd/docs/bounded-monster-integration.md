@@ -145,8 +145,29 @@ receipt architecture yapılmadı. Tek NPC, tek authored rota ve tek bounded
 senaryo tamamlandı. Serbest hareket için endpoint veya desteklenmeyen
 Training skill check üretilmez.
 
+## Dar hareket düzeltmesi — 2026-10-04
+
+Son salt-okunur inceleme, Ready hareketi ve Cloud Jaunt sonrasında eski
+bounded anchor'ın korunabildiğini buldu. Kullanıcının dar kapsam onayıyla,
+bu iki başarılı hareket sahibi mevcut bounded konum geçersizleştirmesine
+bağlandı. Endpoint, mesafe, görünürlük veya rota uydurulmaz; başarısız
+işlemler konumu geçersizleştirmez. Action/Reaction/Bonus Action ve yetenek
+kullanımı kuralları değiştirilmedi.
+
+Güncel unique regresyon koşusu **563/563 PASS**, failures/errors/skips
+**0/0/0**: yukarıdaki 553 test ve 10 yeni hareket regresyonu. Log:
+`/tmp/bounded-movement-fix-regression.log`. Test ID'leri tekilleştirildi.
+Yeni kontroller normal HTTP Ready/react, structured Cloud Jaunt ve combat
+dışı species endpoint'ini; fresh manager/app ile save/resume, canonical
+state/RNG ve receipt replay'i kapsar. Negatif kontroller yalnız başarısızlık
+ve rollback koşullarını sınar; replacement geometry sağlamaz. Bounded
+binding bulunmayan campaign'de Cloud Jaunt world/RNG'yi değiştirmez.
+Bu koşu yeni bir canlı ağ veya ayrı-process kabul çalışması değildir.
+
 ## Gerekli follow-up
 
-Bu bounded kabul kriterleri için **blocker yok**. Genel Monster Manual veya
-genel dünya navigation/perception kapsamı ayrı kullanıcı onayı gerektirir;
-bu teslimatın tamamlanma koşulu değildir.
+İki hareket/geometri bulgusu düzeltildi ve regresyonları geçti. Ancak önceki
+incelemenin commit oluşturma mekanizmasına ilişkin **PROVENANCE UNRESOLVED**
+sonucu bu kod düzeltmesiyle çözülmüş değildir. Bu belge tek başına manuel
+push için GO vermez. Genel MM veya navigation/perception kapsamı ve #08
+bu değişikliklere dahil değildir.
