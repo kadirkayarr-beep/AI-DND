@@ -21,3 +21,17 @@ are absent rather than invented geometry or perception.
 **How to apply:** Audit actual producers before wiring consumers. If the
 required source is missing, describe the missing contract and keep the native
 HTTP completion criterion unmet; fixture setup does not satisfy it.
+
+An expressly authorized bounded encounter may author finite scene geometry
+as game content. Those measurements are not MM facts or inferred world lore.
+Scenario definitions are possibilities, not already-occurred campaign facts;
+materialization requires explicit player gameplay and must not rebind an
+existing NPC by name or reset its resources.
+
+**Why:** The owner authorized a single opt-in production encounter to close
+the missing-source gap, not a general geometry/perception engine or automatic
+rewriting of campaign reality.
+
+**How to apply:** Keep MM provenance separate from authored scene measurements.
+Verify acceptance with ordinary creation/turn/save/resume requests, without
+statblock, perception or route payloads supplied by the test.

@@ -806,6 +806,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "max_hp": 14,
             "current_hp": 7,
             "armor_class": 12,
+            # Serializer fixture only: satisfy authoritative range validation.
+            # This injected distance is not native production encounter evidence.
+            "distance_ft": 5,
             "combat_status": "active",
             "memory": [],
         }

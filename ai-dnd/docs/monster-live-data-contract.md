@@ -2,6 +2,17 @@
 
 ## Durum
 
+**Güncel bounded uygulama — 2026-10-04:** Kullanıcının tek, opt-in üretim
+karşılaşması oluşturma izniyle önceki eksik-source engeli bu dar senaryo için
+giderildi. Commoner statbloğu, yönlü algı ve tek rota artık üretim sahibinden
+gelir. Gerçek HTTP, ayrı süreçten save/resume ve receipt replay kanıtı:
+[bounded-monster-integration.md](bounded-monster-integration.md).
+Bu genel bir perception/pathfinding sistemi veya full MM ingestion değildir.
+
+**Aşağıdaki denetim tarihsel başlangıç durumunu anlatır; bounded uygulama
+öncesindeki NO-GO sonucudur.** Genel dünya kaynaklarının sınırlarını korumak
+için saklanmıştır; güncel bounded senaryonun sonucu olarak okunmamalıdır.
+
 İncelenen üretim kodunda Monster Combat'ın hedef algısı, taktik mesafe ve
 doğrulanmış rota girdilerini üreten bir kaynak bulunamadı. Mevcut tüketiciler
 vardır; testlerin bu girdileri doğrudan doldurması bir üretim kaynağı değildir.
