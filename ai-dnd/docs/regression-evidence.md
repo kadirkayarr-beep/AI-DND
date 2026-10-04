@@ -43,14 +43,26 @@ fresh mocks on repeated calls, and nested interruption with an absent module
 binding. Real model callbacks are forbidden in the cold-import/direct-entry
 checks. These are **offline isolation contracts**, not live HTTP acceptance.
 
-The old `test_combat.run_tests` gameplay fixture lacks authoritative distance
-and raises `CombatRequestError` with `distance_unknown` at its first attack,
-including in the unchanged pre-isolation script. This task does not repair that
-fixture or relax geometry validation. The isolation suite explicitly expects
-that refusal and checks cleanup; it does **not** claim the old combat gameplay
-gate passes. Broader passing selections include the other seven explicit
-`run_tests` selectors and the combat failure-cleanup contract, rather than
-concealing this known failed gameplay entry point.
+At the time of the earlier legacy-isolation runs below, the old
+`test_combat.run_tests` fixture lacked authoritative distance and raised
+`CombatRequestError` with `distance_unknown` at its first attack, including in
+the unchanged pre-isolation script. Those isolation checks explicitly expected
+that refusal; they did **not** prove a passing combat gameplay entry point.
+
+The repaired offline combat fixture now supplies explicit five-foot geometry,
+owned/held longsword equipment and deterministic character proficiency, and
+starts combat through the real scheduler with player-first initiative. Every
+case resets session-owned state and RNG without replacing caller-held world
+references. Only dice and the offline model are controlled; attack preparation,
+participation validation, resolution, damage and HP transitions run normally.
+Assertions use the current server-owned attack bonus, critical dice and
+nonlocal-target request refusal. Missing geometry and nonparticipant targets
+still fail without state/RNG mutation. Production validation is unchanged.
+
+The isolation suite now requires genuine success from the combat `run_tests`
+and direct `__main__` entry points, while retaining injected-failure cleanup,
+fresh-mock checks and active-adapter restoration in both orders. These new
+results do not alter or recertify the older failed or cleanup-only records.
 
 ### Retained legacy-isolation runs
 
@@ -68,6 +80,23 @@ unexecuted IDs and no source change during execution. Their five isolation
 parent tests include all eight scripts; combat contributes explicit
 failure-cleanup evidence, not a passing combat gameplay result.
 Exact invocations and source fingerprints are in the linked records.
+
+### Retained repaired-combat runs
+
+These **NEW RUN** records add `test_combat.run_tests` to all selectors from
+the earlier mixed legacy/API selections:
+
+| Selection | Result | Archive |
+| --- | --- | --- |
+| All eight legacy entry points, legacy isolation, model isolation, bounded encounter, regression, campaign time, combat lifecycle | **104/104 passed** | [Repaired combat, legacy-first](evidence/suite-runs/20261004T100739Z-cd3df944e6804b6d8708e2f0f111f67e/run.json) |
+| The same selectors in reverse order | **104/104 passed** | [Repaired combat, API-first](evidence/suite-runs/20261004T100814Z-1ee0789a67a44ab09b06c10f44228dc0/run.json) |
+
+Both selected and executed 104 unique IDs, with zero failures, errors, skips or
+unexecuted IDs, and no source changes during execution. Each archive retains
+its combined `output.log` alongside `run.json`. The direct combat `__main__`
+success is checked in fresh processes with live model calls forbidden; its
+explicit selector also passes in both mixed orders. These are offline
+regression results, not live HTTP acceptance or certification of prior runs.
 
 Every invocation creates a unique, durable directory under
 `ai-dnd/docs/evidence/suite-runs/`, with `run.json` and `output.log`. Use

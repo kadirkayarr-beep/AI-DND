@@ -10,7 +10,6 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import game
-from combat_lifecycle import CombatRequestError
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from offline_test_support import offline_model
 
@@ -25,14 +24,11 @@ SCRIPTS = (
 class LegacyScriptIsolationTests(unittest.TestCase):
     def run_entry_point(self, name):
         module = importlib.import_module(name)
-        if name == "test_combat":
-            # This stale fixture already fails against authoritative distance
-            # checks. Prove failure cleanup, not a passing combat gameplay gate.
-            with self.assertRaises(CombatRequestError) as caught:
-                module.run_tests()
-            self.assertEqual(caught.exception.code, "distance_unknown")
-        else:
+        output = io.StringIO()
+        with redirect_stdout(output):
             module.run_tests()
+        if name == "test_combat":
+            self.assertIn("=== ALL COMBAT TESTS PASSED ===", output.getvalue())
 
     def run_python(self, code):
         result = subprocess.run(
@@ -69,24 +65,24 @@ assert ollama.chat is original_chat
 assert ollama.list is original_list
 """)
 
-    def test_direct_main_entry_points_restore_bindings_including_combat_refusal(self):
+    def test_direct_main_entry_points_succeed_and_restore_bindings(self):
         for name in SCRIPTS:
             with self.subTest(script=name):
                 # Fresh process per script, with real-client calls forbidden.
                 self.run_python(f"""
 import runpy
 import sys
+import io
+from contextlib import redirect_stdout
 from unittest.mock import patch
 import ollama
-from combat_lifecycle import CombatRequestError
 with patch.object(ollama, 'chat', side_effect=AssertionError('live chat forbidden')) as chat, \\
      patch.object(ollama, 'list', side_effect=AssertionError('live list forbidden')) as listing:
-    try:
+    output = io.StringIO()
+    with redirect_stdout(output):
         runpy.run_path({str(ROOT)!r} + '/{name}.py', run_name='__main__')
-    except CombatRequestError as error:
-        assert {name!r} == 'test_combat' and error.code == 'distance_unknown'
-    else:
-        assert {name!r} != 'test_combat', 'Expected existing distance refusal'
+    if {name!r} == 'test_combat':
+        assert '=== ALL COMBAT TESTS PASSED ===' in output.getvalue()
     import game
     assert game.ollama is ollama
     assert sys.modules['ollama'] is ollama
