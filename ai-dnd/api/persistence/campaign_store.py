@@ -617,6 +617,30 @@ class CampaignStore:
         finally:
             connection.close()
 
+    def campaign_exists(self, campaign_id: str) -> bool:
+        self._validate_campaign_id(campaign_id)
+        connection = self._connect()
+        try:
+            return connection.execute(
+                "SELECT 1 FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+            ).fetchone() is not None
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign availability could not be checked.") from None
+        finally:
+            connection.close()
+
+    def delete_campaign(self, campaign_id: str) -> bool:
+        """Atomic registry delete; existing FK cascades own history and receipts."""
+        self._validate_campaign_id(campaign_id)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    "DELETE FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                )
+                return cursor.rowcount == 1
+        except sqlite3.Error:
+            raise CampaignStorageError("Campaign could not be deleted safely.") from None
+
     def get_campaign(self, campaign_id: str) -> StoredCampaign:
         self._validate_campaign_id(campaign_id)
         connection = self._connect()

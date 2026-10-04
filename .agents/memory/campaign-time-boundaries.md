@@ -25,14 +25,15 @@ date and legacy-migration questions and narrowed those requirements.
 **How to apply:** Do not reopen the fallback date choice or broaden the work into
 legacy migrations without a new request.
 
-Stable/unconscious recovery, new combat design, and broad duration/simulation
-systems remain separate work, not implicit additions to Campaign Time.
+Stable/unconscious recovery is now explicitly approved within the bounded Death
+System work. It must consume the existing Campaign Time owner, never a parallel
+scheduler. New combat design and broad duration/simulation remain excluded.
 
-**Why:** The owner explicitly excluded these and prohibited moving to subsequent
-design phases during the V1 implementation.
+**Why:** The owner originally excluded recovery from the Time lock, then explicitly
+authorized its bounded Death integration while preserving the Time architecture.
 
-**How to apply:** Leave extension points, but require a new explicit instruction
-before implementing recovery or additional time consumers.
+**How to apply:** Allow the authorized Death consumer; require a new explicit
+instruction for unrelated additional time consumers.
 
 Pending encounters must survive their window closing, saving, and combat handoff.
 Finishing combat does not automatically continue the interrupted action.

@@ -28,6 +28,7 @@ from api.lore_authority.models import CampaignLoreState, EntityType
 from api.lore_authority.registry import LoreRegistry
 from api.persistence.campaign_models import (
     CampaignNotActiveError,
+    CampaignNotFoundError,
     CampaignStorageError,
 )
 from api.persistence.campaign_serializer import restore_stored_campaign
@@ -60,6 +61,7 @@ class ManagedSession:
         default_factory=CampaignLoreState.legacy_unbound
     )
     turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    revoked: bool = False
 
 
 class SessionManager:
@@ -191,7 +193,7 @@ class SessionManager:
                 ),
             }
 
-        def restore(snapshot: dict[str, Any]) -> None:
+        def validate(snapshot: dict[str, Any]):
             if not isinstance(snapshot, dict):
                 raise CampaignStorageError(
                     "Campaign death checkpoint is invalid."
@@ -216,13 +218,19 @@ class SessionManager:
             restored_world_metadata = copy.deepcopy(
                 snapshot.get("world_metadata")
             )
-            record.journal = copy.deepcopy(journal)
+            return (copy.deepcopy(journal), restored_narrative_memory,
+                    restored_lore_authority, restored_world_metadata)
+
+        def restore(snapshot: dict[str, Any]) -> None:
+            journal, restored_narrative_memory, restored_lore_authority, restored_world_metadata = validate(snapshot)
+            record.journal = journal
             record.narrative_memory = restored_narrative_memory
             record.lore_authority = restored_lore_authority
             session.world_metadata = restored_world_metadata
 
         session.death_checkpoint_provider = capture
         session.death_checkpoint_restorer = restore
+        session.death_checkpoint_validator = validate
 
     def _install_canonical_start_location(
         self,
@@ -281,9 +289,31 @@ class SessionManager:
     def get(self, session_id: str) -> ManagedSession:
         with self._registry_lock:
             record = self._sessions.get(session_id)
-        if record is None:
+        if record is None or record.revoked:
+            raise UnknownSessionError(session_id)
+        if record.campaign_id is not None and not self._require_campaign_store().campaign_exists(record.campaign_id):
+            record.revoked = True
             raise UnknownSessionError(session_id)
         return record
+
+    def delete_campaign(self, campaign_id: str) -> dict[str, Any]:
+        store = self._require_campaign_store()
+        with self._registry_lock:
+            records = [(sid, r) for sid, r in self._sessions.items()
+                       if r.campaign_id == campaign_id]
+        # A campaign has one active session in this manager. Never hold registry
+        # lock while waiting for a turn; turn paths may themselves consult it.
+        from contextlib import ExitStack
+        with ExitStack() as locks:
+            for _, record in sorted(records):
+                locks.enter_context(record.turn_lock)
+            deleted = store.delete_campaign(campaign_id)
+            with self._registry_lock:
+                for sid, record in records:
+                    record.revoked = True
+                    self._sessions.pop(sid, None)
+                self._campaign_sessions.pop(campaign_id, None)
+        return {"campaign_id": campaign_id, "deleted": deleted}
 
     def list_campaigns(self) -> list[dict[str, Any]]:
         return self._require_campaign_store().list_campaigns()
@@ -452,6 +482,8 @@ class SessionManager:
         turn_action_receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """Persist a successful turn; caller holds record.turn_lock."""
+        if record.revoked:
+            raise CampaignNotFoundError("Campaign session has been revoked.")
         candidate_memory = validate_narrative_memory(
             narrative_memory
             if narrative_memory is not None

@@ -1,0 +1,672 @@
+#08 — DEATH SYSTEM + SAVE MANAGEMENT
+BOUNDED IMPLEMENTATION
+
+The #08 READ-ONLY audit is complete.
+
+The NPC/monster 0 HP source conflict has now been explicitly resolved.
+
+Selected policy:
+
+POLICY A — 2024 DEFAULT MONSTER DEATH
+
+- Ordinary resolved damage reducing an NPC/monster to 0 HP makes it DEAD.
+- NPCs/monsters do not receive player-style Death Saving Throws.
+- Verified monster-specific survival traits may override this only when
+  their mechanics are actually supported.
+- Explicit nonlethal/knockout behavior is separate and must not be
+  simulated by leaving lethal 0-HP damage as Unconscious.
+- No model or frontend may decide whether an NPC survives.
+
+The implementation must now proceed within the bounded scope below.
+
+============================================================
+ABSOLUTE ARCHITECTURAL RULES
+============================================================
+
+Python remains the sole authority for:
+
+- HP
+- damage
+- death
+- unconsciousness
+- death saves
+- stabilization
+- Stable recovery
+- campaign mode consequences
+- checkpoints
+- rollback
+- save deletion
+- persistence
+- RNG
+- Campaign Time
+
+Qwen must never resolve any of these.
+
+Frontend must never create canonical death/save state.
+
+Maximum model calls remain 2 per player turn.
+
+Death mechanics and save deletion must require 0 model calls.
+
+Do not create a second:
+
+- death engine
+- scheduler
+- persistence system
+- RNG system
+- receipt system
+- rollback system
+
+Reuse existing owners.
+
+============================================================
+SCOPE
+============================================================
+
+Implement only:
+
+A. Death System hardening and completion.
+B. Campaign Time integration for Stable recovery.
+C. NPC/monster 0 HP policy A.
+D. Required combat/persistence integration.
+E. Player-facing campaign/save deletion.
+
+Do NOT begin #09.
+
+Do NOT redesign:
+
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Monster Combat
+- Combat Lifecycle
+- Campaign Time architecture
+- Persistence architecture
+- UI architecture
+
+Only make the smallest changes required to connect #08 to their
+existing authoritative owners.
+
+============================================================
+1. PLAYER DEATH — 0 HP
+============================================================
+
+Preserve the existing player Death Save system where it already matches
+the 2024 rules.
+
+Verify and implement the missing authoritative boundaries identified in
+the audit:
+
+- 0 HP enters Unconscious when applicable.
+- Death Saving Throws occur only under the correct conditions.
+- Natural 1 = two failures.
+- Natural 20 = regain 1 HP.
+- Three successes = Stable.
+- Three failures = Dead.
+- Damage at 0 HP produces the correct Death Save consequences.
+- Critical hits at 0 HP produce the correct additional failure behavior.
+- Massive damage / instant death is resolved before ordinary Death
+  Saving Throw progression where applicable.
+- Damage reducing HP to 0 must not accidentally apply death-save
+  consequences twice.
+- HP maximum reaching 0 must use the authoritative death boundary.
+- Healing from 0 HP exits the correct state and does not create
+  duplicate recovery.
+- Temporary HP must not incorrectly prevent the 0-HP boundary.
+
+Do not create a second damage/death resolver.
+
+The existing damage/attack owners remain authoritative for damage math.
+
+The Death System consumes their resolved result.
+
+============================================================
+2. UNCONSCIOUS CONDITION
+============================================================
+
+Preserve the real Unconscious condition.
+
+Ensure:
+
+- illegal actions are rejected
+- movement/action restrictions are respected
+- relevant attack modifiers remain authoritative
+- relevant saving throw effects remain authoritative
+- existing Initiative ownership remains intact
+- unconsciousness does not cause an Initiative reroll
+- healing/recovery returns the actor to the correct state
+- dead actors cannot continue acting
+
+Do not remove Unconscious merely because NPC lethal damage now produces
+Dead.
+
+Unconscious remains valid for player characters and explicitly
+supported nonlethal/knockout outcomes.
+
+============================================================
+3. NPC / MONSTER 0 HP — POLICY A
+============================================================
+
+Change the existing ordinary NPC/monster lethal boundary:
+
+OLD:
+ordinary NPC damage → 0 HP → Unconscious
+
+NEW:
+ordinary NPC/monster damage → 0 HP → Dead
+
+Use one authoritative handoff.
+
+Known existing locations include:
+
+- weapon_attack.py
+- game.py
+- monster_combat.py
+- initiative/combat lifecycle integration
+
+Do not create independent death handling for different damage sources.
+
+Inner Radiance and other damage sources must use the same authoritative
+NPC death policy.
+
+Do not add player-style Death Saves to monsters.
+
+Do not add generic Stable recovery to monsters.
+
+Do not infer monster survival from narrative importance.
+
+Do not fabricate Monster Manual abilities.
+
+If a verified monster stat block contains a supported survival mechanic,
+that mechanic may override ordinary death only through an explicit
+supported owner.
+
+Unsupported monster-specific mechanics remain unsupported.
+
+============================================================
+4. NPC COMBAT / INITIATIVE
+============================================================
+
+When an NPC becomes Dead:
+
+- it cannot act
+- it cannot be selected as an active actor
+- it cannot continue Multiattack
+- existing attack ownership remains intact
+- initiative is not rerolled
+- existing combat cursor/lifecycle ownership remains intact
+- dead-target cleanup remains idempotent
+- combat closure uses existing Combat Lifecycle ownership
+
+Do not redesign initiative.
+
+Do not redesign Monster Combat.
+
+Update only the affected contracts/tests from #07 that explicitly
+encoded the old unresolved 0-HP unconscious NPC behavior.
+
+Preserve genuine Unconscious tests.
+
+============================================================
+5. SAVED HISTORICAL 0-HP NPC STATES
+============================================================
+
+Do not silently rewrite historical campaign canon merely because the
+new policy is now different.
+
+If an existing persisted campaign contains an NPC recorded as
+0 HP + Unconscious under the old contract:
+
+- inspect it safely
+- preserve campaign canon unless an explicit migration is required
+- do not retroactively claim the NPC was dead
+- do not invent a death event
+- do not consume RNG merely by loading the save
+
+If compatibility handling is required, implement the smallest
+deterministic compatibility boundary.
+
+============================================================
+6. STABLE RECOVERY + CAMPAIGN TIME
+============================================================
+
+Implement the missing Stable recovery integration using the existing
+Campaign Time owner.
+
+Do NOT create another scheduler.
+
+A Stable player at 0 HP who remains unhealed must receive the
+authoritative recovery behavior after the rules-defined random duration.
+
+The existing rules/audit establish the duration as 1d4 hours.
+
+Requirements:
+
+- Python owns the timing.
+- Existing Campaign Time owns progression.
+- RNG is authoritative and persisted.
+- Save/resume preserves the pending recovery.
+- Process restart does not lose it.
+- Closing the application does not advance real-world time.
+- Advancing campaign time resolves it exactly once.
+- Replay of the same action does not reroll it.
+- Rollback restores the correct prior timing/RNG state.
+- Long actions/travel/rest/event progression interact through the
+  existing Campaign Time system.
+- No second scheduler is introduced.
+
+Do not automatically reveal unknown aftermath merely because time passed.
+
+============================================================
+7. STABILIZATION / HELP / MEDICINE
+============================================================
+
+Implement the missing bounded stabilization paths identified by the
+audit.
+
+Where the 2024 rules permit a creature to stabilize without a Death
+Save, use the existing action/skill resolution owners.
+
+Do not create a parallel healing system.
+
+A successful stabilization must:
+
+- resolve canonically in Python
+- stop Death Saving Throw progression
+- preserve correct HP/state
+- persist correctly
+- replay idempotently
+
+Failed stabilization must not silently stabilize the character.
+
+============================================================
+8. NONCOMBAT DEATH
+============================================================
+
+Death is not restricted to combat.
+
+Ensure authoritative damage/effects outside combat can reach the same
+Death System boundary.
+
+Examples include:
+
+- environmental damage
+- traps
+- hazards
+- timed effects
+- other existing authoritative damage owners
+
+Do not invent new hazard systems.
+
+Only connect existing authoritative damage results to the Death System.
+
+============================================================
+9. NORMAL / PERMADEATH / IRONMAN
+============================================================
+
+Preserve the audited mode distinctions.
+
+NORMAL:
+
+- existing authoritative death recovery/rollback behavior remains.
+- checkpoint behavior remains owned by the existing system.
+- rollback must not duplicate:
+  - actions
+  - rewards
+  - events
+  - time
+  - RNG
+  - receipts
+  - travel
+  - inventory
+
+PERMADEATH:
+
+- death is terminal according to the existing project policy.
+- do not accidentally restore a living state through save/reload.
+- do not automatically delete the campaign.
+
+IRONMAN:
+
+- preserve its existing terminal/recovery semantics.
+- do not silently equate Ironman with database deletion.
+- do not automatically delete the campaign.
+
+Character death MUST NOT automatically delete the player's save.
+
+============================================================
+10. CHECKPOINT / ROLLBACK HARDENING
+============================================================
+
+Use the existing checkpoint/rollback owners.
+
+Audit and fix only the gaps necessary for Death System correctness.
+
+A death/rollback transaction must preserve atomicity across:
+
+- campaign state
+- HP
+- death state
+- Campaign Time
+- RNG
+- action receipts
+- relevant combat state
+- travel state
+- scheduled event state
+- inventory/rewards where already owned by checkpointing
+
+A failed persistence operation must not leave a partially committed
+death outcome.
+
+Do not create a new transaction framework.
+
+============================================================
+11. PERSISTENCE / IDEMPOTENCY
+============================================================
+
+Add targeted tests for:
+
+- death-save replay
+- natural 1 replay
+- natural 20 replay
+- damage-at-0 replay
+- stabilization replay
+- Stable recovery replay
+- save/resume while Unconscious
+- save/resume while Stable
+- save/resume after death
+- process restart
+- rollback + replay
+- session isolation
+
+Repeated action IDs must not:
+
+- reroll death saves
+- consume another RNG value
+- apply damage twice
+- apply death twice
+- stabilize twice
+- recover twice
+- advance Campaign Time twice
+- duplicate campaign events
+- duplicate receipts
+
+============================================================
+12. SAVE / CAMPAIGN DELETE
+============================================================
+
+Implement the separately audited Save Management scope.
+
+This is NOT part of the death mechanics.
+
+Use the existing persistence architecture.
+
+Do NOT create a second save system.
+
+Required behavior:
+
+- player can select one campaign/save
+- deletion targets stable campaign_id
+- explicit destructive confirmation is required
+- frontend only requests deletion
+- Python/backend performs authoritative deletion
+- successful deletion removes the intended campaign data
+- unrelated campaigns remain untouched
+- deleted campaign cannot be loaded
+- deleted campaign remains deleted after restart
+- stale browser references fail safely
+- stale active sessions are revoked safely
+- deletion cannot recreate deleted state
+- repeated deletion is safe and deterministic
+- unknown campaign IDs cannot affect another campaign
+- persistence failure cannot be shown as successful deletion
+
+Inspect and reuse the existing campaign cascade behavior.
+
+Do not delete unrelated accounts/campaigns.
+
+Do not delete campaign data merely because a character dies.
+
+Do not automatically delete saves in Normal, Permadeath or Ironman.
+
+============================================================
+13. ACTIVE SESSION DELETE
+============================================================
+
+If the selected campaign is currently active:
+
+- authoritative deletion must invalidate/revoke the active session
+- stale requests must be rejected
+- the frontend must not continue mutating deleted canonical state
+- another campaign/session must not be affected
+
+Do not create a complicated session architecture.
+
+Use existing SessionManager/session isolation.
+
+============================================================
+14. SAVE DELETE UI
+============================================================
+
+Add the smallest player-facing support required.
+
+The UI must:
+
+- list/select campaign
+- show clear destructive confirmation
+- send delete request only after confirmation
+- remove the campaign from the displayed list only after authoritative
+  success
+- show a safe failure state if deletion fails
+
+Use immersive player language.
+
+Do not expose:
+
+- database
+- backend
+- Python
+- persistence record
+- canonical state
+- server implementation
+
+Do not add unrelated UI redesign.
+
+============================================================
+15. SAVE DELETE TESTS
+============================================================
+
+At minimum add targeted tests for:
+
+1. selected campaign deleted
+2. unrelated campaign unchanged
+3. deleted campaign cannot load
+4. deletion survives restart
+5. repeated deletion is safe
+6. unknown ID cannot affect another campaign
+7. active campaign deletion revokes/invalidate session safely
+8. stale session cannot recreate/mutate deleted campaign
+9. persistence failure does not report false success
+10. frontend confirmation occurs before deletion request
+11. character death does not invoke save deletion
+12. Normal death recovery does not invoke save deletion
+13. Permadeath does not invoke save deletion
+14. Ironman does not invoke save deletion
+
+Do not create a huge generic persistence test suite.
+
+============================================================
+16. QWEN / MODEL CALLS
+============================================================
+
+Death resolution: 0 model calls.
+
+Save deletion: 0 model calls.
+
+Do not add a model-call loop.
+
+Narration may describe only verified outcomes.
+
+No narration may mutate death state or save state.
+
+Preserve the maximum 2 model-call/player-turn contract.
+
+============================================================
+17. TEST STRATEGY
+============================================================
+
+Work incrementally.
+
+First add focused tests for each new behavior.
+
+Then run:
+
+- relevant Death System tests
+- affected Combat/Lifecycle/Initiative/Weapon/Monster regressions
+- Campaign Time tests
+- persistence/idempotency tests
+- save-delete tests
+
+Do not claim full-repository success unless actually run.
+
+Do not repair unrelated legacy/V2 tests.
+
+If unrelated existing failures occur, preserve them and report them.
+
+Use retained evidence where available.
+
+============================================================
+18. DOCUMENTATION
+============================================================
+
+Update only the documentation necessary to make the new ownership
+explicit.
+
+Document:
+
+- player death ownership
+- NPC Policy A
+- Stable recovery ownership
+- mode behavior
+- save deletion ownership
+- active-session deletion behavior
+- supported vs unsupported monster survival mechanics
+
+Do not create duplicate architectural documents unnecessarily.
+
+============================================================
+19. MUST NOT CHANGE
+============================================================
+
+Do NOT change:
+
+- Qwen authority
+- frontend authority boundaries
+- 2-call limit
+- Action Economy architecture
+- Initiative architecture
+- Weapon & Attack architecture
+- Monster Combat architecture
+- Combat Lifecycle architecture
+- Campaign Time architecture
+- persistence architecture
+- RNG architecture
+- receipt architecture
+- session isolation architecture
+- #09 scope
+- full Monster Manual ingestion
+- full perception/pathfinding
+- resurrection system unless an existing supported owner requires
+  a bounded connection
+- quest system
+- weather/NPC simulation
+- broad UI redesign
+
+No unrelated refactor.
+
+============================================================
+20. COMPLETION CRITERIA
+============================================================
+
+Do not declare COMPLETE merely because tests pass.
+
+Completion requires:
+
+A. 2024 player Death System boundaries implemented correctly.
+B. Stable 1d4-hour recovery integrated with Campaign Time.
+C. NPC Policy A implemented explicitly.
+D. Affected #07 contracts/tests updated transparently.
+E. Existing combat ownership preserved.
+F. Persistence/replay/rollback behavior verified.
+G. Save deletion implemented with session isolation.
+H. Historical campaign/save data is not silently rewritten.
+I. No model authority introduced.
+J. No new parallel systems introduced.
+K. Focused regression suite passes.
+L. Any unrelated pre-existing failures are explicitly reported.
+M. No Git mutation unless separately approved.
+
+============================================================
+FINAL REPORT FORMAT
+============================================================
+
+Return:
+
+## A) IMPLEMENTED
+Exact files and bounded changes.
+
+## B) VERIFIED
+Exact tests and results.
+
+## C) DEATH SYSTEM
+Player / NPC / Stable / stabilization / modes.
+
+## D) SAVE MANAGEMENT
+Delete API / persistence / session invalidation / UI / tests.
+
+## E) NOT IMPLEMENTED / OUT OF SCOPE
+
+## F) KNOWN LIMITATIONS
+
+## G) REGRESSION / PRE-EXISTING FAILURES
+
+## H) SCOPE CHECK
+
+Confirm:
+- Python authority
+- Qwen boundary
+- frontend boundary
+- 2 model calls
+- persistence
+- RNG
+- receipts
+- session isolation
+- previous #01–#07 ownership
+
+## I) FINAL STATUS
+
+Use exactly one:
+
+COMPLETE
+
+or
+
+PARTIAL — FOLLOW-UP REQUIRED
+
+or
+
+BLOCKED — SOURCE/RULE CONFLICT
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+Do not commit.
+Do not push.
+Do not merge.
+Do not publish.
+Do not reset.
+Do not rebase.
+Do not create another task.
+
+STOP after the report.

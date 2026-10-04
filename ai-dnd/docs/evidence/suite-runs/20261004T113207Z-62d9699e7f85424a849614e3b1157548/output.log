@@ -1,0 +1,92 @@
+test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates) ... ERROR
+test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero) ... ERROR
+test_npc_policy_and_historical_unconscious (api.tests.test_death_bounded.DeathBoundedTests.test_npc_policy_and_historical_unconscious) ... ok
+test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation) ... ERROR
+test_zero_hp_massive_damage_uses_damage_before_temporary_hp (api.tests.test_death_bounded.DeathBoundedTests.test_zero_hp_massive_damage_uses_damage_before_temporary_hp) ... ERROR
+test_failure_does_not_revoke_or_report_success (api.tests.test_death_bounded.SaveDeleteTests.test_failure_does_not_revoke_or_report_success) ... ok
+test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session) ... FAIL
+test_unknown_and_death_never_delete (api.tests.test_death_bounded.SaveDeleteTests.test_unknown_and_death_never_delete) ... ok
+
+======================================================================
+ERROR: test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 23, in test_critical_failure_saturates
+    s = self.unconscious()
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 19, in unconscious
+    s._apply_player_damage(20, took_damage=True)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12350, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2497, in _apply_player_damage
+    state["noncombat_next_save_at"] = world_state["campaign_time"]["elapsed_seconds"] + 6
+                                      ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'campaign_time'
+
+======================================================================
+ERROR: test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 57, in test_healing_dead_guard_and_maximum_zero
+    s = self.unconscious()
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 19, in unconscious
+    s._apply_player_damage(20, took_damage=True)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12350, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2497, in _apply_player_damage
+    state["noncombat_next_save_at"] = world_state["campaign_time"]["elapsed_seconds"] + 6
+                                      ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'campaign_time'
+
+======================================================================
+ERROR: test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 37, in test_recovery_once_and_cancellation
+    s = self.unconscious()
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 19, in unconscious
+    s._apply_player_damage(20, took_damage=True)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12350, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2497, in _apply_player_damage
+    state["noncombat_next_save_at"] = world_state["campaign_time"]["elapsed_seconds"] + 6
+                                      ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'campaign_time'
+
+======================================================================
+ERROR: test_zero_hp_massive_damage_uses_damage_before_temporary_hp (api.tests.test_death_bounded.DeathBoundedTests.test_zero_hp_massive_damage_uses_damage_before_temporary_hp)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 30, in test_zero_hp_massive_damage_uses_damage_before_temporary_hp
+    s = self.unconscious()
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 19, in unconscious
+    s._apply_player_damage(20, took_damage=True)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12350, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2497, in _apply_player_damage
+    state["noncombat_next_save_at"] = world_state["campaign_time"]["elapsed_seconds"] + 6
+                                      ~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'campaign_time'
+
+======================================================================
+FAIL: test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 103, in test_selected_delete_cascade_restart_repeat_and_stale_session
+    self.assertEqual((await self.http.get(f"/api/game/campaigns/{b['campaign_id']}")).status_code, 200)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 409 != 200
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.331s
+
+FAILED (failures=1, errors=4)

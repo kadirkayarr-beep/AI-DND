@@ -711,10 +711,7 @@ def _resolve(session, c):
         species_effects.extend(hp_result["species_effects"])
         hp_after = session.character["current_hp"]
     else:
-        hp_after = max(0, hp_before - damage)
-        defender["current_hp"] = hp_after
-        if damage > 0 and hp_after == 0:
-            defender["combat_status"] = "unconscious"
+        hp_after = session.apply_npc_damage(defender, damage)
         hp_result = {"hp_damage": damage, "death_resolution": None}
     if special and hit:
         if c["unarmed_option"] == "grapple":

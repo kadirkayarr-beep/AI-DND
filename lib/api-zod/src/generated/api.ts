@@ -5748,6 +5748,19 @@ export const CreateCampaignResponse = zod.object({
 
 
 /**
+ * @summary Permanently delete a selected campaign and revoke its active session
+ */
+export const DeleteCampaignParams = zod.object({
+  "campaign_id": zod.coerce.string().uuid()
+})
+
+export const DeleteCampaignResponse = zod.object({
+  "campaign_id": zod.string(),
+  "deleted": zod.boolean()
+})
+
+
+/**
  * @summary Read safe metadata, canonical UI state, and saved history
  */
 export const GetCampaignParams = zod.object({

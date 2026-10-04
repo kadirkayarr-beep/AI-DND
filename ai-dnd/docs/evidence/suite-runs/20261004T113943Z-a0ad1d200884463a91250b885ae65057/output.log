@@ -1,0 +1,51 @@
+test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates) ... ok
+test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero) ... ok
+test_inner_radiance_uses_policy_a (api.tests.test_death_bounded.DeathBoundedTests.test_inner_radiance_uses_policy_a) ... ok
+test_medicine_success_failure_and_stable_damage (api.tests.test_death_bounded.DeathBoundedTests.test_medicine_success_failure_and_stable_damage) ... ok
+test_noncombat_timing_and_natural_twenty (api.tests.test_death_bounded.DeathBoundedTests.test_noncombat_timing_and_natural_twenty) ... ok
+test_normal_rollback_preserves_consumed_rng_and_restores_time_inventory (api.tests.test_death_bounded.DeathBoundedTests.test_normal_rollback_preserves_consumed_rng_and_restores_time_inventory) ... ok
+test_npc_policy_and_historical_unconscious (api.tests.test_death_bounded.DeathBoundedTests.test_npc_policy_and_historical_unconscious) ... ok
+test_recovery_on_all_existing_duration_sources (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_on_all_existing_duration_sources) ... ok
+test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation) ... ok
+test_zero_hp_massive_damage_uses_damage_before_temporary_hp (api.tests.test_death_bounded.DeathBoundedTests.test_zero_hp_massive_damage_uses_damage_before_temporary_hp) ... ok
+test_checkpoint_validation_precedes_all_mutation (api.tests.test_death_bounded.SaveDeleteTests.test_checkpoint_validation_precedes_all_mutation) ... ok
+test_death_save_natural_one_twenty_and_replay (api.tests.test_death_bounded.SaveDeleteTests.test_death_save_natural_one_twenty_and_replay) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_failed_fatal_turn_persistence_restores_engine_and_rng (api.tests.test_death_bounded.SaveDeleteTests.test_failed_fatal_turn_persistence_restores_engine_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+FAIL
+test_failure_does_not_revoke_or_report_success (api.tests.test_death_bounded.SaveDeleteTests.test_failure_does_not_revoke_or_report_success) ... ok
+test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session) ... ok
+test_stable_resume_rng_and_http_replay_without_model (api.tests.test_death_bounded.SaveDeleteTests.test_stable_resume_rng_and_http_replay_without_model) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unknown_and_death_never_delete (api.tests.test_death_bounded.SaveDeleteTests.test_unknown_and_death_never_delete) ... ok
+
+======================================================================
+FAIL: test_failed_fatal_turn_persistence_restores_engine_and_rng (api.tests.test_death_bounded.SaveDeleteTests.test_failed_fatal_turn_persistence_restores_engine_and_rng)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 276, in test_failed_fatal_turn_persistence_restores_engine_and_rng
+    self.assertEqual((s.world_state, s.character, s.rng.getstate()), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ({'ca[2123 chars]hp': 0, 'max_hp': 12, 'armor_class': 12, 'stat[14838 chars]one)) != ({'ca[2123 chars]hp': 12, 'max_hp': 12, 'armor_class': 12, 'sta[14693 chars]one))
+
+First differing element 0:
+{'cam[2122 chars]hp': 0, 'max_hp': 12, 'armor_class': 12, 'stat[6816 chars]: []}
+{'cam[2122 chars]hp': 12, 'max_hp': 12, 'armor_class': 12, 'sta[6812 chars]: []}
+
+Diff is 40382 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.864s
+
+FAILED (failures=1)

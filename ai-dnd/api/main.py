@@ -567,6 +567,14 @@ def create_app(
         except CampaignError as error:
             raise campaign_http_exception(error) from None
 
+    @application.delete("/api/campaigns/{campaign_id}")
+    @application.delete("/api/game/campaigns/{campaign_id}")
+    def delete_campaign(campaign_id: str) -> dict[str, Any]:
+        try:
+            return manager.delete_campaign(campaign_id)
+        except CampaignError as error:
+            raise campaign_http_exception(error) from None
+
     @application.post(
         "/api/campaigns/{campaign_id}/resume",
         response_model=CampaignSessionResponse,
@@ -618,6 +626,7 @@ def create_app(
     def read_state(session_id: str) -> dict[str, Any]:
         record = get_record(session_id)
         with record.turn_lock:
+            record = get_record(session_id)
             state = serialize_session_state(
                 record.game_session,
                 record.journal,
@@ -653,6 +662,8 @@ def create_app(
         session = record.game_session
         import bounded_encounter
         with record.turn_lock:
+            if record.revoked:
+                raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
             try:
                 previous_action = manager.get_turn_action(record, action_id)
             except CampaignError as error:
@@ -683,9 +694,12 @@ def create_app(
                     raise HTTPException(status_code=409, detail={
                         "code": "invalid_combat_state", "message": "Combat state is invalid."
                     }) from None
-            if isinstance(session, game.GameSession) and bounded_encounter.native_request(
-                session, request.message,
-                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+            if isinstance(session, game.GameSession) and (
+                session.character.get("current_hp", 1) <= 0
+                or bounded_encounter.native_request(
+                    session, request.message,
+                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                )
             ):
                 active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
             if active_adapter is None:
@@ -1183,6 +1197,7 @@ def create_app(
     def _quest_command(session_id: str, quest_id: str, command: str) -> dict[str, Any]:
         record = get_record(session_id)
         with record.turn_lock:
+            record = get_record(session_id)
             session = record.game_session
             snapshot = _capture_session(session)
             try:
@@ -1270,6 +1285,7 @@ def create_app(
         with record.turn_lock:
             session = record.game_session
             previous = manager.get_turn_action(record, action_id)
+            get_record(session_id)
             if previous is not None:
                 if previous["request_hash"] != request_hash:
                     raise HTTPException(status_code=409, detail={
@@ -1361,6 +1377,7 @@ def create_app(
     ) -> dict[str, Any]:
         record = get_record(session_id)
         with record.turn_lock:
+            record = get_record(session_id)
             session = record.game_session
             event_instance_key = str(event_instance_id)
             action_id = str(request.action_id)

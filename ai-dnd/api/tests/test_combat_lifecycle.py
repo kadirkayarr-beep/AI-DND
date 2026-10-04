@@ -237,7 +237,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
         result = response.json()["combat_result"]
         self.assertTrue(result["combat_ended"])
         self.assertEqual(result["target_hp_after"], 0)
-        self.assertEqual(result["target_status"], "unconscious")
+        self.assertEqual(result["target_status"], "dead")
         self.assertEqual(result["combat_id"], identity)
         self.assertFalse(response.json()["state"]["combat"]["active"])
         self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 0)

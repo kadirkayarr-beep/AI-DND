@@ -1,5 +1,48 @@
 # Bounded production Monster Combat integration
 
+## Death System + Save Management ownership
+
+The selected policy is **2024 default monster death (Policy A)**. New resolved
+lethal damage reaches `game.apply_npc_damage` from Weapon & Attack and Inner
+Radiance. Zero HP means dead, not a monster death save or generic Stable recovery.
+Damage math, verified survival reductions, initiative and combat closure remain
+with their existing owners. No unsupported Monster Manual survival ability is
+inferred. Historical zero-HP unconscious NPCs are preserved on load; their
+incapacitated slots cannot act and no longer stall the scheduler.
+
+Player transitions remain in the existing game Death owner. Real healing clears
+zero-HP counters and pending recovery without resurrection. The bounded NPC
+Medicine Help helper uses the existing skill resolver/action resource owner and
+requires canonical supported healer data. Its production NPC action/receipt bridge
+is not yet connected, so stabilization action-ID replay is not certified. It does
+not introduce autonomous healer AI.
+
+Stable recovery rolls one session-RNG d4 and persists an elapsed-time deadline.
+`advance_campaign_time` consumes it through the existing clock/event pipeline,
+including interruptions. Noncombat unconscious progression uses the same death-save
+resolver, with episode-qualified six-second boundaries; no new scheduler exists.
+Load/replay never rolls or advances time. Passive waiting is an explicit player
+decision, not a conscious character action. Unconscious time consumption cannot
+observe unknown events.
+
+Normal uses the existing pre-initiative checkpoint; gameplay rollback preserves
+consumed RNG/receipts while restoring captured world/time/inventory/campaign
+metadata. Missing checkpoint retains the existing dead fallback. Permadeath ends
+the character (`terminal=False`); Ironman sets campaign `terminal=True`. None
+deletes saves. API persistence failure restores the request snapshot including RNG.
+
+Explicit campaign deletion belongs to CampaignStore's existing SQLite transaction
+and FK cascades. SessionManager serializes it with the active turn, revokes the
+campaign session only after successful deletion, and checks persisted existence.
+DELETE by stable campaign ID is idempotent, with absent IDs returning `deleted:
+false`. Stale sessions cannot recreate a row. The campaign library requires
+destructive confirmation and removes its card only after authoritative success.
+Deletion and Death mechanics do not depend on a model.
+
+The older dated evidence below remains evidence of its original execution, not a
+retroactive certification of these changes. New focused runs are retained by the
+existing regression evidence runner.
+
 ## Sonuç — 2026-10-04
 
 **COMPLETE — yalnızca tek opt-in avlu senaryosu için.** Genel dünya

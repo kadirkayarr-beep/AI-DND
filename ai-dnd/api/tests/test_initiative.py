@@ -271,13 +271,14 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(results[0]["action"], "death_save")
         self.assertGreater(s.character["current_hp"], 0)
 
-    def test_npc_unconscious_boundary_does_not_skip(self):
+    def test_historical_npc_unconscious_cannot_act_but_does_not_stall(self):
         s, ns = battle([{}, {}])
         ns[0].update(current_hp=0, combat_status="unconscious")
         s.advance_combat_turn()
         with patch("game.resolve_enemy_attack", side_effect=AssertionError("skip")):
             s._resolve_enemy_turns_until_player()
-        self.assertEqual(s.world_state["combat"]["current_actor_id"], ns[0]["id"])
+        self.assertEqual(s.world_state["combat"]["current_actor_id"], "player")
+        self.assertEqual(ns[0]["combat_status"], "unconscious")
         self.assertIn(ns[0]["id"], s.world_state["combat"]["initiative_order"])
 
     def test_dead_removal_is_safe_and_idempotent(self):

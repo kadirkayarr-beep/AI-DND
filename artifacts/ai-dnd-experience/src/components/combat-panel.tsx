@@ -1,5 +1,6 @@
 import type { CombatTurnResult, GameState } from '@workspace/api-client-react';
 import { SpeciesTraitControls, speciesEffectText } from './species-trait-controls';
+import { DeathRecoveryControls } from './death-recovery-controls';
 import './combat-panel.css';
 
 export interface CombatLogEntry {
@@ -420,6 +421,7 @@ export function CombatPanel({
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
       <SpeciesTraitControls state={state} sessionId={sessionId} />
+      <DeathRecoveryControls state={state} sessionId={sessionId} />
       <header className="combat-panel-header">
         <div>
           <span className="combat-overline">KARŞILAŞMANIN SEYRİ</span>

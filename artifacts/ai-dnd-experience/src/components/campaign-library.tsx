@@ -10,6 +10,9 @@ import {
   ScrollText,
 } from 'lucide-react';
 import type { CampaignSummary } from '@workspace/api-client-react';
+import { getGetCampaignsQueryKey, useDeleteCampaign } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
 function formatPlayedAt(value: string) {
   const date = new Date(value);
@@ -31,6 +34,7 @@ type CampaignLibraryProps = {
   onNew: () => void;
   onResume: (campaignId: string) => void;
   onRetry: () => void;
+  onDeleted?: (campaignId: string) => void;
 };
 
 export function CampaignLibrary({
@@ -44,7 +48,25 @@ export function CampaignLibrary({
   onNew,
   onResume,
   onRetry,
+  onDeleted,
 }: CampaignLibraryProps) {
+  const deletion = useDeleteCampaign();
+  const queryClient = useQueryClient();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<Set<string>>(() => new Set());
+  const deleteSelected = (campaign: CampaignSummary) => {
+    if (!window.confirm(`“${campaign.name}” macerasını kalıcı olarak silmek istiyor musun? Bu maceranın tüm geçmişi silinecek. Geri alınamaz.`)) return;
+    setDeleteError(null);
+    deletion.mutate({ campaignId: campaign.campaign_id }, {
+      onSuccess: () => {
+        setRemoved(previous => new Set(previous).add(campaign.campaign_id));
+        void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
+        onDeleted?.(campaign.campaign_id);
+      },
+      onError: () => setDeleteError('Macera silinemedi. Kaydın listede korunuyor; yeniden deneyebilirsin.'),
+    });
+  };
+  campaigns = campaigns?.filter(campaign => !removed.has(campaign.campaign_id));
   return (
     <main className="opening min-h-screen" data-testid="screen-campaign-library">
       <div className="dnd-shell">
@@ -127,11 +149,14 @@ export function CampaignLibrary({
                         </div>
                       </div>
 
-                      <div className="mt-6 flex justify-end">
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button type="button" className="text-button" disabled={resuming || deletion.isPending}
+                          data-testid={`button-delete-${campaign.campaign_id}`}
+                          onClick={() => deleteSelected(campaign)}>Macerayı sil</button>
                         <button
                           className="dnd-button"
                           type="button"
-                          disabled={resuming}
+                          disabled={resuming || deletion.isPending}
                           onClick={() => onResume(campaign.campaign_id)}
                           data-testid={`button-resume-${campaign.campaign_id}`}
                         >
@@ -161,6 +186,7 @@ export function CampaignLibrary({
             </div>
           )}
 
+          {deleteError && <p role="alert" className="mt-5 text-red-300">{deleteError}</p>}
           <div className="mt-7 flex justify-between">
             <button className="text-button" type="button" onClick={onBack}><ArrowLeft size={13} /> Ana kapıya dön</button>
             {campaigns?.length ? (

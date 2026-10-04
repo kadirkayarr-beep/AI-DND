@@ -72,6 +72,7 @@ export * from './deathSaveResultOutcome';
 export * from './deathStateProjection';
 export * from './deathStateProjectionMode';
 export * from './deathStateProjectionStatus';
+export * from './deleteCampaign200';
 export * from './economyStepInput';
 export * from './economyStepInputKind';
 export * from './economyStepInputResource';

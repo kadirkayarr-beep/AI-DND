@@ -1300,7 +1300,7 @@ export default function GameBrowser() {
     event.preventDefault();
     submitTurn(message);
   };
-  if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} />;
+  if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
   if (phase === 'creation') return (
     <CharacterCreationScreen
       options={characterOptionsQuery.data}

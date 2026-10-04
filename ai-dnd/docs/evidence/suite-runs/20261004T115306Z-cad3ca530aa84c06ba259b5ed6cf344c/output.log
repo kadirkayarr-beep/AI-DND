@@ -1,0 +1,53 @@
+test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates) ... ok
+test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero) ... ok
+test_inner_radiance_uses_policy_a (api.tests.test_death_bounded.DeathBoundedTests.test_inner_radiance_uses_policy_a) ... ok
+test_medicine_success_failure_and_stable_damage (api.tests.test_death_bounded.DeathBoundedTests.test_medicine_success_failure_and_stable_damage) ... ok
+test_noncombat_episode_identity_survives_rewound_clock (api.tests.test_death_bounded.DeathBoundedTests.test_noncombat_episode_identity_survives_rewound_clock) ... ok
+test_noncombat_timing_and_natural_twenty (api.tests.test_death_bounded.DeathBoundedTests.test_noncombat_timing_and_natural_twenty) ... ok
+test_normal_rollback_preserves_consumed_rng_and_restores_time_inventory (api.tests.test_death_bounded.DeathBoundedTests.test_normal_rollback_preserves_consumed_rng_and_restores_time_inventory) ... ok
+test_npc_policy_and_historical_unconscious (api.tests.test_death_bounded.DeathBoundedTests.test_npc_policy_and_historical_unconscious) ... ok
+test_recovery_on_all_existing_duration_sources (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_on_all_existing_duration_sources) ... ok
+test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation) ... ok
+test_zero_hp_massive_damage_uses_damage_before_temporary_hp (api.tests.test_death_bounded.DeathBoundedTests.test_zero_hp_massive_damage_uses_damage_before_temporary_hp) ... ok
+test_checkpoint_validation_precedes_all_mutation (api.tests.test_death_bounded.SaveDeleteTests.test_checkpoint_validation_precedes_all_mutation) ... Executing <Task finished name='Task-1' coro=<CampaignApiTests.asyncSetUp() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_campaign_api.py:44> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.124 seconds
+ok
+test_death_save_natural_one_twenty_and_replay (api.tests.test_death_bounded.SaveDeleteTests.test_death_save_natural_one_twenty_and_replay) ... Executing <Task finished name='Task-6' coro=<CampaignApiTests.asyncSetUp() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_campaign_api.py:44> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.114 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_failed_fatal_turn_persistence_restores_engine_and_rng (api.tests.test_death_bounded.SaveDeleteTests.test_failed_fatal_turn_persistence_restores_engine_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_failure_does_not_revoke_or_report_success (api.tests.test_death_bounded.SaveDeleteTests.test_failure_does_not_revoke_or_report_success) ... ok
+test_real_damage_at_zero_normal_rollback_and_receipt_replay (api.tests.test_death_bounded.SaveDeleteTests.test_real_damage_at_zero_normal_rollback_and_receipt_replay) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+FAIL
+test_resume_death_states_and_counter_progress_without_load_rng (api.tests.test_death_bounded.SaveDeleteTests.test_resume_death_states_and_counter_progress_without_load_rng) ... Executing <Task pending name='Task-30' coro=<SaveDeleteTests.test_resume_death_states_and_counter_progress_without_load_rng() running at /home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py:337> cb=[_run_until_complete_cb() at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py:181, <1 more>, WorkerThread.stop()] created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.166 seconds
+ok
+test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session) ... ok
+test_stable_resume_rng_and_http_replay_without_model (api.tests.test_death_bounded.SaveDeleteTests.test_stable_resume_rng_and_http_replay_without_model) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unknown_and_death_never_delete (api.tests.test_death_bounded.SaveDeleteTests.test_unknown_and_death_never_delete) ... ok
+
+======================================================================
+FAIL: test_real_damage_at_zero_normal_rollback_and_receipt_replay (api.tests.test_death_bounded.SaveDeleteTests.test_real_damage_at_zero_normal_rollback_and_receipt_replay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 303, in test_real_damage_at_zero_normal_rollback_and_receipt_replay
+    self.assertEqual(attack_dice.call_count, 4)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 4
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.703s
+
+FAILED (failures=1)

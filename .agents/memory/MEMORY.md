@@ -21,3 +21,4 @@
 - [Monster owner evidence](monster-owner-evidence.md) — fixture executors prove contracts, not native mechanic coverage; report missing owners explicitly.
 - [Partial patch results](partial-patch-results.md) — a failed multi-file patch may already have applied earlier changes; inspect before retrying.
 - [Regression evidence authority](regression-evidence-authority.md) — new suite runs cannot certify missing historical runs; real HTTP acceptance remains separate.
+- [Death and save policy](death-policy.md) — Policy A governs new lethal NPC damage; preserve historical unconscious canon; no mode automatically deletes saves.

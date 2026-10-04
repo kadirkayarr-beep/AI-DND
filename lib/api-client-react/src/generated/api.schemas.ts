@@ -1839,3 +1839,8 @@ export type RequestValidationErrorResponse = RequestValidationError;
  */
 export type CampaignCreateValidationErrorResponse = RequestValidationError | ApiErrorResponse;
 
+export type DeleteCampaign200 = {
+  campaign_id: string;
+  deleted: boolean;
+};
+

@@ -61,3 +61,14 @@ distinction the owner needs.
 
 **How to apply:** Retain the failed attempt, identify the specific pre-existing
 refusal, label cleanup-only evidence, and propose the fixture repair separately.
+
+A final death rollback is not proof that an intermediate damage path executed.
+Require evidence of the actual damage instance/cause and expected dice consumption
+before certifying damage-at-zero replay.
+
+**Why:** An invalid or unsupported NPC attack fixture can consume no attack dice
+while later ordinary death-save progression still produces the expected rollback.
+Checking only the final rollback would falsely certify the missing damage path.
+
+**How to apply:** Keep the failing coverage evidence; distinguish receipt replay
+of death saves from receipt replay of a verified resolved damage instance.

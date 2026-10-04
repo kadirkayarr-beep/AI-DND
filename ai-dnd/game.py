@@ -1404,6 +1404,9 @@ world_state = {
         "last_death_save_result": None,
         "last_resolution": None,
         "combat_checkpoint": None,
+        "recovery": None,
+        "noncombat_next_save_at": None,
+        "noncombat_episode_id": None,
     },
     "player_knowledge": [],
     "quests": [],
@@ -1818,7 +1821,9 @@ def _validate_save_payload(payload):
         player["class"], player["level"]
     ):
         raise ValueError("Karakter uzmanlık seçimi sınıf veya seviye ile uyuşmuyor.")
-    if not 0 <= player["current_hp"] <= player["max_hp"] or player["max_hp"] < 1:
+    if not 0 <= player["current_hp"] <= player["max_hp"] or player["max_hp"] < 0 or (
+        player["max_hp"] == 0 and not saved_world.get("death_state", {}).get("dead")
+    ):
         raise ValueError("Karakter HP değerleri geçersiz.")
     if player["level"] < 1 or player["proficiency_bonus"] < 0 or player["armor_class"] < 0:
         raise ValueError("Karakter mekanik değerleri geçersiz.")
@@ -2130,6 +2135,9 @@ def _death_state_defaults():
         "last_death_save_result": None,
         "last_resolution": None,
         "combat_checkpoint": None,
+        "recovery": None,
+        "noncombat_next_save_at": None,
+        "noncombat_episode_id": None,
     }
 
 
@@ -2172,6 +2180,23 @@ def ensure_death_state():
     ):
         raise ValueError("Campaign death state is invalid.")
 
+    recovery = state["recovery"]
+    if recovery is not None and (
+        not isinstance(recovery, dict)
+        or set(recovery) != {"hours", "at"}
+        or type(recovery.get("hours")) is not int
+        or not 1 <= recovery["hours"] <= 4
+        or type(recovery.get("at")) is not int or recovery["at"] < 0
+        or not state["stable"] or state["dead"]
+    ):
+        raise ValueError("Stable recovery state is invalid.")
+    if state["noncombat_next_save_at"] is not None and (
+        type(state["noncombat_next_save_at"]) is not int
+        or state["noncombat_next_save_at"] < 0
+    ):
+        raise ValueError("Noncombat death-save timing is invalid.")
+    if state["noncombat_episode_id"] is not None and not isinstance(state["noncombat_episode_id"], str):
+        raise ValueError("Noncombat death episode is invalid.")
     character = _session().character
     status = world_state.get("player_combat_status")
     if status not in ("active", "unconscious", "dead"):
@@ -2209,6 +2234,98 @@ def require_player_can_act():
     ):
         raise ValueError("Bilinçsiz karakter eylem gerçekleştiremez.")
     return True
+
+
+def stabilize_player():
+    """Consume a verified stabilization outcome; not permission to self-stabilize."""
+    state = ensure_death_state()
+    if state["dead"] or _session().character["current_hp"] != 0:
+        raise ValueError("Yalnız yaşayan ve sıfır canı olan bir yolcu sabitlenebilir.")
+    state.update(stable=True, successes=0, failures=0, noncombat_next_save_at=None)
+    if state["recovery"] is None:
+        ensure_campaign_clock()
+        hours = _session().rng.randint(1, 4)
+        state["recovery"] = {
+            "hours": hours,
+            "at": _session().world_state.get("campaign_time", {}).get("elapsed_seconds", 0) + hours * 3600,
+        }
+    return {"action": "stabilize", "success": True, "status": "resolved"}
+
+
+def attempt_player_stabilization(healer_id):
+    """Canonical allied NPC Help action, using the existing Medicine resolver."""
+    import weapon_attack
+    import action_economy
+    from api.core_resolution import resolve_skill_check
+    session = _session()
+    healer = next((n for n in session.world_state["npcs"]
+                   if n.get("id") == healer_id), None)
+    if (not healer or healer.get("location") != session.world_state["location"]
+            or healer.get("combat_status") != "active" or healer.get("current_hp", 0) <= 0
+            or healer.get("hostile") is True
+            or weapon_attack.conditions(session, healer_id, healer) & {"incapacitated", "unconscious", "dead"}):
+        raise ValueError("Bu kişi ilk yardım uygulayamaz.")
+    modifier = healer.get("medicine_bonus")
+    if type(modifier) is not int:
+        raise ValueError("Bu kişinin Tıp becerisi desteklenmiyor.")
+    state = ensure_death_state()
+    if state["dead"] or session.character["current_hp"] != 0:
+        raise ValueError("İlk yardım için uygun bir yolcu yok.")
+    combat = ensure_combat_state()
+    if combat["active"]:
+        action_economy.action_slot(session, healer_id, "help")
+    result = resolve_skill_check(roll_fn=roll_d20, skill="medicine", ability="wisdom",
+                                 dc=10, ability_modifier=modifier)
+    if combat["active"]:
+        _mark_combat_action_used(healer_id, "help")
+    if result["outcome"] == "SUCCESS":
+        stabilize_player()
+    return {"action": "stabilize", "status": "resolved",
+            "success": result["outcome"] == "SUCCESS", "resolution": result}
+
+
+def heal_player(amount):
+    """Apply already-resolved real healing; never revive a dead creature."""
+    if type(amount) is not int or amount < 0:
+        raise ValueError("Healing amount is invalid.")
+    state = ensure_death_state()
+    if state["dead"]:
+        raise ValueError("Ölü karakter diriltilmeden can kazanamaz.")
+    character = _session().character
+    restored = min(amount, max(0, character["max_hp"] - character["current_hp"]))
+    if restored:
+        character["current_hp"] += restored
+        state.update(stable=False, successes=0, failures=0, recovery=None,
+                     noncombat_next_save_at=None, noncombat_episode_id=None)
+        _session().world_state["player_combat_status"] = "active"
+    return restored
+
+
+def set_player_max_hp(maximum):
+    """Consume an authoritative maximum-HP change, including instant death at zero."""
+    if type(maximum) is not int or maximum < 0:
+        raise ValueError("HP maximum is invalid.")
+    ensure_death_state()
+    _session().character["max_hp"] = maximum
+    _session().character["current_hp"] = min(_session().character["current_hp"], maximum)
+    if maximum == 0:
+        return _finalize_player_death("maximum_hp_zero")
+    return None
+
+
+def apply_npc_damage(npc, damage):
+    """Single Policy A handoff for already-resolved damage; no rolls or migration."""
+    if not any(npc is n for n in _session().world_state["npcs"]):
+        raise ValueError("Damage target is not canonical.")
+    if type(damage) is not int or damage < 0:
+        raise ValueError("Damage is invalid.")
+    before = npc.get("current_hp", npc.get("max_hp", 1))
+    if npc.get("combat_status") == "dead":
+        return before
+    npc["current_hp"] = max(0, before - damage)
+    if damage > 0 and npc["current_hp"] == 0:
+        npc["combat_status"] = "dead"
+    return npc["current_hp"]
 
 
 def _capture_combat_death_checkpoint():
@@ -2274,6 +2391,22 @@ def _restore_combat_death_checkpoint(cause):
     restored_death["last_death_save_result"] = last_save_result
     restored_death["last_resolution"] = resolution
 
+    candidate = GameSession()
+    candidate.character.clear()
+    candidate.character.update(copy.deepcopy(saved_player))
+    candidate.world_state.clear()
+    candidate.world_state.update(copy.deepcopy(restored_world))
+    candidate.recent_dm_narrations[:] = copy.deepcopy(checkpoint.get("recent_dm_narrations", []))
+    _validate_save_payload(candidate.serialize_game_state())
+    candidate.ensure_death_state()
+    campaign_state = checkpoint.get("campaign_state")
+    if campaign_state is not None:
+        validator = getattr(session, "death_checkpoint_validator", None)
+        restorer = getattr(session, "death_checkpoint_restorer", None)
+        if not callable(validator) or not callable(restorer):
+            raise ValueError("Campaign death checkpoint cannot be validated.")
+        validator(copy.deepcopy(campaign_state))
+
     session.world_state.clear()
     session.world_state.update(restored_world)
     session.character.clear()
@@ -2293,7 +2426,14 @@ def _restore_combat_death_checkpoint(cause):
 
 def _finalize_player_death(cause):
     """Apply the selected death mode once all three failures are recorded."""
+    # Finalize the owner's transient fatal transition before validating it.
+    pending = _session().world_state.get("death_state")
+    if isinstance(pending, dict):
+        pending["recovery"] = None
+        pending["noncombat_next_save_at"] = None
     state = ensure_death_state()
+    state["recovery"] = None
+    state["noncombat_next_save_at"] = None
     if state["mode"] == "NORMAL" and state.get("combat_checkpoint"):
         return _restore_combat_death_checkpoint(cause)
     state["dead"] = True
@@ -2316,7 +2456,7 @@ def _finalize_player_death(cause):
     return resolution
 
 
-def _apply_player_damage(hp_damage, *, critical=False, took_damage=False):
+def _apply_player_damage(hp_damage, *, critical=False, took_damage=False, resolved_damage=None):
     """Apply post-mitigation damage and the V1 unconscious/death-save rules."""
     session = _session()
     world_state = session.world_state
@@ -2363,6 +2503,10 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False):
         state["successes"] = 0
         state["failures"] = 0
         state["prone"] = True
+        state["noncombat_episode_id"] = str(uuid4())
+        if not world_state.get("combat", {}).get("active"):
+            ensure_campaign_clock()
+            state["noncombat_next_save_at"] = world_state.get("campaign_time", {}).get("elapsed_seconds", 0) + 6
         return {
             "hp_before": hp_before,
             "hp_after": 0,
@@ -2373,7 +2517,8 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False):
     session.character["current_hp"] = 0
     world_state["player_combat_status"] = "unconscious"
     state["prone"] = True
-    if hp_damage >= max_hp:
+    zero_hp_damage = hp_damage if resolved_damage is None else resolved_damage
+    if zero_hp_damage >= max_hp:
         state["dead"] = True
         state["stable"] = False
         state["failures"] = 3
@@ -2386,7 +2531,11 @@ def _apply_player_damage(hp_damage, *, critical=False, took_damage=False):
         }
     if took_damage:
         state["stable"] = False
-        state["failures"] += 2 if critical else 1
+        state["recovery"] = None
+        state["failures"] = min(3, state["failures"] + (2 if critical else 1))
+        if not world_state.get("combat", {}).get("active"):
+            ensure_campaign_clock()
+            state["noncombat_next_save_at"] = world_state.get("campaign_time", {}).get("elapsed_seconds", 0) + 6
         if state["failures"] >= 3:
             state["dead"] = True
             death_resolution = _finalize_player_death("failed_death_saves")
@@ -3267,9 +3416,7 @@ def _finish_species_player_turn():
             damage = amount // 2 if isinstance(resistances, list) and "radiant" in resistances else amount
             before = npc.get("current_hp", npc.get("max_hp", 1))
             after = max(0, before - damage)
-            npc["current_hp"] = after
-            if after == 0:
-                npc["combat_status"] = "unconscious"
+            after = apply_npc_damage(npc, damage)
             effects.append(
                 {
                     "trait": "inner_radiance",
@@ -3281,12 +3428,10 @@ def _finish_species_player_turn():
             )
         # The PHB effect includes the Aasimar; its radiant resistance halves this damage.
         self_damage = amount // 2
-        absorbed = min(state["temporary_hit_points"], self_damage)
-        state["temporary_hit_points"] -= absorbed
-        hp_damage = self_damage - absorbed
-        character["current_hp"] = max(0, character["current_hp"] - hp_damage)
-        if character["current_hp"] == 0:
-            _session().world_state["player_combat_status"] = "unconscious"
+        damage_result = _apply_attack_damage_to_player(self_damage, False, True)
+        death_resolution = damage_result.get("death_resolution")
+        if death_resolution and death_resolution["rolled_back"]:
+            return [{"trait": "inner_radiance", "death_resolution": death_resolution}]
         effects.append(
             {
                 "trait": "inner_radiance",
@@ -3294,6 +3439,7 @@ def _finish_species_player_turn():
                 "damage": self_damage,
                 "damage_type": "radiant",
                 "target_hp_after": character["current_hp"],
+                "death_resolution": death_resolution,
             }
         )
 
@@ -3375,7 +3521,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             for _ in range(character.get("proficiency_bonus", 2))
         ]
         healing = min(sum(rolls), character["max_hp"] - character["current_hp"])
-        character["current_hp"] += healing
+        heal_player(healing)
         state["healing_hands_uses_remaining"] -= 1
         effects = {"dice": rolls, "healing": healing, "current_hp": character["current_hp"]}
         message = f"Şifa Veren Eller {healing} can puanı yeniledi."
@@ -3572,7 +3718,7 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
             "adrenaline_rush": max(0, (character.get("proficiency_bonus", 2) if species == "Orc" else 0) - old_state["adrenaline_rush_uses_remaining"]),
             "relentless_endurance": not old_state["relentless_endurance_available"] and species in {"Orc", "Half-Orc"},
         }
-        character["current_hp"] = character["max_hp"]
+        heal_player(character["max_hp"] - character["current_hp"])
         _session().world_state["player_combat_status"] = "active"
         character["species_trait_state"] = _new_persisted_species_trait_state(
             species, character.get("proficiency_bonus", 2)
@@ -3671,22 +3817,21 @@ def _mark_combat_action_used(participant_id, action_type="attack"):
     _validate_combat_v3_payload(combat)
 
 
-def _resolve_player_death_turn():
+def _resolve_player_death_turn(*, noncombat_key=None):
     """Resolve one automatic DC 10 death save on the player's scheduled turn."""
     combat = ensure_combat_state()
     death = ensure_death_state()
     if (
-        not combat["active"]
-        or combat["current_actor_id"] != "player"
+        (noncombat_key is None and (not combat["active"] or combat["current_actor_id"] != "player"))
         or death["stable"]
         or death["dead"]
         or _session().character.get("current_hp", 0) > 0
         or _session().world_state.get("player_combat_status") != "unconscious"
     ):
         return None
-    if not combat.get("combat_id"):
+    if noncombat_key is None and not combat.get("combat_id"):
         combat["combat_id"] = str(uuid4())
-    turn_key = f"{combat['combat_id']}:{combat['round']}"
+    turn_key = noncombat_key or f"{combat['combat_id']}:{combat['round']}"
     if (
         death.get("last_death_save_turn_key") == turn_key
         and isinstance(death.get("last_death_save_result"), dict)
@@ -3700,19 +3845,13 @@ def _resolve_player_death_turn():
         death["failures"] = min(3, death["failures"] + 2)
         outcome = "natural_1"
     elif roll == 20:
-        _session().character["current_hp"] = 1
-        _session().world_state["player_combat_status"] = "active"
-        death["successes"] = 0
-        death["failures"] = 0
-        death["stable"] = False
+        heal_player(1)
         death["prone"] = True
         outcome = "revived"
     elif roll >= 10:
         death["successes"] += 1
         if death["successes"] >= 3:
-            death["successes"] = 0
-            death["failures"] = 0
-            death["stable"] = True
+            stabilize_player()
             outcome = "stable"
     else:
         death["failures"] = min(3, death["failures"] + 1)
@@ -3855,8 +3994,8 @@ def _resolve_enemy_turns_until_player():
         )
         if npc is None:
             raise ValueError("Current combat actor is missing from canonical state.")
-        if npc.get("current_hp") == 0 and npc.get("combat_status", "active") in ("active", "unconscious"):
-            break  # The authoritative Death owner must handle this slot.
+        # Historical zero-HP unconscious NPCs remain unconscious. They cannot act,
+        # but no longer hold the cursor hostage or acquire player death saves.
         if not action_economy.can_act(_session(), actor_id):
             _mark_combat_action_used(actor_id)
             advanced, _, _ = advance_combat_turn()
@@ -4122,12 +4261,12 @@ def _apply_attack_damage_to_player(damage, critical, hit):
         _session().character["current_hp"] = player_hp_after
         world_state["player_combat_status"] = "active"
         death["stable"] = False
-        death["prone"] = False
     elif hit:
         damage_result = _apply_player_damage(
             hp_damage,
             critical=critical,
             took_damage=damage > 0,
+            resolved_damage=damage,
         )
         player_hp_after = _session().character["current_hp"]
         death_resolution = damage_result.get("death_resolution")
@@ -5143,11 +5282,55 @@ def ensure_campaign_clock():
 
 def advance_campaign_time(seconds, reason, source=None, observation=None):
     world = _session().world_state
-    return campaign_time.advance(
-        world, seconds, reason,
-        source or f"turn:{world.get('flags', {}).get('turn_index', 0)}",
-        observation=observation,
-    )
+    if type(seconds) is not int or not 0 <= seconds <= campaign_time.DAY * 365:
+        raise ValueError("Resolved gameplay duration is invalid.")
+    source = source or f"turn:{world.get('flags', {}).get('turn_index', 0)}"
+    if "campaign_time" not in world:
+        return campaign_time.advance(world, seconds, reason, source, observation=observation)
+    before = campaign_time.public_time(world)
+    remaining, elapsed, known, death_results = seconds, 0, [], []
+    while True:
+        death = ensure_death_state()
+        now = world["campaign_time"]["elapsed_seconds"]
+        zero = _session().character["current_hp"] == 0 and not death["dead"]
+        if zero and death["stable"] and death["recovery"] is None and remaining:
+            stabilize_player()
+        noncombat = zero and not death["stable"] and not world.get("combat", {}).get("active")
+        if noncombat and death["noncombat_next_save_at"] is None and remaining:
+            death["noncombat_next_save_at"] = now + 6
+        if noncombat and death["noncombat_episode_id"] is None and remaining:
+            death["noncombat_episode_id"] = str(uuid4())
+        deadline = (death["recovery"]["at"] if zero and death["stable"] and death["recovery"]
+                    else death["noncombat_next_save_at"] if noncombat else None)
+        step = remaining if deadline is None else min(remaining, max(0, deadline - now))
+        result = campaign_time.advance(
+            world, step, reason, source, observation=None if zero else observation
+        )
+        elapsed += result["elapsed_seconds"]
+        remaining -= result["elapsed_seconds"]
+        known.extend(result["player_known_events"])
+        now = world["campaign_time"]["elapsed_seconds"]
+        if deadline is not None and now >= deadline:
+            if death["stable"]:
+                heal_player(1)
+                death_results.append({"action": "stable_recovery", "current_hp": 1})
+            else:
+                save = _resolve_player_death_turn(
+                    noncombat_key=f"noncombat:{death['noncombat_episode_id']}:{deadline}"
+                )
+                death_results.append({"action": "death_save", "death_save": save})
+                death = ensure_death_state()
+                if save and save.get("death_resolution", {}).get("rolled_back"):
+                    return dict(result, elapsed_seconds=0, requested_seconds=seconds,
+                                remaining_seconds=seconds, death_results=death_results,
+                                player_known_events=[], after=campaign_time.public_time(world))
+                if _session().character["current_hp"] == 0 and not death["dead"] and not death["stable"]:
+                    death["noncombat_next_save_at"] = deadline + 6
+        if remaining == 0 or result["interrupted"] or ensure_death_state()["dead"]:
+            break
+    return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
+                remaining_seconds=remaining, before=before, player_known_events=known,
+                death_results=death_results)
 
 
 def commit_location_change(location_id, turn_index=None):
@@ -10840,6 +11023,23 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     entry_actor = entry_combat.get("current_actor_id")
     if entry_death_state["dead"]:
         raise ValueError("Ölü karakter eylem gerçekleştiremez.")
+    if (_session().character.get("current_hp", 0) == 0 and not entry_combat["active"]
+            and re.search(r"\b(?:bekle|bekliyorum|wait)\b", campaign_time.normalize(player_input))):
+        duration = campaign_time.requested_duration(player_input)
+        if duration is None:
+            raise ValueError("Ne kadar zaman geçeceğini belirt.")
+        ensure_campaign_clock()
+        time_result = advance_campaign_time(duration, "wait")
+        status = _session().world_state["player_combat_status"]
+        narration = ("Canın bir nebze geri döndü; hâlâ yerde yatıyorsun." if status == "active"
+                     else "Yolculuğun ölümle sona erdi." if status == "dead"
+                     else "Zaman geçiyor; hâlâ bilinçsizsin.")
+        action_result = {"action": "death_save", "status": "resolved", "success": status == "active",
+                         "outcome": status, "time": time_result}
+        if ensure_death_state().get("last_resolution"):
+            action_result["death_resolution"] = ensure_death_state()["last_resolution"]
+        return {"narration": narration, "action_result": action_result,
+                "model_calls": 0, "intent_model_calls": 0, "narrator_model_calls": 0}
     if (
         _session().character.get("current_hp", 0) <= 0
         or world_state.get("player_combat_status") == "unconscious"
@@ -11106,10 +11306,10 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             )
 
         save_result = _resolve_player_death_turn()
-        if save_result is not None and save_result["outcome"] != "revived":
+        if save_result is not None:
             enemy_actions = []
             combat = ensure_combat_state()
-            if combat["active"] and combat["current_actor_id"] == "player":
+            if save_result["outcome"] != "revived" and combat["active"] and combat["current_actor_id"] == "player":
                 _mark_combat_action_used("player")
                 if not _combat_end_if_decided():
                     advanced, _, _ = advance_combat_turn()
@@ -11131,6 +11331,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
                 "combat_ended": not combat["active"],
                 "end_reason": combat.get("end_reason"),
                 "direct_response": (
+                    "Canın bir nebze geri döndü; sıradaki hamlene karar verebilirsin."
+                    if save_result["outcome"] == "revived" else
                     "Ölüm kurtarma zarı otomatik çözüldü; karakterin "
                     "bilinçsiz olduğu için gönderdiğin eylem kullanılmadı."
                 ),

@@ -323,6 +323,25 @@ paths:
         schema:
           type: string
           format: uuid
+    delete:
+      operationId: deleteCampaign
+      tags: [game]
+      summary: Permanently delete a selected campaign and revoke its active session
+      responses:
+        "200":
+          description: Campaign is absent after the atomic deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [campaign_id, deleted]
+                properties:
+                  campaign_id:
+                    type: string
+                  deleted:
+                    type: boolean
+        "503":
+          description: Deletion failed; no successful deletion is reported
     get:
       operationId: getCampaign
       tags: [game]

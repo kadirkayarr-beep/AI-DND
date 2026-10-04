@@ -1,0 +1,119 @@
+test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates) ... ERROR
+test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero) ... ERROR
+test_npc_policy_and_historical_unconscious (api.tests.test_death_bounded.DeathBoundedTests.test_npc_policy_and_historical_unconscious) ... ERROR
+test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation) ... ERROR
+test_zero_hp_massive_damage_uses_damage_before_temporary_hp (api.tests.test_death_bounded.DeathBoundedTests.test_zero_hp_massive_damage_uses_damage_before_temporary_hp) ... ok
+test_failure_does_not_revoke_or_report_success (api.tests.test_death_bounded.SaveDeleteTests.test_failure_does_not_revoke_or_report_success) ... ERROR
+test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session) ... FAIL
+test_unknown_and_death_never_delete (api.tests.test_death_bounded.SaveDeleteTests.test_unknown_and_death_never_delete) ... FAIL
+
+======================================================================
+ERROR: test_critical_failure_saturates (api.tests.test_death_bounded.DeathBoundedTests.test_critical_failure_saturates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 25, in test_critical_failure_saturates
+    s._apply_player_damage(1, critical=True, took_damage=True)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2392, in _apply_player_damage
+    death_resolution = _finalize_player_death("failed_death_saves")
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2296, in _finalize_player_death
+    state = ensure_death_state()
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 2173, in ensure_death_state
+    raise ValueError("Campaign death state is invalid.")
+ValueError: Campaign death state is invalid.
+
+======================================================================
+ERROR: test_healing_dead_guard_and_maximum_zero (api.tests.test_death_bounded.DeathBoundedTests.test_healing_dead_guard_and_maximum_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 57, in test_healing_dead_guard_and_maximum_zero
+    s.heal_player(3)
+    ^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: heal_player
+
+======================================================================
+ERROR: test_npc_policy_and_historical_unconscious (api.tests.test_death_bounded.DeathBoundedTests.test_npc_policy_and_historical_unconscious)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 72, in test_npc_policy_and_historical_unconscious
+    s.apply_npc_damage(n, 3)
+    ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: apply_npc_damage
+
+======================================================================
+ERROR: test_recovery_once_and_cancellation (api.tests.test_death_bounded.DeathBoundedTests.test_recovery_once_and_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 38, in test_recovery_once_and_cancellation
+    s.stabilize_player()
+    ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: stabilize_player
+
+======================================================================
+ERROR: test_failure_does_not_revoke_or_report_success (api.tests.test_death_bounded.SaveDeleteTests.test_failure_does_not_revoke_or_report_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 106, in test_failure_does_not_revoke_or_report_success
+    with patch.object(self.store, "delete_campaign", side_effect=CampaignStorageError("failure")):
+         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/unittest/mock.py", line 1497, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/unittest/mock.py", line 1467, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <api.persistence.campaign_store.CampaignStore object at 0x7f550734a990> does not have the attribute 'delete_campaign'
+
+======================================================================
+FAIL: test_selected_delete_cascade_restart_repeat_and_stale_session (api.tests.test_death_bounded.SaveDeleteTests.test_selected_delete_cascade_restart_repeat_and_stale_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 89, in test_selected_delete_cascade_restart_repeat_and_stale_session
+    self.assertEqual(response.status_code, 200, response.text)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 405 != 200 : {"detail":"Method Not Allowed"}
+
+======================================================================
+FAIL: test_unknown_and_death_never_delete (api.tests.test_death_bounded.SaveDeleteTests.test_unknown_and_death_never_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_death_bounded.py", line 116, in test_unknown_and_death_never_delete
+    self.assertEqual(response.status_code, 200)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 405 != 200
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.353s
+
+FAILED (failures=2, errors=5)
