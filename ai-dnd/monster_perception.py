@@ -31,6 +31,8 @@ def relationship(session, actor, target):
 
 def snapshot(session, actor, memory):
     """Never pass exact target HP, secret defenses, invisible coordinates to AI."""
+    import bounded_encounter
+    bounded_encounter.refresh(session)
     a = attacks.actor_data(session, actor)
     acond = attacks.conditions(session, actor, a)
     facts = session.world_state.get("monster_perception", {}).get(actor, {})

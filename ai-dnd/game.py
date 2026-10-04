@@ -10525,6 +10525,11 @@ def run_player_turn(
     session_id=None,
     combat_action=None,
 ):
+    import bounded_encounter
+    bounded_encounter.refresh(_session())
+    native = bounded_encounter.resolve_command(_session(), player_input) if combat_action is None else None
+    if native is not None:
+        return native
     import monster_combat
     if combat_action is None and _session().world_state.get("combat", {}).get("active"):
         with initiative.atomic(_session()):

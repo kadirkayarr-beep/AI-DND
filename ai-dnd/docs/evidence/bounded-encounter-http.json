@@ -1,0 +1,2679 @@
+{
+  "status": "PASS",
+  "transport": "real HTTP",
+  "fixture_injection": false,
+  "campaign_id": "12109bb2-97d1-4de8-96a1-a96739b32908",
+  "second_process_resume": true,
+  "scenario": {
+    "scenario_id": "open_courtyard_commoner_v1",
+    "location_id": "fr:city:neverwinter",
+    "player_node_id": "courtyard_entry",
+    "visible_opponent": {
+      "npc_id": "npc_001",
+      "statblock_id": "mm2024.commoner",
+      "source": "Monster Manual 2024, Commoner, printed p.77, PDF p.80",
+      "distance_ft": 60,
+      "node_id": "courtyard_far"
+    }
+  },
+  "movement": {
+    "result": {
+      "action": "monster_dash",
+      "status": "resolved",
+      "success": true,
+      "outcome": "dash",
+      "actor": "npc_001",
+      "actor_name": "Avlu saldırganı",
+      "target": null,
+      "target_id": null,
+      "target_name": "courtyard_near",
+      "weapon": null,
+      "attack_roll": null,
+      "attack_bonus": null,
+      "attack_total": null,
+      "target_ac": null,
+      "critical": null,
+      "damage": 0,
+      "target_hp_before": null,
+      "target_hp_after": null,
+      "target_status": null,
+      "damage_type": null,
+      "attack_rolls": null,
+      "disadvantage": null,
+      "hp_damage": null,
+      "temporary_hp_before": null,
+      "temporary_hp_absorbed": null,
+      "temporary_hp_after": null,
+      "species_effects": null
+    },
+    "budget": {
+      "base_action_spent": true,
+      "additional_actions": [],
+      "bonus_action_spent": false,
+      "bonus_grants": [],
+      "reaction_spent": false,
+      "movement_available": 60,
+      "movement_used": 55,
+      "dash_count": 1,
+      "ready_movement_grant": 0,
+      "ready": null,
+      "opportunity": null,
+      "attack_action": null,
+      "attack_turn_counter": 1,
+      "speed_ft": 30,
+      "action_available": false,
+      "bonus_action_available": false,
+      "bonus_rules": [],
+      "reaction_available": true,
+      "effective_movement_available": 60,
+      "movement_remaining": 5,
+      "legal_actions": [
+        {
+          "kind": "attack",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "dash",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "disengage",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "dodge",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "feature",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "help",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "hide",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "influence",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "magic",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "ready",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "search",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "study",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        },
+        {
+          "kind": "utilize",
+          "legal": false,
+          "reason": "Actor is not the current participant."
+        }
+      ]
+    },
+    "distance_after_ft": 5
+  },
+  "attack": {
+    "action": "enemy_attack",
+    "status": "resolved",
+    "success": true,
+    "outcome": "critical_hit",
+    "actor_id": "npc_001",
+    "actor": "npc_001",
+    "actor_name": "Avlu saldırganı",
+    "target_id": "player",
+    "target": "player",
+    "target_name": "TestHero",
+    "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+    "weapon": "Club",
+    "weapon_id": "commoner_club",
+    "attack_type": "melee",
+    "attack_origin": "action",
+    "ability_used": "stat_block",
+    "ability_modifier": 0,
+    "proficient": false,
+    "proficiency_bonus": 0,
+    "proficiency_applied": false,
+    "attack_bonuses": [],
+    "damage_modifiers": [],
+    "attack_bonus": 2,
+    "attack_roll": 20,
+    "attack_rolls": [
+      20
+    ],
+    "attack_total": 22,
+    "resolution": {
+      "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+      "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+      "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+      "resolution_type": "attack_roll",
+      "roll_type": "d20",
+      "raw_rolls": [
+        20
+      ],
+      "selected_roll": 20,
+      "advantage": false,
+      "disadvantage": false,
+      "advantage_cancelled": false,
+      "actor_id": "npc_001",
+      "target_id": "player",
+      "modifier_breakdown": {
+        "attack_bonus": 2
+      },
+      "total_modifier": 2,
+      "total": 22,
+      "target_value": 12,
+      "target_ac": 12,
+      "outcome": "CRITICAL_HIT",
+      "critical_state": "critical_hit"
+    },
+    "unarmed_option": null,
+    "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+    "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+    "attack_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+    "advantage_sources": [],
+    "disadvantage_sources": [],
+    "disadvantage": false,
+    "cover_state": "none",
+    "target_ac_base": 12,
+    "target_ac": 12,
+    "natural_20": true,
+    "natural_1": false,
+    "critical": true,
+    "hit": true,
+    "damage": 2,
+    "damage_type": "bludgeoning",
+    "raw_damage": 2,
+    "damage_rolls": [
+      {
+        "source": "weapon",
+        "die": 4,
+        "count": 2,
+        "rolls": [
+          1,
+          1
+        ]
+      }
+    ],
+    "damage_instances": [
+      {
+        "damage_type": "bludgeoning",
+        "raw_damage": 2,
+        "resistance_applied": false,
+        "vulnerability_applied": false,
+        "immunity_applied": false,
+        "final_damage": 2,
+        "pre_resistance_damage": 2,
+        "flat_reduction": 0
+      }
+    ],
+    "mastery": null,
+    "mastery_effect": null,
+    "additional_effects": [],
+    "ammunition_consumed": null,
+    "weapon_instance_id": null,
+    "target_hp_before": 12,
+    "target_hp_after": 10,
+    "target_status": "active",
+    "resulting_conditions": [],
+    "resulting_position": null,
+    "species_effects": [],
+    "hp_damage": 2,
+    "temporary_hp_before": 0,
+    "temporary_hp_absorbed": 0,
+    "temporary_hp_after": 0,
+    "death_resolution": null
+  },
+  "save": "PASS",
+  "resume": "PASS",
+  "replay": "PASS",
+  "replay_state_unchanged": true,
+  "replay_history_unchanged": true,
+  "turns": [
+    {
+      "request": {
+        "message": "Avlu karşılaşmasına gir",
+        "action_id": "a823389b-623a-40d4-a6da-6706c13d524a"
+      },
+      "response": {
+        "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+        "action_id": "a823389b-623a-40d4-a6da-6706c13d524a",
+        "narration": "Açık avludasın. Avlu saldırganı 60 feet ötede sopa taşıyor. Çatışma başlamadı; başlatmayı seçersen «Avlu çatışmasını başlat» yaz.",
+        "state": {
+          "location": "fr:city:neverwinter",
+          "campaign_time": {
+            "year": 1501,
+            "month": "Mirtul",
+            "day": 1,
+            "hour": 9,
+            "minute": 0,
+            "second": 0,
+            "day_index": 0,
+            "calendar": "Harptos",
+            "local_convention": "Neverwinter local",
+            "time_of_day": "day",
+            "display": "1 Mirtul — Gündüz",
+            "detail": "1 Mirtul 1501 DR — 09:00:00"
+          },
+          "known_scheduled_events": [],
+          "pending_event_decisions": [],
+          "journey": null,
+          "scene": {
+            "id": "scene:fr:city:neverwinter",
+            "location_id": "fr:city:neverwinter",
+            "parent_location_id": null,
+            "kind": "city",
+            "visit_revision": 0,
+            "activity_revision": 0,
+            "last_activity": null,
+            "ambient_event": null,
+            "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+            "player_position": {
+              "location_id": "fr:city:neverwinter",
+              "kind": "standing",
+              "target_id": null,
+              "bounded_node_id": "courtyard_entry"
+            },
+            "npcs": [
+              {
+                "id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "appearance": "Elinde bir sopa taşıyan avlu sakini."
+              }
+            ],
+            "features": [],
+            "referents": []
+          },
+          "world": {
+            "environment": "city",
+            "time_of_day": "day",
+            "weather": "clear"
+          },
+          "journal": {
+            "schema_version": 1,
+            "discovered_locations": [
+              {
+                "location_id": "fr:city:neverwinter",
+                "name": "Neverwinter",
+                "environment": "city",
+                "first_discovered_at": "2026-10-04T07:38:02+00:00",
+                "last_visited_at": "2026-10-04T07:38:02+00:00",
+                "first_discovered_turn": 0,
+                "last_visited_turn": 0,
+                "visit_count": 1
+              }
+            ],
+            "known_npcs": [
+              {
+                "npc_id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "first_met_at": "2026-10-04T07:38:02+00:00",
+                "last_seen_at": "2026-10-04T07:38:02+00:00",
+                "first_met_turn": 1,
+                "last_seen_turn": 1,
+                "last_known_location_id": "fr:city:neverwinter",
+                "last_known_location": "Neverwinter"
+              }
+            ],
+            "notable_events": [
+              {
+                "event_id": "8a8e577c-9a9c-4051-a0dc-a2260fb33d28",
+                "event_type": "location_discovered",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 0,
+                "summary": "Neverwinter keşfedildi.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": null,
+                "related_item": null
+              },
+              {
+                "event_id": "a000b55b-9db7-4e39-8c78-c0b85aa59d89",
+                "event_type": "npc_met",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 1,
+                "summary": "Avlu saldırganı ile karşılaşıldı.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": "npc_001",
+                "related_item": null
+              }
+            ],
+            "quests": []
+          },
+          "locations": {
+            "tavern": {
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building",
+              "description": ""
+            },
+            "forest": {
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness",
+              "description": ""
+            },
+            "castle": {
+              "id": "castle",
+              "name": "Kale",
+              "type": "building",
+              "description": ""
+            },
+            "fr:city:neverwinter": {
+              "id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "type": "city",
+              "description": ""
+            }
+          },
+          "character": {
+            "name": "TestHero",
+            "race": "Human",
+            "species": "Human",
+            "giant_ancestry": null,
+            "species_trait_state": null,
+            "speed_ft": 30,
+            "class": "Fighter",
+            "strength": 16,
+            "dexterity": 14,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 12,
+            "charisma": 10,
+            "proficient_skills": [
+              "Athletics",
+              "Perception"
+            ],
+            "expertise_skills": [],
+            "species_bonus_skills": [],
+            "level": 1,
+            "proficiency_bonus": 2,
+            "max_hp": 12,
+            "current_hp": 12,
+            "armor_class": 12,
+            "origin_feat": null,
+            "species_bonus_feat": null,
+            "origin_feats": []
+          },
+          "inventory": [
+            "Macera çantası",
+            "Kılıç"
+          ],
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Avlu saldırganı",
+              "role": "Hooligan",
+              "location": "fr:city:neverwinter",
+              "appearance": "Elinde bir sopa taşıyan avlu sakini.",
+              "relationship": "neutral",
+              "tags": [],
+              "max_hp": 4,
+              "current_hp": 4,
+              "armor_class": 10,
+              "combat_status": "active"
+            }
+          ],
+          "shops": [],
+          "features": [],
+          "doors": [],
+          "combat": {
+            "active": false,
+            "combat_id": null,
+            "status": "ended",
+            "round": 0,
+            "initiative_order": [],
+            "current_turn_index": 0,
+            "current_actor_id": null,
+            "turn_owner": null,
+            "participants": [],
+            "participant_records": [],
+            "target_id": null,
+            "end_reason": null,
+            "action_economy": null
+          },
+          "player_combat_status": "active",
+          "death_state": {
+            "mode": "NORMAL",
+            "status": "active",
+            "successes": 0,
+            "failures": 0,
+            "stable": false,
+            "dead": false,
+            "terminal": false,
+            "prone": false
+          },
+          "turn_index": 1,
+          "quests": [],
+          "quest_offers": [],
+          "bounded_encounter": {
+            "scenario_id": "open_courtyard_commoner_v1",
+            "location_id": "fr:city:neverwinter",
+            "player_node_id": "courtyard_entry",
+            "visible_opponent": {
+              "npc_id": "npc_001",
+              "statblock_id": "mm2024.commoner",
+              "source": "Monster Manual 2024, Commoner, printed p.77, PDF p.80",
+              "distance_ft": 60,
+              "node_id": "courtyard_far"
+            }
+          }
+        },
+        "combat_result": null,
+        "combat_history_entry": null,
+        "skill_check_result": null,
+        "quest_outcomes": []
+      }
+    },
+    {
+      "request": {
+        "message": "Avlu çatışmasını başlat",
+        "action_id": "1b31dc6b-44db-4811-9f80-ba7fc371548c"
+      },
+      "response": {
+        "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+        "action_id": "1b31dc6b-44db-4811-9f80-ba7fc371548c",
+        "narration": "Seçiminle çatışma başladı; inisiyatif Python tarafından çözüldü.",
+        "state": {
+          "location": "fr:city:neverwinter",
+          "campaign_time": {
+            "year": 1501,
+            "month": "Mirtul",
+            "day": 1,
+            "hour": 9,
+            "minute": 0,
+            "second": 0,
+            "day_index": 0,
+            "calendar": "Harptos",
+            "local_convention": "Neverwinter local",
+            "time_of_day": "day",
+            "display": "1 Mirtul — Gündüz",
+            "detail": "1 Mirtul 1501 DR — 09:00:00"
+          },
+          "known_scheduled_events": [],
+          "pending_event_decisions": [],
+          "journey": null,
+          "scene": {
+            "id": "scene:fr:city:neverwinter",
+            "location_id": "fr:city:neverwinter",
+            "parent_location_id": null,
+            "kind": "city",
+            "visit_revision": 0,
+            "activity_revision": 0,
+            "last_activity": null,
+            "ambient_event": null,
+            "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+            "player_position": {
+              "location_id": "fr:city:neverwinter",
+              "kind": "standing",
+              "target_id": null,
+              "bounded_node_id": "courtyard_entry"
+            },
+            "npcs": [
+              {
+                "id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "appearance": "Elinde bir sopa taşıyan avlu sakini."
+              }
+            ],
+            "features": [],
+            "referents": []
+          },
+          "world": {
+            "environment": "city",
+            "time_of_day": "day",
+            "weather": "clear"
+          },
+          "journal": {
+            "schema_version": 1,
+            "discovered_locations": [
+              {
+                "location_id": "fr:city:neverwinter",
+                "name": "Neverwinter",
+                "environment": "city",
+                "first_discovered_at": "2026-10-04T07:38:02+00:00",
+                "last_visited_at": "2026-10-04T07:38:02+00:00",
+                "first_discovered_turn": 0,
+                "last_visited_turn": 0,
+                "visit_count": 1
+              }
+            ],
+            "known_npcs": [
+              {
+                "npc_id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "first_met_at": "2026-10-04T07:38:02+00:00",
+                "last_seen_at": "2026-10-04T07:38:02+00:00",
+                "first_met_turn": 1,
+                "last_seen_turn": 2,
+                "last_known_location_id": "fr:city:neverwinter",
+                "last_known_location": "Neverwinter"
+              }
+            ],
+            "notable_events": [
+              {
+                "event_id": "8a8e577c-9a9c-4051-a0dc-a2260fb33d28",
+                "event_type": "location_discovered",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 0,
+                "summary": "Neverwinter keşfedildi.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": null,
+                "related_item": null
+              },
+              {
+                "event_id": "a000b55b-9db7-4e39-8c78-c0b85aa59d89",
+                "event_type": "npc_met",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 1,
+                "summary": "Avlu saldırganı ile karşılaşıldı.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": "npc_001",
+                "related_item": null
+              },
+              {
+                "event_id": "300ea258-7e09-4a15-b8e9-cbd67d758a84",
+                "event_type": "combat_started",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 2,
+                "summary": "Çatışma başladı.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": null,
+                "related_item": null
+              }
+            ],
+            "quests": []
+          },
+          "locations": {
+            "tavern": {
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building",
+              "description": ""
+            },
+            "forest": {
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness",
+              "description": ""
+            },
+            "castle": {
+              "id": "castle",
+              "name": "Kale",
+              "type": "building",
+              "description": ""
+            },
+            "fr:city:neverwinter": {
+              "id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "type": "city",
+              "description": ""
+            }
+          },
+          "character": {
+            "name": "TestHero",
+            "race": "Human",
+            "species": "Human",
+            "giant_ancestry": null,
+            "species_trait_state": null,
+            "speed_ft": 30,
+            "class": "Fighter",
+            "strength": 16,
+            "dexterity": 14,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 12,
+            "charisma": 10,
+            "proficient_skills": [
+              "Athletics",
+              "Perception"
+            ],
+            "expertise_skills": [],
+            "species_bonus_skills": [],
+            "level": 1,
+            "proficiency_bonus": 2,
+            "max_hp": 12,
+            "current_hp": 12,
+            "armor_class": 12,
+            "origin_feat": null,
+            "species_bonus_feat": null,
+            "origin_feats": []
+          },
+          "inventory": [
+            "Macera çantası",
+            "Kılıç"
+          ],
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Avlu saldırganı",
+              "role": "Hooligan",
+              "location": "fr:city:neverwinter",
+              "appearance": "Elinde bir sopa taşıyan avlu sakini.",
+              "relationship": "neutral",
+              "tags": [],
+              "max_hp": 4,
+              "current_hp": 4,
+              "armor_class": 10,
+              "combat_status": "active"
+            }
+          ],
+          "shops": [],
+          "features": [],
+          "doors": [],
+          "combat": {
+            "active": true,
+            "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+            "status": "active",
+            "round": 1,
+            "initiative_order": [
+              "npc_001",
+              "player"
+            ],
+            "current_turn_index": 1,
+            "current_actor_id": "player",
+            "turn_owner": "player",
+            "participants": [
+              "player",
+              "npc_001"
+            ],
+            "participant_records": [
+              {
+                "id": "player",
+                "kind": "player",
+                "name": "TestHero",
+                "current_hp": 12,
+                "max_hp": 12,
+                "armor_class": 12,
+                "status": "active",
+                "primary_action_available": true,
+                "is_current_actor": true
+              },
+              {
+                "id": "npc_001",
+                "kind": "npc",
+                "name": "Avlu saldırganı",
+                "current_hp": 4,
+                "max_hp": 4,
+                "armor_class": 10,
+                "status": "active",
+                "primary_action_available": false,
+                "is_current_actor": false
+              }
+            ],
+            "target_id": "npc_001",
+            "end_reason": null,
+            "action_economy": {
+              "actors": {
+                "player": {
+                  "base_action_spent": false,
+                  "additional_actions": [],
+                  "bonus_action_spent": false,
+                  "bonus_grants": [],
+                  "reaction_spent": false,
+                  "movement_available": 30,
+                  "movement_used": 0,
+                  "dash_count": 0,
+                  "ready_movement_grant": 0,
+                  "ready": null,
+                  "opportunity": null,
+                  "attack_action": null,
+                  "attack_turn_counter": 1,
+                  "speed_ft": 30,
+                  "action_available": true,
+                  "bonus_action_available": false,
+                  "bonus_rules": [],
+                  "reaction_available": true,
+                  "effective_movement_available": 30,
+                  "movement_remaining": 30,
+                  "legal_actions": [
+                    {
+                      "kind": "attack",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "dash",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "disengage",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "dodge",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "feature",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "help",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "hide",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "influence",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "magic",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "ready",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "search",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "study",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "utilize",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    }
+                  ]
+                },
+                "npc_001": {
+                  "base_action_spent": true,
+                  "additional_actions": [],
+                  "bonus_action_spent": false,
+                  "bonus_grants": [],
+                  "reaction_spent": false,
+                  "movement_available": 60,
+                  "movement_used": 55,
+                  "dash_count": 1,
+                  "ready_movement_grant": 0,
+                  "ready": null,
+                  "opportunity": null,
+                  "attack_action": null,
+                  "attack_turn_counter": 1,
+                  "speed_ft": 30,
+                  "action_available": false,
+                  "bonus_action_available": false,
+                  "bonus_rules": [],
+                  "reaction_available": true,
+                  "effective_movement_available": 60,
+                  "movement_remaining": 5,
+                  "legal_actions": [
+                    {
+                      "kind": "attack",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "dash",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "disengage",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "dodge",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "feature",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "help",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "hide",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "influence",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "magic",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "ready",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "search",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "study",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "utilize",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "player_combat_status": "active",
+          "death_state": {
+            "mode": "NORMAL",
+            "status": "active",
+            "successes": 0,
+            "failures": 0,
+            "stable": false,
+            "dead": false,
+            "terminal": false,
+            "prone": false
+          },
+          "turn_index": 2,
+          "quests": [],
+          "quest_offers": [],
+          "bounded_encounter": {
+            "scenario_id": "open_courtyard_commoner_v1",
+            "location_id": "fr:city:neverwinter",
+            "player_node_id": "courtyard_entry",
+            "visible_opponent": {
+              "npc_id": "npc_001",
+              "statblock_id": "mm2024.commoner",
+              "source": "Monster Manual 2024, Commoner, printed p.77, PDF p.80",
+              "distance_ft": 5,
+              "node_id": "courtyard_near"
+            }
+          }
+        },
+        "combat_result": {
+          "action": "action_economy",
+          "status": "resolved",
+          "success": true,
+          "outcome": "combat_started",
+          "actor": null,
+          "actor_name": null,
+          "target": null,
+          "target_id": null,
+          "target_name": null,
+          "weapon": null,
+          "attack_roll": null,
+          "attack_bonus": null,
+          "attack_total": null,
+          "target_ac": null,
+          "critical": null,
+          "damage": null,
+          "target_hp_before": null,
+          "target_hp_after": null,
+          "target_status": null,
+          "damage_type": null,
+          "attack_rolls": null,
+          "disadvantage": null,
+          "hp_damage": null,
+          "temporary_hp_before": null,
+          "temporary_hp_absorbed": null,
+          "temporary_hp_after": null,
+          "species_effects": null,
+          "economy_steps": null,
+          "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+          "combat_status": null,
+          "round": null,
+          "current_turn_index": null,
+          "combat_started": true,
+          "combat_ended": null,
+          "end_reason": null,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "enemy_action": null,
+          "enemy_actions": [
+            {
+              "action": "monster_dash",
+              "status": "resolved",
+              "success": true,
+              "outcome": "dash",
+              "actor": "npc_001",
+              "actor_name": "Avlu saldırganı",
+              "target": null,
+              "target_id": null,
+              "target_name": "courtyard_near",
+              "weapon": null,
+              "attack_roll": null,
+              "attack_bonus": null,
+              "attack_total": null,
+              "target_ac": null,
+              "critical": null,
+              "damage": 0,
+              "target_hp_before": null,
+              "target_hp_after": null,
+              "target_status": null,
+              "damage_type": null,
+              "attack_rolls": null,
+              "disadvantage": null,
+              "hp_damage": null,
+              "temporary_hp_before": null,
+              "temporary_hp_absorbed": null,
+              "temporary_hp_after": null,
+              "species_effects": null
+            }
+          ]
+        },
+        "combat_history_entry": {
+          "event_id": "57e639a0-0a67-4e78-982b-f6172b04ad57",
+          "turn_index": 2,
+          "result": {
+            "action": "action_economy",
+            "status": "resolved",
+            "success": true,
+            "outcome": "combat_started",
+            "actor": null,
+            "actor_name": null,
+            "target": null,
+            "target_id": null,
+            "target_name": null,
+            "weapon": null,
+            "attack_roll": null,
+            "attack_bonus": null,
+            "attack_total": null,
+            "target_ac": null,
+            "critical": null,
+            "damage": null,
+            "target_hp_before": null,
+            "target_hp_after": null,
+            "target_status": null,
+            "damage_type": null,
+            "attack_rolls": null,
+            "disadvantage": null,
+            "hp_damage": null,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": null,
+            "economy_steps": null,
+            "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+            "combat_status": null,
+            "round": null,
+            "current_turn_index": null,
+            "combat_started": true,
+            "combat_ended": null,
+            "end_reason": null,
+            "current_actor_id": null,
+            "turn_owner": null,
+            "enemy_action": null,
+            "enemy_actions": [
+              {
+                "action": "monster_dash",
+                "status": "resolved",
+                "success": true,
+                "outcome": "dash",
+                "actor": "npc_001",
+                "actor_name": "Avlu saldırganı",
+                "target": null,
+                "target_id": null,
+                "target_name": "courtyard_near",
+                "weapon": null,
+                "attack_roll": null,
+                "attack_bonus": null,
+                "attack_total": null,
+                "target_ac": null,
+                "critical": null,
+                "damage": 0,
+                "target_hp_before": null,
+                "target_hp_after": null,
+                "target_status": null,
+                "damage_type": null,
+                "attack_rolls": null,
+                "disadvantage": null,
+                "hp_damage": null,
+                "temporary_hp_before": null,
+                "temporary_hp_absorbed": null,
+                "temporary_hp_after": null,
+                "species_effects": null
+              }
+            ]
+          }
+        },
+        "skill_check_result": null,
+        "quest_outcomes": []
+      }
+    },
+    {
+      "request": {
+        "message": "Turumu bitiriyorum",
+        "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+        "combat_action": {
+          "steps": [
+            {
+              "kind": "end_turn"
+            }
+          ]
+        },
+        "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+        "combat_round": 1,
+        "combat_turn_index": 1
+      },
+      "response": {
+        "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+        "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+        "narration": "Python doğrulamasıyla hamle çözüldü.",
+        "state": {
+          "location": "fr:city:neverwinter",
+          "campaign_time": {
+            "year": 1501,
+            "month": "Mirtul",
+            "day": 1,
+            "hour": 9,
+            "minute": 0,
+            "second": 6,
+            "day_index": 0,
+            "calendar": "Harptos",
+            "local_convention": "Neverwinter local",
+            "time_of_day": "day",
+            "display": "1 Mirtul — Gündüz",
+            "detail": "1 Mirtul 1501 DR — 09:00:06"
+          },
+          "known_scheduled_events": [],
+          "pending_event_decisions": [],
+          "journey": null,
+          "scene": {
+            "id": "scene:fr:city:neverwinter",
+            "location_id": "fr:city:neverwinter",
+            "parent_location_id": null,
+            "kind": "city",
+            "visit_revision": 0,
+            "activity_revision": 0,
+            "last_activity": null,
+            "ambient_event": null,
+            "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+            "player_position": {
+              "location_id": "fr:city:neverwinter",
+              "kind": "standing",
+              "target_id": null,
+              "bounded_node_id": "courtyard_entry"
+            },
+            "npcs": [
+              {
+                "id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "appearance": "Elinde bir sopa taşıyan avlu sakini."
+              }
+            ],
+            "features": [],
+            "referents": []
+          },
+          "world": {
+            "environment": "city",
+            "time_of_day": "day",
+            "weather": "clear"
+          },
+          "journal": {
+            "schema_version": 1,
+            "discovered_locations": [
+              {
+                "location_id": "fr:city:neverwinter",
+                "name": "Neverwinter",
+                "environment": "city",
+                "first_discovered_at": "2026-10-04T07:38:02+00:00",
+                "last_visited_at": "2026-10-04T07:38:02+00:00",
+                "first_discovered_turn": 0,
+                "last_visited_turn": 0,
+                "visit_count": 1
+              }
+            ],
+            "known_npcs": [
+              {
+                "npc_id": "npc_001",
+                "name": "Avlu saldırganı",
+                "role": "Hooligan",
+                "first_met_at": "2026-10-04T07:38:02+00:00",
+                "last_seen_at": "2026-10-04T07:38:02+00:00",
+                "first_met_turn": 1,
+                "last_seen_turn": 2,
+                "last_known_location_id": "fr:city:neverwinter",
+                "last_known_location": "Neverwinter"
+              }
+            ],
+            "notable_events": [
+              {
+                "event_id": "8a8e577c-9a9c-4051-a0dc-a2260fb33d28",
+                "event_type": "location_discovered",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 0,
+                "summary": "Neverwinter keşfedildi.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": null,
+                "related_item": null
+              },
+              {
+                "event_id": "a000b55b-9db7-4e39-8c78-c0b85aa59d89",
+                "event_type": "npc_met",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 1,
+                "summary": "Avlu saldırganı ile karşılaşıldı.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": "npc_001",
+                "related_item": null
+              },
+              {
+                "event_id": "300ea258-7e09-4a15-b8e9-cbd67d758a84",
+                "event_type": "combat_started",
+                "created_at": "2026-10-04T07:38:02+00:00",
+                "turn_index": 2,
+                "summary": "Çatışma başladı.",
+                "location_id": "fr:city:neverwinter",
+                "location_name": "Neverwinter",
+                "related_npc_id": null,
+                "related_item": null
+              }
+            ],
+            "quests": []
+          },
+          "locations": {
+            "tavern": {
+              "id": "tavern",
+              "name": "Taverna",
+              "type": "building",
+              "description": ""
+            },
+            "forest": {
+              "id": "forest",
+              "name": "Orman",
+              "type": "wilderness",
+              "description": ""
+            },
+            "castle": {
+              "id": "castle",
+              "name": "Kale",
+              "type": "building",
+              "description": ""
+            },
+            "fr:city:neverwinter": {
+              "id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "type": "city",
+              "description": ""
+            }
+          },
+          "character": {
+            "name": "TestHero",
+            "race": "Human",
+            "species": "Human",
+            "giant_ancestry": null,
+            "species_trait_state": null,
+            "speed_ft": 30,
+            "class": "Fighter",
+            "strength": 16,
+            "dexterity": 14,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 12,
+            "charisma": 10,
+            "proficient_skills": [
+              "Athletics",
+              "Perception"
+            ],
+            "expertise_skills": [],
+            "species_bonus_skills": [],
+            "level": 1,
+            "proficiency_bonus": 2,
+            "max_hp": 12,
+            "current_hp": 10,
+            "armor_class": 12,
+            "origin_feat": null,
+            "species_bonus_feat": null,
+            "origin_feats": []
+          },
+          "inventory": [
+            "Macera çantası",
+            "Kılıç"
+          ],
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Avlu saldırganı",
+              "role": "Hooligan",
+              "location": "fr:city:neverwinter",
+              "appearance": "Elinde bir sopa taşıyan avlu sakini.",
+              "relationship": "neutral",
+              "tags": [],
+              "max_hp": 4,
+              "current_hp": 4,
+              "armor_class": 10,
+              "combat_status": "active"
+            }
+          ],
+          "shops": [],
+          "features": [],
+          "doors": [],
+          "combat": {
+            "active": true,
+            "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+            "status": "active",
+            "round": 2,
+            "initiative_order": [
+              "npc_001",
+              "player"
+            ],
+            "current_turn_index": 1,
+            "current_actor_id": "player",
+            "turn_owner": "player",
+            "participants": [
+              "player",
+              "npc_001"
+            ],
+            "participant_records": [
+              {
+                "id": "player",
+                "kind": "player",
+                "name": "TestHero",
+                "current_hp": 10,
+                "max_hp": 12,
+                "armor_class": 12,
+                "status": "active",
+                "primary_action_available": true,
+                "is_current_actor": true
+              },
+              {
+                "id": "npc_001",
+                "kind": "npc",
+                "name": "Avlu saldırganı",
+                "current_hp": 4,
+                "max_hp": 4,
+                "armor_class": 10,
+                "status": "active",
+                "primary_action_available": false,
+                "is_current_actor": false
+              }
+            ],
+            "target_id": "npc_001",
+            "end_reason": null,
+            "action_economy": {
+              "actors": {
+                "player": {
+                  "base_action_spent": false,
+                  "additional_actions": [],
+                  "bonus_action_spent": false,
+                  "bonus_grants": [],
+                  "reaction_spent": false,
+                  "movement_available": 30,
+                  "movement_used": 0,
+                  "dash_count": 0,
+                  "ready_movement_grant": 0,
+                  "ready": null,
+                  "opportunity": null,
+                  "attack_action": null,
+                  "attack_turn_counter": 2,
+                  "speed_ft": 30,
+                  "action_available": true,
+                  "bonus_action_available": false,
+                  "bonus_rules": [],
+                  "reaction_available": true,
+                  "effective_movement_available": 30,
+                  "movement_remaining": 30,
+                  "legal_actions": [
+                    {
+                      "kind": "attack",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "dash",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "disengage",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "dodge",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "feature",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "help",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "hide",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "influence",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "magic",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "ready",
+                      "legal": true,
+                      "reason": null
+                    },
+                    {
+                      "kind": "search",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "study",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    },
+                    {
+                      "kind": "utilize",
+                      "legal": false,
+                      "reason": "Action-specific mechanic not connected by this lock."
+                    }
+                  ]
+                },
+                "npc_001": {
+                  "base_action_spent": true,
+                  "additional_actions": [],
+                  "bonus_action_spent": false,
+                  "bonus_grants": [],
+                  "reaction_spent": false,
+                  "movement_available": 30,
+                  "movement_used": 0,
+                  "dash_count": 0,
+                  "ready_movement_grant": 0,
+                  "ready": null,
+                  "opportunity": null,
+                  "attack_action": null,
+                  "attack_turn_counter": 2,
+                  "weapon_sequence": {
+                    "attacks": 1,
+                    "light_weapon_ids": [],
+                    "light_used": false,
+                    "cleave_used": false,
+                    "loading_origins": [],
+                    "active_action_key": "action:0",
+                    "action_index": 1
+                  },
+                  "speed_ft": 30,
+                  "action_available": false,
+                  "bonus_action_available": false,
+                  "bonus_rules": [],
+                  "reaction_available": true,
+                  "effective_movement_available": 30,
+                  "movement_remaining": 30,
+                  "legal_actions": [
+                    {
+                      "kind": "attack",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "dash",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "disengage",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "dodge",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "feature",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "help",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "hide",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "influence",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "magic",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "ready",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "search",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "study",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    },
+                    {
+                      "kind": "utilize",
+                      "legal": false,
+                      "reason": "Actor is not the current participant."
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "player_combat_status": "active",
+          "death_state": {
+            "mode": "NORMAL",
+            "status": "active",
+            "successes": 0,
+            "failures": 0,
+            "stable": false,
+            "dead": false,
+            "terminal": false,
+            "prone": false
+          },
+          "turn_index": 3,
+          "quests": [],
+          "quest_offers": [],
+          "bounded_encounter": {
+            "scenario_id": "open_courtyard_commoner_v1",
+            "location_id": "fr:city:neverwinter",
+            "player_node_id": "courtyard_entry",
+            "visible_opponent": {
+              "npc_id": "npc_001",
+              "statblock_id": "mm2024.commoner",
+              "source": "Monster Manual 2024, Commoner, printed p.77, PDF p.80",
+              "distance_ft": 5,
+              "node_id": "courtyard_near"
+            }
+          }
+        },
+        "combat_result": {
+          "action": "action_economy",
+          "status": "resolved",
+          "success": true,
+          "outcome": null,
+          "actor": null,
+          "actor_name": null,
+          "target": null,
+          "target_id": null,
+          "target_name": null,
+          "weapon": null,
+          "attack_roll": null,
+          "attack_bonus": null,
+          "attack_total": null,
+          "target_ac": null,
+          "critical": null,
+          "damage": null,
+          "target_hp_before": null,
+          "target_hp_after": null,
+          "target_status": null,
+          "damage_type": null,
+          "attack_rolls": null,
+          "disadvantage": null,
+          "hp_damage": null,
+          "temporary_hp_before": null,
+          "temporary_hp_absorbed": null,
+          "temporary_hp_after": null,
+          "species_effects": null,
+          "economy_steps": [
+            {
+              "kind": "end_turn",
+              "species_effects": [],
+              "enemy_actions": [
+                {
+                  "action": "enemy_attack",
+                  "status": "resolved",
+                  "success": true,
+                  "outcome": "critical_hit",
+                  "actor_id": "npc_001",
+                  "actor": "npc_001",
+                  "actor_name": "Avlu saldırganı",
+                  "target_id": "player",
+                  "target": "player",
+                  "target_name": "TestHero",
+                  "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+                  "weapon": "Club",
+                  "weapon_id": "commoner_club",
+                  "attack_type": "melee",
+                  "attack_origin": "action",
+                  "ability_used": "stat_block",
+                  "ability_modifier": 0,
+                  "proficient": false,
+                  "proficiency_bonus": 0,
+                  "proficiency_applied": false,
+                  "attack_bonuses": [],
+                  "damage_modifiers": [],
+                  "attack_bonus": 2,
+                  "attack_roll": 20,
+                  "attack_rolls": [
+                    20
+                  ],
+                  "attack_total": 22,
+                  "resolution": {
+                    "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                    "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+                    "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                    "resolution_type": "attack_roll",
+                    "roll_type": "d20",
+                    "raw_rolls": [
+                      20
+                    ],
+                    "selected_roll": 20,
+                    "advantage": false,
+                    "disadvantage": false,
+                    "advantage_cancelled": false,
+                    "actor_id": "npc_001",
+                    "target_id": "player",
+                    "modifier_breakdown": {
+                      "attack_bonus": 2
+                    },
+                    "total_modifier": 2,
+                    "total": 22,
+                    "target_value": 12,
+                    "target_ac": 12,
+                    "outcome": "CRITICAL_HIT",
+                    "critical_state": "critical_hit"
+                  },
+                  "unarmed_option": null,
+                  "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                  "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                  "attack_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                  "advantage_sources": [],
+                  "disadvantage_sources": [],
+                  "disadvantage": false,
+                  "cover_state": "none",
+                  "target_ac_base": 12,
+                  "target_ac": 12,
+                  "natural_20": true,
+                  "natural_1": false,
+                  "critical": true,
+                  "hit": true,
+                  "damage": 2,
+                  "damage_type": "bludgeoning",
+                  "raw_damage": 2,
+                  "damage_rolls": [
+                    {
+                      "source": "weapon",
+                      "die": 4,
+                      "count": 2,
+                      "rolls": [
+                        1,
+                        1
+                      ]
+                    }
+                  ],
+                  "damage_instances": [
+                    {
+                      "damage_type": "bludgeoning",
+                      "raw_damage": 2,
+                      "resistance_applied": false,
+                      "vulnerability_applied": false,
+                      "immunity_applied": false,
+                      "final_damage": 2,
+                      "pre_resistance_damage": 2,
+                      "flat_reduction": 0
+                    }
+                  ],
+                  "mastery": null,
+                  "mastery_effect": null,
+                  "additional_effects": [],
+                  "ammunition_consumed": null,
+                  "weapon_instance_id": null,
+                  "target_hp_before": 12,
+                  "target_hp_after": 10,
+                  "target_status": "active",
+                  "resulting_conditions": [],
+                  "resulting_position": null,
+                  "species_effects": [],
+                  "hp_damage": 2,
+                  "temporary_hp_before": 0,
+                  "temporary_hp_absorbed": 0,
+                  "temporary_hp_after": 0,
+                  "death_resolution": null
+                }
+              ]
+            }
+          ],
+          "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+          "combat_status": null,
+          "round": null,
+          "current_turn_index": null,
+          "combat_started": null,
+          "combat_ended": null,
+          "end_reason": null,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "enemy_action": null,
+          "enemy_actions": null
+        },
+        "combat_history_entry": {
+          "event_id": "420d0d3c-7455-4239-a498-de43bbb36550",
+          "turn_index": 3,
+          "result": {
+            "action": "action_economy",
+            "status": "resolved",
+            "success": true,
+            "outcome": null,
+            "actor": null,
+            "actor_name": null,
+            "target": null,
+            "target_id": null,
+            "target_name": null,
+            "weapon": null,
+            "attack_roll": null,
+            "attack_bonus": null,
+            "attack_total": null,
+            "target_ac": null,
+            "critical": null,
+            "damage": null,
+            "target_hp_before": null,
+            "target_hp_after": null,
+            "target_status": null,
+            "damage_type": null,
+            "attack_rolls": null,
+            "disadvantage": null,
+            "hp_damage": null,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": null,
+            "economy_steps": [
+              {
+                "kind": "end_turn",
+                "species_effects": [],
+                "enemy_actions": [
+                  {
+                    "action": "enemy_attack",
+                    "status": "resolved",
+                    "success": true,
+                    "outcome": "critical_hit",
+                    "actor_id": "npc_001",
+                    "actor": "npc_001",
+                    "actor_name": "Avlu saldırganı",
+                    "target_id": "player",
+                    "target": "player",
+                    "target_name": "TestHero",
+                    "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+                    "weapon": "Club",
+                    "weapon_id": "commoner_club",
+                    "attack_type": "melee",
+                    "attack_origin": "action",
+                    "ability_used": "stat_block",
+                    "ability_modifier": 0,
+                    "proficient": false,
+                    "proficiency_bonus": 0,
+                    "proficiency_applied": false,
+                    "attack_bonuses": [],
+                    "damage_modifiers": [],
+                    "attack_bonus": 2,
+                    "attack_roll": 20,
+                    "attack_rolls": [
+                      20
+                    ],
+                    "attack_total": 22,
+                    "resolution": {
+                      "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                      "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+                      "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                      "resolution_type": "attack_roll",
+                      "roll_type": "d20",
+                      "raw_rolls": [
+                        20
+                      ],
+                      "selected_roll": 20,
+                      "advantage": false,
+                      "disadvantage": false,
+                      "advantage_cancelled": false,
+                      "actor_id": "npc_001",
+                      "target_id": "player",
+                      "modifier_breakdown": {
+                        "attack_bonus": 2
+                      },
+                      "total_modifier": 2,
+                      "total": 22,
+                      "target_value": 12,
+                      "target_ac": 12,
+                      "outcome": "CRITICAL_HIT",
+                      "critical_state": "critical_hit"
+                    },
+                    "unarmed_option": null,
+                    "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                    "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                    "attack_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                    "advantage_sources": [],
+                    "disadvantage_sources": [],
+                    "disadvantage": false,
+                    "cover_state": "none",
+                    "target_ac_base": 12,
+                    "target_ac": 12,
+                    "natural_20": true,
+                    "natural_1": false,
+                    "critical": true,
+                    "hit": true,
+                    "damage": 2,
+                    "damage_type": "bludgeoning",
+                    "raw_damage": 2,
+                    "damage_rolls": [
+                      {
+                        "source": "weapon",
+                        "die": 4,
+                        "count": 2,
+                        "rolls": [
+                          1,
+                          1
+                        ]
+                      }
+                    ],
+                    "damage_instances": [
+                      {
+                        "damage_type": "bludgeoning",
+                        "raw_damage": 2,
+                        "resistance_applied": false,
+                        "vulnerability_applied": false,
+                        "immunity_applied": false,
+                        "final_damage": 2,
+                        "pre_resistance_damage": 2,
+                        "flat_reduction": 0
+                      }
+                    ],
+                    "mastery": null,
+                    "mastery_effect": null,
+                    "additional_effects": [],
+                    "ammunition_consumed": null,
+                    "weapon_instance_id": null,
+                    "target_hp_before": 12,
+                    "target_hp_after": 10,
+                    "target_status": "active",
+                    "resulting_conditions": [],
+                    "resulting_position": null,
+                    "species_effects": [],
+                    "hp_damage": 2,
+                    "temporary_hp_before": 0,
+                    "temporary_hp_absorbed": 0,
+                    "temporary_hp_after": 0,
+                    "death_resolution": null
+                  }
+                ]
+              }
+            ],
+            "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+            "combat_status": null,
+            "round": null,
+            "current_turn_index": null,
+            "combat_started": null,
+            "combat_ended": null,
+            "end_reason": null,
+            "current_actor_id": null,
+            "turn_owner": null,
+            "enemy_action": null,
+            "enemy_actions": null
+          }
+        },
+        "skill_check_result": null,
+        "quest_outcomes": []
+      }
+    }
+  ],
+  "replay_response": {
+    "session_id": "f5e4438c-1467-497d-842d-b98c1a5737b1",
+    "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+    "narration": "Python doğrulamasıyla hamle çözüldü.",
+    "state": {
+      "location": "fr:city:neverwinter",
+      "campaign_time": {
+        "year": 1501,
+        "month": "Mirtul",
+        "day": 1,
+        "hour": 9,
+        "minute": 0,
+        "second": 6,
+        "day_index": 0,
+        "calendar": "Harptos",
+        "local_convention": "Neverwinter local",
+        "time_of_day": "day",
+        "display": "1 Mirtul — Gündüz",
+        "detail": "1 Mirtul 1501 DR — 09:00:06"
+      },
+      "known_scheduled_events": [],
+      "pending_event_decisions": [],
+      "journey": null,
+      "scene": {
+        "id": "scene:fr:city:neverwinter",
+        "location_id": "fr:city:neverwinter",
+        "parent_location_id": null,
+        "kind": "city",
+        "visit_revision": 0,
+        "activity_revision": 0,
+        "last_activity": null,
+        "ambient_event": null,
+        "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir çocuk, yakındaki silaha kısa bir merakla bakar; yanında yürüyen yetişkin onu nazikçe çağırır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+        "player_position": {
+          "location_id": "fr:city:neverwinter",
+          "kind": "standing",
+          "target_id": null,
+          "bounded_node_id": "courtyard_entry"
+        },
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Avlu saldırganı",
+            "role": "Hooligan",
+            "appearance": "Elinde bir sopa taşıyan avlu sakini."
+          }
+        ],
+        "features": [],
+        "referents": []
+      },
+      "world": {
+        "environment": "city",
+        "time_of_day": "day",
+        "weather": "clear"
+      },
+      "journal": {
+        "schema_version": 1,
+        "discovered_locations": [
+          {
+            "location_id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "environment": "city",
+            "first_discovered_at": "2026-10-04T07:38:02+00:00",
+            "last_visited_at": "2026-10-04T07:38:02+00:00",
+            "first_discovered_turn": 0,
+            "last_visited_turn": 0,
+            "visit_count": 1
+          }
+        ],
+        "known_npcs": [
+          {
+            "npc_id": "npc_001",
+            "name": "Avlu saldırganı",
+            "role": "Hooligan",
+            "first_met_at": "2026-10-04T07:38:02+00:00",
+            "last_seen_at": "2026-10-04T07:38:02+00:00",
+            "first_met_turn": 1,
+            "last_seen_turn": 2,
+            "last_known_location_id": "fr:city:neverwinter",
+            "last_known_location": "Neverwinter"
+          }
+        ],
+        "notable_events": [
+          {
+            "event_id": "8a8e577c-9a9c-4051-a0dc-a2260fb33d28",
+            "event_type": "location_discovered",
+            "created_at": "2026-10-04T07:38:02+00:00",
+            "turn_index": 0,
+            "summary": "Neverwinter keşfedildi.",
+            "location_id": "fr:city:neverwinter",
+            "location_name": "Neverwinter",
+            "related_npc_id": null,
+            "related_item": null
+          },
+          {
+            "event_id": "a000b55b-9db7-4e39-8c78-c0b85aa59d89",
+            "event_type": "npc_met",
+            "created_at": "2026-10-04T07:38:02+00:00",
+            "turn_index": 1,
+            "summary": "Avlu saldırganı ile karşılaşıldı.",
+            "location_id": "fr:city:neverwinter",
+            "location_name": "Neverwinter",
+            "related_npc_id": "npc_001",
+            "related_item": null
+          },
+          {
+            "event_id": "300ea258-7e09-4a15-b8e9-cbd67d758a84",
+            "event_type": "combat_started",
+            "created_at": "2026-10-04T07:38:02+00:00",
+            "turn_index": 2,
+            "summary": "Çatışma başladı.",
+            "location_id": "fr:city:neverwinter",
+            "location_name": "Neverwinter",
+            "related_npc_id": null,
+            "related_item": null
+          }
+        ],
+        "quests": []
+      },
+      "locations": {
+        "tavern": {
+          "id": "tavern",
+          "name": "Taverna",
+          "type": "building",
+          "description": ""
+        },
+        "forest": {
+          "id": "forest",
+          "name": "Orman",
+          "type": "wilderness",
+          "description": ""
+        },
+        "castle": {
+          "id": "castle",
+          "name": "Kale",
+          "type": "building",
+          "description": ""
+        },
+        "fr:city:neverwinter": {
+          "id": "fr:city:neverwinter",
+          "name": "Neverwinter",
+          "type": "city",
+          "description": ""
+        }
+      },
+      "character": {
+        "name": "TestHero",
+        "race": "Human",
+        "species": "Human",
+        "giant_ancestry": null,
+        "species_trait_state": null,
+        "speed_ft": 30,
+        "class": "Fighter",
+        "strength": 16,
+        "dexterity": 14,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 10,
+        "proficient_skills": [
+          "Athletics",
+          "Perception"
+        ],
+        "expertise_skills": [],
+        "species_bonus_skills": [],
+        "level": 1,
+        "proficiency_bonus": 2,
+        "max_hp": 12,
+        "current_hp": 10,
+        "armor_class": 12,
+        "origin_feat": null,
+        "species_bonus_feat": null,
+        "origin_feats": []
+      },
+      "inventory": [
+        "Macera çantası",
+        "Kılıç"
+      ],
+      "npcs": [
+        {
+          "id": "npc_001",
+          "name": "Avlu saldırganı",
+          "role": "Hooligan",
+          "location": "fr:city:neverwinter",
+          "appearance": "Elinde bir sopa taşıyan avlu sakini.",
+          "relationship": "neutral",
+          "tags": [],
+          "max_hp": 4,
+          "current_hp": 4,
+          "armor_class": 10,
+          "combat_status": "active"
+        }
+      ],
+      "shops": [],
+      "features": [],
+      "doors": [],
+      "combat": {
+        "active": true,
+        "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+        "status": "active",
+        "round": 2,
+        "initiative_order": [
+          "npc_001",
+          "player"
+        ],
+        "current_turn_index": 1,
+        "current_actor_id": "player",
+        "turn_owner": "player",
+        "participants": [
+          "player",
+          "npc_001"
+        ],
+        "participant_records": [
+          {
+            "id": "player",
+            "kind": "player",
+            "name": "TestHero",
+            "current_hp": 10,
+            "max_hp": 12,
+            "armor_class": 12,
+            "status": "active",
+            "primary_action_available": true,
+            "is_current_actor": true
+          },
+          {
+            "id": "npc_001",
+            "kind": "npc",
+            "name": "Avlu saldırganı",
+            "current_hp": 4,
+            "max_hp": 4,
+            "armor_class": 10,
+            "status": "active",
+            "primary_action_available": false,
+            "is_current_actor": false
+          }
+        ],
+        "target_id": "npc_001",
+        "end_reason": null,
+        "action_economy": {
+          "actors": {
+            "player": {
+              "base_action_spent": false,
+              "additional_actions": [],
+              "bonus_action_spent": false,
+              "bonus_grants": [],
+              "reaction_spent": false,
+              "movement_available": 30,
+              "movement_used": 0,
+              "dash_count": 0,
+              "ready_movement_grant": 0,
+              "ready": null,
+              "opportunity": null,
+              "attack_action": null,
+              "attack_turn_counter": 2,
+              "speed_ft": 30,
+              "action_available": true,
+              "bonus_action_available": false,
+              "bonus_rules": [],
+              "reaction_available": true,
+              "effective_movement_available": 30,
+              "movement_remaining": 30,
+              "legal_actions": [
+                {
+                  "kind": "attack",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "dash",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "disengage",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "dodge",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "feature",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "help",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "hide",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "influence",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "magic",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "ready",
+                  "legal": true,
+                  "reason": null
+                },
+                {
+                  "kind": "search",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "study",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                },
+                {
+                  "kind": "utilize",
+                  "legal": false,
+                  "reason": "Action-specific mechanic not connected by this lock."
+                }
+              ]
+            },
+            "npc_001": {
+              "base_action_spent": true,
+              "additional_actions": [],
+              "bonus_action_spent": false,
+              "bonus_grants": [],
+              "reaction_spent": false,
+              "movement_available": 30,
+              "movement_used": 0,
+              "dash_count": 0,
+              "ready_movement_grant": 0,
+              "ready": null,
+              "opportunity": null,
+              "attack_action": null,
+              "attack_turn_counter": 2,
+              "weapon_sequence": {
+                "attacks": 1,
+                "light_weapon_ids": [],
+                "light_used": false,
+                "cleave_used": false,
+                "loading_origins": [],
+                "active_action_key": "action:0",
+                "action_index": 1
+              },
+              "speed_ft": 30,
+              "action_available": false,
+              "bonus_action_available": false,
+              "bonus_rules": [],
+              "reaction_available": true,
+              "effective_movement_available": 30,
+              "movement_remaining": 30,
+              "legal_actions": [
+                {
+                  "kind": "attack",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "dash",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "disengage",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "dodge",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "feature",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "help",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "hide",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "influence",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "magic",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "ready",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "search",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "study",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                },
+                {
+                  "kind": "utilize",
+                  "legal": false,
+                  "reason": "Actor is not the current participant."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "player_combat_status": "active",
+      "death_state": {
+        "mode": "NORMAL",
+        "status": "active",
+        "successes": 0,
+        "failures": 0,
+        "stable": false,
+        "dead": false,
+        "terminal": false,
+        "prone": false
+      },
+      "turn_index": 3,
+      "quests": [],
+      "quest_offers": [],
+      "bounded_encounter": {
+        "scenario_id": "open_courtyard_commoner_v1",
+        "location_id": "fr:city:neverwinter",
+        "player_node_id": "courtyard_entry",
+        "visible_opponent": {
+          "npc_id": "npc_001",
+          "statblock_id": "mm2024.commoner",
+          "source": "Monster Manual 2024, Commoner, printed p.77, PDF p.80",
+          "distance_ft": 5,
+          "node_id": "courtyard_near"
+        }
+      }
+    },
+    "combat_result": {
+      "action": "action_economy",
+      "status": "resolved",
+      "success": true,
+      "outcome": null,
+      "actor": null,
+      "actor_name": null,
+      "target": null,
+      "target_id": null,
+      "target_name": null,
+      "weapon": null,
+      "attack_roll": null,
+      "attack_bonus": null,
+      "attack_total": null,
+      "target_ac": null,
+      "critical": null,
+      "damage": null,
+      "target_hp_before": null,
+      "target_hp_after": null,
+      "target_status": null,
+      "damage_type": null,
+      "attack_rolls": null,
+      "disadvantage": null,
+      "hp_damage": null,
+      "temporary_hp_before": null,
+      "temporary_hp_absorbed": null,
+      "temporary_hp_after": null,
+      "species_effects": null,
+      "economy_steps": [
+        {
+          "kind": "end_turn",
+          "species_effects": [],
+          "enemy_actions": [
+            {
+              "action": "enemy_attack",
+              "status": "resolved",
+              "success": true,
+              "outcome": "critical_hit",
+              "actor_id": "npc_001",
+              "actor": "npc_001",
+              "actor_name": "Avlu saldırganı",
+              "target_id": "player",
+              "target": "player",
+              "target_name": "TestHero",
+              "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+              "weapon": "Club",
+              "weapon_id": "commoner_club",
+              "attack_type": "melee",
+              "attack_origin": "action",
+              "ability_used": "stat_block",
+              "ability_modifier": 0,
+              "proficient": false,
+              "proficiency_bonus": 0,
+              "proficiency_applied": false,
+              "attack_bonuses": [],
+              "damage_modifiers": [],
+              "attack_bonus": 2,
+              "attack_roll": 20,
+              "attack_rolls": [
+                20
+              ],
+              "attack_total": 22,
+              "resolution": {
+                "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+                "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                "resolution_type": "attack_roll",
+                "roll_type": "d20",
+                "raw_rolls": [
+                  20
+                ],
+                "selected_roll": 20,
+                "advantage": false,
+                "disadvantage": false,
+                "advantage_cancelled": false,
+                "actor_id": "npc_001",
+                "target_id": "player",
+                "modifier_breakdown": {
+                  "attack_bonus": 2
+                },
+                "total_modifier": 2,
+                "total": 22,
+                "target_value": 12,
+                "target_ac": 12,
+                "outcome": "CRITICAL_HIT",
+                "critical_state": "critical_hit"
+              },
+              "unarmed_option": null,
+              "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+              "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+              "attack_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+              "advantage_sources": [],
+              "disadvantage_sources": [],
+              "disadvantage": false,
+              "cover_state": "none",
+              "target_ac_base": 12,
+              "target_ac": 12,
+              "natural_20": true,
+              "natural_1": false,
+              "critical": true,
+              "hit": true,
+              "damage": 2,
+              "damage_type": "bludgeoning",
+              "raw_damage": 2,
+              "damage_rolls": [
+                {
+                  "source": "weapon",
+                  "die": 4,
+                  "count": 2,
+                  "rolls": [
+                    1,
+                    1
+                  ]
+                }
+              ],
+              "damage_instances": [
+                {
+                  "damage_type": "bludgeoning",
+                  "raw_damage": 2,
+                  "resistance_applied": false,
+                  "vulnerability_applied": false,
+                  "immunity_applied": false,
+                  "final_damage": 2,
+                  "pre_resistance_damage": 2,
+                  "flat_reduction": 0
+                }
+              ],
+              "mastery": null,
+              "mastery_effect": null,
+              "additional_effects": [],
+              "ammunition_consumed": null,
+              "weapon_instance_id": null,
+              "target_hp_before": 12,
+              "target_hp_after": 10,
+              "target_status": "active",
+              "resulting_conditions": [],
+              "resulting_position": null,
+              "species_effects": [],
+              "hp_damage": 2,
+              "temporary_hp_before": 0,
+              "temporary_hp_absorbed": 0,
+              "temporary_hp_after": 0,
+              "death_resolution": null
+            }
+          ]
+        }
+      ],
+      "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+      "combat_status": null,
+      "round": null,
+      "current_turn_index": null,
+      "combat_started": null,
+      "combat_ended": null,
+      "end_reason": null,
+      "current_actor_id": null,
+      "turn_owner": null,
+      "enemy_action": null,
+      "enemy_actions": null
+    },
+    "combat_history_entry": {
+      "event_id": "420d0d3c-7455-4239-a498-de43bbb36550",
+      "turn_index": 3,
+      "result": {
+        "action": "action_economy",
+        "status": "resolved",
+        "success": true,
+        "outcome": null,
+        "actor": null,
+        "actor_name": null,
+        "target": null,
+        "target_id": null,
+        "target_name": null,
+        "weapon": null,
+        "attack_roll": null,
+        "attack_bonus": null,
+        "attack_total": null,
+        "target_ac": null,
+        "critical": null,
+        "damage": null,
+        "target_hp_before": null,
+        "target_hp_after": null,
+        "target_status": null,
+        "damage_type": null,
+        "attack_rolls": null,
+        "disadvantage": null,
+        "hp_damage": null,
+        "temporary_hp_before": null,
+        "temporary_hp_absorbed": null,
+        "temporary_hp_after": null,
+        "species_effects": null,
+        "economy_steps": [
+          {
+            "kind": "end_turn",
+            "species_effects": [],
+            "enemy_actions": [
+              {
+                "action": "enemy_attack",
+                "status": "resolved",
+                "success": true,
+                "outcome": "critical_hit",
+                "actor_id": "npc_001",
+                "actor": "npc_001",
+                "actor_name": "Avlu saldırganı",
+                "target_id": "player",
+                "target": "player",
+                "target_name": "TestHero",
+                "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+                "weapon": "Club",
+                "weapon_id": "commoner_club",
+                "attack_type": "melee",
+                "attack_origin": "action",
+                "ability_used": "stat_block",
+                "ability_modifier": 0,
+                "proficient": false,
+                "proficiency_bonus": 0,
+                "proficiency_applied": false,
+                "attack_bonuses": [],
+                "damage_modifiers": [],
+                "attack_bonus": 2,
+                "attack_roll": 20,
+                "attack_rolls": [
+                  20
+                ],
+                "attack_total": 22,
+                "resolution": {
+                  "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                  "session_id": "0221f1ec-a4fd-4bc9-b869-84bb185a1885",
+                  "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                  "resolution_type": "attack_roll",
+                  "roll_type": "d20",
+                  "raw_rolls": [
+                    20
+                  ],
+                  "selected_roll": 20,
+                  "advantage": false,
+                  "disadvantage": false,
+                  "advantage_cancelled": false,
+                  "actor_id": "npc_001",
+                  "target_id": "player",
+                  "modifier_breakdown": {
+                    "attack_bonus": 2
+                  },
+                  "total_modifier": 2,
+                  "total": 22,
+                  "target_value": 12,
+                  "target_ac": 12,
+                  "outcome": "CRITICAL_HIT",
+                  "critical_state": "critical_hit"
+                },
+                "unarmed_option": null,
+                "action_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c",
+                "resolution_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                "attack_id": "c7a0b244-6089-4a6a-b0c1-dde801f8202c:attack_roll:1",
+                "advantage_sources": [],
+                "disadvantage_sources": [],
+                "disadvantage": false,
+                "cover_state": "none",
+                "target_ac_base": 12,
+                "target_ac": 12,
+                "natural_20": true,
+                "natural_1": false,
+                "critical": true,
+                "hit": true,
+                "damage": 2,
+                "damage_type": "bludgeoning",
+                "raw_damage": 2,
+                "damage_rolls": [
+                  {
+                    "source": "weapon",
+                    "die": 4,
+                    "count": 2,
+                    "rolls": [
+                      1,
+                      1
+                    ]
+                  }
+                ],
+                "damage_instances": [
+                  {
+                    "damage_type": "bludgeoning",
+                    "raw_damage": 2,
+                    "resistance_applied": false,
+                    "vulnerability_applied": false,
+                    "immunity_applied": false,
+                    "final_damage": 2,
+                    "pre_resistance_damage": 2,
+                    "flat_reduction": 0
+                  }
+                ],
+                "mastery": null,
+                "mastery_effect": null,
+                "additional_effects": [],
+                "ammunition_consumed": null,
+                "weapon_instance_id": null,
+                "target_hp_before": 12,
+                "target_hp_after": 10,
+                "target_status": "active",
+                "resulting_conditions": [],
+                "resulting_position": null,
+                "species_effects": [],
+                "hp_damage": 2,
+                "temporary_hp_before": 0,
+                "temporary_hp_absorbed": 0,
+                "temporary_hp_after": 0,
+                "death_resolution": null
+              }
+            ]
+          }
+        ],
+        "combat_id": "a34a3cfb-8e6e-4e0e-92d0-7f1e784ae7ae",
+        "combat_status": null,
+        "round": null,
+        "current_turn_index": null,
+        "combat_started": null,
+        "combat_ended": null,
+        "end_reason": null,
+        "current_actor_id": null,
+        "turn_owner": null,
+        "enemy_action": null,
+        "enemy_actions": null
+      }
+    },
+    "skill_check_result": null,
+    "quest_outcomes": []
+  }
+}

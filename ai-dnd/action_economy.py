@@ -419,6 +419,8 @@ def resolve_monster_route(session, actor, route_id, kind):
         if target == "player":
             actor_data(session, actor)["distance_ft"] = distance
     actor_data(session, actor)["position"] = route["destination"]
+    import bounded_encounter
+    bounded_encounter.refresh(session)
     publish_event(session, "actor_moves", actor)
     return {"kind": "move", "distance_ft": route["distance_ft"], "movement_cost_ft": cost,
             "destination": route["destination"], "movement_intent": route.get("movement_intent", "REPOSITION")}
@@ -444,6 +446,8 @@ def move(session, actor, distance):
         fail("movement_unavailable", "Movement exceeds the current legal budget.")
     r["movement_used"] += cost
     r["movement_available"] = max(r["movement_used"], movement_limit(session, actor))
+    import bounded_encounter
+    bounded_encounter.unlocated_move(session, actor)
     publish_event(session, "actor_moves", actor)
     return {"kind": "move", "distance_ft": distance, "movement_cost_ft": cost}
 

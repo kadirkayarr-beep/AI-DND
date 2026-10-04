@@ -426,6 +426,8 @@ def serialize_session_state(
     journal: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Project the engine snapshot without exposing prompts or private internals."""
+    import bounded_encounter
+    bounded_state = bounded_encounter.public_projection(session) if isinstance(session, game.GameSession) else None
     snapshot = session.serialize_game_state()
     player = snapshot.get("player", {})
     world = snapshot.get("world_state", {})
@@ -589,6 +591,7 @@ def serialize_session_state(
         "turn_index": copy.deepcopy(flags.get("turn_index", 0)),
         "quests": quest_state,
         "quest_offers": offers,
+        **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
     }
 
 

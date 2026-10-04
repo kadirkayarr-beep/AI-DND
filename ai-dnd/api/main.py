@@ -651,6 +651,7 @@ def create_app(
             ).encode("utf-8")
         ).hexdigest()
         session = record.game_session
+        import bounded_encounter
         with record.turn_lock:
             try:
                 previous_action = manager.get_turn_action(record, action_id)
@@ -682,6 +683,11 @@ def create_app(
                     raise HTTPException(status_code=409, detail={
                         "code": "invalid_combat_state", "message": "Combat state is invalid."
                     }) from None
+            if isinstance(session, game.GameSession) and bounded_encounter.native_request(
+                session, request.message,
+                request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+            ):
+                active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)
             if active_adapter is None:
                 raise HTTPException(
                     status_code=503,
