@@ -1,0 +1,753 @@
+AI-DND — FINAL READ-ONLY PUSH REVIEW
+#60 → #70 FINAL PUSH GATE
+
+============================================================
+MISSION
+============================================================
+
+Perform the FINAL READ-ONLY review of the current AI-DND repository
+before the user's manual Git push.
+
+This is the final verification gate.
+
+The review must determine whether the current repository is safe to
+manually push after the completed #60–#70 work.
+
+This is NOT an implementation task.
+
+============================================================
+ABSOLUTE FINAL SCOPE LOCK
+============================================================
+
+THIS IS THE FINAL REVIEW.
+
+Do NOT create #71.
+Do NOT create #72.
+Do NOT create #73.
+Do NOT create #74.
+Do NOT create any new task or follow-up task.
+
+Do NOT expand the scope.
+
+Do NOT implement fixes.
+
+Do NOT modify production code.
+
+Do NOT modify tests.
+
+Do NOT modify documentation.
+
+Do NOT modify evidence.
+
+Do NOT rerun live HTTP acceptance.
+
+Do NOT recreate historical evidence.
+
+Do NOT alter Git history.
+
+Do NOT commit.
+
+Do NOT push.
+
+Do NOT merge.
+
+Do NOT publish.
+
+Do NOT reset.
+
+Do NOT rebase.
+
+Do NOT cherry-pick.
+
+Do NOT force-push.
+
+If a problem is found, REPORT it only.
+
+After the review, STOP.
+
+============================================================
+FINAL SCOPE
+============================================================
+
+Review the completed work through:
+
+#60 — Bounded production Monster Combat integration
+#60 hardening — Ready / Cloud Jaunt stale-anchor behavior
+#63 — Historical evidence/provenance investigation
+#64 — Durable regression evidence runner
+#65 — Legacy regression repair
+#66 — Durable HTTP acceptance evidence
+#67 — HTTP source identity/change detection
+#68 — Travel regression coverage
+#69 — Offline test isolation
+#70 — Interrupted travel save/resume/replay regressions
+
+IMPORTANT:
+
+#74 and older V2 combat test cleanup are OUT OF SCOPE.
+
+Do NOT inspect or repair old V2 combat suites merely because they may
+contain historical failures.
+
+They may be reported as pre-existing/out-of-scope if relevant.
+
+============================================================
+KNOWN #70 RESULT
+============================================================
+
+#70 has been completed.
+
+Reported result:
+
+- Added two offline regressions covering:
+  - interrupted return save/reload
+  - action replay
+  - failed-autosave rollback
+- Replay adds no campaign time.
+- Replay adds no travel dice.
+- Remaining distance is preserved.
+- Pending destination is preserved.
+- Encounter decision is preserved.
+- Failed autosave rollback preserves the return state.
+- All 35 Campaign Time tests passed.
+
+Verify the implementation/evidence rather than blindly trusting the
+summary.
+
+============================================================
+#68 STATUS
+============================================================
+
+#68 implementation was completed.
+
+Reported:
+
+- strengthened `test_exit_location`
+- strengthened `test_return_travel`
+- durable targeted run: 2/2 PASS
+- exit status 0
+- evidence archive exists.
+
+The task completion marker previously failed because the completion
+connection disconnected.
+
+This is NOT a reason to redo the implementation.
+
+Verify the actual implementation and evidence.
+
+Do not repeat the work merely to obtain a task-completion status.
+
+============================================================
+#69 STATUS
+============================================================
+
+#69 addressed offline mock isolation.
+
+Reported:
+
+- fresh scoped mocks
+- both Ollama bindings restored on exit
+- mixed-order offline selections passed 103/103 in each order
+- historical evidence unchanged
+- production model behavior unchanged
+- live HTTP acceptance unchanged.
+
+Verify these claims from the repository/evidence.
+
+============================================================
+#60 PRODUCTION INTEGRATION
+============================================================
+
+Verify that the bounded courtyard encounter remains a genuine,
+production-owned bounded scenario.
+
+Confirm:
+
+- explicit player opt-in
+- entering the scenario does not automatically start combat
+- repeated entry does not reset NPC resources
+- canonical NPC exists
+- explicit MM linkage exists
+- perception data is production-owned
+- route data is production-owned
+- movement uses existing Action Economy
+- attacks use existing Weapon & Attack ownership
+- Monster Combat remains Python-authoritative
+- save/resume uses existing persistence
+- receipt replay is idempotent
+- no fixture-only data is required for the native HTTP chain.
+
+The known native chain was:
+
+campaign creation
+→ scenario opt-in
+→ canonical NPC
+→ MM linkage
+→ perception
+→ route
+→ Monster Combat
+→ movement
+→ attack
+→ resource consumption
+→ save
+→ resume
+→ receipt replay.
+
+Do NOT treat fixture tests as native production evidence.
+
+============================================================
+MONSTER MANUAL LINKAGE
+============================================================
+
+Verify the explicit:
+
+`mm2024.commoner`
+
+linkage.
+
+Confirm:
+
+- explicit identity
+- source is Monster Manual 2024
+- canonical NPC linkage
+- supported mechanics only
+- unsupported abilities remain unavailable
+- no fake/generalized MM ingestion was introduced.
+
+============================================================
+PERCEPTION / ROUTE / GEOMETRY
+============================================================
+
+Verify that the bounded scenario has authoritative:
+
+- positions/anchors
+- distance
+- directional visibility
+- legal route data.
+
+Confirm the following invariants:
+
+UNKNOWN distance must remain UNKNOWN.
+
+UNKNOWN visibility must remain UNKNOWN.
+
+Missing route must not become a safe route.
+
+Missing hostile geometry must not silently authorize movement.
+
+Verify the Ready / Cloud Jaunt stale-anchor behavior:
+
+- successful movement with an unverified endpoint must not continue using
+  stale geometry as authoritative;
+- failed movement must not mutate canonical position;
+- no distance/visibility/route values are invented.
+
+============================================================
+MONSTER HARDENING
+============================================================
+
+Verify the four previously discovered regressions remain fixed:
+
+1. Limited-use resources do not reset merely because Combat ID changes.
+
+2. Exhausted Multiattack components cannot execute.
+
+3. Missing hostile route information cannot silently bypass OA safety.
+
+4. Canonical Frightened condition correctly supplies disadvantage when
+   authoritative conditions are satisfied.
+
+============================================================
+TRAVEL / CAMPAIGN TIME
+============================================================
+
+Verify the current travel contracts.
+
+Confirm:
+
+- exit-location actions produce meaningful authoritative results;
+- return travel produces actual travel behavior;
+- pending destinations are preserved where applicable;
+- campaign time advances only when authoritative travel occurs;
+- unknown routes remain protected;
+- combat restrictions remain intact;
+- player agency remains intact;
+- clarification/refusal occurs where required.
+
+For #70 specifically verify:
+
+interrupted return
+→ save
+→ reload
+→ remaining distance preserved
+→ pending destination preserved
+→ encounter decision preserved
+→ campaign time preserved
+→ same action ID replay
+→ same receipt
+→ no second travel roll
+→ no second time charge.
+
+Verify failed autosave rollback.
+
+============================================================
+ACTION / COMBAT CONTRACTS
+============================================================
+
+Verify that:
+
+- invalid targets remain rejected;
+- production distance validation remains authoritative;
+- Action Economy remains authoritative;
+- Initiative remains authoritative;
+- Weapon & Attack remains authoritative;
+- Monster Combat remains authoritative;
+- no production validation was weakened merely to satisfy tests.
+
+Do NOT repair or expand old V2 combat suites.
+
+============================================================
+EVIDENCE SYSTEM
+============================================================
+
+Verify the durable evidence infrastructure.
+
+Confirm it records where applicable:
+
+- exact command
+- timestamp
+- exit status
+- source fingerprint
+- unique test IDs
+- deduplication information
+- failures
+- errors
+- interruptions
+- logs
+- NEW RUN identity.
+
+Confirm:
+
+- failed attempts remain recorded
+- historical evidence is not overwritten
+- HTTP acceptance evidence remains separate from suite evidence
+- historical records remain unchanged.
+
+============================================================
+HTTP ACCEPTANCE EVIDENCE
+============================================================
+
+Verify #66/#67.
+
+Confirm future HTTP acceptance records:
+
+- cannot silently overwrite old evidence;
+- have unique archive identities;
+- preserve partial/failed/interrupted runs;
+- record command and timing;
+- record source identity;
+- detect local source changes where applicable;
+- explicitly distinguish verifier source from server identity.
+
+IMPORTANT:
+
+A local source fingerprint must NOT be presented as proof of a remote
+server's revision.
+
+No historical HTTP acceptance record may have been rewritten.
+
+No live HTTP rerun is required for this review.
+
+============================================================
+563/563 HISTORICAL RESULT
+============================================================
+
+The old reported:
+
+563/563 PASS
+0 failures
+0 errors
+0 skips
+
+was associated with:
+
+`/tmp/bounded-movement-fix-regression.log`
+
+That original log was unavailable.
+
+Do NOT recreate it.
+
+Do NOT run a new test and call it historical evidence.
+
+Determine whether the original evidence is actually available.
+
+If not, explicitly report:
+
+"Historical 563/563 execution remains independently unverified."
+
+This is an evidence limitation, not automatically a gameplay blocker.
+
+Prefer current durable evidence for current repository validation.
+
+============================================================
+CURRENT TEST / EVIDENCE INTERPRETATION
+============================================================
+
+Clearly distinguish:
+
+- current durable evidence
+- native production evidence
+- fixture evidence
+- historical reported evidence
+- historical independently verified evidence
+- pre-existing failures
+- out-of-scope legacy/V2 failures.
+
+Do NOT hide failures.
+
+Do NOT convert old failures into PASS merely by changing assertions
+unless the authoritative contract genuinely changed and that change is
+already within the approved scope.
+
+Do NOT modify anything during this review.
+
+============================================================
+COMMIT / CHECKOUT AUDIT
+============================================================
+
+Report:
+
+- current checkout path
+- branch
+- HEAD
+- full SHA
+- parent if relevant
+- git status
+- staged files
+- unstaged files
+- untracked files.
+
+Inspect the current diff.
+
+Classify all changes:
+
+### Production
+### Tests
+### Generated
+### Documentation
+### Evidence
+### Unrelated / suspicious
+
+Confirm there are no unexpected production changes.
+
+Confirm no dependency was added without approval.
+
+Confirm no generated/API change was introduced unexpectedly.
+
+============================================================
+#08 DEATH SYSTEM CHECK
+============================================================
+
+Explicitly verify that #08 has NOT started.
+
+Confirm no changes were made to:
+
+- death saves
+- unconscious state
+- stable recovery
+- death rollback
+- permadeath
+- Ironman
+- death ownership.
+
+Any unexpected Death System modification is a blocker.
+
+============================================================
+ARCHITECTURAL INVARIANTS
+============================================================
+
+Confirm preservation of:
+
+- Python game authority
+- campaign canon boundary
+- D&D rules authority
+- Forgotten Realms lore authority
+- Qwen boundary
+- frontend boundary
+- player agency
+- Campaign Time
+- Combat Lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Monster Combat
+- existing Death System
+- persistence
+- receipts
+- RNG
+- session isolation
+- maximum 2 model calls per player turn.
+
+Confirm no second parallel:
+
+- combat engine
+- RNG system
+- receipt system
+- persistence system
+- perception engine
+- pathfinding engine
+- resource system
+- condition system
+
+was introduced.
+
+============================================================
+V2 / LEGACY TESTS
+============================================================
+
+Do NOT repair old V2 suites in this review.
+
+If they are still failing, classify them explicitly as:
+
+"Legacy/V2 out-of-scope test failures"
+
+unless there is evidence that they affect the current production
+gameplay or current approved push scope.
+
+Do not create a new task for them.
+
+============================================================
+FINAL DECISION
+============================================================
+
+Choose exactly ONE:
+
+### GO
+
+Use GO if:
+
+- #60 production integration is valid;
+- stale-anchor fixes are correct;
+- #65 repairs preserve authoritative behavior;
+- #66 evidence archival is safe;
+- #67 source identity is correct;
+- #68 travel coverage is meaningful;
+- #69 test isolation is correct;
+- #70 interrupted travel persistence/replay is correct;
+- no critical gameplay regression exists;
+- no evidence was fabricated or overwritten;
+- no #08 changes exist;
+- no unrelated production changes are mixed in;
+- architecture is intact;
+- current evidence is sufficient for manual push.
+
+Historical 563/563 may remain explicitly unverified.
+
+Exact Agent operation provenance may remain unresolved if there is no
+contradictory evidence and current Git provenance is clear.
+
+### CONDITIONAL
+
+Use CONDITIONAL only for a non-critical evidence/provenance limitation
+that does not affect the actual code being pushed.
+
+List the exact limitation.
+
+Do NOT create follow-up tasks.
+
+### NO-GO
+
+Use NO-GO only if there is a real blocker such as:
+
+- broken #60 production behavior
+- broken stale-anchor handling
+- weakened invalid-target validation
+- weakened distance validation
+- broken save/resume/replay
+- broken travel persistence
+- hardening regression
+- fabricated/overwritten evidence
+- unexpected production changes
+- #08 modifications
+- Qwen/frontend receiving mechanical authority
+- duplicated persistence/RNG/receipt architecture
+- critical current gameplay regression.
+
+============================================================
+FINAL REPORT FORMAT
+============================================================
+
+# AI-DND FINAL PUSH REVIEW
+
+## 1. CHECKOUT
+- Path:
+- Branch:
+- HEAD:
+- Full SHA:
+- Parent:
+- Status:
+- Worktree:
+
+## 2. DIFF SCOPE
+### Production
+### Tests
+### Generated
+### Documentation
+### Evidence
+### Unrelated / Suspicious
+
+## 3. #60 PRODUCTION INTEGRATION
+- Bounded scenario:
+- MM linkage:
+- Perception:
+- Route:
+- Movement:
+- Combat:
+- Save/resume:
+- Replay:
+
+## 4. STALE-ANCHOR HARDENING
+- Ready:
+- Cloud Jaunt:
+- Unknown endpoint:
+- Failed action:
+- Stale geometry invalidation:
+
+## 5. #65
+- Named-location return:
+- Invalid-target validation:
+- Evidence:
+
+## 6. #66 / #67
+- HTTP archive uniqueness:
+- Overwrite protection:
+- Failure/interruption preservation:
+- Source fingerprint:
+- Source-change detection:
+- Verifier/server distinction:
+- Historical evidence preservation:
+
+## 7. #68
+- Exit location:
+- Return travel:
+- Action/status:
+- Location:
+- Pending destination:
+- Campaign time:
+- Clarification/refusal:
+- Unknown-route protection:
+
+## 8. #69
+- Mock isolation:
+- Selector-order independence:
+- Ollama binding restoration:
+- Historical evidence preservation:
+
+## 9. #70
+- Interrupted return:
+- Save/reload:
+- Remaining distance:
+- Pending destination:
+- Encounter decision:
+- Campaign time:
+- Receipt replay:
+- Extra time:
+- Extra travel dice:
+- Failed autosave rollback:
+
+## 10. MONSTER HARDENING
+- Limited resources:
+- Multiattack:
+- OA / route safety:
+- Frightened:
+
+## 11. TEST / EVIDENCE STATUS
+Separate:
+- current durable evidence
+- native production evidence
+- fixture evidence
+- historical reported evidence
+- historical independently verified evidence
+- legacy/V2 out-of-scope failures.
+
+## 12. 563/563 STATUS
+Exactly one:
+- VERIFIED
+- UNVERIFIED
+
+Explain briefly.
+
+## 13. COMMIT PROVENANCE
+- Known #60 commit:
+- Parent:
+- Current HEAD:
+- Agent operation provenance:
+- Status:
+
+## 14. #08 STATUS
+Explicitly confirm whether Death System was untouched.
+
+## 15. ARCHITECTURE
+Confirm the major authority boundaries.
+
+## 16. FINAL DECISION
+
+Exactly one:
+
+GO
+CONDITIONAL
+NO-GO
+
+## 17. REQUIRED ACTION
+
+If GO:
+
+SAFE TO MANUALLY PUSH.
+
+Then STOP.
+
+If CONDITIONAL:
+
+List only the exact remaining limitation.
+
+If NO-GO:
+
+List only the exact blockers.
+
+Do NOT implement fixes.
+Do NOT create new tasks.
+Do NOT propose #74 or later work.
+
+============================================================
+ABSOLUTE FINAL STOP
+============================================================
+
+This is the final review.
+
+Do not create another task.
+
+Do not start #08.
+
+Do not expand the test matrix.
+
+Do not repair V2/legacy tests.
+
+Do not modify files.
+
+Do not commit.
+
+Do not push.
+
+Do not merge.
+
+Do not publish.
+
+Do not reset.
+
+Do not rebase.
+
+Do not cherry-pick.
+
+Do not rerun live HTTP acceptance.
+
+Return the final review only.
