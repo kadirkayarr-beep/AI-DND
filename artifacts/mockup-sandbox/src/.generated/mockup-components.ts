@@ -4,6 +4,7 @@ export const modules: ModuleMap = {
   "./components/mockups/ai-dnd-experience/AdventureDay.tsx": () => import("../components/mockups/ai-dnd-experience/AdventureDay.tsx"),
   "./components/mockups/ai-dnd-experience/AdventureEvening.tsx": () => import("../components/mockups/ai-dnd-experience/AdventureEvening.tsx"),
   "./components/mockups/ai-dnd-experience/AdventureNight.tsx": () => import("../components/mockups/ai-dnd-experience/AdventureNight.tsx"),
+  "./components/mockups/ai-dnd-experience/ApproachBoard.tsx": () => import("../components/mockups/ai-dnd-experience/ApproachBoard.tsx"),
   "./components/mockups/ai-dnd-experience/CharacterCreation.tsx": () => import("../components/mockups/ai-dnd-experience/CharacterCreation.tsx"),
   "./components/mockups/ai-dnd-experience/Current.tsx": () => import("../components/mockups/ai-dnd-experience/Current.tsx"),
   "./components/mockups/ai-dnd-experience/Experience.tsx": () => import("../components/mockups/ai-dnd-experience/Experience.tsx")
