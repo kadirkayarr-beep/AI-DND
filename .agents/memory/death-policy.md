@@ -30,3 +30,13 @@ automatic deletion in Normal, Permadeath and Ironman.
 
 **How to apply:** Keep mode outcomes and persistence deletion independent, and preserve
 unrelated campaigns/sessions.
+
+For bounded Death completion, stabilization must use an already legitimate
+production actor/action path and existing receipts. Do not add autonomous NPC
+behavior or a new self-healing capability merely to expose it. If no such path is
+available, stop and report an architectural conflict rather than inventing one.
+
+**Why:** The user explicitly imposed this gate in the bounded completion follow-up.
+
+**How to apply:** Check production reachability before connecting the helper; a
+direct engine helper or test-only actor is not sufficient.
