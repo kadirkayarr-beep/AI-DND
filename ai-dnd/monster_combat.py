@@ -30,9 +30,20 @@ def state(session, actor):
     c = session.world_state["combat"]
     root = session.world_state.setdefault("monster_combat", {})
     if root.get("combat_id") != c["combat_id"]:
+        # Only encounter-local memory resets. Limited uses belong to the same
+        # canonical actor across encounters and remain in this existing ledger.
+        actors = {
+            identity: {"resources": {
+                key: {"remaining": resource["remaining"]}
+                for key, resource in memory.get("resources", {}).items()
+                if "remaining" in resource
+            }}
+            for identity, memory in root.get("actors", {}).items()
+        }
         root.clear()
-        root.update(combat_id=c["combat_id"], actors={})
-    return root["actors"].setdefault(actor, {
+        root.update(combat_id=c["combat_id"], actors=actors)
+    memory = root["actors"].setdefault(actor, {})
+    defaults = {
         "personality": npc.get("personality", "neutral"),
         "role": npc.get("tactical_role", "basic"),
         "objective": copy.deepcopy(npc.get("combat_objective")),
@@ -40,7 +51,10 @@ def state(session, actor):
         "observations": {}, "last_known": {}, "resources": {},
         "recent": [], "last_turn_result": None, "started_turn": None,
         "last_window_result": None,
-    })
+    }
+    for key, value in defaults.items():
+        memory.setdefault(key, value)
+    return memory
 
 
 def initialize_resources(session, actor, memory, capabilities):
@@ -94,6 +108,7 @@ def restore_resources(session, actor, rest):
     if rest not in {"short_rest", "long_rest"}:
         fail("invalid_rest", "Only authoritative rest boundaries restore abilities.")
     memory = state(session, actor)
+    initialize_resources(session, actor, memory, caps.capabilities(session, actor))
     for cap in caps.capabilities(session, actor):
         r = memory["resources"].get(cap["capability_id"], {})
         if cap.get("recharge"):
@@ -115,16 +130,21 @@ def available(session, actor, memory, cap, source):
         return False
     elif source == "reaction" and resources["reaction_spent"]:
         return False
-    r = memory["resources"].get(cap["capability_id"], {})
-    if cap.get("recharge") and r.get("available") is not True:
-        return False
-    if "uses" in cap and r.get("remaining", 0) <= 0:
-        return False
     if source == "legendary":
         if memory.get("legendary_remaining", 0) < cap.get("cost", 1):
             return False
         if memory.get("legendary_option_uses", {}).get(cap["capability_id"], 0) >= cap.get("per_turn_limit", 99):
             return False
+    return component_available(session, actor, memory, cap)
+
+
+def component_available(session, actor, memory, cap):
+    """Capability prerequisites, without spending/checking another action slot."""
+    r = memory["resources"].get(cap["capability_id"], {})
+    if cap.get("recharge") and r.get("available") is not True:
+        return False
+    if "uses" in cap and r.get("remaining", 0) <= 0:
+        return False
     data = attacks.actor_data(session, actor)
     conditions = attacks.conditions(session, actor, data)
     if cap.get("requires_bloodied") and data["current_hp"] > data["max_hp"] / 2:
@@ -133,6 +153,19 @@ def available(session, actor, memory, cap, source):
         return False
     if set(cap.get("forbidden_conditions", [])) & conditions:
         return False
+    return True
+
+
+def sequence_available(session, actor, target, sequence, by_id, memory):
+    # Exact stat-block slots do not authorize truncated combinations. Reserve
+    # uses in a throwaway copy so repeated components cannot exceed their budget.
+    preview = {"resources": copy.deepcopy(memory["resources"])}
+    for identity in sequence:
+        cap = by_id[identity]
+        if (not component_available(session, actor, preview, cap)
+                or not legal_attack(session, actor, target, cap)):
+            return False
+        spend_specific(preview, cap, component=True)
     return True
 
 
@@ -226,7 +259,7 @@ def candidates(session, actor, memory, capabilities, view, source="action", even
                     continue
                 combinations = caps.sequences(cap, capabilities) if cap["kind"] == "multiattack" else [[cap["capability_id"]]]
                 for seq in combinations:
-                    if any(not legal_attack(session, actor, target["id"], by_id[a]) for a in seq):
+                    if not sequence_available(session, actor, target["id"], seq, by_id, memory):
                         continue
                     score = target_score(session, actor, target, memory) + 12 * (len(seq) - 1)
                     score += sum(min(12, (by_id[a].get("profile", {}).get("damage_die", 0) + 1)
@@ -334,13 +367,13 @@ def choose(session, candidates, memory, *, deterministic=False):
     raise RuntimeError("Weighted decision failed.")
 
 
-def spend_specific(memory, cap):
+def spend_specific(memory, cap, *, component=False):
     r = memory["resources"][cap["capability_id"]]
     if cap.get("recharge"):
         r["available"] = False
     if "uses" in cap:
         r["remaining"] -= 1
-    if cap["action_source"] == "legendary":
+    if not component and cap["action_source"] == "legendary":
         memory["legendary_remaining"] -= cap.get("cost", 1)
         used = memory.setdefault("legendary_option_uses", {})
         used[cap["capability_id"]] = used.get(cap["capability_id"], 0) + 1
@@ -365,12 +398,17 @@ def execute(session, actor, selected, capabilities, memory, view, source, event=
             if "dead" in attacks.conditions(session, target, attacks.actor_data(session, target)):
                 break
             attack = by_id[identity]
+            if (not component_available(session, actor, memory, attack)
+                    or not legal_attack(session, actor, target, attack)):
+                fail("unavailable_multiattack_component", "An attack component is no longer legal or available.")
             with economy.executing(session, "monster_capability", actor):
                 result = attacks.resolve(session, actor, target, attack.get("weapon_id"), attack.get("choice"),
                                          profile=attack.get("profile"), origin="action" if index == 0 else "continuation")
             if index:
                 economy.monster_followup_complete(session, actor)
             outcomes.append(result)
+            if cap["kind"] == "multiattack":
+                spend_specific(memory, attack, component=True)
     elif cap["kind"] == "influence":
         proposals = memory.setdefault("proposals", [])
         proposal = {"proposal_id": turn_id(session, actor) + ":" + selected["proposal"],

@@ -364,7 +364,17 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     elif underwater and not unarmed and attacker.get("swim_speed_ft", 0) <= 0 and weapon["damage_type"] != "piercing":
         disadvantage.append("underwater")
     frightened = attacker.get("frightened_until_player_turn")
-    if type(frightened) is int and frightened > (session.character.get("species_trait_state") or {}).get("player_turn_counter", 0):
+    if "frightened" in aconditions:
+        fear_visible = (attacker.get("frightened_by") == target
+                        and spatial.get("attacker_sees_target") is True
+                        and "blinded" not in aconditions and "invisible" not in tconditions
+                        and not defender.get("hidden", False))
+    else:
+        # Compatibility for the existing timed species effect only; canonical
+        # condition/source facts take precedence whenever present.
+        fear_visible = (type(frightened) is int and frightened >
+                        (session.character.get("species_trait_state") or {}).get("player_turn_counter", 0))
+    if fear_visible and "frightened" not in disadvantage:
         disadvantage.append("frightened")
     for effect in session.world_state.get("attack_effects", []):
         if effect["kind"] == "sap" and effect["target_id"] == actor:

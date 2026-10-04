@@ -1,0 +1,641 @@
+AI-DND — #07 MECHANICAL HARDENING
+FOUR VERIFIED BUGS ONLY
+
+============================================================
+MISSION
+============================================================
+
+Fix ONLY the four independently reproduced Monster Combat / combat
+mechanics bugs identified during the #60 + #07 final read-only review.
+
+This is a focused hardening task.
+
+Do NOT start #60 production integration.
+
+Do NOT start #08 Death System.
+
+Do NOT build new perception, geometry, pathfinding, Monster Manual
+ingestion, persistence, or UI architecture.
+
+Do NOT perform a broad Monster Combat rewrite.
+
+The current baseline includes:
+
+- 454/454 backend tests passing
+- #07 Monster Combat: 84/84
+- #06 Weapon & Attack: 175/175
+- #05 Initiative: 73/73
+- #04 Action Economy: 38/38
+- #03 Combat Lifecycle: 18/18
+- #01 Campaign Time: 12/12
+- #02 Campaign Time Edge Cases: 21/21
+- Species: 12/12
+- Campaign Persistence: 15/15
+- Experience UI: 41/41
+
+These existing tests must remain passing.
+
+The four verified bugs are:
+
+1. Limited-use monster resources reset when Combat ID changes.
+2. Multiattack can execute an exhausted component.
+3. Incomplete route data can bypass Opportunity Attack safety.
+4. Generic Frightened condition does not impose attack disadvantage.
+
+============================================================
+ARCHITECTURAL INVARIANT
+============================================================
+
+Python remains the sole authority for:
+
+- monster resources
+- Multiattack legality
+- movement legality
+- Opportunity Attack legality
+- conditions
+- attack modifiers
+- combat state
+- RNG
+- receipts
+- persistence.
+
+Qwen must not resolve any of these.
+
+Frontend must not resolve any of these.
+
+Do not create a second source of truth.
+
+============================================================
+BUG #1 — LIMITED RESOURCE RESET
+============================================================
+
+Verified problem:
+
+`monster_combat.py:28–57`
+
+When the Combat ID changes, the actor's monster resource record can be
+deleted and recreated with its initial number of uses.
+
+Verified reproduction:
+
+- one-use attack
+- use it
+- remaining uses = 0
+- combat ends
+- same NPC participates in another combat
+- resource incorrectly becomes 1 again
+- no Long Rest occurred.
+
+This is incorrect.
+
+REQUIRED BEHAVIOR:
+
+A resource that is defined as limited-use and restored by a specific
+authoritative recovery condition must NOT reset merely because:
+
+- Combat ID changes
+- combat ends
+- a new combat begins
+- the NPC leaves/re-enters combat
+- initiative is rebuilt.
+
+The resource must remain exhausted until its actual authoritative
+recovery condition occurs.
+
+If the existing resource model specifies Long Rest as the recovery
+condition, only that existing Long Rest owner may restore it.
+
+Do NOT invent a new resource system.
+
+Do NOT create a second resource ledger.
+
+Reuse the existing resource/persistence ownership.
+
+IMPORTANT:
+
+Do not globally change all monster resources without inspecting how
+the existing implementation distinguishes:
+
+- per-combat resources
+- limited-use resources
+- recharge resources
+- rest-recovered resources
+- other statblock-specific resources.
+
+Only fix the incorrect reset behavior.
+
+REGRESSION TEST:
+
+Create a focused test:
+
+initial:
+uses = 1
+
+use resource:
+uses = 0
+
+end combat
+
+start another combat with same canonical actor
+
+assert:
+uses == 0
+
+then perform the existing authoritative recovery condition
+
+assert:
+uses == 1
+
+Also test that an unrelated Combat ID change does not consume RNG or
+create duplicate receipts.
+
+============================================================
+BUG #2 — MULTIATTACK EXHAUSTED COMPONENT
+============================================================
+
+Verified problem:
+
+`monster_combat.py:227–230, 363–398`
+
+A Multiattack can contain a component whose resource is already exhausted.
+
+Verified reproduction:
+
+- `claw.remaining = 0`
+- Multiattack contains two claw slots
+- resolver still produces two claw attacks.
+
+This must not happen.
+
+REQUIRED BEHAVIOR:
+
+Every individual Multiattack component must independently pass the
+existing authoritative legality/availability checks before being executed.
+
+Conceptually:
+
+Multiattack
+→ component A
+→ check legal + available
+→ execute only if available
+
+→ component B
+→ check legal + available
+→ execute only if available
+
+An exhausted component must NOT be executed.
+
+Do not simply reject the entire Multiattack unless the existing
+statblock/action contract explicitly requires the whole action to fail.
+
+The smallest correct behavior is:
+
+- unavailable component is skipped/rejected according to the existing
+  action contract
+- available legal components may still execute where the statblock
+  permits.
+
+The resolver must correctly apply:
+
+- limited uses
+- recharge availability
+- component-specific legality
+- resource consumption.
+
+Do not consume a resource twice.
+
+Do not allow a negative resource count.
+
+Do not create a second Multiattack engine.
+
+REGRESSION TESTS:
+
+At minimum:
+
+A:
+Multiattack has two available claw components
+→ both execute.
+
+B:
+claw remaining = 0
+→ claw does not execute.
+
+C:
+one component available
+one component exhausted
+→ exhausted component does not execute.
+
+D:
+resource is consumed exactly once.
+
+E:
+replay of the same action does not execute the component again.
+
+============================================================
+BUG #3 — INCOMPLETE ROUTE DATA / OPPORTUNITY ATTACK
+============================================================
+
+Verified problem:
+
+`action_economy.py:355–386, 405–410`
+
+The Opportunity Attack safety check only considers targets explicitly
+listed in the route data.
+
+Verified reproduction:
+
+- second enemy is 5 feet away
+- its Reaction is available
+- that enemy is omitted from the route's target list
+- Dash movement is accepted
+- after movement the enemy's distance becomes `distance_unknown`.
+
+The current behavior effectively treats missing threat information as
+safe.
+
+That is incorrect.
+
+CRITICAL RULE:
+
+UNKNOWN INFORMATION MUST NOT BECOME PROOF OF SAFETY.
+
+Do NOT invent:
+
+- distance
+- visibility
+- geometry
+- enemy position
+- Opportunity Attack availability.
+
+But also do NOT treat missing data as evidence that no Opportunity Attack
+can exist.
+
+FIRST inspect the existing route/OA contract and existing canonical data
+owners.
+
+The fix must use the smallest existing authoritative mechanism.
+
+If all required information is available:
+→ perform the normal Opportunity Attack legality check.
+
+If required information is incomplete:
+→ do NOT silently authorize the movement as "safe" by omission.
+
+Use the existing authoritative movement/error/uncertainty behavior if one
+already exists.
+
+If no appropriate behavior exists, introduce only the smallest explicit
+"insufficient evidence / movement cannot be safely validated" outcome
+required by the existing Action Economy contract.
+
+Do NOT build a new geometry or pathfinding engine.
+
+Do NOT guess the missing enemy position.
+
+Do NOT assume:
+
+"not in route target list = cannot make Opportunity Attack."
+
+Do NOT assume:
+
+"distance_unknown = safe."
+
+The movement resolver must remain conservative when the information
+required to establish movement legality is missing.
+
+REGRESSION TESTS:
+
+At minimum:
+
+A:
+complete route + known nearby hostile + Reaction available
+→ OA legality is evaluated normally.
+
+B:
+complete route + hostile out of reach
+→ no OA.
+
+C:
+required hostile/geometry data omitted
+→ movement is NOT silently authorized merely because the hostile is
+missing from the route list.
+
+D:
+missing data must not be replaced with fabricated distance/visibility.
+
+E:
+existing valid routes continue to work.
+
+F:
+existing player agency and movement semantics remain unchanged.
+
+IMPORTANT:
+
+Do not solve this by generating fake perception or fake geometry.
+
+This task is a consumer-side safety fix, not a perception-system
+implementation.
+
+============================================================
+BUG #4 — GENERIC FRIGHTENED DISADVANTAGE
+============================================================
+
+Verified problem:
+
+`weapon_attack.py:319–368`
+
+The attack preparation logic recognizes the legacy:
+
+`frightened_until_player_turn`
+
+field but does not correctly consume the canonical generic:
+
+`frightened`
+
+condition.
+
+Verified reproduction:
+
+- conditions = ["frightened"]
+- frightened_by = "player"
+- verified fear-source visibility exists
+- attack resolver returns:
+  disadvantage_sources = []
+
+This must be corrected.
+
+REQUIRED BEHAVIOR:
+
+Inspect the existing authoritative condition representation.
+
+If the attacker is affected by the canonical Frightened condition and the
+existing rules/state establish that the relevant fear source is the
+player/target of the attack:
+
+the attack must receive the appropriate Disadvantage.
+
+Do NOT create a second Frightened condition system.
+
+Do NOT keep the legacy field as a parallel source of truth.
+
+Prefer the canonical condition representation already used by the game.
+
+Preserve any existing source/visibility requirements.
+
+Do not apply Frightened disadvantage merely because a string exists if
+the authoritative condition/source rules do not support it.
+
+REGRESSION TESTS:
+
+A:
+canonical Frightened condition + valid fear source
+→ disadvantage applied.
+
+B:
+canonical Frightened condition + attack against unrelated target
+→ no false disadvantage from the condition alone.
+
+C:
+legacy compatibility behavior remains correct if existing architecture
+still requires it.
+
+D:
+advantage/disadvantage stacking remains governed by the existing
+authoritative attack resolver.
+
+E:
+no duplicate disadvantage source is created.
+
+============================================================
+SCOPE LIMITS
+============================================================
+
+DO NOT:
+
+- start #60
+- start #08
+- build Monster Manual ingestion
+- add full statblock catalog
+- build perception producer
+- build tactical geometry
+- build pathfinding
+- redesign Action Economy
+- redesign Initiative
+- redesign Weapon & Attack
+- redesign Death System
+- redesign Persistence
+- redesign UI
+- add dependencies
+- create a second resource system
+- create a second condition system
+- create a second receipt system
+- create a second RNG system.
+
+Only make changes necessary for these four bugs.
+
+============================================================
+TEST REQUIREMENTS
+============================================================
+
+Add regression tests for all four bugs.
+
+Then run:
+
+1. New targeted tests.
+2. #07 Monster Combat tests.
+3. #06 Weapon & Attack tests.
+4. #04 Action Economy tests.
+5. #03 Combat Lifecycle tests if affected.
+6. Persistence/receipt tests if affected.
+7. Relevant Campaign Time tests if affected.
+
+Finally run the full existing backend regression suite if practical.
+
+The previous baseline was:
+
+454/454 backend tests passing.
+
+The final report MUST state the actual result.
+
+Do not claim 454/454 unless all 454 actually ran and passed.
+
+Also run where applicable:
+
+- Python compile
+- Experience typecheck if frontend files changed
+- git diff --check
+- production build only if the changes affect build inputs.
+
+Do not modify generated files unless the project workflow actually requires
+them.
+
+============================================================
+NO LIVE QWEN REQUIREMENT
+============================================================
+
+These four fixes are authoritative Python mechanics.
+
+They do not require Qwen.
+
+Do not add model calls.
+
+Do not alter the maximum two-model-call-per-turn contract.
+
+If Qwen is not involved, state that live Qwen smoke was not required.
+
+============================================================
+DIFF DISCIPLINE
+============================================================
+
+Before editing:
+
+inspect the current implementation.
+
+After editing:
+
+verify that only the intended files changed.
+
+Expected likely areas:
+
+- `ai-dnd/monster_combat.py`
+- `ai-dnd/action_economy.py`
+- `ai-dnd/weapon_attack.py`
+- relevant test files.
+
+Do not assume these are the only files; report the actual diff.
+
+Clearly distinguish:
+
+- changes made for Bug #1
+- changes made for Bug #2
+- changes made for Bug #3
+- changes made for Bug #4
+- unrelated/pre-existing changes.
+
+============================================================
+FAILURE HANDLING
+============================================================
+
+If an existing architecture prevents a correct fix:
+
+DO NOT invent a replacement system.
+
+Stop at the smallest safe boundary and report:
+
+- exact blocker
+- file
+- relevant function
+- why the existing owner cannot support the required behavior
+- smallest architectural change that would be required.
+
+Do not silently broaden scope.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return exactly:
+
+A) IMPLEMENTED
+
+For each of the four bugs:
+
+- root cause
+- files changed
+- fix
+- regression test added.
+
+B) VERIFIED
+
+Report exact results for:
+
+- Bug #1 tests
+- Bug #2 tests
+- Bug #3 tests
+- Bug #4 tests
+- #07 Monster Combat
+- #06 Weapon & Attack
+- #04 Action Economy
+- relevant persistence/receipt tests
+- full backend regression
+- Python compile
+- typecheck if applicable
+- build if applicable
+- git diff --check.
+
+Never claim PASS unless it actually ran.
+
+C) NOT IMPLEMENTED / OUT OF SCOPE
+
+Explicitly confirm:
+
+- #60 production integration was NOT implemented.
+- #08 Death System was NOT started.
+- No Monster Manual ingestion was added.
+- No perception producer was added.
+- No pathfinding/geometry engine was added.
+- No new persistence architecture was added.
+- No second resource/condition/receipt/RNG system was added.
+
+D) KNOWN LIMITATIONS
+
+Only evidence-backed limitations.
+
+E) SCOPE CHECK
+
+Confirm preservation of:
+
+- Python authority
+- Qwen boundary
+- frontend boundary
+- Campaign Time
+- Combat Lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- existing Death System
+- existing persistence
+- existing receipts
+- existing RNG
+- session isolation
+- maximum 2 model calls
+- player agency.
+
+F) FILE DIFF SUMMARY
+
+Separate:
+
+PRODUCTION
+TEST
+GENERATED
+DOCUMENTATION
+
+Clearly identify exactly which files changed.
+
+============================================================
+FINAL STOP CONDITION
+============================================================
+
+When the four verified bugs are fixed and verified:
+
+STOP.
+
+Do NOT start #60.
+
+Do NOT start #08.
+
+Do NOT commit.
+
+Do NOT push.
+
+Do NOT merge.
+
+Do NOT publish.
+
+Do NOT reset.
+
+Do NOT rebase.
+
+Return the evidence report only.
+
+START.

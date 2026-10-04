@@ -357,6 +357,14 @@ def monster_routes(session, actor, kind):
         if (not isinstance(distances, dict) or not distances
                 or not isinstance(starts, dict) or set(starts) != set(distances)):
             continue
+        # An omitted hostile is not evidence of a safe crossing. Require its
+        # canonical start/end facts; do not infer geometry or create an OA owner.
+        required = {
+            target for target in session.world_state["combat"]["participants"]
+            if target != actor and relationship(session, actor, target) == "enemy"
+        }
+        if not required.issubset(distances):
+            continue
         if "frightened" in conditions(session, actor):
             fear = actor_data(session, actor).get("frightened_by")
             if (fear not in starts or type(starts[fear]) not in (float, int)
