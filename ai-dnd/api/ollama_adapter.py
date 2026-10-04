@@ -128,6 +128,22 @@ class AuthenticatedOllamaAdapter:
         game.ollama.list = self._client.list
         game.ollama.chat = self.chat
 
+    @contextmanager
+    def engine_binding(self) -> Iterator[None]:
+        """Temporarily install an adapter, restoring callbacks even on failure.
+
+        Offline fixtures use this scope with unittest.enterContext so setup
+        failures and nested adapter replacements cannot leak to another test.
+        Production startup still uses the permanent install_for_engine binding.
+        """
+        target = game.ollama
+        previous_list, previous_chat = target.list, target.chat
+        try:
+            self.install_for_engine()
+            yield
+        finally:
+            target.list, target.chat = previous_list, previous_chat
+
     @staticmethod
     def _model_names(response: Any) -> list[str]:
         if isinstance(response, dict):

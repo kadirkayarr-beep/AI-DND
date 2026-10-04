@@ -48,6 +48,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.manager = SessionManager(campaign_store=self.store)
         adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
+        self.enterContext(adapter.engine_binding())
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=adapter,

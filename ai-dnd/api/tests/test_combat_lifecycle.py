@@ -150,7 +150,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         await v1.ClockApiTests.asyncSetUp(self)
         self.app.state.ollama_adapter = AuthenticatedOllamaAdapter(ControlledModel())
-        self.app.state.ollama_adapter.install_for_engine()
+        self.enterContext(self.app.state.ollama_adapter.engine_binding())
     asyncTearDown = v1.ClockApiTests.asyncTearDown
 
     def setup_combat(self):

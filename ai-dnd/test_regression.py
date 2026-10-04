@@ -7,6 +7,7 @@ import io
 import json
 import re
 from copy import deepcopy
+from functools import wraps
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -15,12 +16,9 @@ from unittest.mock import patch, MagicMock
 # Add project directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Mock ollama before importing game
+# Each test owns a fresh model mock; collection must not replace the shared
+# module used by API adapters or other suites.
 ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
-    "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
-}
-sys.modules['ollama'] = ollama_mock
 
 # Mock input to return "2" for random character, then "TestHero" for name
 input_responses = iter(["2", "TestHero"])
@@ -28,9 +26,25 @@ with patch('builtins.input', lambda prompt='': next(input_responses)):
     import game as engine
 game = engine.create_session()
 
-# Re-mock ollama after import
-sys.modules['ollama'] = ollama_mock
-engine.ollama = ollama_mock
+def isolated_model(test):
+    """Support direct calls, pytest and the retained function-test runner."""
+    @wraps(test)
+    def run(*args, **kwargs):
+        global ollama_mock
+        previous_mock = ollama_mock
+        ollama_mock = MagicMock()
+        ollama_mock.chat.return_value = {
+            "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
+        }
+        try:
+            # The terminal test imports ollama again via runpy, so scope both
+            # references. Neither binding nor response/exception state leaks.
+            with patch.object(engine, "ollama", ollama_mock), \
+                 patch.dict(sys.modules, {"ollama": ollama_mock}):
+                return test(*args, **kwargs)
+        finally:
+            ollama_mock = previous_mock
+    return run
 
 
 def reset_world_state():
@@ -768,6 +782,10 @@ def test_terminal_skill_command():
 # =========================================================
 # MAIN
 # =========================================================
+for _name, _test in list(globals().items()):
+    if _name.startswith("test_") and callable(_test):
+        globals()[_name] = isolated_model(_test)
+
 if __name__ == "__main__":
     if hasattr(sys.stdout, 'reconfigure'):
         try:

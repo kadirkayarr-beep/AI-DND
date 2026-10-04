@@ -1,0 +1,143 @@
+test_legacy_mock_is_fresh_and_restores_both_bindings (api.tests.test_model_isolation.ModelIsolationTests.test_legacy_mock_is_fresh_and_restores_both_bindings) ... ok
+test_legacy_test_does_not_overwrite_active_api_adapter (api.tests.test_model_isolation.ModelIsolationTests.test_legacy_test_does_not_overwrite_active_api_adapter) ... PASS: test_malformed_intent_json
+ok
+test_nested_scopes_restore_exact_callbacks_after_exception (api.tests.test_model_isolation.ModelIsolationTests.test_nested_scopes_restore_exact_callbacks_after_exception) ... ok
+test_permanent_install_keeps_existing_production_binding (api.tests.test_model_isolation.ModelIsolationTests.test_permanent_install_keeps_existing_production_binding) ... INFO: Ollama chat request started (model=qwen3:8b)
+ok
+test_setup_failure_still_restores_model_callbacks (api.tests.test_model_isolation.ModelIsolationTests.test_setup_failure_still_restores_model_callbacks) ... ok
+test_blank_player_message_is_rejected (api.tests.test_api.ApiContractTests.test_blank_player_message_is_rejected) ... ok
+test_browser_proxy_routes_reach_the_same_python_api (api.tests.test_api.ApiContractTests.test_browser_proxy_routes_reach_the_same_python_api) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_client_cannot_submit_authoritative_state (api.tests.test_api.ApiContractTests.test_client_cannot_submit_authoritative_state) ... ok
+test_different_sessions_can_process_turns_independently (api.tests.test_api.ApiContractTests.test_different_sessions_can_process_turns_independently) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_engine_exception_becomes_safe_error_and_rolls_back (api.tests.test_api.ApiContractTests.test_engine_exception_becomes_safe_error_and_rolls_back) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=RuntimeError)
+ok
+test_health_endpoint (api.tests.test_api.ApiContractTests.test_health_endpoint) ... ok
+test_missing_required_model_returns_safe_503 (api.tests.test_api.ApiContractTests.test_missing_required_model_returns_safe_503) ... WARNING: Required model qwen3:8b is unavailable.
+ok
+test_model_call_error_returns_safe_503_and_rolls_back (api.tests.test_api.ApiContractTests.test_model_call_error_returns_safe_503_and_rolls_back) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+WARNING: Ollama chat failed (error_type=RuntimeError)
+ok
+test_model_call_limit_enforced_by_captured_calls_ignoring_telemetry_claim (api.tests.test_api.ApiContractTests.test_model_call_limit_enforced_by_captured_calls_ignoring_telemetry_claim) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Engine exceeded the per-turn model-call limit.
+ok
+test_new_sessions_have_unique_opaque_uuid4_ids (api.tests.test_api.ApiContractTests.test_new_sessions_have_unique_opaque_uuid4_ids) ... ok
+test_ollama_preflight_failure_returns_safe_503 (api.tests.test_api.ApiContractTests.test_ollama_preflight_failure_returns_safe_503) ... WARNING: Ollama preflight failed (error_type=RuntimeError)
+ok
+test_real_engine_evidence_with_telemetry_succeeds_without_500 (api.tests.test_api.ApiContractTests.test_real_engine_evidence_with_telemetry_succeeds_without_500) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_secret_values_are_redacted_from_responses (api.tests.test_api.ApiContractTests.test_secret_values_are_redacted_from_responses) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_session_state_is_isolated (api.tests.test_api.ApiContractTests.test_session_state_is_isolated) ... ok
+test_species_action_returns_authoritative_result_and_state (api.tests.test_api.ApiContractTests.test_species_action_returns_authoritative_result_and_state) ... ok
+test_state_endpoint_is_a_canonical_public_projection (api.tests.test_api.ApiContractTests.test_state_endpoint_is_a_canonical_public_projection) ... ok
+test_turn_delegates_to_existing_game_session_pipeline (api.tests.test_api.ApiContractTests.test_turn_delegates_to_existing_game_session_pipeline) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_turn_is_rolled_back_if_model_call_limit_is_exceeded (api.tests.test_api.ApiContractTests.test_turn_is_rolled_back_if_model_call_limit_is_exceeded) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Engine exceeded the per-turn model-call limit.
+ok
+test_turns_in_one_session_are_serialized (api.tests.test_api.ApiContractTests.test_turns_in_one_session_are_serialized) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unknown_session_returns_404 (api.tests.test_api.ApiContractTests.test_unknown_session_returns_404) ... ok
+test_validation_error_does_not_echo_extra_secret (api.tests.test_api.ApiContractTests.test_validation_error_does_not_echo_extra_secret) ... ok
+test_active_quest_is_not_completed_by_narration (api.tests.test_campaign_api.CampaignApiTests.test_active_quest_is_not_completed_by_narration) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_ambient_event_outcome_is_authoritative_idempotent_and_persistent (api.tests.test_campaign_api.CampaignApiTests.test_ambient_event_outcome_is_authoritative_idempotent_and_persistent) ... ok
+test_ambient_event_persistence_failure_rolls_back (api.tests.test_campaign_api.CampaignApiTests.test_ambient_event_persistence_failure_rolls_back) ... ERROR: Ambient-event result could not be persisted (error_type=CampaignStorageError)
+ok
+test_ambient_event_rejections_no_effect_and_campaign_isolation (api.tests.test_campaign_api.CampaignApiTests.test_ambient_event_rejections_no_effect_and_campaign_isolation) ... ok
+test_attack_turn_returns_only_safe_structured_combat_result (api.tests.test_campaign_api.CampaignApiTests.test_attack_turn_returns_only_safe_structured_combat_result) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_blank_target_id_is_rejected (api.tests.test_campaign_api.CampaignApiTests.test_blank_target_id_is_rejected) ... ok
+test_campaign_creation_ids_and_sessions_are_isolated (api.tests.test_campaign_api.CampaignApiTests.test_campaign_creation_ids_and_sessions_are_isolated) ... ok
+test_character_creation_rejects_empty_malformed_and_authoritative_fields (api.tests.test_campaign_api.CampaignApiTests.test_character_creation_rejects_empty_malformed_and_authoritative_fields) ... ok
+test_character_options_and_custom_creation_are_engine_canonical (api.tests.test_campaign_api.CampaignApiTests.test_character_options_and_custom_creation_are_engine_canonical) ... ok
+test_create_list_detail_resume_and_safe_metadata (api.tests.test_campaign_api.CampaignApiTests.test_create_list_detail_resume_and_safe_metadata) ... ok
+test_create_rejects_client_supplied_canonical_state (api.tests.test_campaign_api.CampaignApiTests.test_create_rejects_client_supplied_canonical_state) ... ok
+test_death_checkpoint_is_json_safe_and_external_restore_is_atomic (api.tests.test_campaign_api.CampaignApiTests.test_death_checkpoint_is_json_safe_and_external_restore_is_atomic) ... ok
+test_death_mode_selection_persists_and_legacy_requests_default_to_normal (api.tests.test_campaign_api.CampaignApiTests.test_death_mode_selection_persists_and_legacy_requests_default_to_normal) ... ok
+test_engine_failure_does_not_append_campaign_combat_history (api.tests.test_campaign_api.CampaignApiTests.test_engine_failure_does_not_append_campaign_combat_history) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=RuntimeError)
+ok
+test_explicit_save_uses_active_server_session_and_unknown_campaign_is_404 (api.tests.test_campaign_api.CampaignApiTests.test_explicit_save_uses_active_server_session_and_unknown_campaign_is_404) ... ok
+test_failed_autosave_rolls_back_turn_and_keeps_last_good_save (api.tests.test_campaign_api.CampaignApiTests.test_failed_autosave_rolls_back_turn_and_keeps_last_good_save) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_four_new_skill_results_serialize_for_the_existing_client_contract (api.tests.test_campaign_api.CampaignApiTests.test_four_new_skill_results_serialize_for_the_existing_client_contract) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_game_session_bound_turn_uses_engine_signature_fallback (api.tests.test_campaign_api.CampaignApiTests.test_game_session_bound_turn_uses_engine_signature_fallback) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_invalid_skill_check_projection_rolls_back_turn (api.tests.test_campaign_api.CampaignApiTests.test_invalid_skill_check_projection_rolls_back_turn) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine returned an invalid skill-check result.
+ok
+test_journal_state_is_isolated_between_campaigns (api.tests.test_campaign_api.CampaignApiTests.test_journal_state_is_isolated_between_campaigns) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_journal_survives_explicit_save_and_a_new_session_manager (api.tests.test_campaign_api.CampaignApiTests.test_journal_survives_explicit_save_and_a_new_session_manager) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_legacy_save_without_journal_migrates_to_empty_ledger (api.tests.test_campaign_api.CampaignApiTests.test_legacy_save_without_journal_migrates_to_empty_ledger) ... ok
+test_legacy_save_without_narrative_memory_migrates_to_empty_memory (api.tests.test_campaign_api.CampaignApiTests.test_legacy_save_without_narrative_memory_migrates_to_empty_memory) ... ok
+test_narration_cannot_create_or_complete_quests (api.tests.test_campaign_api.CampaignApiTests.test_narration_cannot_create_or_complete_quests) ... Executing <Task finished name='Task-281' coro=<CampaignApiTests.asyncSetUp() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_campaign_api.py:44> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.111 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_normal_death_rollback_does_not_rewrite_campaign_metadata (api.tests.test_campaign_api.CampaignApiTests.test_normal_death_rollback_does_not_rewrite_campaign_metadata) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_quest_commands_are_server_owned_idempotent_and_campaign_scoped (api.tests.test_campaign_api.CampaignApiTests.test_quest_commands_are_server_owned_idempotent_and_campaign_scoped) ... ok
+test_quest_offer_conditions_and_autosave_failure_roll_back (api.tests.test_campaign_api.CampaignApiTests.test_quest_offer_conditions_and_autosave_failure_roll_back) ... ok
+test_random_creation_and_invalid_character_choices (api.tests.test_campaign_api.CampaignApiTests.test_random_creation_and_invalid_character_choices) ... ok
+test_selected_npc_identity_query_is_deterministic (api.tests.test_campaign_api.CampaignApiTests.test_selected_npc_identity_query_is_deterministic) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_skill_check_turn_returns_only_allowlisted_canonical_result (api.tests.test_campaign_api.CampaignApiTests.test_skill_check_turn_returns_only_allowlisted_canonical_result) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_store_save_without_journal_argument_preserves_existing_journal (api.tests.test_campaign_api.CampaignApiTests.test_store_save_without_journal_argument_preserves_existing_journal) ... ok
+test_successful_turn_is_autosaved_with_history (api.tests.test_campaign_api.CampaignApiTests.test_successful_turn_is_autosaved_with_history) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_turn_action_replays_after_resume_and_rejects_reused_payload (api.tests.test_campaign_api.CampaignApiTests.test_turn_action_replays_after_resume_and_rejects_reused_payload) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_turn_request_cannot_inject_journal_sections (api.tests.test_campaign_api.CampaignApiTests.test_turn_request_cannot_inject_journal_sections) ... ok
+test_turn_request_rejects_client_skill_mechanics (api.tests.test_campaign_api.CampaignApiTests.test_turn_request_rejects_client_skill_mechanics) ... ok
+
+----------------------------------------------------------------------
+Ran 61 tests in 4.595s
+
+OK

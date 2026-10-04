@@ -38,7 +38,7 @@ in `timed_gameplay.py` and closing the bare-exit/return gap in the existing
 `combat_lifecycle.py` travel guard. Local-scene exit behavior in `game.py`
 remains unchanged.
 
-## Passing retained runs
+## Historical passing isolated runs
 
 Run from `ai-dnd/` in separate processes:
 
@@ -75,6 +75,55 @@ Do not replace these records with the passing results:
   109 tests, 106 passes, 3 errors. Importing the API suites mutates the shared
   legacy model mock's `chat` method; three unrelated tests then cannot set
   `return_value` or `side_effect`. Separate processes avoid this existing
-  test-isolation defect without changing unrelated tests or the evidence runner.
+  test-isolation defect in that historical run. The isolation repair and new
+  combined evidence below do not change this failed record.
 
 Each linked failed run has its complete sibling `output.log`.
+
+## New passing combined runs after model-mock isolation
+
+Legacy regression functions now bind a fresh model mock only for their own
+execution, restoring both the engine reference and the import binding afterward.
+Collection no longer replaces the shared Ollama module. API fixtures scope their
+adapter bindings with unittest cleanup, restoring the exact previous `chat` and
+`list` callbacks even after setup failure or nested adapter replacement.
+Production startup still uses the same permanent adapter installation; model
+selection, authentication and model-call behavior are unchanged.
+
+Run from `ai-dnd/`:
+
+```sh
+python scripts/run_regression_evidence.py \
+  test_regression api.tests.test_campaign_time \
+  api.tests.test_campaign_time_edges api.tests.test_combat_lifecycle \
+  test_playable_living_world
+
+python scripts/run_regression_evidence.py \
+  test_playable_living_world api.tests.test_combat_lifecycle \
+  api.tests.test_campaign_time_edges api.tests.test_campaign_time \
+  test_regression
+
+python scripts/run_regression_evidence.py \
+  api.tests.test_model_isolation api.tests.test_api api.tests.test_campaign_api
+```
+
+- **109/109 combined, legacy selector first:**
+  [run.json](evidence/suite-runs/20261004T095343Z-88938508091541a29ba79e362660debb/run.json)
+  and [output.log](evidence/suite-runs/20261004T095343Z-88938508091541a29ba79e362660debb/output.log).
+- **109/109 combined, reversed selector order:**
+  [run.json](evidence/suite-runs/20261004T095408Z-f478946633314f31a853fc197f954610/run.json)
+  and [output.log](evidence/suite-runs/20261004T095408Z-f478946633314f31a853fc197f954610/output.log).
+- **61/61 isolation and affected API-fixture checks:**
+  [run.json](evidence/suite-runs/20261004T095420Z-825fb9763cf44226b498a7319716b79c/run.json)
+  and [output.log](evidence/suite-runs/20261004T095420Z-825fb9763cf44226b498a7319716b79c/output.log).
+  Five dedicated isolation checks cover fresh per-test mocks, legacy execution
+  inside an active API binding, nested restoration, exception/setup-failure
+  cleanup, and unchanged permanent-install behavior. The remaining 56 checks
+  exercise the API contract and campaign API fixtures.
+
+All three new records report no source change during execution, no unexecuted
+selected tests, zero failures/errors/skips and exit status 0. Each combined record
+is a single invocation containing all five requested suites; the two orders are
+separate retained runs, not a summed test count. These are **offline regression
+results**, not live HTTP acceptance, acceptance code provenance, or certification
+of any historical result.

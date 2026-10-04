@@ -52,6 +52,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.manager = SessionManager()
         self.fake_client = FakeOllamaClient()
         self.adapter = AuthenticatedOllamaAdapter(self.fake_client)
+        self.enterContext(self.adapter.engine_binding())
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=self.adapter,
