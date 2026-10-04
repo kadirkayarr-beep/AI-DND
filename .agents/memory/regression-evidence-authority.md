@@ -16,3 +16,13 @@ changes from evidence-retention work.
 run record and distinguish its exact scope from older claims and HTTP
 acceptance. Preserve failed development attempts with their limitations rather
 than replacing them with a later successful run.
+
+Offline tests of HTTP archive handling are not live HTTP acceptance evidence,
+even when they exercise the entire verifier with fake responses. Keep their
+temporary fixture records out of retained real-network acceptance archives.
+
+**Why:** Testing evidence retention must not silently authorize a live campaign
+run or produce a misleading real-network acceptance claim.
+
+**How to apply:** Validate archive behavior offline unless the owner separately
+approves live acceptance; distinguish those contract checks from gameplay proof.

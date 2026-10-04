@@ -68,7 +68,49 @@ A source-change flag also means the run cannot certify one stable source tree.
 `evidence/bounded-encounter-http.json` is the previously retained real-network
 acceptance artifact from `scripts/verify_bounded_encounter_http.py`. It is not a
 suite execution record, has no deduplicated suite IDs, and does not substantiate
-563/563. Preserve it unchanged. If a separately approved HTTP acceptance is
-rerun, choose a **new** HTTP output filename and label the report as a new run;
-never write it inside a suite archive or use it to backfill historical suite
-results. Running the evidence runner does not trigger HTTP acceptance.
+563/563. Preserve it unchanged. Running the evidence runner does not trigger
+HTTP acceptance. Neither these instructions nor the verifier changes authorize
+a live rerun, push, publication or commit-provenance change.
+
+Only after separate approval, a future **NEW RUN** uses:
+
+```sh
+python ai-dnd/scripts/verify_bounded_encounter_http.py \
+  --base '<approved-running-server>' \
+  --resume-base '<approved-second-running-server>'
+```
+
+Every attempt creates an exclusive timestamp/UUID directory under
+`evidence/http-runs/`, separate from `evidence/suite-runs/`. `run.json` is written
+**before any HTTP request**, checkpointed as requests/turns complete, and finalized
+on success, exceptions, Ctrl-C or SIGTERM. It includes `NEW RUN`,
+`http_acceptance`, a false historical-certification flag, exact interpreter argv
+and shell rendering, working directory, UTC start/end timestamps, exit status,
+server addresses, request progress, partial turns, campaign/session identifiers
+when available, and failure details. Completed acceptance keeps the existing
+scenario/movement/attack/save/resume/replay fields. Report the exact archive path;
+never use HTTP records to backfill historical suite results.
+
+`--archive-root` selects another durable HTTP location. The suite archive
+directory (including symlink aliases) and historical HTTP filename are forbidden.
+The optional legacy `--output <new-filename>` creates an exclusive export:
+existing files are refused before HTTP begins, and that refusal itself leaves a
+failed record in the unique archive. A new export is reserved before requests
+and finalized from the same record; the archive remains authoritative. Nothing
+silently replaces earlier evidence. Keep failed and interrupted archives too.
+
+Exit statuses are `0` PASS, `1` acceptance assertion failure, `2` HTTP/setup/error,
+`130` Ctrl-C and `143` SIGTERM. SIGKILL or a process/machine crash cannot be
+finalized by Python: the last checkpoint remains `RUNNING`, with null end time
+and exit status. That is an identifiable **incomplete attempt**, never PASS;
+do not invent an observed end time or exit status. Errors preventing archive
+creation/writing fail explicitly; no runner can promise retention on an
+unwritable or unavailable filesystem. Records can contain raw game responses,
+server addresses and exception details; inspect them before sharing.
+
+Offline archive-contract checks (no live acceptance, game server or model):
+
+```sh
+cd ai-dnd
+python -m unittest api.tests.test_http_acceptance_evidence
+```
