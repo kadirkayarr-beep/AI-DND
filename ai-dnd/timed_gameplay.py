@@ -394,6 +394,14 @@ def resolve_input(session, text):
             return _result("travel", "Yolculuğu durdurdun.", status="stopped")
         if "geri don" in normalized:
             return return_travel(session)
+    if re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?[.! ]*", normalized):
+        # A bare return may use an explicitly pending destination, but never
+        # a model-invented target or an inferred reverse cross-region route.
+        destination = world.get("flags", {}).get("pending_destination")
+        if destination in world.get("locations", {}):
+            return start_travel(session, destination)
+        return _result("travel", "Hangi konuma geri dönmek istediğini belirt.",
+                       status="clarification", success=False)
     if movement and not wait and not task:
         candidates = [loc for loc in world.get("locations", {}) if (
             clock.normalize(loc) in normalized

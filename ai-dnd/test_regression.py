@@ -254,32 +254,177 @@ def test_who_is_here():
 # =========================================================
 # TEST 8: "Buradan çıkıyorum"
 # =========================================================
-def test_exit_location():
-    """'Buradan çıkıyorum' should be recognized as travel intent."""
+def travel_fixture(*, pending=None, route=False):
+    """Known IDs do not imply a route; only this fixture owns its duration."""
     reset_world_state()
+    game.ensure_campaign_clock()
+    game.world_state["flags"]["pending_destination"] = pending
+    if route:
+        game.world_state["locations"]["tavern"]["travel_routes"] = {"forest": [420]}
+    return game.world_state["campaign_time"]["elapsed_seconds"]
 
-    result = run_turn("buradan çıkıyorum")
 
-    # Should be treated as travel or narrative, not skill check
-    action = result["action_result"].get("action")
-    assert action != "skill_check", \
-        f"FAIL: Exit should not be skill check, got {action}"
+def assert_travel_result(result, *, status, success, location, pending, before, elapsed=0):
+    """Reject narrative no-ops and verify both receipt and authoritative state."""
+    action = result["action_result"]
+    assert action["action"] == "travel", action
+    assert action["status"] == status and action["success"] is success, action
+    assert game.world_state["location"] == location, game.world_state
+    assert game.world_state["flags"]["pending_destination"] == pending
+    assert game.world_state["campaign_time"]["elapsed_seconds"] == before + elapsed
+    assert action.get("time_result", {}).get("elapsed_seconds", 0) == elapsed, action
+    if status == "completed":
+        assert action["new_location"] == location, action
+        assert game.world_state["journey"]["status"] == "ARRIVED"
+    else:
+        assert action.get("direct_response"), action
+        assert "new_location" not in action, action
+
+
+def assert_exit_result(result, *, status, success, location, pending, before):
+    """Local scene exits are instant transitions, not cross-region journeys."""
+    action = result["action_result"]
+    assert action["action"] == "exit", action
+    assert action["status"] == status and action["success"] is success, action
+    assert action.get("direct_response"), action
+    assert game.world_state["location"] == location
+    assert game.world_state["flags"]["pending_destination"] == pending
+    assert game.world_state["campaign_time"]["elapsed_seconds"] == before
+    assert action["time_result"]["elapsed_seconds"] == 0, action
+    assert game.world_state.get("journey") is None
+    if success:
+        assert action["target_id"] == location, action
+        assert game.world_state["scene_state"]["player_position"]["location_id"] == location
+    else:
+        assert "target_id" not in action, action
+
+
+def test_exit_location():
+    """No recorded local exit means explicit refusal, even with a pending travel goal."""
+    for pending in (None, "forest"):
+        before = travel_fixture(pending=pending, route=True)
+        result = run_turn("buradan çıkıyorum")
+        assert_exit_result(result, status="unresolved", success=False,
+                           location="tavern", pending=pending, before=before)
     print("PASS: test_exit_location")
+
+
+def test_exit_location_known_destination():
+    """Exit uses the registered local exit/parent, never an unrelated pending goal."""
+    for field in ("exit_location_id", "parent_location_id"):
+        before = travel_fixture(pending="castle")
+        game.world_state["locations"]["tavern"][field] = "forest"
+        result = run_turn("buradan çıkıyorum")
+        assert_exit_result(result, status="completed", success=True,
+                           location="forest", pending="castle", before=before)
+
+
+def test_exit_location_invalid_destination():
+    """An unregistered local exit must not be fabricated or consume travel time."""
+    before = travel_fixture(pending="forest", route=True)
+    game.world_state["locations"]["tavern"]["exit_location_id"] = "missing_exit"
+    result = run_turn("buradan çıkıyorum")
+    assert_exit_result(result, status="unresolved", success=False,
+                       location="tavern", pending="forest", before=before)
 
 
 # =========================================================
 # TEST 9: "Geri dönüyorum"
 # =========================================================
 def test_return_travel():
-    """'Geri dönüyorum' should be recognized as travel intent."""
-    reset_world_state()
-
+    """No recorded journey or pending destination means a return needs clarification."""
+    before = travel_fixture()
     result = run_turn("geri dönüyorum")
-
-    action = result["action_result"].get("action")
-    assert action != "skill_check", \
-        f"FAIL: Return should not be skill check, got {action}"
+    assert_travel_result(result, status="clarification", success=False,
+                         location="tavern", pending=None, before=before)
+    assert game.world_state.get("journey") is None
     print("PASS: test_return_travel")
+
+
+def test_return_travel_known_destination():
+    """An explicitly pending return target still requires the server-owned route."""
+    before = travel_fixture(pending="forest", route=True)
+    with patch.object(game.rng, "randint", return_value=6):
+        result = run_turn("geri dönüyorum")
+    assert_travel_result(result, status="completed", success=True,
+                         location="forest", pending=None, before=before, elapsed=420)
+
+
+def test_return_travel_retraces_progress():
+    """Interrupted, stopped and staged journeys retrace only actual elapsed progress."""
+    for state in ("INTERRUPTED", "STOPPED", "TRAVELLING"):
+        travel_fixture(pending="forest", route=True)
+        game.world_state["locations"]["tavern"]["travel_routes"]["forest"] = [420, 180]
+        with patch.object(game.rng, "randint", return_value=1 if state != "TRAVELLING" else 6):
+            outward = run_turn("ormana gidiyorum")
+        spent = 420 if state == "TRAVELLING" else 210
+        assert outward["action_result"]["status"] == (
+            "stage_completed" if state == "TRAVELLING" else "interrupted"
+        ), outward
+        assert outward["action_result"]["action"] == "travel", outward
+        assert outward["action_result"]["time_result"]["elapsed_seconds"] == spent, outward
+        assert game.world_state["location"] == "tavern"
+        assert game.world_state["flags"]["pending_destination"] == "forest"
+        assert game.world_state["journey"]["origin"] == "tavern"
+        assert game.world_state["journey"]["destination"] == "forest"
+        assert game.world_state["journey"]["status"] == (
+            "TRAVELLING" if state == "TRAVELLING" else "INTERRUPTED"
+        )
+        if state == "STOPPED":
+            stopped = run_turn("duruyorum")
+            assert stopped["action_result"]["status"] == "stopped", stopped
+        before = game.world_state["campaign_time"]["elapsed_seconds"]
+        assert before == spent
+        # A different pending goal must not replace the recorded retrace origin.
+        game.world_state["flags"]["pending_destination"] = "forest"
+        with patch.object(game.rng, "randint", side_effect=AssertionError("Retrace must not reroll encounters")):
+            result = run_turn("geri dönüyorum")
+        assert_travel_result(result, status="completed", success=True,
+                             location="tavern", pending=None, before=before, elapsed=spent)
+        assert game.world_state["journey"]["returning"] is True
+        assert game.world_state["journey"]["destination"] == "tavern"
+
+
+def test_return_travel_route_refusals():
+    """Neither a pending goal nor movement language authorizes unknown/blocked routes."""
+    for command in ("geri dönüyorum", "ormana geri dönüyorum"):
+        for blocked in (False, True):
+            before = travel_fixture(pending="forest", route=blocked)
+            if blocked:
+                game.world_state["blocked_travel_routes"] = {"tavern": {"forest": True}}
+            result = run_turn(command)
+            assert_travel_result(result, status="blocked" if blocked else "unverified",
+                                 success=False, location="tavern", pending="forest", before=before)
+            assert game.world_state.get("journey") is None
+
+
+def test_exit_and_return_combat_refusal():
+    """Bare commands cannot evade the existing normal-travel combat restriction."""
+    for command in ("buradan çıkıyorum", "geri dönüyorum"):
+        for pending in (None, "forest"):
+            before = travel_fixture(pending=pending, route=True)
+            game.world_state["locations"]["tavern"]["exit_location_id"] = "forest"
+            if pending:
+                with patch.object(game.rng, "randint", return_value=1):
+                    outward = run_turn("ormana gidiyorum")
+                assert outward["action_result"]["status"] == "interrupted", outward
+                before = game.world_state["campaign_time"]["elapsed_seconds"]
+            npc = game.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
+            with patch.object(engine, "roll_initiative_player", return_value=20), \
+                 patch.object(engine, "roll_initiative", return_value=1):
+                game.start_combat(npc)
+            snapshot = deepcopy(game.world_state)
+            try:
+                run_turn(command)
+            except engine.combat_lifecycle.CombatRequestError as exc:
+                assert exc.code == "combat_travel", exc
+            else:
+                raise AssertionError(f"Combat must refuse travel: {command}")
+            assert game.world_state["location"] == "tavern"
+            assert game.world_state["flags"]["pending_destination"] == pending
+            assert game.world_state["campaign_time"]["elapsed_seconds"] == before
+            assert game.world_state.get("journey") == snapshot.get("journey")
+            assert game.world_state["combat"] == snapshot["combat"]
 
 
 # =========================================================
@@ -640,7 +785,13 @@ if __name__ == "__main__":
         test_location_name_vs_character_name,
         test_who_is_here,
         test_exit_location,
+        test_exit_location_known_destination,
+        test_exit_location_invalid_destination,
         test_return_travel,
+        test_return_travel_known_destination,
+        test_return_travel_retraces_progress,
+        test_return_travel_route_refusals,
+        test_exit_and_return_combat_refusal,
         test_named_location_return,
         test_ground_item_same_location,
         test_ground_item_different_location,

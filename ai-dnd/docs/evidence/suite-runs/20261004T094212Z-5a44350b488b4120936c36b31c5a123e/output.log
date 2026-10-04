@@ -1,0 +1,162 @@
+__main__.FunctionTest (test_draw_weapon)
+Drawing a weapon should update state. ... PASS: test_draw_weapon
+ok
+__main__.FunctionTest (test_enter_through_door)
+Entering through a door should update door state. ... PASS: test_enter_through_door
+ok
+__main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction. ... ok
+__main__.FunctionTest (test_exit_location)
+No recorded local exit means explicit refusal, even with a pending travel goal. ... PASS: test_exit_location
+ok
+__main__.FunctionTest (test_exit_location_invalid_destination)
+An unregistered local exit must not be fabricated or consume travel time. ... ok
+__main__.FunctionTest (test_exit_location_known_destination)
+Exit uses the registered local exit/parent, never an unrelated pending goal. ... ok
+__main__.FunctionTest (test_failed_investigation)
+Failed investigation should use structured action_result. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 1
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_investigation
+ok
+__main__.FunctionTest (test_failed_stealth_narrator_contradiction)
+Qwen should not be able to narrate success when Python says failure. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Stealth
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 3
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_stealth_narrator_contradiction
+ok
+__main__.FunctionTest (test_false_memory_claim)
+Player claims about NPC speech should be denied if not in memory. ... PASS: test_false_memory_claim
+ok
+__main__.FunctionTest (test_force_door_requires_check)
+Forcing a door should require skill check. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_force_door_requires_check
+ok
+__main__.FunctionTest (test_ground_item_different_location)
+Ground items should NOT be accessible from different location. ... PASS: test_ground_item_different_location
+ok
+__main__.FunctionTest (test_ground_item_same_location)
+Ground items should be location-specific. ... PASS: test_ground_item_same_location
+ok
+__main__.FunctionTest (test_location_name_vs_character_name)
+Location name and character name questions should be handled differently. ... PASS: test_location_name_vs_character_name
+ok
+__main__.FunctionTest (test_locked_door_requires_check)
+Locked door should require skill check. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_locked_door_requires_check
+ok
+__main__.FunctionTest (test_malformed_intent_json)
+Malformed JSON from Qwen should fallback gracefully. ... PASS: test_malformed_intent_json
+ok
+__main__.FunctionTest (test_named_location_return)
+Named return requires a verified route and charges its server-owned time. ... PASS: test_named_location_return
+ok
+__main__.FunctionTest (test_ollama_unavailable)
+When Ollama is unavailable, Python fallback should work. ... ⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_ollama_unavailable
+ok
+__main__.FunctionTest (test_ordinary_environment_look)
+Ordinary look should not trigger skill check. ... ⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_ordinary_environment_look
+ok
+__main__.FunctionTest (test_player_said_memory)
+Player statements should be recorded separately from NPC statements. ... PASS: test_player_said_memory
+ok
+__main__.FunctionTest (test_return_travel)
+No recorded journey or pending destination means a return needs clarification. ... PASS: test_return_travel
+ok
+__main__.FunctionTest (test_return_travel_known_destination)
+An explicitly pending return target still requires the server-owned route. ... ok
+__main__.FunctionTest (test_return_travel_retraces_progress)
+Interrupted, stopped and staged journeys retrace only actual elapsed progress. ... ok
+__main__.FunctionTest (test_return_travel_route_refusals)
+Neither a pending goal nor movement language authorizes unknown/blocked routes. ... ok
+__main__.FunctionTest (test_sheathe_weapon)
+Sheathing a weapon should update state. ... ⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_sheathe_weapon
+ok
+__main__.FunctionTest (test_successful_investigation)
+Successful investigation should use structured action_result. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 20
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 20
+Result: BAŞARILI
+===================================
+⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_successful_investigation
+ok
+__main__.FunctionTest (test_terminal_skill_command)
+Verify /skill stealth 15 terminal command executes without NameError and uses active session character. ... PASS: test_terminal_skill_command
+ok
+__main__.FunctionTest (test_unlocked_door_normal_open)
+Unlocked door should open without skill check. ... ⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_unlocked_door_normal_open
+ok
+__main__.FunctionTest (test_unsupported_attack)
+Legacy name: an invalid local target must be rejected without side effects. ... PASS: test_unsupported_attack
+ok
+__main__.FunctionTest (test_who_is_here)
+'Who is here?' should list NPCs in current location. ... PASS: test_who_is_here
+ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.549s
+
+OK

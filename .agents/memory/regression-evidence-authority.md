@@ -26,3 +26,16 @@ run or produce a misleading real-network acceptance claim.
 
 **How to apply:** Validate archive behavior offline unless the owner separately
 approves live acceptance; distinguish those contract checks from gameplay proof.
+
+Keep legacy model-mock regression runs separate from API adapter suites until
+their shared-mock isolation is repaired. A passing isolated run does not turn a
+failed combined invocation into passing evidence.
+
+**Why:** API suite imports can mutate the legacy shared model mock's chat
+callback during collection, causing unrelated regression functions to fail
+when they configure mock responses. Separate processes passed while the combined
+invocation retained those errors.
+
+**How to apply:** Retain both failed combined attempts and passing isolated
+invocations, state their scopes explicitly, and do not expand a passing count
+to cover an invocation that was not successful.

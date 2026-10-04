@@ -1,0 +1,808 @@
+__main__.FunctionTest (test_draw_weapon)
+Drawing a weapon should update state. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_draw_weapon
+ok
+__main__.FunctionTest (test_enter_through_door)
+Entering through a door should update door state. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_enter_through_door
+ok
+__main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction. ... ERROR
+__main__.FunctionTest (test_exit_location)
+No recorded local exit means explicit refusal, even with a pending travel goal. ... PASS: test_exit_location
+ok
+__main__.FunctionTest (test_exit_location_invalid_destination)
+An unregistered local exit must not be fabricated or consume travel time. ... ok
+__main__.FunctionTest (test_exit_location_known_destination)
+Exit uses the registered local exit/parent, never an unrelated pending goal. ... ok
+__main__.FunctionTest (test_failed_investigation)
+Failed investigation should use structured action_result. ... INFO: Ollama chat request started (model=qwen3:8b)
+
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 1
+Result: BAŞARISIZ
+===================================
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_failed_investigation
+ok
+__main__.FunctionTest (test_failed_stealth_narrator_contradiction)
+Qwen should not be able to narrate success when Python says failure. ... ERROR
+__main__.FunctionTest (test_false_memory_claim)
+Player claims about NPC speech should be denied if not in memory. ... PASS: test_false_memory_claim
+ok
+__main__.FunctionTest (test_force_door_requires_check)
+Forcing a door should require skill check. ... INFO: Ollama chat request started (model=qwen3:8b)
+
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_force_door_requires_check
+ok
+__main__.FunctionTest (test_ground_item_different_location)
+Ground items should NOT be accessible from different location. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_ground_item_different_location
+ok
+__main__.FunctionTest (test_ground_item_same_location)
+Ground items should be location-specific. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_ground_item_same_location
+ok
+__main__.FunctionTest (test_location_name_vs_character_name)
+Location name and character name questions should be handled differently. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_location_name_vs_character_name
+ok
+__main__.FunctionTest (test_locked_door_requires_check)
+Locked door should require skill check. ... INFO: Ollama chat request started (model=qwen3:8b)
+
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_locked_door_requires_check
+ok
+__main__.FunctionTest (test_malformed_intent_json)
+Malformed JSON from Qwen should fallback gracefully. ... ERROR
+__main__.FunctionTest (test_named_location_return)
+Named return requires a verified route and charges its server-owned time. ... PASS: test_named_location_return
+ok
+__main__.FunctionTest (test_ollama_unavailable)
+When Ollama is unavailable, Python fallback should work. ... ERROR
+__main__.FunctionTest (test_ordinary_environment_look)
+Ordinary look should not trigger skill check. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_ordinary_environment_look
+ok
+__main__.FunctionTest (test_player_said_memory)
+Player statements should be recorded separately from NPC statements. ... PASS: test_player_said_memory
+ok
+__main__.FunctionTest (test_return_travel)
+No recorded journey or pending destination means a return needs clarification. ... PASS: test_return_travel
+ok
+__main__.FunctionTest (test_return_travel_known_destination)
+An explicitly pending return target still requires the server-owned route. ... ok
+__main__.FunctionTest (test_return_travel_retraces_progress)
+Interrupted, stopped and staged journeys retrace only actual elapsed progress. ... ok
+__main__.FunctionTest (test_return_travel_route_refusals)
+Neither a pending goal nor movement language authorizes unknown/blocked routes. ... ok
+__main__.FunctionTest (test_sheathe_weapon)
+Sheathing a weapon should update state. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_sheathe_weapon
+ok
+__main__.FunctionTest (test_successful_investigation)
+Successful investigation should use structured action_result. ... INFO: Ollama chat request started (model=qwen3:8b)
+
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 20
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 20
+Result: BAŞARILI
+===================================
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_successful_investigation
+ok
+__main__.FunctionTest (test_terminal_skill_command)
+Verify /skill stealth 15 terminal command executes without NameError and uses active session character. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_terminal_skill_command
+ok
+__main__.FunctionTest (test_unlocked_door_normal_open)
+Unlocked door should open without skill check. ... INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Ollama chat request started (model=qwen3:8b)
+PASS: test_unlocked_door_normal_open
+ok
+__main__.FunctionTest (test_unsupported_attack)
+Legacy name: an invalid local target must be rejected without side effects. ... PASS: test_unsupported_attack
+ok
+__main__.FunctionTest (test_who_is_here)
+'Who is here?' should list NPCs in current location. ... PASS: test_who_is_here
+ok
+test_rest_replay_and_failed_save_restores_time_and_rng (api.tests.test_campaign_time.ClockApiTests.test_rest_replay_and_failed_save_restores_time_and_rng) ... ok
+test_wait_atomic_replay_conflict_and_restart (api.tests.test_campaign_time.ClockApiTests.test_wait_atomic_replay_conflict_and_restart) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_calendar_rollovers_and_no_wall_clock (api.tests.test_campaign_time.ClockTests.test_calendar_rollovers_and_no_wall_clock) ... ok
+test_encounter_inside_window_and_hidden_projections (api.tests.test_campaign_time.ClockTests.test_encounter_inside_window_and_hidden_projections) ... ok
+test_first_scene_anchor_and_canonical_start (api.tests.test_campaign_time.ClockTests.test_first_scene_anchor_and_canonical_start) ... ok
+test_frontend_cannot_supply_time_and_narration_cannot_invent_duration (api.tests.test_campaign_time.ClockTests.test_frontend_cannot_supply_time_and_narration_cannot_invent_duration) ... ok
+test_round_once_partial_end_and_normal_rollback_rng (api.tests.test_campaign_time.ClockTests.test_round_once_partial_end_and_normal_rollback_rng) ... ok
+test_save_resume_isolation_and_corrupt_time_rejection (api.tests.test_campaign_time.ClockTests.test_save_resume_isolation_and_corrupt_time_rejection) ... ok
+test_task_check_uses_existing_core_and_public_result (api.tests.test_campaign_time.ClockTests.test_task_check_uses_existing_core_and_public_result) ... ok
+test_travel_dice_no_event_and_decisions (api.tests.test_campaign_time.ClockTests.test_travel_dice_no_event_and_decisions) ... ok
+test_wait_task_budget_and_sleep_rest (api.tests.test_campaign_time.ClockTests.test_wait_task_budget_and_sleep_rest) ... ok
+test_window_long_action_missed_aftermath_and_idempotent_effect (api.tests.test_campaign_time.ClockTests.test_window_long_action_missed_aftermath_and_idempotent_effect) ... ok
+test_event_combat_handoff_uses_public_combat_contract (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_event_combat_handoff_uses_public_combat_contract) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_failed_save_rolls_back_time_event_progress_rng_and_receipt (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_failed_save_rolls_back_time_event_progress_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_pending_task_receipt_lost_response_and_restart_are_atomic (api.tests.test_campaign_time_edges.EventEdgeApiTests.test_pending_task_receipt_lost_response_and_restart_are_atomic) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_active_arrival_and_late_aftermath_never_assume_success (api.tests.test_campaign_time_edges.EventEdgeTests.test_active_arrival_and_late_aftermath_never_assume_success) ... ok
+test_calendar_and_windows_cross_midnight_festival_month_and_year (api.tests.test_campaign_time_edges.EventEdgeTests.test_calendar_and_windows_cross_midnight_festival_month_and_year) ... ok
+test_chains_recheck_prerequisites_and_followups_once (api.tests.test_campaign_time_edges.EventEdgeTests.test_chains_recheck_prerequisites_and_followups_once) ... ok
+test_cycles_and_missing_dependencies_diagnose_without_mutating_canon (api.tests.test_campaign_time_edges.EventEdgeTests.test_cycles_and_missing_dependencies_diagnose_without_mutating_canon) ... Scheduled event dependency cycle/missing reference; blocked_count=3
+ok
+test_event_processing_no_time_autoforward_and_old_v1_fields_load (api.tests.test_campaign_time_edges.EventEdgeTests.test_event_processing_no_time_autoforward_and_old_v1_fields_load) ... ok
+test_forced_route_obstacle_preserves_progress_until_player_reroutes (api.tests.test_campaign_time_edges.EventEdgeTests.test_forced_route_obstacle_preserves_progress_until_player_reroutes) ... ok
+test_hidden_context_journal_npc_projection_and_legitimate_aftermath (api.tests.test_campaign_time_edges.EventEdgeTests.test_hidden_context_journal_npc_projection_and_legitimate_aftermath) ... ok
+test_hostile_fact_uses_existing_combat_then_returns_to_decision (api.tests.test_campaign_time_edges.EventEdgeTests.test_hostile_fact_uses_existing_combat_then_returns_to_decision) ... ok
+test_interrupted_rest_does_not_grant_unearned_healing_or_resources (api.tests.test_campaign_time_edges.EventEdgeTests.test_interrupted_rest_does_not_grant_unearned_healing_or_resources) ... ok
+test_interrupted_return_keeps_retrace_progress_without_extra_dice (api.tests.test_campaign_time_edges.EventEdgeTests.test_interrupted_return_keeps_retrace_progress_without_extra_dice) ... ok
+test_interruptible_task_keeps_actual_progress_and_remaining_budget (api.tests.test_campaign_time_edges.EventEdgeTests.test_interruptible_task_keeps_actual_progress_and_remaining_budget) ... ok
+test_long_action_crosses_many_windows_without_retroactive_splitting (api.tests.test_campaign_time_edges.EventEdgeTests.test_long_action_crosses_many_windows_without_retroactive_splitting) ... ok
+test_long_skip_bulk_order_decision_and_no_travel_rolls (api.tests.test_campaign_time_edges.EventEdgeTests.test_long_skip_bulk_order_decision_and_no_travel_rolls) ... ok
+test_noninterruptive_and_remote_decisions_do_not_stop_actions (api.tests.test_campaign_time_edges.EventEdgeTests.test_noninterruptive_and_remote_decisions_do_not_stop_actions) ... ok
+test_normal_death_checkpoint_retains_pending_progress_but_not_rng (api.tests.test_campaign_time_edges.EventEdgeTests.test_normal_death_checkpoint_retains_pending_progress_but_not_rng) ... ok
+test_same_time_independent_events_survive_a_decision_stop (api.tests.test_campaign_time_edges.EventEdgeTests.test_same_time_independent_events_survive_a_decision_stop) ... ok
+test_simultaneous_dependency_priority_causal_location_and_stable_order (api.tests.test_campaign_time_edges.EventEdgeTests.test_simultaneous_dependency_priority_causal_location_and_stable_order) ... ok
+test_travel_rolls_persist_and_repetition_exclusion_is_not_permanent (api.tests.test_campaign_time_edges.EventEdgeTests.test_travel_rolls_persist_and_repetition_exclusion_is_not_permanent) ... ok
+test_cross_session_combat_context_is_rejected (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_cross_session_combat_context_is_rejected) ... ok
+test_invalid_stale_and_malformed_requests_do_not_mutate (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_invalid_stale_and_malformed_requests_do_not_mutate) ... ok
+test_model_combat_proposal_cannot_create_a_result_or_advance_combat (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_model_combat_proposal_cannot_create_a_result_or_advance_combat) ... ERROR
+test_persistence_failure_rolls_back_result_history_rng_and_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_persistence_failure_rolls_back_result_history_rng_and_time) ... ERROR
+test_player_attack_starts_authoritative_combat_with_npc_first (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_player_attack_starts_authoritative_combat_with_npc_first) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_valid_miss_is_canonical_and_replay_survives_resume (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_valid_miss_is_canonical_and_replay_survives_resume) ... ERROR
+test_verified_hit_end_preserves_history_without_extra_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_verified_hit_end_preserves_history_without_extra_time) ... Executing <Task pending name='Task-80' coro=<CombatLifecycleApiTests.asyncSetUp() running at /home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py:151> cb=[_run_until_complete_cb() at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py:181] created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.171 seconds
+ERROR
+test_wrong_actor_and_no_weapon_do_not_roll (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_wrong_actor_and_no_weapon_do_not_roll) ... ok
+test_active_identity_is_required_not_repaired (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_active_identity_is_required_not_repaired) ... ok
+test_authoritative_npc_relocation_cannot_execute_a_stale_turn (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_authoritative_npc_relocation_cannot_execute_a_stale_turn) ... ok
+test_closed_identity_is_retained_and_close_is_idempotent (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_closed_identity_is_retained_and_close_is_idempotent) ... ok
+test_current_actor_and_participant_identity_are_validated (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_current_actor_and_participant_identity_are_validated) ... ok
+test_direct_mechanic_rejects_nonparticipant_and_wrong_actor (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_direct_mechanic_rejects_nonparticipant_and_wrong_actor) ... ok
+test_existing_pronoun_target_resolution_is_not_blocked_or_mutating (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_existing_pronoun_target_resolution_is_not_blocked_or_mutating) ... ERROR
+test_hostility_threat_and_model_proposal_are_not_combat_triggers (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_hostility_threat_and_model_proposal_are_not_combat_triggers) ... ok
+test_round_boundary_and_partial_end_use_only_existing_time (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_round_boundary_and_partial_end_use_only_existing_time) ... ok
+test_travel_cannot_teleport_out_of_active_combat (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_travel_cannot_teleport_out_of_active_combat) ... ok
+test_zero_hp_uses_existing_death_state_and_keeps_combat (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_zero_hp_uses_existing_death_state_and_keeps_combat) ... ok
+test_distance_question_mentioning_tavern_does_not_create_local_venue (test_playable_living_world.PlayableLivingWorldTests.test_distance_question_mentioning_tavern_does_not_create_local_venue) ... ok
+test_expired_scene_referent_expires_when_addressed (test_playable_living_world.PlayableLivingWorldTests.test_expired_scene_referent_expires_when_addressed) ... ok
+test_feature_identity_and_scene_projection_survive_save_load (test_playable_living_world.PlayableLivingWorldTests.test_feature_identity_and_scene_projection_survive_save_load) ... ok
+test_invalid_scene_state_load_is_atomic (test_playable_living_world.PlayableLivingWorldTests.test_invalid_scene_state_load_is_atomic) ... ok
+test_legacy_save_migrates_feature_ids_idempotently (test_playable_living_world.PlayableLivingWorldTests.test_legacy_save_migrates_feature_ids_idempotently) ... ok
+test_look_materializes_once_and_presence_is_natural (test_playable_living_world.PlayableLivingWorldTests.test_look_materializes_once_and_presence_is_natural) ... ok
+test_lore_guard_allows_local_craft_role_and_personal_arrival (test_playable_living_world.PlayableLivingWorldTests.test_lore_guard_allows_local_craft_role_and_personal_arrival) ... ok
+test_merchant_search_creates_local_person_and_shop_without_trade (test_playable_living_world.PlayableLivingWorldTests.test_merchant_search_creates_local_person_and_shop_without_trade) ... ok
+test_narration_projection_isolates_sessions_and_save_load (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_isolates_sessions_and_save_load) ... ok
+test_narration_projection_presented_referent_remains_visible (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_presented_referent_remains_visible) ... ok
+test_narration_projection_preserves_promoted_binding_and_public_metadata (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_preserves_promoted_binding_and_public_metadata) ... ok
+test_narration_projection_promoted_presence_omits_anonymous_description (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_promoted_presence_omits_anonymous_description) ... ok
+test_narration_projection_promoted_prompt_uses_persistent_npc (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_promoted_prompt_uses_persistent_npc) ... ok
+test_narration_projection_save_load_preserves_binding_and_deduplication (test_playable_living_world.PlayableLivingWorldTests.test_narration_projection_save_load_preserves_binding_and_deduplication) ... ok
+test_observing_referent_does_not_promote_it_to_an_npc (test_playable_living_world.PlayableLivingWorldTests.test_observing_referent_does_not_promote_it_to_an_npc) ... ok
+test_public_scene_referent_exposes_only_one_addressable_alias (test_playable_living_world.PlayableLivingWorldTests.test_public_scene_referent_exposes_only_one_addressable_alias) ... ok
+test_selected_npc_smalltalk_uses_grounded_responses (test_playable_living_world.PlayableLivingWorldTests.test_selected_npc_smalltalk_uses_grounded_responses) ... ok
+test_tavern_search_enter_exit_and_return_use_local_parent (test_playable_living_world.PlayableLivingWorldTests.test_tavern_search_enter_exit_and_return_use_local_parent) ... ok
+test_travel_uses_last_named_location_as_destination (test_playable_living_world.PlayableLivingWorldTests.test_travel_uses_last_named_location_as_destination) ... ok
+test_unrelated_unsupported_query_does_not_expire_scene_referent (test_playable_living_world.PlayableLivingWorldTests.test_unrelated_unsupported_query_does_not_expire_scene_referent) ... ok
+test_unverified_distance_response_does_not_attribute_player_action (test_playable_living_world.PlayableLivingWorldTests.test_unverified_distance_response_does_not_attribute_player_action) ... ok
+test_unverified_ruler_response_handles_turkish_inflections (test_playable_living_world.PlayableLivingWorldTests.test_unverified_ruler_response_handles_turkish_inflections) ... ok
+test_v11_name_disclosure_is_bound_to_the_npc_who_heard_it (test_playable_living_world.PlayableLivingWorldTests.test_v11_name_disclosure_is_bound_to_the_npc_who_heard_it) ... ok
+test_v11_npc_identity_answer_uses_natural_name_only (test_playable_living_world.PlayableLivingWorldTests.test_v11_npc_identity_answer_uses_natural_name_only) ... ok
+test_v11_personal_profile_answers_remain_procedural_and_stable (test_playable_living_world.PlayableLivingWorldTests.test_v11_personal_profile_answers_remain_procedural_and_stable) ... ok
+test_v11_reentering_the_current_tavern_is_idempotent (test_playable_living_world.PlayableLivingWorldTests.test_v11_reentering_the_current_tavern_is_idempotent) ... ok
+test_v11_semantic_city_observation_and_local_discovery (test_playable_living_world.PlayableLivingWorldTests.test_v11_semantic_city_observation_and_local_discovery) ... ok
+test_v11_work_questions_do_not_create_or_imply_a_job_offer (test_playable_living_world.PlayableLivingWorldTests.test_v11_work_questions_do_not_create_or_imply_a_job_offer) ... ok
+test_v11_world_subject_question_is_not_routed_to_active_npc_identity (test_playable_living_world.PlayableLivingWorldTests.test_v11_world_subject_question_is_not_routed_to_active_npc_identity) ... ok
+
+======================================================================
+ERROR: __main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 407, in test_exit_and_return_combat_refusal
+    run_turn(command)
+    ~~~~~~~~^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 62, in run_turn
+    return game.run_player_turn(player_input, messages)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 10546, in run_player_turn
+    combat_lifecycle.validate_request(_session(), player_input, target_id)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+======================================================================
+ERROR: __main__.FunctionTest (test_failed_stealth_narrator_contradiction)
+Qwen should not be able to narrate success when Python says failure.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 73, in test_failed_stealth_narrator_contradiction
+    ollama_mock.chat.return_value = {
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'method' object has no attribute 'return_value' and no __dict__ for setting new attributes
+
+======================================================================
+ERROR: __main__.FunctionTest (test_malformed_intent_json)
+Malformed JSON from Qwen should fallback gracefully.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 700, in test_malformed_intent_json
+    ollama_mock.chat.return_value = {
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'method' object has no attribute 'return_value' and no __dict__ for setting new attributes
+
+======================================================================
+ERROR: __main__.FunctionTest (test_ollama_unavailable)
+When Ollama is unavailable, Python fallback should work.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 718, in test_ollama_unavailable
+    ollama_mock.chat.side_effect = Exception("Connection refused")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'method' object has no attribute 'side_effect' and no __dict__ for setting new attributes
+
+======================================================================
+ERROR: test_model_combat_proposal_cannot_create_a_result_or_advance_combat (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_model_combat_proposal_cannot_create_a_result_or_advance_combat)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 265, in test_model_combat_proposal_cannot_create_a_result_or_advance_combat
+    await self.assert_rejected_unchanged(session, command, 400)
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 174, in assert_rejected_unchanged
+    response = await self.post(data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 168, in post
+    return await self.http.post(f"/api/game/sessions/{sid or self.sid}/turn", json=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1859, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_transports/asgi.py", line 170, in handle_async_request
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 1281, in handle
+    await super().handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 354, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "/home/runner/workspace/ai-dnd/api/main.py", line 675, in play_turn
+    combat_lifecycle.validate_request(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session, request.message, request.target_id, combat_id=request.combat_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+======================================================================
+ERROR: test_persistence_failure_rolls_back_result_history_rng_and_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_persistence_failure_rolls_back_result_history_rng_and_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 257, in test_persistence_failure_rolls_back_result_history_rng_and_time
+    await self.assert_rejected_unchanged(session, command, 503)
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 174, in assert_rejected_unchanged
+    response = await self.post(data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 168, in post
+    return await self.http.post(f"/api/game/sessions/{sid or self.sid}/turn", json=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1859, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_transports/asgi.py", line 170, in handle_async_request
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 1281, in handle
+    await super().handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 354, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "/home/runner/workspace/ai-dnd/api/main.py", line 675, in play_turn
+    combat_lifecycle.validate_request(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session, request.message, request.target_id, combat_id=request.combat_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+======================================================================
+ERROR: test_valid_miss_is_canonical_and_replay_survives_resume (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_valid_miss_is_canonical_and_replay_survives_resume)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 203, in test_valid_miss_is_canonical_and_replay_survives_resume
+    first = await self.post(command)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 168, in post
+    return await self.http.post(f"/api/game/sessions/{sid or self.sid}/turn", json=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1859, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_transports/asgi.py", line 170, in handle_async_request
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 1281, in handle
+    await super().handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 354, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "/home/runner/workspace/ai-dnd/api/main.py", line 675, in play_turn
+    combat_lifecycle.validate_request(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session, request.message, request.target_id, combat_id=request.combat_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+======================================================================
+ERROR: test_verified_hit_end_preserves_history_without_extra_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_verified_hit_end_preserves_history_without_extra_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 235, in test_verified_hit_end_preserves_history_without_extra_time
+    response = await self.post(command)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 168, in post
+    return await self.http.post(f"/api/game/sessions/{sid or self.sid}/turn", json=data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1859, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/httpx/_transports/asgi.py", line 170, in handle_async_request
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 1281, in handle
+    await super().handle(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/routing.py", line 354, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/starlette/concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2706, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 1100, in run
+    result = context.run(func, *args)
+  File "/home/runner/workspace/ai-dnd/api/main.py", line 675, in play_turn
+    combat_lifecycle.validate_request(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session, request.message, request.target_id, combat_id=request.combat_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+======================================================================
+ERROR: test_existing_pronoun_target_resolution_is_not_blocked_or_mutating (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_existing_pronoun_target_resolution_is_not_blocked_or_mutating)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py", line 49, in test_existing_pronoun_target_resolution_is_not_blocked_or_mutating
+    combat_lifecycle.validate_request(session, "Ona saldırıyorum.")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/combat_lifecycle.py", line 83, in validate_request
+    or session.living_world.classify_scene_action(message) == "exit"):
+       ^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 11860, in __getattr__
+    raise AttributeError(name)
+AttributeError: living_world
+
+----------------------------------------------------------------------
+Ran 109 tests in 3.447s
+
+FAILED (errors=9)

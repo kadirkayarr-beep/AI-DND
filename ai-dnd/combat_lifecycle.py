@@ -2,6 +2,8 @@
 
 import re
 
+import living_world
+
 
 class CombatRequestError(ValueError):
     def __init__(self, code, message, status_code=409):
@@ -78,5 +80,7 @@ def validate_request(session, message, target_id=None, *, combat_id=None,
                 or npc.get("combat_status", "active") not in {"active", "unconscious"}):
                 raise CombatRequestError("invalid_combat_target", "Target is not an active local participant.", 400)
         text = session._normalize_turkish_typos(message)
-        if re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text):
+        if (re.search(r"\b(?:gidiyorum|gitmek|giriyorum|yolculu|seyahat)", text)
+                or re.fullmatch(r"geri don(?:uyorum|uyoruz|dum|duk)?", text)
+                or living_world.classify_scene_action(message) == "exit"):
             raise CombatRequestError("combat_travel", "Normal travel cannot leave active combat.", 400)

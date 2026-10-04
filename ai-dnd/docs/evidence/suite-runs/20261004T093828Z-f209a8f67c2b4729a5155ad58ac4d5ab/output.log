@@ -1,0 +1,115 @@
+__main__.FunctionTest (test_exit_location)
+Leaving without a grounded destination requests clarification, not narration. ... FAIL
+__main__.FunctionTest (test_return_travel)
+No recorded journey or pending destination means a return needs clarification. ... FAIL
+__main__.FunctionTest (test_exit_location_known_destination)
+A pending destination permits departure only over a verified timed route. ... FAIL
+__main__.FunctionTest (test_return_travel_known_destination)
+An explicitly pending return target still requires the server-owned route. ... FAIL
+__main__.FunctionTest (test_return_travel_retraces_progress)
+Interrupted, stopped and staged journeys retrace only actual elapsed progress. ... ok
+__main__.FunctionTest (test_exit_and_return_route_refusals)
+Neither a pending goal nor movement language authorizes unknown/blocked routes. ... FAIL
+__main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction. ... ERROR
+
+======================================================================
+ERROR: __main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 377, in test_exit_and_return_combat_refusal
+    run_turn(command)
+    ~~~~~~~~^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 62, in run_turn
+    return game.run_player_turn(player_input, messages)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 10541, in run_player_turn
+    command = combat_action or action_economy.natural_command(_session(), player_input, target_id)
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/action_economy.py", line 677, in natural_command
+    opportunity = ensure(session)["player"]["opportunity"]
+                  ~~~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'player'
+
+======================================================================
+FAIL: __main__.FunctionTest (test_exit_location)
+Leaving without a grounded destination requests clarification, not narration.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 288, in test_exit_location
+    assert_travel_result(result, status="clarification", success=False,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         location="tavern", pending=None, before=before)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 270, in assert_travel_result
+    assert action["action"] == "travel", action
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'action': 'exit', 'status': 'unresolved', 'success': False, 'state_changes': ['world.npcs', 'world.features'], 'direct_response': 'Buradan çıkış veren belirgin bir geçit yok.', 'time_result': {'elapsed_seconds': 0, 'after': {'year': 1501, 'month': 'Mirtul', 'day': 1, 'hour': 9, 'minute': 0, 'second': 0, 'day_index': 0, 'calendar': 'Harptos', 'local_convention': 'Neverwinter local', 'time_of_day': 'day', 'display': '1 Mirtul — Gündüz', 'detail': '1 Mirtul 1501 DR — 09:00:00'}, 'player_known_events': []}}
+
+======================================================================
+FAIL: __main__.FunctionTest (test_return_travel)
+No recorded journey or pending destination means a return needs clarification.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 311, in test_return_travel
+    assert_travel_result(result, status="clarification", success=False,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         location="tavern", pending=None, before=before)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 270, in assert_travel_result
+    assert action["action"] == "travel", action
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'action': 'narrative', 'success': True, 'status': 'resolved', 'state_changes': [], 'time_result': {'elapsed_seconds': 0, 'after': {'year': 1501, 'month': 'Mirtul', 'day': 1, 'hour': 9, 'minute': 0, 'second': 0, 'day_index': 0, 'calendar': 'Harptos', 'local_convention': 'Neverwinter local', 'time_of_day': 'day', 'display': '1 Mirtul — Gündüz', 'detail': '1 Mirtul 1501 DR — 09:00:00'}, 'player_known_events': []}}
+
+======================================================================
+FAIL: __main__.FunctionTest (test_exit_location_known_destination)
+A pending destination permits departure only over a verified timed route.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 299, in test_exit_location_known_destination
+    assert_travel_result(result, status="completed", success=True,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         location="forest", pending=None, before=before, elapsed=420)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 270, in assert_travel_result
+    assert action["action"] == "travel", action
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'action': 'exit', 'status': 'unresolved', 'success': False, 'state_changes': ['world.npcs', 'world.features'], 'direct_response': 'Buradan çıkış veren belirgin bir geçit yok.', 'time_result': {'elapsed_seconds': 0, 'after': {'year': 1501, 'month': 'Mirtul', 'day': 1, 'hour': 9, 'minute': 0, 'second': 0, 'day_index': 0, 'calendar': 'Harptos', 'local_convention': 'Neverwinter local', 'time_of_day': 'day', 'display': '1 Mirtul — Gündüz', 'detail': '1 Mirtul 1501 DR — 09:00:00'}, 'player_known_events': []}}
+
+======================================================================
+FAIL: __main__.FunctionTest (test_return_travel_known_destination)
+An explicitly pending return target still requires the server-owned route.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 322, in test_return_travel_known_destination
+    assert_travel_result(result, status="completed", success=True,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         location="forest", pending=None, before=before, elapsed=420)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 270, in assert_travel_result
+    assert action["action"] == "travel", action
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'action': 'narrative', 'success': True, 'status': 'resolved', 'state_changes': [], 'time_result': {'elapsed_seconds': 0, 'after': {'year': 1501, 'month': 'Mirtul', 'day': 1, 'hour': 9, 'minute': 0, 'second': 0, 'day_index': 0, 'calendar': 'Harptos', 'local_convention': 'Neverwinter local', 'time_of_day': 'day', 'display': '1 Mirtul — Gündüz', 'detail': '1 Mirtul 1501 DR — 09:00:00'}, 'player_known_events': []}}
+
+======================================================================
+FAIL: __main__.FunctionTest (test_exit_and_return_route_refusals)
+Neither a pending goal nor movement language authorizes unknown/blocked routes.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 364, in test_exit_and_return_route_refusals
+    assert_travel_result(result, status="blocked" if blocked else "unverified",
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                         success=False, location="tavern", pending="forest", before=before)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/test_regression.py", line 270, in assert_travel_result
+    assert action["action"] == "travel", action
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'action': 'exit', 'status': 'unresolved', 'success': False, 'state_changes': ['world.npcs', 'world.features'], 'direct_response': 'Buradan çıkış veren belirgin bir geçit yok.', 'time_result': {'elapsed_seconds': 0, 'after': {'year': 1501, 'month': 'Mirtul', 'day': 1, 'hour': 9, 'minute': 0, 'second': 0, 'day_index': 0, 'calendar': 'Harptos', 'local_convention': 'Neverwinter local', 'time_of_day': 'day', 'display': '1 Mirtul — Gündüz', 'detail': '1 Mirtul 1501 DR — 09:00:00'}, 'player_known_events': []}}
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.114s
+
+FAILED (failures=5, errors=1)
