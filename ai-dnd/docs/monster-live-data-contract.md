@@ -11,6 +11,34 @@ Bu nedenle gerçek üretim kaynağından beslenen hedef seçimi, legal
 yürüyüş/kaçış, kaynak tüketimi ve save/resume replay zinciri henüz HTTP
 üzerinden kanıtlanamaz.
 
+### Hardening sonrası yeniden denetim — 2026-10-04
+
+Denetlenen checkout: `main`,
+`79b61ff917be462296b048c432330bdd96d15a3c`.
+Bu denetim önceki eksik-owner sonucunu varsaymak yerine güncel üretim
+yollarını yeniden incelemiştir.
+
+- `api.session_manager.SessionManager.create_campaign`, gerçek session
+  factory ve canonical başlangıç konumu akışını kullanır.
+- `living_world.materialize_scene`, mevcut `game.create_npc_from_ai`
+  girişinden canonical NPC oluşturur. NPC kimliği ve `location` alanı
+  vardır; seçilmiş MM statblok eşlemesi üretmez.
+- `living_world.set_player_position` yalnızca yer/seated/standing kaydı
+  üretir. `scheduled_events.visible_npcs` oyuncuya sunulan bilgiyi filtreler.
+  Bunlardan taktik mesafe veya NPC yönlü görüşü çıkarılamaz.
+- `action_economy.move` movement bütçesini tüketir; mesafe çiftleri veya
+  rota uç noktaları üretmez. `weapon_attack.push` ise ancak mevcut
+  canonical mesafe ve doğrulanmış koridor girdisini kullanarak yer
+  değiştirmeyi çözer; eksik geometri için başlangıç üreticisi değildir.
+- Güncel üretim yollarında `monster_perception`, `monster_routes` veya
+  seçilmiş `monster_stat_block` girdilerini oluşturan kaynak bulunmadı.
+  Frontend/request movement mesafesi de canonical NPC geometry kaynağı
+  değildir.
+
+Sonuç: gerekli üretim sahipleri eksik olduğundan canlı HTTP tamamlanma
+koşulu **NO-GO** durumundadır. Bu belge kaynaklar yaratmaz ve fixture
+verisini production bağlantısı olarak kabul etmez.
+
 ## Mevcut sahipler ve sınırları
 
 | Kaynak | Gerçekten sahip olduğu bilgi | Kanıtlamadığı bilgi |
@@ -82,6 +110,10 @@ sağlamalıdır. Mevcut tüketicinin kullandığı alanlar:
 - Gerçek yürüyüş maliyeti için `distance_ft`; mevcut sınırlar içinde `mode`
   ve `difficult_terrain`.
 - Aynı hedef kümesini kapsayan `start_distances` ve `target_distances`.
+- Bu küme combat içindeki bütün canonical hostile katılımcıları içermelidir.
+  Hostile'ın rotadan çıkarılması veya mesafesinin bilinmemesi güvenli
+  hareket kanıtı değildir; hardening sonrası tüketici böyle bir rotayı
+  legal listesine almaz.
 - Kullanılıyorsa `movement_intent`.
 
 Başlangıç mesafeleri canonical çift mesafeleriyle aynı olmalıdır.
@@ -93,6 +125,20 @@ bitirmez.
 Burada yeni geometry veya pathfinding önerilmemektedir. Önceden mevcut,
 doğrulanabilir ve onaylanmış bir konum/rota kaynağı gerekir; kaynağın
 bulunmaması tüketicinin varsayım üretmesiyle giderilemez.
+
+## Eksik sahipler ve en küçük sonraki kapsam
+
+| MISSING OWNER | WHY REQUIRED | CURRENT CONSUMER | MINIMUM DATA CONTRACT | SMALLEST FUTURE IMPLEMENTATION |
+|---|---|---|---|---|
+| Seçilmiş MM→NPC eşleme sahibi | NPC varsayılanları MM doğrulaması değildir | `monster_capabilities.capabilities` | Açık NPC ID→statblok ID eşlemesi; MM baskı/sayfa kanıtı; doğrulanmış mekanik alanlar ve desteklenen owner'lar | Onaylanan tek karşılaşma için sınırlı, kaynak doğrulanmış statblok bağlantısı; isim/rol çıkarımı ve full importer yok |
+| Taktik mesafe ve yönlü algı sahibi | Ortak location, feet veya görüş kanıtlamaz | `weapon_attack.pair`, `monster_perception.snapshot` | Canonical aktör/hedef ID'leri; doğrulanmış mesafe; yönlü görünürlük/sense kanıtı; kaynağın üretim ve geçersizleşme olayları | Owner tarafından onaylanan tek sahnenin konum/görüş verisini mevcut tüketicilere sağlayan sınırlı üretim girişi |
+| Doğrulanmış yürüyüş/rota sahibi | Movement bütçesi rota güvenliği veya OA kanıtlamaz | `action_economy.monster_routes` | Bilinen/açık rota; gerçek maliyet; canonical başlangıç/bitiş mesafeleri; bütün hostile katılımcılar; mevcut terrain ve action sınırları | Aynı onaylı sahnenin gerçek rotalarını mevcut arayüze sağlayan sınırlı üretim girişi; generic pathfinding yok |
+
+Bu sonraki kapsamlar uygulanmış değildir. Konum, görüş ve rota verilerinin
+hangi gerçek kaynakta tutulacağı ve hangi canonical olaylarla değişeceği
+owner tarafından onaylanmadan yeni üretici kurulamaz. HTTP karşılaşma
+kabulü ancak bu kaynaklar ve açık statblok seçimi sağlandıktan sonra
+yapılabilir.
 
 ## HTTP tamamlanma kanıtı
 

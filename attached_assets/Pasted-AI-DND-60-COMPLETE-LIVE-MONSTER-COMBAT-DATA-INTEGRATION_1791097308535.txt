@@ -1,0 +1,819 @@
+AI-DND — #60
+COMPLETE LIVE MONSTER COMBAT DATA INTEGRATION
+
+============================================================
+MISSION
+============================================================
+
+Complete #60:
+
+"Canlı karşılaşmalarda eksik Monster Combat veri bağlantılarını tamamla."
+
+#07 Monster Combat decision core and its mechanical owners already exist
+and have been hardened.
+
+The previous #60 review proved that the remaining problem is NOT the
+Monster Combat decision core itself.
+
+The remaining gap is:
+
+canonical campaign encounter
+        ↓
+real production NPC data
+        ↓
+verified Monster Manual statblock
+        ↓
+real production perception/location evidence
+        ↓
+real production route/movement evidence
+        ↓
+#07 Monster Combat
+        ↓
+Action Economy / Weapon & Attack
+        ↓
+save / resume / receipt replay
+
+At least ONE real production encounter must be demonstrated through
+the actual HTTP/application path without fixture injection.
+
+This task is an integration task.
+
+Do NOT rewrite the Monster Combat engine.
+
+Do NOT start #08.
+
+============================================================
+CURRENT VERIFIED BASELINE
+============================================================
+
+Before this task:
+
+- #01 Campaign Time V1: COMPLETE
+- #02 Campaign Time Edge Cases: COMPLETE
+- #03 Combat Design Lock: COMPLETE
+- #04 Action Economy: COMPLETE
+- #05 Initiative: COMPLETE
+- #06 Weapon & Attack: COMPLETE
+- #07 Monster Combat: decision core implemented
+- #07 Mechanical Hardening: COMPLETE
+
+The hardening phase ended with:
+
+- 480/480 unique backend tests passing
+- 26 new hardening regression tests passing
+- #07: 84/84
+- #06: 175/175
+- #04: 38/38
+- #03: 18/18
+- Initiative: 73/73
+- Campaign Time + Edge Cases: 33/33
+- Species: 12/12
+- Death System: 6/6
+- Campaign Persistence: 15/15
+- Experience UI: 41/41
+
+The four previously verified mechanical bugs are fixed and MUST remain
+fixed:
+
+1. Limited-use monster resources must not reset because Combat ID changes.
+2. Exhausted Multiattack components must not execute.
+3. Unknown/incomplete route data must not silently become safe movement.
+4. Canonical Frightened condition must correctly affect attack resolution.
+
+Do not regress these behaviors.
+
+============================================================
+NON-NEGOTIABLE ARCHITECTURE
+============================================================
+
+Python remains authoritative for:
+
+- NPC state
+- Monster Manual mechanical data
+- target selection
+- perception interpretation
+- movement legality
+- Action Economy
+- attack resolution
+- resources
+- conditions
+- RNG
+- combat state
+- receipts
+- persistence.
+
+Qwen is NOT authoritative for any mechanic.
+
+Qwen must not:
+
+- select a target mechanically
+- invent distance
+- invent visibility
+- invent a route
+- roll mechanics
+- consume resources
+- modify HP
+- resolve combat
+- decide whether movement is legal.
+
+Frontend must not create game truth.
+
+Frontend may only present authoritative results.
+
+Do not create a second source of truth.
+
+============================================================
+CRITICAL SCOPE RULE
+============================================================
+
+FIRST inspect the existing production code and identify whether the
+required data owners already exist.
+
+Prefer:
+
+EXISTING PRODUCTION OWNER
+        ↓
+SMALL ADAPTER / CONNECTION
+        ↓
+#07
+
+Do NOT automatically build a new subsystem.
+
+If an existing production owner exists, connect it.
+
+If an existing production owner does NOT exist:
+
+DO NOT invent fake production data.
+
+DO NOT fabricate:
+
+- visibility
+- distance
+- geometry
+- position
+- route
+- perception
+- Monster Manual statistics.
+
+Instead report the exact missing owner and the smallest owner-approved
+data contract required.
+
+However, do not stop merely because the previous review said the owner
+was missing. Inspect the current post-hardening code carefully first.
+The purpose of #60 is to discover whether an existing production source
+can now be connected safely.
+
+============================================================
+PART 1 — PRODUCTION DATA OWNER AUDIT
+============================================================
+
+Inspect at minimum:
+
+- `ai-dnd/monster_perception.py`
+- `ai-dnd/monster_capabilities.py`
+- `ai-dnd/monster_combat.py`
+- `ai-dnd/action_economy.py`
+- `ai-dnd/game.py`
+
+Also inspect any existing canonical world/location/encounter/NPC owners
+actually used by the running application.
+
+Determine:
+
+A. Where is the canonical NPC created?
+
+B. Where is the NPC's canonical location stored?
+
+C. Where can the NPC obtain authoritative perception information?
+
+D. Where can authoritative distance/visibility evidence come from?
+
+E. Where can legal movement/route information come from?
+
+F. Where does the canonical Monster identity come from?
+
+G. Where can a verified Monster Manual statblock be attached?
+
+Do not infer these from test fixtures.
+
+Use actual production code paths.
+
+============================================================
+PART 2 — MONSTER MANUAL LINKAGE
+============================================================
+
+Create a LIMITED, VERIFIED Monster Manual linkage.
+
+Do NOT build a complete Monster Manual ingestion pipeline.
+
+Do NOT OCR/parse the entire Monster Manual.
+
+Do NOT create a giant catalog unless an existing project owner already
+provides one.
+
+Instead:
+
+1. Select a small number of appropriate Monster Manual 2024 statblocks.
+2. Verify their source against the project's authoritative Monster Manual.
+3. Connect at least one selected statblock to a canonical production NPC.
+4. Ensure the #07 decision system consumes that canonical data.
+
+At minimum, one real canonical NPC must have a verified:
+
+- creature identity
+- AC
+- HP
+- Speed
+- relevant ability modifiers
+- relevant attacks
+- relevant Multiattack, if applicable
+- relevant limited/recharge abilities
+- relevant senses
+- relevant resistances/immunities where mechanically used.
+
+Do NOT invent values.
+
+Do NOT copy a test fixture and label it Monster Manual data.
+
+Do NOT use monster name alone as a hidden AI decision switch.
+
+The linkage must be explicit and authoritative.
+
+For each linked creature, document:
+
+Creature:
+Source:
+Canonical identifier:
+Production usage:
+Relevant mechanics:
+Evidence:
+
+============================================================
+PART 3 — REAL PRODUCTION PERCEPTION
+============================================================
+
+Connect #07 to a REAL production perception source if one exists.
+
+The perception system must distinguish:
+
+- known
+- unknown
+- visible
+- not visible
+- verified distance
+- unknown distance
+
+Do NOT convert unknown into false certainty.
+
+Examples of forbidden behavior:
+
+unknown distance → assume 20 ft
+unknown visibility → assume visible
+missing hostile → assume harmless
+missing route target → assume no Opportunity Attack.
+
+The existing hardening rule remains:
+
+UNKNOWN INFORMATION MUST NOT BECOME PROOF OF SAFETY.
+
+If the required information cannot be established, preserve the
+existing conservative behavior.
+
+Do NOT create a fake perception producer solely to make the test pass.
+
+============================================================
+PART 4 — REAL PRODUCTION ROUTE / MOVEMENT
+============================================================
+
+Connect #07 to the existing authoritative movement/route source.
+
+The route must be capable of supporting the existing movement legality
+checks.
+
+Where available, use:
+
+- canonical position
+- verified route
+- verified movement distance
+- difficult terrain
+- movement limits
+- hostile proximity
+- Opportunity Attack requirements.
+
+Do NOT create generic pathfinding.
+
+Do NOT build a geometry engine.
+
+Do NOT invent routes.
+
+Do NOT calculate hidden tactical geometry from prose.
+
+If the current application already knows the route, adapt that data into
+the #07 interface.
+
+If it does not, report the missing owner rather than inventing one.
+
+The previous hardening fix for incomplete route data MUST remain active:
+
+missing required hostile/geometry information must not silently authorize
+unsafe movement.
+
+============================================================
+PART 5 — REAL CANONICAL ENCOUNTER
+============================================================
+
+Create or use at least ONE real production encounter.
+
+This must NOT be a fixture-only encounter.
+
+The encounter must use:
+
+- a canonical production NPC
+- a verified Monster Manual statblock
+- real production location/perception data
+- real production movement/route data.
+
+The NPC must make a real #07 decision.
+
+At minimum demonstrate:
+
+1. target selection
+2. legal movement or legal escape
+3. Action Economy resource consumption
+4. actual combat action/result.
+
+The HTTP path must be the real application path.
+
+Do not directly call internal resolver functions and call that "live".
+
+============================================================
+PART 6 — HTTP END-TO-END ACCEPTANCE
+============================================================
+
+Prove the following chain through HTTP:
+
+canonical encounter
+        ↓
+NPC decision
+        ↓
+target selection
+        ↓
+movement / escape
+        ↓
+action/resource consumption
+        ↓
+combat result
+        ↓
+save
+        ↓
+resume
+        ↓
+receipt replay
+
+The HTTP request must originate from the normal application/API path.
+
+Fixture injection must NOT provide the perception, route, or Monster
+Manual data for the final acceptance run.
+
+Tests using fixture inputs may still exist and should remain, but they
+must be reported separately.
+
+============================================================
+PART 7 — SAVE / RESUME / RECEIPT REPLAY
+============================================================
+
+After the real production encounter:
+
+1. Save the campaign.
+2. Resume the campaign.
+3. Verify canonical NPC state.
+4. Verify combat state.
+5. Verify resource state.
+6. Verify relevant perception/location state.
+7. Replay the same action/receipt where applicable.
+
+Replay must NOT:
+
+- roll dice again
+- consume resources again
+- advance combat twice
+- mutate state twice
+- create duplicate history
+- create duplicate events.
+
+Reuse the existing persistence and receipt owners.
+
+Do NOT create another receipt ledger.
+
+Do NOT create another persistence layer.
+
+============================================================
+PART 8 — PRESERVE HARDENING FIXES
+============================================================
+
+Explicitly regression-test the four previously fixed bugs while doing
+this integration:
+
+A. Limited resource
+
+Combat ID changes:
+→ resource remains exhausted.
+
+B. Multiattack
+
+Exhausted component:
+→ component does not execute.
+
+C. Route uncertainty
+
+Required route/hostile data missing:
+→ movement does not silently become safe.
+
+D. Frightened
+
+Canonical Frightened condition + valid fear source:
+→ correct disadvantage.
+
+The new live integration must not bypass these checks.
+
+============================================================
+PART 9 — PLAYER AGENCY
+============================================================
+
+The player remains free to choose actions.
+
+Monster Combat must not:
+
+- automatically force combat because a threat exists
+- automatically accept surrender/parley for the player
+- silently override player decisions
+- fabricate a route for convenience
+- expose hidden information merely because the monster decision system
+  needs it.
+
+The monster may act according to canonical rules and verified
+information.
+
+The player's choices remain authoritative for player actions.
+
+============================================================
+PART 10 — MODEL CALL BUDGET
+============================================================
+
+Do NOT add model calls.
+
+Do NOT create a model retry loop.
+
+Do NOT send mechanical resolution to Qwen.
+
+Preserve the existing maximum:
+
+2 model calls per player turn.
+
+The native Monster Combat path should remain deterministic and Python
+authoritative.
+
+If the final HTTP acceptance path does not require Qwen, state that.
+
+If Qwen is involved in narration, verify that the model receives only
+verified/resolved state.
+
+============================================================
+PART 11 — TESTING
+============================================================
+
+Add focused tests for the actual production integration.
+
+Separate test categories:
+
+A. FIXTURE TESTS
+
+Existing fixture-based #07 tests.
+
+B. NATIVE PRODUCTION TESTS
+
+Tests where data originates from actual production owners.
+
+C. LIVE HTTP ACCEPTANCE
+
+The final end-to-end encounter through the real HTTP/application path.
+
+Do NOT count fixture tests as native production tests.
+
+Do NOT count health endpoint 200 as a live encounter.
+
+Run at minimum:
+
+- new #60 tests
+- #07 Monster Combat
+- #06 Weapon & Attack
+- #05 Initiative
+- #04 Action Economy
+- #03 Combat Lifecycle
+- Campaign Time
+- Campaign Time Edge Cases
+- Persistence
+- Death System
+- session isolation
+- receipt replay
+- hardening regression tests.
+
+Also run:
+
+- Python compile
+- relevant typecheck
+- `git diff --check`
+- production build if build inputs changed.
+
+Report actual results only.
+
+============================================================
+PART 12 — LIVE EVIDENCE STANDARD
+============================================================
+
+The final report MUST distinguish:
+
+NATIVE PRODUCTION EVIDENCE
+
+from:
+
+FIXTURE EVIDENCE
+
+from:
+
+STATIC CODE EVIDENCE.
+
+For example:
+
+------------------------------------------------------------
+NATIVE PRODUCTION
+------------------------------------------------------------
+
+Canonical NPC:
+Monster Manual linkage:
+Perception source:
+Route source:
+HTTP encounter:
+Save:
+Resume:
+Replay:
+
+------------------------------------------------------------
+FIXTURE ONLY
+------------------------------------------------------------
+
+...
+
+------------------------------------------------------------
+MISSING
+------------------------------------------------------------
+
+...
+
+Do NOT say "production verified" based only on a fixture.
+
+============================================================
+PART 13 — IF A REQUIRED OWNER DOES NOT EXIST
+============================================================
+
+If a required real production owner genuinely does not exist:
+
+STOP expanding scope.
+
+Do NOT build:
+
+- full perception engine
+- full tactical geometry engine
+- full pathfinding
+- full Monster Manual importer
+- generalized quest/event engine
+- new persistence architecture.
+
+Instead report:
+
+MISSING OWNER:
+WHY REQUIRED:
+CURRENT CONSUMER:
+MINIMUM DATA CONTRACT:
+SMALLEST FUTURE IMPLEMENTATION:
+
+If this prevents the required live encounter from being proven,
+the final status must be:
+
+CONDITIONAL or NO-GO
+
+and #60 must NOT be falsely marked COMPLETE.
+
+============================================================
+PART 14 — DIFF DISCIPLINE
+============================================================
+
+Before editing:
+
+record:
+
+- current HEAD
+- branch
+- git status
+- current relevant files.
+
+After editing:
+
+report exactly:
+
+PRODUCTION:
+TEST:
+GENERATED:
+DOCUMENTATION:
+
+Do not modify unrelated files.
+
+Do not make broad refactors.
+
+Do not add dependencies unless absolutely required by an already existing
+project workflow. If a dependency would be required, STOP and report it
+instead of silently adding one.
+
+============================================================
+PART 15 — DO NOT TOUCH #08
+============================================================
+
+#08 Death System is completely out of scope.
+
+Do NOT:
+
+- redesign death
+- redesign death saves
+- add stable recovery
+- change Normal rollback
+- change Permadeath
+- change Ironman
+- change unconscious behavior.
+
+If integration exposes a Death System problem, report it only.
+
+Do not fix it in this task.
+
+============================================================
+PART 16 — FINAL VERIFICATION
+============================================================
+
+At the end, determine:
+
+🟢 COMPLETE
+
+only if:
+
+- at least one canonical production NPC is linked to a verified Monster
+  Manual statblock
+- real production perception/location data feeds #07
+- real production route/movement data feeds #07
+- target selection is production-driven
+- legal movement/escape is production-driven
+- resource consumption is authoritative
+- real HTTP encounter is verified
+- save/resume is verified
+- receipt replay is verified
+- hardening regressions still pass
+- no architectural boundary was violated.
+
+Otherwise:
+
+🟡 CONDITIONAL
+
+if the integration is substantially complete but a non-critical evidence
+or coverage item remains.
+
+🔴 NO-GO
+
+if:
+
+- production data is fabricated
+- fixture data is presented as production
+- Qwen/frontend gains mechanical authority
+- a critical integration path fails
+- hardening regressions fail
+- save/resume/replay fails
+- required production owners remain missing.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return exactly:
+
+A) IMPLEMENTED
+
+- Production owners discovered
+- Connections added
+- Monster Manual linkage
+- Perception linkage
+- Route linkage
+- HTTP integration
+- Save/resume/replay
+
+B) VERIFIED
+
+Include exact:
+
+- #60 tests
+- #07 tests
+- #06 tests
+- #05 tests
+- #04 tests
+- #03 tests
+- Campaign Time
+- Persistence
+- Death System
+- hardening regression tests
+- native production tests
+- live HTTP encounter
+- save/resume
+- receipt replay
+- Python compile
+- typecheck
+- build if run
+- git diff --check.
+
+C) NATIVE VS FIXTURE
+
+Explicitly separate the two.
+
+D) NOT IMPLEMENTED / OUT OF SCOPE
+
+Confirm:
+
+- #08 not started
+- no full Monster Manual ingestion
+- no new perception engine
+- no new geometry/pathfinding engine
+- no new persistence architecture
+- no new receipt system
+- no new RNG system
+- no new UI architecture.
+
+E) KNOWN LIMITATIONS
+
+Only evidence-backed limitations.
+
+F) SCOPE CHECK
+
+Confirm:
+
+- Python authority
+- Qwen boundary
+- frontend boundary
+- player agency
+- max 2 model calls
+- Campaign Time
+- Combat Lifecycle
+- Action Economy
+- Initiative
+- Weapon & Attack
+- Death System unchanged
+- persistence
+- receipts
+- RNG
+- session isolation.
+
+G) FILE DIFF SUMMARY
+
+PRODUCTION:
+TEST:
+GENERATED:
+DOCUMENTATION:
+
+H) FINAL STATUS
+
+Choose exactly one:
+
+COMPLETE
+CONDITIONAL
+NO-GO
+
+I) REQUIRED FOLLOW-UP
+
+If not COMPLETE, list the exact blockers.
+
+============================================================
+ABSOLUTE STOP CONDITIONS
+============================================================
+
+DO NOT:
+
+- commit
+- push
+- merge
+- publish
+- reset
+- rebase
+- force push
+- start #08
+- modify Death System
+- broaden #60 into a new game subsystem.
+
+When the implementation and verification are finished:
+
+STOP and return the report.
+
+START #60 NOW.
