@@ -794,6 +794,18 @@ def _execute(session, command, action_id=None, session_id=None):
                     except ValueError as error:
                         fail("invalid_species_action", str(error))
                     results.append({"kind": kind, "result": result})
+            elif kind == "magic":
+                import spell_scope
+                if not step.get("ability"):
+                    fail("unsupported_action", "Action-specific mechanic is not configured.")
+                if any(step.get(field) is not None for field in (
+                    "form", "weapon_id", "attack_choice", "attack_origin", "distance_ft",
+                    "trigger", "response", "opportunity_id",
+                )):
+                    fail("unsupported_spell_mode", "Magic accepts only an ability name and one creature target.")
+                results.append({"kind": kind, "result": spell_scope.cast(
+                    session, step.get("ability"), step.get("target_id"),
+                )})
             elif kind == "end_turn":
                 if (not session.world_state["combat"]["active"]
                     or session.world_state["combat"]["current_actor_id"] != "player"
@@ -810,7 +822,9 @@ def _execute(session, command, action_id=None, session_id=None):
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
     return {
         "messages": session.messages,
-        "narration": "Python doğrulamasıyla hamle çözüldü.",
+        "narration": " ".join(
+            spell_scope.narration(step["result"]) for step in results if step["kind"] == "magic"
+        ) if any(step["kind"] == "magic" for step in results) else "Python doğrulamasıyla hamle çözüldü.",
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
                           "combat_id": combat_id, "economy_steps": results},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},

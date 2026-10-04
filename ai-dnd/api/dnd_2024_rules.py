@@ -940,6 +940,7 @@ SPELLS_CATALOG = {
             {"id": "Thunderwave", "name_tr": "Gök Gürültüsü Dalgası", "desc": "15 fit alandaki düşmanları fırlatır."},
             {"id": "Charm Person", "name_tr": "Büyüleme", "desc": "İnsansı hedefi kendine ısındırır."},
             {"id": "Disguise Self", "name_tr": "Kılık Değiştirme", "desc": "Görünüşünü büyüyle baştan yaratır."},
+            {"id": "Cure Wounds", "name_tr": "Yara İyileştirme (Cure Wounds)", "desc": "Dokunulan hedefe 2d8 + KAR mod can yeniler (2024)."},
         ],
     },
 }

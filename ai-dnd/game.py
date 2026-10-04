@@ -1784,6 +1784,8 @@ def _validate_save_payload(payload):
         raise ValueError("Karakter adı geçersiz.")
     if player["race"] not in RACES or player["class"] not in CLASSES:
         raise ValueError("Karakter ırkı veya sınıfı geçersiz.")
+    import spell_scope
+    spell_scope.validate(saved_world.get("spellcasting_v1"), player)
     species = player.get("species", player["race"])
     if species not in RACES:
         raise ValueError("Karakter türü geçersiz.")
@@ -3731,6 +3733,8 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
                 npc.pop("prone", None)
         state = character["species_trait_state"]
         effects = {"refreshed": refreshed, "current_hp": character["current_hp"]}
+        import spell_scope
+        spell_scope.restore_slots(_session())
         message = "Uzun dinlenme tamamlandı; canın ve türe bağlı kullanımların yenilendi."
 
     else:
@@ -10710,6 +10714,10 @@ def run_player_turn(
     session_id=None,
     combat_action=None,
 ):
+    import spell_scope
+    spell_command = spell_scope.natural_command(player_input, target_id) if combat_action is None else None
+    if spell_command is not None:
+        return action_economy.execute(_session(), spell_command, action_id, session_id)
     import bounded_encounter
     bounded_encounter.refresh(_session())
     native = bounded_encounter.resolve_command(_session(), player_input) if combat_action is None else None

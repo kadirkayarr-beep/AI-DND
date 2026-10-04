@@ -1,0 +1,34 @@
+test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist (api.tests.test_spell_scope.SpellApiTests.test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=CombatRequestError)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=CombatRequestError)
+ok
+test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_cantrip_scaling_at_source_thresholds (api.tests.test_spell_scope.SpellEngineTests.test_cantrip_scaling_at_source_thresholds) ... ok
+test_creation_records_only_selected_access (api.tests.test_spell_scope.SpellEngineTests.test_creation_records_only_selected_access) ... ok
+test_damage_mitigation_and_policy_a (api.tests.test_spell_scope.SpellEngineTests.test_damage_mitigation_and_policy_a) ... ok
+test_fire_bolt_hit_miss_critical_modifier_and_no_slot (api.tests.test_spell_scope.SpellEngineTests.test_fire_bolt_hit_miss_critical_modifier_and_no_slot) ... ok
+test_healing_uses_existing_owner_and_hp_cap (api.tests.test_spell_scope.SpellEngineTests.test_healing_uses_existing_owner_and_hp_cap) ... ok
+test_magic_missile_auto_hit_and_single_damage_handoff (api.tests.test_spell_scope.SpellEngineTests.test_magic_missile_auto_hit_and_single_damage_handoff) ... ok
+test_no_target_invention_or_unsupported_mode_from_prose (api.tests.test_spell_scope.SpellEngineTests.test_no_target_invention_or_unsupported_mode_from_prose) ... ok
+test_one_slot_per_turn_even_with_additional_magic_action (api.tests.test_spell_scope.SpellEngineTests.test_one_slot_per_turn_even_with_additional_magic_action) ... ok
+test_rejections_are_atomic (api.tests.test_spell_scope.SpellEngineTests.test_rejections_are_atomic) ... ok
+test_rest_slot_recovery_and_invalid_saved_state (api.tests.test_spell_scope.SpellEngineTests.test_rest_slot_recovery_and_invalid_saved_state) ... ok
+test_sacred_flame_save_and_cover_exception (api.tests.test_spell_scope.SpellEngineTests.test_sacred_flame_save_and_cover_exception) ... ok
+test_zero_hp_and_dead_self_cannot_cast_or_resurrect (api.tests.test_spell_scope.SpellEngineTests.test_zero_hp_and_dead_self_cannot_cast_or_resurrect) ... ok
+test_zero_hp_npc_damage_and_deferred_defenses (api.tests.test_spell_scope.SpellEngineTests.test_zero_hp_npc_damage_and_deferred_defenses) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.910s
+
+OK

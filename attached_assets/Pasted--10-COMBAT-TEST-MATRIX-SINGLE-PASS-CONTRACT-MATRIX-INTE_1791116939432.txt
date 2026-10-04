@@ -1,0 +1,834 @@
+#10 — COMBAT TEST MATRIX
+SINGLE-PASS CONTRACT MATRIX + INTEGRATION VERIFICATION
+
+We are continuing the AI-DND Implementation Package.
+
+Roadmap position:
+
+#01 Campaign Time V1
+#02 Campaign Time Edge Cases
+#03 Combat Design Lock
+#04 Action Economy Lock
+#05 Initiative Lock
+#06 Weapon & Attack Lock
+#07 Monster Combat Lock
+#08 Death System Lock
+#09 Spell Scope Lock
+#10 Combat Test Matrix   <-- THIS TASK
+#11 Persistence / Idempotency Rules
+#12 UI Presentation Rules
+
+This task must run ONLY after #09 implementation has finished.
+
+You do NOT need a human-written #09 report as input.
+
+Do not trust task summaries as gameplay authority.
+
+Inspect the actual current checkout, production code, existing tests, and
+durable evidence to determine the implemented #03–#09 contracts.
+
+============================================================
+PURPOSE
+============================================================
+
+#10 does NOT add combat features.
+
+#10 does NOT redesign combat.
+
+#10 exists to prove that the combat foundation built in #03–#09 behaves as
+one coherent deterministic system.
+
+Create a bounded, maintainable Combat Test Matrix covering the important
+cross-system contracts between:
+
+- combat lifecycle
+- action economy
+- initiative
+- weapon attacks
+- monster combat
+- death
+- bounded Spells V1
+- persistence/replay boundaries that directly affect combat
+
+Do not attempt combinatorial exhaustive testing.
+
+Test meaningful CONTRACT BOUNDARIES, not every permutation.
+
+============================================================
+ARCHITECTURAL INVARIANT
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT, USES VERIFIED CONTEXT, AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+Combat truth must remain Python-owned.
+
+Python alone decides canonical:
+
+- combat start/end
+- initiative
+- turn ownership
+- action economy
+- movement legality
+- attack legality
+- attack rolls
+- saving throws
+- damage
+- healing
+- HP
+- conditions
+- death
+- death saves
+- monster actions
+- spell mechanics
+- RNG
+- resource consumption
+- persistence
+- receipts/replay
+
+Qwen may interpret intent and narrate verified outcomes.
+
+Qwen must never create combat truth.
+
+Frontend must never create combat truth.
+
+Preserve:
+
+- maximum 2 model calls per player turn
+- deterministic fallback after rejected narration
+- NO model retry after narration rejection
+- model prose cannot mutate canonical state
+
+============================================================
+ABSOLUTE SCOPE RULE
+============================================================
+
+THIS IS PRIMARILY A TEST / VERIFICATION TASK.
+
+Do not use #10 as permission to:
+
+- add gameplay features
+- expand Spells V1
+- add monsters
+- implement new conditions
+- redesign combat
+- refactor the engine
+- change persistence architecture
+- change RNG ownership
+- change receipt semantics
+- change Campaign Time rules
+- redesign frontend
+- implement #11 early
+- implement #12 early
+
+If a new test reveals a genuine production defect:
+
+1. preserve the failing evidence,
+2. identify the exact violated locked contract,
+3. report it,
+4. return PARTIAL — FOLLOW-UP REQUIRED.
+
+Do NOT silently change production gameplay behavior merely to make the matrix
+green.
+
+Test fixture/test harness corrections are allowed when the test itself is
+wrong and production behavior is consistent with the locked contract.
+
+Do not weaken assertions to hide a production defect.
+
+============================================================
+PHASE 1 — DISCOVER THE ACTUAL LOCKED CONTRACTS
+============================================================
+
+Inspect current production code and existing tests for #03–#09.
+
+Determine actual authoritative owners for:
+
+A. Combat lifecycle
+B. Action Economy
+C. Initiative
+D. Weapon & Attack
+E. Monster Combat
+F. Death System
+G. Spells V1
+
+Also inspect the combat-relevant boundaries of:
+
+- authoritative RNG
+- receipts/action IDs
+- save/resume
+- session isolation
+- Campaign Time
+- narration/model calls
+
+Do not recreate tests that already prove a contract well.
+
+Prefer reusing existing tests and adding only missing CROSS-SYSTEM coverage.
+
+============================================================
+MATRIX 1 — COMBAT LIFECYCLE
+============================================================
+
+Verify representative contracts including:
+
+- threat/model suggestion alone does not automatically start combat
+- explicit authoritative combat start produces one combat identity
+- participants are valid
+- current actor belongs to the combat
+- invalid combat action is rejected
+- invalid request does not consume dice/resources/time
+- combat closure is idempotent
+- closed combat cannot continue producing combat actions
+- receipt replay is handled before stale-combat rejection where that is the
+  existing locked contract
+- unsaved/uncommitted combat outcome cannot become Qwen fact
+
+Do not redesign lifecycle behavior.
+
+============================================================
+MATRIX 2 — ACTION ECONOMY
+============================================================
+
+Verify representative turn contracts for:
+
+- Action
+- Bonus Action where currently supported
+- Reaction where currently supported
+- Movement
+- existing supported free/simple interaction behavior
+
+Verify:
+
+- resources reset only at correct turn boundary
+- same action resource cannot be spent twice
+- invalid action does not consume action economy
+- wrong actor cannot act
+- Incapacitated/Unconscious/Dead actor restrictions use existing owners
+- action economy survives relevant save/resume boundary
+- replay does not consume action economy twice
+
+Do not add unsupported actions merely for test coverage.
+
+============================================================
+MATRIX 3 — INITIATIVE
+============================================================
+
+Verify representative contracts:
+
+- authoritative RNG supplies initiative
+- correct initiative modifier
+- Advantage/Disadvantage where already supported
+- 2024 Surprise behavior already locked by #05
+- deterministic tie behavior
+- explicit identical monster grouping where supported
+- participant joining does not reroll existing initiative
+- participant leaving does not reroll existing initiative
+- unconscious player initiative slot remains correctly represented
+- dead actors cannot take turns
+- initiative progresses deterministically
+- save/resume preserves authoritative order/current position
+- replay cannot create a second initiative roll
+
+Do not reopen #05 policy decisions.
+
+============================================================
+MATRIX 4 — WEAPON ATTACK
+============================================================
+
+Verify representative contracts:
+
+- valid melee attack
+- valid ranged attack if supported
+- invalid target
+- authoritative distance/range rejection
+- weapon proficiency
+- non-proficient weapon behavior
+- correct ability modifier
+- attack bonus
+- natural 1
+- natural 20
+- critical damage
+- Advantage
+- Disadvantage
+- relevant existing condition modifiers
+- damage enters authoritative HP/death owner
+- invalid attack consumes no RNG/action/resource
+- replay produces no second attack/damage
+
+Do not expand weapon mastery/cover/range systems beyond what production
+actually supports.
+
+============================================================
+MATRIX 5 — MONSTER COMBAT
+============================================================
+
+Preserve #07.
+
+Verify representative contracts:
+
+- Python chooses only legal monster targets/actions
+- dead target is not attacked again
+- monster cannot act when unable to act
+- movement uses authoritative route/distance information
+- missing required geometry fails safely
+- Opportunity Attack safety remains intact where supported
+- exact supported Multiattack composition
+- exhausted Multiattack component cannot be fabricated
+- limited-use resources do not reset on combat-ID changes
+- recharge/limited-use behavior where currently supported
+- morale/surrender/parley does not force player acceptance
+- ordinary lethal NPC/monster damage follows #08 Policy A
+- no player-style death saves for ordinary monsters
+- unsupported monster mechanics are not invented
+- monster turn resolution does not require Qwen mechanics
+
+Do not reopen target-selection strategy, attack math, initiative ordering,
+monster personality architecture, or #07 ownership.
+
+============================================================
+MATRIX 6 — DEATH SYSTEM
+============================================================
+
+Use the final actual #08 implementation.
+
+Verify representative player contracts:
+
+0 HP
+-> Unconscious
+-> Death Saves
+-> Stable or Dead
+
+Include:
+
+- first/second/third death-save success
+- first/second/third death-save failure
+- natural 1
+- natural 20
+- massive-damage boundary
+- damage at 0 HP
+- critical damage at 0 where applicable
+- Stable losing stability when applicable
+- healing from 0 HP
+- Prone retained where the locked rule requires it
+- temporary HP interaction
+- stabilization through the supported authoritative path
+- Stable natural recovery through authoritative Campaign Time
+- Stable recovery uses one persisted recovery episode/deadline
+- no wall-clock recovery
+- recovery does not reroll on replay/restart
+- self-damage reaches the same death owner
+
+Verify mode boundaries without redesign:
+
+NORMAL
+- existing checkpoint/rollback contract preserved
+
+PERMADEATH
+- death persists
+- campaign is not automatically deleted
+
+IRONMAN
+- terminal behavior preserved
+- campaign is not automatically deleted
+
+Also verify NPC Policy A:
+
+ordinary NPC/monster lethal 0 HP
+-> DEAD by default
+
+Do not retroactively rewrite historical persisted 0-HP unconscious NPCs.
+
+Do not add resurrection mechanics.
+
+============================================================
+MATRIX 7 — SPELLS V1
+============================================================
+
+DO NOT assume the prompt that implemented #09 is accurate.
+
+Inspect the actual final #09 production implementation and spell-scope
+document.
+
+Test ONLY modes that #09 actually declared supported.
+
+Expected bounded catalog candidates are:
+
+- Fire Bolt
+- Magic Missile
+- Cure Wounds
+- Sacred Flame
+
+But the ACTUAL final #09 implementation is authoritative for which modes were
+successfully supported.
+
+Representative contracts should cover, where actually supported:
+
+- spell access/prepared/known validation
+- cantrip without slot consumption
+- leveled spell slot consumption
+- rejected cast consumes no slot/RNG/action
+- spell attack
+- spell saving throw
+- spell save DC
+- spell damage
+- spell healing
+- target validation
+- range validation
+- action economy
+- spell damage -> existing death owner
+- spell healing -> existing healing/death transition owner
+- replay does not recast/reroll/reconsume
+- save/resume preserves relevant spell resources
+- mechanics require no Qwen authority
+
+Do NOT test deferred #09 features as if implemented.
+
+Examples of likely deferred systems may include:
+
+- general Concentration
+- broad conditions
+- AoE geometry
+- summons
+- transformations
+- rituals
+- full material-component economy
+- reaction-spell catalog
+- full spell catalog
+- environmental simulation
+
+Use the actual #09 scope document/code to determine final deferred list.
+
+============================================================
+MATRIX 8 — CROSS-SYSTEM COMBAT CONTRACTS
+============================================================
+
+This is the most important part of #10.
+
+Add a SMALL number of high-value integration tests proving that the locked
+systems compose correctly.
+
+Prefer scenarios such as:
+
+1.
+initiative
+-> player weapon attack
+-> damage
+-> NPC death
+-> initiative safely continues
+
+2.
+initiative
+-> monster attack
+-> player reaches 0 HP
+-> player initiative slot remains
+-> death save resolves on correct boundary
+
+3.
+player becomes Stable
+-> combat/time state persists
+-> save/resume
+-> authoritative recovery remains deterministic
+
+4.
+supported damaging spell
+-> authoritative spell resolution
+-> shared damage owner
+-> NPC Policy A / player Death System receives result correctly
+
+5.
+supported healing spell
+-> authoritative healing owner
+-> 0-HP transition resolves correctly
+
+6.
+monster Multiattack
+-> first component kills target
+-> no illegal continuation against dead target
+
+7.
+same combat action receipt replay
+-> identical response
+-> no second RNG draw
+-> no second damage/healing/resource consumption
+-> no second time advancement
+
+8.
+failed autosave/persistence path where existing infrastructure already
+supports testing
+-> runtime state does not remain partially mutated
+
+Do not manufacture infrastructure merely to create these tests.
+
+============================================================
+MATRIX 9 — CAMPAIGN TIME BOUNDARY
+============================================================
+
+Combat round duration remains the existing locked Campaign Time contract.
+
+Verify only combat-relevant time behavior:
+
+- completed combat round advances the correct authoritative duration
+- combat end does not add duplicate time
+- rejected/invalid combat action does not advance time
+- replay does not advance time again
+- death/Stable recovery interacts with authoritative Campaign Time without
+  wall-clock dependence
+
+Do not reopen general travel/event/time testing.
+
+============================================================
+MATRIX 10 — PERSISTENCE / REPLAY BOUNDARY
+============================================================
+
+#11 will perform the dedicated Persistence / Idempotency Rules phase.
+
+Therefore #10 must NOT implement #11 early.
+
+Only verify persistence where necessary to prove COMBAT correctness:
+
+- combat state survives save/resume
+- initiative survives
+- HP/death state survives
+- relevant action-economy state survives
+- relevant monster resource state survives
+- supported spell resources survive
+- receipt replay does not duplicate combat result
+- restart does not silently regenerate canonical combat truth
+- campaign A cannot mutate campaign B
+
+Do not redesign persistence.
+
+Any broad persistence gaps belong to #11 unless they currently violate a
+locked combat contract.
+
+============================================================
+MATRIX 11 — MODEL AUTHORITY
+============================================================
+
+Verify representative contracts:
+
+- explicit deterministic combat mechanics can resolve with 0 model calls
+- Qwen does not roll attack dice
+- Qwen does not roll damage
+- Qwen does not roll saves
+- Qwen does not choose canonical HP
+- Qwen does not consume resources
+- Qwen does not decide death
+- Qwen does not decide spell success
+- narration receives resolved read-only context
+- rejected narration falls back deterministically
+- no narration retry
+- <=2 model calls per player turn remains enforced
+- narration text cannot mutate canonical combat state
+
+Do not require every combat response to call Qwen.
+
+Legitimate deterministic zero-call behavior must remain valid.
+
+============================================================
+TEST MATRIX ARTIFACT
+============================================================
+
+Create one concise durable Combat Test Matrix document.
+
+Prefer an existing docs location/pattern.
+
+It must contain rows similar to:
+
+Contract ID
+System
+Scenario
+Authoritative owner
+Test(s)
+Expected canonical result
+Evidence/result
+Status
+
+Use stable IDs, for example:
+
+CTM-LIFE-001
+CTM-AE-001
+CTM-INIT-001
+CTM-ATK-001
+CTM-MON-001
+CTM-DEATH-001
+CTM-SPELL-001
+CTM-X-001
+CTM-TIME-001
+CTM-PERSIST-001
+CTM-MODEL-001
+
+Do not duplicate every individual unit test into the document.
+
+The matrix should describe CONTRACT coverage.
+
+============================================================
+TEST IMPLEMENTATION STRATEGY
+============================================================
+
+Efficiency matters.
+
+Before writing tests:
+
+1. inventory existing relevant tests;
+2. map them to matrix contracts;
+3. identify genuine coverage gaps;
+4. add only missing high-value tests.
+
+DO NOT rewrite already-good tests.
+
+DO NOT create hundreds of redundant cases.
+
+DO NOT chase an arbitrary test-count target.
+
+A smaller matrix with strong contract coverage is better than a large suite
+with duplicate assertions.
+
+Prefer existing fixtures/helpers.
+
+Do not create a second combat test framework.
+
+============================================================
+EXECUTION STRATEGY
+============================================================
+
+Stage 1:
+Run the newly added #10 focused matrix tests.
+
+If a test fails:
+
+- determine whether the TEST is wrong or PRODUCTION violates a locked
+  contract.
+
+If test is wrong:
+- correct the test/harness.
+
+If production is wrong:
+- preserve failure evidence;
+- do not silently patch gameplay;
+- final status becomes PARTIAL — FOLLOW-UP REQUIRED.
+
+Stage 2:
+Run the relevant existing #03–#09 regression suites/modules.
+
+Use the existing durable regression-evidence mechanism.
+
+Record:
+
+- exact command
+- timestamp
+- current full HEAD SHA
+- working-tree state
+- test IDs
+- pass/fail/error/skip counts
+- output/log path
+- source fingerprints where the existing evidence system supports them
+
+Preserve failed runs.
+
+Do not overwrite historical evidence.
+
+============================================================
+NO FAKE PASS
+============================================================
+
+Never claim:
+
+- PASS if the command did not run
+- full regression PASS if only focused tests ran
+- live Qwen verified if mocks were used
+- restart verified without actual restart-equivalent evidence
+- session isolation verified without the relevant test
+- source behavior verified merely because a task description said so
+
+Report exactly what ran.
+
+============================================================
+PRODUCTION CHANGE GUARD
+============================================================
+
+At the beginning of the task, record the relevant production source state.
+
+At the end, inspect the diff.
+
+Expected #10 changes should primarily be:
+
+- tests
+- test fixtures/helpers where necessary
+- Combat Test Matrix documentation
+- durable evidence generated by the established evidence system
+
+If gameplay production files changed unexpectedly:
+
+STOP and investigate.
+
+Do not finish #10 as COMPLETE unless those changes are clearly non-gameplay
+test instrumentation and preserve architecture.
+
+Do not use #10 to smuggle gameplay fixes.
+
+============================================================
+MUST NOT CHANGE
+============================================================
+
+Do not change the locked ownership or design of:
+
+#01 Campaign Time
+#02 Campaign Time Edge Cases
+#03 Combat Lifecycle
+#04 Action Economy
+#05 Initiative
+#06 Weapon & Attack
+#07 Monster Combat
+#08 Death System
+#09 Spell Scope
+
+Do not begin:
+
+#11 Persistence / Idempotency Rules
+#12 UI Presentation Rules
+
+Do not add:
+
+- new spells
+- new monster abilities
+- new combat actions
+- new death modes
+- resurrection
+- XP/leveling
+- new scheduler
+- new RNG
+- new persistence system
+- new receipt system
+- broad frontend features
+
+============================================================
+COMPLETION GATE
+============================================================
+
+#10 is COMPLETE only if:
+
+A. Actual #03–#09 production/test contracts were inspected.
+
+B. Existing tests were mapped before adding new tests.
+
+C. A durable Combat Test Matrix document exists.
+
+D. Important lifecycle contracts are represented.
+
+E. Action Economy contracts are represented.
+
+F. Initiative contracts are represented.
+
+G. Weapon Attack contracts are represented.
+
+H. Monster Combat contracts are represented.
+
+I. Death System contracts are represented.
+
+J. Actual supported Spells V1 contracts are represented.
+
+K. High-value cross-system scenarios are represented.
+
+L. Combat-relevant Campaign Time boundaries are represented.
+
+M. Combat-relevant persistence/replay boundaries are represented.
+
+N. Model-authority boundaries are represented.
+
+O. New focused matrix tests pass.
+
+P. Relevant existing #03–#09 regression tests pass.
+
+Q. Durable evidence exists for the final relevant run.
+
+R. No production gameplay behavior was silently changed.
+
+S. No #11/#12 work was pulled forward.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return exactly one final report:
+
+## A) CHECKOUT
+- path
+- branch
+- full HEAD
+- starting working-tree status
+
+## B) EXISTING COVERAGE INVENTORY
+Map existing #03–#09 tests to combat contracts.
+
+## C) COVERAGE GAPS
+Only genuine gaps found before implementation.
+
+## D) COMBAT TEST MATRIX
+Matrix path and contract categories.
+
+## E) NEW TESTS
+Exact tests/files added and why.
+
+## F) FOCUSED MATRIX RESULT
+Exact command and:
+- passed
+- failed
+- errors
+- skipped
+
+## G) REGRESSION RESULT
+Exact commands/modules and totals.
+
+## H) DURABLE EVIDENCE
+Exact evidence paths and source identity information available.
+
+## I) PRODUCTION DIFF CHECK
+Confirm whether any gameplay production source changed.
+
+## J) ARCHITECTURE CHECK
+Confirm:
+- Python remains combat authority
+- Qwen remains narration/intent only
+- frontend creates no combat truth
+- <=2 model-call ceiling preserved
+- deterministic fallback/no-retry preserved
+- #01–#09 ownership not reopened
+- #11/#12 not started
+
+## K) FAILURES / FOLLOW-UP
+Only evidence-backed unresolved issues.
+Do not invent future work.
+
+## L) FINAL STATUS
+
+Use exactly one:
+
+COMPLETE
+
+or
+
+PARTIAL — FOLLOW-UP REQUIRED
+
+or
+
+BLOCKED — CONTRACT CONFLICT
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+Do not create another task.
+Do not commit.
+Do not push.
+Do not merge.
+Do not reset.
+Do not rebase.
+Do not publish.
+Do not start #11.
+Do not start #12.
+
+STOP after the report.

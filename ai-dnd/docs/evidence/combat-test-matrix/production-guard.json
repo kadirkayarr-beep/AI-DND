@@ -1,0 +1,11 @@
+{
+  "utc": "2026-10-04T13:14:53.969301+00:00",
+  "head": "0a0067c7c75c23e9efa43e328a2c82e2d60e88c4",
+  "scope": "All ai-dnd Python files outside tests/docs/scripts/cache directories; includes legacy root test files as extra guard coverage.",
+  "guarded_files": 131,
+  "starting_source_sha256": "d3a179dbda0dd52dfed4ac45b18b6f06081e857535b2a9593873936b16e9fd4c",
+  "ending_source_sha256": "d3a179dbda0dd52dfed4ac45b18b6f06081e857535b2a9593873936b16e9fd4c",
+  "changed_production_files": [],
+  "gameplay_changed": false,
+  "ending_status": " M .agents/memory/MEMORY.md\n M ai-dnd/action_economy.py\n M ai-dnd/api/character_creation.py\n M ai-dnd/api/dnd_2024_rules.py\n M ai-dnd/api/main.py\n M ai-dnd/game.py\n?? .agents/memory/spell-scope-boundaries.md\n?? ai-dnd/api/tests/test_combat_test_matrix.py\n?? ai-dnd/api/tests/test_spell_scope.py\n?? ai-dnd/docs/combat-test-matrix.md\n?? ai-dnd/docs/evidence/combat-test-matrix/\n?? ai-dnd/docs/evidence/suite-runs/20261004T123722Z-468e8ae07d614a9eb473c317ccf7036e/\n?? ai-dnd/docs/evidence/suite-runs/20261004T124025Z-8434e03197074b0db4ef7461601777d1/\n?? ai-dnd/docs/evidence/suite-runs/20261004T124502Z-62f6dbb0f89345c7b155d818df3318ef/\n?? ai-dnd/docs/evidence/suite-runs/20261004T124911Z-e9bb5bf820964ca9822d8c6c8f8acdae/\n?? ai-dnd/docs/evidence/suite-runs/20261004T125121Z-13b80a4f9b91423891a776de64bd1936/\n?? ai-dnd/docs/evidence/suite-runs/20261004T125153Z-245c88533b7c4277bf96cf389b3b7cd5/\n?? ai-dnd/docs/evidence/suite-runs/20261004T130304Z-9dd31fc87c804c6bba14f72fc819c551/\n?? ai-dnd/docs/evidence/suite-runs/20261004T130554Z-bc9eb1f3e7dc4748a39a908caffc799f/\n?? ai-dnd/docs/evidence/suite-runs/20261004T130702Z-53299af62d0341dc8afe6d0fbbbdec07/\n?? ai-dnd/docs/evidence/suite-runs/20261004T130828Z-b62894e6304e483a9ab6d16001d51166/\n?? ai-dnd/docs/evidence/suite-runs/20261004T131032Z-6d18828ebb5141cba379c1e7a5c028fe/\n?? ai-dnd/docs/evidence/suite-runs/20261004T131111Z-b2fc78651c3a4bc9a58df5fc197c2e04/\n?? ai-dnd/docs/evidence/suite-runs/20261004T131140Z-ccce149d074a42d9b70e8977c7b23c84/\n?? ai-dnd/docs/spell-scope.md\n?? ai-dnd/spell_scope.py\n?? attached_assets/Pasted--09-SPELL-SCOPE-LOCK-SINGLE-PASS-AUDIT-BOUNDED-IMPLEMEN_1791116624583.txt\n?? attached_assets/Pasted--10-COMBAT-TEST-MATRIX-SINGLE-PASS-CONTRACT-MATRIX-INTE_1791116939432.txt\n"
+}

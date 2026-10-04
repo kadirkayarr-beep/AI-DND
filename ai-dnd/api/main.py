@@ -694,8 +694,13 @@ def create_app(
                     raise HTTPException(status_code=409, detail={
                         "code": "invalid_combat_state", "message": "Combat state is invalid."
                     }) from None
+            import spell_scope
             if isinstance(session, game.GameSession) and (
                 session.character.get("current_hp", 1) <= 0
+                or spell_scope.explicit_request(
+                    request.message,
+                    request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,
+                )
                 or bounded_encounter.native_request(
                     session, request.message,
                     request.combat_action.model_dump(exclude_none=True) if request.combat_action else None,

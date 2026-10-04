@@ -1,0 +1,80 @@
+test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_long_rest_reaches_spell_resource_hook_and_authoritative_clock (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_long_rest_reaches_spell_resource_hook_and_authoritative_clock) ... ok
+test_native_monster_damage_keeps_player_slot_and_schedules_death_save (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_native_monster_damage_keeps_player_slot_and_schedules_death_save) ... FAIL
+test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) ... 
+  test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) (terminal='stable') ... ERROR
+  test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) (terminal='dead') ... ERROR
+test_spell_lethal_damage_preserves_surviving_opponent_and_cursor (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_spell_lethal_damage_preserves_surviving_opponent_and_cursor) ... ERROR
+test_stable_resume_preserves_spent_spell_action_and_recovery_episode (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode) ... FAIL
+
+======================================================================
+ERROR: test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) (terminal='stable')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py", line 113, in test_sequential_death_counters_reach_stable_or_dead_through_owner
+    game.resolve_player_death_turn(session=s)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12410, in __getattribute__
+    return super().__getattribute__(name)
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+AttributeError: module 'game' has no attribute 'resolve_player_death_turn'. Did you mean: '_resolve_player_death_turn'?
+
+======================================================================
+ERROR: test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) (terminal='dead')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py", line 113, in test_sequential_death_counters_reach_stable_or_dead_through_owner
+    game.resolve_player_death_turn(session=s)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12410, in __getattribute__
+    return super().__getattribute__(name)
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+AttributeError: module 'game' has no attribute 'resolve_player_death_turn'
+
+======================================================================
+ERROR: test_spell_lethal_damage_preserves_surviving_opponent_and_cursor (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_spell_lethal_damage_preserves_surviving_opponent_and_cursor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py", line 24, in test_spell_lethal_damage_preserves_surviving_opponent_and_cursor
+    survivor = monsters.add_creature(s, victim)
+  File "/home/runner/workspace/ai-dnd/api/tests/test_monster_combat.py", line 56, in add_creature
+    other.update(current_hp=100, max_hp=100, armor_class=12, speed_ft=30,
+    ^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'update'
+
+======================================================================
+FAIL: test_native_monster_damage_keeps_player_slot_and_schedules_death_save (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_native_monster_damage_keeps_player_slot_and_schedules_death_save)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py", line 59, in test_native_monster_damage_keeps_player_slot_and_schedules_death_save
+    self.assertEqual(result["outcomes"][0]["hp_damage"], 6)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 6
+
+======================================================================
+FAIL: test_stable_resume_preserves_spent_spell_action_and_recovery_episode (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_combat_test_matrix.py", line 90, in test_stable_resume_preserves_spent_spell_action_and_recovery_episode
+    self.assertEqual(resumed.rng.getstate(), rng)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: (3, (2147483648, 724134682, 1418954303, 353539[7305 chars]None) != (3, (1533797461, 312521532, 1724113596, 144110[7304 chars]None)
+
+First differing element 1:
+(2147483648, 724134682, 1418954303, 353539[7298 chars] 624)
+(1533797461, 312521532, 1724113596, 144110[7297 chars]0, 6)
+
+Diff is 20111 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 6 tests in 2.595s
+
+FAILED (failures=2, errors=3)

@@ -672,3 +672,6 @@ def configure_character(
         session.world_state["inventory"] = list(equipment_choices)
     if hasattr(session, "inventory") and isinstance(session.inventory, list):
         session.inventory = list(equipment_choices)
+    if isinstance(session, game.GameSession):
+        import spell_scope
+        spell_scope.initialize(session)

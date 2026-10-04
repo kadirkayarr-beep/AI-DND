@@ -38,6 +38,17 @@ the verifier checkout and the running server need not contain the same code.
 established. Exclude generated archives and exports from local source hashing
 so evidence writes do not look like source edits.
 
+Combat Test Matrix verification is test-only. A genuine locked production
+contract violation must retain failing evidence and be reported for follow-up,
+not silently repaired to make the matrix green.
+
+**Why:** The user explicitly separates verification from gameplay remediation.
+
+**How to apply:** Correct demonstrably wrong fixtures without weakening the
+locked result. Use the actual campaign save/resume envelope for RNG restart
+claims; a bare engine JSON snapshot is not equivalent evidence. Keep the
+starting dirty production state distinguishable from changes made by verification.
+
 Retain combined legacy/API regression evidence in both selector orders when
 changing shared model-mock ownership. A passing isolated run does not turn a
 failed combined invocation into passing evidence.

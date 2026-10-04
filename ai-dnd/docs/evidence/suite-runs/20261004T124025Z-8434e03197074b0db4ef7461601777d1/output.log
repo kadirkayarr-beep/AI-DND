@@ -1,0 +1,103 @@
+test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist (api.tests.test_spell_scope.SpellApiTests.test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=CombatRequestError)
+FAIL
+test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+
+  test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Fire Bolt') ... ERROR
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+  test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Magic Missile') ... ERROR
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+  test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Sacred Flame') ... ERROR
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+  test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Cure Wounds') ... ERROR
+test_cantrip_scaling_at_source_thresholds (api.tests.test_spell_scope.SpellEngineTests.test_cantrip_scaling_at_source_thresholds) ... ok
+test_creation_records_only_selected_access (api.tests.test_spell_scope.SpellEngineTests.test_creation_records_only_selected_access) ... ok
+test_damage_mitigation_and_policy_a (api.tests.test_spell_scope.SpellEngineTests.test_damage_mitigation_and_policy_a) ... ok
+test_fire_bolt_hit_miss_critical_modifier_and_no_slot (api.tests.test_spell_scope.SpellEngineTests.test_fire_bolt_hit_miss_critical_modifier_and_no_slot) ... ok
+test_healing_uses_existing_owner_and_hp_cap (api.tests.test_spell_scope.SpellEngineTests.test_healing_uses_existing_owner_and_hp_cap) ... ok
+test_magic_missile_auto_hit_and_single_damage_handoff (api.tests.test_spell_scope.SpellEngineTests.test_magic_missile_auto_hit_and_single_damage_handoff) ... ok
+test_no_target_invention_or_unsupported_mode_from_prose (api.tests.test_spell_scope.SpellEngineTests.test_no_target_invention_or_unsupported_mode_from_prose) ... ok
+test_one_slot_per_turn_even_with_additional_magic_action (api.tests.test_spell_scope.SpellEngineTests.test_one_slot_per_turn_even_with_additional_magic_action) ... ok
+test_rejections_are_atomic (api.tests.test_spell_scope.SpellEngineTests.test_rejections_are_atomic) ... ok
+test_rest_slot_recovery_and_invalid_saved_state (api.tests.test_spell_scope.SpellEngineTests.test_rest_slot_recovery_and_invalid_saved_state) ... ERROR
+test_sacred_flame_save_and_cover_exception (api.tests.test_spell_scope.SpellEngineTests.test_sacred_flame_save_and_cover_exception) ... ok
+test_zero_hp_and_dead_self_cannot_cast_or_resurrect (api.tests.test_spell_scope.SpellEngineTests.test_zero_hp_and_dead_self_cannot_cast_or_resurrect) ... ok
+
+======================================================================
+ERROR: test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Fire Bolt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 260, in test_http_replay_save_restart_and_isolation_zero_models
+    self.assertEqual(replay.json()["action_economy_result"], first.json()["action_economy_result"])
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'action_economy_result'
+
+======================================================================
+ERROR: test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Magic Missile')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 260, in test_http_replay_save_restart_and_isolation_zero_models
+    self.assertEqual(replay.json()["action_economy_result"], first.json()["action_economy_result"])
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'action_economy_result'
+
+======================================================================
+ERROR: test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Sacred Flame')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 260, in test_http_replay_save_restart_and_isolation_zero_models
+    self.assertEqual(replay.json()["action_economy_result"], first.json()["action_economy_result"])
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'action_economy_result'
+
+======================================================================
+ERROR: test_http_replay_save_restart_and_isolation_zero_models (api.tests.test_spell_scope.SpellApiTests.test_http_replay_save_restart_and_isolation_zero_models) (spell='Cure Wounds')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 260, in test_http_replay_save_restart_and_isolation_zero_models
+    self.assertEqual(replay.json()["action_economy_result"], first.json()["action_economy_result"])
+                     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'action_economy_result'
+
+======================================================================
+ERROR: test_rest_slot_recovery_and_invalid_saved_state (api.tests.test_spell_scope.SpellEngineTests.test_rest_slot_recovery_and_invalid_saved_state)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 208, in test_rest_slot_recovery_and_invalid_saved_state
+    with self.assertRaises(ValueError): s.deserialize_game_state(payload)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/game.py", line 12070, in __getattr__
+    raise AttributeError(name)
+AttributeError: deserialize_game_state
+
+======================================================================
+FAIL: test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist (api.tests.test_spell_scope.SpellApiTests.test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_spell_scope.py", line 281, in test_http_prose_is_not_mechanical_authority_and_rejections_do_not_persist
+    self.assertEqual((s.serialize_game_state(), s.rng.getstate(), self.store.get_campaign(a["campaign_id"])), before)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ({'fo[4229 chars]': 100, 'max_hp': 100, 'armor_class': 10, 'sta[37264 chars]}}])) != ({'fo[4229 chars]': 10, 'max_hp': 10, 'armor_class': 10, 'statu[37262 chars]}}]))
+
+First differing element 0:
+{'for[4228 chars]': 100, 'max_hp': 100, 'armor_class': 10, 'sta[7740 chars]: []}
+{'for[4228 chars]': 10, 'max_hp': 10, 'armor_class': 10, 'statu[7738 chars]: []}
+
+Diff is 168479 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.806s
+
+FAILED (failures=1, errors=5)

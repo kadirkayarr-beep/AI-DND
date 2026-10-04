@@ -1,0 +1,903 @@
+#09 — SPELL SCOPE LOCK
+SINGLE-PASS AUDIT + BOUNDED IMPLEMENTATION + VERIFICATION
+
+We are continuing the AI-DND Implementation Package.
+
+#08 Death System Lock is COMPLETE.
+
+Do not reopen #01–#08.
+
+This is roadmap item:
+
+#09 — SPELL SCOPE LOCK
+
+This is intentionally ONE self-contained pass.
+
+Do not stop after a normal audit merely to ask for another implementation
+prompt.
+
+Instead:
+
+1. inspect the actual current production implementation,
+2. establish the bounded V1 spell scope from evidence,
+3. implement only the approved bounded scope that fits the existing
+   architecture,
+4. add focused tests,
+5. run the relevant regression verification,
+6. return one final report.
+
+However, if actual evidence reveals a genuine source/rule conflict or an
+architectural conflict that cannot be solved without violating the locked
+architecture, STOP rather than inventing a workaround.
+
+============================================================
+ARCHITECTURAL INVARIANT
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT, USES VERIFIED CONTEXT, AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+Spell mechanics are canonical mechanics.
+
+Therefore Python alone owns:
+
+- spell eligibility
+- prepared/available spell validation
+- spell-slot legality and consumption
+- cantrip no-slot behavior
+- casting legality
+- target validation
+- range validation
+- spell attack rolls
+- spell saving throws
+- spell save DC
+- spell damage
+- spell healing
+- spell effects that are actually supported
+- authoritative RNG
+- canonical HP/state mutation
+- persistence
+- receipt/idempotency behavior
+
+Qwen may understand a player's intent and narrate a resolved spell outcome.
+
+Qwen must NEVER decide:
+
+- whether a spell succeeds
+- whether a target is valid
+- whether a slot exists
+- whether a slot is consumed
+- attack/save results
+- damage/healing
+- conditions
+- duration
+- concentration
+- range
+- area membership
+- canonical spell effects
+
+Frontend must never calculate or author any of those outcomes.
+
+Preserve the maximum of 2 model calls per player turn.
+
+Explicit deterministic spell mechanics themselves must not require a model
+call.
+
+Rejected narration must still use deterministic fallback with no model retry.
+
+============================================================
+SOURCE AUTHORITY
+============================================================
+
+Mechanical authority:
+
+1. Player's Handbook 2024
+2. Dungeon Master's Guide 2024 where applicable
+3. Current uploaded Monster Manual where monster mechanics interact
+
+Do not use 2014 spell rules where 2024 differs.
+
+Do not treat Qwen knowledge as a rules source.
+
+Do not infer a spell mechanic from its name.
+
+Do not invent missing spell text.
+
+The following PHB 2024 baseline has already been source-verified and may be
+used for this pass.
+
+Chapter 7, approximately printed pp. 234–238:
+
+- A spell must be available/prepared through a legitimate feature or other
+  supported source before it can be cast.
+- Cantrips are level 0 and do not consume spell slots.
+- Level 1+ spells normally consume an appropriate spell slot.
+- A spell may use a slot of its level or higher where supported.
+- Most spells use the Magic action; spell descriptions may instead specify
+  Bonus Action, Reaction, or longer casting times.
+- A creature can expend only one spell slot to cast a spell on a turn.
+- Range and target restrictions come from the spell.
+- Required components must be available for a legal cast.
+- A spell target normally requires a clear path and cannot be behind Total
+  Cover.
+- An actually invalid target can still consume the slot under the PHB rule;
+  this is different from the ENGINE not supporting a requested spell mode.
+- Spell save DC:
+  8 + spellcasting ability modifier + Proficiency Bonus.
+- Spell attack modifier:
+  spellcasting ability modifier + Proficiency Bonus.
+- Spell effects are exactly the supported effects defined by the spell.
+
+Rules Glossary, Concentration:
+
+- only the supported concentration owner may decide concentration state;
+- starting another concentration effect ends the previous concentration;
+- damage requires the appropriate Constitution save;
+- DC is 10 or half damage taken rounded down, whichever is higher, capped at
+  30;
+- Incapacitated or death ends Concentration.
+
+IMPORTANT:
+
+Concentration is a verified rule, but it is NOT automatically in the bounded
+Spells V1 implementation scope below.
+
+Do not implement it merely because the rule exists.
+
+============================================================
+MISSION OF #09
+============================================================
+
+#09 is NOT "implement every spell."
+
+#09 exists specifically to prevent uncontrolled spell-system scope expansion.
+
+The original project direction is:
+
+Spell
+  -> attack roll?
+  -> saving throw?
+  -> damage?
+  -> healing?
+  -> condition?
+  -> duration?
+  -> concentration?
+  -> range?
+  -> target?
+  -> area?
+
+We must explicitly decide:
+
+- V1
+- deferred / later
+- unsupported until its owner exists
+
+The implementation must fail closed for unsupported spell behavior.
+
+Never let Qwen or frontend fill an unsupported mechanic.
+
+============================================================
+PHASE 1 — INSPECT CURRENT REALITY
+============================================================
+
+Before editing production code, inspect the actual current checkout.
+
+Locate the existing owners and current behavior for:
+
+- character class
+- character level
+- spellcasting ability
+- proficiency bonus
+- selected/known/prepared spells
+- character-creation spell validation
+- spell slots if they exist
+- rests/resource recovery if relevant
+- Action Economy / Magic action
+- Bonus Action / Reaction infrastructure
+- authoritative d20
+- damage dice
+- saving throws
+- spell attacks if any
+- HP damage
+- healing
+- target identity
+- authoritative distance/range
+- cover if any
+- conditions
+- Campaign Time
+- receipts/idempotency
+- save/resume
+- session isolation
+- API intent/action routing
+- narration context
+
+Do not assume documentation matches production.
+
+Do not refactor merely because the existing implementation is inelegant.
+
+Prefer existing owners.
+
+============================================================
+PHASE 2 — LOCK THE V1 SCOPE
+============================================================
+
+The intended bounded Spells V1 catalog candidates are exactly:
+
+- Fire Bolt
+- Magic Missile
+- Cure Wounds
+- Sacred Flame
+
+Do NOT expand the catalog merely because implementation appears easy.
+
+For each candidate, verify that the current character/class/access model can
+legitimately expose it.
+
+A spell may be declared SUPPORTED only for modes the current authoritative
+engine can resolve correctly.
+
+If a legal spell mode depends on infrastructure that does not exist, either:
+
+A. explicitly reject that unsupported mode BEFORE a canonical cast begins,
+   without consuming slot/RNG/action/time; or
+
+B. defer that spell entirely.
+
+Do NOT silently implement an incomplete result and call it source-accurate.
+
+This distinction is important:
+
+"unsupported by AI-DND V1" is NOT the same as a PHB "invalid target."
+
+Unsupported engine capability must fail before canonical spell resolution.
+
+============================================================
+V1 CANDIDATE RULE CONTRACTS
+============================================================
+
+FIRE BOLT
+
+Verified PHB 2024 behavior:
+
+- Evocation cantrip
+- Action
+- 120-foot range
+- V, S
+- instantaneous
+- ranged spell attack
+- creature or object target
+- hit -> 1d10 Fire damage
+- cantrip scaling exists by character level
+- eligible flammable object ignition exists
+
+For V1:
+
+Creature-target combat casting is the primary supported candidate.
+
+Do not fake environmental object ignition.
+
+If authoritative object/environment mutation is not currently supported,
+reject object-target Fire Bolt as an unsupported V1 mode before the cast.
+
+Do not create an environmental destruction/fire simulation system in #09.
+
+If character-level cantrip scaling can be implemented from existing
+authoritative level state without architecture expansion, implement it
+according to the source.
+
+Otherwise explicitly document and fail closed rather than silently using
+incorrect scaling.
+
+MAGIC MISSILE
+
+Verified PHB 2024 behavior:
+
+- level 1 Evocation
+- Action
+- 120-foot range
+- V, S
+- instantaneous
+- creates three darts
+- each dart automatically hits a visible creature in range
+- each dart deals 1d4 + 1 Force damage
+- darts strike simultaneously
+- darts may be assigned to one creature or split across multiple creatures
+- higher-level slot creates additional darts
+
+Do not convert Magic Missile into an attack roll.
+
+If the current authoritative request/target system can express only one
+target, supporting all darts against one legitimate target is allowed as a
+bounded V1 casting mode, but requests to split darts must fail closed before
+the cast.
+
+Do not pretend multi-target splitting occurred.
+
+Do not redesign the API merely to support split targeting in #09.
+
+Higher-slot/upcast support is NOT required by this #09 pass unless it already
+fits the existing resource architecture without broadening scope.
+
+If upcasting is not supported, reject an explicit upcast request before the
+cast.
+
+CURE WOUNDS
+
+Verified PHB 2024 behavior:
+
+- level 1 Abjuration
+- Action
+- Touch
+- V, S
+- instantaneous
+- target regains 2d8 + spellcasting ability modifier HP
+- higher-level slots increase healing
+
+Use the existing #08 authoritative healing/death-state owner.
+
+Do not implement a second healing system.
+
+Healing must:
+
+- respect HP maximum
+- correctly interact with 0 HP
+- correctly clear the appropriate #08 death-state data through the existing
+  owner
+- not resurrect a character already canonically dead unless an existing
+  supported rule explicitly permits it
+
+Higher-slot/upcast support is not required unless already supported cleanly.
+
+SACRED FLAME
+
+Verified PHB 2024 behavior:
+
+- Evocation cantrip
+- Action
+- 60-foot range
+- V, S
+- instantaneous
+- requires a visible creature target
+- target makes Dexterity saving throw
+- failed save -> 1d8 Radiant damage
+- successful save -> no damage
+- Half Cover and Three-Quarters Cover provide no benefit to this save
+- cantrip scaling exists by character level
+
+Use the existing authoritative saving-throw owner.
+
+Do not create a second saving-throw implementation.
+
+If the current engine has authoritative cover state, Sacred Flame must obey
+its explicit cover exception.
+
+If the engine has no cover state, do not invent one in #09.
+
+============================================================
+EXPLICITLY DEFERRED FROM V1
+============================================================
+
+Unless production already supports them safely and no new subsystem is
+required, do NOT expand #09 into:
+
+- general Concentration implementation
+- persistent spell conditions
+- charm/fear systems
+- Sleep
+- Invisibility
+- summons
+- familiars
+- transformations / Polymorph
+- Counterspell-style reaction subsystem
+- Dispel Magic subsystem
+- general reaction-spell architecture
+- general Bonus Action spell catalog
+- AoE geometry engine
+- ritual timing system
+- material-component economy
+- consumed/costed material economy
+- full duration scheduler
+- environmental destruction simulation
+- environmental fire propagation
+- teleportation framework
+- planar travel
+- full spell catalog
+- full class progression
+- multiclass spell-slot progression
+- spell scroll/magic-item casting framework
+- legendary/lair spell interactions
+- resurrection spell catalog
+- XP/leveling redesign
+- broad frontend spell UI
+
+Do not implement these just to make the spell framework appear more complete.
+
+Record them as deferred scope, not bugs.
+
+============================================================
+RESOURCE / ACTION CONTRACT
+============================================================
+
+For every supported V1 spell casting:
+
+1. Validate actor can act.
+2. Validate spell access/prepared/known state from existing authoritative
+   character state.
+3. Validate requested spell mode is supported by V1.
+4. Validate target and authoritative range.
+5. Validate required action economy.
+6. Validate slot availability where applicable.
+7. Only after validation succeeds may authoritative resolution consume:
+   - action economy
+   - spell slot
+   - RNG
+   - HP/state mutation
+8. Resolve through existing attack/save/damage/healing owners.
+9. Persist canonical result.
+10. Narration receives only the resolved result.
+
+Invalid/rejected/unsupported requests must not accidentally consume:
+
+- spell slot
+- action
+- Bonus Action
+- Reaction
+- RNG
+- HP
+- Campaign Time
+
+Preserve existing receipt/idempotency behavior.
+
+A replay of the same action/receipt must not:
+
+- cast again
+- consume another slot
+- roll again
+- damage again
+- heal again
+- advance time again
+- create another event
+- create another narration-driven state mutation
+
+============================================================
+SPELL ATTACK CONTRACT
+============================================================
+
+Do not create a parallel attack engine.
+
+Spell attacks must reuse the existing authoritative d20 / attack resolution
+foundation wherever compatible.
+
+Spell attack modifier is:
+
+spellcasting ability modifier + Proficiency Bonus.
+
+Weapon-specific proficiency, weapon damage, weapon mastery, and weapon
+properties must not leak into spell attacks.
+
+Natural d20 behavior must follow the applicable 2024 attack-roll rules.
+
+The spell supplies its own damage/effect contract.
+
+============================================================
+SPELL SAVE CONTRACT
+============================================================
+
+Do not create a parallel saving-throw engine.
+
+Spell save DC is:
+
+8 + spellcasting ability modifier + Proficiency Bonus.
+
+The target's authoritative saving-throw modifier and applicable existing
+conditions/effects must be used.
+
+The spell description determines what success/failure means.
+
+Qwen never rolls or selects the result.
+
+============================================================
+DAMAGE / HEALING CONTRACT
+============================================================
+
+Spell damage must enter the same authoritative HP/death pipeline used by
+other real damage.
+
+Do not directly mutate HP from a narration or spell-specific shortcut if an
+existing damage owner exists.
+
+This is especially important for:
+
+- 0 HP
+- Death Saves
+- massive damage
+- NPC Policy A
+- dead targets
+- rollback/checkpoint behavior
+
+Spell healing must reuse the authoritative #08 healing/death-state transition
+owner.
+
+Do not duplicate Death System logic inside the spell system.
+
+============================================================
+PERSISTENCE / SESSION / RNG
+============================================================
+
+Any new canonical spell state must use existing campaign persistence.
+
+Do not create:
+
+- a second database
+- a second receipt system
+- a second RNG
+- a second scheduler
+- a parallel combat state
+- frontend-owned spell state
+
+Verify relevant supported spell state survives:
+
+- save
+- resume
+- process restart where applicable
+
+Retry/replay must remain deterministic.
+
+Campaign/session isolation must remain intact.
+
+A spell cast in campaign A must never affect campaign B.
+
+============================================================
+QWEN CONTRACT
+============================================================
+
+Qwen may:
+
+- understand "I cast Fire Bolt at the goblin"
+- resolve ambiguous natural-language intent into a proposal
+- narrate a verified result
+
+Python must validate the proposal.
+
+Qwen may not:
+
+- grant an unknown spell
+- grant a missing spell slot
+- choose a target when player agency requires clarification
+- decide attack/save outcome
+- choose damage/healing
+- invent a condition
+- invent spell duration
+- invent environmental effects
+- turn unsupported spell prose into campaign canon
+
+Rejected narration:
+
+-> deterministic fallback
+-> no model retry
+-> canonical spell result remains unchanged
+
+Preserve <=2 model calls per player turn.
+
+============================================================
+FRONTEND
+============================================================
+
+Do NOT perform a broad spell UI implementation in #09.
+
+#12 owns UI Presentation Rules.
+
+Only make a frontend/API contract change if it is strictly necessary for the
+bounded authoritative V1 spell path and cannot be expressed through the
+existing contract.
+
+Frontend must never calculate:
+
+- spell attack
+- save DC
+- hit/miss
+- damage
+- healing
+- slots
+- range legality
+
+If no frontend change is required, do not touch it.
+
+============================================================
+DOCUMENTATION OUTPUT
+============================================================
+
+Create or update one concise project spell-scope document.
+
+It must record a matrix with:
+
+Capability | V1 | Deferred | Current Owner | Notes
+
+At minimum classify:
+
+- spell access/prepared validation
+- cantrips
+- spell slots
+- spell attack
+- spell saving throw
+- damage
+- healing
+- range
+- target
+- multi-target
+- area
+- conditions
+- duration
+- concentration
+- reactions
+- Bonus Action spells
+- rituals
+- material-cost economy
+- summons
+- transformations
+- teleportation
+- dispelling/countering
+- environmental effects
+
+Also record the exact supported modes for:
+
+- Fire Bolt
+- Magic Missile
+- Cure Wounds
+- Sacred Flame
+
+Do not describe deferred features as implemented.
+
+============================================================
+FOCUSED TEST REQUIREMENTS
+============================================================
+
+Add only focused tests needed to prove the bounded #09 contract.
+
+Do not build #10 Combat Test Matrix early.
+
+At minimum verify where applicable:
+
+- supported spell access
+- unknown/unprepared spell rejection
+- unsupported spell rejection
+- cantrip consumes no slot
+- leveled spell consumes exactly one slot
+- rejected cast consumes no slot/RNG/action
+- spell attack hit
+- spell attack miss
+- spell attack modifier
+- spell save success
+- spell save failure
+- spell save DC
+- damage routed through authoritative damage owner
+- healing routed through authoritative healing owner
+- 0-HP healing interaction
+- target validation
+- range validation
+- ambiguous target does not invent player choice
+- action economy consumption
+- same action/receipt replay does not reroll or mutate twice
+- save/resume of relevant resources
+- session isolation
+- mechanics do not require a model call
+- model prose cannot mutate spell result
+
+Spell-specific tests should prove only the supported V1 modes.
+
+Do not create tests pretending deferred mechanics are supported.
+
+============================================================
+REGRESSION STRATEGY
+============================================================
+
+Be proportional.
+
+First run the new focused #09 tests.
+
+If focused tests fail, fix only #09 defects.
+
+Then run affected authoritative regression modules for:
+
+- Action Economy
+- Initiative where relevant
+- Weapon/Attack shared d20 boundaries
+- Monster Combat where spell damage reaches NPCs
+- Death System
+- Campaign Time only if touched
+- Campaign API/persistence
+- session/receipt behavior
+
+Do not run unrelated legacy/V2 repair work.
+
+Do not weaken old tests merely to make the suite green.
+
+If an old expectation genuinely conflicts with the now-explicit official
+spell rule, identify it before changing it.
+
+Use the existing durable regression-evidence mechanism for the final relevant
+run.
+
+Preserve failed evidence.
+
+Do not overwrite prior #08 evidence.
+
+============================================================
+EFFICIENCY RULE
+============================================================
+
+This is intentionally a single Replit pass.
+
+Do not create:
+
+audit task
+-> implementation task
+-> verification task
+-> follow-up task
+
+as separate work items.
+
+Perform those stages internally in this one task.
+
+Do not stop merely because you discovered a normal bounded implementation
+gap.
+
+Implement it if it is clearly inside this prompt and compatible with the
+locked architecture.
+
+STOP only for:
+
+- unresolved official-source conflict
+- required architecture change outside #09
+- risk of breaking a locked #01–#08 ownership invariant
+- inability to implement the bounded scope without inventing canonical
+  mechanics
+
+Do not ask for permission for ordinary in-scope implementation choices.
+
+============================================================
+MUST NOT CHANGE
+============================================================
+
+Do not redesign or reopen:
+
+#01 Campaign Time
+#02 Campaign Time Edge Cases
+#03 Combat Lifecycle
+#04 Action Economy
+#05 Initiative
+#06 Weapon & Attack
+#07 Monster Combat
+#08 Death System
+
+Especially preserve:
+
+- NPC Policy A
+- Stable recovery
+- Normal / Permadeath / Ironman
+- save deletion
+- session revocation
+- pre-existing rollback/checkpoint ownership
+- authoritative RNG
+- receipts
+- session isolation
+- max 2 model calls
+- deterministic narration fallback
+- no model retry
+
+Do not start #10.
+
+Do not implement XP/leveling.
+
+Do not perform broad engine decomposition.
+
+Do not perform broad UI redesign.
+
+============================================================
+COMPLETION GATE
+============================================================
+
+#09 is COMPLETE only if:
+
+A. Current spell-related production ownership is inspected from actual code.
+
+B. V1/deferred spell capability boundaries are explicitly documented.
+
+C. No unsupported spell behavior can silently become canonical game truth.
+
+D. The supported V1 spell modes use Python-authoritative eligibility,
+   resources, targeting, RNG and resolution.
+
+E. Spell attack/save/damage/healing reuse existing authoritative owners
+   rather than parallel implementations.
+
+F. Slot/resource behavior is deterministic and idempotent.
+
+G. Receipt replay cannot duplicate spell effects.
+
+H. Save/session isolation remains intact.
+
+I. Focused #09 tests pass.
+
+J. Relevant affected regression tests pass.
+
+K. No locked #01–#08 behavior regresses.
+
+L. No Qwen/frontend mechanics authority is introduced.
+
+M. No deferred spell subsystem is falsely reported as implemented.
+
+============================================================
+FINAL REPORT
+============================================================
+
+Return exactly one report with:
+
+## A) CURRENT SPELL OWNERS
+Actual production files/functions and authoritative state.
+
+## B) V1 SCOPE LOCK
+Exact supported capability matrix.
+
+## C) SUPPORTED SPELL CATALOG
+For Fire Bolt, Magic Missile, Cure Wounds and Sacred Flame:
+- supported modes
+- deliberately unsupported modes
+- source behavior
+- production owner
+
+## D) IMPLEMENTATION
+Exact files changed and why.
+
+## E) FOCUSED VERIFICATION
+Exact tests/commands and pass/fail/error/skip totals.
+
+## F) REGRESSION VERIFICATION
+Exact modules, totals and durable evidence path.
+
+## G) PERSISTENCE / IDEMPOTENCY
+Save/resume/replay/session-isolation results.
+
+## H) MODEL CONTRACT
+Exact model-call behavior and confirmation that mechanics remain Python-owned.
+
+## I) DEFERRED SPELL SCOPE
+Only intentionally deferred systems.
+Do not call them bugs.
+
+## J) ARCHITECTURE CHECK
+Confirm #01–#08 ownership was not reopened.
+
+## K) FINAL STATUS
+
+Use exactly one:
+
+COMPLETE
+
+or
+
+PARTIAL — FOLLOW-UP REQUIRED
+
+or
+
+BLOCKED — SOURCE/RULE CONFLICT
+
+or
+
+BLOCKED — ARCHITECTURAL CONFLICT
+
+Do not create another task.
+
+Do not commit.
+Do not push.
+Do not merge.
+Do not reset.
+Do not rebase.
+Do not publish.
+
+Do not start #10.
+
+STOP after the report.

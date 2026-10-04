@@ -1,0 +1,19 @@
+test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_spell_autosave_failure_restores_damage_healing_slots_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_stable_resume_preserves_spent_spell_action_and_recovery_episode (api.tests.test_combat_test_matrix.CombatMatrixApiTests.test_stable_resume_preserves_spent_spell_action_and_recovery_episode) ... ok
+test_long_rest_reaches_spell_resource_hook_and_authoritative_clock (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_long_rest_reaches_spell_resource_hook_and_authoritative_clock) ... ok
+test_native_monster_damage_keeps_player_slot_and_schedules_death_save (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_native_monster_damage_keeps_player_slot_and_schedules_death_save) ... ok
+test_sequential_death_counters_reach_stable_or_dead_through_owner (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_sequential_death_counters_reach_stable_or_dead_through_owner) ... ok
+test_spell_lethal_damage_preserves_surviving_opponent_and_cursor (api.tests.test_combat_test_matrix.CombatMatrixEngineTests.test_spell_lethal_damage_preserves_surviving_opponent_and_cursor) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.399s
+
+OK
