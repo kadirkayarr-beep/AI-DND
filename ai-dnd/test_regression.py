@@ -6,6 +6,7 @@ import sys
 import io
 import json
 import re
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -34,6 +35,8 @@ engine.ollama = ollama_mock
 
 def reset_world_state():
     """Reset world_state to initial values for test isolation."""
+    global game
+    game = engine.create_session(seed=11)
     game.world_state["location"] = "tavern"
     game.world_state["npcs"] = []
     game.world_state["inventory"] = ["Macera çantası", "Kılıç"]
@@ -283,17 +286,37 @@ def test_return_travel():
 # TEST 10: Named Location Return
 # =========================================================
 def test_named_location_return():
-    """Returning to a named location should work."""
+    """Named return requires a verified route and charges its server-owned time."""
     reset_world_state()
 
-    # Set current location to forest
-    game.world_state["location"] = "forest"
+    game.commit_location_change("forest")
+    before_time = game.world_state["campaign_time"]["elapsed_seconds"]
 
+    # Registered location names alone do not authorize travel duration.
     result = run_turn("tavernaya geri dönüyorum")
+    action = result["action_result"]
+    assert action["action"] == "travel", action
+    assert action["status"] == "unverified" and action["success"] is False, action
+    assert game.world_state["location"] == "forest"
+    assert game.world_state["campaign_time"]["elapsed_seconds"] == before_time
+    assert game.world_state.get("journey") is None
 
-    # Should resolve to tavern
+    # This fixture, not the model, owns the route. Suppress random encounters
+    # so this check tests arrival rather than an interrupted journey decision.
+    game.world_state["locations"]["forest"]["travel_routes"] = {"tavern": [300]}
+    with patch.object(game.rng, "randint", return_value=6):
+        result = run_turn("tavernaya geri dönüyorum")
+
+    action = result["action_result"]
+    assert action["action"] == "travel", action
+    assert action["status"] == "completed" and action["success"] is True, action
+    assert action["new_location"] == "tavern", action
     assert game.world_state["location"] == "tavern", \
         f"FAIL: Should return to tavern, got {game.world_state['location']}"
+    assert action["time_result"]["elapsed_seconds"] == 300, action
+    assert game.world_state["campaign_time"]["elapsed_seconds"] == before_time + 300
+    assert game.world_state["journey"]["status"] == "ARRIVED"
+    assert game.world_state["flags"]["pending_destination"] is None
     print("PASS: test_named_location_return")
 
 
@@ -430,43 +453,35 @@ def test_sheathe_weapon():
 # TEST 17: Unsupported Attack
 # =========================================================
 def test_unsupported_attack():
-    """Attack actions should not change world state."""
+    """Legacy name: an invalid local target must be rejected without side effects."""
     reset_world_state()
 
-    # Snapshot world state before
-    before_snapshot = game._world_snapshot()
+    # Reject both a nonexistent enemy and one that exists only elsewhere.
+    for remote_enemy in (False, True):
+        if remote_enemy:
+            game.create_npc_from_ai({
+                "name": "Düşman", "role": "Guard", "location": "forest",
+            })
+        before_world = deepcopy(game.world_state)
+        before_character = deepcopy(game.character)
+        before_rng = game.rng.getstate()
+        before_narrations = list(game.recent_dm_narrations)
+        with patch.object(engine, "parse_player_intent") as parse, \
+                patch.object(ollama_mock, "chat") as chat:
+            try:
+                run_turn("düşmana saldırıyorum")
+            except engine.combat_lifecycle.CombatRequestError as exc:
+                assert exc.code == "invalid_combat_target", exc.code
+                assert exc.status_code == 400, exc.status_code
+            else:
+                raise AssertionError("Invalid local target must raise CombatRequestError")
+            parse.assert_not_called()
+            chat.assert_not_called()
 
-    # Patch parse_player_intent to return attack intent
-    original_parse = engine.parse_player_intent
-    engine.parse_player_intent = lambda player_input: {
-        "intent": "attack",
-        "action": "attack",
-        "target": {"type": "npc", "reference": "düşman"},
-        "completion": "completed",
-        "confidence": 1.0
-    }
-    try:
-        result = run_turn("düşmanı saldırıyorum")
-    finally:
-        engine.parse_player_intent = original_parse
-
-    # Assert action_result fields
-    assert result["action_result"].get("action") == "attack", \
-        f"FAIL: action should be 'attack', got {result['action_result'].get('action')}"
-    assert result["action_result"].get("status") == "resolved", \
-        f"FAIL: status should be 'unsupported', got {result['action_result'].get('status')}"
-    assert result["action_result"].get("success") == False, \
-        f"FAIL: success should be False, got {result['action_result'].get('success')}"
-
-    # Assert world state unchanged (mechanical state)
-    after_snapshot = game._world_snapshot()
-    mechanical_fields = [
-        "location", "inventory", "ground_items_by_location",
-        "doors", "npcs", "features", "events"
-    ]
-    for field in mechanical_fields:
-        assert before_snapshot[field] == after_snapshot[field], \
-            f"FAIL: World state field '{field}' changed unexpectedly"
+        assert game.world_state == before_world, "Rejected attack changed world state"
+        assert game.character == before_character, "Rejected attack changed character"
+        assert game.rng.getstate() == before_rng, "Rejected attack consumed dice"
+        assert list(game.recent_dm_narrations) == before_narrations
 
     print("PASS: test_unsupported_attack")
 

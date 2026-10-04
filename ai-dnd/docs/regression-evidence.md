@@ -63,6 +63,38 @@ test event, and on finalization. A forcibly killed process can leave `running`
 status with no end time/exit status; treat that as incomplete, never PASS.
 A source-change flag also means the run cannot certify one stable source tree.
 
+## Travel and invalid-target regression contracts
+
+The original failed run at
+`evidence/suite-runs/20261004T091911Z-7fd21e30fb6140f4a5e448cf3f367cac/run.json`
+is retained unchanged. Its two regression failures exposed old test assumptions,
+not permission to relax gameplay validation:
+
+- `test_regression.test_named_location_return`: `game.execute_intent` delegates
+  registered-origin travel to `timed_gameplay.start_travel`. Registered names
+  without a verified duration produce `unverified`, not a location change.
+  The updated check first asserts this refusal and unchanged time, then supplies
+  an explicit server-owned 300-second forest-to-tavern route and checks arrival,
+  journey completion and elapsed time. Only encounter dice are controlled;
+  intent grounding and the travel engine execute normally.
+- `test_regression.test_unsupported_attack`: the legacy test ID is retained for
+  comparison, but attacks are no longer universally unsupported.
+  `combat_lifecycle.validate_request` rejects nonexistent or nonlocal targets
+  with `CombatRequestError`, code `invalid_combat_target`, HTTP status `400`,
+  before intent parsing. Both cases must leave the full world, character,
+  RNG and recent narration unchanged and must not call the model.
+
+Regression functions now reset to fresh seeded sessions so routes, clock,
+journey, combat and character state cannot leak between checks. Gameplay code
+and invalid-target validation are unchanged. To archive these checks together
+with the adjacent authoritative contracts:
+
+```sh
+python ai-dnd/scripts/run_regression_evidence.py \
+  api.tests.test_bounded_encounter test_regression \
+  api.tests.test_campaign_time api.tests.test_combat_lifecycle
+```
+
 ## HTTP acceptance is different evidence
 
 `evidence/bounded-encounter-http.json` is the previously retained real-network
