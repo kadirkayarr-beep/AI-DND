@@ -39,17 +39,36 @@ Commands are trusted developer configuration, not an untrusted command API.
 - **NOT RUN**: not executed, never synonymous with PASS.
 - **UNVERIFIED**: insufficient evidence or a started but incomplete command.
 
-GO requires every required check to PASS, including a clean checkout,
+GO requires every required check to PASS, including a clean source checkout,
 stable local verifier fingerprint, all required commands, and complete retained
 regression evidence (no failed, skipped, unexecuted or expected-failure tests).
 Local detached HEAD blocks the gate. An exact-SHA detached GitHub Actions checkout
 is explicitly permitted only when the recorded event SHA equals local HEAD and
 a run ID is present; its detachment is still recorded. Any event SHA mismatch fails.
 Working changes, including an uploaded untracked instruction file, deliberately
-produce nonzero exit status: do not hide them or commit merely to make a gate GO.
-Checkout state is observed before creating this command's own record. Previously
-generated untracked records still count as Git-dirty; generated files are excluded
-from source-content fingerprints, not secretly removed from Git status.
+produce nonzero exit status. Raw Git state is retained separately from source
+cleanliness; nothing is added to ignore rules, hidden, staged, deleted or committed
+by these commands. Sequential Health Check → Final Gate can succeed despite the
+first command's untracked outputs, but only with verified local ownership.
+
+After finalization the tool exclusively writes a repository-bound ownership
+receipt under the worktree's Git metadata (`ai-dnd-development-ownership`).
+It hashes the exact parent `run.json`/`output.log` pair and any newly linked child
+suite pair using the existing evidence SHA-256 implementation. Every receipt and
+all its file hashes/provenance must match before any **untracked** file is exempted.
+Raw Git status, exempted entries and receipt paths are retained in the new record.
+Staged or modified tracked evidence, arbitrary files under the archive root,
+copied/unreceipted/incomplete records, symlinks, missing files and changed receipt
+or evidence contents still block. Ownership is local bookkeeping, not a signature,
+test PASS, server identity or retroactive certification. Old-format committed
+records need no receipts and are never modified or automatically adopted.
+
+The end-state guard checks source cleanliness again, allowing only this invocation's
+exclusively generated outputs and already verified receipts. It catches real new
+user files and historical evidence edits even inside fingerprint-excluded folders.
+The existing start/end source fingerprint check remains unchanged. A receipt write
+failure is a tooling error (exit 2), never GO. Receipts are local to this checkout;
+copying an archive into another checkout does not carry ownership exemptions.
 Exit codes: 0 passed required checks; 1 blocked/failed required checks;
 2 configuration/tooling failure; 130 interruption.
 

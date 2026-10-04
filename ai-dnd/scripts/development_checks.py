@@ -11,6 +11,7 @@ import sys
 
 import run_regression_evidence as evidence
 from development_archive import Archive, DEFAULT_ARCHIVE
+import development_ownership as ownership
 
 
 REPO = evidence.ROOT.parent
@@ -118,8 +119,13 @@ def structural_checks(config, state, repo, baseline=None, ci=None):
         check("Branch", "FAIL" if state["detached"] and not detached_ci else "PASS",
               state["branch"] or ("Detached CI checkout; exact event SHA checked" if detached_ci
                                  else "Detached HEAD outside verified event checkout")),
-        check("Working tree", "PASS" if state["clean"] else "FAIL",
-              "Clean" if state["clean"] else
+        check("Evidence ownership", "FAIL" if state.get("ownership_errors") else "PASS",
+              {"errors": state.get("ownership_errors", []),
+               "exempt_entries": state.get("owned_evidence_entries", []),
+               "receipts": state.get("ownership_receipts", [])}),
+        check("Working tree", "PASS" if state.get("source_clean", state["clean"]) else "FAIL",
+              "Clean source checkout; raw Git status retained; only verified tool-owned evidence exempted"
+              if state.get("source_clean", state["clean"]) else
               f"Dirty: {len(state['staged'])} staged, {len(state['unstaged'])} unstaged, "
               f"{len(state['untracked'])} untracked; see repository_state.entries"),
     ]
@@ -240,11 +246,10 @@ def main(kind, argv=None):
     ci = {key: os.environ[key] for key in (
         "GITHUB_SHA", "GITHUB_WORKFLOW", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT",
         "GITHUB_EVENT_NAME", "GITHUB_JOB") if os.environ.get(key)}
-    # Observe the checkout before our own NEW record exists. Previously created
-    # untracked records still count as dirty; do not hide real Git state.
+    # Retain raw Git state; exempt only locally receipted, byte-unchanged outputs.
     preflight_error = None
     try:
-        state = repository_state(REPO)
+        state = ownership.classify(REPO, repository_state(REPO))
         source_start = evidence.source_snapshot(args.archive_root)
     except Exception as exc:
         preflight_error = str(exc)
@@ -300,6 +305,13 @@ def main(kind, argv=None):
                                   "Running job identity recorded; remote final status is not certified"
                                   if ci else "No actual remote workflow run performed", required=False))
                 archive.data["source_end"] = evidence.source_snapshot(args.archive_root)
+                end_state = ownership.classify(
+                    REPO, repository_state(REPO), ownership.generated_files(archive))
+                archive.data["repository_state_end"] = end_state
+                rows.append(check("Working tree after execution",
+                                  "PASS" if end_state["source_clean"] else "FAIL",
+                                  {"source_entries": end_state["source_entries"],
+                                   "ownership_errors": end_state["ownership_errors"]}))
                 first, last = archive.data["source_start"], archive.data["source_end"]
                 changed = (first["revision"] != last["revision"] or
                            first["working_tree_sha256"] != last["working_tree_sha256"])
@@ -317,12 +329,26 @@ def main(kind, argv=None):
             result = ("GO" if code == 0 else "NO-GO") if kind == "final_gate" else (
                 "HEALTHY" if code == 0 else "UNHEALTHY")
             archive.data["result"] = result
-            print(f"\n{title}")
+            print(f"\n{title}", file=log)
             for row in archive.data["checks"]:
-                print(f"{row['name']:28} {row['status']:10} {row['detail']}")
-            print(f"RESULT: {result}")
+                print(f"{row['name']:28} {row['status']:10} {row['detail']}", file=log)
+            print(f"RESULT: {result}", file=log)
     finally:
         sys.stdout, sys.stderr = terminal_out, terminal_err
         archive.finish(code)
+        try:
+            ownership.seal(archive)
+        except (OSError, ValueError) as exc:
+            code = 2
+            archive.data["checks"].append(check("Evidence ownership finalization", "FAIL", str(exc)))
+            archive.data["result"] = "NO-GO" if kind == "final_gate" else "UNHEALTHY"
+            with (archive.directory / "output.log").open("a", encoding="utf-8") as log:
+                print(f"Evidence ownership finalization FAIL: {exc}", file=log)
+                print(f"RESULT: {archive.data['result']}", file=log)
+            archive.finish(code)
+    print(f"\n{title}")
+    for row in archive.data["checks"]:
+        print(f"{row['name']:28} {row['status']:10} {row['detail']}")
+    print(f"RESULT: {archive.data['result']}")
     print(f"NEW development evidence: {archive.path}")
     return code

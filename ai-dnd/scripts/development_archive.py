@@ -26,6 +26,7 @@ class Archive:
                     evidence.ROOT / "docs/regression-evidence.md",
                     evidence.ROOT / "docs/development-infrastructure.md"))):
             raise ValueError("Archive cannot contain verifier source")
+        self.preexisting_directories = set(root.iterdir()) if root.exists() else set()
         self.directory = root / (
             evidence.datetime.now(evidence.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             + "-" + evidence.uuid4().hex)

@@ -37,7 +37,8 @@ class DevelopmentToolingTests(unittest.TestCase):
         self.archive_root = self.repo / "ai-dnd/docs/evidence/development-runs"
         self.config_path = self.repo / "checks.json"
         self.config_path.write_text(json.dumps(self.config))
-        (self.repo / ".gitignore").write_text("__pycache__/\n*.py[cod]\n")
+        (self.repo / ".gitignore").write_text(
+            "__pycache__/\n*.py[cod]\n!ai-dnd/docs/evidence/development-runs/**/output.log\n")
         # These commits are fixture-only; never commit the real checkout.
         self.git("init", "-q", "-b", "main")
         self.git("add", ".")
@@ -64,7 +65,8 @@ class DevelopmentToolingTests(unittest.TestCase):
             code = owner.main(kind, [
                 "--config", str(self.config_path),
                 "--archive-root", str(self.archive_root), *args])
-        records = sorted(self.archive_root.glob("*/run.json"))
+        records = sorted(self.archive_root.glob("*/run.json"),
+                         key=lambda path: json.loads(path.read_text())["started_at"])
         return code, [json.loads(path.read_text()) for path in records]
 
     def test_clean_repo_health_success_head_and_not_run(self):
@@ -148,7 +150,9 @@ class DevelopmentToolingTests(unittest.TestCase):
         first = next(self.archive_root.glob("*/run.json"))
         content = first.read_bytes()
         code2, records2 = self.invoke()
-        self.assertEqual((code, code2), (0, 1))  # Generated untracked evidence is still Git-dirty.
+        self.assertEqual((code, code2), (0, 0))
+        self.assertFalse(records2[-1]["repository_state"]["clean"])  # Raw status stays honest.
+        self.assertTrue(records2[-1]["repository_state"]["source_clean"])
         self.assertEqual(len(records2), len(records) + 1)
         self.assertEqual(first.read_bytes(), content)
         self.assertTrue(all(not record["source_changed_during_run"] for record in records2))
@@ -232,7 +236,7 @@ class DevelopmentToolingTests(unittest.TestCase):
                     owner.validate_suite(row, log, 0, self.archive_root)
                 self.assertEqual(row["status"], "FAIL")
 
-    def test_full_clean_final_gate_reuses_real_runner_and_has_go(self):
+    def prepare_gate(self):
         # Real existing evidence runner, but only one disposable offline function.
         runner = self.repo / "ai-dnd/scripts/run_regression_evidence.py"
         runner.write_bytes((ROOT / "scripts/run_regression_evidence.py").read_bytes())
@@ -244,12 +248,167 @@ class DevelopmentToolingTests(unittest.TestCase):
         self.git("add", ".")
         self.git("-c", "user.name=Tooling Fixture", "-c", "user.email=fixture@example.invalid",
                  "commit", "-qm", "fixture runner")
+        self.head = self.git("rev-parse", "HEAD").strip()
+
+    def test_full_clean_sequential_health_final_gate_reuses_real_runner_and_has_go(self):
+        self.prepare_gate()
+        health_code, health_records = self.invoke()
+        self.assertEqual(health_code, 0)
+        health = health_records[-1]
+        historical = {p: p.read_bytes() for p in self.archive_root.rglob("*") if p.is_file()}
         code, records = self.invoke("final_gate")
         final = next(record for record in records if record["evidence_kind"] == "final_gate")
         self.assertEqual(code, 0, final)
         self.assertEqual(final["result"], "GO")
         self.assertTrue(all(row["status"] == "PASS" for row in final["checks"] if row["required"]))
         self.assertEqual(len([record for record in records if record["evidence_kind"] == "suite_run"]), 1)
+        self.assertFalse(final["repository_state"]["clean"])
+        self.assertTrue(final["repository_state"]["source_clean"])
+        self.assertEqual(len(final["repository_state"]["owned_evidence_entries"]), 2)
+        self.assertEqual(final["source_start"]["working_tree_sha256"],
+                         health["source_start"]["working_tree_sha256"])
+        self.assertTrue(final["repository_state_end"]["source_clean"])
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.head)
+        self.assertTrue(all(p.read_bytes() == content for p, content in historical.items()))
+        # A subsequent invocation recognizes both the parent and its child suite.
+        self.assertEqual(self.invoke()[0], 0)
+
+    def test_real_dirty_tree_after_health_still_blocks_final_gate(self):
+        self.prepare_gate()
+        self.assertEqual(self.invoke()[0], 0)
+        self.config_path.write_text(json.dumps(self.config) + " ")
+        self.git("add", "checks.json")
+        self.config_path.write_text(json.dumps(self.config) + "\n")
+        (self.repo / "user-notes.txt").write_text("genuine user change")
+        code, records = self.invoke("final_gate")
+        final = next(r for r in records if r["evidence_kind"] == "final_gate")
+        self.assertEqual(code, 1)
+        self.assertEqual(final["result"], "NO-GO")
+        self.assertEqual({r["path"] for r in final["repository_state"]["source_entries"]},
+                         {"checks.json", "user-notes.txt"})
+        self.assertEqual(len(final["repository_state"]["owned_evidence_entries"]), 2)
+        self.assertEqual(next(r["status"] for r in final["checks"]
+                              if r["name"] == "Python regression"), "PASS")
+
+    def test_unreceipted_and_copied_evidence_are_not_exempt(self):
+        self.assertEqual(self.invoke()[0], 0)
+        first = next(self.archive_root.glob("*/run.json"))
+        copied = self.archive_root / ("20000101T000000Z-" + "a" * 32)
+        copied.mkdir()
+        for name in ("run.json", "output.log"):
+            (copied / name).write_bytes(first.with_name(name).read_bytes())
+        code, records = self.invoke()
+        self.assertEqual(code, 1)
+        self.assertTrue(any("20000101T000000Z" in r["path"]
+                            for r in records[-1]["repository_state"]["source_entries"]))
+        for path in copied.iterdir():
+            path.unlink()
+        copied.rmdir()
+        with self.fixture_owner():
+            (owner.ownership.receipt_root() / (first.parent.name + ".json")).unlink()
+        self.assertEqual(self.invoke()[0], 1)
+
+    def test_modified_owned_log_or_record_blocks_and_is_not_overwritten(self):
+        self.assertEqual(self.invoke()[0], 0)
+        first = next(self.archive_root.glob("*/run.json"))
+        for path in (first, first.with_name("output.log")):
+            with self.subTest(path=path.name):
+                original = path.read_bytes()
+                altered = original + b" "
+                path.write_bytes(altered)
+                code, records = self.invoke()
+                self.assertEqual(code, 1)
+                self.assertTrue(records[-1]["repository_state"]["ownership_errors"])
+                self.assertEqual(path.read_bytes(), altered)
+                path.write_bytes(original)
+
+    def test_staged_owned_evidence_is_a_real_user_change(self):
+        self.assertEqual(self.invoke()[0], 0)
+        first = next(self.archive_root.glob("*/run.json"))
+        self.git("add", str(first.relative_to(self.repo)))
+        code, records = self.invoke()
+        self.assertEqual(code, 1)
+        state = records[-1]["repository_state"]
+        self.assertTrue(any(r["index"] == "A" for r in state["source_entries"]))
+
+    def test_incomplete_evidence_and_extra_user_files_are_not_exempt(self):
+        with self.fixture_owner():
+            archive = Archive(self.archive_root, "project_health_check", [sys.executable])
+        self.assertEqual(self.invoke()[0], 1)
+        self.assertEqual(json.loads(archive.path.read_text())["status"], "running")
+        (archive.directory / "user.txt").write_text("not generated by the tool")
+        self.assertEqual(self.invoke()[0], 1)
+
+    def test_foreign_or_tampered_receipt_provenance_fails_closed(self):
+        self.assertEqual(self.invoke()[0], 0)
+        with self.fixture_owner():
+            receipt_path = next(owner.ownership.receipt_root().glob("*.json"))
+        original = receipt_path.read_bytes()
+        receipt = json.loads(original)
+        for change in ({"producer": "foreign"}, {"repository": "/foreign/repository"},
+                       {"revision": "0" * 40}, {"files": {}},
+                       {"parent_record": "../foreign/run.json"}):
+            with self.subTest(change=change):
+                receipt_path.write_text(json.dumps({**receipt, **change}))
+                code, records = self.invoke()
+                self.assertEqual(code, 1)
+                self.assertTrue(records[-1]["repository_state"]["ownership_errors"])
+                receipt_path.write_bytes(original)
+
+    def test_source_change_during_execution_blocks_gate(self):
+        self.prepare_gate()
+        self.assertEqual(self.invoke()[0], 0)
+        run = owner.run_command
+
+        def change_source(name, *args):
+            row = run(name, *args)
+            if name == "frontend_test":
+                (self.repo / "ai-dnd/game.py").write_text("modified during execution")
+            return row
+
+        with patch.object(owner, "run_command", side_effect=change_source):
+            code, records = self.invoke("final_gate")
+        final = next(r for r in records if r["evidence_kind"] == "final_gate")
+        self.assertEqual(code, 1)
+        self.assertTrue(final["source_changed_during_run"])
+        self.assertFalse(final["repository_state_end"]["source_clean"])
+
+    def test_historical_evidence_change_during_execution_blocks_without_repair(self):
+        self.prepare_gate()
+        historical = self.repo / "ai-dnd/docs/evidence/suite-runs/historical/run.json"
+        historical.parent.mkdir(parents=True)
+        historical.write_text('{"historical": true}\n')
+        self.git("add", ".")
+        self.git("-c", "user.name=Tooling Fixture", "-c", "user.email=fixture@example.invalid",
+                 "commit", "-qm", "historical fixture")
+        run = owner.run_command
+
+        def change_history(name, *args):
+            row = run(name, *args)
+            if name == "frontend_build":
+                historical.write_text('{"user_modified": true}\n')
+            return row
+
+        with patch.object(owner, "run_command", side_effect=change_history):
+            code, records = self.invoke("final_gate")
+        final = next(r for r in records if r["evidence_kind"] == "final_gate")
+        self.assertEqual(code, 1)
+        # Existing fingerprints exclude evidence; the end-state guard still catches it.
+        self.assertFalse(final["source_changed_during_run"])
+        self.assertFalse(final["repository_state_end"]["source_clean"])
+        self.assertEqual(historical.read_text(), '{"user_modified": true}\n')
+
+    def test_missing_owned_history_and_receipt_write_failure_block(self):
+        self.assertEqual(self.invoke()[0], 0)
+        first = next(self.archive_root.glob("*/run.json"))
+        first.with_name("output.log").unlink()
+        self.assertEqual(self.invoke()[0], 1)
+        with patch.object(owner.ownership, "seal", side_effect=OSError("receipt write denied")):
+            code, records = self.invoke()
+        self.assertEqual(code, 2)
+        self.assertEqual(records[-1]["result"], "UNHEALTHY")
+        self.assertTrue(any(r["name"] == "Evidence ownership finalization"
+                            for r in records[-1]["checks"]))
 
 
 if __name__ == "__main__":
