@@ -154,9 +154,13 @@ bağlandı. Endpoint, mesafe, görünürlük veya rota uydurulmaz; başarısız
 işlemler konumu geçersizleştirmez. Action/Reaction/Bonus Action ve yetenek
 kullanımı kuralları değiştirilmedi.
 
-Güncel unique regresyon koşusu **563/563 PASS**, failures/errors/skips
-**0/0/0**: yukarıdaki 553 test ve 10 yeni hareket regresyonu. Log:
-`/tmp/bounded-movement-fix-regression.log`. Test ID'leri tekilleştirildi.
+Tarihsel raporda unique regresyon koşusu **563/563 PASS**, failures/errors/skips
+**0/0/0** olarak belirtilmişti: yukarıdaki 553 test ve 10 yeni hareket
+regresyonu. Yalnız `/tmp/bounded-movement-fix-regression.log` referansı ve
+tekilleştirme beyanı korunmuş; onaylı kalıcı artifact'lerden bu koşu bağımsız
+doğrulanamıyor. Bu nedenle sonuç **HISTORICAL RUN UNVERIFIED** olarak kalır.
+Yeni koşular bu eksik tarihsel koşuyu sertifikalandıramaz. Gelecek koşuların
+kalıcı kanıt sözleşmesi: [regression-evidence.md](regression-evidence.md).
 Yeni kontroller normal HTTP Ready/react, structured Cloud Jaunt ve combat
 dışı species endpoint'ini; fresh manager/app ile save/resume, canonical
 state/RNG ve receipt replay'i kapsar. Negatif kontroller yalnız başarısızlık

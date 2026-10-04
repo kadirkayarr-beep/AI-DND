@@ -1,0 +1,4625 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "suite_run",
+  "run_label": "NEW RUN",
+  "historical_certification": false,
+  "started_at": "2026-10-04T09:15:14.821962+00:00",
+  "ended_at": "2026-10-04T09:15:21.811275+00:00",
+  "status": "completed",
+  "exit_status": 1,
+  "command": {
+    "argv": [
+      "/home/runner/workspace/.pythonlibs/bin/python",
+      "ai-dnd/scripts/run_regression_evidence.py",
+      "api.tests.test_regression_evidence",
+      "api.tests.test_bounded_encounter",
+      "test_regression"
+    ],
+    "shell": "/home/runner/workspace/.pythonlibs/bin/python ai-dnd/scripts/run_regression_evidence.py api.tests.test_regression_evidence api.tests.test_bounded_encounter test_regression",
+    "cwd": "/home/runner/workspace"
+  },
+  "selection": {
+    "selectors": [
+      "api.tests.test_regression_evidence",
+      "api.tests.test_bounded_encounter",
+      "test_regression"
+    ],
+    "discover": [],
+    "pattern": "test_*.py"
+  },
+  "selected_test_ids": [
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_duplicate_function_module_selection_executes_once",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failed_subtests_retain_parent_and_individual_details",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failures_errors_skips_expected_and_unexpected_are_distinct",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_import_error_and_empty_selection_fail_closed",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_interruption_retains_started_test_and_nonzero_status",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_setup_class_error_does_not_claim_test_methods_executed",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_source_hash_changes_with_untracked_content_and_deletion",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_compound_failure_restores_cloud_jaunt_anchor_and_use",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_exhausted_cloud_jaunt_does_not_invalidate_geometry",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_species_endpoint_outside_combat_also_invalidates_geometry",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_action_id_conflict_is_not_a_second_turn",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_normal_http_target_attack_and_resource_result",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_save_resume_after_process_restart_retains_all_canonical_state",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_unrelated_free_text_still_requires_existing_model_service",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_budget_only_move_invalidates_endpoint_instead_of_inventing_one",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_canonical_blinded_condition_does_not_gain_visibility",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unknown_npc_node_does_not_reset_to_start",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unlocated_player_movement_cannot_keep_stale_geometry",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_definition_is_not_campaign_canon_before_entry",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_directional_pair_and_perception_come_from_nodes",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_enter_does_not_force_combat",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_repeat_entry_does_not_heal_or_respawn",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_route_updates_position_and_existing_action_budget",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_separate_campaigns_do_not_share_scenario_state",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_source_verified_commoner_attaches_by_explicit_id",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_turkish_uppercase_and_ascii_commands_are_native",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_failed_compound_reaction_restores_geometry_resources_and_rng",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_http_readied_move_invalidates_geometry_and_survives_resume_replay",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_newly_unavailable_readied_movement_keeps_known_geometry",
+    "test_regression.test_draw_weapon",
+    "test_regression.test_enter_through_door",
+    "test_regression.test_exit_location",
+    "test_regression.test_failed_investigation",
+    "test_regression.test_failed_stealth_narrator_contradiction",
+    "test_regression.test_false_memory_claim",
+    "test_regression.test_force_door_requires_check",
+    "test_regression.test_ground_item_different_location",
+    "test_regression.test_ground_item_same_location",
+    "test_regression.test_location_name_vs_character_name",
+    "test_regression.test_locked_door_requires_check",
+    "test_regression.test_malformed_intent_json",
+    "test_regression.test_named_location_return",
+    "test_regression.test_ollama_unavailable",
+    "test_regression.test_ordinary_environment_look",
+    "test_regression.test_player_said_memory",
+    "test_regression.test_return_travel",
+    "test_regression.test_sheathe_weapon",
+    "test_regression.test_successful_investigation",
+    "test_regression.test_terminal_skill_command",
+    "test_regression.test_unlocked_door_normal_open",
+    "test_regression.test_unsupported_attack",
+    "test_regression.test_who_is_here"
+  ],
+  "executed_test_ids": [
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_duplicate_function_module_selection_executes_once",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failed_subtests_retain_parent_and_individual_details",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failures_errors_skips_expected_and_unexpected_are_distinct",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_import_error_and_empty_selection_fail_closed",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_interruption_retains_started_test_and_nonzero_status",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_setup_class_error_does_not_claim_test_methods_executed",
+    "api.tests.test_regression_evidence.EvidenceRunnerTests.test_source_hash_changes_with_untracked_content_and_deletion",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_compound_failure_restores_cloud_jaunt_anchor_and_use",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_exhausted_cloud_jaunt_does_not_invalidate_geometry",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_species_endpoint_outside_combat_also_invalidates_geometry",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets",
+    "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_action_id_conflict_is_not_a_second_turn",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_normal_http_target_attack_and_resource_result",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_save_resume_after_process_restart_retains_all_canonical_state",
+    "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_unrelated_free_text_still_requires_existing_model_service",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_budget_only_move_invalidates_endpoint_instead_of_inventing_one",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_canonical_blinded_condition_does_not_gain_visibility",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unknown_npc_node_does_not_reset_to_start",
+    "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unlocated_player_movement_cannot_keep_stale_geometry",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_definition_is_not_campaign_canon_before_entry",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_directional_pair_and_perception_come_from_nodes",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_enter_does_not_force_combat",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_repeat_entry_does_not_heal_or_respawn",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_route_updates_position_and_existing_action_budget",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_separate_campaigns_do_not_share_scenario_state",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_source_verified_commoner_attaches_by_explicit_id",
+    "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_turkish_uppercase_and_ascii_commands_are_native",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_failed_compound_reaction_restores_geometry_resources_and_rng",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_http_readied_move_invalidates_geometry_and_survives_resume_replay",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources",
+    "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_newly_unavailable_readied_movement_keeps_known_geometry",
+    "test_regression.test_draw_weapon",
+    "test_regression.test_enter_through_door",
+    "test_regression.test_exit_location",
+    "test_regression.test_failed_investigation",
+    "test_regression.test_failed_stealth_narrator_contradiction",
+    "test_regression.test_false_memory_claim",
+    "test_regression.test_force_door_requires_check",
+    "test_regression.test_ground_item_different_location",
+    "test_regression.test_ground_item_same_location",
+    "test_regression.test_location_name_vs_character_name",
+    "test_regression.test_locked_door_requires_check",
+    "test_regression.test_malformed_intent_json",
+    "test_regression.test_named_location_return",
+    "test_regression.test_ollama_unavailable",
+    "test_regression.test_ordinary_environment_look",
+    "test_regression.test_player_said_memory",
+    "test_regression.test_return_travel",
+    "test_regression.test_sheathe_weapon",
+    "test_regression.test_successful_investigation",
+    "test_regression.test_terminal_skill_command",
+    "test_regression.test_unlocked_door_normal_open",
+    "test_regression.test_unsupported_attack",
+    "test_regression.test_who_is_here"
+  ],
+  "per_test": [
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_duplicate_function_module_selection_executes_once",
+      "started_at": "2026-10-04T09:15:15.382961+00:00",
+      "ended_at": "2026-10-04T09:15:15.594389+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_duplicate_function_module_selection_executes_once",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failed_subtests_retain_parent_and_individual_details",
+      "started_at": "2026-10-04T09:15:15.594990+00:00",
+      "ended_at": "2026-10-04T09:15:15.753550+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failed_subtests_retain_parent_and_individual_details",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failures_errors_skips_expected_and_unexpected_are_distinct",
+      "started_at": "2026-10-04T09:15:15.754322+00:00",
+      "ended_at": "2026-10-04T09:15:15.925505+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_failures_errors_skips_expected_and_unexpected_are_distinct",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_import_error_and_empty_selection_fail_closed",
+      "started_at": "2026-10-04T09:15:15.926053+00:00",
+      "ended_at": "2026-10-04T09:15:16.265180+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_import_error_and_empty_selection_fail_closed",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_interruption_retains_started_test_and_nonzero_status",
+      "started_at": "2026-10-04T09:15:16.265900+00:00",
+      "ended_at": "2026-10-04T09:15:16.503363+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_interruption_retains_started_test_and_nonzero_status",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_setup_class_error_does_not_claim_test_methods_executed",
+      "started_at": "2026-10-04T09:15:16.504187+00:00",
+      "ended_at": "2026-10-04T09:15:16.673347+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_setup_class_error_does_not_claim_test_methods_executed",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_source_hash_changes_with_untracked_content_and_deletion",
+      "started_at": "2026-10-04T09:15:16.674058+00:00",
+      "ended_at": "2026-10-04T09:15:16.770603+00:00",
+      "outcome": "failure",
+      "events": [
+        {
+          "id": "api.tests.test_regression_evidence.EvidenceRunnerTests.test_source_hash_changes_with_untracked_content_and_deletion",
+          "outcome": "failure",
+          "detail": "Traceback (most recent call last):\n  File \"/home/runner/workspace/ai-dnd/api/tests/test_regression_evidence.py\", line 128, in test_source_hash_changes_with_untracked_content_and_deletion\n    self.assertNotEqual(first[\"working_tree_sha256\"], second[\"working_tree_sha256\"])\n    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'b0834b4480aebe750debed2e8b8d971aa5ff788fbe08c7be1a9a82684ad8e480' == 'b0834b4480aebe750debed2e8b8d971aa5ff788fbe08c7be1a9a82684ad8e480'\n"
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng",
+      "started_at": "2026-10-04T09:15:16.771305+00:00",
+      "ended_at": "2026-10-04T09:15:16.885780+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_compound_failure_restores_cloud_jaunt_anchor_and_use",
+      "started_at": "2026-10-04T09:15:16.886372+00:00",
+      "ended_at": "2026-10-04T09:15:17.100651+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_compound_failure_restores_cloud_jaunt_anchor_and_use",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_exhausted_cloud_jaunt_does_not_invalidate_geometry",
+      "started_at": "2026-10-04T09:15:17.101313+00:00",
+      "ended_at": "2026-10-04T09:15:17.203509+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_exhausted_cloud_jaunt_does_not_invalidate_geometry",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_species_endpoint_outside_combat_also_invalidates_geometry",
+      "started_at": "2026-10-04T09:15:17.204427+00:00",
+      "ended_at": "2026-10-04T09:15:17.392460+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_species_endpoint_outside_combat_also_invalidates_geometry",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets",
+      "started_at": "2026-10-04T09:15:17.393218+00:00",
+      "ended_at": "2026-10-04T09:15:17.705541+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources",
+      "started_at": "2026-10-04T09:15:17.707651+00:00",
+      "ended_at": "2026-10-04T09:15:17.851653+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_action_id_conflict_is_not_a_second_turn",
+      "started_at": "2026-10-04T09:15:17.853344+00:00",
+      "ended_at": "2026-10-04T09:15:17.990226+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_action_id_conflict_is_not_a_second_turn",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_normal_http_target_attack_and_resource_result",
+      "started_at": "2026-10-04T09:15:17.990870+00:00",
+      "ended_at": "2026-10-04T09:15:18.217871+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_normal_http_target_attack_and_resource_result",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation",
+      "started_at": "2026-10-04T09:15:18.218494+00:00",
+      "ended_at": "2026-10-04T09:15:18.534929+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_save_resume_after_process_restart_retains_all_canonical_state",
+      "started_at": "2026-10-04T09:15:18.535547+00:00",
+      "ended_at": "2026-10-04T09:15:18.805763+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_save_resume_after_process_restart_retains_all_canonical_state",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_unrelated_free_text_still_requires_existing_model_service",
+      "started_at": "2026-10-04T09:15:18.806404+00:00",
+      "ended_at": "2026-10-04T09:15:18.894203+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_unrelated_free_text_still_requires_existing_model_service",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_budget_only_move_invalidates_endpoint_instead_of_inventing_one",
+      "started_at": "2026-10-04T09:15:18.895223+00:00",
+      "ended_at": "2026-10-04T09:15:19.061916+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_budget_only_move_invalidates_endpoint_instead_of_inventing_one",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_canonical_blinded_condition_does_not_gain_visibility",
+      "started_at": "2026-10-04T09:15:19.062616+00:00",
+      "ended_at": "2026-10-04T09:15:19.165160+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_canonical_blinded_condition_does_not_gain_visibility",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unknown_npc_node_does_not_reset_to_start",
+      "started_at": "2026-10-04T09:15:19.165803+00:00",
+      "ended_at": "2026-10-04T09:15:19.269556+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unknown_npc_node_does_not_reset_to_start",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unlocated_player_movement_cannot_keep_stale_geometry",
+      "started_at": "2026-10-04T09:15:19.270207+00:00",
+      "ended_at": "2026-10-04T09:15:19.360403+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unlocated_player_movement_cannot_keep_stale_geometry",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_definition_is_not_campaign_canon_before_entry",
+      "started_at": "2026-10-04T09:15:19.361267+00:00",
+      "ended_at": "2026-10-04T09:15:19.432658+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_definition_is_not_campaign_canon_before_entry",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_directional_pair_and_perception_come_from_nodes",
+      "started_at": "2026-10-04T09:15:19.433472+00:00",
+      "ended_at": "2026-10-04T09:15:19.517886+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_directional_pair_and_perception_come_from_nodes",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_enter_does_not_force_combat",
+      "started_at": "2026-10-04T09:15:19.518741+00:00",
+      "ended_at": "2026-10-04T09:15:19.609878+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_enter_does_not_force_combat",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_repeat_entry_does_not_heal_or_respawn",
+      "started_at": "2026-10-04T09:15:19.610517+00:00",
+      "ended_at": "2026-10-04T09:15:19.725593+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_repeat_entry_does_not_heal_or_respawn",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_route_updates_position_and_existing_action_budget",
+      "started_at": "2026-10-04T09:15:19.726223+00:00",
+      "ended_at": "2026-10-04T09:15:19.901333+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_route_updates_position_and_existing_action_budget",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_separate_campaigns_do_not_share_scenario_state",
+      "started_at": "2026-10-04T09:15:19.902173+00:00",
+      "ended_at": "2026-10-04T09:15:20.024256+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_separate_campaigns_do_not_share_scenario_state",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_source_verified_commoner_attaches_by_explicit_id",
+      "started_at": "2026-10-04T09:15:20.025182+00:00",
+      "ended_at": "2026-10-04T09:15:20.122037+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_source_verified_commoner_attaches_by_explicit_id",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_turkish_uppercase_and_ascii_commands_are_native",
+      "started_at": "2026-10-04T09:15:20.122691+00:00",
+      "ended_at": "2026-10-04T09:15:20.243537+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_turkish_uppercase_and_ascii_commands_are_native",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_failed_compound_reaction_restores_geometry_resources_and_rng",
+      "started_at": "2026-10-04T09:15:20.244622+00:00",
+      "ended_at": "2026-10-04T09:15:20.495161+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_failed_compound_reaction_restores_geometry_resources_and_rng",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_http_readied_move_invalidates_geometry_and_survives_resume_replay",
+      "started_at": "2026-10-04T09:15:20.495971+00:00",
+      "ended_at": "2026-10-04T09:15:20.854651+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_http_readied_move_invalidates_geometry_and_survives_resume_replay",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources",
+      "started_at": "2026-10-04T09:15:20.855485+00:00",
+      "ended_at": "2026-10-04T09:15:21.107035+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_newly_unavailable_readied_movement_keeps_known_geometry",
+      "started_at": "2026-10-04T09:15:21.108168+00:00",
+      "ended_at": "2026-10-04T09:15:21.451472+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_newly_unavailable_readied_movement_keeps_known_geometry",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_draw_weapon",
+      "started_at": "2026-10-04T09:15:21.452313+00:00",
+      "ended_at": "2026-10-04T09:15:21.470313+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_draw_weapon",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_enter_through_door",
+      "started_at": "2026-10-04T09:15:21.471046+00:00",
+      "ended_at": "2026-10-04T09:15:21.480433+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_enter_through_door",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_exit_location",
+      "started_at": "2026-10-04T09:15:21.481258+00:00",
+      "ended_at": "2026-10-04T09:15:21.483547+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_exit_location",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_failed_investigation",
+      "started_at": "2026-10-04T09:15:21.484318+00:00",
+      "ended_at": "2026-10-04T09:15:21.493122+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_failed_investigation",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_failed_stealth_narrator_contradiction",
+      "started_at": "2026-10-04T09:15:21.493867+00:00",
+      "ended_at": "2026-10-04T09:15:21.501132+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_failed_stealth_narrator_contradiction",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_false_memory_claim",
+      "started_at": "2026-10-04T09:15:21.501912+00:00",
+      "ended_at": "2026-10-04T09:15:21.509047+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_false_memory_claim",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_force_door_requires_check",
+      "started_at": "2026-10-04T09:15:21.509658+00:00",
+      "ended_at": "2026-10-04T09:15:21.517898+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_force_door_requires_check",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_ground_item_different_location",
+      "started_at": "2026-10-04T09:15:21.518485+00:00",
+      "ended_at": "2026-10-04T09:15:21.525698+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_ground_item_different_location",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_ground_item_same_location",
+      "started_at": "2026-10-04T09:15:21.526349+00:00",
+      "ended_at": "2026-10-04T09:15:21.533306+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_ground_item_same_location",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_location_name_vs_character_name",
+      "started_at": "2026-10-04T09:15:21.533951+00:00",
+      "ended_at": "2026-10-04T09:15:21.552222+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_location_name_vs_character_name",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_locked_door_requires_check",
+      "started_at": "2026-10-04T09:15:21.552982+00:00",
+      "ended_at": "2026-10-04T09:15:21.560940+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_locked_door_requires_check",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_malformed_intent_json",
+      "started_at": "2026-10-04T09:15:21.561579+00:00",
+      "ended_at": "2026-10-04T09:15:21.567472+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_malformed_intent_json",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_named_location_return",
+      "started_at": "2026-10-04T09:15:21.568169+00:00",
+      "ended_at": "2026-10-04T09:15:21.571298+00:00",
+      "outcome": "failure",
+      "events": [
+        {
+          "id": "test_regression.test_named_location_return",
+          "outcome": "failure",
+          "detail": "Traceback (most recent call last):\n  File \"/home/runner/workspace/ai-dnd/test_regression.py\", line 295, in test_named_location_return\n    assert game.world_state[\"location\"] == \"tavern\", \\\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: FAIL: Should return to tavern, got forest\n"
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_ollama_unavailable",
+      "started_at": "2026-10-04T09:15:21.571994+00:00",
+      "ended_at": "2026-10-04T09:15:21.581490+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_ollama_unavailable",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_ordinary_environment_look",
+      "started_at": "2026-10-04T09:15:21.582202+00:00",
+      "ended_at": "2026-10-04T09:15:21.590770+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_ordinary_environment_look",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_player_said_memory",
+      "started_at": "2026-10-04T09:15:21.591564+00:00",
+      "ended_at": "2026-10-04T09:15:21.593011+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_player_said_memory",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_return_travel",
+      "started_at": "2026-10-04T09:15:21.593615+00:00",
+      "ended_at": "2026-10-04T09:15:21.601892+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_return_travel",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_sheathe_weapon",
+      "started_at": "2026-10-04T09:15:21.602491+00:00",
+      "ended_at": "2026-10-04T09:15:21.611358+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_sheathe_weapon",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_successful_investigation",
+      "started_at": "2026-10-04T09:15:21.612090+00:00",
+      "ended_at": "2026-10-04T09:15:21.620750+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_successful_investigation",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_terminal_skill_command",
+      "started_at": "2026-10-04T09:15:21.621553+00:00",
+      "ended_at": "2026-10-04T09:15:21.748636+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_terminal_skill_command",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_unlocked_door_normal_open",
+      "started_at": "2026-10-04T09:15:21.749415+00:00",
+      "ended_at": "2026-10-04T09:15:21.757250+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_unlocked_door_normal_open",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_unsupported_attack",
+      "started_at": "2026-10-04T09:15:21.757997+00:00",
+      "ended_at": "2026-10-04T09:15:21.765899+00:00",
+      "outcome": "error",
+      "events": [
+        {
+          "id": "test_regression.test_unsupported_attack",
+          "outcome": "error",
+          "detail": "Traceback (most recent call last):\n  File \"/home/runner/workspace/ai-dnd/test_regression.py\", line 449, in test_unsupported_attack\n    result = run_turn(\"düşmanı saldırıyorum\")\n             ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/workspace/ai-dnd/test_regression.py\", line 59, in run_turn\n    return game.run_player_turn(player_input, messages)\n           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/workspace/ai-dnd/game.py\", line 12168, in bound\n    return __implementation(*args, **kwargs)\n  File \"/home/runner/workspace/ai-dnd/game.py\", line 10546, in run_player_turn\n    combat_lifecycle.validate_request(_session(), player_input, target_id)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/workspace/ai-dnd/combat_lifecycle.py\", line 56, in validate_request\n    raise CombatRequestError(\"invalid_combat_target\", \"Select one valid local target.\", 400)\ncombat_lifecycle.CombatRequestError: Select one valid local target.\n"
+        }
+      ]
+    },
+    {
+      "id": "test_regression.test_who_is_here",
+      "started_at": "2026-10-04T09:15:21.766693+00:00",
+      "ended_at": "2026-10-04T09:15:21.769433+00:00",
+      "outcome": "pass",
+      "events": [
+        {
+          "id": "test_regression.test_who_is_here",
+          "outcome": "pass",
+          "detail": null
+        }
+      ]
+    }
+  ],
+  "suite_events": [],
+  "python_version": "3.13.11 (main, Dec  5 2025, 16:06:33) [GCC 15.2.0]",
+  "source_start": {
+    "revision": "692673c31a30f5eb202ac0fcc1ac8e027f94bb6c",
+    "dirty": true,
+    "git_status_sha256": "258e7a2ed1b112a0af22ada237dad50efdd61d5849923e68a7377dabea57163d",
+    "working_tree_sha256": "e44cc212adf126a5cb67730704e0086a0347e71d3eb207e18955df4933b68c4d",
+    "index_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files": [
+      {
+        "path": "CAMPAIGN_TIME_V1.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_AI_PIPELINE_V10.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_CURRENT.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_MAJOR_PHASE_D_20260929.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_V2.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "COMBAT_DESIGN_LOCK.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "FORGOTTEN_REALMS_NEVERWINTER_CANON_PACK_V1.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "LIVE_QWEN_SMOKE.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "LIVING_WORLD_V2_GAMEPLAY_CONTRACT.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "MAJOR_ENGINE_CHECKPOINT_PHASE_D_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_CALIBRATION_V1_2026-09-29.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_CALIBRATION_V1_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_FORENSIC_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NEVERWINTER_CANON_SMOKE_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PLAYABLE_LIVING_WORLD_V1_1_FINAL_REPORT_2026-09-30.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PLAYABLE_LIVING_WORLD_V1_RELEASE_REPORT_2026-09-30.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PROJECT_STATUS_CHECKPOINT_2026-09-28.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "TESTING_CHECKPOINT.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "_source_backup/AI-DND_-_Kopya_1790550358438.rar",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "acceptance_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "action_economy.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ambient_event_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/campaign_journal.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/character_creation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/core_resolution.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/dnd_2024_rules.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/live_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/campaign_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/campaign_state.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/ingestion.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/models.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/pack_loader.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/installed_region_catalog.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/neverwinter_the_north_v1.extraction.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/neverwinter_the_north_v1.review.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/registry.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/main.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/narrative_director.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/narrative_memory.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/ollama_adapter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/opening_narrative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_models.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_serializer.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_store.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_validation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/schemas.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/serializers.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/session_manager.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_campaign_restart_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_neverwinter_canon_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_playable_living_world_v1_1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_playable_living_world_v1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/playable_living_world_v1_review.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_action_economy.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_api.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_bounded_encounter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_api.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_journal.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_lore_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_starts.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_time.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_time_edges.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_character_creation_2024.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_combat_lifecycle.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_contract_parity.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_core_resolution.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_death_system.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_initiative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_live_playable_living_world_v1_1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_live_playable_living_world_v1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_living_world_v2_foundation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_lore_authority.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_lore_engine_integration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_monster_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_monster_hardening.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_narrative_director.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_narrative_memory.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_playable_living_world_v1_review.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_quest_outcomes.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_regression_evidence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_species_traits.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_weapon_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_world_metadata.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/world_metadata.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "bounded_encounter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "campaign_time.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "combat_lifecycle.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/bounded-monster-integration.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/evidence/bounded-encounter-http.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/evidence/suite-runs/20261004T091514Z-d143c1c1fdfb49bd8bf44e588bc24741/run.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/monster-live-data-contract.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/regression-evidence.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_backup.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_checkpoint_major_phase_d_20260929.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_v10_backup_20260927.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_v10_backup_before_v11_20260927.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "initiative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/check_npc.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/check_source.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/combat_functions.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_simple.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_start.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_start2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_hit2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_hit_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss_final.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_failures.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_failures_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_npc_init.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_test_e.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_tests.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_acceptance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_debug.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_enemy_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_enemy_attack3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_import.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f_final.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_j.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_j2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_turn_advance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_turn_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/patch_forbidden.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/test_nat1.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_integration_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_intent_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_memory_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_narration_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_phase_c_narrative_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "living_world.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "local_dialogue.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_capabilities.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_perception.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "quest_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/action-economy-lock-verification.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/initiative-lock-verification.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/manual-review-attestation.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/narration-review.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717248556888962-860815c8/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717248556888962-860815c8/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/manual-review-attestation.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "run_tests.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scheduled_events.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scripts/run_regression_evidence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scripts/verify_bounded_encounter_http.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_actual_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_ai_pipeline_port.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_ai_pipeline_semantics.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2_authoritative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2_fixed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_door_enter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_migration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_migration_harden.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_narrative_rebalance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_narrative_safety_calibration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_npc_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_playable_living_world.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_query_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_regression.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_self_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_sessions.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_shops.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_startup.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_validate.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "timed_gameplay.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "trace_ai_pipeline.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "weapon_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "weapon_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "excluded_evidence_directories": [
+      "ai-dnd/docs/evidence/suite-runs"
+    ],
+    "scope": "All tracked and nonignored untracked files; ignored files/environment excluded."
+  },
+  "deduplication": {
+    "selected_occurrences": 57,
+    "unique_selected": 57,
+    "duplicates_removed": 0,
+    "duplicate_ids": {}
+  },
+  "source_end": {
+    "revision": "692673c31a30f5eb202ac0fcc1ac8e027f94bb6c",
+    "dirty": true,
+    "git_status_sha256": "258e7a2ed1b112a0af22ada237dad50efdd61d5849923e68a7377dabea57163d",
+    "working_tree_sha256": "e44cc212adf126a5cb67730704e0086a0347e71d3eb207e18955df4933b68c4d",
+    "index_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "files": [
+      {
+        "path": "CAMPAIGN_TIME_V1.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_AI_PIPELINE_V10.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_CURRENT.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_MAJOR_PHASE_D_20260929.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "CHECKPOINT_V2.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "COMBAT_DESIGN_LOCK.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ENGINE_CHANGE_APPROVAL_PACKAGE_2026-09-28.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "FORGOTTEN_REALMS_NEVERWINTER_CANON_PACK_V1.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "LIVE_QWEN_SMOKE.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "LIVING_WORLD_V2_GAMEPLAY_CONTRACT.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "MAJOR_ENGINE_CHECKPOINT_PHASE_D_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_CALIBRATION_V1_2026-09-29.sha256",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_CALIBRATION_V1_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NARRATIVE_SAFETY_FORENSIC_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "NEVERWINTER_CANON_SMOKE_REPORT_2026-09-29.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PLAYABLE_LIVING_WORLD_V1_1_FINAL_REPORT_2026-09-30.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PLAYABLE_LIVING_WORLD_V1_RELEASE_REPORT_2026-09-30.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "PROJECT_STATUS_CHECKPOINT_2026-09-28.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "TESTING_CHECKPOINT.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "_source_backup/AI-DND_-_Kopya_1790550358438.rar",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "acceptance_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "action_economy.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "ambient_event_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/campaign_journal.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/character_creation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/core_resolution.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/dnd_2024_rules.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/live_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/campaign_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/campaign_state.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/ingestion.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/models.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/pack_loader.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/installed_region_catalog.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/neverwinter_the_north_v1.extraction.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/packs/neverwinter_the_north_v1.review.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/lore_authority/registry.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/main.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/narrative_director.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/narrative_memory.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/ollama_adapter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/opening_narrative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/README.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/__init__.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_models.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_serializer.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_store.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/persistence/campaign_validation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/schemas.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/serializers.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/session_manager.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_campaign_restart_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_neverwinter_canon_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_playable_living_world_v1_1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/live_playable_living_world_v1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/playable_living_world_v1_review.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_action_economy.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_api.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_bounded_encounter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_api.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_journal.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_lore_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_starts.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_time.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_campaign_time_edges.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_character_creation_2024.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_combat_lifecycle.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_contract_parity.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_core_resolution.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_death_system.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_initiative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_live_playable_living_world_v1_1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_live_playable_living_world_v1_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_living_world_v2_foundation.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_lore_authority.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_lore_engine_integration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_monster_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_monster_hardening.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_narrative_director.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_narrative_memory.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_playable_living_world_v1_review.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_quest_outcomes.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_regression_evidence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_species_traits.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_weapon_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/tests/test_world_metadata.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "api/world_metadata.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "bounded_encounter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "campaign_time.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "combat_lifecycle.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/bounded-monster-integration.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/evidence/bounded-encounter-http.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/evidence/suite-runs/20261004T091514Z-d143c1c1fdfb49bd8bf44e588bc24741/run.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/monster-live-data-contract.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "docs/regression-evidence.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_backup.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_checkpoint_major_phase_d_20260929.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_v10_backup_20260927.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "game_v10_backup_before_v11_20260927.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "initiative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/check_npc.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/check_source.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/combat_functions.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_simple.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_start.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_combat_start2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_hit2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_hit_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_enemy_miss_final.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_failures.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_failures_detailed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_init3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_npc_init.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_test_e.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/debug_tests.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/edit_patch4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_acceptance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_debug.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_enemy_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_enemy_attack3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_import.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn3.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_run_turn4.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_f_final.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_j.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_test_j2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_turn_advance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/fix_turn_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/patch_forbidden.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "legacy_debug/test_nat1.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_integration_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_intent_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_memory_test.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_narration_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "live_phase_c_narrative_smoke.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "living_world.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "local_dialogue.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_capabilities.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "monster_perception.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "quest_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/action-economy-lock-verification.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/initiative-lock-verification.md",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752065566510348-af06a68b/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752326974017804-355f5954/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790752470781167391-928feb63/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753012335098156-004d1de7/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753135608914141-63879769/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753573850060004-143e108a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790753710026072480-22614c91/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/manual-review-attestation.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790754096460550017-01236423/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790877563432591039-ab30b35f/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/narration-review.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-1-smokes/1790891547712134650-f0e11d72/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717248556888962-860815c8/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717248556888962-860815c8/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717820072405511-7974ed56/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790717921525023007-f0559fc9/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719036726133422-077106f4/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719648295399130-2ff45b3e/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790719781881261849-19016014/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720375201626075-d6c87ef4/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790720767361803915-64ae9af6/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790729673733624975-8a970821/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730011106752420-1b845383/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730191918733073-17bde0ae/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730460803716219-94f4ce2f/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730618455592310-120f433d/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790730971295715044-7db79746/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731123997681948-809be95a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731329068047884-c94c5c3a/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731468227199056-722154b1/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790731719991502064-3e0566cb/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/api-audit.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/manual-review-attestation.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/resume-comparison.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/summary.json",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/playable-living-world-v1-smokes/1790732266826650921-2674c06c/turn-evidence.jsonl",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "run_tests.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scheduled_events.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scripts/run_regression_evidence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scripts/verify_bounded_encounter_http.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_actual_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_ai_pipeline_port.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_ai_pipeline_semantics.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2_authoritative.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_combat_v2_fixed.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_door_enter.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_migration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_migration_harden.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_narrative_rebalance.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_narrative_safety_calibration.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_npc_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_persistence.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_playable_living_world.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_query_logic.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_regression.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_self_query.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_sessions.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_shops.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_startup.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "test_validate.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "timed_gameplay.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "trace_ai_pipeline.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "weapon_attack.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "weapon_catalog.py",
+        "kind": "missing",
+        "mode": null,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "excluded_evidence_directories": [
+      "ai-dnd/docs/evidence/suite-runs"
+    ],
+    "scope": "All tracked and nonignored untracked files; ignored files/environment excluded."
+  },
+  "source_changed_during_run": false,
+  "unexecuted_test_ids": [],
+  "aggregate": {
+    "tests_run": 57,
+    "per_test_outcomes": {
+      "pass": 54,
+      "failure": 2,
+      "error": 1
+    },
+    "failures": 2,
+    "errors": 1,
+    "skips": 0,
+    "expected_failures": 0,
+    "unexpected_successes": 0
+  },
+  "output_log_sha256": "53906bcc74796f1bbfca73c224bfd0d891ae38baf41e6df5c2109ad780b77cc8"
+}
