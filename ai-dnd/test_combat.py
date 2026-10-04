@@ -3,7 +3,6 @@
 import sys
 import io
 import json
-import types
 from pathlib import Path
 
 
@@ -11,18 +10,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
 
-ollama_mock = types.SimpleNamespace(
-    chat=lambda **kwargs: {
-        "message": {
-            "content": (
-                '{"intent":"attack","action":"attack",'
-                '"target":{"type":"npc","reference":"Test Enemy"},'
-                '"completion":"completed","confidence":1.0}'
-            )
-        }
-    }
-)
-sys.modules["ollama"] = ollama_mock
+from offline_test_support import offline_model
 import game
 session = game.create_session()
 
@@ -65,6 +53,11 @@ def add_npc(name="Gromm", role="Barmen", hp=10, ac=10):
     return npc
 
 
+@offline_model(game, content=(
+    '{"intent":"attack","action":"attack",'
+    '"target":{"type":"npc","reference":"Test Enemy"},'
+    '"completion":"completed","confidence":1.0}'
+))
 def run_tests():
     if hasattr(sys.stdout, 'reconfigure'):
         try:
@@ -72,8 +65,6 @@ def run_tests():
             sys.stderr.reconfigure(encoding='utf-8', errors='replace')
         except Exception:
             pass
-    sys.modules['ollama'] = ollama_mock
-    game.ollama = ollama_mock
     print("=== COMBAT MECHANICS TEST ===\n")
 
     # Test A: Normal hit

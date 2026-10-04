@@ -4,13 +4,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
-from unittest.mock import MagicMock
-
-ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
-    "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
-}
-sys.modules['ollama'] = ollama_mock
+from offline_test_support import offline_model
 
 import game
 session = game.create_session()
@@ -39,7 +33,8 @@ session.world_state["npcs"].append({
     "backstory": ""
 })
 
-if __name__ == "__main__":
+@offline_model(game)
+def run_tests():
     if hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -63,3 +58,7 @@ if __name__ == "__main__":
         result = session._detect_query_type(t, None)
         print(f"  '{t}' -> {result}")
         assert result is None, f"NPC identity question without a target must remain unresolved: {t!r} -> {result!r}"
+
+
+if __name__ == "__main__":
+    run_tests()

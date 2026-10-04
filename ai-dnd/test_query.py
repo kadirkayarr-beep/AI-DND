@@ -4,13 +4,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 GAME_FILE = PROJECT_DIR / "game.py"
 sys.path.insert(0, str(PROJECT_DIR))
-from unittest.mock import MagicMock
-
-ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
-    "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
-}
-sys.modules['ollama'] = ollama_mock
+from offline_test_support import offline_model
 
 import game
 session = game.create_session()
@@ -32,6 +26,7 @@ def reset():
 reset()
 
 
+@offline_model(game)
 def run_tests():
     if hasattr(sys.stdout, 'reconfigure'):
         try:

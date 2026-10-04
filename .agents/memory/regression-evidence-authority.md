@@ -39,3 +39,14 @@ collection-order checks are needed to demonstrate that it is repaired.
 and label new passing combined invocations separately. Exercise scoped mocks
 through the retained function-test runner as well as API fixtures, rather than
 relying on fixtures available only under a different test framework.
+
+Do not repair unrelated legacy gameplay assumptions as part of model-binding
+isolation. A cleanup contract may explicitly check an existing gameplay refusal,
+but its passing result must not be reported as a passing gameplay entry point.
+
+**Why:** Broader isolation runs can expose old fixture failures unrelated to
+model ownership; changing gameplay or silently swallowing them would hide the
+distinction the owner needs.
+
+**How to apply:** Retain the failed attempt, identify the specific pre-existing
+refusal, label cleanup-only evidence, and propose the fixture repair separately.

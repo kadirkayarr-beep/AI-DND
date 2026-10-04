@@ -1,0 +1,136 @@
+test_cold_imports_in_both_orders_do_not_bind_or_call_a_mock (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_cold_imports_in_both_orders_do_not_bind_or_call_a_mock) ... ok
+test_direct_main_entry_points_restore_bindings (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_direct_main_entry_points_restore_bindings) ... 
+  test_direct_main_entry_points_restore_bindings (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_direct_main_entry_points_restore_bindings) (script='test_combat') ... FAIL
+test_each_script_restores_on_failure_and_owns_a_fresh_mock (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_each_script_restores_on_failure_and_owns_a_fresh_mock) ... ok
+test_mixed_entry_points_preserve_an_active_api_adapter (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_mixed_entry_points_preserve_an_active_api_adapter) ... 
+  test_mixed_entry_points_preserve_an_active_api_adapter (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_mixed_entry_points_preserve_an_active_api_adapter) (order=('test_combat', 'test_npc_query', 'test_door_enter', 'test_self_query', 'test_query', 'test_migration', 'test_migration_harden', 'test_actual_logic')) ... ERROR
+  test_mixed_entry_points_preserve_an_active_api_adapter (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_mixed_entry_points_preserve_an_active_api_adapter) (order=('test_actual_logic', 'test_migration_harden', 'test_migration', 'test_query', 'test_self_query', 'test_door_enter', 'test_npc_query', 'test_combat')) ... ERROR
+test_nested_scopes_restore_absent_module_on_interruption (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_nested_scopes_restore_absent_module_on_interruption) ... ok
+
+======================================================================
+ERROR: test_mixed_entry_points_preserve_an_active_api_adapter (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_mixed_entry_points_preserve_an_active_api_adapter) (order=('test_combat', 'test_npc_query', 'test_door_enter', 'test_self_query', 'test_query', 'test_migration', 'test_migration_harden', 'test_actual_logic'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_legacy_script_isolation.py", line 90, in test_mixed_entry_points_preserve_an_active_api_adapter
+    importlib.import_module(name).run_tests()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/offline_test_support.py", line 29, in run
+    return test(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/test_combat.py", line 79, in run_tests
+    result = resolve_attack("attack", weapon_name, WEAPONS[weapon_name], target)
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 3605, in resolve_attack
+    return weapon_attack.resolve(
+           ~~~~~~~~~~~~~~~~~~~~~^
+        _session(), "player", target_npc["id"], weapon_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        attack_choice, origin=origin,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 625, in resolve
+    context = prepare(session, actor, target, weapon_id, choice, origin=origin, profile=profile)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 209, in prepare
+    spatial = pair(session, actor, target)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 105, in pair
+    fail("distance_unknown", "Authoritative attack distance is unavailable.")
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 28, in fail
+    raise CombatRequestError(code, message, 400)
+combat_lifecycle.CombatRequestError: Authoritative attack distance is unavailable.
+
+======================================================================
+ERROR: test_mixed_entry_points_preserve_an_active_api_adapter (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_mixed_entry_points_preserve_an_active_api_adapter) (order=('test_actual_logic', 'test_migration_harden', 'test_migration', 'test_query', 'test_self_query', 'test_door_enter', 'test_npc_query', 'test_combat'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_legacy_script_isolation.py", line 90, in test_mixed_entry_points_preserve_an_active_api_adapter
+    importlib.import_module(name).run_tests()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/offline_test_support.py", line 29, in run
+    return test(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/test_combat.py", line 79, in run_tests
+    result = resolve_attack("attack", weapon_name, WEAPONS[weapon_name], target)
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 3605, in resolve_attack
+    return weapon_attack.resolve(
+           ~~~~~~~~~~~~~~~~~~~~~^
+        _session(), "player", target_npc["id"], weapon_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        attack_choice, origin=origin,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 625, in resolve
+    context = prepare(session, actor, target, weapon_id, choice, origin=origin, profile=profile)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 209, in prepare
+    spatial = pair(session, actor, target)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 105, in pair
+    fail("distance_unknown", "Authoritative attack distance is unavailable.")
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 28, in fail
+    raise CombatRequestError(code, message, 400)
+combat_lifecycle.CombatRequestError: Authoritative attack distance is unavailable.
+
+======================================================================
+FAIL: test_direct_main_entry_points_restore_bindings (api.tests.test_legacy_script_isolation.LegacyScriptIsolationTests.test_direct_main_entry_points_restore_bindings) (script='test_combat')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/workspace/ai-dnd/api/tests/test_legacy_script_isolation.py", line 64, in test_direct_main_entry_points_restore_bindings
+                    self.run_python(f"""
+                    ~~~~~~~~~~~~~~~^^^^^
+    import runpy
+    ^^^^^^^^^^^^
+    ...<11 lines>...
+        listing.assert_not_called()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_legacy_script_isolation.py", line 30, in run_python
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : === COMBAT MECHANICS TEST ===
+
+TEST A: Normal hit (d20=15, AC=10)
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+    runpy.run_path('/home/runner/workspace/ai-dnd' + '/test_combat.py', run_name='__main__')
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/runner/workspace/ai-dnd/test_combat.py", line 235, in <module>
+    run_tests()
+    ~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/offline_test_support.py", line 29, in run
+    return test(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/test_combat.py", line 79, in run_tests
+    result = resolve_attack("attack", weapon_name, WEAPONS[weapon_name], target)
+  File "/home/runner/workspace/ai-dnd/game.py", line 12168, in bound
+    return __implementation(*args, **kwargs)
+  File "/home/runner/workspace/ai-dnd/game.py", line 3605, in resolve_attack
+    return weapon_attack.resolve(
+           ~~~~~~~~~~~~~~~~~~~~~^
+        _session(), "player", target_npc["id"], weapon_name,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        attack_choice, origin=origin,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 625, in resolve
+    context = prepare(session, actor, target, weapon_id, choice, origin=origin, profile=profile)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 209, in prepare
+    spatial = pair(session, actor, target)
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 105, in pair
+    fail("distance_unknown", "Authoritative attack distance is unavailable.")
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/ai-dnd/weapon_attack.py", line 28, in fail
+    raise CombatRequestError(code, message, 400)
+combat_lifecycle.CombatRequestError: Authoritative attack distance is unavailable.
+
+
+----------------------------------------------------------------------
+Ran 5 tests in 4.474s
+
+FAILED (failures=1, errors=2)

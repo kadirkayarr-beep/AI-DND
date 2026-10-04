@@ -3,27 +3,7 @@ import io
 from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_DIR))
-from unittest.mock import MagicMock
-
-ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
-    "message": {"content": '{"intent":"narrative","action":"test","target":{"type":"none","reference":""},"completion":"unclear","confidence":0.5}'}
-}
-sys.modules['ollama'] = ollama_mock
-
-# We'll test the logic directly without running the full game
-# by checking the _detect_query_type and _handle_query functions
-
-# First, let's just check the query detection logic
-from unittest.mock import MagicMock
-
-ollama_mock = MagicMock()
-ollama_mock.chat.return_value = {
-    "message": {
-        "content": '{"intent":"dialogue","action":"talk","target":{"type":"npc","reference":"Barmen"},"completion":"completed","confidence":1.0}'
-    }
-}
-sys.modules["ollama"] = ollama_mock
+from offline_test_support import offline_model
 import game
 
 session = game.create_session()
@@ -41,6 +21,11 @@ session.world_state['npcs'].append({
 
 # Get the NPC target (as would be resolved by resolve_npc_reference)
 
+@offline_model(game, content=(
+    '{"intent":"dialogue","action":"talk",'
+    '"target":{"type":"npc","reference":"Barmen"},'
+    '"completion":"completed","confidence":1.0}'
+))
 def run_tests():
     if hasattr(sys.stdout, 'reconfigure'):
         try:

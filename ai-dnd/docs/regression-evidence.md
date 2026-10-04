@@ -29,6 +29,46 @@ functions (including `test_regression.py`). It does not invent individual test
 results for arbitrary script-style gates. Default selection is bounded encounter
 plus regression, **not** a reconstruction of the historical 563-test selection.
 
+Legacy script entry points can be selected explicitly as functions, for example
+`test_door_enter.run_tests`. Selecting a script module with only `run_tests`
+does not select that entry point automatically. Imports no longer execute the
+door checks or install a model mock. Each of the eight legacy scripts owns a
+fresh model mock only for its `run_tests` invocation, restoring both the engine
+and module bindings on success, failure or interruption.
+
+`api.tests.test_legacy_script_isolation` checks cold imports in both orders,
+all eight `__main__` entry points in fresh processes, mixed forward/reverse
+entry points under an active API adapter, injected failures in each script,
+fresh mocks on repeated calls, and nested interruption with an absent module
+binding. Real model callbacks are forbidden in the cold-import/direct-entry
+checks. These are **offline isolation contracts**, not live HTTP acceptance.
+
+The old `test_combat.run_tests` gameplay fixture lacks authoritative distance
+and raises `CombatRequestError` with `distance_unknown` at its first attack,
+including in the unchanged pre-isolation script. This task does not repair that
+fixture or relax geometry validation. The isolation suite explicitly expects
+that refusal and checks cleanup; it does **not** claim the old combat gameplay
+gate passes. Broader passing selections include the other seven explicit
+`run_tests` selectors and the combat failure-cleanup contract, rather than
+concealing this known failed gameplay entry point.
+
+### Retained legacy-isolation runs
+
+All paths below are new offline records, each with `run.json` and `output.log`.
+Earlier evidence is unchanged.
+
+| Selection | Result | Archive |
+| --- | --- | --- |
+| Initial isolation contracts, before accounting for the pre-existing combat fixture refusal | Failed: 5 parent tests, 1 failure and 2 subtest errors | [Initial attempt](evidence/suite-runs/20261004T100001Z-38309e2b7df64d8bbabcb11579c85ed6/run.json) |
+| Seven supported legacy entry points, legacy isolation, model isolation, bounded encounter, regression, campaign time, combat lifecycle | **103/103 passed** | [Legacy-first](evidence/suite-runs/20261004T100118Z-c367985b09aa40aa841cdf9cb3209c14/run.json) |
+| The same selectors in reverse order | **103/103 passed** | [API-first](evidence/suite-runs/20261004T100138Z-fd91cc67de2343a7bf0aac26d5c7204c/run.json) |
+
+Both passing runs selected and executed 103 unique IDs with no skips or
+unexecuted IDs and no source change during execution. Their five isolation
+parent tests include all eight scripts; combat contributes explicit
+failure-cleanup evidence, not a passing combat gameplay result.
+Exact invocations and source fingerprints are in the linked records.
+
 Every invocation creates a unique, durable directory under
 `ai-dnd/docs/evidence/suite-runs/`, with `run.json` and `output.log`. Use
 `--archive-root` only for another durable location, not `/tmp`. Keep both files
