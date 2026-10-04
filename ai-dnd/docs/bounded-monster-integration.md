@@ -13,9 +13,13 @@ incapacitated slots cannot act and no longer stall the scheduler.
 Player transitions remain in the existing game Death owner. Real healing clears
 zero-HP counters and pending recovery without resurrection. The bounded NPC
 Medicine Help helper uses the existing skill resolver/action resource owner and
-requires canonical supported healer data. Its production NPC action/receipt bridge
-is not yet connected, so stabilization action-ID replay is not certified. It does
-not introduce autonomous healer AI.
+requires canonical supported healer data: **SUPPORTED MECHANIC / CURRENTLY
+UNREACHABLE WITHOUT A LEGITIMATE EXTERNAL ACTOR.** Death owns the mechanic, not
+creation of allied-NPC control, companion actions or autonomous rescue behavior.
+Production reachability is not a Death completion blocker when no legitimate
+conscious actor/action entry point exists. A future legitimate party/allied-NPC
+action owner may invoke this primitive through existing receipts; no such route
+or receipt-replay certification is fabricated here.
 
 Stable recovery rolls one session-RNG d4 and persists an elapsed-time deadline.
 `advance_campaign_time` consumes it through the existing clock/event pipeline,

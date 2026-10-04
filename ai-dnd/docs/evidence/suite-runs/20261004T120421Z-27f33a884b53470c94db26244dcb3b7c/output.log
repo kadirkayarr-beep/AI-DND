@@ -1,0 +1,8 @@
+test_real_damage_at_zero_normal_rollback_and_receipt_replay (api.tests.test_death_bounded.SaveDeleteTests.test_real_damage_at_zero_normal_rollback_and_receipt_replay) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.131s
+
+OK

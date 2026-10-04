@@ -31,12 +31,15 @@ automatic deletion in Normal, Permadeath and Ironman.
 **How to apply:** Keep mode outcomes and persistence deletion independent, and preserve
 unrelated campaigns/sessions.
 
-For bounded Death completion, stabilization must use an already legitimate
-production actor/action path and existing receipts. Do not add autonomous NPC
-behavior or a new self-healing capability merely to expose it. If no such path is
-available, stop and report an architectural conflict rather than inventing one.
+Death owns the authoritative stabilization mechanic, not creation of an external
+actor/action architecture. Its status without a legitimate conscious actor is:
+SUPPORTED MECHANIC / CURRENTLY UNREACHABLE WITHOUT A LEGITIMATE EXTERNAL ACTOR.
+Do not add autonomous NPC behavior, arbitrary NPC control or self-stabilization
+merely to expose it. Absent production reachability is not a Death completion
+blocker, and receipts must not be certified against a fabricated action route.
 
-**Why:** The user explicitly imposed this gate in the bounded completion follow-up.
+**Why:** The user explicitly revised the completion boundary: mechanic correctness
+is in scope; creating a legitimate allied-NPC/companion action entry is not.
 
-**How to apply:** Check production reachability before connecting the helper; a
-direct engine helper or test-only actor is not sufficient.
+**How to apply:** Verify the engine primitive; only a future legitimately supported
+external actor/action owner may connect it to the existing receipt system.

@@ -86,15 +86,57 @@ class DeathBoundedTests(unittest.TestCase):
                     "id": "medic", "location": s.world_state["location"],
                     "current_hp": 5, "combat_status": "active", "medicine_bonus": 0,
                 })
-                with patch("game.roll_d20", return_value=roll):
+                s.ensure_death_state().update(successes=1, failures=1)
+                with patch("game.roll_d20", return_value=roll) as medicine:
                     result = s.attempt_player_stabilization("medic")
+                self.assertEqual(medicine.call_count, 1)
+                self.assertEqual(result["resolution"]["target_value"], 10)
+                self.assertEqual(result["resolution"]["modifier_breakdown"]["ability_modifier"], 0)
                 self.assertEqual(result["success"], stable)
                 self.assertEqual(s.ensure_death_state()["stable"], stable)
                 self.assertEqual(s.character["current_hp"], 0)
+                self.assertEqual((s.ensure_death_state()["successes"], s.ensure_death_state()["failures"]),
+                                 (0, 0) if stable else (1, 1))
+                self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 0)
                 if stable:
+                    self.assertIsNotNone(s.ensure_death_state()["recovery"])
                     s._apply_player_damage(20, took_damage=True)
                     self.assertTrue(s.ensure_death_state()["dead"])
                     self.assertIsNone(s.ensure_death_state()["recovery"])
+                else:
+                    self.assertIsNone(s.ensure_death_state()["recovery"])
+        for invalid in (
+            {"current_hp": 0}, {"combat_status": "unconscious"},
+            {"conditions": ["incapacitated"]}, {"hostile": True},
+            {"location": "elsewhere"}, {"medicine_bonus": None},
+        ):
+            with self.subTest(ineligible_healer=invalid):
+                s = self.unconscious()
+                s.world_state["npcs"].append({
+                    "id": "medic", "location": s.world_state["location"],
+                    "current_hp": 5, "combat_status": "active", "medicine_bonus": 0, **invalid,
+                })
+                before = s.serialize_game_state(), s.rng.getstate()
+                with patch("game.roll_d20", side_effect=AssertionError("Ineligible healer must not roll")):
+                    with self.assertRaises(ValueError):
+                        s.attempt_player_stabilization("medic")
+                self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
+        for target in ("conscious", "dead"):
+            with self.subTest(ineligible_target=target):
+                s = self.unconscious()
+                s.world_state["npcs"].append({
+                    "id": "medic", "location": s.world_state["location"],
+                    "current_hp": 5, "combat_status": "active", "medicine_bonus": 0,
+                })
+                if target == "conscious":
+                    s.heal_player(1)
+                else:
+                    s.set_player_max_hp(0)
+                before = s.serialize_game_state(), s.rng.getstate()
+                with patch("game.roll_d20", side_effect=AssertionError("Ineligible target must not roll")):
+                    with self.assertRaises(ValueError):
+                        s.attempt_player_stabilization("medic")
+                self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
 
     def test_noncombat_timing_and_natural_twenty(self):
         s = self.unconscious()
@@ -276,6 +318,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         import uuid
         a = await self.create_campaign()
         s = self.manager.get(a["session_id"]).game_session
+        campaign_time.initialize(s.world_state)
         death_fixtures.start_test_combat(s)
         s._apply_player_damage(s.character["current_hp"], took_damage=True)
         import bounded_encounter
@@ -290,18 +333,61 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         }}
         request = {"message": "Ölüm kurtarmasını bekliyorum.", "action_id": str(uuid.uuid4())}
         url = f"/api/game/sessions/{a['session_id']}/turn"
-        with patch("game.roll_d20", return_value=9) as die, patch.object(
-            s.rng, "randint", side_effect=[20, 20, 1, 1]
-        ) as attack_dice:
+        # The module d20 provider also feeds session-bound NPC attack rolls.
+        # One failed death save, then the two real attack-resolution dice.
+        # Damage uses real session RNG; observe it without replacing its results.
+        with patch("game.roll_d20", side_effect=[9, 20, 20]) as d20, patch.object(
+            s.rng, "randint", wraps=s.rng.randint
+        ) as damage_dice, patch(
+            "game._apply_player_damage", wraps=game._apply_player_damage
+        ) as damage_owner, patch(
+            "game._finalize_player_death", wraps=game._finalize_player_death
+        ) as death_owner, patch(
+            "game.advance_campaign_time", wraps=game.advance_campaign_time
+        ) as time_owner:
             first = await self.http.post(url, json=request)
             self.assertEqual(first.status_code, 200, first.text)
+            result = first.json()["combat_result"]
+            self.assertEqual(result["death_save"]["roll"], 9)
+            self.assertEqual(result["death_save"]["failures"], 1)
+            self.assertEqual(len(result["enemy_actions"]), 1)
+            attack = result["enemy_actions"][0]
+            self.assertEqual(attack["actor"], enemy["id"])
+            self.assertEqual(attack["target_id"], "player")
+            self.assertEqual(attack["attack_rolls"], [20, 20])
+            self.assertTrue(attack["critical"])
+            self.assertEqual(attack["outcome"], "critical_hit")
+            self.assertEqual(attack["target_hp_before"], 0)
+            self.assertGreater(attack["damage"], 0)
+            self.assertEqual(attack["hp_damage"], attack["damage"])
+            self.assertEqual(d20.call_count, 3)
+            self.assertEqual(damage_dice.call_count, 2)
+            self.assertEqual(damage_dice.call_args_list, [unittest.mock.call(1, 4)] * 2)
+            self.assertEqual(damage_owner.call_count, 1)
+            self.assertTrue(damage_owner.call_args.kwargs["critical"])
+            self.assertEqual(damage_owner.call_args.kwargs["resolved_damage"], attack["damage"])
+            self.assertEqual(death_owner.call_count, 1)
             self.assertTrue(s.ensure_death_state()["last_resolution"]["rolled_back"])
-            before = s.serialize_game_state(), s.rng.getstate()
+            self.assertEqual(s.ensure_death_state()["last_resolution"]["cause"], "failed_death_saves")
+            self.assertGreater(s.character["current_hp"], 0)
+            self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 0)
+            record = self.manager.get(a["session_id"])
+            before = (
+                s.serialize_game_state(), s.rng.getstate(), copy.deepcopy(record.journal),
+                copy.deepcopy(record.narrative_memory), record.lore_authority.to_dict(),
+                copy.deepcopy(record.turn_action_receipts), self.store.get_campaign(a["campaign_id"]),
+            )
+            calls = (d20.call_count, damage_dice.call_count, damage_owner.call_count,
+                     death_owner.call_count, time_owner.call_count)
             repeated = await self.http.post(url, json=request)
             self.assertEqual(repeated.json(), first.json())
-            self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
-            self.assertEqual(attack_dice.call_count, 4)
-            self.assertEqual(die.call_count, 1)
+            self.assertEqual((
+                s.serialize_game_state(), s.rng.getstate(), record.journal,
+                record.narrative_memory, record.lore_authority.to_dict(),
+                record.turn_action_receipts, self.store.get_campaign(a["campaign_id"]),
+            ), before)
+            self.assertEqual((d20.call_count, damage_dice.call_count, damage_owner.call_count,
+                              death_owner.call_count, time_owner.call_count), calls)
 
     async def test_failed_fatal_turn_persistence_restores_engine_and_rng(self):
         import uuid

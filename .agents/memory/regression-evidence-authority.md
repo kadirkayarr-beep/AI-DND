@@ -72,3 +72,12 @@ Checking only the final rollback would falsely certify the missing damage path.
 
 **How to apply:** Keep the failing coverage evidence; distinguish receipt replay
 of death saves from receipt replay of a verified resolved damage instance.
+
+Shared dice mocks must account for every consumer; observe real RNG with a
+wrapping spy rather than assuming a death-save mock cannot affect attack rolls.
+
+**Why:** A fixed death-save d20 also fed session-bound NPC attacks, forcing misses;
+ordinary later death saves still rolled back, concealing the absent damage path.
+
+**How to apply:** Script shared d20 values in actual resolution order and assert
+positive attack/damage evidence alongside unchanged replay call counts/state.
