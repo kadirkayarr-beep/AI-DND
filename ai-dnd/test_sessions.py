@@ -2171,6 +2171,99 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
+    def test_overlapping_attack_cannot_borrow_another_sessions_guessed_location(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+        for session, enemy, correct in zip(
+                (self.a, self.b), enemies, (True, False)):
+            session.character.update(armor_class=10, current_hp=19)
+            enemy.update(attack_bonus=0, damage_die=6,
+                         damage_dice=1, damage_modifier=2)
+            session.world_state["attack_environment"]["pairs"][
+                f"{enemy['id']}|player"
+            ]["guessed_location_correct"] = correct
+        # Both campaigns have the same known distance and visible target.
+        # Only B guesses the wrong location; its natural 20 must still miss.
+        before_a = self.a.serialize_game_state()
+        before_b = self.b.serialize_game_state()
+        rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        valid_attack_waiting = threading.Event()
+        wrong_location_attack_finished = threading.Event()
+        roll_d20 = self.a.roll_d20
+
+        def overlapping_roll():
+            self.assertIs(game._session(), self.a)
+            valid_attack_waiting.set()
+            self.assertTrue(wrong_location_attack_finished.wait(timeout=5))
+            self.assertIs(game._session(), self.a)
+            return roll_d20()
+
+        def wrong_location_attack():
+            try:
+                self.assertTrue(valid_attack_waiting.wait(timeout=5))
+                result = game.resolve_enemy_attack(enemies[1], session=self.b)
+                # B commits its miss while A is still inside its attack.
+                self.assertEqual(self.a.serialize_game_state(), before_a)
+                self.assertEqual(self.a.rng.getstate(), rng_a)
+                return result
+            finally:
+                wrong_location_attack_finished.set()
+
+        with self.rolls(self.a, (20, 15), (6, 4)), \
+             self.rolls(self.b, (20, 20)), \
+             self.rolls(game._DEFAULT_SESSION), \
+             patch.object(self.a, "roll_d20", side_effect=overlapping_roll):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                valid = pool.submit(game.resolve_enemy_attack, enemies[0],
+                                    session=self.a)
+                wrong_location = pool.submit(wrong_location_attack)
+                result_b = wrong_location.result(timeout=10)
+                result_a = valid.result(timeout=10)
+
+        for result in (result_a, result_b):
+            self.assertEqual(result["actor_id"], enemies[0]["id"])
+            self.assertEqual(result["target_id"], "player")
+            self.assertEqual(result["target_ac"], 10)
+            self.assertEqual(result["target_hp_before"], 19)
+            self.assertEqual(result["target_status"], "active")
+            self.assertEqual(result["advantage_sources"], [])
+            self.assertEqual(result["disadvantage_sources"], [])
+            self.assertFalse(result["critical"])
+        self.assertTrue(result_a["success"])
+        self.assertTrue(result_a["hit"])
+        self.assertEqual(result_a["outcome"], "hit")
+        self.assertEqual(result_a["attack_rolls"], [15])
+        self.assertEqual(result_a["attack_roll"], 15)
+        self.assertEqual(result_a["damage_rolls"], [
+            {"source": "weapon", "die": 6, "count": 1, "rolls": [4]}
+        ])
+        self.assertEqual(result_a["damage"], 6)
+        self.assertEqual(result_a["target_hp_after"], 13)
+        self.assertFalse(result_b["success"])
+        self.assertFalse(result_b["hit"])
+        self.assertEqual(result_b["outcome"], "miss")
+        self.assertEqual(result_b["attack_rolls"], [20])
+        self.assertEqual(result_b["attack_roll"], 20)
+        self.assertTrue(result_b["natural_20"])
+        self.assertEqual(result_b["damage_rolls"], [])
+        self.assertEqual(result_b["damage"], 0)
+        self.assertEqual(result_b["target_hp_after"], 19)
+        # Both legal attacks record their own result, but only A loses HP.
+        # Whole snapshots also preserve the distinct location guesses.
+        before_a["player"]["current_hp"] = 13
+        for before, result in ((before_a, result_a), (before_b, result_b)):
+            before["world_state"].setdefault("attack_results", []).append(
+                copy.deepcopy(result)
+            )
+        self.assertEqual(self.a.serialize_game_state(), before_a)
+        self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.a.rng.getstate(), rng_a)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()
