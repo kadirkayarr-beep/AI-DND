@@ -1302,6 +1302,132 @@ class WeaponTests(unittest.TestCase):
             with self.subTest(distance=distance):
                 self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
 
+    def assert_valid_forward_pair_ignores_broken_reverse(self, *, npc_origin):
+        malformed_pairs = [
+            {}, *({"distance_ft": value} for value in (
+                -1, False, True, float("nan"), float("inf"), float("-inf"),
+                None, "30", "30.0", [], [30], {}, {"distance_ft": 30},
+            )),
+        ]
+
+        def snapshot(session):
+            # JSON also permits a stable comparison of malformed NaN fixtures.
+            return json.dumps((
+                session.serialize_game_state(), session.world_state,
+                session.character, session.messages, session.rng.getstate(),
+            ), sort_keys=True)
+
+        for reverse_distance in malformed_pairs:
+            for obscured_forward in (False, True):
+                with self.subTest(reverse=reverse_distance,
+                                  obscured_forward=obscured_forward):
+                    s, n = armed("Shortbow")
+                    # No canonical distance may hide an incorrect pair lookup.
+                    del n["distance_ft"]
+                    s.character["armor_class"] = 12
+                    if npc_origin:
+                        n.update(weapon_id="shortbow", inventory=["Shortbow"],
+                                 equipment={"main_hand": "shortbow", "off_hand": None},
+                                 dexterity=14, dexterity_mod=2, proficiency_bonus=2,
+                                 weapon_proficiencies=["simple"], weapon_masteries=[],
+                                 ammunition={"arrow": 20})
+                        s.advance_combat_turn()
+                    actor, target = ((n["id"], "player") if npc_origin
+                                     else ("player", n["id"]))
+                    forward = {
+                        "distance_ft": 30,
+                        "cover": "half" if obscured_forward else "none",
+                        "attacker_sees_target": not obscured_forward,
+                        "target_sees_attacker": True,
+                    }
+                    reverse = {
+                        **reverse_distance,
+                        "cover": "none" if obscured_forward else "total",
+                        "attacker_sees_target": obscured_forward,
+                        "target_sees_attacker": False,
+                        "guessed_location_correct": False,
+                    }
+                    s.world_state["attack_environment"] = {"pairs": {
+                        f"{actor}|{target}": forward,
+                        f"{target}|{actor}": reverse,
+                    }}
+                    geometry_before = json.dumps(s.world_state["attack_environment"],
+                                                 sort_keys=True)
+                    ammunition_before = copy.deepcopy(s.world_state["ammunition"])
+                    default_before = snapshot(game._DEFAULT_SESSION)
+                    rng_before = s.rng.getstate()
+                    self.assertEqual(attack.pair(s, actor, target), forward)
+                    self.assertNotIn("distance_ft", n)
+
+                    attack_rolls = [10, 12] if obscured_forward else [10]
+                    remaining = iter([*attack_rolls, 4])
+
+                    def owned_randint(low, high):
+                        self.assertIs(game._session(), s)
+                        value = next(remaining)
+                        self.assertLessEqual(low, value)
+                        self.assertLessEqual(value, high)
+                        return value
+
+                    # Do not replace roll_attack/roll_damage: they must route
+                    # through the explicit session, never the default campaign.
+                    with patch.object(s.rng, "randint", side_effect=owned_randint) as dice, \
+                         patch.object(game._DEFAULT_SESSION.rng, "randint",
+                                      side_effect=AssertionError("Attack used default dice")) as default_dice:
+                        result = (s.resolve_enemy_attack(n) if npc_origin else
+                                  attack.resolve(s, actor, target, "Shortbow"))
+                        self.assertEqual(dice.call_args_list,
+                                         [call(1, 20)] * len(attack_rolls) + [call(1, 6)])
+                        self.assertIsNone(next(remaining, None), "Expected dice were not consumed")
+                        default_dice.assert_not_called()
+
+                    self.assertEqual(result["actor_id"], actor)
+                    self.assertEqual(result["target_id"], target)
+                    self.assertEqual(result["status"], "resolved")
+                    self.assertTrue(result["success"])
+                    self.assertTrue(result["hit"])
+                    self.assertFalse(result["critical"])
+                    self.assertEqual(result["outcome"], "hit")
+                    self.assertEqual(result["attack_rolls"], attack_rolls)
+                    self.assertEqual(result["attack_bonus"], 4)
+                    self.assertEqual(result["attack_total"], 14)
+                    self.assertEqual(result["target_ac_base"], 12)
+                    self.assertEqual(result["target_ac"], 14 if obscured_forward else 12)
+                    self.assertEqual(result["cover_state"], forward["cover"])
+                    self.assertEqual(result["advantage_sources"], [])
+                    self.assertEqual(result["disadvantage_sources"],
+                                     ["unseen_target"] if obscured_forward else [])
+                    self.assertEqual(result["damage_rolls"], [
+                        {"source": "weapon", "die": 6, "count": 1, "rolls": [4]}])
+                    self.assertEqual(result["damage_type"], "piercing")
+                    self.assertEqual(result["damage"], 6)
+                    self.assertEqual(result["hp_damage"], 6)
+                    self.assertEqual(result["target_hp_before"], 100)
+                    self.assertEqual(result["target_hp_after"], 94)
+                    self.assertEqual(s.character["current_hp"], 94 if npc_origin else 100)
+                    self.assertEqual(n["current_hp"], 100 if npc_origin else 94)
+                    self.assertEqual(result["ammunition_consumed"],
+                                     {"type": "arrow", "quantity": 1})
+                    if npc_origin:
+                        self.assertEqual(n["ammunition"], {"arrow": 19})
+                    else:
+                        ammunition_before["arrow"] -= 1
+                    self.assertEqual(s.world_state["ammunition"], ammunition_before)
+                    self.assertEqual(s.world_state["attack_results"], [result])
+                    self.assertIsNot(s.world_state["attack_results"][0], result)
+                    self.assertEqual(json.dumps(s.world_state["attack_environment"],
+                                                sort_keys=True), geometry_before)
+                    self.assertNotIn("distance_ft", n)
+                    # The scripted RNG does not advance its underlying state.
+                    self.assertEqual(s.rng.getstate(), rng_before)
+                    self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_player_valid_forward_pair_ignores_malformed_reverse_distance(self):
+        self.assert_valid_forward_pair_ignores_broken_reverse(npc_origin=False)
+
+    def test_npc_valid_forward_pair_ignores_malformed_reverse_distance(self):
+        self.assert_valid_forward_pair_ignores_broken_reverse(npc_origin=True)
+
     def test_lance_has_2024_two_handed_property_not_2014_mounted_exception(self):
         s, n = armed("Lance")
         s.character["mounted"] = True

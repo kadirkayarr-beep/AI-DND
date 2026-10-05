@@ -14,7 +14,8 @@ Before removing an orphaned fragment, verify its assertions already exist in a c
 **Why:** A duplicated test tail can be appended inside an unrelated method; removing only the unmatched delimiter leaves undefined variables and misleading coverage.
 
 **How to apply:** Preserve the complete test and remove only the proven duplicate tail, then check parsing and run the integrated suite.
-Check duplicate fixture and helper definitions as well as syntax.
+Check duplicate fixture and helper definitions, including setup/teardown,
+as well as syntax: Python silently replaces earlier methods with later definitions.
 
 **Why:** Integration can duplicate setup and helper methods while appending an orphaned test fragment elsewhere. A syntax repair alone leaves shadowed definitions that Python accepts silently.
 
