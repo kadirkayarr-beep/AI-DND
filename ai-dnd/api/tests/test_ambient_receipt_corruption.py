@@ -33,6 +33,14 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
                     (campaign_id,),
                 )],
+                [tuple(row) for row in db.execute(
+                    "SELECT * FROM campaign_history WHERE campaign_id = ? ORDER BY sequence",
+                    (campaign_id,),
+                )],
+                [tuple(row) for row in db.execute(
+                    "SELECT * FROM campaign_combat_history WHERE campaign_id = ? ORDER BY sequence",
+                    (campaign_id,),
+                )],
             )
 
     async def check_reopened_receipt(self, mutate=None, legacy=None, conflict=None):
@@ -63,7 +71,15 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
         else:
             if legacy == "empty":
                 damaged = {"action_id": command["action_id"], "legacy_ambient_result": {}}
-            elif mutate is not None:
+            elif legacy == "damaged":
+                damaged = {
+                    "action_id": command["action_id"],
+                    "legacy_ambient_result": {
+                        key: accepted.json()["result"][key]
+                        for key in ("transition_id", "canonical_event_id")
+                    },
+                }
+            if mutate is not None:
                 mutate(damaged)
             self.assertEqual(damaged["action_id"], command["action_id"])
             with self.store._transaction() as db:
@@ -74,7 +90,7 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
         fresh_store = CampaignStore(self.store.path)
-        if legacy is None:
+        if legacy != "imported":
             loaded = fresh_store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(loaded["request_hash"], receipt["request_hash"])
             self.assertEqual(loaded["response"], damaged)
@@ -384,3 +400,26 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
             for conflict in ("action", "event"):
                 with self.subTest(legacy=legacy, conflict=conflict):
                     await self.check_reopened_receipt(legacy=legacy, conflict=conflict)
+
+    async def test_damaged_persisted_legacy_projections_preserve_reservations_after_resume(self):
+        cases = [
+            ((), value) for value in (None, [], "broken", 17, False)
+        ]
+        for field, limit in (("transition_id", 160), ("canonical_event_id", 36)):
+            cases.extend(
+                ((field,), value) for value in ({}, [], 17, False, "x" * (limit + 1))
+            )
+        for path, value in cases:
+            # Every damaged projection must both fail an identical retry and
+            # retain hash-conflict precedence for a changed action or event.
+            for conflict in (None, "action", "event"):
+                with self.subTest(path=path, value=value, conflict=conflict):
+                    def replace(response):
+                        if path:
+                            response["legacy_ambient_result"][path[0]] = value
+                        else:
+                            response["legacy_ambient_result"] = value
+
+                    await self.check_reopened_receipt(
+                        replace, legacy="damaged", conflict=conflict,
+                    )
