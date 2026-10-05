@@ -252,8 +252,18 @@ class DeathSystemTests(unittest.TestCase):
                         mode, rejected_maximum=(maximum,)
                     )
 
+    def test_positive_max_hp_change_preserves_stable_recovery_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            # Lowering to one also checks recovery at the new HP ceiling.
+            for maximum in (1, 35):
+                with self.subTest(mode=mode, maximum=maximum):
+                    self._assert_stable_recovery_round_trip(
+                        mode, positive_maximum=maximum
+                    )
+
     def _assert_stable_recovery_round_trip(
-        self, mode, *, zero_healing=False, rejected_healing=(), rejected_maximum=()
+        self, mode, *, zero_healing=False, rejected_healing=(), rejected_maximum=(),
+        positive_maximum=None
     ):
         session = make_session()
         peer = make_session(seed=29)
@@ -271,6 +281,35 @@ class DeathSystemTests(unittest.TestCase):
         recovery = copy.deepcopy(session.ensure_death_state()["recovery"])
         self.assertEqual(recovery, {"hours": 2, "at": 137 + 7200})
         session.advance_campaign_time(600, "wait")
+        if positive_maximum is not None:
+            expected = copy.deepcopy(session.serialize_game_state())
+            self.assertEqual(session.character["max_hp"], 20)
+            expected["player"]["max_hp"] = positive_maximum
+            death_state = copy.deepcopy(session.ensure_death_state())
+            clock = copy.deepcopy(session.world_state["campaign_time"])
+            session_rng = session.rng.getstate()
+            module_rng = random.getstate()
+            with (
+                patch.object(
+                    session.rng, "randint",
+                    side_effect=AssertionError("Positive HP maximum rerolled recovery"),
+                ),
+                patch("game.roll_d20", side_effect=AssertionError("Positive HP maximum rolled dice")),
+            ):
+                self.assertIsNone(session.set_player_max_hp(positive_maximum))
+            self.assertEqual(session.serialize_game_state(), expected)
+            self.assertEqual(session.character["max_hp"], positive_maximum)
+            self.assertEqual(session.character["current_hp"], 0)
+            self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+            self.assertEqual(session.ensure_death_state(), death_state)
+            self.assertTrue(session.ensure_death_state()["stable"])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
+            self.assertEqual(session.world_state["campaign_time"], clock)
+            self.assertEqual(session.rng.getstate(), session_rng)
+            self.assertEqual(random.getstate(), module_rng)
+            progress = session.advance_campaign_time(91, "wait")
+            self.assertEqual(progress["death_results"], [])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
         if rejected_maximum:
             before_maximum = session.serialize_game_state()
             maximum_hp = session.character["max_hp"]
@@ -412,6 +451,8 @@ class DeathSystemTests(unittest.TestCase):
                     due["death_results"], [{"action": "stable_recovery", "current_hp": 1}]
                 )
                 self.assertEqual(reopened.character["current_hp"], 1)
+                self.assertEqual(reopened.character["max_hp"], committed["player"]["max_hp"])
+                self.assertLessEqual(reopened.character["current_hp"], reopened.character["max_hp"])
                 self.assertEqual(reopened.world_state["player_combat_status"], "active")
                 self.assertFalse(reopened.ensure_death_state()["stable"])
                 self.assertFalse(reopened.ensure_death_state()["dead"])
@@ -424,6 +465,7 @@ class DeathSystemTests(unittest.TestCase):
                 later = reopened.advance_campaign_time(7200, "wait")
                 self.assertEqual(later["death_results"], [])
                 self.assertEqual(reopened.character["current_hp"], 1)
+                self.assertEqual(reopened.character["max_hp"], committed["player"]["max_hp"])
                 self.assertIsNone(reopened.ensure_death_state()["recovery"])
                 heal.assert_called_once_with(1)
                 assert_preserved()
