@@ -164,8 +164,8 @@ class CombatV2(unittest.TestCase):
             (20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5),
             (20, 10), (20, 1), (20, 1),
             (20, 10), (20, 1), (20, 1),
-            # Stabilization schedules recovery with an owned 1d4-hour roll.
-            (20, 10), (4, 2), (20, 1), (20, 1),
+            # Stabilization rolls recovery, then stops before another enemy turn.
+            (20, 10), (4, 2),
         ):
             result = self.attack()
         self.assertEqual(self.session.character['current_hp'], 0)
@@ -174,6 +174,12 @@ class CombatV2(unittest.TestCase):
         self.assertTrue(self.w['death_state']['stable'])
         self.assertEqual(self.w['death_state']['recovery']['hours'], 2)
         self.assertTrue(result['combat']['active'])
+        self.assertEqual(result['combat']['current_actor_id'], 'player')
+        self.assertEqual(result['combat']['round'], 4)
+        self.assertEqual(
+            [action['outcome'] for action in result['enemy_actions']],
+            ['hit', 'success', 'miss', 'success', 'miss', 'stable'],
+        )
         death_saves = [
             action for action in result['enemy_actions']
             if action.get('action') == 'death_save'
@@ -478,12 +484,20 @@ class CombatV2(unittest.TestCase):
             (20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5),
             (20, 10), (20, 1), (20, 1),
             (20, 10), (20, 1), (20, 1),
-            (20, 10), (4, 2), (20, 1), (20, 1),
+            # The newly stable player keeps this slot; no further attack rolls.
+            (20, 10), (4, 2),
         ):
             result = self.attack()
         self.assertEqual(result['enemy_action']['target_hp_after'], 0)
         self.assertTrue(self.w['death_state']['stable'])
         self.assertFalse(self.w['death_state']['dead'])
+        self.assertTrue(result['combat']['active'])
+        self.assertEqual(result['combat']['current_actor_id'], 'player')
+        self.assertEqual(result['combat']['round'], 4)
+        self.assertEqual(
+            [action['outcome'] for action in result['enemy_actions']],
+            ['hit', 'success', 'miss', 'success', 'miss', 'stable'],
+        )
         self.assert_player_outcome_narration(result, 'unconscious')
 
     def test_W_orc_survival_is_not_narrated_as_death(self):
