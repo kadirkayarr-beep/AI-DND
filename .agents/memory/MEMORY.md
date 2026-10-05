@@ -35,3 +35,4 @@
 - [Large source transport](large-source-transport.md) — use file-backed transport rather than large shell stdout for authoritative source contents.
 - [Source preflight boundaries](source-preflight-boundaries.md) — accidental definition-loss checks must stay separate from intentional runtime patch fixtures.
 - [API engine spy signatures](api-engine-spy-signatures.md) — preserve callable signatures when observing real turns; generic mocks can change API dispatch.
+- [Merchant discovery test boundaries](merchant-discovery-tests.md) — city materialization can add unrelated NPCs; resume can update campaign metadata without changing gameplay.
