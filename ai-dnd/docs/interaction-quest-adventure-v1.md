@@ -257,3 +257,112 @@ Published deployment and interactive browser journal checks were not performed.
 This resolves the bounded native plan P1; unknown conditions still have no
 automatic predicate evaluator or executor. Inventory transfers and the other
 documented later-owner boundaries remain unchanged.
+
+## Final durable closeout — 2026-10-05
+
+**Package #1 — Interaction & Quest Adventure V1: COMPLETE / CLOSED after
+verification and final human/scope review.**
+
+Verified implementation revision:
+`df4d56b222907eded3c1a20b61cb399e58c3420e`, branch `main`.
+The source checkout was clean at the start and end of closeout verification;
+the source did not change during the run. This documentation-only entry records
+those completed checks; it does not claim new test or model executions.
+All earlier failure, PARTIAL, NO-GO and limited-coverage records above remain
+historical evidence. They are not retrospectively relabeled PASS.
+
+### Verified closeout results
+
+| Check on the verified source | Result |
+|---|---|
+| Existing bounded Python regression | **161/161 PASS**, zero failures, errors or skips |
+| Shared frontend libraries typecheck | **PASS** |
+| Primary frontend typecheck | **PASS** |
+| Primary frontend tests | **57/57 PASS**, zero failures or skips |
+| Primary frontend production build | **PASS** |
+| Existing Final Gate | **GO**, exit **0**, source unchanged during the run |
+
+The Final Gate used the existing, unmodified configuration, with
+`baseline=null` and a clean checkout. Its GO is not a retrospective
+committed-diff scope approval. The tool itself records **Live HTTP NOT RUN**
+and **Live Qwen NOT RUN**: it does not execute these checks. The successful
+live acceptance below is **separate exact-HEAD closeout evidence**.
+**Remote CI/GitHub Actions completion and production deployment remain NOT RUN.**
+
+### Separate real Qwen / development HTTP acceptance
+
+The API was restarted on the verified source and the following exact input
+was submitted through real development HTTP with real `qwen3:8b`, without
+model or engine injection:
+
+> Vardiya değişince bekleyeyim, arkadan gizlice gireyim, kayıt odasını bulayım; yakalanırsam tüccarın adamı olduğumu söyleyeyim.
+
+- Four exact-source canonical steps were persisted; dependencies were
+  `[null, 0, 1, 2]`, with literal conditions `Vardiya değişince` and `yakalanırsam`.
+- Cursor remained **0**, status **paused**. There was no merchant-search
+  misrouting, automatic execution, travel, stealth, waiting or item transfer.
+- Campaign Time, location, player and physical public/private world state
+  remained unchanged. Public changes were only `adventure`, `journal` and
+  `turn_index`; persisted world changes were only `interaction_adventure_v1`
+  and `flags.turn_index`.
+- Receipt replay returned the identical response and saved payload. Resume
+  returned the identical canonical plan and left the saved payload unchanged.
+  Reusing the same action ID with a different payload returned
+  **409 `action_id_conflict`**.
+- The server recorded **1 real model call** for the live turn, for narration
+  rather than step extraction, and **0 new calls on replay**.
+- The disposable campaign was deleted; no user campaign was deleted.
+
+The max-two-calls contract, rejected-narration no-retry fallback, save rollback,
+idempotency/restart compatibility, RNG rollback coverage and session isolation
+were preserved and covered by the executed bounded regression. The plan-specific
+test also compared session RNG before/after recording. RNG is not exposed in the
+HTTP response or existing engine-save schema; no native HTTP RNG measurement
+is claimed. The live narration was generic uncertainty rather than a useful
+plan confirmation; this is a non-blocking narration-quality limitation, not
+missing canonical persistence.
+
+### Retained evidence provenance
+
+These existing records identify the verified revision and completed checks:
+
+- Final Gate: `/tmp/interaction-closeout-gate/20261005T073500Z-77f31a2d2d414148a48e9e17607ad740/run.json`
+  (with its `output.log`).
+- Regression: `/tmp/interaction-closeout-gate/20261005T073500Z-208399882ae34f5c911abbce23f29219/run.json`
+  (with its `output.log`).
+- Separate live acceptance: `/tmp/interaction-closeout-live.json`.
+- Correlated server log: `/tmp/logs/artifactsai-dnd-web_AI-DND_FastAPI_20261005_073952_163_648613d6.log`.
+
+The `/tmp` files are transient retained artifacts, not permanent storage.
+This section is the durable closeout summary of their reviewed results.
+No previous-SHA evidence is promoted to a new-SHA PASS; the closeout applies
+to the verified implementation revision above, not arbitrary later source.
+
+### Non-blocking deferred scope
+
+- **#75 — real NPC-to-player item transfer** remains a separate deferred
+  **Equipment/Inventory follow-up**, not a Package #1 blocker. This package
+  inspects ownership and represents negotiation; it does not transfer items
+  or grant NPC consent. The Equipment/Loot/Economy scope is unchanged.
+- General economy/loot/equipment, Exploration/Travel/Dungeon, Living World/FR
+  Canon and faction/reputation simulation, Spells and Character Progression
+  remain with their existing/later package owners; this closeout adds none
+  of their deferred mechanics.
+- Automatic free-form condition evaluation and plan branching/execution are
+  not implemented. Player confirmation and existing action owners remain
+  authoritative.
+- Rich predicate-aware investigation completion, native belief/rumor production,
+  off-screen propagation and broad novelty/adventure generation remain deferred.
+  The implemented generator is limited to local procedural actors and bounded
+  talk/visit candidates with structural novelty and pacing checks.
+- `record_witness()` and `bind_deadline()` are later-owner interfaces, not
+  integrated native producers. Existing deadline consumption and local
+  commitment reminders are implemented; native deadline/witness/rumor/belief
+  generation acceptance and interactive browser journal acceptance remain
+  **NOT RUN**. Declared `discovered`/`failed` statuses and `legacy_quest` origin
+  do not imply complete native producer coverage.
+
+No remaining observed P0/P1 blocker prevents this bounded Package #1 closeout.
+No separate six-package roadmap status field was found in the durable project
+documentation; this entry records Package #1 completion without creating or
+changing the agreed package names, order or scope.
