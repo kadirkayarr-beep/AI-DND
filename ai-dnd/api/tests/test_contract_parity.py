@@ -406,6 +406,31 @@ class ContractParityTests(unittest.TestCase):
                 )
                 self.assertEqual(responses["503"]["$ref"], "#/components/responses/ApiError")
 
+    def test_health_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        for path in ("/game/health", "/health"):
+            published = _operation(path, "get")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["get"]
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            for status in runtime_successes.keys() & published_successes.keys():
+                with self.subTest(path=path, binding="response", status=status):
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        runtime_successes[status]["content"]["application/json"]["schema"],
+                    )
+
     def test_health_and_request_schemas_match_runtime_models(self):
         self.assertEqual(
             _property_names("HealthResponse"),
@@ -1677,6 +1702,50 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             result.failures,
                             f"Undetected reference drift: {schema_name}.{field_name}",
                         )
+
+    def test_health_wrong_references_fail_in_both_formats(self):
+        for path in ("/game/health", "/health"):
+            for flow_style in (False, True):
+                with self.subTest(path=path, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    schema = spec["paths"][path]["get"]["responses"]["200"][
+                        "content"
+                    ]["application/json"]["schema"]
+                    wrong_model = "CampaignSummary"
+                    self.assertIn(wrong_model, spec["components"]["schemas"])
+                    schema["$ref"] = f"#/components/schemas/{wrong_model}"
+                    # Change only this alias's response, not its inventory or
+                    # the valid HealthResponse and replacement definitions.
+                    expected = deepcopy(SPEC)
+                    expected["paths"][path]["get"]["responses"]["200"][
+                        "content"
+                    ]["application/json"]["schema"]["$ref"] = schema["$ref"]
+                    self.assertEqual(spec, expected)
+                    self.assertEqual(spec["components"], SPEC["components"])
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        ContractParityTests(
+                            "test_health_route_bindings_match_fastapi"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                    self.assertIn("binding='response'", result.failures[0][0].id())
+                    self.assertIn("status='200'", result.failures[0][0].id())
 
     def test_campaign_read_wrong_references_fail_in_both_formats(self):
         for path in (
