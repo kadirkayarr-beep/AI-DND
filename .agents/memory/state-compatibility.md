@@ -24,3 +24,14 @@ assertions depend on test order.
 **How to apply:** Prefer a fresh explicit session for each regression case. Test
 shared-session restoration deliberately when that is the contract, rather than
 relying on it for unrelated scenario setup.
+
+For persistence round-trip regressions, compare complete canonical serialized
+state across reopening, not raw checkpoint dictionaries against loaded objects.
+Check checkpoint restoration using the fields originally captured.
+
+**Why:** Loading can legitimately supply compatibility defaults missing from a
+raw combat checkpoint. Exact raw-object equality can fail despite an unchanged
+canonical save and correctly restored gameplay.
+
+**How to apply:** Keep full serialized-state and RNG equality assertions before
+and after replay; use captured-field comparisons only for raw checkpoint data.
