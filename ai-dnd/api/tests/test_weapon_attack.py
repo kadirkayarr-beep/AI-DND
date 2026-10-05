@@ -74,14 +74,25 @@ class WeaponTests(unittest.TestCase):
         self.assertFalse(r["critical"])
         self.assertEqual(r["damage"], 0)
 
-    def assert_conflicting_location_guesses(self, *, forward_correct, attack_roll):
+    def assert_directional_location_guesses(self, *, forward_correct, attack_roll,
+                                           reverse_correct=None):
         s, n = armed()
-        s.world_state["attack_environment"] = {"pairs": {
-            f"player|{n['id']}": {
-                "distance_ft": 5, "guessed_location_correct": forward_correct},
+        pairs = {
             f"{n['id']}|player": {
-                "distance_ft": 5, "guessed_location_correct": not forward_correct},
-        }}
+                "distance_ft": 5,
+                "guessed_location_correct": (
+                    not forward_correct if reverse_correct is None else reverse_correct)},
+        }
+        if forward_correct is not None:
+            pairs[f"player|{n['id']}"] = {
+                "distance_ft": 5, "guessed_location_correct": forward_correct}
+        else:
+            # The reverse pair is the only geometry source, not an NPC fallback.
+            del n["distance_ft"]
+        s.world_state["attack_environment"] = {"pairs": pairs}
+        if forward_correct is None:
+            self.assertNotIn(f"player|{n['id']}", pairs)
+            self.assertEqual(attack.pair(s, "player", n["id"]), {"distance_ft": 5})
         # Initialize the existing observer/encounter owners before measuring
         # attack mutations, so lazy NPC normalization is not part of the diff.
         import monster_combat
@@ -97,7 +108,11 @@ class WeaponTests(unittest.TestCase):
             game._DEFAULT_SESSION.world_state, game._DEFAULT_SESSION.character,
             game._DEFAULT_SESSION.messages, game._DEFAULT_SESSION.rng.getstate()))
         # Exercise the real attack/damage owners, not fixed roll-function mocks.
-        dice = [(20, attack_roll)] + ([(8, 4)] if forward_correct else [])
+        hit = forward_correct is not False and (
+            attack_roll == 20 or attack_roll + 5 >= 12)
+        critical = hit and attack_roll == 20
+        damage_values = [4, 6] if critical else [4] if hit else []
+        dice = [(20, attack_roll)] + [(8, value) for value in damage_values]
         remaining = iter(dice)
 
         def owned_randint(low, high):
@@ -116,14 +131,15 @@ class WeaponTests(unittest.TestCase):
             self.assertEqual(rolls.call_args_list,
                              [call(1, sides) for sides, _ in dice])
 
-        damage = 7 if forward_correct else 0
+        damage = sum(damage_values) + 3 if hit else 0
         self.assertEqual(result["actor_id"], "player")
         self.assertEqual(result["target_id"], n["id"])
         self.assertEqual(result["status"], "resolved")
-        self.assertEqual(result["success"], forward_correct)
-        self.assertEqual(result["hit"], forward_correct)
-        self.assertEqual(result["outcome"], "hit" if forward_correct else "miss")
-        self.assertFalse(result["critical"])
+        self.assertEqual(result["success"], hit)
+        self.assertEqual(result["hit"], hit)
+        self.assertEqual(result["outcome"],
+                         "critical_hit" if critical else "hit" if hit else "miss")
+        self.assertEqual(result["critical"], critical)
         self.assertEqual(result["natural_20"], attack_roll == 20)
         self.assertEqual(result["attack_rolls"], [attack_roll])
         self.assertEqual(result["attack_roll"], attack_roll)
@@ -134,14 +150,15 @@ class WeaponTests(unittest.TestCase):
         self.assertEqual(result["advantage_sources"], [])
         self.assertEqual(result["disadvantage_sources"], [])
         self.assertEqual(result["damage_rolls"], [
-            {"source": "weapon", "die": 8, "count": 1, "rolls": [4]}
-        ] if forward_correct else [])
+            {"source": "weapon", "die": 8, "count": len(damage_values),
+             "rolls": damage_values}
+        ] if hit else [])
         self.assertEqual(result["damage_instances"], [{
-            "damage_type": "slashing", "raw_damage": 7,
-            "pre_resistance_damage": 7, "flat_reduction": 0,
+            "damage_type": "slashing", "raw_damage": damage,
+            "pre_resistance_damage": damage, "flat_reduction": 0,
             "resistance_applied": False, "vulnerability_applied": False,
-            "immunity_applied": False, "final_damage": 7,
-        }] if forward_correct else [])
+            "immunity_applied": False, "final_damage": damage,
+        }] if hit else [])
         self.assertEqual(result["raw_damage"], damage)
         self.assertEqual(result["damage"], damage)
         self.assertEqual(result["hp_damage"], damage)
@@ -172,7 +189,7 @@ class WeaponTests(unittest.TestCase):
             "active_action_key": "action:0", "action_index": 1,
         }
         expected_world["monster_combat"]["actors"][n["id"]]["observations"] = {
-            "player": {"threat": 2 if forward_correct else 0, "beliefs": {},
+            "player": {"threat": 2 if hit else 0, "beliefs": {},
                        "attacked_id": n["id"]},
         }
         expected_world["attack_results"] = [copy.deepcopy(result)]
@@ -186,12 +203,36 @@ class WeaponTests(unittest.TestCase):
             default_before)
 
     def test_false_reverse_location_guess_cannot_override_valid_forward_hit(self):
-        self.assert_conflicting_location_guesses(
+        self.assert_directional_location_guesses(
             forward_correct=True, attack_roll=15)
 
     def test_true_reverse_location_guess_cannot_rescue_forward_natural_20_miss(self):
-        self.assert_conflicting_location_guesses(
+        self.assert_directional_location_guesses(
             forward_correct=False, attack_roll=20)
+
+    def test_false_reverse_only_location_guess_preserves_normal_hit(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=False, attack_roll=15)
+
+    def test_true_reverse_only_location_guess_preserves_normal_hit(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=True, attack_roll=15)
+
+    def test_false_reverse_only_location_guess_preserves_ordinary_miss(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=False, attack_roll=2)
+
+    def test_true_reverse_only_location_guess_cannot_rescue_ordinary_miss(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=True, attack_roll=2)
+
+    def test_false_reverse_only_location_guess_preserves_natural_20_critical(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=False, attack_roll=20)
+
+    def test_true_reverse_only_location_guess_preserves_natural_20_critical(self):
+        self.assert_directional_location_guesses(
+            forward_correct=None, reverse_correct=True, attack_roll=20)
 
     def test_hidden_reveals_only_after_legal_attack(self):
         s, n = armed()
