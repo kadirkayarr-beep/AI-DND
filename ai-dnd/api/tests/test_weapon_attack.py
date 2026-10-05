@@ -862,6 +862,81 @@ class WeaponTests(unittest.TestCase):
                     {k: data[k] for k in position_keys if k in data}
                     for data in (s.character, actor, target, other)], positions_before)
 
+    def test_sequential_npc_pushes_consume_corridor_without_partial_movement(self):
+        for corridor in (20, 25):
+            with self.subTest(initial_corridor_ft=corridor):
+                s, actor = armed("Warhammer", mastery=True)
+                actor["distance_ft"] = 40
+                target = s.create_npc_from_ai({
+                    "name": "Push target", "role": "Guard", "location": "tavern"})
+                target.update(size="medium", distance_ft=35)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                forward_key = f"{actor['id']}|{target['id']}"
+                s.world_state["attack_environment"] = {"pairs": {
+                    forward_key: {"distance_ft": 5, "push_clear_ft": corridor},
+                    f"{target['id']}|{actor['id']}": {
+                        "distance_ft": 5, "push_clear_ft": 50},
+                    f"player|{target['id']}": {"distance_ft": 35},
+                    f"{target['id']}|player": {"distance_ft": 35},
+                    f"{target['id']}|{other['id']}": {"distance_ft": 25},
+                    f"{other['id']}|{target['id']}": {"distance_ft": 25},
+                    f"player|{actor['id']}": {"distance_ft": 40},
+                    f"{actor['id']}|player": {"distance_ft": 40},
+                    f"player|{other['id']}": {"distance_ft": 30},
+                    f"{other['id']}|player": {"distance_ft": 30},
+                    f"{actor['id']}|{other['id']}": {"distance_ft": 15},
+                    f"{other['id']}|{actor['id']}": {"distance_ft": 15},
+                }}
+                expected_world = copy.deepcopy(s.world_state)
+                unchanged = copy.deepcopy((s.character, s.messages, s.rng.getstate()))
+                mirrors_before = [npc["distance_ft"] for npc in (actor, target, other)]
+                position_keys = ("position", "position_ft", "coordinates", "x", "y", "z")
+                positions_before = copy.deepcopy([
+                    {k: data[k] for k in position_keys if k in data}
+                    for data in (s.character, actor, target, other)])
+
+                for push_number in (1, 2, 3):
+                    with self.subTest(push_number=push_number):
+                        before = copy.deepcopy((
+                            s.world_state, s.character, s.messages, s.rng.getstate()))
+                        result = attack.push(s, actor["id"], target["id"], 10)
+                        if push_number <= 2:
+                            separation = 5 + 10 * push_number
+                            self.assertEqual(result, {
+                                "kind": "push", "applied": True, "distance_ft": 10,
+                                "resulting_distance_ft": separation})
+                            expected_pairs = expected_world["attack_environment"]["pairs"]
+                            for key in list(expected_pairs):
+                                if target["id"] in key.split("|"):
+                                    del expected_pairs[key]
+                            expected_pairs[forward_key] = {
+                                "distance_ft": separation,
+                                "push_clear_ft": corridor - 10 * push_number}
+                            self.assertEqual(
+                                attack.pair(s, target["id"], actor["id"]),
+                                {"distance_ft": separation})
+                        else:
+                            # Zero or five feet left cannot fund another ten-foot
+                            # push, even partly. Rejection must be a pure no-op.
+                            self.assertEqual(result, {
+                                "kind": "push", "applied": False,
+                                "reason": "position_unresolved_or_blocked"})
+                            self.assertEqual((
+                                s.world_state, s.character, s.messages, s.rng.getstate()),
+                                before)
+                        self.assertEqual(s.world_state, expected_world)
+                        self.assertEqual(
+                            (s.character, s.messages, s.rng.getstate()), unchanged)
+                        self.assertEqual(
+                            [npc["distance_ft"] for npc in (actor, target, other)],
+                            mirrors_before)
+                        self.assertEqual([
+                            {k: data[k] for k in position_keys if k in data}
+                            for data in (s.character, actor, target, other)],
+                            positions_before)
+
     def test_push_unresolved_does_not_invent_position(self):
         s, n = armed("Warhammer", mastery=True)
         r = resolve(s, n, "Warhammer")
