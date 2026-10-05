@@ -804,6 +804,9 @@ class LoreEngineIntegrationTests(unittest.TestCase):
     def test_turkish_current_city_ruler_is_deterministic_and_fails_closed(self):
         question = "Bu şehrin hükümdarı kim?"
         session = game.GameSession(seed=11)
+        session.character["name"] = "Tester"
+        session.character["current_hp"] = 10
+        session.character["max_hp"] = 10
         session.world_state["location"] = "fr:city:neverwinter"
         session.world_state["npcs"] = [
             {
@@ -869,6 +872,10 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         self.assertEqual(
             targeted_result["narration"],
             result["narration"],
+        )
+        self.assertEqual(
+            targeted_result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
         )
         self.assertNotIn("npc_id", targeted_result["action_result"])
         self.assertEqual(
