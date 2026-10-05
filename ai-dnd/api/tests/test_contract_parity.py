@@ -38,6 +38,9 @@ from api.schemas import (
     CharacterCreationCatalogResponse,
     HealthResponse,
     SessionResponse,
+    SpeciesTraitActionRequest,
+    SpeciesTraitActionResult,
+    SpeciesTraitCommandResult,
     TurnRequest,
     TurnResponse,
 )
@@ -162,6 +165,37 @@ def _runtime_field_names(model: Any) -> set[str]:
         field.alias or name
         for name, field in model.model_fields.items()
     }
+
+
+def _schema_types(schema: dict[str, Any]) -> set[str]:
+    """Normalize OpenAPI type arrays and Pydantic's anyOf representation."""
+    if "$ref" in schema:
+        return {"object"}
+    types = schema.get("type", [])
+    result = {types} if isinstance(types, str) else set(types)
+    for branch in schema.get("anyOf", []):
+        result.update(_schema_types(branch))
+    return result
+
+
+def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
+    """Keep nullable enum membership distinct from nullable field types."""
+    if "enum" in schema:
+        values = schema["enum"]
+        if not isinstance(values, list):
+            raise AssertionError("Schema enum must be a list")
+        return set(values)
+    branches = schema.get("anyOf", [])
+    enums = [_schema_enum(branch) for branch in branches]
+    if not any(values is not None for values in enums):
+        return None
+    result = set()
+    for branch, values in zip(branches, enums):
+        if values is not None:
+            result.update(values)
+        elif branch.get("type") == "null":
+            result.add(None)
+    return result
 
 
 class ContractParityTests(unittest.TestCase):
@@ -336,6 +370,111 @@ class ContractParityTests(unittest.TestCase):
             CharacterCreateInput.model_validate({"mode": "custom"})
         with self.assertRaises(ValidationError):
             CharacterCreateInput.model_validate({"mode": "random", "name": "Ari"})
+
+    def test_species_action_schemas_match_runtime_models(self):
+        models = {
+            "SpeciesTraitActionInput": SpeciesTraitActionRequest,
+            "SpeciesTraitActionResult": SpeciesTraitActionResult,
+            "SpeciesTraitCommandResult": SpeciesTraitCommandResult,
+        }
+        for schema_name, model in models.items():
+            published = _schema(schema_name)
+            runtime = model.model_json_schema()
+            with self.subTest(schema=schema_name):
+                self.assertEqual(_property_names(schema_name), _runtime_field_names(model))
+                self.assertEqual(
+                    set(published.get("required", [])),
+                    set(runtime.get("required", [])),
+                )
+                self.assertIs(published.get("additionalProperties"), False)
+                self.assertEqual(
+                    published.get("additionalProperties"),
+                    runtime.get("additionalProperties"),
+                )
+            for field_name, runtime_field in runtime["properties"].items():
+                with self.subTest(schema=schema_name, field=field_name):
+                    published_field = _property(schema_name, field_name)
+                    self.assertEqual(
+                        _schema_types(published_field), _schema_types(runtime_field)
+                    )
+                    self.assertEqual(
+                        _is_nullable(published_field), _is_nullable(runtime_field)
+                    )
+                    self.assertEqual(
+                        _schema_enum(published_field), _schema_enum(runtime_field)
+                    )
+                    for constraint in ("minLength", "maxLength", "additionalProperties"):
+                        if (
+                            schema_name == "SpeciesTraitCommandResult"
+                            and field_name == "state"
+                            and constraint == "additionalProperties"
+                        ):
+                            # The public GameState reference intentionally narrows this dict.
+                            continue
+                        self.assertEqual(
+                            published_field.get(constraint),
+                            runtime_field.get(constraint),
+                            f"{schema_name}.{field_name}.{constraint}",
+                        )
+        # Python uses a broad state dict; the public contract narrows it to GameState.
+        self.assertEqual(
+            _property("SpeciesTraitCommandResult", "state").get("$ref"),
+            "#/components/schemas/GameState",
+        )
+        self.assertEqual(
+            _property("SpeciesTraitCommandResult", "result").get("$ref"),
+            "#/components/schemas/SpeciesTraitActionResult",
+        )
+
+    def test_species_action_runtime_acceptance_and_rejection_boundaries(self):
+        request_schema = SpeciesTraitActionRequest.model_json_schema()["properties"]
+        for action in _schema_enum(request_schema["action"]):
+            payload = {"action": action}
+            if action == "celestial_revelation":
+                payload["form"] = "heavenly_wings"
+            elif action == "choose_giant_ancestry":
+                payload["ancestry"] = "cloud"
+            with self.subTest(action=action):
+                self.assertEqual(SpeciesTraitActionRequest.model_validate(payload).action, action)
+        for field, action in (
+            ("form", "celestial_revelation"),
+            ("ancestry", "choose_giant_ancestry"),
+        ):
+            for value in _schema_enum(request_schema[field]) - {None}:
+                with self.subTest(field=field, value=value):
+                    SpeciesTraitActionRequest.model_validate({"action": action, field: value})
+        SpeciesTraitActionRequest(
+            action="healing_hands", form=None, ancestry=None, armed=None, action_id=None
+        )
+        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=False)
+        SpeciesTraitActionRequest(action="arm_giant_ancestry", armed=True)
+        for payload in (
+            {},
+            {"action": None},
+            {"action": "unknown"},
+            {"action": "celestial_revelation", "form": "unknown"},
+            {"action": "choose_giant_ancestry", "ancestry": "unknown"},
+            {"action": "healing_hands", "unexpected": True},
+        ):
+            with self.subTest(payload=payload), self.assertRaises(ValidationError):
+                SpeciesTraitActionRequest.model_validate(payload)
+
+        result = {"action": "healing_hands", "message": "ok", "effects": {"healed": 1}}
+        command = {"session_id": "session", "state": {}, "result": result}
+        SpeciesTraitCommandResult.model_validate(command)
+        SpeciesTraitCommandResult.model_validate({**command, "action_id": None})
+        for length in (1, 500):
+            SpeciesTraitActionResult.model_validate({**result, "message": "x" * length})
+        for length in (0, 501):
+            with self.subTest(length=length), self.assertRaises(ValidationError):
+                SpeciesTraitActionResult.model_validate({**result, "message": "x" * length})
+        for model, payload in (
+            (SpeciesTraitActionResult, {**result, "unexpected": True}),
+            (SpeciesTraitCommandResult, {**command, "unexpected": True}),
+            (SpeciesTraitCommandResult, {**command, "result": {**result, "unexpected": True}}),
+        ):
+            with self.subTest(model=model.__name__), self.assertRaises(ValidationError):
+                model.model_validate(payload)
 
     def test_public_state_world_and_combat_shapes_match_serializers(self):
         class SerializableSession:
@@ -763,6 +902,88 @@ components:
                     result = self._parity_result(_load_spec(text))
                     self.assertFalse(result.wasSuccessful())
                     self.assertTrue(result.failures or result.errors)
+
+    def test_species_action_contract_drift_is_detected_in_both_formats(self):
+        mutations = []
+        for schema_name in (
+            "SpeciesTraitActionInput", "SpeciesTraitActionResult", "SpeciesTraitCommandResult"
+        ):
+            schema_path = ("components", "schemas", schema_name)
+            published = _schema(schema_name)
+            mutations.extend([
+                (schema_path + ("additionalProperties",), True),
+                (schema_path + ("additionalProperties",), None),
+                (schema_path + ("required",), []),
+                (schema_path + ("properties", "unexpected"), {"type": "string"}),
+            ])
+            for field_name, field_schema in published["properties"].items():
+                field_path = schema_path + ("properties", field_name)
+                # Missing fields and incompatible types, including nested result refs.
+                mutations.append((field_path, None))
+                mutations.append((field_path, {"type": "integer"}))
+                if _is_nullable(field_schema):
+                    nonnullable = deepcopy(field_schema)
+                    nonnullable["type"] = [
+                        value for value in field_schema["type"] if value != "null"
+                    ]
+                    mutations.append((field_path, nonnullable))
+                    mutations.append((
+                        schema_path + ("required",),
+                        [*published["required"], field_name],
+                    ))
+                else:
+                    mutations.append((field_path, {
+                        "anyOf": [deepcopy(field_schema), {"type": "null"}],
+                    }))
+            # Each required field must remain required, not just the whole set.
+            for required_field in published["required"]:
+                mutations.append((
+                    schema_path + ("required",),
+                    [value for value in published["required"] if value != required_field],
+                ))
+        input_path = ("components", "schemas", "SpeciesTraitActionInput", "properties")
+        for field_name in ("action", "form", "ancestry"):
+            values = _enum_values("SpeciesTraitActionInput", field_name)
+            mutations.append((input_path + (field_name, "enum"), [*values, "unsupported"]))
+            mutations.append((input_path + (field_name, "enum"), None))
+            for value in values:
+                mutations.append((
+                    input_path + (field_name, "enum"),
+                    [item for item in values if item != value],
+                ))
+        result_path = ("components", "schemas", "SpeciesTraitActionResult", "properties")
+        for constraint, wrong_value in (("minLength", 0), ("maxLength", 501)):
+            mutations.append((result_path + ("message", constraint), wrong_value))
+            mutations.append((result_path + ("message", constraint), None))
+        mutations.append((result_path + ("effects", "additionalProperties"), False))
+        mutations.append((result_path + ("effects", "additionalProperties"), None))
+        command_path = ("components", "schemas", "SpeciesTraitCommandResult", "properties")
+        for field_name in ("state", "result"):
+            mutations.append((
+                command_path + (field_name, "$ref"),
+                "#/components/schemas/GameSession",
+            ))
+
+        for path, value in mutations:
+            for flow_style in (False, True):
+                with self.subTest(path=path, value=value, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    target = spec
+                    for key in path[:-1]:
+                        target = target[key]
+                    if value is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = value
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                        ContractParityTests(
+                            "test_species_action_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Undetected species-action drift: {path}")
 
 
 if __name__ == "__main__":
