@@ -184,12 +184,12 @@ create commits to hide that result; report its NO-GO separately from test result
 
 ## Review evidence and final decision
 
-**INTERACTION & QUEST ADVENTURE V1 — PARTIAL / BLOCKED**
+**INTERACTION & QUEST ADVENTURE V1 — COMPOUND PLAN P1 RESOLVED**
 
-The required native composite plan remains a P1 interpretation gap, not a
+The earlier native composite plan failure was a P1 interpretation gap, not a
 product-authority blocker. Earlier scene/time returns were repaired and the real
 parser was proven to return an empty steps array; plan schemas now require a
-nonempty steps field. Nevertheless the last authenticated HTTP/Qwen run still
+nonempty steps field. Nevertheless the final authenticated HTTP/Qwen run of that audit
 returned clarification instead of recording the plan. It executed no steps,
 changed neither location nor Campaign Time, and performed one actual model call.
 Do not report its HTTP 200 or unchanged restart of a missing plan as acceptance.
@@ -220,3 +220,40 @@ testing, native deadline/rumor/belief generation acceptance, and production
 deployment verification were NOT RUN. General NPC item transfers, autonomous
 rumor/faction simulation and broader investigation predicate producers remain
 explicit later-owner boundaries. Native counteroffers do not grant items.
+
+### Compound-plan correction — 2026-10-05
+
+Complete first-person optative, future and present clauses separated by commas,
+semicolons, newlines or sequence/conjunction markers can now be recorded from
+exact player source spans. Quoted speech is opaque and noun lists/single searches
+are not compound plans. This bounded grammar is not a general Turkish NLP parser;
+other intentions retain the existing model interpretation path.
+
+Plan routing precedes scene materialization, merchant search and non-combat
+action dispatch. Explicit combat commands and active combat/death/reaction
+owners retain their precedence. Recognized compound plans use Python extraction
+and the unchanged strict envelope validator, not a second classifier or model
+paraphrase. The only optional model call is existing post-resolution narration;
+there is no retry. Conditions remain literal, unevaluated player text. Recording
+does not execute any step, cast a spell, advance Campaign Time or consume RNG.
+The saved cursor remains zero; unknown current-step conditions pause the plan.
+
+Six added targeted tests cover source/condition grounding across different verb
+forms, quoted speech and single-search exclusions, distinct rejection reasons
+and existing size bounds, spell/combat dispatch boundaries, HTTP replay/resume,
+rollback and session isolation. The final bounded command listed above passed
+**76/76**, no failures/errors/skips. No full gate or frontend tests were rerun.
+
+One real proxied HTTP example used the owner's exact vardiya/gizlice/kayıt odası
+sentence. It recorded four exact-source steps with cursor zero and paused status.
+Only public adventure, journal and turn-index fields changed; Campaign Time,
+location and physical public state did not. Receipt replay and campaign resume
+returned the identical plan. Running-server logs recorded one qwen3:8b call
+(narration, not step extraction); replay made no model call. The disposable
+campaign was deleted. The primary frontend landing page was screenshot-checked.
+The retained, synthetic-input HTTP summary is docs/evidence/compound-plan-http.json.
+Published deployment and interactive browser journal checks were not performed.
+
+This resolves the bounded native plan P1; unknown conditions still have no
+automatic predicate evaluator or executor. Inventory transfers and the other
+documented later-owner boundaries remain unchanged.

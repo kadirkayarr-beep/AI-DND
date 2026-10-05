@@ -10287,6 +10287,11 @@ def _promote_scene_referent(referent, location_id):
 def plan_living_world_turn(player_input, target_id=None):
     """Resolve ordinary local actions and materialize before scoped lore lookup."""
     world_state = _session().world_state
+    if (not world_state.get("combat", {}).get("active")
+            and interaction_adventure.hint(player_input) == "plan"):
+        # Planning is not a scene visit, merchant discovery or clock consumer.
+        return {"direct_result": None, "state_changes": [],
+                "procedural_entity_ids_before": _current_procedural_entity_ids()}
     flags = world_state.setdefault("flags", {})
     turn_index = int(flags.get("turn_index", 0)) + 1
     before = _world_snapshot()
@@ -10823,13 +10828,19 @@ def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None,
 ):
+    planning = (combat_action is None
+                and not _session().world_state.get("combat", {}).get("active")
+                and interaction_adventure.compound_plan(player_input) is not None)
     import spell_scope
-    spell_command = spell_scope.natural_command(player_input, target_id) if combat_action is None else None
+    spell_command = (spell_scope.natural_command(player_input, target_id)
+                     if combat_action is None and not planning else None)
     if spell_command is not None:
         return action_economy.execute(_session(), spell_command, action_id, session_id)
     import bounded_encounter
-    bounded_encounter.refresh(_session())
-    native = bounded_encounter.resolve_command(_session(), player_input) if combat_action is None else None
+    if not planning:
+        bounded_encounter.refresh(_session())
+    native = (bounded_encounter.resolve_command(_session(), player_input)
+              if combat_action is None and not planning else None)
     if native is not None:
         return native
     import monster_combat
@@ -10838,7 +10849,8 @@ def _dispatch_player_turn(
             proposal_result = monster_combat.player_response(_session(), player_input, target_id)
             if proposal_result is not None:
                 return proposal_result
-    command = combat_action or action_economy.natural_command(_session(), player_input, target_id)
+    command = combat_action or (None if planning else
+                               action_economy.natural_command(_session(), player_input, target_id))
     if command:
         return action_economy.execute(_session(), command, action_id, session_id)
     if action_economy.pending_reaction(_session()):
@@ -11391,6 +11403,17 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             quest_world_before=quest_world_before,
         )
         raise TurnResolved(result, resolved)
+
+    compound = interaction_adventure.compound_plan(player_input)
+    if compound is not None and not entry_combat["active"]:
+        # These steps are exact player spans, not model paraphrases. Recording
+        # them does not require an addressee or permission to execute any step.
+        intent_source = "python_compound_plan"
+        action_result = interaction_adventure.resolve(_session(), player_input, compound)
+        return finish_turn(
+            action_result, action_result["direct_response"],
+            is_final=action_result["status"] != "recorded",
+        )
 
     ensure_campaign_clock()
     if "campaign_time" in world_state and not ensure_combat_state()["active"]:

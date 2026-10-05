@@ -27,3 +27,4 @@
 - [Primary campaign UI](primary-campaign-ui.md) — preserve the experience artifact as the primary frontend; switching to the web artifact needs proven compatibility grounds.
 - [SSR context identity](ssr-context-identity.md) — test providers and workspace hooks must share a dependency instance, even when a provider is visibly mounted.
 - [Development HTTP certificate trust](live-http-trust.md) — use system TLS trust for test-local httpx probes when urllib succeeds but its default bundle fails.
+- [Compound plan authority](compound-plan-authority.md) — bind clear plans to original source before physical routing; model prose never supplies canonical steps.

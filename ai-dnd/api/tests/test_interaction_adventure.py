@@ -48,6 +48,77 @@ def candidate(kind="inquiry", target="other"):
 
 
 class InteractionContracts(unittest.TestCase):
+    def test_compound_source_spans_and_conditions_not_keyword_hacks(self):
+        texts = [
+            "Vardiya değişince bekleyeyim, arkadan gizlice gireyim, kayıt odasını bulayım; yakalanırsam tüccarın adamı olduğumu söyleyeyim.",
+            "Kapı açılınca, sessizce geçeyim; izleri takip edeyim; sorarlarsa yoldan geldiğimi söyleyeyim.",
+            "Önce bir dakika bekliyorum, sonra Mira ile konuşuyorum.",
+            "Biraz bekleyeceğim; ardından depoyu inceleyeceğim.",
+            "Biraz bekleyeyim ve içeriden ses gelirse kapıya yaklaşayım.",
+        ]
+        for text in texts:
+            with self.subTest(text=text):
+                proposal = adventure.compound_plan(text)
+                self.assertIsNotNone(proposal)
+                self.assertEqual(adventure.hint(text), "plan")
+                result = adventure.resolve(self.s, text, proposal)
+                self.assertEqual(result["status"], "recorded")
+                plan = self.w[adventure.KEY]["plan"]
+                self.assertEqual(plan["cursor"], 0)
+                for index, step in enumerate(plan["steps"]):
+                    self.assertIn(step["quote"], text)
+                    self.assertIn(step["precondition"], text)
+                    self.assertEqual(step["depends_on"], index - 1 if index else None)
+        proposal = adventure.compound_plan(texts[0])
+        self.assertEqual(len(proposal["steps"]), 4)
+        self.assertEqual(proposal["steps"][0]["precondition"], "Vardiya değişince")
+        self.assertEqual(proposal["steps"][-1]["precondition"], "yakalanırsam")
+
+    def test_single_search_noun_lists_and_quoted_actions_are_not_plans(self):
+        for text in ["tüccar bul", "Tüccarı bulayım.", "Kılıcım, kalkanım; çantam.",
+                     'Mira "bekleyeyim, gireyim" dedi.',
+                     'Şunu söyleyeyim: "gireyim, bulayım".']:
+            with self.subTest(text=text):
+                self.assertIsNone(adventure.compound_plan(text))
+        self.assertTrue(game.living_world.is_merchant_search("tüccar bul"))
+        quote = 'Biraz bekleyeyim; "tüccar, kayıt odası" diyeyim.'
+        self.assertEqual(len(adventure.compound_plan(quote)["steps"]), 2)
+
+    def test_plan_rejections_have_distinct_reasons_and_never_commit(self):
+        text = "Biraz bekleyeyim; kapıyı açayım."
+        cases = [
+            ([], "plan_empty_steps"),
+            ([{"quote": "Kapıyı aç"}], "plan_ungrounded_step"),
+            ([{"quote": "Biraz bekleyeyim", "precondition": "nöbet bitince"}],
+             "plan_ungrounded_condition"),
+            ([{"quote": "Biraz bekleyeyim", "depends_on": 0}],
+             "plan_invalid_dependency"),
+        ]
+        before = copy.deepcopy(self.w)
+        for steps, reason in cases:
+            result = adventure.resolve(self.s, text, envelope("plan", text, steps=steps))
+            self.assertEqual(result["reason_code"], reason)
+            self.assertEqual(self.w, before)
+        oversized = "; ".join(["Biraz bekleyeyim"] * 7)
+        result = adventure.resolve(self.s, oversized, adventure.compound_plan(oversized))
+        self.assertEqual(result["reason_code"], "invalid_interaction_proposal")
+        self.assertEqual(self.w, before)
+
+    def test_compound_spell_plan_does_not_cast_or_bypass_combat_owner(self):
+        self.s.character.update(name="Denetçi", current_hp=10, max_hp=10)
+        self.w["player_combat_status"] = "active"
+        text = "Magic Missile büyüsünü kullanayım; kenara çekileyim."
+        with patch("spell_scope.natural_command", side_effect=AssertionError("not a cast")), \
+             patch("bounded_encounter.resolve_command", side_effect=AssertionError("not an action")), \
+             patch("game.ollama.chat", return_value={"message": {"content": "{}"}}):
+            result = self.s.run_player_turn(text)
+        self.assertEqual(result["action_result"]["operation"], "plan")
+        self.assertEqual(self.w[adventure.KEY]["plan"]["cursor"], 0)
+        self.w["combat"]["active"] = True
+        with patch("spell_scope.natural_command", side_effect=ValueError("locked owner")):
+            with self.assertRaisesRegex(ValueError, "locked owner"):
+                self.s.run_player_turn(text)
+
     def setUp(self):
         self.s = session()
         self.w = self.s.world_state
@@ -353,6 +424,50 @@ class InteractionApiContracts(unittest.IsolatedAsyncioTestCase):
                 json={"message": quote, "target_id": "gromm",
                       "action_id": action_id or str(uuid4())})
         return response, model
+
+    async def test_optative_plan_http_preserves_world_rng_replay_and_resume(self):
+        a, record = await self.prepare()
+        text = "Vardiya değişince bekleyeyim, arkadan gizlice gireyim, kayıt odasını bulayım; yakalanırsam tüccarın adamı olduğumu söyleyeyim."
+        s = record.game_session
+        world = copy.deepcopy(s.world_state)
+        rng = s.rng.getstate()
+        action_id = str(uuid4())
+        response, model = await self.post(a, text, envelope("none", text), action_id=action_id)
+        self.assertEqual(response.status_code, 200, response.text)
+        plan = response.json()["state"]["adventure"]["plan"]
+        self.assertEqual(len(plan["steps"]), 4)
+        self.assertEqual(plan["cursor"], 0)
+        self.assertEqual(plan["status"], "paused")
+        self.assertLessEqual(model.call_count, 1)
+        self.assertEqual(s.rng.getstate(), rng)
+        for key in set(world) | set(s.world_state):
+            if key not in {adventure.KEY, "flags"}:
+                self.assertEqual(s.world_state.get(key), world.get(key), key)
+        committed = copy.deepcopy(s.world_state)
+        with patch("game.ollama.chat") as replay_model:
+            replay = await self.http.post(f"/api/game/sessions/{a['session_id']}/turn",
+                json={"message": text, "target_id": "gromm", "action_id": action_id})
+        self.assertEqual(replay.json(), response.json())
+        replay_model.assert_not_called()
+        self.assertEqual(s.world_state, committed)
+        resumed = await self.http.post(f"/api/game/campaigns/{a['campaign_id']}/resume")
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        self.assertEqual(resumed.json()["state"]["adventure"]["plan"], plan)
+
+    async def test_compound_plan_failed_save_rolls_back_and_other_session_is_unchanged(self):
+        a, record = await self.prepare()
+        _, other = await self.prepare()
+        before = copy.deepcopy(record.game_session.world_state)
+        isolated = copy.deepcopy(other.game_session.world_state)
+        rng = record.game_session.rng.getstate()
+        with patch.object(self.manager, "autosave_turn", side_effect=RuntimeError("save failed")):
+            response, model = await self.post(a, "Biraz bekleyeyim; gizlice geçeyim.",
+                                              envelope("none", ""))
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(record.game_session.world_state, before)
+        self.assertEqual(record.game_session.rng.getstate(), rng)
+        self.assertEqual(other.game_session.world_state, isolated)
+        self.assertLessEqual(model.call_count, 1)
 
     async def test_goal_promise_receipt_replay_conflict_restart_and_campaign_isolation(self):
         a, record = await self.prepare()

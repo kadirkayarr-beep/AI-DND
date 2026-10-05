@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-05",
+  "environment": "development",
+  "transport": "Real HTTP through the development proxy, production route handlers, no model or engine injections",
+  "input": "Vardiya değişince bekleyeyim, arkadan gizlice gireyim, kayıt odasını bulayım; yakalanırsam tüccarın adamı olduğumu söyleyeyim.",
+  "result": "PASS",
+  "steps": [
+    {"quote": "Vardiya değişince bekleyeyim", "depends_on": null, "precondition": "Vardiya değişince"},
+    {"quote": "arkadan gizlice gireyim", "depends_on": 0, "precondition": ""},
+    {"quote": "kayıt odasını bulayım", "depends_on": 1, "precondition": ""},
+    {"quote": "yakalanırsam tüccarın adamı olduğumu söyleyeyim.", "depends_on": 2, "precondition": "yakalanırsam"}
+  ],
+  "cursor": 0,
+  "status": "paused",
+  "changed_public_state_keys": ["adventure", "journal", "turn_index"],
+  "replay_response_identical": true,
+  "resumed_plan_identical": true,
+  "logged_qwen_model_calls": 1,
+  "qwen_role": "Existing optional narration; Python extracted and validated the steps",
+  "returned_narration": "İlk adımın: Vardiya değişince bekleyeyim. Bunu denemek için hamleni söyle; diğer adımlar bekleyebilir.",
+  "disposable_campaign_deleted": true,
+  "limitations": [
+    "RNG is not exposed over HTTP; unchanged engine RNG was verified by the targeted API test.",
+    "This is development acceptance, not published deployment verification.",
+    "The final conjunction/ASCII separator extension followed this HTTP run and passed the final 76-test bounded suite; this report is not a final server source-hash attestation."
+  ]
+}

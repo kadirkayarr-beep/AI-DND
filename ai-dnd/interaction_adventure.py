@@ -422,8 +422,56 @@ def context(world, npc):
     }
 
 
+def compound_plan(text):
+    """Source-bound intentions, never actions. Only complete first-person clauses.
+
+    Quoted speech is opaque; separators and verb suffixes inside it cannot turn
+    a quotation or a noun list into a plan. Conditions remain unevaluated.
+    """
+    if not isinstance(text, str):
+        return None
+    masked = re.sub(r'"[^"]*"|“[^”]*”', lambda m: " " * len(m[0]), text)
+    boundaries = list(re.finditer(r"[,;\n]+|\b(?:sonra|ardından|ardindan|ve|then)\b", masked, re.I))
+    if not boundaries:
+        return None
+    action = re.compile(
+        r"\b[a-z]{2,}(?:eyim|ayim|elim|alim|ecegim|acagim|iyorum|uyorum)\b[.! ]*$"
+    )
+    condition = re.compile(r"[a-z]{3,}(?:ince|inca|unca|unce|sam|sem|sa|se)$")
+    steps, start, pending = [], 0, None
+    for boundary in [*boundaries, None]:
+        end = boundary.start() if boundary else len(text)
+        clause = text[start:end].strip()
+        visible = masked[start:end]
+        if not clause:
+            start = boundary.end() if boundary else end
+            continue
+        conditions = [m for m in re.finditer(r"\w+", visible)
+                      if condition.fullmatch(normalize(m[0]))]
+        if action.search(normalize(visible)):
+            quote = text[pending if pending is not None else start:end].strip()
+            # Offsets are in the original source, never accent-folded text.
+            precondition = text[start:start + conditions[0].end()].strip() if conditions else ""
+            if pending is not None:
+                precondition = text[pending:start].strip(" ,;\n")
+            steps.append({"quote": quote, "depends_on": len(steps) - 1 if steps else None,
+                          "precondition": precondition})
+            pending = None
+        elif conditions and not visible[conditions[-1].end():].strip(" ."):
+            pending = start if pending is None else pending
+        else:
+            return None
+        start = boundary.end() if boundary else end
+    if pending is not None or len(steps) < 2:
+        return None
+    # Do not truncate oversized plans: the existing strict envelope rejects them.
+    return {"operation": "plan", "quote": text, "steps": steps, "privacy": "private"}
+
+
 def hint(text, npc=None):
     """Coarse routing hints only; the generic model envelope carries semantics."""
+    if compound_plan(text) is not None:
+        return "plan"
     value = normalize(text)
     categories = (
         ("plan", r"\b(?:planim|planliyorum|once .+ sonra|eger .+ sonra|after .+ then|if .+ then)\b"),
@@ -708,11 +756,19 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
                          "Kararını açıkça ortaya koyuyorsun. Sonraki adımın hâlâ sana ait.")
     elif operation == "plan":
         steps = data["steps"]
-        if (not steps or any(s["quote"] not in player_input
-                             or (s["precondition"] and s["precondition"] not in player_input)
-                             or (s["depends_on"] is not None and s["depends_on"] >= index)
-                             for index, s in enumerate(steps))):
-            return _result(operation, "proposal_rejected", "Planındaki adımları biraz daha açık anlat.")
+        reason = "plan_empty_steps" if not steps else None
+        for index, step in enumerate(steps):
+            if step["quote"] not in player_input:
+                reason = "plan_ungrounded_step"
+            elif step["precondition"] and step["precondition"] not in player_input:
+                reason = "plan_ungrounded_condition"
+            elif step["depends_on"] is not None and step["depends_on"] >= index:
+                reason = "plan_invalid_dependency"
+            if reason:
+                break
+        if reason:
+            return _result(operation, "proposal_rejected", "Planındaki adımları biraz daha açık anlat.",
+                           reason_code=reason)
         state["plan"] = Plan(plan_id=f"plan:{uuid4().hex}", goal=quote[:400],
                              steps=steps, cursor=0, status="awaiting_confirmation",
                              location_id=world["location"]).model_dump()
