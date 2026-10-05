@@ -4,18 +4,27 @@ import ast
 from pathlib import Path
 
 
+def _same_reference(value, reference):
+    if isinstance(reference, str):
+        return isinstance(value, ast.Name) and value.id == reference
+    return (isinstance(value, ast.Attribute)
+            and isinstance(value.value, ast.Name)
+            and value.attr == reference.attr
+            and value.value.id == reference.value.id)
+
+
 def _preserves_function(value, name):
     """Recognize identity assignments and explicit decorator-style wrapping.
 
     This is a syntax allowance, not proof that a decorator returns a callable.
     Arbitrary expressions merely mentioning the old function are not exempt.
     """
-    if isinstance(value, ast.Name):
-        return value.id == name
+    if _same_reference(value, name):
+        return True
     if not isinstance(value, ast.Call) or not value.args:
         return False
     other_parts = [value.func, *value.args[1:], *value.keywords]
-    if any(isinstance(node, ast.Name) and node.id == name
+    if any(_same_reference(node, name)
            for part in other_parts for node in ast.walk(part)):
         return False
     return _preserves_function(value.args[0], name)
@@ -29,8 +38,9 @@ class _NamespaceFunctions(ast.NodeVisitor):
     local functions are not module functions or methods.
     """
 
-    def __init__(self):
+    def __init__(self, collect_attributes=False):
         self.events = []
+        self.collect_attributes = collect_attributes
 
     def visit_FunctionDef(self, node):
         self.events.append((node.name, node, "definition", False))
@@ -66,6 +76,13 @@ class _NamespaceFunctions(ast.NodeVisitor):
             operation = "deletion" if isinstance(node.ctx, ast.Del) else "assignment"
             self.events.append((node.id, node, operation, False))
 
+    def visit_Attribute(self, node):
+        if (self.collect_attributes and isinstance(node.value, ast.Name)
+                and isinstance(node.ctx, (ast.Store, ast.Del))):
+            operation = "deletion" if isinstance(node.ctx, ast.Del) else "assignment"
+            self.events.append((node, node, operation, False))
+        self.visit(node.value)
+
     def _assignment(self, targets, value, node):
         if value is not None:
             self.visit(value)
@@ -74,6 +91,11 @@ class _NamespaceFunctions(ast.NodeVisitor):
                 preserves = (len(targets) == 1
                              and _preserves_function(value, target.id))
                 self.events.append((target.id, node, "assignment", preserves))
+            elif (self.collect_attributes and isinstance(target, ast.Attribute)
+                  and isinstance(target.value, ast.Name)):
+                preserves = (len(targets) == 1
+                             and _preserves_function(value, target))
+                self.events.append((target, node, "assignment", preserves))
             else:
                 self.visit(target)
 
@@ -124,6 +146,50 @@ class _NamespaceFunctions(ast.NodeVisitor):
             self.events.append((node.rest, node, "pattern binding", False))
 
 
+def _check_class_writes(tree, path):
+    """Check direct module-scope writes to a currently bound local class.
+
+    Resolve only bare names introduced by a module-level class statement,
+    including statements inside control-flow blocks. Any subsequent binding
+    invalidates that resolution (except literal C = C). Do not chase aliases,
+    nested attribute paths, inheritance, imports, setattr/delattr, or calls.
+    Function and class bodies remain opaque here, preserving runtime patch
+    fixtures. This is conservative source order, not execution/reachability.
+    """
+    collector = _NamespaceFunctions(collect_attributes=True)
+    for statement in tree.body:
+        collector.visit(statement)
+    classes = {}
+    errors = []
+    for binding, statement, operation, preserves in collector.events:
+        if isinstance(binding, ast.Attribute):
+            methods = classes.get(binding.value.id, {})
+            first = methods.get(binding.attr)
+            if first is not None and not preserves:
+                errors.append(
+                    f"{path}:{statement.lineno}: attribute {operation} overwrites "
+                    f"method {binding.value.id}.{binding.attr} "
+                    f"(first defined at line {first}, "
+                    f"rebound at line {statement.lineno}); "
+                    "use a distinct name or explicit decorator assignment"
+                )
+        elif operation == "class binding":
+            methods = _NamespaceFunctions()
+            for child in statement.body:
+                methods.visit(child)
+            first_lines = {}
+            for name, definition, action, _ in methods.events:
+                if action == "definition":
+                    first_lines.setdefault(name, definition.lineno)
+            classes[binding] = first_lines
+        elif binding == "*":
+            classes.clear()
+        elif not (operation == "assignment" and preserves
+                  and _same_reference(getattr(statement, "value", None), binding)):
+            classes.pop(binding, None)
+    return errors
+
+
 def check_test_definitions(paths):
     """Return source errors without importing or executing configured gates.
 
@@ -133,8 +199,11 @@ def check_test_definitions(paths):
     single-target decorator wrapping (f = wrapper(f, ...)) are allowed. Tuple,
     chained, augmented, and unrelated assignments are not decorator allowances.
     Imports (including uncertain wildcard imports) cannot replace protected
-    names. Function locals, comprehension locals, attributes, and subscripts
-    are not bindings in the namespace being inspected.
+    names. Direct module-scope writes/deletions to methods on currently bound
+    same-module classes are also checked, with the same identity/wrapping
+    allowances. Class aliases, inherited methods, nested attribute paths,
+    function-local/runtime patches, unrelated object attributes, comprehension
+    locals, and subscripts are outside this source-only policy.
     """
     errors = []
     for file_path in paths:
@@ -145,6 +214,7 @@ def check_test_definitions(paths):
             errors.append(f"{path}: cannot inspect test definitions: {exc}")
             continue
 
+        errors.extend(_check_class_writes(tree, path))
         namespaces = [tree] + [
             node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
         ]

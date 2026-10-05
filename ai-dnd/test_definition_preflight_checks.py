@@ -398,6 +398,10 @@ class DefinitionPreflightTests(unittest.TestCase):
             "from unrelated import replacement as test_hidden",
             "class Bad:\n    def test_hidden(self): pass\n    test_hidden = None",
             "class Bad:\n    def test_hidden(self): pass\n    import other as test_hidden",
+            "class Bad:\n    def test_hidden(self): pass\nBad.test_hidden = None",
+            "class Bad:\n    def test_hidden(self): pass\ndel Bad.test_hidden",
+            "class Bad:\n    def test_hidden(self): pass\n"
+            "if False:\n    Bad.test_hidden = replacement",
         ]
         self.write_fixture("first.py", "def test_ok(): pass\n")
         for replacement in replacements:
@@ -421,6 +425,157 @@ class DefinitionPreflightTests(unittest.TestCase):
                 self.assertIn("first defined at line", stderr.getvalue())
                 self.assertIn("rebound at line", stderr.getvalue())
 
+    def test_post_class_writes_report_method_and_original_and_replacement_lines(self):
+        replacements = [
+            "Checks.helper = None",
+            "Checks.helper: object = replacement",
+            "Checks.helper += replacement",
+            "Checks.helper, other = replacements",
+            "other, *Checks.helper = replacements",
+            "Checks.helper = other = replacement",
+            "del Checks.helper",
+            "Checks.helper = unrelated(original=Checks.helper)",
+            "Checks.helper = factory(helper=Checks.helper)",
+            "Checks.helper = Checks.helper()",
+            "Checks.helper = Checks.helper(Checks.helper)",
+            "Checks.helper = wrapper(Checks.helper())",
+            "Checks.helper = wrapper(Checks.helper, Checks.helper)",
+            "Checks.helper = Checks.helper.wrapper(Checks.helper)",
+            "for Checks.helper in items:\n    pass",
+            "with context as Checks.helper:\n    pass",
+            "if False:\n    Checks.helper = None",
+        ]
+        for replacement in replacements:
+            with self.subTest(replacement=replacement):
+                path = self.write_fixture(
+                    "post_class.py",
+                    "class Checks:\n    async def helper(self): pass\n"
+                    + replacement + "\n",
+                )
+                errors = check_test_definitions([path])
+                second = 4 if replacement.startswith("if False") else 3
+                self.assertEqual(len(errors), 1, errors)
+                self.assertIn(f"{path}:{second}: attribute ", errors[0])
+                self.assertIn("overwrites method Checks.helper", errors[0])
+                self.assertIn(
+                    f"first defined at line 2, rebound at line {second}", errors[0]
+                )
+
+    def test_post_class_identity_wrapping_and_new_attributes_remain_valid(self):
+        path = self.write_fixture("post_class_allowed.py", """
+            raise AssertionError("source inspection must never execute this")
+            class Checks:
+                def helper(self): pass
+            Checks = Checks
+            Checks.helper = Checks.helper
+            Checks.helper: object
+            Checks.helper: object = staticmethod(Checks.helper)
+            Checks.helper = outer(inner(Checks.helper), option=True)
+            Checks.helper = factory(option=True)(Checks.helper)
+            Checks.alias = Checks.helper
+            Checks.alias = None
+            Checks.new_method = replacement
+            Checks.metadata = None
+        """)
+        self.assertEqual(check_test_definitions([path]), [])
+
+    def test_wrapping_does_not_reset_post_class_method_protection(self):
+        path = self.write_fixture("post_class_wrapped.py", """
+            class Checks:
+                def test_result(self): pass
+            Checks.test_result = wrapper(Checks.test_result)
+            Checks.test_result = None
+            del Checks.test_result
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 2, errors)
+        for error, second in zip(errors, (4, 5)):
+            self.assertIn(
+                f"first defined at line 2, rebound at line {second}", error
+            )
+
+    def test_post_class_resolution_does_not_follow_rebound_names(self):
+        rebindings = [
+            "Checks = object()",
+            "Checks: object = unrelated",
+            "Checks += replacement",
+            "Checks, other = values",
+            "Checks = other = Checks",
+            "(Checks := unrelated)",
+            "import unrelated as Checks",
+            "from unrelated import Checks",
+            "from unrelated import *",
+            "del Checks",
+            "def Checks(): pass",
+            "class Checks: pass",
+            "for Checks in items:\n    pass",
+            "with context as Checks:\n    pass",
+            "try:\n    pass\nexcept Exception as Checks:\n    pass",
+            "match value:\n    case Checks:\n        pass",
+            "Checks = decorator(Checks)",
+        ]
+        for rebinding in rebindings:
+            with self.subTest(rebinding=rebinding):
+                path = self.write_fixture(
+                    "rebound_class.py",
+                    "class Checks:\n    def test_result(self): pass\n"
+                    + rebinding + "\nChecks.test_result = None\n",
+                )
+                self.assertEqual(check_test_definitions([path]), [])
+
+    def test_unresolved_objects_and_runtime_patch_fixtures_remain_out_of_scope(self):
+        path = self.write_fixture("patch_fixtures.py", """
+            Checks.test_result = None
+            class Checks:
+                def test_result(self): pass
+                def test_patch(self):
+                    with patch.object(Checks, "test_result", None):
+                        pass
+                    Checks.test_result = None
+            alias = Checks
+            alias.test_result = None
+            obj = Checks()
+            obj.test_result = None
+            imported.test_result = None
+            class Child(Checks): pass
+            Child.test_result = None
+            class Outer:
+                class Nested:
+                    def test_result(self): pass
+                Checks.test_result = None
+            Outer.Nested.test_result = None
+            def fixture():
+                class Local:
+                    def test_result(self): pass
+                Local.test_result = None
+            with patch.object(Checks, "test_result", None):
+                pass
+            setattr(Checks, "test_result", None)
+            delattr(Checks, "test_result")
+            mapping["test_result"] = None
+        """)
+        self.assertEqual(check_test_definitions([path]), [])
+
+    def test_conditional_classes_are_resolved_without_importing_or_running(self):
+        path = self.write_fixture("conditional_class.py", """
+            if False:
+                class Checks:
+                    def setUp(self): pass
+                    async def test_result(self): pass
+            if False:
+                Checks.setUp = None
+                Checks.test_result = None
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 2, errors)
+        for error, name, first, second in zip(
+            errors, ("setUp", "test_result"), (3, 4), (6, 7)
+        ):
+            self.assertIn(f"overwrites method Checks.{name}", error)
+            self.assertIn(
+                f"first defined at line {first}, rebound at line {second}", error
+            )
+
     def test_runner_executes_gates_with_valid_aliases_and_decorator_assignments(self):
         names = ("wrapped.py", "alias.py")
         self.write_fixture(names[0], """
@@ -432,6 +587,10 @@ class DefinitionPreflightTests(unittest.TestCase):
                 def test_result(self): pass
                 alias = test_result
                 test_result = staticmethod(test_result)
+            Checks.test_result = wrapper(Checks.test_result)
+            with patch.object(Checks, "test_result", None):
+                pass
+            obj.test_result = None
         """)
         with patch.object(run_tests, "ROOT", self.root), \
              patch.object(run_tests, "TESTS", names), \

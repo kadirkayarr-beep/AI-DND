@@ -33,3 +33,4 @@
 - [Journal NPC reference boundary](journal-npc-reference-boundary.md) — native NPC events need same-turn canonical encounter evidence; engine success alone is not API readiness.
 - [Vite dependency preview](vite-dependency-preview.md) — missing optimized dev dependencies can blank the preview despite healthy source/API routes and a passing build.
 - [Large source transport](large-source-transport.md) — use file-backed transport rather than large shell stdout for authoritative source contents.
+- [Source preflight boundaries](source-preflight-boundaries.md) — accidental definition-loss checks must stay separate from intentional runtime patch fixtures.
