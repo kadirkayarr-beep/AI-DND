@@ -1592,6 +1592,158 @@ class SessionTests(unittest.TestCase):
                                      expected[index])
                 assert_preserved()
 
+    def test_overlapping_interrupted_rest_cannot_recharge_another_campaign(self):
+        import scheduled_events
+
+        for interrupted_index in (0, 1):
+            for first_index in (0, 1):
+                with self.subTest(interrupted_index=interrupted_index,
+                                  first_index=first_index):
+                    sessions = [game.create_session(seed=17),
+                                game.create_session(seed=29)]
+                    fixtures = [(2, 0, 7), (3, 1, 11)]
+                    for session, (maximum, uses, reserve) in zip(sessions, fixtures):
+                        session.world_state["location"] = "tavern"
+                        session.character.update(
+                            species="Orc", race="Orc",
+                            level=1 if maximum == 2 else 5,
+                            proficiency_bonus=maximum, current_hp=13, max_hp=19,
+                        )
+                        game.initialize_species_trait_state(session=session)
+                        session.character["species_trait_state"].update(
+                            adrenaline_rush_uses_remaining=uses,
+                            temporary_hit_points=reserve,
+                            movement_budget_ft=60,
+                            movement_effect="adrenaline_rush",
+                        )
+                        game.ensure_campaign_clock(session=session)
+                        game.ensure_death_state(session=session)
+                        game.ensure_combat_state(session=session)
+                    interrupted = sessions[interrupted_index]
+                    encounter = scheduled_events.register_event(
+                        interrupted.world_state, event_id="rest-stop",
+                        window_start=1200, window_end=1800,
+                        location_id="tavern", behavior="INTERRUPTIVE",
+                        requires_decision=True, summary="A visitor needs a decision.",
+                        effects=[{"kind": "flag", "key": "scheduled:rest_encounter",
+                                  "value": True}],
+                    )
+                    before = [session.serialize_game_state() for session in sessions]
+                    characters_before = [copy.deepcopy(session.character)
+                                         for session in sessions]
+                    expected = copy.deepcopy(before)
+                    for index, snapshot in enumerate(expected):
+                        # Resolve legitimate clock/encounter changes on detached
+                        # worlds. Never obtain expected recharge from the action.
+                        world = snapshot["world_state"]
+                        game.campaign_time.advance(
+                            world, 3600, "short_rest",
+                            f"turn:{world.get('flags', {}).get('turn_index', 0)}",
+                        )
+                        if index != interrupted_index:
+                            snapshot["player"]["species_trait_state"].update(
+                                adrenaline_rush_uses_remaining=fixtures[index][0],
+                                movement_budget_ft=0, movement_effect=None,
+                            )
+                    rng_before = [session.rng.getstate() for session in sessions]
+                    rng_default = game._DEFAULT_SESSION.rng.getstate()
+                    rng_module = random.getstate()
+                    messages_before = [copy.deepcopy(session.messages)
+                                       for session in sessions]
+                    default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                    first, waiting = sessions[first_index], sessions[1 - first_index]
+                    waiting_entered = threading.Event()
+                    release_waiting = threading.Event()
+                    time_owner = game.advance_campaign_time
+
+                    def overlapping_time(*args, **kwargs):
+                        owner = game._session()
+                        self.assertTrue(any(owner is session for session in sessions))
+                        if owner is waiting:
+                            waiting_entered.set()
+                            self.assertTrue(release_waiting.wait(timeout=5))
+                        else:
+                            self.assertTrue(waiting_entered.wait(timeout=5))
+                        self.assertIs(game._session(), owner)
+                        result = time_owner(*args, **kwargs)
+                        self.assertIs(game._session(), owner)
+                        return result
+
+                    def assert_preserved():
+                        for session, rng, messages in zip(
+                            sessions, rng_before, messages_before
+                        ):
+                            self.assertEqual(session.rng.getstate(), rng)
+                            self.assertEqual(session.messages, messages)
+                        self.assertEqual(game.serialize_game_state(), self.default_before)
+                        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                        self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                        self.assertEqual(random.getstate(), rng_module)
+
+                    results = {}
+                    with patch.object(game, "advance_campaign_time",
+                                      side_effect=overlapping_time), \
+                         self.rolls(first), self.rolls(waiting), \
+                         self.rolls(game._DEFAULT_SESSION):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            waiting_future = pool.submit(
+                                game.resolve_species_trait_action,
+                                "short_rest", session=waiting,
+                            )
+                            first_future = pool.submit(
+                                game.resolve_species_trait_action,
+                                "short_rest", session=first,
+                            )
+                            try:
+                                results[first_index] = first_future.result(timeout=10)
+                                self.assertEqual(first.serialize_game_state(),
+                                                 expected[first_index])
+                                self.assertEqual(waiting.serialize_game_state(),
+                                                 before[1 - first_index])
+                                assert_preserved()
+                            finally:
+                                release_waiting.set()
+                            results[1 - first_index] = waiting_future.result(timeout=10)
+
+                    for index, session in enumerate(sessions):
+                        result = results[index]
+                        self.assertEqual(result["action"], "short_rest")
+                        effects = result["effects"]
+                        time_result = effects["time_result"]
+                        stopped = index == interrupted_index
+                        self.assertEqual(time_result["interrupted"], stopped)
+                        self.assertEqual(time_result["requested_seconds"], 3600)
+                        self.assertEqual(time_result["elapsed_seconds"],
+                                         1200 if stopped else 3600)
+                        self.assertEqual(time_result["remaining_seconds"],
+                                         2400 if stopped else 0)
+                        state = session.character["species_trait_state"]
+                        maximum, uses, reserve = fixtures[index]
+                        self.assertEqual(state["temporary_hit_points"], reserve)
+                        if stopped:
+                            self.assertFalse(effects["rest_completed"])
+                            self.assertNotIn("adrenaline_rush_uses_refreshed", effects)
+                            self.assertEqual(state["adrenaline_rush_uses_remaining"], uses)
+                            self.assertEqual(session.character, characters_before[index])
+                        else:
+                            self.assertEqual(effects["adrenaline_rush_uses_refreshed"],
+                                             maximum - uses)
+                            self.assertEqual(state["adrenaline_rush_uses_remaining"],
+                                             maximum)
+                            self.assertEqual(time_result["player_known_events"], [])
+                            self.assertNotIn("scheduled:rest_encounter",
+                                             session.world_state["flags"])
+                        self.assertEqual(session.serialize_game_state(), expected[index])
+                    self.assertEqual(encounter["status"], "OCCURRED")
+                    self.assertEqual(encounter["decision_status"], "PENDING")
+                    self.assertEqual(encounter["encounter_status"], "OBSERVED")
+                    self.assertTrue(encounter["player_observed"])
+                    self.assertEqual(encounter["canonical_result"]["resolved_at"], 1200)
+                    self.assertTrue(
+                        interrupted.world_state["flags"]["scheduled:rest_encounter"]
+                    )
+                    assert_preserved()
+
     def test_overlapping_adrenaline_rush_grants_and_absorption_stay_session_owned(self):
         # Different proficiency bonuses and uses expose a borrowed character
         # or trait state. Reverse the fixtures to avoid depending on call order.
