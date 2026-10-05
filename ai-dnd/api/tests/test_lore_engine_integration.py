@@ -868,6 +868,74 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 self.assertEqual(session.character, before_character)
                 self.assertEqual(session.world_state, before_world)
 
+    def test_dead_current_city_ruler_question_cannot_bypass_action_gate(self):
+        question = "Bu şehrin hükümdarı kim?"
+        for target_id in (None, "npc:elara"):
+            with self.subTest(target_id=target_id):
+                session = game.GameSession(seed=11)
+                session.character.update(
+                    name="Tester", current_hp=0, max_hp=10
+                )
+                session.world_state["player_combat_status"] = "dead"
+                session.world_state["death_state"]["dead"] = True
+                session.world_state["location"] = "fr:city:neverwinter"
+                session.world_state["npcs"] = [{
+                    "id": "npc:elara",
+                    "name": "Elara",
+                    "role": "Guide",
+                    "location": "fr:city:neverwinter",
+                    "memory": [],
+                    "knowledge": [],
+                }]
+                session.lore_authority_context = (
+                    PRODUCTION_REGISTRY.retrieve_lore_context(
+                        current_location_id="fr:city:neverwinter",
+                        player_message=question,
+                        mentioned_entity_ids=set(),
+                        campaign_state=CampaignLoreState.legacy_unbound(),
+                    )
+                )
+                self.assertEqual(
+                    game._supported_lore_question_response(
+                        question,
+                        session.lore_authority_context,
+                        session.world_state,
+                    ),
+                    "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+                )
+                self.assertFalse(session.ensure_combat_state()["active"])
+                before_character = copy.deepcopy(session.character)
+                before_world = copy.deepcopy(session.world_state)
+
+                with (
+                    patch.object(
+                        game,
+                        "ask_dungeon_master",
+                        side_effect=AssertionError(
+                            "Dead actions must not call narration."
+                        ),
+                    ) as narration_model,
+                    patch.object(
+                        game,
+                        "parse_player_intent",
+                        side_effect=AssertionError(
+                            "Dead actions must not call intent parsing."
+                        ),
+                    ) as intent_model,
+                ):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        r"^Ölü karakter eylem gerçekleştiremez\.$",
+                    ):
+                        session.run_player_turn(
+                            question, target_id=target_id, scene_plan={}
+                        )
+
+                intent_model.assert_not_called()
+                narration_model.assert_not_called()
+                self.assertEqual(session.character, before_character)
+                self.assertEqual(session.world_state, before_world)
+
     def test_turkish_current_city_ruler_is_deterministic_and_fails_closed(self):
         question = "Bu şehrin hükümdarı kim?"
         session = game.GameSession(seed=11)
