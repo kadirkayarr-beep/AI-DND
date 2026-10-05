@@ -244,6 +244,35 @@ class RunnerProcessTests(unittest.TestCase):
                 self.assertNotIn("PREFLIGHT FAILED", result.stdout + result.stderr)
                 self.assertNotIn("PASSED", result.stdout + result.stderr)
 
+    def test_multiple_failed_real_gates_are_reported_in_inventory_order(self):
+        # Non-alphabetical order catches summaries that sort instead of retaining
+        # the selected inventory's execution order.
+        suites = {name: tuple(reversed(gates)) for name, gates in self.SUITES.items()}
+        with patch.object(self, "SUITES", suites):
+            for argv, inventory in self.SELECTIONS:
+                with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    self.copy_runner(root)
+                    selected = self.SUITES[inventory]
+                    for name, exit_code in zip(selected, (7, 9)):
+                        self.write_gate(root, name, "def test_ok(): pass\n",
+                                        exit_code=exit_code)
+
+                    result = self.launch_runner(root, argv)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertEqual(result.stderr, "")
+                    self.assertEqual((root / "order.txt").read_text(encoding="utf-8")
+                                     .splitlines(), list(selected))
+                    for name in selected:
+                        self.assertEqual((root / (name + ".sentinel"))
+                                         .read_text(encoding="utf-8"), "started")
+                    label = ("RELEASE DETERMINISTIC GATES" if inventory == "TESTS"
+                             else "HISTORICAL PROTOTYPE CHECKS (NOT RELEASE GATES)")
+                    self.assertEqual(result.stdout.splitlines()[-1],
+                                     f"{label} FAILED: {', '.join(selected)}")
+                    self.assertNotIn("PREFLIGHT FAILED", result.stdout + result.stderr)
+                    self.assertNotIn("PASSED", result.stdout + result.stderr)
+
     def test_valid_aliases_and_decorators_run_real_gates_in_order(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
