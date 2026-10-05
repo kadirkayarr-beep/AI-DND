@@ -9,6 +9,12 @@ from api.narrative_memory import _scene_type
 
 class NarrativeSafetyCalibrationTests(unittest.TestCase):
     def setUp(self):
+        model_guard = patch("game.ollama.chat", side_effect=AssertionError(
+            "Unexpected model call in an offline narrative release gate"
+        ))
+        guarded_chat = model_guard.start()
+        self.addCleanup(model_guard.stop)
+        self.addCleanup(guarded_chat.assert_not_called)
         self.session = game.create_session(seed=42)
         self.session.character["name"] = "Mira"
         self.session.world_state["location"] = "tavern"

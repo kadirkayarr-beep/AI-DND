@@ -17,6 +17,14 @@ import campaign_time
 
 class TestNarrativeRebalance(unittest.TestCase):
     def setUp(self):
+        # Individual model fixtures override this guard; all other paths stay
+        # offline even if a deterministic route accidentally reaches Ollama.
+        model_guard = patch("game.ollama.chat", side_effect=AssertionError(
+            "Unexpected model call in an offline narrative release gate"
+        ))
+        guarded_chat = model_guard.start()
+        self.addCleanup(model_guard.stop)
+        self.addCleanup(guarded_chat.assert_not_called)
         # Character initialization is not a world reset. Each case owns a
         # fresh session so earlier journeys/scenes cannot change its evidence.
         self.session = game.create_session(seed=42)
@@ -867,6 +875,12 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
     """Resolved Python outcomes survive narration rejection without model retries."""
 
     def setUp(self):
+        model_guard = patch("game.ollama.chat", side_effect=AssertionError(
+            "Unexpected model call in an offline narrative release gate"
+        ))
+        guarded_chat = model_guard.start()
+        self.addCleanup(model_guard.stop)
+        self.addCleanup(guarded_chat.assert_not_called)
         self.session = game.create_session(seed=42)
         self.session.character["name"] = "Tester"
         self.world = self.session.world_state

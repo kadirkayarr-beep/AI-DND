@@ -27,6 +27,7 @@ class RunnerInventoryTests(unittest.TestCase):
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
             "test_actual_logic.py", "test_npc_query.py",
+            "test_narrative_rebalance.py", "test_narrative_safety_calibration.py",
         }
         self.assertEqual(set(run_tests.TESTS), expected)
         self.assertEqual(len(run_tests.TESTS), len(expected))
@@ -90,6 +91,55 @@ class RunnerInventoryTests(unittest.TestCase):
         self.assertIn("RELEASE DETERMINISTIC GATES FAILED: test_combat_v2_authoritative.py",
                       output.getvalue())
         self.assertNotIn("GATES PASSED", output.getvalue())
+
+    def test_each_narrative_failure_blocks_default_and_explicit_release(self):
+        for argv in ((), ("--suite", "release")):
+            for failed_gate in ("test_narrative_rebalance.py",
+                                "test_narrative_safety_calibration.py"):
+                output = StringIO()
+                with self.subTest(argv=argv, failed_gate=failed_gate), \
+                     patch.object(run_tests, "check_test_definitions", return_value=[]), \
+                     patch.object(run_tests.subprocess, "run") as execute, \
+                     redirect_stdout(output):
+                    execute.side_effect = [
+                        subprocess.CompletedProcess([], int(name == failed_gate))
+                        for name in run_tests.TESTS
+                    ]
+                    self.assertEqual(run_tests.main(argv), 1)
+                    self.assertEqual(execute.call_count, len(run_tests.TESTS))
+                self.assertIn(f"RELEASE DETERMINISTIC GATES FAILED: {failed_gate}",
+                              output.getvalue())
+                self.assertNotIn("GATES PASSED", output.getvalue())
+
+    def test_release_sources_pass_real_definition_preflight(self):
+        self.assertEqual(run_tests.check_test_definitions(
+            run_tests.ROOT / name for name in run_tests.TESTS
+        ), [])
+
+    def test_narrative_definition_loss_blocks_release_before_any_gate_runs(self):
+        for failed_gate in ("test_narrative_rebalance.py",
+                            "test_narrative_safety_calibration.py"):
+            with self.subTest(failed_gate=failed_gate), \
+                 tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for name in run_tests.TESTS:
+                    (root / name).write_text(
+                        "class Checks:\n    def test_ok(self): pass\n",
+                        encoding="utf-8",
+                    )
+                (root / failed_gate).write_text(
+                    "class Checks:\n"
+                    "    def test_boundary(self): pass\n"
+                    "    def test_boundary(self): pass\n",
+                    encoding="utf-8",
+                )
+                with patch.object(run_tests, "ROOT", root), \
+                     patch.object(run_tests.subprocess, "run") as execute, \
+                     redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
+                    self.assertEqual(run_tests.main(), 1)
+                    execute.assert_not_called()
+                self.assertIn(failed_gate, stderr.getvalue())
+                self.assertIn("duplicate method Checks.test_boundary", stderr.getvalue())
 
     def test_listing_is_source_only_and_not_a_pass_claim(self):
         for suite, selected in (("release", run_tests.TESTS),

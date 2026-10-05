@@ -29,6 +29,8 @@ TESTS = (
     "test_self_query.py",
     "test_actual_logic.py",
     "test_npc_query.py",
+    "test_narrative_rebalance.py",
+    "test_narrative_safety_calibration.py",
 )
 
 PROTOTYPE_TESTS = (

@@ -58,6 +58,11 @@ python ai-dnd/run_tests.py
 The default runner selects release deterministic gates (`--suite release` is
 equivalent). Combat coverage includes `test_combat.py` and
 `test_combat_v2_authoritative.py`, the authoritative scheduler contract.
+Narrative coverage includes `test_narrative_rebalance.py` and
+`test_narrative_safety_calibration.py`: active-NPC character questions must
+return canonical sheet facts without model calls, and NPC name disclosure and
+recall must stay scoped to supported player evidence. These suites block
+unexpected Ollama calls; model-response scenarios use explicit offline mocks.
 Every selected gate is source-preflighted before execution; failures remain
 nonzero and are listed even when later gates pass.
 
