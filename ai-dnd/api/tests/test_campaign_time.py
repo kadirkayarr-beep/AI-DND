@@ -6,6 +6,7 @@ import copy
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -400,6 +401,7 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             journal = copy.deepcopy(active_record.journal)
             memory = copy.deepcopy(active_record.narrative_memory)
             receipts = copy.deepcopy(active_record.turn_action_receipts)
+            stored_before_replay = store.get_campaign(campaign_id)
             with patch.object(active, "resolve_species_trait_action",
                               side_effect=AssertionError("Replay executed another short rest")), \
                  patch.object(manager, "autosave_turn",
@@ -416,7 +418,7 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(active_record.journal, journal)
             self.assertEqual(active_record.narrative_memory, memory)
             self.assertEqual(active_record.turn_action_receipts, receipts)
-            self.assertEqual(store.get_campaign(campaign_id), committed)
+            self.assertEqual(store.get_campaign(campaign_id), stored_before_replay)
             self.assertEqual(store.get_turn_action(campaign_id, request["action_id"]),
                              committed_receipt)
 
@@ -428,8 +430,25 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
                          ollama_adapter=AuthenticatedOllamaAdapter(NoModel()))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
-            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            # Force the metadata boundary instead of depending on wall-clock timing.
+            resumed_at = (
+                datetime.fromisoformat(committed.metadata["last_played_at"])
+                + timedelta(seconds=1)
+            ).isoformat(timespec="seconds")
+            with patch("api.persistence.campaign_store._now", return_value=resumed_at):
+                resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
             self.assertEqual(resumed.status_code, 200, resumed.text)
+            reopened = reopened_store.get_campaign(campaign_id)
+            self.assertNotEqual(reopened.metadata["last_played_at"],
+                                committed.metadata["last_played_at"])
+            self.assertEqual(reopened.metadata,
+                             {**committed.metadata, "last_played_at": resumed_at})
+            self.assertEqual(reopened.payload, committed.payload)
+            self.assertEqual(reopened.history, committed.history)
+            self.assertEqual(reopened.combat_history, committed.combat_history)
+            self.assertEqual(resumed.json()["history"], committed.history)
+            self.assertEqual(reopened_store.get_turn_action(campaign_id, request["action_id"]),
+                             committed_receipt)
             sid = resumed.json()["session_id"]
             restored_record = manager.get(sid)
             self.assertIsNot(restored_record.game_session, session)
@@ -519,10 +538,10 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
         engine_save = committed.payload["engine_save"]
         assert_recovered(engine_save["player"], engine_save["world_state"])
         self.assertEqual(engine_save, session.serialize_game_state())
-        self.assertEqual(self.store.get_turn_action(campaign_id, request["action_id"])["response"],
-                         response)
+        committed_receipt = self.store.get_turn_action(campaign_id, request["action_id"])
+        self.assertEqual(committed_receipt["response"], response)
 
-        async def assert_replay(http, manager, sid):
+        async def assert_replay(http, manager, store, sid):
             active_record = manager.get(sid)
             active = active_record.game_session
             engine_before = copy.deepcopy(active.serialize_game_state())
@@ -531,6 +550,7 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             journal = copy.deepcopy(active_record.journal)
             memory = copy.deepcopy(active_record.narrative_memory)
             receipt = copy.deepcopy(manager.get_turn_action(active_record, request["action_id"]))
+            stored_before_replay = store.get_campaign(campaign_id)
             with patch.object(active, "resolve_species_trait_action",
                               side_effect=AssertionError("Replay executed another rest")), \
                  patch.object(manager, "autosave_turn",
@@ -547,17 +567,37 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(active_record.journal, journal)
             self.assertEqual(active_record.narrative_memory, memory)
             self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), receipt)
-            self.assertEqual(self.store.get_campaign(campaign_id), committed)
+            self.assertEqual(store.get_campaign(campaign_id), stored_before_replay)
+            self.assertEqual(store.get_turn_action(campaign_id, request["action_id"]),
+                             committed_receipt)
 
-        await assert_replay(self.http, self.manager, self.sid)
+        await assert_replay(self.http, self.manager, self.store, self.sid)
         # Reopen with fresh owners so memory cannot conceal a missing commit.
-        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path))
+        reopened_store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = create_app(session_manager=manager,
                          ollama_adapter=AuthenticatedOllamaAdapter(NoModel()))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
-            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            # A real resume may cross a second even though no gameplay changes.
+            resumed_at = (
+                datetime.fromisoformat(committed.metadata["last_played_at"])
+                + timedelta(seconds=1)
+            ).isoformat(timespec="seconds")
+            with patch("api.persistence.campaign_store._now", return_value=resumed_at):
+                resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
             self.assertEqual(resumed.status_code, 200, resumed.text)
+            reopened = reopened_store.get_campaign(campaign_id)
+            self.assertNotEqual(reopened.metadata["last_played_at"],
+                                committed.metadata["last_played_at"])
+            self.assertEqual(reopened.metadata,
+                             {**committed.metadata, "last_played_at": resumed_at})
+            self.assertEqual(reopened.payload, committed.payload)
+            self.assertEqual(reopened.history, committed.history)
+            self.assertEqual(reopened.combat_history, committed.combat_history)
+            self.assertEqual(resumed.json()["history"], committed.history)
+            self.assertEqual(reopened_store.get_turn_action(campaign_id, request["action_id"]),
+                             committed_receipt)
             sid = resumed.json()["session_id"]
             restored_record = manager.get(sid)
             restored = restored_record.game_session
@@ -567,7 +607,7 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(restored_record.journal, record.journal)
             for key in ("character", "spellcasting", "campaign_time", "pending_event_decisions"):
                 self.assertEqual(resumed.json()["state"][key], response["state"][key])
-            await assert_replay(http, manager, sid)
+            await assert_replay(http, manager, reopened_store, sid)
 
 
 if __name__ == "__main__":
