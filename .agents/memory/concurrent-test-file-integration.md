@@ -20,3 +20,14 @@ as well as syntax: Python silently replaces earlier methods with later definitio
 **Why:** Integration can duplicate setup and helper methods while appending an orphaned test fragment elsewhere. A syntax repair alone leaves shadowed definitions that Python accepts silently.
 
 **How to apply:** Remove only proven duplicate fragments, preserve the fully initialized tests, and check class-level definition uniqueness before rerunning the integrated suite.
+
+An isolated run loading intact shared fixture definitions can verify scoped
+regressions while an unrelated fixture body is broken, but it is not proof that
+ordinary module collection or the configured release suite passes.
+
+**Why:** A syntax error anywhere in an imported fixture prevents all dependent
+tests from collecting, even when the setup helpers themselves remain valid.
+
+**How to apply:** Report isolated results and the normal collection blocker
+separately. Keep the broken integrated source visible; do not quietly substitute
+an isolated loader into the project's normal test command.

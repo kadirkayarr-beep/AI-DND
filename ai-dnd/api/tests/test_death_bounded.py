@@ -395,7 +395,23 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_fatal_turn_retries_after_campaign_reopen(self):
         await self._assert_failed_fatal_turn_retry(reopen_before_retry=True)
 
-    async def _assert_failed_fatal_turn_retry(self, *, reopen_before_retry):
+    async def test_permadeath_failed_fatal_turn_retries_after_campaign_reopen(self):
+        with patch.object(CampaignStore, "delete_campaign",
+                          side_effect=AssertionError("Death cannot delete a campaign")) as delete:
+            await self._assert_failed_fatal_turn_retry(
+                reopen_before_retry=True, mode="PERMADEATH",
+            )
+            delete.assert_not_called()
+
+    async def test_ironman_failed_fatal_turn_retries_after_campaign_reopen(self):
+        with patch.object(CampaignStore, "delete_campaign",
+                          side_effect=AssertionError("Death cannot delete a campaign")) as delete:
+            await self._assert_failed_fatal_turn_retry(
+                reopen_before_retry=True, mode="IRONMAN",
+            )
+            delete.assert_not_called()
+
+    async def _assert_failed_fatal_turn_retry(self, *, reopen_before_retry, mode="NORMAL"):
         import uuid
         from api.lore_authority.models import CampaignLoreState
 
@@ -404,7 +420,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(a["session_id"])
         other = self.manager.get(b["session_id"])
         s = record.game_session
-        s.ensure_death_state()["mode"] = "NORMAL"
+        s.ensure_death_state()["mode"] = mode
         timestamp = "2026-01-01T00:00:00+00:00"
         quest_id = str(uuid.uuid4())
         record.journal["quests"].append({
@@ -441,11 +457,14 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         record.turn_action_receipts[previous_action_id] = copy.deepcopy(previous_receipt)
         death_fixtures.start_test_combat(s)
         checkpoint = copy.deepcopy(s.ensure_death_state()["combat_checkpoint"])
-        self.assertIsNotNone(checkpoint)
-        checkpoint_campaign = checkpoint["campaign_state"]
+        if mode == "NORMAL":
+            self.assertIsNotNone(checkpoint)
+            checkpoint_campaign = checkpoint["campaign_state"]
+        else:
+            self.assertIsNone(checkpoint)
 
         # Progress earned after the checkpoint must survive a failed save,
-        # even though the successful Normal-mode death rollback would undo it.
+        # and permanent-death modes must retain it after a successful death too.
         quest = record.journal["quests"][0]
         quest.update(status="completed", updated_at="2026-01-02T00:00:00+00:00",
                      completed_at="2026-01-02T00:00:00+00:00")
@@ -483,8 +502,35 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             })
 
         before, other_before = snapshot(record), snapshot(other)
-        for field in ("journal", "narrative_memory", "lore_authority"):
-            self.assertNotEqual(before[field], checkpoint_campaign[field], field)
+        expected_campaign = checkpoint_campaign if mode == "NORMAL" else before
+        if mode == "NORMAL":
+            for field in ("journal", "narrative_memory", "lore_authority"):
+                self.assertNotEqual(before[field], checkpoint_campaign[field], field)
+        # A fatal attempt consumes exactly one real session RNG draw. Failed
+        # persistence must restore it; retry consumes it once, replay not at all.
+        import random
+        expected_rng = random.Random()
+        expected_rng.setstate(before["rng"])
+        expected_rng.randint(1, 20)
+
+        def assert_campaign_progress(managed):
+            if mode == "NORMAL":
+                for field in ("journal", "narrative_memory"):
+                    self.assertEqual(getattr(managed, field), expected_campaign[field], field)
+            else:
+                # Terminal death legitimately adds a combat-ended event and
+                # refreshes continuity, but must not rewind earned quest facts.
+                for key, value in before["journal"].items():
+                    if key != "notable_events":
+                        self.assertEqual(managed.journal[key], value, key)
+                events = managed.journal["notable_events"]
+                earlier_events = before["journal"]["notable_events"]
+                self.assertEqual(events[:-1], earlier_events)
+                self.assertEqual(events[-1]["event_type"], "combat_ended")
+                for key, value in before["narrative_memory"].items():
+                    if key != "recent_turns":
+                        self.assertEqual(managed.narrative_memory[key], value, key)
+            self.assertEqual(managed.lore_authority.to_dict(), expected_campaign["lore_authority"])
 
         def fatal_roll(*args, **kwargs):
             # Exercise RNG restoration too, rather than a constant mock that
@@ -496,15 +542,31 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(campaign_id, a["campaign_id"])
             self.assertIs(session, s)
             resolution = s.ensure_death_state()["last_resolution"]
-            self.assertTrue(resolution["rolled_back"])
+            self.assertEqual(resolution["rolled_back"], mode == "NORMAL")
+            self.assertEqual(resolution["mode"], mode)
             self.assertEqual(resolution["cause"], "failed_death_saves")
-            self.assertGreater(s.character["current_hp"], 0)
+            if mode == "NORMAL":
+                self.assertGreater(s.character["current_hp"], 0)
+            else:
+                self.assertTrue(s.ensure_death_state()["dead"])
+                self.assertEqual(s.ensure_death_state()["terminal"], mode == "IRONMAN")
+                self.assertEqual(s.character["current_hp"], 0)
+                self.assertEqual(s.world_state["player_combat_status"], "dead")
             self.assertNotEqual(s.rng.getstate(), before["rng"])
-            for field in ("journal", "narrative_memory"):
-                self.assertEqual(getattr(record, field), checkpoint_campaign[field], field)
-                self.assertEqual(kwargs[field], checkpoint_campaign[field], field)
-            self.assertEqual(record.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
-            self.assertEqual(kwargs["lore_authority"].to_dict(), checkpoint_campaign["lore_authority"])
+            assert_campaign_progress(record)
+            self.assertEqual(kwargs["journal"], record.journal)
+            if mode == "NORMAL":
+                self.assertEqual(kwargs["narrative_memory"], record.narrative_memory)
+            else:
+                # Persistence strips presentation narration from continuity.
+                for key, value in record.narrative_memory.items():
+                    if key != "recent_turns":
+                        self.assertEqual(kwargs["narrative_memory"][key], value, key)
+                self.assertEqual(
+                    kwargs["narrative_memory"]["recent_turns"][-1]["player"],
+                    request["message"],
+                )
+            self.assertEqual(kwargs["lore_authority"].to_dict(), expected_campaign["lore_authority"])
             self.assertEqual(kwargs["turn_action_receipt"]["action_id"], request["action_id"])
             raise CampaignStorageError("failure")
 
@@ -566,6 +628,9 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(s.ensure_death_state()["combat_checkpoint"], checkpoint)
             self.assertEqual(s.character["current_hp"], 0)
             self.assertEqual(s.ensure_death_state()["failures"], 1)
+            self.assertEqual(s.ensure_death_state()["mode"], mode)
+            self.assertFalse(s.ensure_death_state()["dead"])
+            self.assertFalse(s.ensure_death_state()["terminal"])
             self.assertIsNone(s.ensure_death_state()["last_resolution"])
             self.assertIsNone(self.store.get_turn_action(a["campaign_id"], request["action_id"]))
             self.assertNotIn(request["action_id"], record.turn_action_receipts)
@@ -573,7 +638,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
         previous_cached_receipt = copy.deepcopy(record.turn_action_receipts.get(previous_action_id))
         # Retry the identical request after removing the storage failure. The
-        # real Normal-mode checkpoint owner must run once and commit its result.
+        # real death owner must run once and commit the mode-specific result.
         url = f"/api/game/sessions/{session_id}/turn"
         with patch("game.roll_d20", side_effect=fatal_roll) as retry_die, patch(
             "game.resolve_enemy_attack",
@@ -590,19 +655,31 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(retried.status_code, 200, retried.text)
             self.assertEqual(retried.json()["action_id"], request["action_id"])
             self.assertEqual(retry_die.call_count, 1)
-            rollback.assert_called_once_with("failed_death_saves")
+            if mode == "NORMAL":
+                rollback.assert_called_once_with("failed_death_saves")
+            else:
+                rollback.assert_not_called()
+                enemy_attack.assert_not_called()
             death_owner.assert_called_once_with("failed_death_saves")
             self.assertEqual(committed_save.call_count, 1)
             resolution = s.ensure_death_state()["last_resolution"]
-            self.assertTrue(resolution["rolled_back"])
+            self.assertEqual(resolution["rolled_back"], mode == "NORMAL")
+            self.assertEqual(resolution["mode"], mode)
             self.assertEqual(resolution["cause"], "failed_death_saves")
-            self.assertFalse(s.ensure_death_state()["dead"])
+            self.assertEqual(s.ensure_death_state()["dead"], mode != "NORMAL")
+            self.assertEqual(s.ensure_death_state()["terminal"], mode == "IRONMAN")
             self.assertIsNone(s.ensure_death_state()["combat_checkpoint"])
-            self.assertEqual(s.character["current_hp"], checkpoint["player"]["current_hp"])
+            if mode == "NORMAL":
+                self.assertEqual(s.character["current_hp"], checkpoint["player"]["current_hp"])
+            else:
+                self.assertEqual(resolution["outcome"], "dead")
+                self.assertEqual(s.character["current_hp"], 0)
+                self.assertEqual(s.ensure_death_state()["failures"], 3)
+                self.assertEqual(s.world_state["player_combat_status"], "dead")
+                self.assertFalse(s.world_state["combat"]["active"])
             self.assertNotEqual(s.rng.getstate(), before["rng"])
-            for field in ("journal", "narrative_memory"):
-                self.assertEqual(getattr(record, field), checkpoint_campaign[field], field)
-            self.assertEqual(record.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
+            self.assertEqual(s.rng.getstate(), expected_rng.getstate())
+            assert_campaign_progress(record)
             self.assertEqual(record.turn_action_receipts.get(previous_action_id), previous_cached_receipt)
             self.assertEqual(self.store.get_turn_action(a["campaign_id"], previous_action_id),
                              before["stored_receipt"])
@@ -611,14 +688,18 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(saved_receipt["response"], retried.json())
 
             # Reopen from disk to prove that the successful retry persisted the
-            # rollback, rather than only repairing the active session.
+            # mode outcome, rather than only repairing the active session.
             reopened = SessionManager(campaign_store=CampaignStore(self.store.path))
             _, restored, _, _, _ = reopened.resume_campaign(a["campaign_id"])
             self.assertEqual(restored.game_session.serialize_game_state(), s.serialize_game_state())
             self.assertEqual(restored.game_session.rng.getstate(), s.rng.getstate())
             for field in ("journal", "narrative_memory"):
-                self.assertEqual(getattr(restored, field), checkpoint_campaign[field], field)
-            self.assertEqual(restored.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
+                self.assertEqual(getattr(restored, field), getattr(record, field), field)
+            self.assertEqual(restored.lore_authority.to_dict(), record.lore_authority.to_dict())
+            self.assertEqual(
+                {c["campaign_id"] for c in reopened.list_campaigns()},
+                {a["campaign_id"], b["campaign_id"]},
+            )
             self.assertEqual(snapshot(other), other_before)
 
             committed = snapshot(record)
