@@ -207,6 +207,166 @@ class DeathSystemTests(unittest.TestCase):
     def test_ironman_committed_attack_survives_reopening(self):
         self._assert_committed_death_round_trip("IRONMAN", terminal=True)
 
+    def test_permadeath_fatal_death_save_survives_reopening(self):
+        self._assert_fatal_death_save_round_trip("PERMADEATH", terminal=False)
+
+    def test_ironman_fatal_death_save_survives_reopening(self):
+        self._assert_fatal_death_save_round_trip("IRONMAN", terminal=True)
+
+    def _assert_fatal_death_save_round_trip(self, mode, *, terminal):
+        session = make_session()
+        peer = make_session(seed=29)
+        reopened = make_session(seed=83)
+        session.world_state["death_state"]["mode"] = mode
+        start_test_combat(session)
+        session.ensure_campaign_clock()
+        peer.ensure_campaign_clock()
+        peer.character["name"] = "Unrelated Adventurer"
+        peer.recent_dm_narrations.append("Unrelated campaign history")
+        peer.messages.append({"role": "user", "content": "Unrelated message"})
+        session.character["current_hp"] = 0
+        session.world_state["player_combat_status"] = "unconscious"
+        session.world_state["death_state"]["failures"] = 2
+        combat = session.world_state["combat"]
+        turn_key = f"{combat['combat_id']}:{combat['round']}"
+        expected_resolution = {
+            "mode": mode, "outcome": "dead", "cause": "failed_death_saves",
+            "rolled_back": False, "terminal": terminal,
+        }
+        default_before = game.serialize_game_state()
+        default_rng = game._DEFAULT_SESSION.rng.getstate()
+        default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+        module_rng = random.getstate()
+        peer_before = peer.serialize_game_state()
+        peer_rng = peer.rng.getstate()
+        peer_messages = copy.deepcopy(peer.messages)
+
+        def assert_isolation():
+            self.assertEqual(peer.serialize_game_state(), peer_before)
+            self.assertEqual(peer.rng.getstate(), peer_rng)
+            self.assertEqual(peer.messages, peer_messages)
+            self.assertEqual(game.serialize_game_state(), default_before)
+            self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+            self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+            self.assertEqual(random.getstate(), module_rng)
+            self.assertIs(game._session(), game._DEFAULT_SESSION)
+
+        def assert_death_state(owner):
+            self.assertEqual(owner.character["current_hp"], 0)
+            self.assertEqual(owner.world_state["player_combat_status"], "dead")
+            death = owner.world_state["death_state"]
+            self.assertEqual(death["mode"], mode)
+            self.assertTrue(death["dead"])
+            self.assertFalse(death["stable"])
+            self.assertEqual(death["failures"], 3)
+            self.assertEqual(death["terminal"], terminal)
+            self.assertEqual(death["last_resolution"], expected_resolution)
+            self.assertEqual(death["last_death_save_turn_key"], turn_key)
+            self.assertEqual(death["last_death_save_result"], result)
+            self.assertFalse(owner.world_state["combat"]["active"])
+            self.assertEqual(owner.world_state["combat"]["end_reason"], "player_dead")
+            public_death = serialize_session_state(owner)["death_state"]
+            self.assertEqual(public_death["status"], "dead")
+            self.assertEqual(public_death["terminal"], terminal)
+            self.assertEqual(public_death["last_resolution"], expected_resolution)
+            # Public projections omit optional None-valued receipt identifiers.
+            self.assertEqual(
+                public_death["last_death_save"],
+                {key: value for key, value in result.items() if value is not None},
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / f"{mode.lower()}.json"
+            peer_path = Path(directory) / "unrelated.json"
+            predeath = session.serialize_game_state()
+            self.assertEqual(session.save_game(path), path)
+            self.assertEqual(peer.save_game(peer_path), peer_path)
+            predeath_bytes = path.read_bytes()
+            peer_bytes = peer_path.read_bytes()
+            # Only the scheduled death save can finalize this death, not damage.
+            with (
+                patch("game.roll_d20", return_value=4) as die,
+                patch("game.resolve_enemy_attack",
+                      side_effect=AssertionError("Death save ran an enemy attack")),
+                patch("game._apply_player_damage",
+                      side_effect=AssertionError("Death save applied damage")),
+            ):
+                result = game._resolve_player_death_turn(session=session)
+            die.assert_called_once_with()
+            self.assertEqual(result["roll"], 4)
+            self.assertEqual(result["outcome"], "dead")
+            self.assertEqual(result["successes"], 0)
+            self.assertEqual(result["failures"], 3)
+            self.assertTrue(result["dead"])
+            self.assertFalse(result["stable"])
+            self.assertEqual(result["death_resolution"], expected_resolution)
+            assert_death_state(session)
+            assert_isolation()
+            # Finalization must neither delete nor overwrite either existing save.
+            self.assertEqual(path.read_bytes(), predeath_bytes)
+            self.assertEqual(json.loads(predeath_bytes), predeath)
+            self.assertEqual(peer_path.read_bytes(), peer_bytes)
+            committed = session.serialize_game_state()
+            source_rng = session.rng.getstate()
+            source_messages = copy.deepcopy(session.messages)
+            self.assertEqual(session.save_game(path), path)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), committed)
+            committed_bytes = path.read_bytes()
+
+            reopened.character["name"] = "Unsaved replacement"
+            reopened.recent_dm_narrations.append("Unsaved replacement history")
+            reopened.messages.append({"role": "user", "content": "Reopen save"})
+            reopened.rng.random()
+            rng_at_load = reopened.rng.getstate()
+            messages_at_load = copy.deepcopy(reopened.messages)
+            held = (reopened.world_state, reopened.character,
+                    reopened.recent_dm_narrations, reopened.messages, reopened.rng)
+            self.assertNotEqual(reopened.serialize_game_state(), committed)
+            with (
+                patch("game.roll_d20", side_effect=AssertionError("Reopen rolled dice")),
+                patch.object(reopened.rng, "randint",
+                             side_effect=AssertionError("Load rolled dice")),
+                patch.object(session.rng, "randint",
+                             side_effect=AssertionError("Source rolled dice")),
+                patch.object(peer.rng, "randint",
+                             side_effect=AssertionError("Peer rolled dice")),
+                patch.object(game._DEFAULT_SESSION.rng, "randint",
+                             side_effect=AssertionError("Default session rolled dice")),
+            ):
+                self.assertEqual(reopened.load_game(path), committed)
+                assert_death_state(reopened)
+                # A reopened terminal/dead turn must not roll or finalize again.
+                self.assertIsNone(game._resolve_player_death_turn(session=reopened))
+            self.assertEqual(reopened.serialize_game_state(), committed)
+            self.assertEqual(reopened.rng.getstate(), rng_at_load)
+            self.assertEqual(reopened.messages, messages_at_load)
+            for actual, reference in zip(
+                (reopened.world_state, reopened.character,
+                 reopened.recent_dm_narrations, reopened.messages, reopened.rng), held
+            ):
+                self.assertIs(actual, reference)
+            self.assertIsNot(reopened.world_state, session.world_state)
+            self.assertIsNot(reopened.character, session.character)
+            self.assertIsNot(reopened.rng, session.rng)
+            self.assertIsNot(reopened.rng, peer.rng)
+            self.assertIsNot(
+                reopened.world_state["death_state"]["last_death_save_result"],
+                session.world_state["death_state"]["last_death_save_result"],
+            )
+            self.assertEqual(session.serialize_game_state(), committed)
+            self.assertEqual(session.rng.getstate(), source_rng)
+            self.assertEqual(session.messages, source_messages)
+            assert_isolation()
+            self.assertEqual(path.read_bytes(), committed_bytes)
+            self.assertEqual(peer_path.read_bytes(), peer_bytes)
+            self.assertEqual(set(Path(directory).iterdir()), {path, peer_path})
+            reference_rng = random.Random()
+            reference_rng.setstate(rng_at_load)
+            self.assertEqual(reopened.roll_d20(), reference_rng.randint(1, 20))
+            self.assertEqual(reopened.rng.getstate(), reference_rng.getstate())
+            self.assertEqual(session.rng.getstate(), source_rng)
+            assert_isolation()
+
     def _assert_committed_death_round_trip(self, mode, *, terminal):
         session = make_session()
         peer = make_session(seed=29)
