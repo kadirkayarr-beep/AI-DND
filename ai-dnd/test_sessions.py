@@ -2356,6 +2356,128 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(random.getstate(), rng_module)
 
 
+    def test_overlapping_fatal_hit_cannot_use_another_orcs_relentless_endurance(self):
+        for fatal_index in (0, 1):
+            with self.subTest(fatal_index=fatal_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=17))
+                enemies = [self.npc(session) for session in sessions]
+                for session, enemy in zip(sessions, enemies):
+                    session.character.update(
+                        species="Orc", race="Orc", proficiency_bonus=2,
+                        armor_class=10, current_hp=3, max_hp=19,
+                        resistances=[], immunities=[], vulnerabilities=[],
+                    )
+                    session.initialize_species_trait_state()
+                    self.assertTrue(session.character["species_trait_state"][
+                        "relentless_endurance_available"
+                    ])
+                    session.ensure_campaign_clock()
+                    enemy.update(attack_bonus=0, damage_die=12,
+                                 damage_dice=1, damage_modifier=10)
+                self.assertEqual(enemies[0], enemies[1])
+                self.assertEqual(sessions[0].world_state["attack_environment"],
+                                 sessions[1].world_state["attack_environment"])
+                before = [session.serialize_game_state() for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                messages_before = [copy.deepcopy(session.messages)
+                                   for session in sessions]
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                rng_module = random.getstate()
+                attack_barrier = threading.Barrier(2)
+                damage_barrier = threading.Barrier(2)
+                # 22 damage equals current + max HP: instant death. 21 is
+                # one below that boundary and must instead trigger Endurance.
+                # Keep identical NPCs/geometry and swap the fatal owner.
+                damage_rolls = [12 if index == fatal_index else 11
+                                for index in range(2)]
+                with self.rolls(sessions[0], (20, 15), (12, damage_rolls[0]),
+                                barrier=attack_barrier,
+                                damage_barrier=damage_barrier), \
+                     self.rolls(sessions[1], (20, 15), (12, damage_rolls[1]),
+                                barrier=attack_barrier,
+                                damage_barrier=damage_barrier), \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        futures = [
+                            pool.submit(game.resolve_enemy_attack, enemy,
+                                        session=session)
+                            for session, enemy in zip(sessions, enemies)
+                        ]
+                        results = [future.result(timeout=10) for future in futures]
+                for index, (session, enemy, result, expected, rng, messages) in enumerate(
+                    zip(sessions, enemies, results, before, rng_before, messages_before)
+                ):
+                    fatal = index == fatal_index
+                    damage = 22 if fatal else 21
+                    hp_after = 0 if fatal else 1
+                    status = "dead" if fatal else "active"
+                    resolution = {
+                        "mode": "NORMAL", "outcome": "dead",
+                        "cause": "massive_damage", "rolled_back": False,
+                        "terminal": False,
+                    } if fatal else None
+                    self.assertEqual(result["actor_id"], enemy["id"])
+                    self.assertEqual(result["target_id"], "player")
+                    self.assertEqual(result["attack_rolls"], [15])
+                    self.assertEqual(result["attack_total"], 15)
+                    self.assertEqual(result["target_ac"], 10)
+                    self.assertEqual(result["advantage_sources"], [])
+                    self.assertEqual(result["disadvantage_sources"], [])
+                    self.assertFalse(result["critical"])
+                    self.assertTrue(result["hit"])
+                    self.assertTrue(result["success"])
+                    self.assertEqual(result["outcome"], "hit")
+                    self.assertEqual(result["damage_type"], "slashing")
+                    self.assertEqual(result["damage_rolls"], [
+                        {"source": "weapon", "die": 12, "count": 1,
+                         "rolls": [damage_rolls[index]]},
+                    ])
+                    self.assertEqual(result["raw_damage"], damage)
+                    self.assertEqual(result["damage"], damage)
+                    self.assertEqual(result["hp_damage"], damage)
+                    self.assertEqual(result["temporary_hp_before"], 0)
+                    self.assertEqual(result["temporary_hp_absorbed"], 0)
+                    self.assertEqual(result["temporary_hp_after"], 0)
+                    self.assertEqual(result["target_hp_before"], 3)
+                    self.assertEqual(result["target_hp_after"], hp_after)
+                    self.assertEqual(result["target_status"], status)
+                    self.assertEqual(result["species_effects"], [] if fatal else [
+                        {"trait": "relentless_endurance", "current_hp": 1},
+                    ])
+                    self.assertEqual(result["death_resolution"], resolution)
+                    self.assertEqual(session.character["current_hp"], hp_after)
+                    self.assertEqual(session.world_state["player_combat_status"], status)
+                    # Fatal damage must leave its unused resource available;
+                    # only the survivable campaign spends its own resource.
+                    self.assertEqual(session.character["species_trait_state"][
+                        "relentless_endurance_available"
+                    ], fatal)
+                    expected["player"]["current_hp"] = hp_after
+                    expected["player"]["species_trait_state"][
+                        "relentless_endurance_available"
+                    ] = fatal
+                    expected["world_state"]["player_combat_status"] = status
+                    if fatal:
+                        expected["world_state"]["death_state"].update(
+                            dead=True, failures=3, last_resolution=resolution,
+                        )
+                    self.assertEqual(session.world_state["death_state"],
+                                     expected["world_state"]["death_state"])
+                    expected["world_state"].setdefault("attack_results", []).append(
+                        copy.deepcopy(result)
+                    )
+                    self.assertEqual(session.serialize_game_state(), expected)
+                    self.assertEqual(session.messages, messages)
+                    self.assertEqual(session.rng.getstate(), rng)
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                self.assertEqual(random.getstate(), rng_module)
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()
