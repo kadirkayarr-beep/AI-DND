@@ -680,6 +680,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "NORMAL", reject_changed_message=True,
         )
 
+    async def test_permadeath_fatal_death_save_conflict_after_reopen_preserves_nonterminal_death(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "PERMADEATH", reject_changed_message=True,
+        )
+
     async def test_ironman_fatal_death_save_conflict_after_reopen_preserves_terminal_death(self):
         await self._assert_accepted_fatal_death_save_replay_after_reopen(
             "IRONMAN", reject_changed_message=True,
@@ -757,7 +762,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(death["mode"], mode)
             self.assertEqual(death["last_resolution"], expected_resolution)
             self.assertEqual(death["last_death_save_result"], result["death_save"])
-            self.assertEqual(death["dead"], mode == "IRONMAN")
+            self.assertEqual(death["dead"], mode != "NORMAL")
             self.assertEqual(death["terminal"], mode == "IRONMAN")
             self.assertFalse(death["stable"])
             self.assertIsNone(death["combat_checkpoint"])
