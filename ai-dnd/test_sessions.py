@@ -2601,6 +2601,164 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
                 self.assertEqual(random.getstate(), module_rng)
 
+    def test_overlapping_necrotic_shroud_expiry_stays_in_own_campaign(self):
+        for expiring_index in (0, 1):
+            with self.subTest(expiring_index=expiring_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                expiring = sessions[expiring_index]
+                frightened = sessions[1 - expiring_index]
+                enemies = [self.npc(session) for session in sessions]
+                for index, (session, enemy) in enumerate(zip(sessions, enemies)):
+                    session.character.update(
+                        species="Aasimar", race="Aasimar", level=3,
+                        proficiency_bonus=2, charisma_mod=3, armor_class=100,
+                    )
+                    game.initialize_species_trait_state(session=session)
+                    enemy.update(
+                        armor_class=100, charisma_save_bonus=0, attack_bonus=0,
+                        damage_die=6, damage_dice=1, damage_modifier=0,
+                    )
+                    with patch.object(game, "roll_initiative_player", return_value=20), \
+                         patch.object(game, "roll_initiative", return_value=1):
+                        session.start_combat(enemy)
+                    with patch.object(game, "roll_d20", return_value=1):
+                        grant = session.resolve_species_trait_action(
+                            "celestial_revelation", form="necrotic_shroud",
+                        )
+                    self.assertTrue(grant["effects"]["saves"][0]["frightened"])
+                    self.assertEqual(enemy["frightened_until_player_turn"], 2)
+                    session.messages.append({
+                        "role": "user", "content": f"Fear duration campaign {index}",
+                    })
+
+                def attack(session):
+                    return game.execute_intent(
+                        {"intent": "attack"}, "Gromm'a saldır", session=session,
+                    )
+
+                # Advance one real player/enemy cycle, leaving this campaign
+                # one turn closer to expiry than its same-ID counterpart.
+                expiring.rng.setstate(random.Random(1).getstate())
+                first = attack(expiring)
+                self.assertIn("frightened", first["enemy_action"]["disadvantage_sources"])
+                self.assertEqual(
+                    expiring.character["species_trait_state"]["player_turn_counter"], 1,
+                )
+                self.assertEqual(
+                    frightened.character["species_trait_state"]["player_turn_counter"], 0,
+                )
+                self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+                self.assertIsNot(enemies[0], enemies[1])
+                for session in sessions:
+                    session.rng.setstate(random.Random(1).getstate())
+                    self.assertTrue(session.world_state["combat"]["active"])
+                    self.assertEqual(session.world_state["combat"]["current_actor_id"], "player")
+                frightened_before = frightened.serialize_game_state()
+                messages_before = [copy.deepcopy(session.messages) for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                default_rng = game._DEFAULT_SESSION.rng.getstate()
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                module_rng = random.getstate()
+                expiry_waiting = threading.Event()
+                other_finished = threading.Event()
+                paused = {}
+                other_after = {}
+                finish_turn = game._finish_species_player_turn
+
+                def overlapping_finish():
+                    owner = game._session()
+                    if owner is expiring:
+                        paused["snapshot"] = owner.serialize_game_state()
+                        paused["rng"] = owner.rng.getstate()
+                        expiry_waiting.set()
+                        self.assertTrue(other_finished.wait(timeout=5))
+                    else:
+                        self.assertIs(owner, frightened)
+                        self.assertTrue(expiry_waiting.is_set())
+                    self.assertIs(game._session(), owner)
+                    return finish_turn()
+
+                def advance_frightened():
+                    try:
+                        self.assertTrue(expiry_waiting.wait(timeout=5))
+                        self.assertEqual(frightened.serialize_game_state(), frightened_before)
+                        self.assertEqual(frightened.rng.getstate(), rng_before[1 - expiring_index])
+                        result = attack(frightened)
+                        self.assertEqual(
+                            frightened.character["species_trait_state"]["player_turn_counter"], 1,
+                        )
+                        self.assertEqual(
+                            frightened.world_state["npcs"][0]["frightened_until_player_turn"], 2,
+                        )
+                        self.assertEqual(result["enemy_action"]["attack_rolls"], [19, 3])
+                        self.assertIn("frightened", result["enemy_action"]["disadvantage_sources"])
+                        self.assertEqual(expiring.serialize_game_state(), paused["snapshot"])
+                        self.assertEqual(expiring.rng.getstate(), paused["rng"])
+                        self.assertEqual(expiring.messages, messages_before[expiring_index])
+                        other_after["snapshot"] = frightened.serialize_game_state()
+                        other_after["rng"] = frightened.rng.getstate()
+                        other_after["result"] = copy.deepcopy(result)
+                        return result
+                    finally:
+                        other_finished.set()
+
+                with patch.object(game, "_finish_species_player_turn",
+                                  side_effect=overlapping_finish), \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        if expiring_index:
+                            other_job = pool.submit(advance_frightened)
+                            expiry_job = pool.submit(attack, expiring)
+                        else:
+                            expiry_job = pool.submit(attack, expiring)
+                            other_job = pool.submit(advance_frightened)
+                        other_result = other_job.result(timeout=10)
+                        expired_result = expiry_job.result(timeout=10)
+
+                self.assertEqual(
+                    expiring.character["species_trait_state"]["player_turn_counter"], 2,
+                )
+                self.assertEqual(expired_result["enemy_action"]["attack_rolls"], [19])
+                self.assertNotIn("frightened", expired_result["enemy_action"]["disadvantage_sources"])
+                self.assertEqual(frightened.serialize_game_state(), other_after["snapshot"])
+                self.assertEqual(frightened.rng.getstate(), other_after["rng"])
+                self.assertEqual(other_result, other_after["result"])
+                for index, session in enumerate(sessions):
+                    # Expiration is counter-based; it does not delete the marker.
+                    self.assertEqual(session.world_state["npcs"][0]["frightened_until_player_turn"], 2)
+                    self.assertEqual(session.messages, messages_before[index])
+                    expected_rng = random.Random()
+                    expected_rng.setstate(rng_before[index])
+                    for _ in range(2 if session is expiring else 3):
+                        expected_rng.randint(1, 20)
+                    self.assertEqual(session.rng.getstate(), expected_rng.getstate())
+                    self.assertTrue(session.world_state["combat"]["active"])
+                    self.assertEqual(session.world_state["combat"]["current_actor_id"], "player")
+
+                # The other campaign expires only when its own next turn ends.
+                expired_snapshot = expiring.serialize_game_state()
+                expired_rng = expiring.rng.getstate()
+                final_result = attack(frightened)
+                self.assertEqual(
+                    frightened.character["species_trait_state"]["player_turn_counter"], 2,
+                )
+                self.assertNotIn("frightened", final_result["enemy_action"]["disadvantage_sources"])
+                self.assertEqual(final_result["enemy_action"]["attack_rolls"], [4])
+                expected_rng = random.Random()
+                expected_rng.setstate(other_after["rng"])
+                self.assertEqual([expected_rng.randint(1, 20) for _ in range(2)], [9, 4])
+                self.assertEqual(frightened.rng.getstate(), expected_rng.getstate())
+                self.assertEqual(expiring.serialize_game_state(), expired_snapshot)
+                self.assertEqual(expiring.rng.getstate(), expired_rng)
+                for index, session in enumerate(sessions):
+                    self.assertEqual(session.messages, messages_before[index])
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+                self.assertEqual(random.getstate(), module_rng)
+
     def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
         # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
         # a surviving reserve, and spillover into regular HP. Explicit expected
