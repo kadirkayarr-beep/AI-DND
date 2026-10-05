@@ -563,6 +563,55 @@ class ContractParityTests(unittest.TestCase):
             "#/components/schemas/SpeciesTraitActionResult",
         )
 
+    def test_campaign_read_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        # CampaignSummary is shared; the detail model has a public-facing name.
+        runtime_to_published_refs = {
+            "#/components/schemas/CampaignDetailResponse": "#/components/schemas/CampaignDetail",
+        }
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}",
+            "/campaigns/{campaign_id}",
+        ):
+            published = _operation(path, "get")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["get"]
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            for status, response in runtime_successes.items():
+                with self.subTest(path=path, binding="response", status=status):
+                    runtime_schema = response["content"]["application/json"]["schema"]
+                    if runtime_schema.get("type") == "array":
+                        runtime_ref = runtime_schema["items"]["$ref"]
+                        expected_schema = {
+                            "type": "array",
+                            "items": {"$ref": runtime_to_published_refs.get(
+                                runtime_ref, runtime_ref,
+                            )},
+                        }
+                    else:
+                        runtime_ref = runtime_schema["$ref"]
+                        expected_schema = {"$ref": runtime_to_published_refs.get(
+                            runtime_ref, runtime_ref,
+                        )}
+                    # FastAPI's generated titles are documentation, not bindings.
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        expected_schema,
+                    )
+
     def test_session_creation_and_campaign_resume_route_bindings_match_fastapi(self):
         runtime_spec = app.openapi()
         base_path = SPEC["servers"][0]["url"].rstrip("/")
@@ -1691,6 +1740,53 @@ servers: [{url: /api}]
                             result.failures,
                             f"Undetected reference drift: {schema_name}.{field_name}",
                         )
+
+    def test_campaign_read_wrong_references_fail_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}",
+            "/campaigns/{campaign_id}",
+        ):
+            for flow_style in (False, True):
+                with self.subTest(path=path, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    schema = spec["paths"][path]["get"]["responses"]["200"][
+                        "content"
+                    ]["application/json"]["schema"]
+                    if path.endswith("/campaigns"):
+                        # Keep the array intact and swap only its item target.
+                        schema["items"]["$ref"] = "#/components/schemas/CampaignDetail"
+                    else:
+                        schema["$ref"] = "#/components/schemas/CampaignSummary"
+                    self.assertEqual(spec["components"], SPEC["components"])
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                            "test_session_creation_and_campaign_resume_route_bindings_match_fastapi",
+                            "test_turn_route_bindings_match_fastapi",
+                            "test_species_action_route_bindings_match_fastapi",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        ContractParityTests(
+                            "test_campaign_read_route_bindings_match_fastapi"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                    self.assertIn("binding='response'", result.failures[0][0].id())
+                    self.assertIn("status='200'", result.failures[0][0].id())
 
     def test_session_creation_and_campaign_resume_wrong_bindings_fail_in_both_formats(self):
         for path in (
