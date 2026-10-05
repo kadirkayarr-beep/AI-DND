@@ -21,6 +21,8 @@ TESTS = (
     "test_persistence.py",
     "test_combat.py",
     "test_combat_v2_authoritative.py",
+    "api/tests/test_death_bounded.py",
+    "api/tests/test_initiative.py",
     "test_regression.py",
     "test_migration.py",
     "test_migration_harden.py",
@@ -66,7 +68,14 @@ def main(argv=()):
     failures = []
     for test_name in tests:
         print(f"\n=== {test_name} ===", flush=True)
-        result = subprocess.run([sys.executable, str(ROOT / test_name)], cwd=ROOT)
+        # API suites import from the project root and have no script entrypoint.
+        # Keep script execution for existing gates with custom main functions.
+        if Path(test_name).parent != Path("."):
+            module = ".".join(Path(test_name).with_suffix("").parts)
+            command = [sys.executable, "-m", "unittest", module]
+        else:
+            command = [sys.executable, str(ROOT / test_name)]
+        result = subprocess.run(command, cwd=ROOT)
         if result.returncode != 0:
             failures.append(test_name)
 

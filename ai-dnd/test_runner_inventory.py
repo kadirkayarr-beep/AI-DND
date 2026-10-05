@@ -24,6 +24,7 @@ class RunnerInventoryTests(unittest.TestCase):
             "test_ai_pipeline_port.py", "test_ai_pipeline_semantics.py",
             "test_startup.py", "test_sessions.py", "test_playable_living_world.py",
             "test_persistence.py", "test_combat.py", "test_combat_v2_authoritative.py",
+            "api/tests/test_death_bounded.py", "api/tests/test_initiative.py",
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
             "test_actual_logic.py", "test_npc_query.py",
@@ -49,7 +50,10 @@ class RunnerInventoryTests(unittest.TestCase):
                 self.assertEqual(list(preflight.call_args.args[0]),
                                  [run_tests.ROOT / name for name in run_tests.TESTS])
                 self.assertEqual([call.args[0] for call in execute.call_args_list], [
-                    [run_tests.sys.executable, str(run_tests.ROOT / name)]
+                    ([run_tests.sys.executable, "-m", "unittest",
+                      name.removesuffix(".py").replace("/", ".")]
+                     if name.startswith("api/tests/") else
+                     [run_tests.sys.executable, str(run_tests.ROOT / name)])
                     for name in run_tests.TESTS
                 ])
                 self.assertTrue(all(call.kwargs["cwd"] == run_tests.ROOT
@@ -111,18 +115,40 @@ class RunnerInventoryTests(unittest.TestCase):
                               output.getvalue())
                 self.assertNotIn("GATES PASSED", output.getvalue())
 
+    def test_each_scheduler_failure_blocks_default_and_explicit_release(self):
+        for argv in ((), ("--suite", "release")):
+            for failed_gate in ("api/tests/test_death_bounded.py",
+                                "api/tests/test_initiative.py"):
+                output = StringIO()
+                with self.subTest(argv=argv, failed_gate=failed_gate), \
+                     patch.object(run_tests, "check_test_definitions", return_value=[]), \
+                     patch.object(run_tests.subprocess, "run") as execute, \
+                     redirect_stdout(output):
+                    execute.side_effect = [
+                        subprocess.CompletedProcess([], int(name == failed_gate))
+                        for name in run_tests.TESTS
+                    ]
+                    self.assertEqual(run_tests.main(argv), 1)
+                    self.assertEqual(execute.call_count, len(run_tests.TESTS))
+                self.assertIn(f"RELEASE DETERMINISTIC GATES FAILED: {failed_gate}",
+                              output.getvalue())
+                self.assertNotIn("GATES PASSED", output.getvalue())
+
     def test_release_sources_pass_real_definition_preflight(self):
         self.assertEqual(run_tests.check_test_definitions(
             run_tests.ROOT / name for name in run_tests.TESTS
         ), [])
 
-    def test_narrative_definition_loss_blocks_release_before_any_gate_runs(self):
+    def test_narrative_and_scheduler_definition_loss_blocks_release_before_any_gate_runs(self):
         for failed_gate in ("test_narrative_rebalance.py",
-                            "test_narrative_safety_calibration.py"):
+                            "test_narrative_safety_calibration.py",
+                            "api/tests/test_death_bounded.py",
+                            "api/tests/test_initiative.py"):
             with self.subTest(failed_gate=failed_gate), \
                  tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 for name in run_tests.TESTS:
+                    (root / name).parent.mkdir(parents=True, exist_ok=True)
                     (root / name).write_text(
                         "class Checks:\n    def test_ok(self): pass\n",
                         encoding="utf-8",
@@ -177,6 +203,7 @@ class RunnerInventoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for name in run_tests.TESTS:
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_text("class Checks:\n    def test_ok(self): pass\n",
                                          encoding="utf-8")
             for name in run_tests.PROTOTYPE_TESTS:
@@ -462,6 +489,48 @@ class RunnerProcessTests(unittest.TestCase):
                                  f"{label} FAILED: {first}")
                 self.assertNotIn("PREFLIGHT FAILED", result.stdout + result.stderr)
                 self.assertNotIn("PASSED", result.stdout + result.stderr)
+
+    def test_nested_unittest_gate_really_runs_and_failure_blocks_release(self):
+        # API suites have no script entrypoint: importing or executing their
+        # source directly would silently skip the actual assertions.
+        suites = {
+            "TESTS": ("api/tests/test_scheduler.py", "release_later.py"),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        for argv in ((), ("--suite", "release")):
+            for fail in (False, True):
+                with self.subTest(argv=argv, fail=fail), \
+                     tempfile.TemporaryDirectory() as directory, \
+                     patch.object(self, "SUITES", suites):
+                    root = Path(directory) / "runner"
+                    root.mkdir()
+                    self.copy_runner(root)
+                    package = root / "api" / "tests"
+                    package.mkdir(parents=True)
+                    (package.parent / "__init__.py").touch()
+                    (package / "__init__.py").touch()
+                    (package / "test_scheduler.py").write_text(
+                        "import unittest\nfrom pathlib import Path\n"
+                        "class SchedulerTests(unittest.TestCase):\n"
+                        "    def test_boundary(self):\n"
+                        "        with Path('order.txt').open('a') as log:\n"
+                        "            log.write('api/tests/test_scheduler.py\\n')\n"
+                        f"        self.assertFalse({fail!r}, 'scheduler boundary')\n",
+                        encoding="utf-8",
+                    )
+                    self.write_gate(root, "release_later.py", "def test_ok(): pass\n")
+                    result = self.launch_runner(root, argv, cwd=Path(directory))
+                    output = result.stdout + result.stderr
+                    self.assertEqual(result.returncode, int(fail), output)
+                    self.assertIn("Ran 1 test", result.stderr)
+                    self.assertEqual((root / "order.txt").read_text().splitlines(),
+                                     list(suites["TESTS"]))
+                    if fail:
+                        self.assertIn("scheduler boundary", result.stderr)
+                        self.assertIn("FAILED: api/tests/test_scheduler.py", result.stdout)
+                        self.assertNotIn("GATES PASSED", output)
+                    else:
+                        self.assertIn("ALL 2 DETERMINISTIC GATES PASSED", result.stdout)
 
     def test_multiple_failed_real_gates_are_reported_in_inventory_order(self):
         # Non-alphabetical order catches summaries that sort instead of retaining

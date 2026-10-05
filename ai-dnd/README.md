@@ -58,6 +58,9 @@ python ai-dnd/run_tests.py
 The default runner selects release deterministic gates (`--suite release` is
 equivalent). Combat coverage includes `test_combat.py` and
 `test_combat_v2_authoritative.py`, the authoritative scheduler contract.
+Death-save scheduler boundaries are also gated by
+`api/tests/test_death_bounded.py` and `api/tests/test_initiative.py`, run through
+`unittest` from the project directory so their engine and API assertions execute.
 Narrative coverage includes `test_narrative_rebalance.py` and
 `test_narrative_safety_calibration.py`: active-NPC character questions must
 return canonical sheet facts without model calls, and NPC name disclosure and
