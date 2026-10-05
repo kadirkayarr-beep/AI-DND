@@ -28,17 +28,6 @@ class SessionTests(unittest.TestCase):
     def npc(self, session):
         session.world_state["location"] = "tavern"
         npc = {
-    def setUp(self):
-        self.a = game.create_session(seed=17)
-        self.b = game.create_session(seed=17)
-        self.default_before = game.serialize_game_state()
-
-    def tearDown(self):
-        self.assertEqual(game.serialize_game_state(), self.default_before)
-
-    def npc(self, session):
-        session.world_state["location"] = "tavern"
-        npc = {
             "id": "npc_001", "name": "Gromm", "role": "Barmen",
             "location": "tavern", "personality": "", "appearance": "",
             "relationship": "neutral", "knowledge": [], "memory": [],
@@ -82,6 +71,109 @@ class SessionTests(unittest.TestCase):
         with patch.object(session.rng, "randint", side_effect=randint):
             yield
             self.assertIsNone(next(remaining, None), "Unused scripted dice")
+
+    def test_overlapping_invalid_cover_does_not_disrupt_valid_attack(self):
+        # Exercise both validation branches: unknown values and invalid shapes.
+        # Swap owners so rejection is not tied to one campaign's identity.
+        for invalid_cover in ("unknown", ["half", "unknown"], {"half": True}, None):
+            for valid_index in (0, 1):
+                with self.subTest(invalid_cover=invalid_cover, valid_index=valid_index):
+                    sessions = [game.create_session(seed=17),
+                                game.create_session(seed=17)]
+                    enemies = [self.npc(session) for session in sessions]
+                    self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+                    valid, invalid = sessions[valid_index], sessions[1 - valid_index]
+                    valid_enemy = enemies[valid_index]
+                    invalid_enemy = enemies[1 - valid_index]
+                    for session, enemy in zip(sessions, enemies):
+                        session.character.update(armor_class=10, current_hp=19)
+                        enemy.update(attack_bonus=0, damage_die=6,
+                                     damage_dice=1, damage_modifier=2)
+                        pairs = session.world_state["attack_environment"]["pairs"]
+                        pairs[f"{enemy['id']}|player"]["cover"] = (
+                            ["none", "half"] if session is valid
+                            else copy.deepcopy(invalid_cover)
+                        )
+                        # A legal reverse entry cannot repair invalid forward cover.
+                        pairs[f"player|{enemy['id']}"]["cover"] = "none"
+                        self.assertEqual(
+                            pairs[f"{enemy['id']}|player"]["distance_ft"], 5
+                        )
+                    before_valid = valid.serialize_game_state()
+                    before_invalid = invalid.serialize_game_state()
+                    rng_valid, rng_invalid = valid.rng.getstate(), invalid.rng.getstate()
+                    rng_default = game._DEFAULT_SESSION.rng.getstate()
+                    valid_waiting = threading.Event()
+                    rejection_finished = threading.Event()
+                    roll_d20 = valid.roll_d20
+
+                    def overlapping_roll():
+                        self.assertIs(game._session(), valid)
+                        valid_waiting.set()
+                        self.assertTrue(rejection_finished.wait(timeout=5))
+                        self.assertIs(game._session(), valid)
+                        return roll_d20()
+
+                    def reject_invalid_cover():
+                        try:
+                            self.assertTrue(valid_waiting.wait(timeout=5))
+                            with self.assertRaises(
+                                game.combat_lifecycle.CombatRequestError
+                            ) as error:
+                                game.resolve_enemy_attack(invalid_enemy, session=invalid)
+                            self.assertEqual(error.exception.code, "invalid_attack_state")
+                            # Neither campaign commits anything while the valid
+                            # attack is paused, including an attack result.
+                            self.assertEqual(valid.serialize_game_state(), before_valid)
+                            self.assertEqual(invalid.serialize_game_state(), before_invalid)
+                            self.assertEqual(valid.rng.getstate(), rng_valid)
+                            self.assertEqual(invalid.rng.getstate(), rng_invalid)
+                            self.assertEqual(game._DEFAULT_SESSION.serialize_game_state(),
+                                             self.default_before)
+                            self.assertEqual(game._DEFAULT_SESSION.rng.getstate(),
+                                             rng_default)
+                        finally:
+                            rejection_finished.set()
+
+                    with self.rolls(valid, (20, 12), (6, 4)), \
+                         self.rolls(invalid), self.rolls(game._DEFAULT_SESSION), \
+                         patch.object(valid, "roll_d20", side_effect=overlapping_roll):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            legal = pool.submit(game.resolve_enemy_attack, valid_enemy,
+                                                session=valid)
+                            rejected = pool.submit(reject_invalid_cover)
+                            rejected.result(timeout=10)
+                            result = legal.result(timeout=10)
+
+                    # Independent arithmetic: half cover gives AC 10 + 2;
+                    # 12 + 0 hits exactly, and d6=4 + 2 deals 6 (19 -> 13).
+                    self.assertTrue(result["success"])
+                    self.assertEqual(result["outcome"], "hit")
+                    self.assertEqual(result["actor_id"], valid_enemy["id"])
+                    self.assertEqual(result["target_id"], "player")
+                    self.assertEqual(result["cover_state"], "half")
+                    self.assertEqual(result["target_ac_base"], 10)
+                    self.assertEqual(result["target_ac"], 12)
+                    self.assertEqual(result["attack_rolls"], [12])
+                    self.assertEqual(result["attack_total"], 12)
+                    self.assertEqual(result["advantage_sources"], [])
+                    self.assertEqual(result["disadvantage_sources"], [])
+                    self.assertFalse(result["critical"])
+                    self.assertEqual(result["damage"], 6)
+                    self.assertEqual(result["target_hp_before"], 19)
+                    self.assertEqual(result["target_hp_after"], 13)
+                    self.assertEqual(result["target_status"], "active")
+                    expected_valid = copy.deepcopy(before_valid)
+                    expected_valid["player"]["current_hp"] = 13
+                    expected_valid["world_state"].setdefault("attack_results", []).append(
+                        copy.deepcopy(result)
+                    )
+                    self.assertEqual(valid.serialize_game_state(), expected_valid)
+                    self.assertEqual(invalid.serialize_game_state(), before_invalid)
+                    self.assertEqual(valid.rng.getstate(), rng_valid)
+                    self.assertEqual(invalid.rng.getstate(), rng_invalid)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
     def test_inventory_memory_and_narration_are_independent(self):
         npc_a, npc_b = self.npc(self.a), self.npc(self.b)
@@ -1057,8 +1149,6 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(self.b.rng.getstate(), rng_b)
                 self.assertEqual(game.serialize_game_state(), self.default_before)
                 self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
-            }
-        return npc
 
     @contextmanager
     def rolls(self, session, *expected, barrier=None, damage_barrier=None):
