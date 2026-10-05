@@ -681,6 +681,27 @@ class WeaponTests(unittest.TestCase):
                     # corridor must not become a reverse push permission.
                     self.assertEqual(attack.pair(s, n["id"], "player"),
                                      {"distance_ft": 15})
+                    if name == "clear_longer":
+                        live_pairs = s.world_state["attack_environment"]["pairs"]
+                        self.assertGreaterEqual(live_pairs[forward_key]["push_clear_ft"], 10)
+                        reverse_before = copy.deepcopy((
+                            s.world_state, s.character, s.messages, s.rng.getstate()))
+                        unrelated_before = copy.deepcopy({
+                            key: value for key, value in live_pairs.items()
+                            if n["id"] not in key.split("|")})
+                        mirrors_before = (n["distance_ft"], other["distance_ft"])
+                        self.assertEqual(attack.push(s, n["id"], "player", 10), {
+                            "kind": "push", "applied": False,
+                            "reason": "position_unresolved_or_blocked"})
+                        self.assertEqual((
+                            s.world_state, s.character, s.messages, s.rng.getstate()),
+                            reverse_before)
+                        self.assertEqual({
+                            key: value for key, value in
+                            s.world_state["attack_environment"]["pairs"].items()
+                            if n["id"] not in key.split("|")}, unrelated_before)
+                        self.assertEqual((n["distance_ft"], other["distance_ft"]),
+                                         mirrors_before)
                 else:
                     self.assertEqual(s.world_state["attack_environment"], geometry_before)
                     self.assertEqual({k: n[k] for k in ("distance_ft",) if k in n},
@@ -761,6 +782,27 @@ class WeaponTests(unittest.TestCase):
                     self.assertEqual(n["distance_ft"], 15)
                     self.assertEqual(attack.pair(s, "player", n["id"]),
                                      {"distance_ft": 15})
+                    if name == "clear_longer":
+                        live_pairs = s.world_state["attack_environment"]["pairs"]
+                        self.assertGreaterEqual(live_pairs[forward_key]["push_clear_ft"], 10)
+                        reverse_before = copy.deepcopy((
+                            s.world_state, s.character, s.messages, s.rng.getstate()))
+                        unrelated_before = copy.deepcopy({
+                            key: value for key, value in live_pairs.items()
+                            if "player" not in key.split("|")})
+                        mirrors_before = (n["distance_ft"], other["distance_ft"])
+                        self.assertEqual(attack.push(s, "player", n["id"], 10), {
+                            "kind": "push", "applied": False,
+                            "reason": "position_unresolved_or_blocked"})
+                        self.assertEqual((
+                            s.world_state, s.character, s.messages, s.rng.getstate()),
+                            reverse_before)
+                        self.assertEqual({
+                            key: value for key, value in
+                            s.world_state["attack_environment"]["pairs"].items()
+                            if "player" not in key.split("|")}, unrelated_before)
+                        self.assertEqual((n["distance_ft"], other["distance_ft"]),
+                                         mirrors_before)
                 else:
                     self.assertEqual({k: n[k] for k in ("distance_ft",) if k in n},
                                      actor_distance_before)
