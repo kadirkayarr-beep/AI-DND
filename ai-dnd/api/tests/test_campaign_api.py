@@ -4777,6 +4777,91 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 retry_results.append(copy.deepcopy(result["action_result"]))
                 return result
 
+            # Recovery has loaded an already committed merchant. A storage
+            # failure here must restore that state, not the old merchant-free
+            # snapshot, and must leave the rejected action ID available to retry.
+            recovered_save = copy.deepcopy(stale_session.serialize_game_state())
+            recovered_journal = copy.deepcopy(stale_record.journal)
+            recovered_memory = copy.deepcopy(stale_record.narrative_memory)
+            recovered_receipts = copy.deepcopy(stale_record.turn_action_receipts)
+            recovered_version = stale_session._campaign_persistence_version
+            failed_results = []
+            attempted_saves = []
+
+            @wraps(real_retry)
+            def capture_failed_recovery(*args, **kwargs):
+                result = real_retry(*args, **kwargs)
+                failed_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            def fail_recovered_save(*args, **kwargs):
+                attempted_saves.append(copy.deepcopy(stale_session.serialize_game_state()))
+                raise CampaignStorageError("recovered search database unavailable")
+
+            with (
+                patch.object(
+                    stale_session, "run_player_turn", new=capture_failed_recovery
+                ),
+                patch.object(
+                    stale_store, "save_campaign", side_effect=fail_recovered_save
+                ) as failed_save,
+            ):
+                failed = await stale_http.post(stale_url, json=stale_body)
+            failed_save.assert_called_once()
+            self.assertEqual(failed.status_code, 503, failed.text)
+            self.assertEqual(
+                failed.json()["detail"]["code"], "campaign_storage_unavailable"
+            )
+            self.assertNotIn("recovered search database unavailable", failed.text)
+            self.assertEqual(len(failed_results), 1)
+            self.assertEqual(failed_results[0]["action"], "local_search")
+            self.assertEqual(failed_results[0]["status"], "found")
+            self.assertTrue(failed_results[0]["success"])
+            self.assertEqual(failed_results[0]["shop_id"], shop["id"])
+            self.assertEqual(failed_results[0]["target_id"], shop["shopkeeper_id"])
+            self.assertEqual(len(attempted_saves), 1)
+            attempted_world = attempted_saves[0]["world_state"]
+            self.assertEqual(attempted_world["shops"], [shop])
+            self.assertEqual(
+                [npc for npc in attempted_world["npcs"] if npc.get("shop_id") == shop["id"]],
+                shopkeepers,
+            )
+            for collection in ("shops", "npcs"):
+                self.assertEqual(
+                    [item["id"] for item in attempted_world[collection]],
+                    [item["id"] for item in world[collection]],
+                )
+
+            self.assertEqual(stale_session.serialize_game_state(), recovered_save)
+            self.assertEqual(stale_record.journal, recovered_journal)
+            self.assertEqual(stale_record.narrative_memory, recovered_memory)
+            self.assertEqual(stale_record.turn_action_receipts, recovered_receipts)
+            self.assertEqual(stale_session._campaign_persistence_version, recovered_version)
+            # Compare with the post-resume record: its timestamps may have
+            # legitimately changed when the stale session was refreshed.
+            self.assertEqual(stale_store.get_campaign(campaign_id), refreshed_campaign)
+            self.assertEqual(active_store.get_campaign(campaign_id), refreshed_campaign)
+            self.assertEqual(
+                stale_store.get_turn_action(campaign_id, body["action_id"]), receipt
+            )
+            self.assertEqual(
+                stale_manager.get_turn_action(stale_record, body["action_id"]), receipt
+            )
+            self.assertIsNone(
+                stale_store.get_turn_action(campaign_id, stale_body["action_id"])
+            )
+            self.assertIsNone(
+                stale_manager.get_turn_action(stale_record, stale_body["action_id"])
+            )
+            with closing(sqlite3.connect(self.store.path)) as connection:
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
+                        "ORDER BY action_id", (campaign_id,),
+                    ).fetchall(),
+                    receipts_before,
+                )
+
             with (
                 patch.object(stale_session, "run_player_turn", new=capture_retry),
                 patch.object(
