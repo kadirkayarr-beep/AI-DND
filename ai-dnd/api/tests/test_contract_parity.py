@@ -1150,6 +1150,32 @@ class ContractParityTests(unittest.TestCase):
         )
         self.assertEqual(missing_body["detail"]["code"], "unknown_session")
 
+    def test_saved_combat_history_constraints_match_runtime_model(self):
+        schema_name = "CombatHistoryEntry"
+        runtime = CombatHistoryEntry.model_json_schema()
+        published = _schema(schema_name)
+        self.assertEqual(
+            set(published.get("required", [])),
+            set(runtime.get("required", [])),
+            f"{schema_name}.required",
+        )
+        self.assertEqual(
+            published.get("additionalProperties"),
+            runtime.get("additionalProperties"),
+            f"{schema_name}.additionalProperties",
+        )
+        for field_name, constraints in (
+            ("event_id", ("pattern",)),
+            ("turn_index", ("type", "minimum")),
+        ):
+            for constraint in constraints:
+                with self.subTest(field=field_name, constraint=constraint):
+                    self.assertEqual(
+                        _property(schema_name, field_name).get(constraint),
+                        runtime["properties"][field_name].get(constraint),
+                        f"{schema_name}.{field_name}.{constraint}",
+                    )
+
     def test_saved_combat_history_references_match_runtime_models(self):
         fields = (
             ("CombatHistoryEntry", CombatHistoryEntry, "result", CombatTurnResult),
@@ -1995,6 +2021,76 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertEqual(len(result.failures), 1, result.failures)
                         self.assertIn(f"path='{path}'", result.failures[0][0].id())
                         self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_saved_combat_history_constraint_drift_fails_in_both_formats(self):
+        original = _schema("CombatHistoryEntry")
+        mutations = [
+            (("required",), None),
+            (("required",), original["required"] + ["unexpected"]),
+            (("additionalProperties",), None),
+            (("additionalProperties",), True),
+            (("properties", "event_id", "pattern"), None),
+            (("properties", "event_id", "pattern"), "^[0-9a-f-]+$"),
+            (("properties", "turn_index", "type"), None),
+            (("properties", "turn_index", "type"), "number"),
+            (("properties", "turn_index", "type"), "string"),
+            (("properties", "turn_index", "minimum"), None),
+            (("properties", "turn_index", "minimum"), -1),
+            (("properties", "turn_index", "minimum"), 1),
+        ]
+        mutations.extend(
+            (("required",), [
+                field for field in original["required"] if field != removed
+            ])
+            for removed in original["required"]
+        )
+        for path, replacement in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"]["CombatHistoryEntry"]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = replacement
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    # Only one entry constraint changes; references, routes and
+                    # schema/field inventories remain the published contract.
+                    restored = deepcopy(parsed)
+                    target = restored["components"]["schemas"]["CombatHistoryEntry"]
+                    source = original
+                    for key in path[:-1]:
+                        target = target[key]
+                        source = source[key]
+                    target[path[-1]] = deepcopy(source[path[-1]])
+                    self.assertEqual(restored, SPEC)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        for test_name in (
+                            "test_saved_combat_history_constraints_match_runtime_model",
+                            "test_saved_combat_history_references_match_runtime_models",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                        ):
+                            ContractParityTests(test_name).run(result)
+                    self.assertEqual(result.testsRun, 3)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    failed_test, failure = result.failures[0]
+                    self.assertIn(
+                        "test_saved_combat_history_constraints_match_runtime_model",
+                        failed_test.id(),
+                    )
+                    self.assertIn(
+                        f"CombatHistoryEntry.{'.'.join(path).removeprefix('properties.')}",
+                        failure,
+                    )
 
     def test_saved_combat_history_wrong_references_fail_in_both_formats(self):
         fields = (
