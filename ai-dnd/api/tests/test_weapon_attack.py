@@ -746,6 +746,28 @@ class WeaponTests(unittest.TestCase):
         self.assertEqual(snapshot(s), before)
         self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
 
+    def assert_invalid_forward_distance_not_replaced_by_npc(self, distance):
+        s, n = armed("Shortbow", distance=30)
+        pairs = {f"player|{n['id']}": {"distance_ft": distance}}
+        s.world_state["attack_environment"] = {"pairs": pairs}
+        self.assertIn("distance_ft", pairs[f"player|{n['id']}"])
+        self.assertNotIn(f"{n['id']}|player", pairs)
+        self.assertEqual(n["distance_ft"], 30)
+        self.assert_unknown_distance_unchanged(s, n)
+
+    def test_forward_pair_negative_distance_not_replaced_by_valid_npc(self):
+        self.assert_invalid_forward_distance_not_replaced_by_npc(-1)
+
+    def test_forward_pair_boolean_distance_not_replaced_by_valid_npc(self):
+        for distance in (False, True):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
+
+    def test_forward_pair_nonfinite_distance_not_replaced_by_valid_npc(self):
+        for distance in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
+
     def test_reverse_pair_negative_distance_rejected_unchanged(self):
         self.assert_invalid_reverse_distance_unchanged({"distance_ft": -1})
 
