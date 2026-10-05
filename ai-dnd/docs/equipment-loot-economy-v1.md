@@ -101,7 +101,7 @@ replay/conflict/restart and isolation. Then run existing bounded regression and
 gate without changing gate policy or committing to obtain a GO. Evidence must
 name base HEAD and hash changed source because the work remains uncommitted.
 
-## Genuine rules-source blocker
+## Rules-source conflict — resolved for new Acolyte/Artisan characters
 
 The uploaded PHB PDF page 177 / printed page 178 was read as text and visually
 checked against the original page (temporary reference rendering, not app/UI
@@ -110,24 +110,22 @@ Symbol, ten parchments, robe and **8 GP**; Artisan option A is the chosen
 Artisan's Tools, two pouches, Traveler's Clothes and **32 GP**. Both have a
 **50 GP** option B.
 
-The active `BACKGROUND_DEFINITIONS` used by `configure_character()` instead gives
-Acolyte **15 Altın** and a different item list, and Artisan **20 Altın** and a
-different item list. Option B agrees on 50 GP. This is an existing rules-source
-conflict, not an OCR-only uncertainty. Do not mint balances by parsing these
-disputed starting labels, silently replace historical possessions, or present the
-current background packages as verified 2024 equipment.
+The earlier translated catalog listed **15 Altın** and **20 Altın** with different
+items. New Acolyte and Artisan option A packages now follow the uploaded PHB:
+Calligrapher's Supplies, prayer book, Holy Symbol, 10 parchment, robe, **8 GP**;
+chosen Artisan's Tools, two pouches, Traveler's Clothes, **32 GP**. Option B
+supplies **50 GP** for any background. A selected Artisan tool is chosen from
+the 17 PHB artisan tool options and surfaced in character creation.
 
-Further package expansion stops at this conflict. The existing locked character
-creation owners and historical saves have not been rewritten. Resolving it needs
-an explicit new-character versus historical-save compatibility policy and a
-source-verified starting equipment catalog. No automatic wealth conversion is
-implemented.
+Only the new-character creation owner installs these confirmed coin amounts
+as integer CP-value wallet balances, removing that *new* background coin label
+from gameplay inventory. Historical saved inventories, coin strings and missing
+wallets remain unchanged on load/resume; no load-time currency migration exists.
+Unverified legacy option A money on other backgrounds is **not** monetized.
+Character creation's selected-package record continues to show the chosen
+source package, including its original coin label.
 
-Status: **PARTIAL / BLOCKED FOR FULL PACKAGE ACCEPTANCE**. Native producers
-missing at audit are explicit acceptance gaps, not implemented merely because
-fixture tests can supply their data.
-
-## Implemented bounded slice and final verification
+## Earlier bounded slice and verification (historical evidence)
 
 The new `equipment_economy.py` is an operation owner over the existing possession
 containers, not a second inventory. It is connected to the existing engine turn
@@ -161,10 +159,12 @@ engine was introduced.
 
 ### Evidence on the final runtime source
 
-Base HEAD remained **`062c5804ef734a3ab8655847905c0e4e1d0c62ec`**, branch
-**`main`**. This is an **uncommitted working-tree implementation**, not a claim
-that the new code is contained in that commit. Gate source was stable during
-execution (`source_changed_during_run=false`).
+The following results belonged to the **previous bounded slice**, initially
+tested as uncommitted changes relative to
+`062c5804ef734a3ab8655847905c0e4e1d0c62ec`. It was later committed at
+`17fd1a0a23fc13844bb162e1926af5312b51df01`. These are **not** current
+verification results for the new native producers below. Earlier gate source
+was stable during its execution (`source_changed_during_run=false`).
 
 | Verification | Result |
 |---|---|
@@ -194,15 +194,15 @@ python -m unittest api.tests.test_equipment_economy api.tests.test_equipment_eco
 python ai-dnd/scripts/final_gate.py --archive-root /tmp/package2-gate
 ```
 
-Retained transient evidence:
+Earlier transient evidence (may not survive workspace restart):
 `/tmp/package2-final-focused.log`, `/tmp/package2-final-integration.log`,
 gate `/tmp/package2-gate/20261005T082803Z-575c53a13f284c0797fbcaf87a9780d0/run.json`,
 and regression `/tmp/package2-gate/20261005T082803Z-8478d0f8f0474d588fb076f5908a5782/run.json`
 (with their `output.log` files). These paths are not permanent storage;
 this document retains the decision, commands, counts and runtime fingerprints.
 
-SHA-256 fingerprints of the tested runtime/test changes (the documentation
-summary was appended afterward; no runtime source changed):
+SHA-256 fingerprints of the **earlier** tested runtime/test changes. They
+cannot certify later edits to these files:
 
 | File | SHA-256 |
 |---|---|
@@ -212,7 +212,7 @@ summary was appended afterward; no runtime source changed):
 | `ai-dnd/api/tests/test_equipment_economy.py` | `245bc09eca6d3dbac061216f94c59f89465629c13abed71591691962f15cba05` |
 | `ai-dnd/api/tests/test_equipment_economy_http.py` | `99da548088b111c723b2871e94ab70a96e3e06166106d09400e0d36363ba2461` |
 
-### Exact remaining acceptance gaps
+### Earlier acceptance gaps (historical audit, superseded below)
 
 1. **Rules-source blocker:** repair/verify the starting equipment catalog and
    define historical-save compatibility before initializing spendable starting
@@ -238,7 +238,158 @@ summary was appended afterward; no runtime source changed):
    Actions and production deployment acceptance are **NOT RUN**. The health
    request above is not a live gameplay/model acceptance run.
 
-**Final decision: PARTIAL / BLOCKED — bounded transaction slice is verified;
-Package #2 is not complete or closed.** No gate policy, locked Package #1
-document, dependencies, generated types or frontend source changed. No commit,
-push, merge, rebase, history rewrite or backup branch was performed by this pass.
+The earlier bounded slice was **PARTIAL/BLOCKED** at the time of that audit;
+that decision does not adjudicate the native producer changes below.
+
+## Native bounded V1 producer contract
+
+All gameplay commands use the existing turn/snapshot/receipt/autosave path.
+No parallel inventory/economy persistence or client-provided stock exists.
+The stock policy here is deliberately campaign-local and Python-owned, **not
+a claimed PHB rule about starting merchant cash or treasure**:
+
+- `/item market` is an explicit player request at a registered location. It
+  prefers a local existing shopkeeper/shop with no economics. Otherwise the
+  existing validated shop/NPC creation owner creates one anonymous equipment
+  counter. Maximum one native counter per location. It never overwrites an
+  existing NPC inventory, equipped weapon, existing explicit stock or wallet.
+  Provisioning appends **one Dagger**, offered at its PHB 2024 catalog cost
+  **2 GP**, and **one Club**, explicitly marked by NPC policy as releasable to
+  this player; this is a server-defined transfer decision, not a social roll.
+  Working capital is **1000 CP (=10 GP)** only if the shopkeeper has no wallet.
+  These quantities/capital are V1 campaign policy, not invented PHB prices or
+  backstory. A shop with explicit preexisting economics retains its own values.
+- `/item request <item-id> <npc-id>` asks the Interaction & Quest owner to
+  record an item-specific, operation-specific, recipient-specific NPC consent
+  only when the *actual NPC-owned item* has an exact trusted release policy or
+  an existing exact grant. It consumes the grant and moves the same item ID
+  in a single candidate-state commit; equipped source-hand references are
+  cleared. The natural `request` interaction routes through that same owner;
+  Qwen may propose the intent, but its speech, social success or missing/default
+  equipment cannot authorize possession or transfer. Other NPCs without a
+  policy/grant reject. Replay is handled by the existing campaign receipt.
+- `/item work <npc-id>` creates one player-origin, NPC-bound talk objective in
+  the *existing* Interaction & Quest thread ledger for the Python-seeded
+  merchant. It reserves **100 CP (=1 GP)** from that NPC's actual wallet.
+  `/item talk <npc-id> <player-words>` records only the actual player words and
+  supplies a dialogue action to the existing objective observer. No model can
+  mark the objective completed. `/item reward <thread-id>` succeeds only after
+  that thread is canonically succeeded, debits the source NPC and claims it
+  once. Merchant buybacks cannot spend the reserved reward funds.
+  This is a minimal cooperation reward, not a general production quest catalog
+  or new lore. Existing production quest definitions remain unchanged.
+- `/item loot <defeated-npc-id> <item-id>` requires the actor's authoritative
+  defeated/dead state, actual local NPC inventory and a unique instance ID.
+  `/item loot <open-container-id> <item-id>` requires an explicitly accessible
+  local unlocked/open container with actual contents. Existing location ground
+  loot remains `/item take <item-id>`. Defeat descriptions, default equipment,
+  unopened containers and Qwen narration cannot supply items. Held references
+  clear consistently; armor/shields fail closed until their AC/time owner exists.
+- Item prices come solely from the existing PHB 2024 weapon catalog. Sale
+  requires the shop's buyback policy and a funded wallet. Unknown/valuable or
+  magic prices are not invented. Wallets conserve integer CP value; there is
+  no general mint-on-narration path.
+
+**Explicit V1 exclusions:** crafting, encumbrance, broad trade-goods and
+valuable catalogs, magic-item economics, advanced stacks/consumption,
+armor/shield AC/time changes, two-handed transitions, physical coin weights,
+unrestricted corpse loot and arbitrary quest treasure definitions. Never
+upgrade a model proposal to a price, stock, purse, consent or reward.
+
+## Current validation and decision
+
+**Feature decision: READY FOR REVIEW for the bounded native gameplay described
+above. Repository/release decision: NOT GO.** No known functional P0/P1 blocker
+remains in the exercised bounded paths. This does not certify excluded mechanics,
+the entire PHB background catalog, arbitrary generated shops or live Qwen intent
+quality.
+
+Final observed branch is `main`, HEAD
+**`17fd1a0a23fc13844bb162e1926af5312b51df01`**. The new work is **uncommitted
+working-tree source** on that HEAD, not code contained in the commit. Accordingly,
+these are final **HEAD + exact source-fingerprint** results, not a certificate
+for a newly committed final HEAD. No commit/push/merge/force-push was performed.
+Documentation/memory summaries may be updated after verification; no tested
+runtime/frontend source was changed after the results below.
+
+| Final-source verification | Result |
+|---|---|
+| Focused equipment/native/character creation | **76/76 PASS** |
+| Bounded integration: those paths + persistence, idempotency, weapon attacks, journal | **297/297 PASS** |
+| Unmodified Final Gate selected Python regression | **161/161 PASS**, zero skipped |
+| Frontend library check/typecheck | **PASS** |
+| Frontend tests | **57/57 PASS** |
+| Frontend production build | **PASS** |
+| Real proxied HTTP | **PASS**: native transfer, merchant sell/buy/sell, exact replay for each, changed-body `409`, funded once-only reward, resume/receipt and wallet preservation |
+| Final Gate verifier-source stability | **PASS**, `source_changed_during_run=false` |
+| Final Gate repository decision | **NO-GO**, exit **1**, dirty working tree and unchanged infrastructure-only scope policy |
+
+The native module contributes 16 executed tests: 11 unit/boundary cases, two
+native HTTP flows and three inherited fixture-based compatibility contracts.
+The main native transfer/market/work/reward HTTP flows create their possessions,
+consent, wallets and reward through gameplay, **not fixture injection**.
+Boundary tests explicitly supply an existing shop's historical possessions,
+container contents/open state, an underfunded merchant wallet or a combat owner's
+defeat state. They do not constitute a fresh combat-to-loot or arbitrary
+container-content producer demonstration.
+
+The existing journal owner now compares actual labels across legacy strings and
+canonical instance records. Identity materialization cannot report a false item
+loss; real canonical transfers still produce the original item-gained/lost
+events. The journal schema, encounter authority and inventory owner are unchanged.
+
+Live proof used the real public campaign-start API and only chat turn commands:
+`market → list → request → sell → buy → sell → work → talk → reward → resume`.
+Each transfer/sale/purchase replay returned the same receipt without another
+movement or payment. Reusing its action ID for another body returned `409`.
+Player balance was **650 CP** after trading, **750 CP** after the funded reward,
+and remained **750 CP** after a rejected second claim and resume/replay. The
+single temporary acceptance campaign was then removed through its normal API.
+No existing user campaign was edited or deleted.
+
+Gate `Live HTTP`, `Live Qwen` and GitHub Actions remain **NOT RUN by that gate**.
+The separate live HTTP log is the acceptance proof above; no live Qwen or
+GitHub Actions completion is claimed. Final frontend preview renders normally.
+A temporary Vite optimized-dependency `504`/missing-dependency state was isolated
+from healthy source routes and resolved by restarting the same managed frontend,
+without changing app code or routing. The known root Replit dev-banner `502`
+remains infrastructure preview noise, not an AI-DND request.
+
+Reproduction:
+
+```sh
+cd ai-dnd
+python -m unittest api.tests.test_equipment_native api.tests.test_equipment_economy api.tests.test_equipment_economy_http api.tests.test_character_creation_2024 -q
+python -m unittest api.tests.test_equipment_native api.tests.test_equipment_economy api.tests.test_equipment_economy_http api.tests.test_persistence_idempotency api.tests.test_campaign_persistence api.tests.test_weapon_attack api.tests.test_character_creation_2024 api.tests.test_campaign_journal -q
+# from workspace root:
+python ai-dnd/scripts/final_gate.py --archive-root /tmp/package2-native-final-gate
+```
+
+Retained **new** development evidence:
+
+- `/tmp/package2-native-targeted.log`
+- `/tmp/package2-native-integration.log`
+- `/tmp/package2-native-live-http.log`
+- `/tmp/package2-native-source-identity.json`
+- `/tmp/package2-native-final-gate/20261005T093136Z-d6ca27d604754c10aa53abdc7bc604db/run.json`
+- `/tmp/package2-native-final-gate/20261005T093137Z-efa26cc5170b40e885147fb83cce8743/run.json`
+
+Final runtime/test/frontend SHA-256 fingerprints:
+
+```text
+ef556af446a0178ab5113b6440cc708ec5c1c1065d7cc9a76be3980225dd2e5d  ai-dnd/api/campaign_journal.py
+2dc586bf8cf5af2fa5475addcad34d53f17ba7ca7ee1cb4824f7a8fd4b416947  ai-dnd/api/character_creation.py
+f740af6f278233006f6917ec60717e168cab024701693c50a728d2ec1d5aab37  ai-dnd/api/dnd_2024_rules.py
+842d77077bc9542a21a44a6dfb2066e3f77589cf2d2fad5fcba0cfeb7d135503  ai-dnd/equipment_economy.py
+2fcf0a1b2c1fe195cfb33ce1b575b0909529f7a4a279ddb48f82ac14bfd9dc5b  ai-dnd/equipment_native.py
+3791004e61b353e2abc1a179455fce490edce956877e0029a8bd7d53ce531ae8  ai-dnd/interaction_adventure.py
+c317a989a8538afbe568c6c413e88fd9913110157ee65505af825088af072cf2  ai-dnd/api/tests/test_equipment_native.py
+51e955d6467598386a95f51d2215c434715ad608b52ad854c860c49192f84276  artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx
+7a602a387eb31ca73ce0d00b123cbe6adb830d6fa3f76016aa0a2c72c6ede548  artifacts/ai-dnd-experience/src/lib/character-catalog-defaults.ts
+```
+
+The infrastructure-only policy was not relaxed to manufacture a GO.
+Committing an approved tree and obtaining an appropriate feature-level gate
+authorization remain repository/release prerequisites, not failed economy
+transactions. There is no automatic permission to push/merge or rewrite that
+policy.

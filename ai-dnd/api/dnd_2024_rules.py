@@ -188,6 +188,15 @@ def canonical_origin_feat_name(feat: str | None) -> str:
 # BACKGROUNDS (2024 PHB)
 # ============================================================================
 
+ARTISAN_TOOLS = (
+    "Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies",
+    "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools",
+    "Cook's Utensils", "Glassblower's Tools", "Jeweler's Tools",
+    "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies",
+    "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools",
+    "Woodcarver's Tools",
+)
+
 BACKGROUND_DEFINITIONS = {
     "Acolyte": {
         "name_tr": "Kutsal Hizmetkâr (Acolyte)",
@@ -196,7 +205,8 @@ BACKGROUND_DEFINITIONS = {
         "skills": ["Insight", "Religion"],
         "tool": "Calligrapher's Supplies",
         "feat": "Magic Initiate",
-        "equipment": ["Kutsal Sembol", "Dua Kitabı", "Rahiplik Cübbesi", "Tütsü Seti", "15 Altın"],
+        "equipment": ["Calligrapher's Supplies", "Dua Kitabı", "Kutsal Sembol", "10 Parşömen", "Cübbe", "8 GP"],
+        "starting_gp": 8,
     },
     "Artisan": {
         "name_tr": "Zanaatkâr (Artisan)",
@@ -205,7 +215,9 @@ BACKGROUND_DEFINITIONS = {
         "skills": ["Investigation", "Persuasion"],
         "tool": "Smith's Tools",
         "feat": "Crafter",
-        "equipment": ["Demirci Aletleri", "Zanaatkâr Giysisi", "Deri Kese", "20 Altın"],
+        "equipment": ["Artisan's Tools", "2 Kese", "Traveler's Clothes", "32 GP"],
+        "tool_options": list(ARTISAN_TOOLS),
+        "starting_gp": 32,
     },
     "Charlatan": {
         "name_tr": "Şarlatan (Charlatan)",

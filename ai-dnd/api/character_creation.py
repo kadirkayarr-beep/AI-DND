@@ -610,6 +610,20 @@ def configure_character(
             has_shield=has_shield,
         )
 
+    # Validate new-character source selection before mutating the character.
+    from api.dnd_2024_rules import ARTISAN_TOOLS
+    if background == "Artisan":
+        selected = [tool for tool in proficient_tools if tool in ARTISAN_TOOLS]
+        if len(selected) != 1:
+            raise CharacterCreationError("Artisan requires one selected Artisan's Tools proficiency.")
+        equipment_choices = [
+            selected[0] if item == "Artisan's Tools" else item
+            for item in equipment_choices
+        ]
+    starting_gp = 50 if bg_eq_opt == "B" else bg_def.get("starting_gp")
+    if starting_gp is not None:
+        coin_label = "50 Altın" if bg_eq_opt == "B" else f"{starting_gp} GP"
+
     modifiers = derived["modifiers"]
     level = character_level
     proficiency_bonus = 2
@@ -667,11 +681,19 @@ def configure_character(
     )
     session.initialize_species_trait_state(giant_ancestry=giant_ancestry)
 
+    # Only new creation: never parse historical coin labels during load/resume.
+    # Other legacy class/background packages are not source-certified currency.
     # Transfer verified starting equipment to canonical gameplay inventory
+    gameplay_items = list(equipment_choices)
+    if starting_gp is not None:
+        gameplay_items.remove(coin_label)
     if hasattr(session, "world_state") and isinstance(session.world_state, dict):
-        session.world_state["inventory"] = list(equipment_choices)
+        session.world_state["inventory"] = gameplay_items
+        if starting_gp is not None:
+            session.world_state.setdefault("currency", {})["player"] = starting_gp * 100
+        session.world_state["starting_equipment_source"] = "PHB2024-background-v1"
     if hasattr(session, "inventory") and isinstance(session.inventory, list):
-        session.inventory = list(equipment_choices)
+        session.inventory = list(gameplay_items)
     if isinstance(session, game.GameSession):
         import spell_scope
         spell_scope.initialize(session)

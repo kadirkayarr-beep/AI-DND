@@ -33,6 +33,9 @@ def containers(world):
             yield npc.get("id"), npc["inventory"]
     for location, items in world.get("ground_items_by_location", {}).items():
         yield f"ground:{location}", items
+    for box in world.get("containers", []):
+        if isinstance(box, dict) and "contents" in box:
+            yield f'container:{box.get("id")}', box["contents"]
     if world.get("ground_items"):
         yield "legacy_ground", world["ground_items"]
 
@@ -127,7 +130,13 @@ def npc_at(world, identity):
 def clear_equipment(world, actor, item):
     if actor == "ground":
         return
-    owner = world if actor == "player" else ({} if actor == "ground" else npc_at(world, actor))
+    if actor.startswith("corpse:"):
+        matches = [n for n in world.get("npcs", []) if n.get("id") == actor[7:]]
+        if len(matches) != 1:
+            fail("loot_source_unknown")
+        owner = matches[0]
+    else:
+        owner = world if actor == "player" else npc_at(world, actor)
     # Do not silently invalidate creation-owned armor AC/shield benefits.
     from api.dnd_2024_rules import ARMOR_NAME_ALIASES
     name = item["name"].casefold()
@@ -185,11 +194,12 @@ def consent(npc, item, operation, recipient):
     del grants[item["item_id"]]
 
 
-def pay(world, payer, recipient, amount):
+def pay(world, payer, recipient, amount, *, reward_id=None):
     if type(amount) is not int or amount < 0:
         fail("invalid_price")
     wallets = world.setdefault("currency", {})
-    if wallets.get(payer, 0) < amount:
+    import equipment_native
+    if wallets.get(payer, 0) - equipment_native.reserved_funds(world, payer, reward_id) < amount:
         fail("insufficient_funds")
     wallets[payer] = wallets.get(payer, 0) - amount
     wallets[recipient] = wallets.get(recipient, 0) + amount
@@ -219,6 +229,27 @@ def price(item):
 def _apply(world, operation, args):
     materialize(world)
     inventory = world["inventory"]
+    import equipment_native as native
+    if operation == "market" and not args:
+        shop = native.market(world)
+        return f'İşlem noktası: {shop["id"]}; NPC: {shop["shopkeeper_id"]}. /item list'
+    if operation == "request" and len(args) == 2:
+        npc = npc_at(world, args[1])
+        item = native.authorize_request(world, npc, args[0])
+        consent(npc, item, "receive", "player")
+        move(world, item, npc["inventory"], inventory, npc["id"])
+        return f'{item["name"]} [{item["item_id"]}] açık rızayla devredildi.'
+    if operation == "work" and len(args) == 1:
+        npc = npc_at(world, args[0])
+        identity = native.offer_work(world, npc, f"/item work {args[0]}")
+        return f'İş kaydı: {identity}. NPC ile konuş; tamamlandıktan sonra /item reward {identity}. Ayrılmış ödül: 100 CP.'
+    if operation == "talk" and len(args) >= 2:
+        return native.talk(world, npc_at(world, args[0]), " ".join(args[1:]))
+    if operation == "loot" and len(args) == 2:
+        source, actor = native.loot_source(world, args[0])
+        item = one(source, args[1])
+        move(world, item, source, inventory, actor)
+        return f'{item["name"]} [{item["item_id"]}] mevcut kaynaktan alındı.'
     if operation == "list" and not args:
         lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
         wallet = world.get("currency", {}).get("player")
@@ -230,7 +261,10 @@ def _apply(world, operation, args):
         for shop in world.get("shops", []):
             if shop.get("location") != world["location"]:
                 continue
-            npc = npc_at(world, shop.get("shopkeeper_id"))
+            try:
+                npc = npc_at(world, shop.get("shopkeeper_id"))
+            except EquipmentError:
+                continue
             offers = shop.get("item_offers_cp", {})
             for item in npc.get("inventory", []):
                 if isinstance(offers, dict) and item["item_id"] in offers:
@@ -242,10 +276,26 @@ def _apply(world, operation, args):
                 continue
             grants = npc.get("item_consents", {})
             for item in npc.get("inventory", []):
+                policy = npc.get("item_release_policy", {}).get(item["item_id"])
+                if policy == {"operation": "receive", "recipient": "player"}:
+                    lines.append(f'{npc["name"]}: {item["name"]} [{item["item_id"]}] — /item request {item["item_id"]} {npc["id"]}')
                 if isinstance(grants, dict) and grants.get(item["item_id"]) == {
                     "operation": "receive", "recipient": "player",
                 }:
                     lines.append(f'{npc["name"]}: {item["name"]} — /item receive {item["item_id"]} {npc["id"]}')
+        for owner in [*world.get("npcs", []), *world.get("containers", [])]:
+            try:
+                items, _ = native.loot_source(world, owner.get("id"))
+            except EquipmentError:
+                continue
+            lines.extend(f'Loot: {i["name"]} [{i["item_id"]}] — /item loot {owner["id"]} {i["item_id"]}'
+                         for i in items)
+        for shop in world.get("shops", []):
+            if shop.get("economy_origin") == native.ORIGIN and shop.get("location") == world["location"]:
+                lines.append(f'İş: /item work {shop["shopkeeper_id"]}; konuşma: /item talk {shop["shopkeeper_id"]} Merhaba')
+        for identity, reward in world.get("item_rewards", {}).items():
+            if identity not in world.get("claimed_item_rewards", []):
+                lines.append(f'Ödül kaydı: /item reward {identity} ({reward.get("currency_cp", 0)} CP; tamamlanma gerekli)')
         return "\n".join(lines)
     if operation in {"drop", "take"} and len(args) == 1:
         ground = world.setdefault("ground_items_by_location", {}).setdefault(world["location"], [])
@@ -303,8 +353,11 @@ def _apply(world, operation, args):
     elif operation == "reward" and len(args) == 1:
         identity = args[0]
         quests = world.get("quests", [])
-        if not any(q.get("quest_id", q.get("id")) == identity and q.get("status") == "completed"
-                   for q in quests):
+        completed = any(q.get("quest_id", q.get("id")) == identity and q.get("status") == "completed"
+                        for q in quests)
+        completed = completed or any(t["thread_id"] == identity and t["status"] == "succeeded"
+                                    for t in world.get("interaction_adventure_v1", {}).get("threads", []))
+        if not completed:
             fail("quest_not_completed")
         claimed = world.setdefault("claimed_item_rewards", [])
         if identity in claimed:
@@ -319,7 +372,7 @@ def _apply(world, operation, args):
         source = npc.get("inventory", [])
         items = [one(source, i) for i in ids]
         amount = reward.get("currency_cp", 0)
-        pay(world, npc["id"], "player", amount)
+        pay(world, npc["id"], "player", amount, reward_id=identity)
         for item in items:
             move(world, item, source, inventory, npc["id"])
         claimed.append(identity)
@@ -360,7 +413,14 @@ def execute(session, text):
     return {
         "messages": session.messages, "narration": narration, "model_calls": 0,
         "action_result": {
-            "action": "equipment_transaction", "status": "resolved" if success else "rejected",
+            "action": "dialogue" if success and tokens[1] == "talk" else "equipment_transaction",
+            "npc_id": (
+                tokens[3] if success and tokens[1] in {"request", "receive", "give"}
+                else tokens[2] if success and tokens[1] == "talk"
+                else tokens[2] if success and tokens[1] == "work"
+                else None
+            ),
+            "status": "resolved" if success else "rejected",
             "success": success, "reason": reason,
             "state_changes": ["player.inventory", "equipment", "economy"] if success and before != session.world_state else [],
         },

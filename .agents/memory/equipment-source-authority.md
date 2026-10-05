@@ -12,7 +12,9 @@ proves existing possession, not that a copied catalog matches the rulebook.
 The user requires official uploaded rules and a stop on genuine source conflicts.
 
 **How to apply:** Cross-check starting wealth/equipment against the uploaded
-source before currency initialization. Separate new-character corrections from
-historical-save compatibility; do not invent a migration policy. See the
+source before currency initialization. The user explicitly requires corrected
+PHB 2024 packages only for newly created characters, leaving historical saves'
+possessions, balances and legacy coin strings unchanged on load/resume. Do not
+retroactively monetize old labels or infer a different migration policy. See the
 Package #2 contract in `ai-dnd/docs/equipment-loot-economy-v1.md` for the
 reviewed conflict and acceptance boundaries.

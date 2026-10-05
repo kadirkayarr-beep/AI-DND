@@ -727,8 +727,11 @@ def update_campaign_journal(
     before_items = before_world.get("inventory", [])
     after_items = after_world.get("inventory", [])
     if isinstance(before_items, list) and isinstance(after_items, list):
-        before_counts = Counter(item for item in before_items if isinstance(item, str))
-        after_counts = Counter(item for item in after_items if isinstance(item, str))
+        # Identity materialization is not an item loss. Compare actual owned
+        # display labels across both legacy strings and canonical records.
+        from equipment_economy import labels
+        before_counts = Counter(item for item in labels(before_items) if isinstance(item, str))
+        after_counts = Counter(item for item in labels(after_items) if isinstance(item, str))
         for item in sorted(set(before_counts) | set(after_counts), key=str.casefold):
             if not _valid_text(item, 160):
                 continue

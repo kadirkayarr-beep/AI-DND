@@ -29,3 +29,5 @@
 - [Development HTTP certificate trust](live-http-trust.md) — use system TLS trust for test-local httpx probes when urllib succeeds but its default bundle fails.
 - [Compound plan authority](compound-plan-authority.md) — bind clear plans to original source before physical routing; model prose never supplies canonical steps.
 - [Equipment source authority](equipment-source-authority.md) — Python-owned starting labels are not proof of 2024 rules accuracy; do not silently monetize disputed legacy wealth.
+- [Journal NPC reference boundary](journal-npc-reference-boundary.md) — native NPC events need same-turn canonical encounter evidence; engine success alone is not API readiness.
+- [Vite dependency preview](vite-dependency-preview.md) — missing optimized dev dependencies can blank the preview despite healthy source/API routes and a passing build.

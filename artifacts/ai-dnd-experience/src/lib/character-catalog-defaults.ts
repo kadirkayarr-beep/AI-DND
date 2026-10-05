@@ -389,7 +389,7 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       desc: 'Bir tapınakta dine ve ibadete adanmış bir yaşam sürdün.',
       ability_bonuses_options: ['intelligence', 'wisdom', 'charisma'],
       skills: ['Insight', 'Religion'],
-      tool: 'Hattat Seti',
+      tool: "Calligrapher's Supplies",
       origin_feat: 'Magic Initiate (Cleric)',
     },
     Artisan: {
@@ -397,7 +397,15 @@ export const DEFAULT_CATALOG: CharacterCreationCatalogResponse = {
       desc: 'Loncalarda el emeğiyle ustalaştın.',
       ability_bonuses_options: ['strength', 'dexterity', 'intelligence'],
       skills: ['Investigation', 'Persuasion'],
-      tool: 'Zanaatkar Aletleri',
+      tool: "Smith's Tools",
+      tool_options: [
+        "Alchemist's Supplies", "Brewer's Supplies", "Calligrapher's Supplies",
+        "Carpenter's Tools", "Cartographer's Tools", "Cobbler's Tools",
+        "Cook's Utensils", "Glassblower's Tools", "Jeweler's Tools",
+        "Leatherworker's Tools", "Mason's Tools", "Painter's Supplies",
+        "Potter's Tools", "Smith's Tools", "Tinker's Tools", "Weaver's Tools",
+        "Woodcarver's Tools",
+      ],
       origin_feat: 'Crafter',
     },
     Charlatan: {

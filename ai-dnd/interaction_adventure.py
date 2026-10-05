@@ -591,8 +591,33 @@ def _remember_claim(world, state, quote, npc, privacy):
     return event
 
 
+def authorize_item_transfer(world, npc, item):
+    """Record the NPC's bounded decision, never a model/social-roll outcome."""
+    expected = {"operation": "receive", "recipient": "player"}
+    if npc.get("item_consents", {}).get(item["item_id"]) == expected:
+        return
+    if npc.get("item_release_policy", {}).get(item["item_id"]) != expected:
+        from equipment_economy import fail
+        fail("npc_consent_required")
+    state = get(world)
+    _event(world, state, "item_consent",
+           f'{item["item_id"]}: receive → player', npc)
+    validate(state, world)
+    world[KEY] = state
+    npc.setdefault("item_consents", {})[item["item_id"]] = dict(expected)
+    del npc["item_release_policy"][item["item_id"]]
+
+
+def record_item_dialogue(world, npc, quote):
+    state = get(world)
+    _remember_claim(world, state, quote, npc, "addressed")
+    validate(state, world)
+    world[KEY] = state
+    return f'{npc["name"]} sözlerini duydu.'
+
+
 def item_request(world, npc, reference):
-    """Ownership inspection only. No general inventory transaction owner exists."""
+    """Ownership and explicit existing consent inspection; no social-roll grant."""
     if not npc or not reference:
         return {"owned": False, "transfer_possible": False, "reason": "item_unresolved"}
     inventory = npc.get("inventory")
@@ -604,8 +629,15 @@ def item_request(world, npc, reference):
         if isinstance(i, dict) else normalize(reference) == normalize(i)
         for i in inventory
     )
-    return {"owned": bool(owned), "transfer_possible": False,
-            "reason": "transfer_owner_unavailable" if owned else "not_owned"}
+    consented = owned and any(
+        isinstance(i, dict) and normalize(reference) in {
+            normalize(i["item_id"]), normalize(i["name"]), normalize(i.get("weapon_id", ""))}
+        and npc.get("item_consents", {}).get(i["item_id"]) == {
+            "operation": "receive", "recipient": "player"}
+        for i in inventory
+    )
+    return {"owned": bool(owned), "transfer_possible": bool(consented),
+            "reason": None if consented else "npc_consent_required" if owned else "not_owned"}
 
 
 def resolve(session, player_input, raw, npc=None, fallback_operation=None):
@@ -688,6 +720,13 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
         result = _result(operation, "recorded", f'{npc["name"]} sözlerini dikkatle dinliyor. Henüz bir şey yerine getirilmiş değil.')
     elif operation in {"negotiate", "request", "threat"}:
         inspected = item_request(world, npc, data["requested_item"])
+        if operation == "request" and inspected["owned"]:
+            import equipment_economy
+            import shlex
+            transfer = equipment_economy.execute(
+                session, f'/item request {shlex.quote(data["requested_item"])} {npc["id"]}')
+            if transfer["action_result"]["success"]:
+                return transfer
         text = (f'{npc["name"]} elindekini bırakmıyor. “Önce ne istediğimizi açıkça konuşalım.”'
                 if npc else "Teklifini kime yönelttiğini açıkça belirtmen gerekiyor.")
         result = _result(operation, "pending", text, requested_item=data["requested_item"],

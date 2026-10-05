@@ -189,6 +189,7 @@ export function CharacterCreationScreen({
   const [fightingStyle, setFightingStyle] = useState('');
   const [equipmentPackage, setEquipmentPackage] = useState<string>('');
   const [backgroundEquipmentOption, setBackgroundEquipmentOption] = useState<'A' | 'B' | ''>('');
+  const [artisanTool, setArtisanTool] = useState("Smith's Tools");
   const [selectedLanguages, setSelectedLanguages] = useState<[string, string]>(['', '']);
 
   // Spell choices
@@ -645,7 +646,7 @@ export function CharacterCreationScreen({
       proficient_skills: derivedStats.allSkills,
       expertise_skills: selectedExpertiseSkills,
       species_bonus_skills: selectedSpeciesSkills,
-      proficient_tools: [backgroundData?.tool ?? 'Tools'],
+      proficient_tools: [background === 'Artisan' ? artisanTool : backgroundData?.tool ?? 'Tools'],
       origin_feat: backgroundData?.origin_feat,
       species_bonus_feat: speciesBonusFeat || undefined,
       fighting_style: characterClass === 'Fighter' ? fightingStyle : undefined,
@@ -1472,6 +1473,16 @@ export function CharacterCreationScreen({
                       <p className="cc-card-desc">Paket yerine serbest harcama için 50 Altın nakit para ile başla.</p>
                     </div>
                   </div>
+                  {background === 'Artisan' && (
+                    <label className="cc-label">
+                      Artisan's Tools seçimi
+                      <select value={artisanTool} onChange={(event) => setArtisanTool(event.target.value)}>
+                        {(backgroundData?.tool_options ?? ["Smith's Tools"]).map((tool: string) => (
+                          <option key={tool} value={tool}>{tool}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
               </section>
             )}
