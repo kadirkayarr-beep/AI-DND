@@ -66,7 +66,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 *(self.post(a, body) for body in bodies)
             ), timeout=20)
 
-    async def assert_corrupt_saved_receipt_blocks_retry(self, corruption, operation="turn"):
+    async def assert_corrupt_saved_receipt_blocks_retry(
+        self, corruption, operation="turn", *, conflicting_action=None,
+    ):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
         session = record.game_session
@@ -160,10 +162,23 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             expected_status, expected_code = 409, "campaign_unavailable"
         else:
             self.fail(f"Unknown receipt corruption: {corruption}")
+        retry_command = copy.deepcopy(command)
+        if conflicting_action is not None:
+            self.assertIn(operation, ("short_rest", "long_rest"))
+            self.assertIsInstance(corruption, tuple)
+            retry_command["action"] = conflicting_action
+            self.assertNotEqual(retry_command["action"], command["action"])
+            self.assertEqual(retry_command["action_id"], command["action_id"])
+            expected_status, expected_code = 409, "action_id_conflict"
         with self.store._transaction() as connection:
             updated = connection.execute(sql, (value, campaign_id, command["action_id"]))
             self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
+        if conflicting_action is not None:
+            damaged_receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+            self.assertEqual(damaged_receipt["request_hash"], receipt["request_hash"])
+            self.assertEqual(damaged_receipt["response"], response)
+            self.assertNotEqual(damaged_receipt["response"], accepted.json())
 
         fresh_store = CampaignStore(self.store.path)
         fresh = SessionManager(campaign_store=fresh_store)
@@ -190,6 +205,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 restored.game_session.messages,
                 restored.game_session.world_metadata,
             ))
+            before_species_resources = copy.deepcopy(
+                restored.game_session.character["species_trait_state"],
+            )
             # Include raw metadata and the damaged receipt, neither of which may
             # be repaired or overwritten by the retry. Resume alone may mark played.
             with closing(fresh_store._connect()) as connection:
@@ -212,7 +230,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                               side_effect=AssertionError("Corrupt receipt autosaved")) as autosave, \
                  patch.object(fresh_store, "save_campaign",
                               side_effect=AssertionError("Corrupt receipt saved")) as save:
-                retry = await client.post(f"/api/game/sessions/{sid}/{endpoint}", json=command)
+                retry = await client.post(
+                    f"/api/game/sessions/{sid}/{endpoint}", json=retry_command,
+                )
             self.assertEqual(retry.status_code, expected_status, retry.text)
             self.assertEqual(retry.json()["detail"]["code"], expected_code)
             self.assertIsInstance(retry.json()["detail"]["message"], str)
@@ -222,6 +242,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             autosave.assert_not_called()
             save.assert_not_called()
             self.assertEqual(self.snapshot(restored), before_runtime)
+            self.assertEqual(restored.game_session.character["species_trait_state"],
+                             before_species_resources)
             self.assertEqual((
                 restored.game_session.messages,
                 restored.game_session.world_metadata,
@@ -275,6 +297,28 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     with self.subTest(operation=operation, field=field_path, mode=mode):
                         await self.assert_corrupt_saved_receipt_blocks_retry(
                             (field_path, mode, invalid_value), operation,
+                        )
+
+    async def test_changed_species_request_conflicts_before_damaged_response_after_resume(self):
+        for operation, conflicting_action in (
+            ("short_rest", "long_rest"),
+            ("long_rest", "short_rest"),
+        ):
+            for field_path, invalid_value in (
+                (("session_id",), 123),
+                (("state",), []),
+                (("result",), []),
+                (("result", "action"), 123),
+                (("result", "message"), []),
+                (("result", "effects"), []),
+            ):
+                for mode in ("missing", "wrong_type"):
+                    with self.subTest(operation=operation, field=field_path, mode=mode):
+                        # A valid committed hash must win over response-schema
+                        # damage when the same ID is used for a different request.
+                        await self.assert_corrupt_saved_receipt_blocks_retry(
+                            (field_path, mode, invalid_value), operation,
+                            conflicting_action=conflicting_action,
                         )
 
     async def test_resumed_species_receipt_isolated_from_nested_caller_edits(self):
