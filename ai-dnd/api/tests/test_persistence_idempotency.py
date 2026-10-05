@@ -321,7 +321,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             conflicting_action=conflicting_action,
                         )
 
-    async def test_resumed_species_receipt_isolated_from_nested_caller_edits(self):
+    async def assert_persisted_species_receipt_isolation(self, *, edit_input=False):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
         session = record.game_session
@@ -332,10 +332,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         campaign_id = created["campaign_id"]
         self.manager.save_campaign(campaign_id)
         command = {"action": "long_rest", "action_id": str(uuid4())}
-        accepted = await self.http.post(
-            f"/api/game/sessions/{created['session_id']}/species-actions", json=command,
-        )
+        path = f"/api/game/sessions/{created['session_id']}/species-actions"
+        with patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave:
+            accepted = await self.http.post(path, json=command)
         self.assertEqual(accepted.status_code, 200, accepted.text)
+        autosave.assert_called_once()
+        supplied = autosave.call_args.kwargs["turn_action_receipt"]
         expected = accepted.json()
         self.assertEqual(expected["result"]["action"], "long_rest")
         self.assertEqual(expected["result"]["effects"]["current_hp"], 20)
@@ -344,7 +347,47 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 28800)
         original = copy.deepcopy(self.store.get_turn_action(campaign_id, command["action_id"]))
         self.assertEqual(original["response"], expected)
+        self.assertEqual(supplied["response"], expected)
+        self.assertEqual(supplied["request_hash"], original["request_hash"])
+        self.assertEqual(supplied["action_id"], command["action_id"])
+        supplied_original = copy.deepcopy(supplied)
         saved = copy.deepcopy(self.store.get_campaign(campaign_id))
+
+        if edit_input:
+            committed = self.snapshot(record)
+            auxiliary_before = copy.deepcopy((session.messages, session.world_metadata))
+            # Keep the actual autosave argument, not a lookup copy: ingress must
+            # detach caller-owned nested effects and state before storing them.
+            effects = supplied["response"]["result"]["effects"]
+            effects["refreshed"]["adrenaline_rush"] = -1
+            effects["time_result"].clear()
+            state = supplied["response"]["state"]
+            state["character"]["species_trait_state"]["adrenaline_rush_uses_remaining"] = -1
+            state["character"]["current_hp"] = 0
+            state["character"]["species_trait_state"]["caller_only"] = {"edits": ["local"]}
+            self.assertNotEqual(supplied, supplied_original)
+            self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+            self.assertEqual(self.store.get_turn_action(campaign_id, command["action_id"]), original)
+            self.assertEqual(self.snapshot(record), committed)
+            with patch.object(session, "resolve_species_trait_action",
+                              side_effect=AssertionError("Replay repeated species mechanics")) as mechanics, \
+                 patch("game.resolve_species_trait_action",
+                       side_effect=AssertionError("Replay repeated rest")) as rest, \
+                 patch.object(session.rng, "randint",
+                              side_effect=AssertionError("Replay consumed RNG")) as rng, \
+                 patch.object(self.manager, "autosave_turn",
+                              side_effect=AssertionError("Replay autosaved")) as autosave, \
+                 patch.object(self.store, "save_campaign",
+                              side_effect=AssertionError("Replay persisted")) as save:
+                replay = await self.http.post(path, json=command)
+            for guard in (mechanics, rest, rng, autosave, save):
+                guard.assert_not_called()
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), expected)
+            self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+            self.assertEqual(self.store.get_turn_action(campaign_id, command["action_id"]), original)
+            self.assertEqual(self.snapshot(record), committed)
+            self.assertEqual((session.messages, session.world_metadata), auxiliary_before)
 
         fresh_store = CampaignStore(self.store.path)
         fresh = SessionManager(campaign_store=fresh_store)
@@ -424,6 +467,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         (campaign_id,),
                     )
                 ], receipt_rows)
+
+    async def test_resumed_species_receipt_isolated_from_nested_caller_edits(self):
+        await self.assert_persisted_species_receipt_isolation()
+
+    async def test_persisted_species_receipt_isolated_from_autosave_input_edits(self):
+        await self.assert_persisted_species_receipt_isolation(edit_input=True)
 
     async def assert_transient_response_validation(self, operation, *, envelope_only=False):
         created = await self.http.post("/api/game/sessions")
