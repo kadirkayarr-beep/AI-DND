@@ -746,6 +746,56 @@ class WeaponTests(unittest.TestCase):
         self.assertEqual(snapshot(s), before)
         self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
 
+    def test_forward_pair_missing_distance_uses_valid_npc_distance(self):
+        s, n = armed("Shortbow", distance=30)
+        # Unlike supplied-invalid-distance cases, an absent key permits fallback.
+        forward_pair = {"cover": "half"}
+        pairs = {f"player|{n['id']}": forward_pair}
+        s.world_state["attack_environment"] = {"pairs": pairs}
+        self.assertIn(f"player|{n['id']}", pairs)
+        self.assertNotIn("distance_ft", forward_pair)
+        self.assertNotIn(f"{n['id']}|player", pairs)
+        self.assertEqual(n["distance_ft"], 30)
+        self.assertEqual(attack.pair(s, "player", n["id"]),
+                         {"cover": "half", "distance_ft": 30})
+        self.assertEqual(forward_pair, {"cover": "half"})
+
+        # Use the real roll owners with exactly one attack die and one damage die.
+        with patch.object(s.rng, "randint", side_effect=[10, 4]) as dice, \
+             patch.object(game._DEFAULT_SESSION.rng, "randint",
+                          side_effect=AssertionError("Attack used default-session dice")):
+            result = attack.resolve(s, "player", n["id"], "Shortbow")
+            self.assertEqual(dice.call_args_list, [call(1, 20), call(1, 6)])
+
+        self.assertEqual(result["actor_id"], "player")
+        self.assertEqual(result["target_id"], n["id"])
+        self.assertEqual(result["status"], "resolved")
+        self.assertTrue(result["success"])
+        self.assertTrue(result["hit"])
+        self.assertFalse(result["critical"])
+        self.assertEqual(result["outcome"], "hit")
+        self.assertEqual(result["attack_rolls"], [10])
+        self.assertEqual(result["attack_bonus"], 4)
+        self.assertEqual(result["attack_total"], 14)
+        self.assertEqual(result["target_ac_base"], 12)
+        self.assertEqual(result["target_ac"], 14)
+        self.assertEqual(result["advantage_sources"], [])
+        self.assertEqual(result["disadvantage_sources"], [])
+        self.assertEqual(result["damage_rolls"], [
+            {"source": "weapon", "die": 6, "count": 1, "rolls": [4]}])
+        self.assertEqual(result["damage_type"], "piercing")
+        self.assertEqual(result["damage"], 6)
+        self.assertEqual(result["hp_damage"], 6)
+        self.assertEqual(result["target_hp_before"], 100)
+        self.assertEqual(result["target_hp_after"], 94)
+        self.assertEqual(n["current_hp"], 94)
+        self.assertEqual(s.character["current_hp"], 100)
+        self.assertEqual(s.world_state["ammunition"]["arrow"], 19)
+        self.assertEqual(s.world_state["attack_results"], [result])
+        self.assertIsNot(s.world_state["attack_results"][0], result)
+        self.assertEqual(pairs, {f"player|{n['id']}": {"cover": "half"}})
+        self.assertEqual(n["distance_ft"], 30)
+
     def assert_invalid_forward_distance_not_replaced_by_npc(self, distance):
         s, n = armed("Shortbow", distance=30)
         pairs = {f"player|{n['id']}": {"distance_ft": distance}}
