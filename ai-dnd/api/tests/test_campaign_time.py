@@ -309,6 +309,136 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.manager.get_turn_action(record, failed_action))
 
 
+    async def test_orc_short_rest_failed_autosave_rolls_back_recharge_then_commits_once(self):
+        record = self.manager.get(self.sid)
+        session = record.game_session
+        session.character.update(species="Orc", race="Orc", level=1, proficiency_bonus=2)
+        game.initialize_species_trait_state(session=session)
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        campaign_id = self.created["campaign_id"]
+        saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
+        self.assertEqual(saved.status_code, 200, saved.text)
+        before = copy.deepcopy(session.serialize_game_state())
+        clock_before = copy.deepcopy(session.world_state["campaign_time"])
+        rng_before = session.rng.getstate()
+        messages_before = copy.deepcopy(session.messages)
+        journal_before = copy.deepcopy(record.journal)
+        memory_before = copy.deepcopy(record.narrative_memory)
+        receipts_before = copy.deepcopy(record.turn_action_receipts)
+        stored_before = self.store.get_campaign(campaign_id)
+        self.assertEqual(
+            stored_before.payload["engine_save"]["player"]["species_trait_state"]
+            ["adrenaline_rush_uses_remaining"], 0,
+        )
+        request = {"action": "short_rest", "action_id": str(uuid4())}
+        path = f"/api/game/sessions/{self.sid}/species-actions"
+        elapsed_before = clock_before["elapsed_seconds"]
+        self.assertEqual(events.pending_events(session.world_state), [])
+
+        def assert_recovered(character, world):
+            self.assertEqual(character["species_trait_state"]["adrenaline_rush_uses_remaining"], 2)
+            self.assertEqual(world["campaign_time"]["elapsed_seconds"], elapsed_before + 3600)
+            self.assertEqual(events.pending_events(world), [])
+
+        def assert_response(response):
+            self.assertEqual(response["result"]["action"], "short_rest")
+            self.assertEqual(response["result"]["effects"]["adrenaline_rush_uses_refreshed"], 2)
+            self.assertFalse(response["result"]["effects"]["time_result"]["interrupted"])
+            self.assertEqual(
+                response["state"]["character"]["species_trait_state"]
+                ["adrenaline_rush_uses_remaining"], 2,
+            )
+            self.assertEqual(response["state"]["campaign_time"],
+                             clock.public_time(session.world_state))
+            self.assertEqual(response["state"]["campaign_time"]["hour"], 10)
+
+        def reject_completed_rest(*args, **kwargs):
+            # The save must fail after real recharge and time advancement, not before.
+            assert_recovered(session.character, session.world_state)
+            receipt = kwargs["turn_action_receipt"]
+            self.assertEqual(receipt["action_id"], request["action_id"])
+            assert_response(receipt["response"])
+            raise CampaignStorageError("test completed Orc short rest autosave failure")
+
+        with patch.object(self.store, "save_campaign", side_effect=reject_completed_rest) as save:
+            failed = await self.http.post(path, json=request)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(session.serialize_game_state(), before)
+        self.assertEqual(session.character["species_trait_state"]["adrenaline_rush_uses_remaining"], 0)
+        self.assertEqual(session.world_state["campaign_time"], clock_before)
+        self.assertEqual(session.rng.getstate(), rng_before)
+        self.assertEqual(session.messages, messages_before)
+        self.assertEqual(record.journal, journal_before)
+        self.assertEqual(record.narrative_memory, memory_before)
+        self.assertEqual(record.turn_action_receipts, receipts_before)
+        self.assertEqual(self.store.get_campaign(campaign_id), stored_before)
+        self.assertIsNone(self.manager.get_turn_action(record, request["action_id"]))
+        self.assertIsNone(self.store.get_turn_action(campaign_id, request["action_id"]))
+
+        with patch.object(self.store, "save_campaign", wraps=self.store.save_campaign) as save:
+            retried = await self.http.post(path, json=request)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(retried.status_code, 200, retried.text)
+        response = retried.json()
+        assert_response(response)
+        assert_recovered(session.character, session.world_state)
+        committed = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(committed.history), len(stored_before.history) + 1)
+        engine_save = committed.payload["engine_save"]
+        assert_recovered(engine_save["player"], engine_save["world_state"])
+        self.assertEqual(engine_save, session.serialize_game_state())
+        committed_receipt = self.store.get_turn_action(campaign_id, request["action_id"])
+        self.assertEqual(committed_receipt["response"], response)
+
+        async def assert_replay(http, manager, store, sid):
+            active_record = manager.get(sid)
+            active = active_record.game_session
+            engine_before = copy.deepcopy(active.serialize_game_state())
+            rng = active.rng.getstate()
+            messages = copy.deepcopy(active.messages)
+            journal = copy.deepcopy(active_record.journal)
+            memory = copy.deepcopy(active_record.narrative_memory)
+            receipts = copy.deepcopy(active_record.turn_action_receipts)
+            with patch.object(active, "resolve_species_trait_action",
+                              side_effect=AssertionError("Replay executed another short rest")), \
+                 patch.object(manager, "autosave_turn",
+                              side_effect=AssertionError("Replay saved another turn")):
+                replay = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=request,
+                )
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), {**response, "session_id": sid})
+            assert_recovered(active.character, active.world_state)
+            self.assertEqual(active.serialize_game_state(), engine_before)
+            self.assertEqual(active.rng.getstate(), rng)
+            self.assertEqual(active.messages, messages)
+            self.assertEqual(active_record.journal, journal)
+            self.assertEqual(active_record.narrative_memory, memory)
+            self.assertEqual(active_record.turn_action_receipts, receipts)
+            self.assertEqual(store.get_campaign(campaign_id), committed)
+            self.assertEqual(store.get_turn_action(campaign_id, request["action_id"]),
+                             committed_receipt)
+
+        await assert_replay(self.http, self.manager, self.store, self.sid)
+        # A new store and manager must recover the committed recharge and receipt from disk.
+        reopened_store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
+        app = create_app(session_manager=manager,
+                         ollama_adapter=AuthenticatedOllamaAdapter(NoModel()))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                     base_url="http://test") as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored_record = manager.get(sid)
+            self.assertIsNot(restored_record.game_session, session)
+            self.assertEqual(restored_record.game_session.serialize_game_state(), engine_save)
+            self.assertEqual(restored_record.journal, record.journal)
+            for key in ("character", "campaign_time", "pending_event_decisions"):
+                self.assertEqual(resumed.json()["state"][key], response["state"][key])
+            await assert_replay(http, manager, reopened_store, sid)
+
     async def test_completed_long_rest_failed_autosave_rolls_back_recovery_then_commits_once(self):
         record = self.manager.get(self.sid)
         session = record.game_session
