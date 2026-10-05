@@ -3222,6 +3222,74 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 1,
             )
 
+            # A new request is not a receipt replay: the real offline search
+            # must find the saved merchant without materializing another one.
+            new_body = {**body, "action_id": str(uuid.uuid4())}
+            self.assertNotEqual(new_body["action_id"], body["action_id"])
+            previous_receipt = copy.deepcopy(
+                restarted_store.get_turn_action(campaign_id, body["action_id"])
+            )
+            previous_world = persisted.payload["engine_save"]["world_state"]
+            previous_shop_ids = [item["id"] for item in previous_world["shops"]]
+            previous_npc_ids = [item["id"] for item in previous_world["npcs"]]
+            new_results = []
+            loaded_real_turn = loaded.run_player_turn
+
+            @wraps(loaded_real_turn)
+            def capture_new_search(*args, **kwargs):
+                result = loaded_real_turn(*args, **kwargs)
+                new_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            with patch.object(loaded, "run_player_turn", new=capture_new_search):
+                searched = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=new_body
+                )
+            self.assertEqual(searched.status_code, 200, searched.text)
+            self.assertEqual(searched.json()["action_id"], new_body["action_id"])
+            self.assertEqual(len(new_results), 1)
+            self.assertEqual(new_results[0]["action"], "local_search")
+            self.assertEqual(new_results[0]["status"], "found")
+            self.assertTrue(new_results[0]["success"])
+            self.assertEqual(new_results[0]["shop_id"], shop["id"])
+            self.assertEqual(new_results[0]["target_id"], shop["shopkeeper_id"])
+
+            searched_campaign = restarted_store.get_campaign(campaign_id)
+            searched_world = searched_campaign.payload["engine_save"]["world_state"]
+            self.assertEqual(
+                searched_campaign.payload["engine_save"], loaded.serialize_game_state()
+            )
+            self.assertEqual(
+                [item["id"] for item in searched_world["shops"]], previous_shop_ids
+            )
+            self.assertEqual(
+                [item["id"] for item in searched_world["npcs"]], previous_npc_ids
+            )
+            self.assertEqual(len(searched_world["shops"]), 1)
+            self.assertEqual(searched_world["shops"][0]["shopkeeper_id"], shop["shopkeeper_id"])
+            self.assertEqual(
+                [npc["id"] for npc in searched_world["npcs"]
+                 if npc.get("shop_id") == shop["id"]],
+                [shop["shopkeeper_id"]],
+            )
+            self.assertEqual(len(searched_campaign.history), len(persisted.history) + 1)
+            self.assertEqual(searched_campaign.history[:-1], persisted.history)
+            self.assertEqual(
+                searched_campaign.history[-1]["player_message"], new_body["message"]
+            )
+            self.assertEqual(
+                restarted_store.get_turn_action(campaign_id, body["action_id"]),
+                previous_receipt,
+            )
+            self.assertEqual(
+                restarted_store.get_turn_action(campaign_id, new_body["action_id"])["response"],
+                searched.json(),
+            )
+            self.assertEqual(
+                restarted_manager.get_turn_action(loaded_record, new_body["action_id"])["response"],
+                searched.json(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
