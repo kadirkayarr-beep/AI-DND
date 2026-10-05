@@ -271,6 +271,91 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(results[0]["action"], "death_save")
         self.assertGreater(s.character["current_hp"], 0)
 
+    def test_direct_third_death_save_preserves_newly_stable_boundary(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for subsequent_rolls in ([], [1, 1], [15, 15]):
+                with self.subTest(mode=mode, subsequent_rolls=subsequent_rolls):
+                    s, ns = battle(player={
+                        "current_hp": 1, "max_hp": 100, "armor_class": 12,
+                    })
+                    s.ensure_death_state()["mode"] = mode
+                    s._apply_player_damage(4, took_damage=True)
+                    s.ensure_death_state()["successes"] = 2
+                    s.world_state["monster_perception"] = {
+                        ns[0]["id"]: {"player": {"visible": True}}
+                    }
+                    before_combat = copy.deepcopy(s.ensure_combat_state())
+                    before_economy = copy.deepcopy(ae.ensure(s))
+                    before_time = copy.deepcopy(s.world_state["campaign_time"])
+                    with patch("game.roll_d20", side_effect=[10] + subsequent_rolls) as roller, \
+                         patch("game.roll_damage", return_value=4) as damage:
+                        result = s.run_player_turn("Hamle.")
+                    action = result["action_result"]
+                    self.assertEqual(action["action"], "death_save")
+                    self.assertEqual(action["outcome"], "stable")
+                    self.assertTrue(action["success"])
+                    self.assertEqual(action["enemy_actions"], [])
+                    self.assertIsNone(action["enemy_action"])
+                    self.assertFalse(action["combat_ended"])
+                    roller.assert_called_once_with()
+                    damage.assert_not_called()
+                    self.assertEqual(s.character["current_hp"], 0)
+                    self.assertEqual(s.world_state["player_combat_status"], "unconscious")
+                    death = s.ensure_death_state()
+                    self.assertTrue(death["stable"])
+                    self.assertFalse(death["dead"])
+                    self.assertFalse(death["terminal"])
+                    self.assertEqual((death["successes"], death["failures"]), (0, 0))
+                    combat = s.ensure_combat_state()
+                    self.assertTrue(combat["active"])
+                    self.assertEqual(combat["current_actor_id"], "player")
+                    for key in ("initiative_order", "initiative_results", "round",
+                                "current_turn_index", "actions_used"):
+                        self.assertEqual(combat[key], before_combat[key], key)
+                    self.assertEqual(ae.ensure(s), before_economy)
+                    self.assertEqual(s.world_state["campaign_time"], before_time)
+
+    def test_direct_natural_twenty_keeps_revived_player_turn_available(self):
+        s, _ = battle(player={"current_hp": 1})
+        s._apply_player_damage(4, took_damage=True)
+        s.ensure_death_state()["successes"] = 2
+        before_combat = copy.deepcopy(s.ensure_combat_state())
+        before_economy = copy.deepcopy(ae.ensure(s))
+        with patch("game.roll_d20", side_effect=[20]) as roller:
+            result = s.run_player_turn("Hamle.")
+        action = result["action_result"]
+        self.assertEqual(action["outcome"], "revived")
+        self.assertEqual(action["enemy_actions"], [])
+        self.assertFalse(action["combat_ended"])
+        roller.assert_called_once_with()
+        self.assertEqual(s.character["current_hp"], 1)
+        self.assertEqual(s.world_state["player_combat_status"], "active")
+        self.assertFalse(s.ensure_death_state()["stable"])
+        self.assertTrue(s.ensure_death_state()["prone"])
+        combat = s.ensure_combat_state()
+        self.assertEqual(combat["current_actor_id"], "player")
+        for key in ("initiative_order", "initiative_results", "round", "current_turn_index",
+                    "actions_used"):
+            self.assertEqual(combat[key], before_combat[key], key)
+        self.assertEqual(ae.ensure(s), before_economy)
+
+    def test_direct_third_death_save_without_enemies_uses_existing_exit(self):
+        s, ns = battle(player={"current_hp": 1})
+        s._apply_player_damage(4, took_damage=True)
+        s.ensure_death_state()["successes"] = 2
+        s.remove_combat_participant(ns[0]["id"])
+        self.assertEqual(s.ensure_combat_state()["status"], "death_resolution")
+        with patch("game.roll_d20", side_effect=[10]) as roller:
+            result = s.run_player_turn("Hamle.")
+        action = result["action_result"]
+        self.assertEqual(action["outcome"], "stable")
+        self.assertEqual(action["enemy_actions"], [])
+        self.assertTrue(action["combat_ended"])
+        self.assertEqual(action["end_reason"], "player_stable")
+        self.assertTrue(s.ensure_death_state()["stable"])
+        self.assertFalse(s.ensure_combat_state()["active"])
+        roller.assert_called_once_with()
+
     def test_historical_npc_unconscious_cannot_act_but_does_not_stall(self):
         s, ns = battle([{}, {}])
         ns[0].update(current_hp=0, combat_status="unconscious")

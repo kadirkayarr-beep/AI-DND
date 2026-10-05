@@ -11531,7 +11531,11 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         if save_result is not None:
             enemy_actions = []
             combat = ensure_combat_state()
-            if save_result["outcome"] != "revived" and combat["active"] and combat["current_actor_id"] == "player":
+            # Match the scheduler's newly-stable boundary: preserve this
+            # player slot rather than starting another enemy cycle.
+            if ensure_death_state()["stable"]:
+                _combat_end_if_decided()
+            elif save_result["outcome"] != "revived" and combat["active"] and combat["current_actor_id"] == "player":
                 _mark_combat_action_used("player")
                 if not _combat_end_if_decided():
                     advanced, _, _ = advance_combat_turn()
