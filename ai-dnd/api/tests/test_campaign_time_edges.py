@@ -358,6 +358,94 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = v1.ClockApiTests.asyncSetUp
     asyncTearDown = v1.ClockApiTests.asyncTearDown
 
+    async def test_interrupted_orc_short_rest_keeps_depleted_uses_after_reopen_and_replay(self):
+        session = self.manager.get(self.sid).game_session
+        session.character.update(species="Orc", race="Orc", level=1, proficiency_bonus=2)
+        game.initialize_species_trait_state(session=session)
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        traits_before = copy.deepcopy(session.character["species_trait_state"])
+        event(session, "orc-rest-stop", 1200, 1800, behavior="INTERRUPTIVE",
+              requires_decision=True, summary="A visitor interrupts the short rest.",
+              effects=[flag("orc_rest_encounter")])
+        campaign_id = self.created["campaign_id"]
+        request = {"action": "short_rest", "action_id": str(uuid4())}
+        stored_before = self.store.get_campaign(campaign_id)
+
+        def assert_interrupted(character, world):
+            self.assertEqual(character["species"], "Orc")
+            self.assertEqual(character["species_trait_state"], traits_before)
+            self.assertEqual(character["species_trait_state"]["adrenaline_rush_uses_remaining"], 0)
+            self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1200)
+            pending = events.pending_events(world)
+            self.assertEqual(len(pending), 1)
+            self.assertEqual(pending[0]["event_id"], "orc-rest-stop")
+            self.assertEqual(pending[0]["status"], "OCCURRED")
+            self.assertEqual(pending[0]["decision_status"], "PENDING")
+            self.assertEqual(pending[0]["canonical_result"]["effects_applied"], 1)
+            self.assertTrue(world["flags"]["scheduled:orc_rest_encounter"])
+
+        first = await self.http.post(
+            f"/api/game/sessions/{self.sid}/species-actions", json=request,
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        response = first.json()
+        effects = response["result"]["effects"]
+        self.assertFalse(effects["rest_completed"])
+        self.assertTrue(effects["time_result"]["interrupted"])
+        self.assertEqual(effects["time_result"]["elapsed_seconds"], 1200)
+        self.assertNotIn("adrenaline_rush_uses_refreshed", effects)
+        assert_interrupted(session.character, session.world_state)
+        self.assertEqual(response["state"]["character"]["species_trait_state"], traits_before)
+        self.assertEqual(len(response["state"]["pending_event_decisions"]), 1)
+        self.assertEqual(response["state"]["pending_event_decisions"][0]["summary"],
+                         "A visitor interrupts the short rest.")
+
+        # Inspect the atomic autosave, without an explicit save hiding a missing commit.
+        persisted = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(persisted.history), len(stored_before.history) + 1)
+        engine_save = persisted.payload["engine_save"]
+        assert_interrupted(engine_save["player"], engine_save["world_state"])
+        receipt = copy.deepcopy(self.store.get_turn_action(campaign_id, request["action_id"]))
+        self.assertEqual(receipt["response"], response)
+
+        # Fresh owners must load depleted uses and the committed encounter from disk.
+        store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=store)
+        app = v1.create_app(session_manager=manager,
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                     base_url="http://test") as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            record = manager.get(sid)
+            restored = record.game_session
+            self.assertIsNot(restored, session)
+            assert_interrupted(restored.character, restored.world_state)
+            for key in ("campaign_time", "pending_event_decisions", "character"):
+                self.assertEqual(resumed.json()["state"][key], response["state"][key])
+            before_replay = copy.deepcopy(restored.serialize_game_state())
+            rng = restored.rng.getstate()
+            journal = copy.deepcopy(record.journal)
+            stored = store.get_campaign(campaign_id)
+            self.assertEqual(manager.get_turn_action(record, request["action_id"]), receipt)
+            with patch.object(restored, "resolve_species_trait_action",
+                              side_effect=AssertionError("Replay executed another rest")), \
+                 patch.object(manager, "autosave_turn",
+                              side_effect=AssertionError("Replay saved another turn")):
+                replay = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=request,
+                )
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), {**response, "session_id": sid})
+            assert_interrupted(restored.character, restored.world_state)
+            self.assertEqual(restored.serialize_game_state(), before_replay)
+            self.assertEqual(restored.rng.getstate(), rng)
+            self.assertEqual(record.journal, journal)
+            self.assertEqual(store.get_campaign(campaign_id), stored)
+            self.assertEqual(store.get_turn_action(campaign_id, request["action_id"]), receipt)
+            self.assertEqual(manager.get_turn_action(record, request["action_id"]), receipt)
+
     async def test_interrupted_long_rest_failed_autosave_rolls_back_then_retries_and_reopens(self):
         record = self.manager.get(self.sid)
         session = record.game_session
