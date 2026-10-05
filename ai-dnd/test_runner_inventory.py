@@ -199,6 +199,25 @@ class RunnerProcessTests(unittest.TestCase):
             capture_output=True, text=True, timeout=20,
         )
 
+    def test_real_unknown_suite_is_rejected_before_any_gate_starts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.copy_runner(root)
+            for gates in self.SUITES.values():
+                for name in gates:
+                    self.write_gate(root, name, "def test_ok(): pass\n")
+
+            result = self.launch_runner(root, ("--suite", "all"))
+            output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 2, output)
+            self.assertIn("argument --suite: invalid choice: 'all'", result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertFalse((root / "order.txt").exists())
+            for gates in self.SUITES.values():
+                for name in gates:
+                    self.assertFalse((root / (name + ".sentinel")).exists(), name)
+            self.assertNotIn("PASSED", output)
+
     def test_real_listing_skips_invalid_definitions_and_never_starts_gates(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
