@@ -713,18 +713,19 @@ class WeaponTests(unittest.TestCase):
         self.assertNotIn("distance_ft", n)
         self.assert_unknown_distance_unchanged(s, n)
 
-    def assert_unknown_distance_unchanged(self, s, n):
+    def assert_unknown_distance_unchanged(self, s, n, *, npc_origin=False):
         self.assertNotIn("attack_results", s.world_state)
 
         def snapshot(session):
             # Include the complete save, unsanitized character, messages and RNG.
             # JSON preserves nonfinite fixture values without NaN equality issues.
             return json.dumps((
-                session.serialize_game_state(), session.character,
+                session.serialize_game_state(), session.world_state, session.character,
                 session.messages, session.rng.getstate(),
             ), sort_keys=True)
 
         before = snapshot(s)
+        npc_before = json.dumps(n, sort_keys=True)
         default_before = snapshot(game._DEFAULT_SESSION)
         with patch("game.roll_attack",
                    side_effect=AssertionError("Rejected attack rolled")) as attack_roll, \
@@ -735,7 +736,10 @@ class WeaponTests(unittest.TestCase):
              patch.object(game._DEFAULT_SESSION.rng, "randint",
                           side_effect=AssertionError("Rejected attack used default dice")) as default_dice:
             with self.assertRaises(CombatRequestError) as raised:
-                attack.resolve(s, "player", n["id"], "Shortbow")
+                if npc_origin:
+                    s.resolve_enemy_attack(n)
+                else:
+                    attack.resolve(s, "player", n["id"], "Shortbow")
             self.assertEqual(raised.exception.code, "distance_unknown")
             attack_roll.assert_not_called()
             damage_roll.assert_not_called()
@@ -744,7 +748,44 @@ class WeaponTests(unittest.TestCase):
 
         self.assertNotIn("attack_results", s.world_state)
         self.assertEqual(snapshot(s), before)
+        self.assertEqual(json.dumps(n, sort_keys=True), npc_before)
         self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_npc_invalid_authored_pair_distance_not_replaced_by_valid_fallback(self):
+        invalid_distances = (
+            None, False, True, -1, float("nan"), float("inf"), float("-inf"),
+            "30", "30.0", [], [30], {}, {"distance_ft": 30},
+        )
+        for direction in ("forward_only", "forward_with_valid_reverse", "reverse_only"):
+            for distance in invalid_distances:
+                with self.subTest(direction=direction, distance=distance):
+                    s, n = armed("Shortbow", distance=30)
+                    n.update(weapon_id="shortbow", inventory=["Shortbow"],
+                             equipment={"main_hand": "shortbow", "off_hand": None},
+                             dexterity=14, dexterity_mod=2, proficiency_bonus=2,
+                             weapon_proficiencies=["simple"], weapon_masteries=[],
+                             ammunition={"arrow": 20})
+                    s.character["armor_class"] = 12
+                    forward_key = f"{n['id']}|player"
+                    reverse_key = f"player|{n['id']}"
+                    invalid_key = reverse_key if direction == "reverse_only" else forward_key
+                    pairs = {invalid_key: {
+                        "distance_ft": distance, "cover": "half",
+                        "attacker_sees_target": False, "target_sees_attacker": True,
+                    }}
+                    if direction == "forward_with_valid_reverse":
+                        pairs[reverse_key] = {"distance_ft": 30}
+                    else:
+                        self.assertNotIn(
+                            forward_key if direction == "reverse_only" else reverse_key, pairs)
+                    s.world_state["attack_environment"] = {"pairs": pairs}
+                    self.assertIn("distance_ft", pairs[invalid_key])
+                    self.assertEqual(n["distance_ft"], 30)
+                    s.advance_combat_turn()
+                    self.assertEqual(s.world_state["combat"]["current_actor_id"], n["id"])
+                    # Use the real enemy entry point and equipped weapon resolver.
+                    # A supplied invalid value must never become NPC/reverse fallback.
+                    self.assert_unknown_distance_unchanged(s, n, npc_origin=True)
 
     def test_forward_pair_missing_distance_uses_valid_npc_distance(self):
         s, n = armed("Shortbow", distance=30)
