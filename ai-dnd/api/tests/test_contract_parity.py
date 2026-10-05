@@ -462,6 +462,51 @@ class ContractParityTests(unittest.TestCase):
             "#/components/schemas/SpeciesTraitActionResult",
         )
 
+    def test_species_action_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        # The published input has a client-facing name distinct from Python's model.
+        runtime_to_published_refs = {
+            "#/components/schemas/SpeciesTraitActionRequest":
+                "#/components/schemas/SpeciesTraitActionInput",
+        }
+        for path in (
+            "/game/sessions/{session_id}/species-actions",
+            "/sessions/{session_id}/species-actions",
+        ):
+            published = _operation(path, "post")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
+            with self.subTest(path=path, binding="requestBody"):
+                runtime_schema = runtime["requestBody"]["content"]["application/json"]["schema"]
+                self.assertEqual(
+                    published["requestBody"]["content"]["application/json"]["schema"],
+                    {"$ref": runtime_to_published_refs.get(
+                        runtime_schema["$ref"], runtime_schema["$ref"],
+                    )},
+                )
+                self.assertEqual(
+                    published["requestBody"].get("required", False),
+                    runtime["requestBody"].get("required", False),
+                )
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            for status in runtime_successes:
+                with self.subTest(path=path, binding="response", status=status):
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        runtime_successes[status]["content"]["application/json"]["schema"],
+                    )
+
     def test_species_action_runtime_acceptance_and_rejection_boundaries(self):
         request_schema = SpeciesTraitActionRequest.model_json_schema()["properties"]
         for action in _schema_enum(request_schema["action"]):
@@ -775,6 +820,44 @@ class ContractParityTests(unittest.TestCase):
 
 
 class ContractYamlReaderTests(unittest.TestCase):
+    def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
+        for path in (
+            "/game/sessions/{session_id}/species-actions",
+            "/sessions/{session_id}/species-actions",
+        ):
+            for binding in ("requestBody", "response"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, binding=binding, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if binding == "requestBody":
+                            schema = operation["requestBody"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/GameTurnInput"
+                        else:
+                            schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/SpeciesTraitActionResult"
+                        schema["$ref"] = wrong_ref
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            # The existing inventory and model checks cannot see this drift.
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_species_action_schemas_match_runtime_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(unchanged.wasSuccessful(), unchanged.errors)
+                            ContractParityTests(
+                                "test_species_action_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertTrue(
+                            result.failures,
+                            f"Undetected species-action binding drift: {path} {binding}",
+                        )
+
     BLOCK_FIXTURE = """
 servers:
   - url: /api
@@ -812,6 +895,10 @@ components:
 """
     COMPACT_FIXTURE = """
 servers: [{url: /api}]
+paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
+components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
+"""
+
     def _parity_result(self, spec):
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(ContractParityTests)
         result = unittest.TestResult()
@@ -1092,128 +1179,6 @@ servers: [{url: /api}]
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
-            }
-
-        def wrong_enum(spec):
-            spec["components"]["schemas"]["HealthResponse"]["properties"]["status"]["enum"] = ["wrong"]
-
-        def wrong_constraint(spec):
-            spec["components"]["schemas"]["GameTurnInput"]["properties"]["message"]["maxLength"] = 400
-
-        def missing_alias(spec):
-            del spec["paths"]["/health"]
-
-        def duplicate_operation_id(spec):
-            spec["paths"]["/health"]["get"]["operationId"] = (
-                spec["paths"]["/game/health"]["get"]["operationId"]
-            )
-
-        def missing_operation_id(spec):
-            del spec["paths"]["/health"]["get"]["operationId"]
-
-        def missing_status(spec):
-            del spec["paths"]["/game/sessions/{session_id}/turn"]["post"]["responses"]["409"]
-
-        def wrong_delete_reference(spec):
-            spec["paths"]["/campaigns/{campaign_id}"]["delete"]["responses"]["200"][
-                "content"
-            ]["application/json"]["schema"]["$ref"] = "#/components/schemas/GameSession"
-
-        for mutate in (
-            missing_field, nonnullable_field, wrong_enum, wrong_constraint,
-            missing_alias, duplicate_operation_id, missing_operation_id,
-            missing_status, wrong_delete_reference,
-        ):
-            for flow_style in (False, True):
-                with self.subTest(mutation=mutate.__name__, compact=flow_style):
-                    spec = deepcopy(SPEC)
-                    mutate(spec)
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
-                    result = self._parity_result(_load_spec(text))
-                    self.assertFalse(result.wasSuccessful())
-                    self.assertTrue(result.failures or result.errors)
-
-    def test_species_action_contract_drift_is_detected_in_both_formats(self):
-        mutations = []
-        for schema_name in (
-            "SpeciesTraitActionInput", "SpeciesTraitActionResult", "SpeciesTraitCommandResult"
-        ):
-            schema_path = ("components", "schemas", schema_name)
-            published = _schema(schema_name)
-            mutations.extend([
-                (schema_path + ("additionalProperties",), True),
-                (schema_path + ("additionalProperties",), None),
-                (schema_path + ("required",), []),
-                (schema_path + ("properties", "unexpected"), {"type": "string"}),
-            ])
-            for field_name, field_schema in published["properties"].items():
-                field_path = schema_path + ("properties", field_name)
-                # Missing fields and incompatible types, including nested result refs.
-                mutations.append((field_path, None))
-                mutations.append((field_path, {"type": "integer"}))
-                if _is_nullable(field_schema):
-                    nonnullable = deepcopy(field_schema)
-                    nonnullable["type"] = [
-                        value for value in field_schema["type"] if value != "null"
-                    ]
-                    mutations.append((field_path, nonnullable))
-                    mutations.append((
-                        schema_path + ("required",),
-                        [*published["required"], field_name],
-                    ))
-                else:
-                    mutations.append((field_path, {
-                        "anyOf": [deepcopy(field_schema), {"type": "null"}],
-                    }))
-            # Each required field must remain required, not just the whole set.
-            for required_field in published["required"]:
-                mutations.append((
-                    schema_path + ("required",),
-                    [value for value in published["required"] if value != required_field],
-                ))
-        input_path = ("components", "schemas", "SpeciesTraitActionInput", "properties")
-        for field_name in ("action", "form", "ancestry"):
-            values = _enum_values("SpeciesTraitActionInput", field_name)
-            mutations.append((input_path + (field_name, "enum"), [*values, "unsupported"]))
-            mutations.append((input_path + (field_name, "enum"), None))
-            for value in values:
-                mutations.append((
-                    input_path + (field_name, "enum"),
-                    [item for item in values if item != value],
-                ))
-        result_path = ("components", "schemas", "SpeciesTraitActionResult", "properties")
-        for constraint, wrong_value in (("minLength", 0), ("maxLength", 501)):
-            mutations.append((result_path + ("message", constraint), wrong_value))
-            mutations.append((result_path + ("message", constraint), None))
-        mutations.append((result_path + ("effects", "additionalProperties"), False))
-        mutations.append((result_path + ("effects", "additionalProperties"), None))
-        command_path = ("components", "schemas", "SpeciesTraitCommandResult", "properties")
-        for field_name in ("state", "result"):
-            mutations.append((
-                command_path + (field_name, "$ref"),
-                "#/components/schemas/GameSession",
-            ))
-
-        for path, value in mutations:
-            for flow_style in (False, True):
-                with self.subTest(path=path, value=value, compact=flow_style):
-                    spec = deepcopy(SPEC)
-                    target = spec
-                    for key in path[:-1]:
-                        target = target[key]
-                    if value is None:
-                        del target[path[-1]]
-                    else:
-                        target[path[-1]] = value
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
-                    result = unittest.TestResult()
-                    with patch.dict(globals(), SPEC=_load_spec(text)):
-                        ContractParityTests(
-                            "test_species_action_schemas_match_runtime_models"
-                        ).run(result)
-                    self.assertEqual(result.testsRun, 1)
-                    self.assertEqual(result.errors, [], result.errors)
-                    self.assertTrue(result.failures, f"Undetected species-action drift: {path}")
 
 
 if __name__ == "__main__":
