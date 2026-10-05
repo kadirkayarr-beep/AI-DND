@@ -2,6 +2,7 @@
 import copy
 import asyncio
 from contextlib import closing
+from functools import wraps
 import threading
 import unittest
 from unittest.mock import patch
@@ -399,6 +400,137 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_transient_combat_history_isolated_from_autosave_input_edits(self):
         await self.assert_combat_history_input_isolation(persisted=False)
+
+    async def assert_combat_history_engine_ownership(self, persisted):
+        if persisted:
+            a = await self.create_campaign()
+        else:
+            created = await self.http.post("/api/game/sessions")
+            self.assertEqual(created.status_code, 200, created.text)
+            a = created.json()
+        record, command = self.prepare_spell(a)
+        self.assertEqual(record.campaign_id is not None, persisted)
+        session = record.game_session
+        session.character["armor_class"] = 100
+        if persisted:
+            self.manager.save_campaign(a["campaign_id"])
+
+        b = await self.create_campaign()
+        other, other_command = self.prepare_spell(b)
+        other_response = await self.post(b, other_command)
+        self.assertEqual(other_response.status_code, 200, other_response.text)
+        isolated = self.snapshot(other)
+
+        captured = []
+        real_turn = session.run_player_turn
+
+        # Keep the actual engine objects, not autosave inputs or decoded HTTP
+        # copies. Dispatch inspects this callable to forward scene/action IDs.
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            captured.append(result)
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            accepted = await self.post(a, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertEqual(len(captured), 1)
+        engine_result = captured[0]["action_result"]
+        engine_snapshot = copy.deepcopy(engine_result)
+        self.assertEqual(engine_result["action"], "action_economy")
+        self.assertEqual(engine_result["status"], "resolved")
+        self.assertTrue(engine_result["success"])
+        self.assertEqual(len(record.combat_history), 1)
+        retained = record.combat_history[0]
+        original = copy.deepcopy(retained)
+        response_entry = accepted.json()["combat_history_entry"]
+        self.assertEqual(original["event_id"], response_entry["event_id"])
+        self.assertEqual(original["turn_index"], response_entry["turn_index"])
+        # HTTP models include unset optional fields as null; history stores
+        # only the fields actually accepted from the engine.
+        self.assertEqual(original["result"],
+                         {key: response_entry["result"][key] for key in original["result"]})
+        self.assertEqual(original["result"],
+                         {key: engine_result[key] for key in original["result"]})
+        self.assertIsNot(retained["result"]["economy_steps"],
+                         engine_result["economy_steps"])
+        self.assertIsNot(retained["result"]["economy_steps"][0]["result"],
+                         engine_result["economy_steps"][0]["result"])
+        resources = copy.deepcopy(session.world_state["combat"]["turn_resources"])
+        engine_economy = captured[0]["action_economy_result"]["state"]
+        economy_snapshot = copy.deepcopy(engine_economy)
+        self.assertTrue(resources["player"]["base_action_spent"])
+        self.assertTrue(engine_economy["actors"]["player"]["base_action_spent"])
+        round_before = session.world_state["combat"]["round"]
+        committed = self.snapshot(record)
+        if persisted:
+            self.assertEqual(self.store.get_campaign(a["campaign_id"]).combat_history,
+                             [original])
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        later = await self.post(a, {
+            "message": "End this combat turn.", "action_id": str(uuid4()),
+            "combat_action": {"steps": [{"kind": "end_turn"}]},
+        })
+        self.assertEqual(later.status_code, 200, later.text)
+        combat = session.world_state["combat"]
+        self.assertTrue(combat["active"])
+        self.assertGreater(combat["round"], round_before)
+        self.assertFalse(combat["turn_resources"]["player"]["base_action_spent"])
+        self.assertNotEqual(combat["turn_resources"], resources)
+        self.assertEqual(len(record.combat_history), 2)
+        later_committed = self.snapshot(record)
+        self.assertEqual(retained, original)
+        self.assertEqual(record.combat_history[0], original)
+        self.assertEqual(engine_result, engine_snapshot)
+        self.assertEqual(engine_economy, economy_snapshot)
+
+        # Editing a retained engine result must not rewrite accepted history.
+        # This probes engine-to-history ownership, not autosave-input ownership.
+        steps = engine_result["economy_steps"]
+        self.assertEqual(steps[0]["kind"], "magic")
+        self.assertGreater(steps[0]["result"]["damage"], 0)
+        steps[0]["result"]["damage"] = -1
+        self.assertNotEqual(engine_result, engine_snapshot)
+        self.assertEqual(retained, original)
+        self.assertEqual(self.snapshot(record), later_committed)
+        self.assertEqual(self.snapshot(other), isolated)
+        steps.clear()
+        self.assertEqual(retained, original)
+        self.assertEqual(record.combat_history[0], original)
+        self.assertEqual(self.snapshot(record), later_committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        if persisted:
+            stored = self.store.get_campaign(a["campaign_id"])
+            self.assertEqual(stored.combat_history, record.combat_history)
+            self.assertEqual(stored.combat_history[0], original)
+            self.assertEqual(len(stored.history), 2)
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+            self.assertIsNot(restored.game_session, session)
+            before_observation = self.snapshot(restored)
+            self.assertEqual(restored.combat_history, stored.combat_history)
+            self.assertEqual(restored.combat_history[0], original)
+            self.assertEqual(retained, original)
+            reopened = self.store.get_campaign(a["campaign_id"])
+            self.assertEqual(reopened.combat_history, stored.combat_history)
+            self.assertEqual(reopened.history, stored.history)
+            self.assertEqual(reopened.payload, stored.payload)
+            # Resume can update last-played metadata. All gameplay owners and
+            # the complete RNG state must still match the committed turn.
+            self.assertEqual(before_observation[:7], later_committed[:7])
+            self.assertEqual(self.snapshot(restored), before_observation)
+            self.assertEqual(self.snapshot(record)[:7], later_committed[:7])
+            self.assertEqual(self.snapshot(other), isolated)
+
+    async def test_persisted_combat_history_owns_engine_result_after_resource_reset(self):
+        await self.assert_combat_history_engine_ownership(persisted=True)
+
+    async def test_transient_combat_history_owns_engine_result_after_resource_reset(self):
+        await self.assert_combat_history_engine_ownership(persisted=False)
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
