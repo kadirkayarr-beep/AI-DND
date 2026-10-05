@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import copy
+import json
+import random
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -14,8 +18,8 @@ import game
 from api.serializers import serialize_session_state
 
 
-def make_session():
-    session = game.GameSession(seed=17)
+def make_session(seed=17):
+    session = game.GameSession(seed=seed)
     session.character.update({
         "name": "Test Adventurer",
         "race": "Human",
@@ -196,6 +200,140 @@ class DeathSystemTests(unittest.TestCase):
                 self.assertTrue(death["dead"])
                 self.assertEqual(death["terminal"], terminal)
                 self.assertEqual(session.world_state["player_combat_status"], "dead")
+
+    def test_permadeath_committed_attack_survives_reopening(self):
+        self._assert_committed_death_round_trip("PERMADEATH", terminal=False)
+
+    def test_ironman_committed_attack_survives_reopening(self):
+        self._assert_committed_death_round_trip("IRONMAN", terminal=True)
+
+    def _assert_committed_death_round_trip(self, mode, *, terminal):
+        session = make_session()
+        peer = make_session(seed=29)
+        reopened = make_session(seed=83)
+        session.world_state["death_state"]["mode"] = mode
+        start_test_combat(session)
+        session.ensure_campaign_clock()
+        peer.ensure_campaign_clock()
+        peer.character["name"] = "Unrelated Adventurer"
+        peer.recent_dm_narrations.append("Unrelated campaign history")
+        peer.messages.append({"role": "user", "content": "Unrelated message"})
+        session.character["current_hp"] = 0
+        session.world_state["player_combat_status"] = "unconscious"
+        session.world_state["death_state"]["failures"] = 2
+        enemy = session.world_state["npcs"][-1]
+        game._begin_combat_actor_turn(enemy["id"], session=session)
+        expected_resolution = {
+            "mode": mode, "outcome": "dead", "cause": "failed_death_saves",
+            "rolled_back": False, "terminal": terminal,
+        }
+        default_before = game.serialize_game_state()
+        default_rng = game._DEFAULT_SESSION.rng.getstate()
+        default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+        module_rng = random.getstate()
+        peer_before = peer.serialize_game_state()
+        peer_rng = peer.rng.getstate()
+        peer_messages = copy.deepcopy(peer.messages)
+        source_rng = session.rng.getstate()
+
+        def assert_isolation():
+            self.assertEqual(peer.serialize_game_state(), peer_before)
+            self.assertEqual(peer.rng.getstate(), peer_rng)
+            self.assertEqual(peer.messages, peer_messages)
+            self.assertEqual(game.serialize_game_state(), default_before)
+            self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+            self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+            self.assertEqual(random.getstate(), module_rng)
+            self.assertIs(game._session(), game._DEFAULT_SESSION)
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / f"{mode.lower()}.json"
+            peer_path = Path(directory) / "unrelated.json"
+            # Both campaigns already have saves when the fatal attack commits.
+            predeath = session.serialize_game_state()
+            self.assertEqual(session.save_game(path), path)
+            self.assertEqual(peer.save_game(peer_path), peer_path)
+            with (
+                patch("game.roll_d20", side_effect=[10, 14]) as attack_dice,
+                patch("game.roll_damage", return_value=2) as damage_die,
+            ):
+                result = session.resolve_enemy_attack(enemy)
+            self.assertEqual(attack_dice.call_count, 2)
+            damage_die.assert_called_once()
+            self.assertEqual(result["attack_rolls"], [10, 14])
+            self.assertTrue(result["critical"])
+            self.assertEqual(result["target_hp_after"], 0)
+            self.assertEqual(result["target_status"], "dead")
+            self.assertEqual(result["death_resolution"], expected_resolution)
+            self.assertEqual(session.world_state["attack_results"], [result])
+            self.assertTrue(session.world_state["death_state"]["dead"])
+            self.assertEqual(session.world_state["death_state"]["terminal"], terminal)
+            self.assertEqual(
+                session.world_state["death_state"]["last_resolution"],
+                expected_resolution,
+            )
+            self.assertFalse(session.world_state["combat"]["active"])
+            self.assertEqual(session.world_state["combat"]["end_reason"], "player_dead")
+            self.assertEqual(session.rng.getstate(), source_rng)
+            assert_isolation()
+            # Neither mode deletes an existing save, even on terminal death.
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), predeath)
+            self.assertEqual(json.loads(peer_path.read_text(encoding="utf-8")), peer_before)
+            committed = session.serialize_game_state()
+            self.assertEqual(session.save_game(path), path)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), committed)
+
+            # Reopen into a genuinely fresh owner with different state and RNG.
+            reopened.character["name"] = "Unsaved replacement"
+            reopened.recent_dm_narrations.append("Unsaved replacement history")
+            reopened.messages.append({"role": "user", "content": "Reopen save"})
+            reopened.rng.random()
+            rng_at_load = reopened.rng.getstate()
+            messages_at_load = copy.deepcopy(reopened.messages)
+            held = (reopened.world_state, reopened.character,
+                    reopened.recent_dm_narrations, reopened.messages, reopened.rng)
+            self.assertNotEqual(reopened.serialize_game_state(), committed)
+            with (
+                patch.object(reopened.rng, "randint", side_effect=AssertionError("Load rolled dice")),
+                patch.object(peer.rng, "randint", side_effect=AssertionError("Peer rolled dice")),
+                patch.object(game._DEFAULT_SESSION.rng, "randint",
+                             side_effect=AssertionError("Default session rolled dice")),
+            ):
+                self.assertEqual(reopened.load_game(path), committed)
+            self.assertEqual(reopened.serialize_game_state(), committed)
+            self.assertEqual(reopened.character["current_hp"], 0)
+            self.assertEqual(reopened.world_state["player_combat_status"], "dead")
+            death = reopened.world_state["death_state"]
+            self.assertTrue(death["dead"])
+            self.assertEqual(death["mode"], mode)
+            self.assertEqual(death["terminal"], terminal)
+            self.assertEqual(death["last_resolution"], expected_resolution)
+            self.assertEqual(reopened.world_state["attack_results"], [result])
+            self.assertEqual(reopened.rng.getstate(), rng_at_load)
+            self.assertEqual(reopened.messages, messages_at_load)
+            for actual, reference in zip(
+                (reopened.world_state, reopened.character,
+                 reopened.recent_dm_narrations, reopened.messages, reopened.rng), held
+            ):
+                self.assertIs(actual, reference)
+            self.assertIsNot(reopened.world_state, session.world_state)
+            self.assertIsNot(reopened.character, session.character)
+            self.assertIsNot(reopened.rng, session.rng)
+            self.assertIsNot(reopened.rng, peer.rng)
+            self.assertIsNot(reopened.world_state["attack_results"],
+                             session.world_state["attack_results"])
+            self.assertEqual(session.serialize_game_state(), committed)
+            self.assertEqual(session.rng.getstate(), source_rng)
+            assert_isolation()
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), committed)
+            self.assertEqual(json.loads(peer_path.read_text(encoding="utf-8")), peer_before)
+            self.assertEqual(set(Path(directory).iterdir()), {path, peer_path})
+            reference_rng = random.Random()
+            reference_rng.setstate(rng_at_load)
+            self.assertEqual(reopened.roll_d20(), reference_rng.randint(1, 20))
+            self.assertEqual(reopened.rng.getstate(), reference_rng.getstate())
+            self.assertEqual(session.rng.getstate(), source_rng)
+            assert_isolation()
 
     def test_massive_damage_takes_precedence_over_third_damage_failure(self):
         session = make_session()
