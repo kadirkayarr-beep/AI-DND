@@ -2953,6 +2953,12 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(random.getstate(), rng_module)
 
     def test_overlapping_fatal_rollback_cannot_restore_another_orcs_endurance(self):
+        self._assert_overlapping_fatal_rollback(external_campaigns=False)
+
+    def test_overlapping_fatal_rollback_restores_only_its_external_campaign(self):
+        self._assert_overlapping_fatal_rollback(external_campaigns=True)
+
+    def _assert_overlapping_fatal_rollback(self, *, external_campaigns):
         for rollback_index in (0, 1):
             with self.subTest(rollback_index=rollback_index):
                 sessions = (game.create_session(seed=17),
@@ -2979,10 +2985,74 @@ class SessionTests(unittest.TestCase):
                                  damage_dice=1, damage_modifier=10)
                 rollback = sessions[rollback_index]
                 survivor = sessions[1 - rollback_index]
+                external_states = [
+                    {
+                        "campaign_id": session.world_state["campaign_id"],
+                        "journal": [{"entry": f"precombat quest-{index}",
+                                     "status": "active"}],
+                        "campaign_messages": [f"precombat story-{index}"],
+                    }
+                    for index, session in enumerate(sessions)
+                ]
+                external_checkpoints = copy.deepcopy(external_states)
+                callback_calls = []
+
+                def attach_callbacks(index, session):
+                    def provider():
+                        self.assertIs(game._session(), session)
+                        callback_calls.append(("provider", index,
+                                               copy.deepcopy(external_states[index])))
+                        return external_states[index]
+
+                    def validator(checkpoint):
+                        self.assertIs(game._session(), session)
+                        self.assertEqual(checkpoint, external_checkpoints[index])
+                        self.assertIsNot(checkpoint, external_states[index])
+                        callback_calls.append(("validator", index,
+                                               copy.deepcopy(checkpoint)))
+
+                    def restorer(checkpoint):
+                        self.assertIs(game._session(), session)
+                        self.assertEqual(checkpoint, external_checkpoints[index])
+                        callback_calls.append(("restorer", index,
+                                               copy.deepcopy(checkpoint)))
+                        external_states[index].clear()
+                        external_states[index].update(copy.deepcopy(checkpoint))
+
+                    session.death_checkpoint_provider = provider
+                    session.death_checkpoint_validator = validator
+                    session.death_checkpoint_restorer = restorer
+
+                if external_campaigns:
+                    for index, session in enumerate(sessions):
+                        attach_callbacks(index, session)
                 checkpoint_snapshot = rollback.serialize_game_state()
                 checkpoint_rng = rollback.rng.getstate()
                 # Use the real checkpoint owner, as in test_death_system.py.
                 game._capture_combat_death_checkpoint(session=rollback)
+                if external_campaigns:
+                    game._capture_combat_death_checkpoint(session=survivor)
+                    self.assertEqual(callback_calls, [
+                        ("provider", rollback_index,
+                         external_checkpoints[rollback_index]),
+                        ("provider", 1 - rollback_index,
+                         external_checkpoints[1 - rollback_index]),
+                    ])
+                    callback_calls.clear()
+                    # Mutate the provider-owned objects after capture so restoring
+                    # a live reference instead of the saved journal cannot pass.
+                    for index, state in enumerate(external_states):
+                        state["journal"][0]["status"] = f"combat progress-{index}"
+                        state["journal"].append({"entry": f"combat-only quest-{index}"})
+                        state["campaign_messages"].append(f"combat story-{index}")
+                    for index, session in enumerate(sessions):
+                        self.assertEqual(
+                            session.world_state["death_state"]["combat_checkpoint"][
+                                "campaign_state"
+                            ], external_checkpoints[index],
+                        )
+                external_before = copy.deepcopy(external_states)
+                external_references = list(external_states)
                 self.assertEqual(rollback.world_state["death_state"]["mode"],
                                  "NORMAL")
                 self.assertEqual(
@@ -3038,12 +3108,18 @@ class SessionTests(unittest.TestCase):
                     self.assertEqual(survivor.rng.getstate(),
                                      expected_rng[1 - rollback_index])
                     self.assertEqual(survivor.messages, messages[1 - rollback_index])
+                    if external_campaigns:
+                        self.assertEqual(external_states[1 - rollback_index],
+                                         external_before[1 - rollback_index])
 
                 def overlapping_restore(cause):
                     self.assertIs(game._session(), rollback)
                     self.assertTrue(survivor_finished.wait(timeout=5),
                                     "Survivable hit did not finish before rollback")
                     assert_survivor_unchanged()
+                    if external_campaigns:
+                        self.assertEqual(callback_calls, [])
+                        self.assertEqual(external_states, external_before)
                     resolution = original_restore(cause)
                     self.assertIs(game._session(), rollback)
                     assert_survivor_unchanged()
@@ -3117,6 +3193,17 @@ class SessionTests(unittest.TestCase):
                     "relentless_endurance_available"
                 ])
                 self.assertNotEqual(rollback.rng.getstate(), checkpoint_rng)
+                if external_campaigns:
+                    self.assertEqual(callback_calls, [
+                        ("validator", rollback_index,
+                         external_checkpoints[rollback_index]),
+                        ("restorer", rollback_index,
+                         external_checkpoints[rollback_index]),
+                    ])
+                    self.assertEqual(external_states[rollback_index],
+                                     external_checkpoints[rollback_index])
+                    for index, state in enumerate(external_states):
+                        self.assertIs(state, external_references[index])
                 assert_survivor_unchanged()
                 for index, session in enumerate(sessions):
                     self.assertEqual(session.rng.getstate(), expected_rng[index])
