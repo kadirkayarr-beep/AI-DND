@@ -32,6 +32,15 @@ tests from collecting, even when the setup helpers themselves remain valid.
 separately. Keep the broken integrated source visible; do not quietly substitute
 an isolated loader into the project's normal test command.
 
+Check embedded multiline fixtures as well as Python syntax after integration.
+
+**Why:** Combining concurrent edits can move test definitions into a fixture
+string or remove fixture contents; syntax and method uniqueness alone cannot
+prove all intended tests remain discoverable.
+
+**How to apply:** Run ordinary module collection and fixture-equivalence checks,
+and confirm independently added test methods are still discovered.
+
 Restore unterminated multiline fixture delimiters before deciding which
 surrounding test definitions are duplicates.
 
