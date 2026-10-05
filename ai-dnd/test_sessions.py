@@ -1471,6 +1471,137 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
+    def test_overlapping_adrenaline_rush_grants_and_absorption_stay_session_owned(self):
+        # Different proficiency bonuses and uses expose a borrowed character
+        # or trait state. Reverse the fixtures to avoid depending on call order.
+        for reserves in ((0, 1), (2, 3)):
+            for reverse in (False, True):
+                with self.subTest(reserves=reserves, reverse=reverse):
+                    sessions = (game.create_session(seed=17),
+                                game.create_session(seed=17))
+                    fixtures = [(2, 1, reserves[0], 1, 1, 19),
+                                (3, 2, reserves[1], 4, 0, 18)]
+                    if reverse:
+                        fixtures.reverse()
+                    enemies = [self.npc(session) for session in sessions]
+                    for session, enemy, fixture in zip(sessions, enemies, fixtures):
+                        proficiency, uses, reserve, _, _, _ = fixture
+                        session.character.update(
+                            species="Orc", race="Orc",
+                            level=1 if proficiency == 2 else 5,
+                            proficiency_bonus=proficiency, speed_ft=30,
+                            armor_class=10, current_hp=19, max_hp=19,
+                            resistances=[], immunities=[], vulnerabilities=[],
+                        )
+                        game.initialize_species_trait_state(session=session)
+                        session.character["species_trait_state"].update(
+                            temporary_hit_points=reserve,
+                            adrenaline_rush_uses_remaining=uses,
+                        )
+                        enemy.update(attack_bonus=0, damage_die=6,
+                                     damage_dice=1, damage_modifier=0)
+                    before = [session.serialize_game_state() for session in sessions]
+                    rng_before = [session.rng.getstate() for session in sessions]
+                    rng_default = game._DEFAULT_SESSION.rng.getstate()
+                    rng_module = random.getstate()
+                    default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                    grant_barrier = threading.Barrier(2)
+                    bonus_action_owner = game._species_bonus_action
+
+                    def overlapping_bonus_action():
+                        # Pause after the real ability owner has bound its
+                        # character/state and before it decrements uses/grants HP.
+                        owner = game._session()
+                        self.assertTrue(any(owner is session for session in sessions))
+                        grant_barrier.wait(timeout=5)
+                        self.assertIs(game._session(), owner)
+                        result = bonus_action_owner()
+                        grant_barrier.wait(timeout=5)
+                        self.assertIs(game._session(), owner)
+                        return result
+
+                    with patch.object(game, "_species_bonus_action",
+                                      side_effect=overlapping_bonus_action), \
+                         self.rolls(sessions[0]), self.rolls(sessions[1]), \
+                         self.rolls(game._DEFAULT_SESSION):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            futures = [
+                                pool.submit(game.resolve_species_trait_action,
+                                            "adrenaline_rush", session=session)
+                                for session in sessions
+                            ]
+                            grants = [future.result(timeout=10) for future in futures]
+                    for session, fixture, grant, expected, rng in zip(
+                        sessions, fixtures, grants, before, rng_before
+                    ):
+                        proficiency, uses, _, _, _, _ = fixture
+                        self.assertEqual(grant["action"], "adrenaline_rush")
+                        self.assertEqual(grant["effects"], {
+                            "temporary_hit_points": proficiency,
+                            "dash_distance_ft": 60,
+                        })
+                        state = expected["player"]["species_trait_state"]
+                        state.update(
+                            temporary_hit_points=proficiency,
+                            adrenaline_rush_uses_remaining=uses - 1,
+                            movement_budget_ft=60,
+                            movement_effect={"kind": "dash", "distance_ft": 60},
+                        )
+                        self.assertEqual(session.serialize_game_state(), expected)
+                        self.assertEqual(session.rng.getstate(), rng)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                    self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                    self.assertEqual(random.getstate(), rng_module)
+
+                    attack_barrier = threading.Barrier(2)
+                    damage_barrier = threading.Barrier(2)
+                    with self.rolls(sessions[0], (20, 15), (6, fixtures[0][3]),
+                                    barrier=attack_barrier,
+                                    damage_barrier=damage_barrier), \
+                         self.rolls(sessions[1], (20, 15), (6, fixtures[1][3]),
+                                    barrier=attack_barrier,
+                                    damage_barrier=damage_barrier), \
+                         self.rolls(game._DEFAULT_SESSION):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            futures = [
+                                pool.submit(game.resolve_enemy_attack, enemy,
+                                            session=session)
+                                for session, enemy in zip(sessions, enemies)
+                            ]
+                            attacks = [future.result(timeout=10) for future in futures]
+                    for session, fixture, attack, expected, rng in zip(
+                        sessions, fixtures, attacks, before, rng_before
+                    ):
+                        proficiency, uses, _, damage, remaining, hp_after = fixture
+                        self.assertTrue(attack["hit"])
+                        self.assertEqual(attack["damage"], damage)
+                        self.assertEqual(attack["temporary_hp_before"], proficiency)
+                        self.assertEqual(attack["temporary_hp_absorbed"],
+                                         1 if proficiency == 2 else 3)
+                        self.assertEqual(attack["temporary_hp_after"], remaining)
+                        self.assertEqual(attack["hp_damage"], 19 - hp_after)
+                        self.assertEqual(attack["target_hp_after"], hp_after)
+                        self.assertEqual(
+                            session.character["species_trait_state"][
+                                "adrenaline_rush_uses_remaining"
+                            ], uses - 1,
+                        )
+                        expected["player"]["current_hp"] = hp_after
+                        expected["player"]["species_trait_state"][
+                            "temporary_hit_points"
+                        ] = remaining
+                        expected["world_state"].setdefault("attack_results", []).append(
+                            copy.deepcopy(attack)
+                        )
+                        self.assertEqual(session.serialize_game_state(), expected)
+                        self.assertEqual(session.rng.getstate(), rng)
+                    self.assertIs(game._session(), game._DEFAULT_SESSION)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                    self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                    self.assertEqual(random.getstate(), rng_module)
+
     def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
         # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
         # a surviving reserve, and spillover into regular HP. Explicit expected
