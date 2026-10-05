@@ -29,7 +29,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(a["session_id"])
         s, enemy = spells.caster(record.game_session)
         s.ensure_combat_state()
-        self.manager.save_campaign(a["campaign_id"])
+        if record.campaign_id is not None:
+            self.manager.save_campaign(record.campaign_id)
         command = {"message": "Resolve the selected spell.", "action_id": str(uuid4()),
                    "combat_action": {"steps": [{"kind": "magic", "ability": "Magic Missile",
                                                "target_id": enemy["id"]}]}}
@@ -40,7 +41,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                               record.game_session.rng.getstate(), record.journal,
                               record.narrative_memory, record.lore_authority.to_dict(),
                               record.combat_history, record.turn_action_receipts,
-                              self.store.get_campaign(record.campaign_id)))
+                              self.store.get_campaign(record.campaign_id)
+                              if record.campaign_id is not None else None))
 
     async def post(self, a, body):
         return await self.http.post(f"/api/game/sessions/{a['session_id']}/turn", json=body)
@@ -201,6 +203,96 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(record), committed)
         self.assertEqual(self.snapshot(other), isolated)
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
+
+    async def assert_returned_combat_receipt_isolation(self, persisted):
+        if persisted:
+            a, b = await self.create_campaign(), await self.create_campaign()
+        else:
+            created = [await self.http.post("/api/game/sessions") for _ in range(2)]
+            for response in created:
+                self.assertEqual(response.status_code, 200, response.text)
+            a, b = [response.json() for response in created]
+        record, command = self.prepare_spell(a)
+        other, other_command = self.prepare_spell(b)
+        self.assertEqual(record.campaign_id is not None, persisted)
+        self.assertEqual(other.campaign_id is not None, persisted)
+        # Identical action IDs still belong to independent campaign/session owners.
+        other_command["action_id"] = command["action_id"]
+        other_response = await self.post(b, other_command)
+        first = await self.post(a, command)
+        self.assertEqual(other_response.status_code, 200, other_response.text)
+        self.assertEqual(first.status_code, 200, first.text)
+        expected = copy.deepcopy(first.json())
+        original = copy.deepcopy(self.manager.get_turn_action(record, command["action_id"]))
+        other_original = copy.deepcopy(
+            self.manager.get_turn_action(other, command["action_id"])
+        )
+        self.assertEqual(original["response"], expected)
+        self.assertEqual(other_original["response"], other_response.json())
+        committed, isolated = self.snapshot(record), self.snapshot(other)
+
+        # Mutate the direct lookup, not a JSON response already detached by HTTP.
+        returned = self.manager.get_turn_action(record, command["action_id"])
+        actors = returned["response"]["state"]["combat"]["action_economy"]["actors"]
+        original_actors = original["response"]["state"]["combat"]["action_economy"]["actors"]
+        self.assertTrue(actors["player"]["base_action_spent"])
+        self.assertGreater(len(actors), 1)
+        self.assertIsNot(actors, original_actors)
+        actors["player"]["base_action_spent"] = False
+        actors["player"]["caller_only"] = {"spent": ["corrupted"]}
+        enemy_id = next(actor for actor in actors if actor != "player")
+        actors[enemy_id].clear()
+        actors["caller_only_actor"] = {"base_action_spent": True}
+        self.assertNotEqual(returned, original)
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+        self.assertEqual(self.manager.get_turn_action(other, command["action_id"]), other_original)
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        with patch("game.run_player_turn", side_effect=AssertionError("replayed mechanics")), \
+             patch.object(record.game_session.rng, "randint",
+                          side_effect=AssertionError("replayed RNG")), \
+             patch.object(other.game_session.rng, "randint",
+                          side_effect=AssertionError("replayed isolated RNG")), \
+             patch.object(self.manager, "autosave_turn",
+                          side_effect=AssertionError("replayed autosave")):
+            replay = await self.post(a, command)
+            other_replay = await self.post(b, other_command)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(other_replay.status_code, 200, other_replay.text)
+        self.assertEqual(replay.json(), expected)
+        self.assertEqual(other_replay.json(), other_response.json())
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+        self.assertEqual(self.manager.get_turn_action(other, command["action_id"]), other_original)
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        if persisted:
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
+            before = self.snapshot(restored)
+            app = create_app(session_manager=fresh, ollama_adapter=None)
+            with patch("game.run_player_turn",
+                       side_effect=AssertionError("replayed mechanics after reopen")), \
+                 patch.object(restored.game_session.rng, "randint",
+                              side_effect=AssertionError("replayed RNG after reopen")):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                            base_url="http://reload") as client:
+                    replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+            reopened_expected = copy.deepcopy(expected)
+            reopened_expected["session_id"] = sid
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), reopened_expected)
+            self.assertEqual(self.snapshot(restored), before)
+            self.assertEqual(self.snapshot(record), committed)
+            self.assertEqual(self.snapshot(other), isolated)
+
+    async def test_persisted_combat_receipt_isolated_from_caller_edits(self):
+        await self.assert_returned_combat_receipt_isolation(persisted=True)
+
+    async def test_transient_combat_receipt_isolated_from_caller_edits(self):
+        await self.assert_returned_combat_receipt_isolation(persisted=False)
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()

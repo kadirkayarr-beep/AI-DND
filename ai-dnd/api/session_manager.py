@@ -534,7 +534,11 @@ class SessionManager:
         record: ManagedSession,
         action_id: str,
     ) -> dict[str, Any] | None:
-        """Look up an action receipt inside its session or campaign scope."""
+        """Return a caller-owned receipt copy inside its session or campaign scope.
+
+        Persisted lookups decode fresh JSON; transient lookups deep-copy the
+        retained receipt so edits to nested response resources cannot alter replay.
+        """
         if record.campaign_id is not None:
             receipt = self._require_campaign_store().get_turn_action(
                 record.campaign_id,
