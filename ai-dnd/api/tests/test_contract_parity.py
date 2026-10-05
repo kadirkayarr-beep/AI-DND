@@ -223,6 +223,33 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_enemy_result_references_match_runtime_models(self):
+        runtime_properties = CombatTurnResult.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]
+        for field_name in ("enemy_action", "enemy_actions"):
+            with self.subTest(field=field_name):
+                runtime = runtime_properties[field_name]
+                published = _property("CombatTurnResult", field_name)
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                if field_name == "enemy_actions":
+                    runtime = next(
+                        branch for branch in runtime["anyOf"] if "items" in branch
+                    )["items"]
+                    published = _mapping(
+                        published.get("items"), "CombatTurnResult.enemy_actions.items"
+                    )
+                expected = _schema_references(runtime)
+                self.assertEqual(
+                    expected, {f"#/components/schemas/{CombatAttackResult.__name__}"},
+                    f"Runtime {field_name} must reference CombatAttackResult",
+                )
+                self.assertEqual(
+                    _schema_references(published), expected,
+                    f"CombatTurnResult.{field_name} reference target",
+                )
+
     def test_nested_death_references_match_runtime_models(self):
         for model, field_name in DEATH_REFERENCE_FIELDS:
             with self.subTest(schema=model.__name__, field=field_name):
@@ -1273,6 +1300,61 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
+
+    def test_enemy_result_reference_mutations_fail_in_both_formats(self):
+        for field_name in ("enemy_action", "enemy_actions"):
+            original = _property("CombatTurnResult", field_name)
+            for replacement in (
+                "#/components/schemas/GameSession",
+                "#/components/schemas/CombatTurnResult",
+            ):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        field=field_name, replacement=replacement, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        field = spec["components"]["schemas"]["CombatTurnResult"][
+                            "properties"
+                        ][field_name]
+                        target = field["items"] if field_name == "enemy_actions" else next(
+                            branch for branch in field["anyOf"] if "$ref" in branch
+                        )
+                        target["$ref"] = replacement
+                        self.assertEqual(_schema_types(field), _schema_types(original))
+                        self.assertEqual(_is_nullable(field), _is_nullable(original))
+                        if field_name == "enemy_actions":
+                            self.assertEqual(
+                                _schema_types(target), _schema_types(original["items"])
+                            )
+                            self.assertEqual(
+                                _is_nullable(target), _is_nullable(original["items"])
+                            )
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(
+                                "test_combat_result_is_the_serializer_allowlist_and_nullable"
+                            ).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(), unchanged.failures + unchanged.errors
+                            )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_enemy_result_references_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertTrue(
+                            result.failures,
+                            f"Undetected enemy result reference drift: {field_name}",
+                        )
+                        self.assertTrue(
+                            all(
+                                f"CombatTurnResult.{field_name} reference target" in failure
+                                for _, failure in result.failures
+                            ),
+                            result.failures,
+                        )
 
     def test_death_reference_mutations_fail_in_both_formats(self):
         fields = [
