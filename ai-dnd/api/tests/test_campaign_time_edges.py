@@ -2556,21 +2556,6 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(new_rest_request["action_id"], prior_receipts)
             self.assertNotEqual(new_rest_request["action_id"], request["action_id"])
             assert_unfinished(active.character, active.world_state, "RESOLVED")
-            with patch.object(events, "_occur", side_effect=AssertionError("New rest repeated occurrence")), \
-                 patch.object(replay_store, "save_campaign", wraps=replay_store.save_campaign) as save:
-                completed = await http.post(
-                    f"/api/game/sessions/{sid}/species-actions", json=new_rest_request,
-                )
-            self.assertEqual(completed.status_code, 200, completed.text)
-            self.assertEqual(save.call_count, 1)
-            completed_response = completed.json()
-            effects = completed_response["result"]["effects"]
-            self.assertEqual(completed_response["result"]["action"], "long_rest")
-            self.assertEqual(effects["refreshed"]["adrenaline_rush"], 2)
-            self.assertTrue(effects["refreshed"]["relentless_endurance"])
-            self.assertFalse(effects["time_result"]["interrupted"])
-            self.assertEqual(effects["time_result"]["elapsed_seconds"], 8 * 3600)
-            self.assertEqual(effects["time_result"]["remaining_seconds"], 0)
 
             def assert_recovered(character, world):
                 self.assertEqual(character["current_hp"], 19)
@@ -2589,6 +2574,60 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(events.pending_events(world), [])
                 self.assertEqual(events.public_pending(world), [])
 
+            def assert_rest_response(rest_response):
+                effects = rest_response["result"]["effects"]
+                self.assertEqual(rest_response["result"]["action"], "long_rest")
+                self.assertEqual(effects["refreshed"]["adrenaline_rush"], 2)
+                self.assertTrue(effects["refreshed"]["relentless_endurance"])
+                self.assertFalse(effects["time_result"]["interrupted"])
+                self.assertEqual(effects["time_result"]["elapsed_seconds"], 8 * 3600)
+                self.assertEqual(effects["time_result"]["remaining_seconds"], 0)
+                self.assertEqual(rest_response["state"]["character"]["current_hp"], 19)
+                self.assertEqual(rest_response["state"]["spellcasting"]["slots"], full_slots)
+                self.assertEqual(rest_response["state"]["campaign_time"],
+                                 clock.public_time(active.world_state))
+                self.assertEqual(rest_response["state"]["pending_event_decisions"], [])
+
+            def reject_new_rest(*args, **kwargs):
+                # Recovery and a full new rest charge must precede the failed save.
+                assert_recovered(active.character, active.world_state)
+                receipt = kwargs["turn_action_receipt"]
+                self.assertEqual(receipt["action_id"], new_rest_request["action_id"])
+                assert_rest_response(receipt["response"])
+                raise CampaignStorageError("test new rest after expired interruption autosave failure")
+
+            with patch.object(events, "_occur", side_effect=AssertionError("Failed rest repeated occurrence")), \
+                 patch.object(replay_store, "save_campaign", side_effect=reject_new_rest) as save:
+                failed_rest = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=new_rest_request,
+                )
+            self.assertEqual(failed_rest.status_code, 503, failed_rest.text)
+            self.assertEqual(save.call_count, 1)
+            assert_unfinished(active.character, active.world_state, "RESOLVED")
+            self.assertEqual(snapshot(reloaded_record), before_rest)
+            self.assertEqual(replay_store.get_campaign(campaign_id), stored_before_rest)
+            self.assertIsNone(replay_manager.get_turn_action(reloaded_record, new_rest_request["action_id"]))
+            self.assertIsNone(replay_store.get_turn_action(campaign_id, new_rest_request["action_id"]))
+            self.assertNotIn(new_rest_request["action_id"], reloaded_record.turn_action_receipts)
+            assert_prior_receipts(replay_manager, replay_store, reloaded_record)
+            self.assertEqual(replay_store.get_turn_action(campaign_id, request["action_id"]),
+                             accepted_receipt)
+            self.assertEqual(replay_manager.get_turn_action(reloaded_record, request["action_id"]),
+                             accepted_receipt)
+
+            # The rejected ID remains retryable, without resuming the old rest.
+            with patch.object(events, "_occur", side_effect=AssertionError("New rest repeated occurrence")), \
+                 patch.object(active, "resolve_species_trait_action",
+                              wraps=active.resolve_species_trait_action) as recover, \
+                 patch.object(replay_store, "save_campaign", wraps=replay_store.save_campaign) as save:
+                completed = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=new_rest_request,
+                )
+            self.assertEqual(completed.status_code, 200, completed.text)
+            self.assertEqual(recover.call_count, 1)
+            self.assertEqual(save.call_count, 1)
+            completed_response = completed.json()
+            assert_rest_response(completed_response)
             assert_recovered(active.character, active.world_state)
             self.assertEqual(completed_response["state"]["character"]["current_hp"], 19)
             self.assertEqual(completed_response["state"]["spellcasting"]["slots"], full_slots)
@@ -2612,6 +2651,26 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             assert_prior_receipts(replay_manager, replay_store, reloaded_record)
             self.assertEqual(replay_store.get_turn_action(campaign_id, request["action_id"]),
                              accepted_receipt)
+
+            replay_before = snapshot(reloaded_record)
+            with patch.object(active, "resolve_species_trait_action",
+                              side_effect=AssertionError("New rest replay repeated recovery")), \
+                 patch.object(events, "_occur", side_effect=AssertionError("New rest replay repeated occurrence")), \
+                 patch.object(replay_manager, "autosave_turn",
+                              side_effect=AssertionError("New rest replay wrote history")):
+                replayed = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=new_rest_request,
+                )
+            self.assertEqual(replayed.status_code, 200, replayed.text)
+            self.assertEqual(replayed.json(), completed_response)
+            assert_recovered(active.character, active.world_state)
+            self.assertEqual(snapshot(reloaded_record), replay_before)
+            self.assertEqual(replay_store.get_campaign(campaign_id), recovered_save)
+            self.assertEqual(replay_store.get_turn_action(campaign_id, new_rest_request["action_id"]),
+                             recovery_receipt)
+            self.assertEqual(replay_manager.get_turn_action(
+                reloaded_record, new_rest_request["action_id"]), recovery_receipt)
+            assert_prior_receipts(replay_manager, replay_store, reloaded_record)
 
             # Old output remains depleted, but neither old receipt may roll back
             # the newer recovery, consume RNG, write history, or repeat effects.
