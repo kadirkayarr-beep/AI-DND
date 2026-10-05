@@ -4801,7 +4801,7 @@ def resolve_npc_reference(player_input):
     explicit_unresolved_reference = any(
         match.group("target") not in {"ona", "ondan", "onunla", "kendisine"}
         for match in re.finditer(
-            r"\b(?P<target>[\wçğıöşü]+(?:la|le|dan|den|tan|ten|a|e))\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
+            r"\b(?P<target>[\wçğıöşü]+(?:['’](?:dan|den|tan|ten)|la|le|dan|den|tan|ten|a|e))\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
             player_input.casefold(),
         )
     )

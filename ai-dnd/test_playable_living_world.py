@@ -172,6 +172,29 @@ class PlayableLivingWorldTests(unittest.TestCase):
                         self.assertIsNone(result["npc"])
                         self.assertEqual(self.world, before)
 
+    def test_unknown_named_ablative_dialogue_rejects_conversation_fallback(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for target in ("Bora'dan", "Ece'den", "Murat'tan", "Mert'ten", "Bora’dan"):
+                    named_clause = f"{target} sohbet etmesini istiyorum"
+                    for player_input in (
+                        f"{named_clause}.",
+                        f"Ondan sohbet etmesini istiyorum, {named_clause}.",
+                        f"{named_clause}, Ondan sohbet etmesini istiyorum.",
+                    ):
+                        with self.subTest(
+                            turn_index=turn_index, active_npc_present=active,
+                            player_input=player_input,
+                        ):
+                            self._set_npc_conversation_deadline(turn_index, active=active)
+                            before = copy.deepcopy(self.world)
+
+                            result = self.session.resolve_npc_reference(player_input)
+
+                            self.assertEqual(result["status"], "none")
+                            self.assertIsNone(result["npc"])
+                            self.assertEqual(self.world, before)
+
     def test_unknown_named_greetings_do_not_fall_back_to_conversation(self):
         for turn_index in (12, 13):
             for player_input in (
@@ -194,6 +217,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
             for player_input in (
                 "Tuna ile konuşuyorum.",
                 "Muhafız ile konuşuyorum.",
+                "Tuna'dan sohbet etmesini istiyorum.",
+                "Muhafız'dan sohbet etmesini istiyorum.",
             ):
                 with self.subTest(
                     active_npc_present=active, player_input=player_input,
