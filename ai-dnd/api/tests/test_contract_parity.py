@@ -36,6 +36,8 @@ from api.schemas import (
     CharacterCreateInput,
     CharacterCreationOptions,
     CharacterCreationCatalogResponse,
+    CombatAttackResult,
+    CombatTurnResult,
     DeathResolutionResult,
     DeathSaveResult,
     DeathStateProjection,
@@ -181,6 +183,25 @@ def _schema_types(schema: dict[str, Any]) -> set[str]:
     return result
 
 
+def _schema_references(schema: dict[str, Any]) -> set[str]:
+    """Keep nested reference targets distinct from their shared object type."""
+    references = {schema["$ref"]} if "$ref" in schema else set()
+    for branch in schema.get("anyOf", []):
+        references.update(_schema_references(branch))
+    return references
+
+
+DEATH_REFERENCE_FIELDS = (
+    (CombatAttackResult, "death_save"),
+    (CombatAttackResult, "death_resolution"),
+    (CombatTurnResult, "death_save"),
+    (CombatTurnResult, "death_resolution"),
+    (DeathSaveResult, "death_resolution"),
+    (DeathStateProjection, "last_death_save"),
+    (DeathStateProjection, "last_resolution"),
+)
+
+
 def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
     """Keep nullable enum membership distinct from nullable field types."""
     if "enum" in schema:
@@ -202,6 +223,31 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_nested_death_references_match_runtime_models(self):
+        for model, field_name in DEATH_REFERENCE_FIELDS:
+            with self.subTest(schema=model.__name__, field=field_name):
+                runtime = model.model_json_schema(
+                    ref_template="#/components/schemas/{model}"
+                )["properties"][field_name]
+                published = _property(model.__name__, field_name)
+                expected = _schema_references(runtime)
+                self.assertTrue(expected, "Runtime death field must reference a model")
+                self.assertEqual(
+                    _schema_references(published), expected,
+                    f"{model.__name__}.{field_name} reference target",
+                )
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+
+        # Session state is a dict in Python; the serializer validates this
+        # projection explicitly rather than exposing a GameState model.
+        published = _property("GameState", "death_state")
+        self.assertEqual(
+            _schema_references(published),
+            {f"#/components/schemas/{DeathStateProjection.__name__}"},
+            "GameState.death_state reference target",
+        )
+        self.assertFalse(_is_nullable(published))
+
     def test_nested_death_schemas_match_runtime_models(self):
         for model in (DeathSaveResult, DeathResolutionResult, DeathStateProjection):
             schema_name = model.__name__
@@ -820,44 +866,6 @@ class ContractParityTests(unittest.TestCase):
 
 
 class ContractYamlReaderTests(unittest.TestCase):
-    def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
-        for path in (
-            "/game/sessions/{session_id}/species-actions",
-            "/sessions/{session_id}/species-actions",
-        ):
-            for binding in ("requestBody", "response"):
-                for flow_style in (False, True):
-                    with self.subTest(path=path, binding=binding, compact=flow_style):
-                        spec = deepcopy(SPEC)
-                        operation = spec["paths"][path]["post"]
-                        if binding == "requestBody":
-                            schema = operation["requestBody"]["content"]["application/json"]["schema"]
-                            wrong_ref = "#/components/schemas/GameTurnInput"
-                        else:
-                            schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
-                            wrong_ref = "#/components/schemas/SpeciesTraitActionResult"
-                        schema["$ref"] = wrong_ref
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
-                        result = unittest.TestResult()
-                        with patch.dict(globals(), SPEC=_load_spec(text)):
-                            # The existing inventory and model checks cannot see this drift.
-                            for test_name in (
-                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
-                                "test_species_action_schemas_match_runtime_models",
-                            ):
-                                unchanged = unittest.TestResult()
-                                ContractParityTests(test_name).run(unchanged)
-                                self.assertTrue(unchanged.wasSuccessful(), unchanged.errors)
-                            ContractParityTests(
-                                "test_species_action_route_bindings_match_fastapi"
-                            ).run(result)
-                        self.assertEqual(result.testsRun, 1)
-                        self.assertEqual(result.errors, [], result.errors)
-                        self.assertTrue(
-                            result.failures,
-                            f"Undetected species-action binding drift: {path} {binding}",
-                        )
-
     BLOCK_FIXTURE = """
 servers:
   - url: /api
@@ -898,6 +906,44 @@ servers: [{url: /api}]
 paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
 components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
 """
+
+    def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
+        for path in (
+            "/game/sessions/{session_id}/species-actions",
+            "/sessions/{session_id}/species-actions",
+        ):
+            for binding in ("requestBody", "response"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, binding=binding, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if binding == "requestBody":
+                            schema = operation["requestBody"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/GameTurnInput"
+                        else:
+                            schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/SpeciesTraitActionResult"
+                        schema["$ref"] = wrong_ref
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            # The existing inventory and model checks cannot see this drift.
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_species_action_schemas_match_runtime_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(unchanged.wasSuccessful(), unchanged.errors)
+                            ContractParityTests(
+                                "test_species_action_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertTrue(
+                            result.failures,
+                            f"Undetected species-action binding drift: {path} {binding}",
+                        )
 
     def _parity_result(self, spec):
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(ContractParityTests)
@@ -1179,6 +1225,57 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
+
+    def test_death_reference_mutations_fail_in_both_formats(self):
+        fields = [
+            (model.__name__, field_name)
+            for model, field_name in DEATH_REFERENCE_FIELDS
+        ] + [("GameState", "death_state")]
+        for schema_name, field_name in fields:
+            original = _property(schema_name, field_name)
+            references = _schema_references(original)
+            wrong_death_model = (
+                "DeathSaveResult"
+                if "#/components/schemas/DeathSaveResult" not in references
+                else "DeathResolutionResult"
+            )
+            for replacement in (
+                f"#/components/schemas/{wrong_death_model}",
+                "#/components/schemas/GameSession",
+                None,
+            ):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name,
+                        replacement=replacement, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        field = spec["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        target = field if "$ref" in field else next(
+                            branch for branch in field["anyOf"] if "$ref" in branch
+                        )
+                        if replacement is None:
+                            del target["$ref"]
+                            target["type"] = "object"
+                        else:
+                            target["$ref"] = replacement
+                        # Wrong targets still have the same object/null type.
+                        self.assertEqual(_schema_types(field), _schema_types(original))
+                        self.assertEqual(_is_nullable(field), _is_nullable(original))
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            ContractParityTests(
+                                "test_nested_death_references_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertTrue(
+                            result.failures,
+                            f"Undetected reference drift: {schema_name}.{field_name}",
+                        )
 
 
 if __name__ == "__main__":

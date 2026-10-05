@@ -31,3 +31,12 @@ tests from collecting, even when the setup helpers themselves remain valid.
 **How to apply:** Report isolated results and the normal collection blocker
 separately. Keep the broken integrated source visible; do not quietly substitute
 an isolated loader into the project's normal test command.
+
+Restore unterminated multiline fixture delimiters before deciding which
+surrounding test definitions are duplicates.
+
+**Why:** A broken string can hide intact methods from Python's parser, while
+duplicated tails can look like a valid continuation of another test.
+
+**How to apply:** Compare complete test bodies in the source before removing
+fragments, then check syntax and definition uniqueness together.
