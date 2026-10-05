@@ -22,6 +22,78 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.world["location"] = "forest"
         self.root_location = self.world["location"]
 
+    def _set_npc_conversation_deadline(self, turn_index, *, active=True):
+        npcs = [
+            {
+                "id": "npc_deadline_aylin", "name": "Aylin",
+                "role": "Tüccar", "location": self.root_location,
+                "tags": [],
+            },
+            {
+                "id": "npc_deadline_tuna", "name": "Tuna",
+                "role": "Muhafız", "location": self.root_location,
+                "tags": [],
+            },
+        ]
+        self.world["npcs"] = npcs
+        self.world["flags"].update({
+            "active_npc_id": npcs[0]["id"] if active else None,
+            "last_npc_id": npcs[0]["id"],
+            "active_npc_until_turn": 12,
+            "turn_index": turn_index,
+        })
+        return npcs
+
+    def test_npc_conversation_deadline_is_inclusive(self):
+        for active in (True, False):
+            with self.subTest(active_npc_present=active):
+                npcs = self._set_npc_conversation_deadline(12, active=active)
+
+                result = self.session.resolve_npc_reference("Ona adını soruyorum.")
+
+                self.assertEqual(result["status"], "found")
+                self.assertEqual(result["npc"]["id"], npcs[0]["id"])
+                flags = self.world["flags"]
+                self.assertEqual(flags["active_npc_id"], npcs[0]["id"])
+                self.assertEqual(flags["last_npc_id"], npcs[0]["id"])
+                self.assertEqual(flags["active_npc_until_turn"], 18)
+
+    def test_npc_conversation_first_turn_after_deadline_needs_clarification(self):
+        for active in (True, False):
+            with self.subTest(active_npc_present=active):
+                npcs = self._set_npc_conversation_deadline(13, active=active)
+                before = copy.deepcopy(self.world)
+
+                result = self.session.resolve_npc_reference("Ona adını soruyorum.")
+
+                self.assertEqual(result["status"], "ambiguous")
+                self.assertEqual(
+                    {npc["id"] for npc in result["npcs"]},
+                    {npc["id"] for npc in npcs},
+                )
+                self.assertNotIn("npc", result)
+                self.assertEqual(self.world, before)
+
+    def test_expired_npc_conversation_still_allows_explicit_name_or_role(self):
+        for active in (True, False):
+            for player_input in (
+                "Tuna ile konuşuyorum.",
+                "Muhafız ile konuşuyorum.",
+            ):
+                with self.subTest(
+                    active_npc_present=active, player_input=player_input,
+                ):
+                    npcs = self._set_npc_conversation_deadline(13, active=active)
+
+                    result = self.session.resolve_npc_reference(player_input)
+
+                    self.assertEqual(result["status"], "found")
+                    self.assertEqual(result["npc"]["id"], npcs[1]["id"])
+                    flags = self.world["flags"]
+                    self.assertEqual(flags["active_npc_id"], npcs[1]["id"])
+                    self.assertEqual(flags["last_npc_id"], npcs[1]["id"])
+                    self.assertEqual(flags["active_npc_until_turn"], 19)
+
     def test_look_materializes_once_and_presence_is_natural(self):
         first = self.session.plan_living_world_turn("Etrafıma bakıyorum.")
         self.assertEqual(first["direct_result"]["action"], "explore")
