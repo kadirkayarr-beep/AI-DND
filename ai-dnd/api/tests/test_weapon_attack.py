@@ -917,6 +917,36 @@ class WeaponTests(unittest.TestCase):
                             self.assertEqual(
                                 attack.pair(s, target["id"], actor["id"]),
                                 {"distance_ft": separation})
+                            if push_number == 1:
+                                # Enough forward corridor remains for another
+                                # push, but it cannot authorize the reverse one.
+                                live_pairs = s.world_state["attack_environment"]["pairs"]
+                                self.assertGreaterEqual(
+                                    live_pairs[forward_key]["push_clear_ft"], 10)
+                                self.assertNotIn(
+                                    f"{target['id']}|{actor['id']}", live_pairs)
+                                reverse_before = copy.deepcopy((
+                                    s.world_state, s.character, s.messages,
+                                    s.rng.getstate()))
+                                unrelated_before = copy.deepcopy({
+                                    key: value for key, value in live_pairs.items()
+                                    if target["id"] not in key.split("|")})
+                                reverse_result = attack.push(
+                                    s, target["id"], actor["id"], 10)
+                                self.assertEqual(reverse_result, {
+                                    "kind": "push", "applied": False,
+                                    "reason": "position_unresolved_or_blocked"})
+                                self.assertEqual((
+                                    s.world_state, s.character, s.messages,
+                                    s.rng.getstate()), reverse_before)
+                                self.assertEqual({
+                                    key: value for key, value in
+                                    s.world_state["attack_environment"]["pairs"].items()
+                                    if target["id"] not in key.split("|")},
+                                    unrelated_before)
+                                self.assertEqual(
+                                    [npc["distance_ft"] for npc in (actor, target, other)],
+                                    mirrors_before)
                         else:
                             # Zero or five feet left cannot fund another ten-foot
                             # push, even partly. Rejection must be a pure no-op.
