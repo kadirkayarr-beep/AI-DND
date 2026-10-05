@@ -3376,6 +3376,263 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
                 self.assertEqual(random.getstate(), rng_module)
 
+    def test_overlapping_rejected_death_checkpoint_keeps_both_campaigns_owned(self):
+        from api.persistence.campaign_models import CampaignStorageError
+        from api.session_manager import ManagedSession, SessionManager
+
+        for rejected_index in (0, 1):
+            with self.subTest(rejected_index=rejected_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                enemies = [self.npc(session) for session in sessions]
+                records = []
+                manager = SessionManager()
+                for index, (session, enemy) in enumerate(zip(sessions, enemies)):
+                    session.character.update(
+                        species="Orc", race="Orc", proficiency_bonus=2,
+                        armor_class=10, current_hp=19, max_hp=19,
+                        resistances=[], immunities=[], vulnerabilities=[],
+                    )
+                    session.initialize_species_trait_state()
+                    session.ensure_campaign_clock()
+                    session.world_state["campaign_id"] = f"rejected-campaign-{index}"
+                    session.world_state["inventory"].append(f"keepsake-{index}")
+                    session.world_state["attack_results"] = [
+                        {"marker": f"precombat-{index}"}
+                    ]
+                    session.recent_dm_narrations.append(f"precombat-{index}")
+                    session.messages.append(
+                        {"role": "user", "content": f"precombat message-{index}"}
+                    )
+                    enemy.update(attack_bonus=0, damage_die=12,
+                                 damage_dice=1, damage_modifier=10)
+                    record = ManagedSession(
+                        game_session=session,
+                        campaign_id=session.world_state["campaign_id"],
+                    )
+                    record.journal["marker"] = f"precombat journal-{index}"
+                    records.append(record)
+                    manager._attach_death_checkpoint_hooks(record)
+                    game._capture_combat_death_checkpoint(session=session)
+
+                rejected = sessions[rejected_index]
+                survivor_index = 1 - rejected_index
+                survivor = sessions[survivor_index]
+                # Corrupt only the captured external state, exactly as in the
+                # single-session API regression; the live record remains valid.
+                checkpoint = rejected.world_state["death_state"]["combat_checkpoint"]
+                checkpoint["campaign_state"]["narrative_memory"] = []
+                self.assertEqual(rejected.world_state["death_state"]["mode"], "NORMAL")
+                checkpoint_rng = rejected.rng.getstate()
+                for index, (session, record) in enumerate(zip(sessions, records)):
+                    session.character["current_hp"] = 3
+                    session.world_state["inventory"].append(f"combat loot-{index}")
+                    session.world_state["attack_results"].append(
+                        {"marker": f"combat attack-{index}"}
+                    )
+                    session.recent_dm_narrations.append(f"combat narration-{index}")
+                    session.messages.append(
+                        {"role": "user", "content": f"combat message-{index}"}
+                    )
+                    record.journal["marker"] = f"combat journal-{index}"
+                    session.rng.random()
+                rejected.character["species_trait_state"][
+                    "relentless_endurance_available"
+                ] = False
+
+                def external_state(record):
+                    return copy.deepcopy((
+                        record.journal, record.narrative_memory,
+                        record.lore_authority.to_dict(),
+                        getattr(record.game_session, "world_metadata", None),
+                    ))
+
+                def engine_state(session):
+                    # Snapshot without a serializer normalizing the transient
+                    # fatal state at the rejected rollback boundary.
+                    return copy.deepcopy((
+                        session.world_state, session.character,
+                        session.recent_dm_narrations, session.messages,
+                    )), session.rng.getstate()
+
+                external_before = [external_state(record) for record in records]
+                external_refs = [
+                    (record.journal, record.narrative_memory, record.lore_authority)
+                    for record in records
+                ]
+                references = [
+                    (session.world_state, session.character,
+                     session.recent_dm_narrations, session.messages)
+                    for session in sessions
+                ]
+                messages = [copy.deepcopy(session.messages) for session in sessions]
+                survivor_before = survivor.serialize_game_state()
+                rejected_before = engine_state(rejected)
+                expected_rng = []
+                for session in sessions:
+                    reference_rng = random.Random()
+                    reference_rng.setstate(session.rng.getstate())
+                    reference_rng.randint(1, 20)
+                    reference_rng.randint(1, 12)
+                    expected_rng.append(reference_rng.getstate())
+                consumed_rng = expected_rng[rejected_index]
+                # The rejected attack's existing atomic boundary rolls back its
+                # own hit and dice; this is distinct from death checkpoint restore.
+                expected_rng[rejected_index] = rejected_before[1]
+                default_before = engine_state(game._DEFAULT_SESSION)
+                rng_module = random.getstate()
+                attack_barrier = threading.Barrier(2)
+                damage_barrier = threading.Barrier(2)
+                survivor_finished = threading.Event()
+                survivor_results = []
+                rollback_boundary = []
+                validation_boundary = []
+                original_restore = game._restore_combat_death_checkpoint
+                original_validator = rejected.death_checkpoint_validator
+
+                def assert_survivor_unchanged():
+                    expected = copy.deepcopy(survivor_before)
+                    expected["player"]["current_hp"] = 1
+                    expected["player"]["species_trait_state"][
+                        "relentless_endurance_available"
+                    ] = False
+                    expected["world_state"]["attack_results"].append(
+                        copy.deepcopy(survivor_results[0])
+                    )
+                    self.assertEqual(survivor.serialize_game_state(), expected)
+                    self.assertEqual(survivor.rng.getstate(), expected_rng[survivor_index])
+                    self.assertEqual(survivor.messages, messages[survivor_index])
+
+                def overlapping_restore(cause):
+                    self.assertIs(game._session(), rejected)
+                    self.assertEqual(cause, "massive_damage")
+                    rollback_boundary.append(engine_state(rejected))
+                    try:
+                        return original_restore(cause)
+                    finally:
+                        self.assertIs(game._session(), rejected)
+                        self.assertEqual(engine_state(rejected), rollback_boundary[0])
+
+                def rejecting_validator(snapshot):
+                    self.assertIs(game._session(), rejected)
+                    self.assertEqual(snapshot, checkpoint["campaign_state"])
+                    self.assertIsNot(snapshot, checkpoint["campaign_state"])
+                    self.assertIsNot(snapshot["journal"],
+                                     checkpoint["campaign_state"]["journal"])
+                    validation_boundary.append(engine_state(rejected))
+                    self.assertEqual(validation_boundary[0], rollback_boundary[0])
+                    self.assertEqual(rejected.rng.getstate(), consumed_rng)
+                    self.assertEqual(rejected.character["current_hp"], 0)
+                    self.assertTrue(rejected.world_state["death_state"]["dead"])
+                    self.assertEqual(rejected.world_state["death_state"]["failures"], 3)
+                    self.assertTrue(survivor_finished.wait(timeout=5),
+                                    "Survivable hit did not finish during validation")
+                    assert_survivor_unchanged()
+                    self.assertEqual([external_state(r) for r in records], external_before)
+                    # Use the production external validator, not a stub that
+                    # unconditionally raises and bypasses malformed-state checks.
+                    return original_validator(snapshot)
+
+                def scripted_roll(session, damage_roll):
+                    original_randint = session.rng.randint
+                    remaining = iter(((20, 15), (12, damage_roll)))
+
+                    def randint(low, high):
+                        sides, value = next(remaining)
+                        self.assertEqual((low, high), (1, sides))
+                        self.assertIs(game._session(), session)
+                        original_randint(low, high)
+                        barrier = attack_barrier if sides == 20 else damage_barrier
+                        barrier.wait(timeout=5)
+                        self.assertIs(game._session(), session)
+                        return value
+
+                    return randint, remaining
+
+                rolls = [
+                    scripted_roll(session, 12 if index == rejected_index else 11)
+                    for index, session in enumerate(sessions)
+                ]
+
+                def attack(index):
+                    try:
+                        result = game.resolve_enemy_attack(enemies[index],
+                                                           session=sessions[index])
+                        if index == survivor_index:
+                            survivor_results.append(result)
+                            survivor_finished.set()
+                        return result
+                    finally:
+                        self.assertIs(game._session(), game._DEFAULT_SESSION)
+
+                with patch.object(sessions[0].rng, "randint", side_effect=rolls[0][0]), \
+                     patch.object(sessions[1].rng, "randint", side_effect=rolls[1][0]), \
+                     patch("game._restore_combat_death_checkpoint",
+                           side_effect=overlapping_restore) as restore, \
+                     patch.object(rejected, "death_checkpoint_validator",
+                                  side_effect=rejecting_validator) as validator, \
+                     patch.object(survivor, "death_checkpoint_validator",
+                                  wraps=survivor.death_checkpoint_validator) as other_validator, \
+                     patch.object(rejected, "death_checkpoint_restorer",
+                                  wraps=rejected.death_checkpoint_restorer) as restorer, \
+                     patch.object(survivor, "death_checkpoint_restorer",
+                                  wraps=survivor.death_checkpoint_restorer) as other_restorer, \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        futures = [pool.submit(attack, index) for index in range(2)]
+                        with self.assertRaisesRegex(CampaignStorageError, "incomplete"):
+                            futures[rejected_index].result(timeout=10)
+                        result = futures[survivor_index].result(timeout=10)
+                    restore.assert_called_once_with("massive_damage")
+                    validator.assert_called_once()
+                    other_validator.assert_not_called()
+                    restorer.assert_not_called()
+                    other_restorer.assert_not_called()
+
+                self.assertTrue(result["success"])
+                self.assertTrue(result["hit"])
+                self.assertFalse(result["critical"])
+                self.assertEqual(result["attack_rolls"], [15])
+                self.assertEqual(result["damage"], 21)
+                self.assertEqual(result["target_hp_before"], 3)
+                self.assertEqual(result["target_hp_after"], 1)
+                self.assertEqual(result["target_status"], "active")
+                self.assertIsNone(result["death_resolution"])
+                self.assertEqual(result["species_effects"], [
+                    {"trait": "relentless_endurance", "current_hp": 1},
+                ])
+                self.assertEqual(len(rollback_boundary), 1)
+                self.assertEqual(len(validation_boundary), 1)
+                self.assertEqual(engine_state(rejected), rejected_before)
+                self.assertEqual(rejected.character["current_hp"], 3)
+                self.assertFalse(rejected.world_state["death_state"]["dead"])
+                self.assertEqual(rejected.world_state["death_state"]["combat_checkpoint"],
+                                 checkpoint)
+                self.assertIn(f"combat loot-{rejected_index}",
+                              rejected.world_state["inventory"])
+                self.assertNotEqual(rejected.rng.getstate(), checkpoint_rng)
+                assert_survivor_unchanged()
+                for index, session in enumerate(sessions):
+                    self.assertIsNone(next(rolls[index][1], None), "Unused scripted dice")
+                    self.assertEqual(session.rng.getstate(), expected_rng[index])
+                    self.assertEqual(session.messages, messages[index])
+                    self.assertEqual(external_state(records[index]), external_before[index])
+                    for current, held in zip(
+                        (session.world_state, session.character,
+                         session.recent_dm_narrations, session.messages),
+                        references[index],
+                    ):
+                        self.assertIs(current, held)
+                    for current, held in zip(
+                        (records[index].journal, records[index].narrative_memory,
+                         records[index].lore_authority),
+                        external_refs[index],
+                    ):
+                        self.assertIs(current, held)
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(engine_state(game._DEFAULT_SESSION), default_before)
+                self.assertEqual(random.getstate(), rng_module)
+
     def test_overlapping_fatal_hits_keep_temporary_hp_protection_session_owned(self):
         for protected_reserve in (1, 2):
             for fatal_index in (0, 1):
@@ -3805,6 +4062,7 @@ class DiscoveryTests(unittest.TestCase):
             "test_overlapping_attack_cannot_borrow_another_sessions_hidden_attacker",
             "test_overlapping_hits_keep_damage_protection_in_their_own_sessions",
             "test_overlapping_attack_cannot_borrow_another_sessions_guessed_location",
+            "test_overlapping_rejected_death_checkpoint_keeps_both_campaigns_owned",
         }
         for node in tree.body:
             if not isinstance(node, ast.ClassDef):
