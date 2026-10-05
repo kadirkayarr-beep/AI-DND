@@ -1308,7 +1308,10 @@ def create_app(
         ).encode("utf-8")).hexdigest()
         with record.turn_lock:
             session = record.game_session
-            previous = manager.get_turn_action(record, action_id)
+            try:
+                previous = manager.get_turn_action(record, action_id)
+            except CampaignError as error:
+                raise campaign_http_exception(error) from None
             get_record(session_id)
             if previous is not None:
                 if previous["request_hash"] != request_hash:

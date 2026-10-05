@@ -18,6 +18,7 @@ from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_spell_scope as spells
 from api.tests import test_campaign_time as clocks
+from api.tests.test_action_economy_reactions import interrupted, assert_continuation
 import json
 
 
@@ -64,11 +65,62 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 *(self.post(a, body) for body in bodies)
             ), timeout=20)
 
-    async def assert_corrupt_saved_receipt_blocks_retry(self, corruption):
+    async def assert_corrupt_saved_receipt_blocks_retry(self, corruption, operation="turn"):
         created = await self.create_campaign()
-        record, command = self.prepare_spell(created)
-        accepted = await self.post(created, command)
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        endpoint = "turn"
+        if operation == "turn":
+            record, command = self.prepare_spell(created)
+        elif operation in ("short_rest", "long_rest"):
+            endpoint = "species-actions"
+            session.commit_location_change("tavern")
+            session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+            session.initialize_species_trait_state()
+            session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+            self.manager.save_campaign(created["campaign_id"])
+            command = {"action": operation, "action_id": str(uuid4())}
+        elif operation in ("react", "decline_reaction"):
+            session.commit_location_change("tavern")
+            npcs, opportunity_id = interrupted(session)
+            self.manager.save_campaign(created["campaign_id"])
+            command = {
+                "message": "Hamle.", "action_id": str(uuid4()),
+                "combat_action": {"steps": [{
+                    "kind": operation, "opportunity_id": opportunity_id,
+                }]},
+                "combat_id": session.world_state["combat"]["combat_id"],
+                "combat_round": session.world_state["combat"]["round"],
+                "combat_turn_index": session.world_state["combat"]["current_turn_index"],
+            }
+        else:
+            self.fail(f"Unknown operation: {operation}")
+        before_operation = copy.deepcopy(session.serialize_game_state())
+        path = f"/api/game/sessions/{created['session_id']}/{endpoint}"
+        # Real mechanics and persistence; fix only combat dice to keep the
+        # accepted reaction deterministic and nonfatal.
+        with patch("game.roll_attack", return_value=1), \
+             patch("game.roll_d20", return_value=15), \
+             patch("game.roll_damage", return_value=4):
+            accepted = await self.http.post(path, json=command)
         self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertNotEqual(session.serialize_game_state(), before_operation)
+        if operation in ("short_rest", "long_rest"):
+            self.assertEqual(accepted.json()["result"]["action"], operation)
+            self.assertEqual(
+                session.character["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                session.character["proficiency_bonus"],
+            )
+            self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"],
+                             3600 if operation == "short_rest" else 28800)
+            if operation == "long_rest":
+                self.assertEqual(session.character["current_hp"], 20)
+        elif operation in ("react", "decline_reaction"):
+            assert_continuation(
+                self, {"action_result": accepted.json()["combat_result"],
+                       "narration": accepted.json()["narration"]},
+                session, npcs, operation, ["hit", "hit"], [4, 4],
+            )
         campaign_id = created["campaign_id"]
         committed = copy.deepcopy(self.store.get_campaign(campaign_id))
         receipt = self.store.get_turn_action(campaign_id, command["action_id"])
@@ -113,7 +165,15 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(reopened.history, committed.history)
             self.assertEqual(reopened.combat_history, committed.combat_history)
             self.assertEqual(resumed.json()["history"], committed.history)
+            self.assertEqual(restored.game_session.serialize_game_state(),
+                             record.game_session.serialize_game_state())
+            self.assertEqual(restored.game_session.rng.getstate(),
+                             record.game_session.rng.getstate())
             before_runtime = self.snapshot(restored)
+            before_auxiliary = copy.deepcopy((
+                restored.game_session.messages,
+                restored.game_session.world_metadata,
+            ))
             # Include raw metadata and the damaged receipt, neither of which may
             # be repaired or overwritten by the retry. Resume alone may mark played.
             with closing(fresh_store._connect()) as connection:
@@ -130,17 +190,24 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 ]
             with patch("game.run_player_turn",
                        side_effect=AssertionError("Corrupt receipt executed the engine")) as engine, \
+                 patch("game.resolve_species_trait_action",
+                       side_effect=AssertionError("Corrupt receipt repeated rest")) as rest, \
                  patch.object(fresh, "autosave_turn",
                               side_effect=AssertionError("Corrupt receipt autosaved")) as autosave, \
                  patch.object(fresh_store, "save_campaign",
                               side_effect=AssertionError("Corrupt receipt saved")) as save:
-                retry = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+                retry = await client.post(f"/api/game/sessions/{sid}/{endpoint}", json=command)
             self.assertEqual(retry.status_code, expected_status, retry.text)
             self.assertEqual(retry.json()["detail"]["code"], expected_code)
             engine.assert_not_called()
+            rest.assert_not_called()
             autosave.assert_not_called()
             save.assert_not_called()
             self.assertEqual(self.snapshot(restored), before_runtime)
+            self.assertEqual((
+                restored.game_session.messages,
+                restored.game_session.world_metadata,
+            ), before_auxiliary)
             self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
             with closing(fresh_store._connect()) as connection:
                 self.assertEqual([
@@ -163,6 +230,26 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_corrupt_saved_receipt_action_id_blocks_http_retry_after_resume(self):
         await self.assert_corrupt_saved_receipt_blocks_retry("action_id")
+
+    async def test_corrupt_short_rest_receipts_block_http_retry_after_resume(self):
+        for corruption in ("hash", "json", "action_id"):
+            with self.subTest(corruption=corruption):
+                await self.assert_corrupt_saved_receipt_blocks_retry(corruption, "short_rest")
+
+    async def test_corrupt_long_rest_receipts_block_http_retry_after_resume(self):
+        for corruption in ("hash", "json", "action_id"):
+            with self.subTest(corruption=corruption):
+                await self.assert_corrupt_saved_receipt_blocks_retry(corruption, "long_rest")
+
+    async def test_corrupt_reaction_receipts_block_http_retry_after_resume(self):
+        for corruption in ("hash", "json", "action_id"):
+            with self.subTest(corruption=corruption):
+                await self.assert_corrupt_saved_receipt_blocks_retry(corruption, "react")
+
+    async def test_corrupt_declined_reaction_receipts_block_http_retry_after_resume(self):
+        for corruption in ("hash", "json", "action_id"):
+            with self.subTest(corruption=corruption):
+                await self.assert_corrupt_saved_receipt_blocks_retry(corruption, "decline_reaction")
 
     async def test_independently_loaded_stale_save_cannot_overwrite_newer_truth(self):
         a = await self.create_campaign()
