@@ -220,6 +220,47 @@ class RunnerProcessTests(unittest.TestCase):
                     self.assertFalse((root / (name + ".sentinel")).exists(), name)
                 self.assertNotIn("PASSED", result.stdout)
 
+    def test_multiple_invalid_sources_are_all_reported_before_any_gate_starts(self):
+        first_cases = (
+            ("duplicate definition", """
+                def test_result(): pass
+                def test_result(): pass
+            """, "duplicate module function test_result"),
+            ("syntax error", "def test_result(: pass\n",
+             "cannot inspect test definitions"),
+        )
+        for argv, inventory in self.SELECTIONS:
+            for case, body, diagnostic in first_cases:
+                with self.subTest(argv=argv, case=case), \
+                     tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    self.copy_runner(root)
+                    first, later = self.SUITES[inventory]
+                    self.write_gate(root, first, body)
+                    self.write_gate(root, later, """
+                        class Checks:
+                            def test_result(self): pass
+                        Alias = Checks
+                        Alias.test_result = None
+                    """)
+
+                    result = self.launch_runner(root, argv)
+                    output = result.stdout + result.stderr
+                    self.assertNotEqual(result.returncode, 0, output)
+                    self.assertIn("TEST DEFINITION PREFLIGHT FAILED:", result.stderr)
+                    for name, expected in (
+                        (first, diagnostic),
+                        (later, "overwrites method Alias.test_result"),
+                    ):
+                        self.assertTrue(any(
+                            line.startswith(f"{root / name}:") and expected in line
+                            for line in result.stderr.splitlines()
+                        ), result.stderr)
+                    self.assertFalse((root / "order.txt").exists())
+                    for name in (first, later):
+                        self.assertFalse((root / (name + ".sentinel")).exists(), name)
+                    self.assertNotIn("PASSED", output)
+
     def test_failed_real_gate_keeps_later_gate_running_and_reports_failure(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
