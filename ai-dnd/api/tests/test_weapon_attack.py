@@ -852,6 +852,24 @@ class WeaponTests(unittest.TestCase):
     def test_reverse_pair_missing_distance_rejected_unchanged(self):
         self.assert_invalid_reverse_distance_unchanged({})
 
+    def test_reverse_pair_none_distance_rejected_unchanged(self):
+        self.assert_invalid_reverse_distance_unchanged({"distance_ft": None})
+
+    def test_reverse_pair_numeric_string_distance_rejected_unchanged(self):
+        for distance in ("30", "30.0"):
+            with self.subTest(distance=distance):
+                self.assert_invalid_reverse_distance_unchanged({"distance_ft": distance})
+
+    def test_reverse_pair_list_distance_rejected_unchanged(self):
+        for distance in ([], [30]):
+            with self.subTest(distance=distance):
+                self.assert_invalid_reverse_distance_unchanged({"distance_ft": distance})
+
+    def test_reverse_pair_dict_distance_rejected_unchanged(self):
+        for distance in ({}, {"distance_ft": 30}):
+            with self.subTest(distance=distance):
+                self.assert_invalid_reverse_distance_unchanged({"distance_ft": distance})
+
     def test_forward_pair_negative_distance_not_replaced_by_valid_reverse(self):
         self.assert_invalid_forward_distance_unchanged({"distance_ft": -1})
 
@@ -867,6 +885,24 @@ class WeaponTests(unittest.TestCase):
 
     def test_forward_pair_missing_distance_not_replaced_by_valid_reverse(self):
         self.assert_invalid_forward_distance_unchanged({})
+
+    def test_forward_pair_none_distance_not_replaced_by_valid_reverse(self):
+        self.assert_invalid_forward_distance_unchanged({"distance_ft": None})
+
+    def test_forward_pair_numeric_string_distance_not_replaced_by_valid_reverse(self):
+        for distance in ("30", "30.0"):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
+
+    def test_forward_pair_list_distance_not_replaced_by_valid_reverse(self):
+        for distance in ([], [30]):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
+
+    def test_forward_pair_dict_distance_not_replaced_by_valid_reverse(self):
+        for distance in ({}, {"distance_ft": 30}):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
 
     def test_lance_has_2024_two_handed_property_not_2014_mounted_exception(self):
         s, n = armed("Lance")
