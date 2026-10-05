@@ -38,3 +38,15 @@ record without damaging the target; that is not cross-campaign leakage.
 **How to apply:** Supply explicit test-owned facts through existing owners and
 include legitimate result records in expected snapshots. Do not bypass attack
 validation or discard unrelated state comparisons to make old tests pass.
+
+Full-state attack regressions must distinguish lazy owner initialization from
+attack effects; keep the snapshot comparison complete rather than excluding
+observer or character state to hide fixture differences.
+
+**Why:** Minimal armed fixtures can leave encounter mirrors, observer memory,
+and neutral species defaults uninitialized. Successful hits reach owners that
+misses do not, so otherwise identical fixtures can produce misleading diffs.
+
+**How to apply:** Establish neutral owner state before taking the baseline,
+then explicitly expect the legitimate attack sequence, observation, result
+record, and HP changes. Keep unrelated state and session-owned RNG assertions.

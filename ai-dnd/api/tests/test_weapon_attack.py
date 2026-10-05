@@ -4,7 +4,7 @@ import random
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 from uuid import uuid4
 
 import game
@@ -73,6 +73,125 @@ class WeaponTests(unittest.TestCase):
         self.assertFalse(r["hit"])
         self.assertFalse(r["critical"])
         self.assertEqual(r["damage"], 0)
+
+    def assert_conflicting_location_guesses(self, *, forward_correct, attack_roll):
+        s, n = armed()
+        s.world_state["attack_environment"] = {"pairs": {
+            f"player|{n['id']}": {
+                "distance_ft": 5, "guessed_location_correct": forward_correct},
+            f"{n['id']}|player": {
+                "distance_ft": 5, "guessed_location_correct": not forward_correct},
+        }}
+        # Initialize the existing observer/encounter owners before measuring
+        # attack mutations, so lazy NPC normalization is not part of the diff.
+        import monster_combat
+        import monster_perception
+        memory = monster_combat.state(s, n["id"])
+        monster_perception.snapshot(s, n["id"], memory)
+        s.initialize_species_trait_state()
+        s.ensure_combat_state()
+        expected_save = s.serialize_game_state()
+        expected_world = copy.deepcopy(s.world_state)
+        unchanged = copy.deepcopy((s.character, s.messages, s.rng.getstate()))
+        default_before = copy.deepcopy((
+            game._DEFAULT_SESSION.world_state, game._DEFAULT_SESSION.character,
+            game._DEFAULT_SESSION.messages, game._DEFAULT_SESSION.rng.getstate()))
+        # Exercise the real attack/damage owners, not fixed roll-function mocks.
+        dice = [(20, attack_roll)] + ([(8, 4)] if forward_correct else [])
+        remaining = iter(dice)
+
+        def owned_randint(low, high):
+            self.assertIs(game._session(), s)
+            expected = next(remaining, None)
+            self.assertIsNotNone(expected, "Unexpected attack or damage die")
+            sides, value = expected
+            self.assertEqual((low, high), (1, sides))
+            return value
+
+        with patch.object(s.rng, "randint", side_effect=owned_randint) as rolls, \
+             patch.object(game._DEFAULT_SESSION.rng, "randint",
+                          side_effect=AssertionError("Attack used default-session dice")):
+            result = attack.resolve(s, "player", n["id"], "Longsword")
+            self.assertIsNone(next(remaining, None), "Unused owned dice")
+            self.assertEqual(rolls.call_args_list,
+                             [call(1, sides) for sides, _ in dice])
+
+        damage = 7 if forward_correct else 0
+        self.assertEqual(result["actor_id"], "player")
+        self.assertEqual(result["target_id"], n["id"])
+        self.assertEqual(result["status"], "resolved")
+        self.assertEqual(result["success"], forward_correct)
+        self.assertEqual(result["hit"], forward_correct)
+        self.assertEqual(result["outcome"], "hit" if forward_correct else "miss")
+        self.assertFalse(result["critical"])
+        self.assertEqual(result["natural_20"], attack_roll == 20)
+        self.assertEqual(result["attack_rolls"], [attack_roll])
+        self.assertEqual(result["attack_roll"], attack_roll)
+        self.assertEqual(result["attack_bonus"], 5)
+        self.assertEqual(result["attack_total"], attack_roll + 5)
+        self.assertEqual(result["target_ac_base"], 12)
+        self.assertEqual(result["target_ac"], 12)
+        self.assertEqual(result["advantage_sources"], [])
+        self.assertEqual(result["disadvantage_sources"], [])
+        self.assertEqual(result["damage_rolls"], [
+            {"source": "weapon", "die": 8, "count": 1, "rolls": [4]}
+        ] if forward_correct else [])
+        self.assertEqual(result["damage_instances"], [{
+            "damage_type": "slashing", "raw_damage": 7,
+            "pre_resistance_damage": 7, "flat_reduction": 0,
+            "resistance_applied": False, "vulnerability_applied": False,
+            "immunity_applied": False, "final_damage": 7,
+        }] if forward_correct else [])
+        self.assertEqual(result["raw_damage"], damage)
+        self.assertEqual(result["damage"], damage)
+        self.assertEqual(result["hp_damage"], damage)
+        self.assertEqual(result["target_hp_before"], 100)
+        self.assertEqual(result["target_hp_after"], 100 - damage)
+        self.assertEqual(n["current_hp"], 100 - damage)
+        self.assertEqual(s.character["current_hp"], 100)
+        self.assertEqual(result["target_status"], "active")
+        self.assertEqual(result["resulting_conditions"], [])
+        self.assertEqual(result["species_effects"], [])
+        self.assertEqual(result["additional_effects"], [])
+        self.assertEqual(result["resolution"]["raw_rolls"], [attack_roll])
+        self.assertEqual(result["resolution"]["actor_id"], "player")
+        self.assertEqual(result["resolution"]["target_id"], n["id"])
+        self.assertEqual(result["attack_id"], result["resolution"]["resolution_id"])
+        self.assertEqual(result["action_id"], result["resolution"]["action_id"])
+        self.assertTrue(result["action_id"])
+        self.assertEqual(s.world_state["attack_results"], [result])
+        self.assertIsNot(s.world_state["attack_results"][0], result)
+
+        # Only HP, the owned sequence/result, and the perceived attack change.
+        expected_target = next(npc for npc in expected_world["npcs"]
+                               if npc["id"] == n["id"])
+        expected_target["current_hp"] = 100 - damage
+        expected_world["combat"]["turn_resources"]["player"]["weapon_sequence"] = {
+            "attacks": 1, "light_weapon_ids": [], "light_used": False,
+            "cleave_used": False, "loading_origins": [],
+            "active_action_key": "action:0", "action_index": 1,
+        }
+        expected_world["monster_combat"]["actors"][n["id"]]["observations"] = {
+            "player": {"threat": 2 if forward_correct else 0, "beliefs": {},
+                       "attacked_id": n["id"]},
+        }
+        expected_world["attack_results"] = [copy.deepcopy(result)]
+        expected_save["world_state"] = copy.deepcopy(expected_world)
+        self.assertEqual(s.world_state, expected_world)
+        self.assertEqual(s.serialize_game_state(), expected_save)
+        self.assertEqual((s.character, s.messages, s.rng.getstate()), unchanged)
+        self.assertEqual((
+            game._DEFAULT_SESSION.world_state, game._DEFAULT_SESSION.character,
+            game._DEFAULT_SESSION.messages, game._DEFAULT_SESSION.rng.getstate()),
+            default_before)
+
+    def test_false_reverse_location_guess_cannot_override_valid_forward_hit(self):
+        self.assert_conflicting_location_guesses(
+            forward_correct=True, attack_roll=15)
+
+    def test_true_reverse_location_guess_cannot_rescue_forward_natural_20_miss(self):
+        self.assert_conflicting_location_guesses(
+            forward_correct=False, attack_roll=20)
 
     def test_hidden_reveals_only_after_legal_attack(self):
         s, n = armed()
