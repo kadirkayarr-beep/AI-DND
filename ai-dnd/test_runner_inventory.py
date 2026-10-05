@@ -178,7 +178,7 @@ class RunnerProcessTests(unittest.TestCase):
             ]
         runner.write_text("".join(lines), encoding="utf-8")
 
-    def write_gate(self, root, name, body):
+    def write_gate(self, root, name, body, exit_code=0):
         # Write the sentinel before any definitions: even merely importing a
         # rejected gate would leave evidence. The shared log proves child order.
         (root / name).write_text(
@@ -186,7 +186,8 @@ class RunnerProcessTests(unittest.TestCase):
             f"Path({name + '.sentinel'!r}).write_text('started', encoding='utf-8')\n"
             + textwrap.dedent(body).lstrip("\n")
             + f"\nwith Path('order.txt').open('a', encoding='utf-8') as log:\n"
-            f"    log.write({name + chr(10)!r})\n",
+            f"    log.write({name + chr(10)!r})\n"
+            + f"\nraise SystemExit({exit_code!r})\n",
             encoding="utf-8",
         )
 
@@ -218,6 +219,30 @@ class RunnerProcessTests(unittest.TestCase):
                 for name in (first, later):
                     self.assertFalse((root / (name + ".sentinel")).exists(), name)
                 self.assertNotIn("PASSED", result.stdout)
+
+    def test_failed_real_gate_keeps_later_gate_running_and_reports_failure(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                first, later = self.SUITES[inventory]
+                self.write_gate(root, first, "def test_ok(): pass\n", exit_code=7)
+                self.write_gate(root, later, "def test_ok(): pass\n")
+
+                result = self.launch_runner(root, argv)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual((root / "order.txt").read_text(encoding="utf-8")
+                                 .splitlines(), [first, later])
+                for name in (first, later):
+                    self.assertEqual((root / (name + ".sentinel"))
+                                     .read_text(encoding="utf-8"), "started")
+                label = ("RELEASE DETERMINISTIC GATES" if inventory == "TESTS"
+                         else "HISTORICAL PROTOTYPE CHECKS (NOT RELEASE GATES)")
+                self.assertEqual(result.stdout.splitlines()[-1],
+                                 f"{label} FAILED: {first}")
+                self.assertNotIn("PREFLIGHT FAILED", result.stdout + result.stderr)
+                self.assertNotIn("PASSED", result.stdout + result.stderr)
 
     def test_valid_aliases_and_decorators_run_real_gates_in_order(self):
         for argv, inventory in self.SELECTIONS:
