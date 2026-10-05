@@ -147,12 +147,16 @@ class _NamespaceFunctions(ast.NodeVisitor):
 
 
 def _check_class_writes(tree, path):
-    """Check direct module-scope writes to a currently bound local class.
+    """Check module-scope writes through local class names and simple aliases.
 
     Resolve only bare names introduced by a module-level class statement,
-    including statements inside control-flow blocks. Any subsequent binding
-    invalidates that resolution (except literal C = C). Do not chase aliases,
-    nested attribute paths, inheritance, imports, setattr/delattr, or calls.
+    or single-name assignments A = C (including valued annotations and alias
+    chains), including statements inside control-flow blocks. Resolved names
+    share class identity: rebinding one does not invalidate other aliases.
+    Every other binding/deletion invalidates that name; wildcard imports clear
+    all resolutions. Bare annotations do not bind. Do not resolve tuple/chained
+    assignments, nested attributes, inheritance, imports, setattr/delattr,
+    walrus assignments, decorators, or calls.
     Function and class bodies remain opaque here, preserving runtime patch
     fixtures. This is conservative source order, not execution/reachability.
     """
@@ -184,9 +188,23 @@ def _check_class_writes(tree, path):
             classes[binding] = first_lines
         elif binding == "*":
             classes.clear()
-        elif not (operation == "assignment" and preserves
-                  and _same_reference(getattr(statement, "value", None), binding)):
-            classes.pop(binding, None)
+        else:
+            value = getattr(statement, "value", None)
+            simple_assignment = (
+                isinstance(statement, ast.Assign)
+                and len(statement.targets) == 1
+                and isinstance(statement.targets[0], ast.Name)
+                and statement.targets[0].id == binding
+            ) or (
+                isinstance(statement, ast.AnnAssign)
+                and isinstance(statement.target, ast.Name)
+                and statement.target.id == binding
+            )
+            if (operation == "assignment" and simple_assignment
+                    and isinstance(value, ast.Name) and value.id in classes):
+                classes[binding] = classes[value.id]
+            else:
+                classes.pop(binding, None)
     return errors
 
 
@@ -200,8 +218,10 @@ def check_test_definitions(paths):
     chained, augmented, and unrelated assignments are not decorator allowances.
     Imports (including uncertain wildcard imports) cannot replace protected
     names. Direct module-scope writes/deletions to methods on currently bound
-    same-module classes are also checked, with the same identity/wrapping
-    allowances. Class aliases, inherited methods, nested attribute paths,
+    same-module classes and simple module-level class aliases are also checked,
+    with the same identity/wrapping allowances. Other bindings invalidate alias
+    resolution without affecting existing aliases to the original class.
+    Inherited methods, nested attribute paths,
     function-local/runtime patches, unrelated object attributes, comprehension
     locals, and subscripts are outside this source-only policy.
     """

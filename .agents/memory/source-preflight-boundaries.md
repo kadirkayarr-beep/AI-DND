@@ -10,7 +10,9 @@ not treat every runtime change to a callable as accidental test loss.
 protection against explicit post-class replacement without rejecting those
 fixtures or weakening existing lexical checks.
 
-**How to apply:** Any future extension to aliases, dynamic attribute operations,
-or inheritance needs its own resolution policy and offline acceptance fixtures
+**How to apply:** Simple class aliases are within the approved source-only scope,
+not permission to evaluate arbitrary expressions or runtime patches. Any future
+extension to dynamic attribute operations or inheritance needs its own
+resolution policy and offline acceptance fixtures
 for intentional patches and unrelated objects. Preserve the distinction between
 source inspection and execution evidence.

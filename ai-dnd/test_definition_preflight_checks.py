@@ -532,7 +532,7 @@ class DefinitionPreflightTests(unittest.TestCase):
                     with patch.object(Checks, "test_result", None):
                         pass
                     Checks.test_result = None
-            alias = Checks
+            alias = unknown
             alias.test_result = None
             obj = Checks()
             obj.test_result = None
@@ -555,6 +555,207 @@ class DefinitionPreflightTests(unittest.TestCase):
             mapping["test_result"] = None
         """)
         self.assertEqual(check_test_definitions([path]), [])
+
+    def test_simple_class_aliases_report_the_written_name_and_both_lines(self):
+        aliases = [
+            "Alias = Checks",
+            "Alias: object = Checks",
+            "First = Checks\nAlias = First",
+            "if False:\n    Alias = Checks",
+        ]
+        writes = [
+            "Alias.test_result = None",
+            "Alias.test_result: object = replacement",
+            "Alias.test_result += replacement",
+            "Alias.test_result, other = values",
+            "Alias.test_result = other = replacement",
+            "del Alias.test_result",
+            "for Alias.test_result in values:\n    pass",
+            "with context as Alias.test_result:\n    pass",
+        ]
+        for alias in aliases:
+            for write in writes:
+                with self.subTest(alias=alias, write=write):
+                    line = 3 + len(alias.splitlines())
+                    path = self.write_fixture(
+                        "class_alias.py",
+                        "class Checks:\n    async def test_result(self): pass\n"
+                        + alias + "\n" + write + "\n",
+                    )
+                    self.assertEqual(check_test_definitions([path]), [
+                        f"{path}:{line}: attribute "
+                        f"{'deletion' if write.startswith('del ') else 'assignment'} "
+                        "overwrites method Alias.test_result "
+                        f"(first defined at line 2, rebound at line {line}); "
+                        "use a distinct name or explicit decorator assignment"
+                    ])
+
+    def test_alias_rebinding_invalidates_only_the_rebound_name(self):
+        rebindings = [
+            "Alias = object()",
+            "Alias: object = unrelated",
+            "Alias += replacement",
+            "Alias, other = values",
+            "other, *Alias = values",
+            "Alias = other = Checks",
+            "(Alias := Checks)",
+            "import unrelated as Alias",
+            "from unrelated import Alias",
+            "del Alias",
+            "def Alias(): pass",
+            "class Alias: pass",
+            "for Alias in items:\n    pass",
+            "with context as Alias:\n    pass",
+            "try:\n    pass\nexcept Exception as Alias:\n    pass",
+            "match value:\n    case Alias:\n        pass",
+            "match value:\n    case [*Alias]:\n        pass",
+            'match value:\n    case {"key": value, **Alias}:\n        pass',
+            "[(Alias := unrelated) for item in items]",
+            "Alias = decorator(Alias)",
+        ]
+        for rebinding in rebindings:
+            with self.subTest(rebinding=rebinding):
+                path = self.write_fixture(
+                    "rebound_alias.py",
+                    "class Checks:\n    def test_result(self): pass\n"
+                    "Alias = Checks\nRetained = Alias\n"
+                    + rebinding + "\nAlias.test_result = None\n"
+                    "Retained.test_result = None\nChecks.test_result = None\n",
+                )
+                errors = check_test_definitions([path])
+                self.assertEqual(len(errors), 2, errors)
+                self.assertIn("overwrites method Retained.test_result", errors[0])
+                self.assertIn("overwrites method Checks.test_result", errors[1])
+
+    def test_aliases_keep_original_class_identity_after_source_rebinding(self):
+        path = self.write_fixture("retained_alias.py", """
+            class Checks:
+                def test_result(self): pass
+            Alias = Checks
+            class Checks:
+                def other(self): pass
+            Checks.test_result = None
+            Alias.test_result = None
+            Alias = Checks
+            Alias.test_result = None
+            Alias.other = None
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 2, errors)
+        for error, method, first, second in zip(
+            errors, ("test_result", "other"), (2, 5), (7, 10)
+        ):
+            self.assertIn(f"overwrites method Alias.{method}", error)
+            self.assertIn(
+                f"first defined at line {first}, rebound at line {second}", error
+            )
+
+    def test_alias_wildcard_import_invalidates_all_class_resolutions(self):
+        path = self.write_fixture("alias_wildcard.py", """
+            class Checks:
+                def test_result(self): pass
+            Alias = Checks
+            Retained = Alias
+            from unrelated import *
+            Checks.test_result = None
+            Alias.test_result = None
+            Retained.test_result = None
+        """)
+        self.assertEqual(check_test_definitions([path]), [])
+
+    def test_alias_identity_wrapping_and_runtime_patches_remain_valid(self):
+        path = self.write_fixture("alias_allowed.py", """
+            raise AssertionError("must not execute source or decorators")
+            class Checks:
+                def test_result(self): pass
+            Alias = Checks
+            Alias = Alias
+            Alias: object
+            Alias.test_result = Alias.test_result
+            Alias.test_result: object = staticmethod(Alias.test_result)
+            Alias.test_result = outer(inner(Alias.test_result), option=True)
+            Alias.metadata = None
+            values = [Alias for Alias in items]
+            def fixture():
+                Alias.test_result = None
+                with patch.object(Alias, "test_result", None):
+                    pass
+            class Fixture:
+                Alias.test_result = None
+            with patch.object(Alias, "test_result", None):
+                pass
+            setattr(Alias, "test_result", None)
+            delattr(Alias, "test_result")
+        """)
+        self.assertEqual(check_test_definitions([path]), [])
+
+    def test_alias_allowances_do_not_reset_method_protection(self):
+        path = self.write_fixture("alias_wrapped.py", """
+            class Checks:
+                def test_result(self): pass
+            Alias = Checks
+            Alias = Alias
+            Alias: object
+            values = [Alias for Alias in items]
+            Alias.test_result = wrapper(Alias.test_result)
+            Alias.test_result = None
+            del Checks
+            Copied = Alias
+            Copied.test_result = None
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 2, errors)
+        for error, name, second in zip(errors, ("Alias", "Copied"), (8, 11)):
+            self.assertIn(f"overwrites method {name}.test_result", error)
+            self.assertIn(
+                f"first defined at line 2, rebound at line {second}", error
+            )
+
+    def test_unresolved_alias_expressions_do_not_create_class_resolutions(self):
+        bindings = [
+            "Alias = Checks()",
+            "Alias = decorator(Checks)",
+            "Alias = other = Checks",
+            "Alias, = (Checks,)",
+            "(Alias := Checks)",
+            "Alias = container.Checks",
+            'Alias = mapping["Checks"]',
+            "Alias = Checks if condition else unknown",
+            "import unrelated as Alias",
+            "from unrelated import Checks as Alias",
+            "Alias = unknown",
+            "Alias = Checks\nAlias = unknown\nCopied = Alias",
+        ]
+        for binding in bindings:
+            with self.subTest(binding=binding):
+                path = self.write_fixture(
+                    "unresolved_alias.py",
+                    "class Checks:\n    def test_result(self): pass\n"
+                    + binding + "\nAlias.test_result = None\n"
+                    "Copied.test_result = None\n",
+                )
+                self.assertEqual(check_test_definitions([path]), [])
+
+    def test_runner_rejects_alias_replacement_before_any_gate_executes(self):
+        self.write_fixture("first.py", "def test_ok(): pass\n")
+        bad = self.write_fixture("later_alias.py", """
+            raise AssertionError("must never import a configured gate")
+            class Checks:
+                def test_result(self): pass
+            Alias = Checks
+            Alias.test_result = None
+        """)
+        stderr = StringIO()
+        with patch.object(run_tests, "ROOT", self.root), \
+             patch.object(run_tests, "TESTS", ("first.py", "later_alias.py")), \
+             patch.object(run_tests.subprocess, "run") as execute, \
+             redirect_stderr(stderr), redirect_stdout(StringIO()):
+            self.assertEqual(run_tests.main(), 1)
+        execute.assert_not_called()
+        self.assertIn("PREFLIGHT FAILED", stderr.getvalue())
+        self.assertIn(f"{bad}:5: attribute assignment", stderr.getvalue())
+        self.assertIn("overwrites method Alias.test_result", stderr.getvalue())
+        self.assertIn("first defined at line 3, rebound at line 5", stderr.getvalue())
 
     def test_conditional_classes_are_resolved_without_importing_or_running(self):
         path = self.write_fixture("conditional_class.py", """
@@ -588,6 +789,10 @@ class DefinitionPreflightTests(unittest.TestCase):
                 alias = test_result
                 test_result = staticmethod(test_result)
             Checks.test_result = wrapper(Checks.test_result)
+            Alias = Checks
+            Alias.test_result = wrapper(Alias.test_result)
+            Alias = unrelated
+            Alias.test_result = None
             with patch.object(Checks, "test_result", None):
                 pass
             obj.test_result = None
