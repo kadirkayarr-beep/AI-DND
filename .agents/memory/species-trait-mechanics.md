@@ -17,3 +17,14 @@ resource recovery at all, leaving failed-save recharge leaks undetected.
 
 **How to apply:** Assert actual recovery before the injected storage error, then
 check rollback and exactly-once recovery on retry and replay after reopening.
+
+Interrupted-rest regressions that span real combat must distinguish resource
+recovery from legitimate turn progression; do not freeze the entire species
+state across completed rounds.
+
+**Why:** Whole-state equality can mistake a valid turn-counter advance for an
+unwanted rest completion, preventing the test from reaching the persistence edge.
+
+**How to apply:** Keep depleted rest-recoverable resources unchanged while
+asserting the expected combat progression separately; freeze the full state only
+across receipt replay.
