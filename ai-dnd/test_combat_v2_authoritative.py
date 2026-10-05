@@ -611,6 +611,131 @@ class CombatV2(unittest.TestCase):
             self.session.ensure_combat_state()
         self.assertTrue(self.w['combat']['active'])
 
+    def test_V3_legacy_versions_resume_and_persist_migration_owned_identity(self):
+        original = self.session.serialize_game_state()
+        for version in (1, 2):
+            for schema_version in (None, version):
+                for index in (0, 1):
+                    with self.subTest(version=version, schema=schema_version, index=index):
+                        legacy = copy.deepcopy(original)
+                        legacy['version'] = version
+                        order = [self.npc['id'], 'player']
+                        participants = ['player', self.npc['id']]
+                        legacy['world_state']['combat'] = {
+                            'active': True,
+                            'round': 4,
+                            'initiative_order': order,
+                            'current_turn_index': index,
+                            'participants': participants,
+                            'target_id': self.npc['id'],
+                        }
+                        if schema_version is not None:
+                            legacy['world_state']['combat']['schema_version'] = schema_version
+                        migrated = game.create_session(seed=73)
+                        world_ref = migrated.world_state
+                        character_ref = migrated.character
+                        rng_before = migrated.rng.getstate()
+                        with tempfile.TemporaryDirectory() as directory:
+                            path = Path(directory) / 'legacy.json'
+                            path.write_text(json.dumps(legacy), encoding='utf-8')
+                            migrated.load_game(path)
+                            combat = migrated.ensure_combat_state()
+                            self.assertIsInstance(combat['combat_id'], str)
+                            self.assertTrue(combat['combat_id'])
+                            self.assertEqual(combat['schema_version'], 3)
+                            self.assertEqual(combat['round'], 4)
+                            self.assertEqual(combat['initiative_order'], order)
+                            self.assertEqual(combat['participants'], participants)
+                            self.assertEqual(combat['target_id'], self.npc['id'])
+                            self.assertEqual(combat['current_turn_index'], index)
+                            self.assertEqual(combat['current_actor_id'], order[index])
+                            self.assertTrue(combat['active'])
+                            self.assertIs(migrated.ensure_combat_state(), combat)
+                            expected = migrated.serialize_game_state()
+                            migrated.save_game(path)
+                            reopened = game.create_session(seed=99)
+                            reopen_rng = reopened.rng.getstate()
+                            reopened.load_game(path)
+                            self.assertEqual(reopened.serialize_game_state(), expected)
+                            self.assertEqual(reopened.rng.getstate(), reopen_rng)
+                            combat_id = combat['combat_id']
+                            reopened.advance_combat_turn()
+                            next_combat = reopened.ensure_combat_state()
+                            self.assertEqual(next_combat['combat_id'], combat_id)
+                            self.assertEqual(next_combat['current_turn_index'], 1 - index)
+                            self.assertEqual(next_combat['current_actor_id'], order[1 - index])
+                            self.assertEqual(next_combat['round'], 4 + index)
+                            self.assertEqual(reopened.rng.getstate(), reopen_rng)
+                        self.assertIs(migrated.world_state, world_ref)
+                        self.assertIs(migrated.character, character_ref)
+                        self.assertEqual(migrated.rng.getstate(), rng_before)
+
+    def test_V3_native_active_identity_is_not_repaired_by_migration(self):
+        self.start()
+        expected = self.session.serialize_game_state()
+        for missing in (True, False):
+            with self.subTest(missing=missing):
+                forged = copy.deepcopy(expected)
+                combat = forged['world_state']['combat']
+                if missing:
+                    del combat['combat_id']
+                else:
+                    combat['combat_id'] = None
+                rng_before = self.session.rng.getstate()
+                with tempfile.TemporaryDirectory() as directory:
+                    path = Path(directory) / 'missing-identity.json'
+                    path.write_text(json.dumps(forged), encoding='utf-8')
+                    with self.assertRaisesRegex(ValueError, 'kimliği eksik'):
+                        self.session.load_game(path)
+                self.assertEqual(self.session.serialize_game_state(), expected)
+                self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_V3_invalid_legacy_boundaries_roll_back_load_references_and_rng(self):
+        original = self.session.serialize_game_state()
+        legacy_combat = {
+            'active': True,
+            'round': 4,
+            'initiative_order': [self.npc['id'], 'player'],
+            'current_turn_index': 1,
+            'participants': [self.npc['id'], 'player'],
+            'target_id': self.npc['id'],
+        }
+        changes = (
+            ('current_turn_index', None),
+            ('current_turn_index', -1),
+            ('current_turn_index', 2),
+            ('current_turn_index', True),
+            ('round', 0),
+            ('round', True),
+            ('initiative_order', ['player', 'player']),
+            ('participants', ['player', 'npc_missing']),
+            ('target_id', 'npc_missing'),
+        )
+        character_ref = self.session.character
+        world_ref = self.session.world_state
+        narration_ref = self.session.recent_dm_narrations
+        rng_before = self.session.rng.getstate()
+        for version in (1, 2):
+            for field, value in changes:
+                with self.subTest(version=version, field=field, value=value):
+                    legacy = copy.deepcopy(original)
+                    legacy['version'] = version
+                    legacy['player']['name'] = 'Must Roll Back'
+                    legacy['recent_dm_narrations'] = ['Must Roll Back']
+                    legacy['world_state']['combat'] = copy.deepcopy(legacy_combat)
+                    legacy['world_state']['combat']['schema_version'] = version
+                    legacy['world_state']['combat'][field] = value
+                    with tempfile.TemporaryDirectory() as directory:
+                        path = Path(directory) / 'bad-boundary.json'
+                        path.write_text(json.dumps(legacy), encoding='utf-8')
+                        with self.assertRaisesRegex(ValueError, 'turn boundary'):
+                            self.session.load_game(path)
+                    self.assertIs(self.session.character, character_ref)
+                    self.assertIs(self.session.world_state, world_ref)
+                    self.assertIs(self.session.recent_dm_narrations, narration_ref)
+                    self.assertEqual(self.session.serialize_game_state(), original)
+                    self.assertEqual(self.session.rng.getstate(), rng_before)
+
     def test_V3_midround_engine_save_resumes_exact_scheduler_state(self):
         self.start()
         self.session._mark_combat_action_used('player')

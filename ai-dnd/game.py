@@ -2697,7 +2697,9 @@ def _migrate_legacy_combat_state(legacy):
         "initiative_order": list(order),
         "current_turn_index": index,
         "current_actor_id": order[index],
-        "participants": list(order),
+        "participants": list(
+            legacy_participants if legacy_participants is not None else order
+        ),
         "actions_used": [],
         "target_id": target_id,
         "end_reason": None,
@@ -2710,6 +2712,9 @@ def _migrate_legacy_combat_state(legacy):
         )
         for participant_id in state["participants"]
     ]
+    # Legacy saves predate encounter identity; mint it at the migration boundary,
+    # not in the V3 validator, so malformed native V3 saves still fail visibly.
+    state["combat_id"] = str(uuid4())
     return state
 
 
