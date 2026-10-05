@@ -3,6 +3,7 @@ import random
 import json
 import re
 import copy
+import equipment_economy
 from pathlib import Path
 import os
 import tempfile
@@ -999,7 +1000,7 @@ def known_player_action_narration(player_input):
     location = location_display_name()
 
     if re.search(r"\b(masaya oturuyorum|oturuyorum)\b", text):
-        if any("masa" in item.casefold() for item in feature_descriptions() + world_state["inventory"]):
+        if any("masa" in item.casefold() for item in feature_descriptions() + equipment_economy.labels(world_state["inventory"])):
             return "Masa başına oturma eylemin tamamlanır; mevcut çevre değişmeden kalır."
         return "Bu konumda world state'e kayıtlı bir masa yok; yeni eşya oluşmadı."
     if re.search(r"\b(ayağa kalkıyorum|kalkıyorum|ayağa kalk)\b", text):
@@ -1181,9 +1182,9 @@ def resolve_python_world_action(player_input):
     if any(token in text for token in ("kılıç", "kılıc")) and any(token in text for token in ("yiyorum", "yemeye çalış")):
         return "Kılıcı yiyemezsin; Kılıç mevcut konumunda kalır."
     if weapon_mentioned and any(token in text for token in ("kırdım", "yok ettim", "sattım", "parçaladım")):
-        if "Kılıç" in world_state["inventory"]:
+        if "Kılıç" in equipment_economy.labels(world_state["inventory"]):
             return "Bu eylem inventory sistemi tarafından desteklenmiyor; Kılıç envanterinde kalıyor."
-        if "Kılıç" in world_state["ground_items"]:
+        if "Kılıç" in equipment_economy.labels(world_state["ground_items"]):
             return "Bu eylem inventory sistemi tarafından desteklenmiyor; Kılıç yerde kalıyor."
         return "Bu eylem inventory state'ini değiştirmez."
     if re.search(r"\buçuyorum\b|\buçmaya çalış", text):
@@ -1223,7 +1224,7 @@ def resolve_python_world_action(player_input):
         if not any(recipient.casefold().startswith(target) for target in known_recipients if target):
             missing_item = None
     if missing_item:
-        tracked_items = {item.casefold() for item in world_state["inventory"] + world_state["ground_items"]}
+        tracked_items = {item.casefold() for item in equipment_economy.labels(world_state["inventory"] + world_state["ground_items"])}
         for container in world_state["containers"]:
             tracked_items.update(item.casefold() for item in container.get("contents", []))
         if item_name not in tracked_items:
@@ -1977,11 +1978,12 @@ def _validate_save_payload(payload):
             and ("active" in statuses or statuses == {"completed"})
         ):
             raise ValueError("Kayıt görev durumu hedeflerle tutarsız.")
-    for key in ("inventory", "ground_items", "player_knowledge"):
+    equipment_economy.validate_world(saved_world)
+    for key in ("player_knowledge",):
         if any(not isinstance(item, str) for item in saved_world.get(key, [])):
             raise ValueError(f"Dünya listesi geçersiz: {key}")
     for items in saved_world.get("ground_items_by_location", {}).values():
-        if not isinstance(items, list) or any(not isinstance(item, str) for item in items):
+        if not isinstance(items, list) or any(not isinstance(item, (str, dict)) for item in items):
             raise ValueError("Yerdeki eşya listesi geçersiz.")
     for key in ("npcs", "doors", "containers"):
         if any(not isinstance(item, dict) for item in saved_world.get(key, [])):
@@ -5045,8 +5047,8 @@ def build_world_context(npc_target=None):
             }
             for item in location_features()[:16]
         ],
-        "inventory_summary": list(world_state["inventory"]),
-        "ground_items_summary": list(world_state["ground_items_by_location"].get(world_state["location"], [])),
+        "inventory_summary": equipment_economy.labels(world_state["inventory"]),
+        "ground_items_summary": equipment_economy.labels(world_state["ground_items_by_location"].get(world_state["location"], [])),
         "recent_events": [event["description"] for event in world_state["events"][-5:] if event.get("location") == world_state["location"]],
         "recent_event_reality_layers": [
             event.get("reality_layer", "NARRATIVE_TEXTURE")
@@ -5813,6 +5815,9 @@ def update_inventory_from_player(player_input):
     if not (dropping or picking_up):
         return None
 
+    if any(isinstance(i, dict) for _, items in equipment_economy.containers(world_state) for i in items):
+        return equipment_economy.legacy_sword_move(_session(), dropping)
+
     _normalize_ground_items()
     current_loc = world_state.get("location", "tavern")
     loc_items = world_state["ground_items_by_location"].get(current_loc, [])
@@ -6041,6 +6046,7 @@ def _registered_persistent_object_names(world_state, include_carried=False):
     carried_names = set()
 
     def add_name(target, value):
+        value = equipment_economy.label(value)
         if isinstance(value, str) and value.strip():
             target.add(value.strip())
 
@@ -10831,6 +10837,10 @@ def _dispatch_player_turn(
     planning = (combat_action is None
                 and not _session().world_state.get("combat", {}).get("active")
                 and interaction_adventure.compound_plan(player_input) is not None)
+    if combat_action is None and not planning:
+        equipment_result = equipment_economy.execute(_session(), player_input)
+        if equipment_result is not None:
+            return equipment_result
     import spell_scope
     spell_command = (spell_scope.natural_command(player_input, target_id)
                      if combat_action is None and not planning else None)
@@ -12530,8 +12540,8 @@ class GameSession:
             if defeated and not previously:
                 events.append(("defeat_entity", npc_id,
                                f"defeat:{turn}:{npc_id}"))
-        before_items = before_world.get("inventory", [])
-        after_items = world.get("inventory", [])
+        before_items = equipment_economy.labels(before_world.get("inventory", []))
+        after_items = equipment_economy.labels(world.get("inventory", []))
         for item in sorted(set(after_items) - set(before_items), key=str.casefold):
             if item == "Kılıç":
                 events.append(("acquire_item", item, f"item:{turn}:{item}"))

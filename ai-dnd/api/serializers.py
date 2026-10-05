@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import equipment_economy
 import os
 import uuid
 from collections.abc import Mapping
@@ -575,7 +576,7 @@ def serialize_session_state(
         ),
         "locations": locations,
         "character": character,
-        "inventory": copy.deepcopy(world.get("inventory", [])),
+        "inventory": equipment_economy.public_inventory(world),
         "spellcasting": (
             {key: copy.deepcopy(world["spellcasting_v1"][key])
              for key in ("cantrips", "prepared", "slots", "slot_turn")}

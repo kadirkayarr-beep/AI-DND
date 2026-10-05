@@ -1,0 +1,400 @@
+"""Transactions over the existing Python possession containers, not a second inventory."""
+from __future__ import annotations
+
+import copy
+import shlex
+from decimal import Decimal
+
+from weapon_catalog import lookup
+
+COIN_VALUES = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
+
+
+class EquipmentError(ValueError):
+    pass
+
+
+def fail(reason):
+    raise EquipmentError(reason)
+
+
+def label(item):
+    return item.get("name", "") if isinstance(item, dict) else item
+
+
+def labels(items):
+    return [label(item) for item in items]
+
+
+def containers(world):
+    yield "player", world.get("inventory", [])
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and "inventory" in npc:
+            yield npc.get("id"), npc["inventory"]
+    for location, items in world.get("ground_items_by_location", {}).items():
+        yield f"ground:{location}", items
+    if world.get("ground_items"):
+        yield "legacy_ground", world["ground_items"]
+
+
+def validate_world(world):
+    """Accept legacy strings but never duplicate canonical instance identities."""
+    ids = set()
+    for _, items in containers(world):
+        if not isinstance(items, list):
+            fail("invalid_inventory")
+        for item in items:
+            if isinstance(item, str):
+                continue
+            if not isinstance(item, dict):
+                fail("invalid_item")
+            identity, name = item.get("item_id"), item.get("name")
+            if (not isinstance(identity, str) or not identity.strip()
+                    or not isinstance(name, str) or not name.strip()
+                    or len(identity) > 128 or len(name) > 200):
+                fail("invalid_item_identity")
+            if type(item.get("quantity", 1)) is not int or item.get("quantity", 1) != 1:
+                fail("stack_quantity_unsupported")
+            if identity in ids:
+                fail("duplicate_item_identity")
+            ids.add(identity)
+    if type(world.get("item_sequence", 0)) is not int or world.get("item_sequence", 0) < 0:
+        fail("invalid_item_sequence")
+    wallets = world.get("currency", {})
+    if not isinstance(wallets, dict):
+        fail("invalid_currency")
+    actors = {"player", *(n.get("id") for n in world.get("npcs", [])
+                         if isinstance(n, dict) and isinstance(n.get("id"), str))}
+    for actor, amount in wallets.items():
+        if actor not in actors or type(amount) is not int or amount < 0:
+            fail("invalid_currency")
+    claimed = world.get("claimed_item_rewards", [])
+    if (not isinstance(claimed, list) or any(not isinstance(x, str) for x in claimed)
+            or len(set(claimed)) != len(claimed)):
+        fail("invalid_reward_receipts")
+
+
+def materialize(world):
+    """Lazy compatible migration; called only inside the atomic transaction."""
+    validate_world(world)
+    if world.get("ground_items"):
+        location = world["location"]
+        world.setdefault("ground_items_by_location", {}).setdefault(location, []).extend(
+            world["ground_items"])
+        world["ground_items"] = []
+    reserved = {i["item_id"] for _, items in containers(world)
+                for i in items if isinstance(i, dict)}
+    sequence = world.get("item_sequence", 0)
+    for _, items in containers(world):
+        for index, item in enumerate(items):
+            if isinstance(item, dict):
+                continue
+            while True:
+                sequence += 1
+                identity = f"item_{sequence:06d}"
+                if identity not in reserved:
+                    break
+            record = {"item_id": identity, "name": item}
+            weapon = lookup(item)
+            if weapon:
+                record["weapon_id"] = weapon["weapon_id"]
+            items[index] = record
+            reserved.add(identity)
+    world["item_sequence"] = sequence
+    validate_world(world)
+
+
+def one(items, identity):
+    found = [i for i in items if i.get("item_id") == identity]
+    if len(found) != 1:
+        fail("item_not_owned")
+    return found[0]
+
+
+def npc_at(world, identity):
+    found = [n for n in world.get("npcs", []) if n.get("id") == identity]
+    if len(found) != 1:
+        fail("npc_unknown")
+    npc = found[0]
+    if (npc.get("location") != world["location"] or npc.get("alive") is False
+            or npc.get("dead") or npc.get("current_hp", 1) <= 0
+            or npc.get("state") in {"dead", "unconscious", "removed"}
+            or npc.get("combat_status") in {"dead", "unconscious", "defeated"}):
+        fail("npc_unavailable")
+    return npc
+
+
+def clear_equipment(world, actor, item):
+    if actor == "ground":
+        return
+    owner = world if actor == "player" else ({} if actor == "ground" else npc_at(world, actor))
+    # Do not silently invalidate creation-owned armor AC/shield benefits.
+    from api.dnd_2024_rules import ARMOR_NAME_ALIASES
+    name = item["name"].casefold()
+    if (item.get("armor_id") or any(alias.casefold() == name for alias in ARMOR_NAME_ALIASES)
+            or any(word in name for word in ("armor", "zırh", "zirh", "shield", "kalkan"))):
+        fail("armor_owner_required")
+    hands = owner.get("equipment")
+    if isinstance(hands, dict):
+        canonical_hands(world, actor, owner)
+        identities = {item["item_id"]}
+        for hand, held in hands.items():
+            if held is not None and held in identities:
+                hands[hand] = None
+
+
+def canonical_hands(world, actor, owner):
+    """Resolve old hand aliases only against unique actual owned instances."""
+    hands = owner.get("equipment")
+    if hands is None:
+        return
+    if not isinstance(hands, dict) or set(hands) != {"main_hand", "off_hand"}:
+        fail("invalid_equipment")
+    items = world["inventory"] if actor == "player" else owner.get("inventory", [])
+    resolved = {}
+    for hand, held in hands.items():
+        if held is None:
+            resolved[hand] = None
+            continue
+        weapon = lookup(held)
+        exact = [i for i in items if i["item_id"] == held]
+        matches = exact or [i for i in items if i["name"] == held
+                            or weapon and i.get("weapon_id") == weapon["weapon_id"]]
+        if len(matches) != 1:
+            fail("equipment_identity_unresolved")
+        resolved[hand] = matches[0]["item_id"]
+    occupied = [x for x in resolved.values() if x is not None]
+    if len(set(occupied)) != len(occupied):
+        fail("duplicate_equipment")
+    hands.update(resolved)
+
+
+def move(world, item, source, destination, source_actor):
+    clear_equipment(world, source_actor, item)
+    source.remove(item)
+    destination.append(item)
+
+
+def consent(npc, item, operation, recipient):
+    grants = npc.get("item_consents", {})
+    grant = grants.get(item["item_id"]) if isinstance(grants, dict) else None
+    if not isinstance(grant, dict) or grant != {
+        "operation": operation, "recipient": recipient,
+    }:
+        fail("npc_consent_required")
+    del grants[item["item_id"]]
+
+
+def pay(world, payer, recipient, amount):
+    if type(amount) is not int or amount < 0:
+        fail("invalid_price")
+    wallets = world.setdefault("currency", {})
+    if wallets.get(payer, 0) < amount:
+        fail("insufficient_funds")
+    wallets[payer] = wallets.get(payer, 0) - amount
+    wallets[recipient] = wallets.get(recipient, 0) + amount
+
+
+def shop_at(world, identity):
+    shops = [s for s in world.get("shops", []) if s.get("id") == identity]
+    if len(shops) != 1 or shops[0].get("location") != world["location"]:
+        fail("shop_unavailable")
+    shop = shops[0]
+    return shop, npc_at(world, shop.get("shopkeeper_id"))
+
+
+def price(item):
+    if (item.get("magical") or item.get("magic_item_id")
+            or item.get("magic_attack_bonus") or item.get("magic_damage_bonus")):
+        fail("magic_item_out_of_scope")
+    weapon = lookup(item.get("weapon_id"))
+    if not weapon:
+        fail("price_source_unavailable")
+    value = Decimal(str(weapon["cost_gp"])) * 100
+    if value != value.to_integral_value() or value < 0:
+        fail("invalid_catalog_price")
+    return int(value)
+
+
+def _apply(world, operation, args):
+    materialize(world)
+    inventory = world["inventory"]
+    if operation == "list" and not args:
+        lines = [f'{i["name"]} [{i["item_id"]}]' for i in inventory]
+        wallet = world.get("currency", {}).get("player")
+        lines.append(f"Bakiye: {wallet} CP değer birimi." if wallet is not None
+                     else "Bakiye: doğrulanmış para kaydı yok.")
+        ground = world.get("ground_items_by_location", {}).get(world["location"], [])
+        lines.extend(f'Yerde: {i["name"]} [{i["item_id"]}] — /item take {i["item_id"]}'
+                     for i in ground)
+        for shop in world.get("shops", []):
+            if shop.get("location") != world["location"]:
+                continue
+            npc = npc_at(world, shop.get("shopkeeper_id"))
+            offers = shop.get("item_offers_cp", {})
+            for item in npc.get("inventory", []):
+                if isinstance(offers, dict) and item["item_id"] in offers:
+                    cost = price(item)
+                    if offers[item["item_id"]] == cost:
+                        lines.append(f'{item["name"]}: {cost} CP — /item buy {item["item_id"]} {shop["id"]}')
+        for npc in world.get("npcs", []):
+            if npc.get("location") != world["location"]:
+                continue
+            grants = npc.get("item_consents", {})
+            for item in npc.get("inventory", []):
+                if isinstance(grants, dict) and grants.get(item["item_id"]) == {
+                    "operation": "receive", "recipient": "player",
+                }:
+                    lines.append(f'{npc["name"]}: {item["name"]} — /item receive {item["item_id"]} {npc["id"]}')
+        return "\n".join(lines)
+    if operation in {"drop", "take"} and len(args) == 1:
+        ground = world.setdefault("ground_items_by_location", {}).setdefault(world["location"], [])
+        source, destination = (inventory, ground) if operation == "drop" else (ground, inventory)
+        item = one(source, args[0])
+        move(world, item, source, destination, "player" if operation == "drop" else "ground")
+    elif operation == "equip" and len(args) == 2:
+        item, hand = one(inventory, args[0]), args[1]
+        weapon = lookup(item.get("weapon_id"))
+        if hand not in {"main_hand", "off_hand"} or weapon is None:
+            fail("unsupported_equipment")
+        if "two_handed" in weapon.get("properties", []) or "two-handed" in weapon.get("properties", []):
+            fail("two_handed_owner_required")
+        hands = world.setdefault("equipment", {"main_hand": None, "off_hand": None})
+        canonical_hands(world, "player", world)
+        if hands[hand] is not None or item["item_id"] in hands.values():
+            fail("hand_occupied")
+        hands[hand] = item["item_id"]
+    elif operation == "unequip" and len(args) == 1:
+        hands = world.get("equipment")
+        if not isinstance(hands, dict) or args[0] not in {"main_hand", "off_hand"}:
+            fail("equipment_unknown")
+        held = hands.get(args[0])
+        if held is not None and any(word in str(held).casefold() for word in ("shield", "kalkan")):
+            fail("armor_owner_required")
+        canonical_hands(world, "player", world)
+        hands[args[0]] = None
+    elif operation in {"give", "receive"} and len(args) == 2:
+        npc = npc_at(world, args[1])
+        npc_items = npc.setdefault("inventory", [])
+        source, destination = (inventory, npc_items) if operation == "give" else (npc_items, inventory)
+        item = one(source, args[0])
+        consent(npc, item, operation, npc["id"] if operation == "give" else "player")
+        move(world, item, source, destination, "player" if operation == "give" else npc["id"])
+    elif operation in {"buy", "sell"} and len(args) == 2:
+        shop, npc = shop_at(world, args[1])
+        npc_items = npc.setdefault("inventory", [])
+        source, destination = (npc_items, inventory) if operation == "buy" else (inventory, npc_items)
+        item = one(source, args[0])
+        cost = price(item)
+        if operation == "buy":
+            offers = shop.get("item_offers_cp", {})
+            if not isinstance(offers, dict) or offers.get(item["item_id"]) != cost:
+                fail("stock_or_price_unavailable")
+            pay(world, "player", npc["id"], cost)
+            del offers[item["item_id"]]
+        else:
+            if shop.get("buys_equipment") is not True:
+                fail("merchant_acceptance_required")
+            # PHB half cost. Odd copper prices need a fractional-value owner.
+            if cost % 2:
+                fail("fractional_price_unsupported")
+            pay(world, npc["id"], "player", cost // 2)
+        move(world, item, source, destination, npc["id"] if operation == "buy" else "player")
+    elif operation == "reward" and len(args) == 1:
+        identity = args[0]
+        quests = world.get("quests", [])
+        if not any(q.get("quest_id", q.get("id")) == identity and q.get("status") == "completed"
+                   for q in quests):
+            fail("quest_not_completed")
+        claimed = world.setdefault("claimed_item_rewards", [])
+        if identity in claimed:
+            fail("reward_already_claimed")
+        reward = world.get("item_rewards", {}).get(identity)
+        if not isinstance(reward, dict):
+            fail("reward_source_unavailable")
+        npc = npc_at(world, reward.get("source_npc_id"))
+        ids = reward.get("item_ids", [])
+        if not isinstance(ids, list) or len(set(ids)) != len(ids):
+            fail("invalid_reward")
+        source = npc.get("inventory", [])
+        items = [one(source, i) for i in ids]
+        amount = reward.get("currency_cp", 0)
+        pay(world, npc["id"], "player", amount)
+        for item in items:
+            move(world, item, source, inventory, npc["id"])
+        claimed.append(identity)
+    else:
+        fail("invalid_item_command")
+    return "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+
+
+def execute(session, text):
+    """Return None for unrelated input; model output never enters this owner."""
+    if not text.strip().startswith("/item"):
+        return None
+    before = copy.deepcopy(session.world_state)
+    success, reason = False, None
+    try:
+        tokens = shlex.split(text)
+        if len(tokens) < 2 or tokens[0] != "/item":
+            fail("invalid_item_command")
+        world = session.world_state
+        if (world.get("combat", {}).get("active") or session.character.get("current_hp", 0) <= 0
+                or world.get("death_state", {}).get("terminal")
+                or world.get("death_state", {}).get("dead")
+                or world.get("combat", {}).get("pending_reaction")):
+            fail("existing_action_owner_required")
+        # Resolve a candidate copy so even nested caller-held containers do not
+        # observe transient debits or consumed consent on a rejected transaction.
+        candidate = copy.deepcopy(world)
+        narration = _apply(candidate, tokens[1], tokens[2:])
+        validate_world(candidate)
+        world.clear()
+        world.update(candidate)
+        if tokens[1] != "list":
+            world["flags"]["turn_index"] = world["flags"].get("turn_index", 0) + 1
+        success = True
+    except (EquipmentError, ValueError, TypeError, KeyError) as exc:
+        reason = str(exc) if isinstance(exc, EquipmentError) else "invalid_economic_state"
+        narration = f"Eşya işlemi reddedildi: {reason}. Dünya durumu değişmedi."
+    return {
+        "messages": session.messages, "narration": narration, "model_calls": 0,
+        "action_result": {
+            "action": "equipment_transaction", "status": "resolved" if success else "rejected",
+            "success": success, "reason": reason,
+            "state_changes": ["player.inventory", "equipment", "economy"] if success and before != session.world_state else [],
+        },
+    }
+
+
+def public_inventory(world):
+    """Preserve the API string-list contract; labels expose IDs and hand state."""
+    hands = world.get("equipment", {})
+    hands = hands if isinstance(hands, dict) else {}
+    return [
+        f'{i.get("name") or i.get("weapon_id", "Eşya")} [{i.get("item_id", "kimlik doğrulanmamış")}]'
+        + (" (kuşanılmış)" if i.get("item_id") and i["item_id"] in hands.values() else "")
+        if isinstance(i, dict) else i
+        for i in world.get("inventory", [])
+    ]
+
+
+def legacy_sword_move(session, dropping):
+    """Keep legacy phrasing functional after identity migration, using the same mover."""
+    world = session.world_state
+    before = copy.deepcopy(world)
+    try:
+        materialize(world)
+        ground = world.setdefault("ground_items_by_location", {}).setdefault(world["location"], [])
+        source, destination = (world["inventory"], ground) if dropping else (ground, world["inventory"])
+        matches = [i for i in source if i["name"] == "Kılıç"]
+        if len(matches) != 1:
+            fail("item_ambiguous_or_missing")
+        move(world, matches[0], source, destination, "player" if dropping else "ground")
+        validate_world(world)
+        return ("Python durumu: Kılıç envanterden yere taşındı." if dropping
+                else "Python durumu: Yerdeki Kılıç envantere alındı.")
+    except EquipmentError:
+        world.clear()
+        world.update(before)
+        return "Python durumu: Eşya kimliğini belirtmelisin; envanter değişmedi."
