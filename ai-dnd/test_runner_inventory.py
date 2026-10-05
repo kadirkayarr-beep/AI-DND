@@ -296,6 +296,35 @@ class RunnerProcessTests(unittest.TestCase):
                 self.assertEqual((root / "order.txt").read_text(encoding="utf-8")
                                  .splitlines(), list(selected))
 
+    def test_missing_later_selected_source_blocks_every_gate_in_real_process(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                first, later = self.SUITES[inventory]
+                for gates in self.SUITES.values():
+                    for name in gates:
+                        if name != later:
+                            self.write_gate(root, name, "def test_ok(): pass\n")
+                self.assertTrue((root / first).is_file())
+                self.assertFalse((root / later).exists())
+
+                result = self.launch_runner(root, argv)
+                output = result.stdout + result.stderr
+                self.assertNotEqual(result.returncode, 0, output)
+                self.assertIn("TEST DEFINITION PREFLIGHT FAILED:", result.stderr)
+                self.assertTrue(any(
+                    line.startswith(f"{root / later}:")
+                    and "cannot inspect test definitions" in line
+                    and "No such file or directory" in line
+                    for line in result.stderr.splitlines()
+                ), result.stderr)
+                self.assertFalse((root / "order.txt").exists())
+                for gates in self.SUITES.values():
+                    for name in gates:
+                        self.assertFalse((root / (name + ".sentinel")).exists(), name)
+                self.assertNotIn("PASSED", output)
+
     def test_later_alias_replacement_blocks_every_gate_in_real_process(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
