@@ -67,29 +67,6 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def create_campaign(self):
         response = await self.http.post("/api/game/campaigns", json={})
-    async def asyncSetUp(self):
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.store = CampaignStore(
-            Path(self.temporary_directory.name) / "campaigns.sqlite3"
-        )
-        self.manager = SessionManager(campaign_store=self.store)
-        adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
-        self.enterContext(adapter.engine_binding())
-        self.app = create_app(
-            session_manager=self.manager,
-            ollama_adapter=adapter,
-        )
-        self.http = httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=self.app),
-            base_url="http://testserver",
-        )
-
-    async def asyncTearDown(self):
-        await self.http.aclose()
-        self.temporary_directory.cleanup()
-
-    async def create_campaign(self):
-        response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
@@ -6240,69 +6217,5 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for action_id, receipt in receipts.items():
                 self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
                 self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
-            }
-            accepted = await active_http.post(
-                f"/api/game/sessions/{active_id}/turn", json=exit_body
-            )
-            self.assertEqual(accepted.status_code, 200, accepted.text)
-            self.assertEqual(accepted.json()["state"]["location"], city_id)
-            committed = active_store.get_campaign(campaign_id)
-            self.assertEqual(committed.payload["engine_save"]["world_state"]["location"], city_id)
-            self.assertEqual(committed.metadata["revision"], before.metadata["revision"] + 1)
-            self.assertEqual(committed.history[:-1], before.history)
-            self.assertEqual(committed.history[-1]["player_message"], exit_body["message"])
-            exit_receipt = copy.deepcopy(
-                active_store.get_turn_action(campaign_id, exit_body["action_id"])
-            )
-            self.assertEqual(exit_receipt["response"], accepted.json())
-            self.assertEqual(stale_session.serialize_game_state(), stale_save)
-
-            altered_body = {**exit_body, "message": "Tavernada bekliyorum."}
-            stale_url = f"/api/game/sessions/{stale_id}/turn"
-            with (
-                patch.object(
-                    stale_session, "run_player_turn",
-                    side_effect=AssertionError("Conflicting retries must not run the engine"),
-                ) as blocked_turn,
-                patch.object(
-                    stale_store, "save_campaign",
-                    side_effect=AssertionError("Conflicting retries must not save"),
-                ) as blocked_save,
-            ):
-                rejected = await stale_http.post(stale_url, json=altered_body)
-                self.assertEqual(rejected.status_code, 409, rejected.text)
-                self.assertEqual(rejected.json()["detail"]["code"], "action_id_conflict")
-                rejected_campaign = stale_store.get_campaign(campaign_id)
-                self.assertEqual(rejected_campaign.payload, committed.payload)
-                self.assertEqual(rejected_campaign.metadata, committed.metadata)
-                self.assertEqual(rejected_campaign.history, committed.history)
-                self.assertEqual(rejected_campaign.combat_history, committed.combat_history)
-                self.assertEqual(
-                    stale_store.get_turn_action(campaign_id, exit_body["action_id"]),
-                    exit_receipt,
-                )
-                self.assertEqual(stale_session.serialize_game_state(), stale_save)
-                blocked_turn.assert_not_called()
-                blocked_save.assert_not_called()
-
-                # The conflict must not poison the accepted action's valid replay.
-                replay = await stale_http.post(stale_url, json=exit_body)
-                self.assertEqual(replay.status_code, 200, replay.text)
-                expected_replay = copy.deepcopy(accepted.json())
-                expected_replay["session_id"] = stale_id
-                self.assertEqual(replay.json(), expected_replay)
-                blocked_turn.assert_not_called()
-                blocked_save.assert_not_called()
-
-            replayed_campaign = stale_store.get_campaign(campaign_id)
-            self.assertEqual(replayed_campaign.payload, committed.payload)
-            self.assertEqual(replayed_campaign.metadata, committed.metadata)
-            self.assertEqual(replayed_campaign.history, committed.history)
-            self.assertEqual(replayed_campaign.combat_history, committed.combat_history)
-            self.assertEqual(
-                stale_store.get_turn_action(campaign_id, exit_body["action_id"]),
-                exit_receipt,
-            )
-            self.assertEqual(stale_session.serialize_game_state(), stale_save)
 if __name__ == "__main__":
     unittest.main()

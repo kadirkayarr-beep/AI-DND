@@ -1468,6 +1468,11 @@ def create_app(
                         saved = AmbientEventCommandResult.model_validate(
                             previous["response"]["ambient_event_response"], strict=True,
                         )
+                        if (
+                            saved.result.action_id != action_id
+                            or saved.result.event_instance_id != event_instance_key
+                        ):
+                            raise ValueError("Ambient event response identity mismatch.")
                         prior = saved.result.model_dump()
                     # Legacy receipts reserve identity without a complete HTTP
                     # response. Only validate the fields used by this projection.

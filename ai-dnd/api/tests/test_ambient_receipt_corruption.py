@@ -10,6 +10,7 @@ import httpx
 
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
+from api.schemas import AmbientEventCommandResult
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_persistence_idempotency as idempotency
@@ -182,6 +183,32 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
+
+    async def check_mismatched_nested_identity(self, field):
+        def replace_identity(response):
+            original = copy.deepcopy(response)
+            result = response["ambient_event_response"]["result"]
+            replacement = str(uuid4())
+            self.assertNotEqual(replacement, result[field])
+            result[field] = replacement
+            # This corruption still satisfies the HTTP schema; only the nested
+            # identity changes, not the receipt's outer action or other fields.
+            AmbientEventCommandResult.model_validate(
+                response["ambient_event_response"], strict=True,
+            )
+            unchanged = copy.deepcopy(response)
+            unchanged["ambient_event_response"]["result"][field] = (
+                original["ambient_event_response"]["result"][field]
+            )
+            self.assertEqual(unchanged, original)
+
+        await self.check_reopened_receipt(replace_identity)
+
+    async def test_wrong_nested_action_identity_fails_safely_after_resume(self):
+        await self.check_mismatched_nested_identity("action_id")
+
+    async def test_wrong_nested_event_identity_fails_safely_after_resume(self):
+        await self.check_mismatched_nested_identity("event_instance_id")
 
     async def test_imported_legacy_reservation_replays_without_full_response(self):
         await self.check_reopened_receipt(legacy="imported")
