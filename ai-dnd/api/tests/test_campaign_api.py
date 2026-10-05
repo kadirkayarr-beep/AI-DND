@@ -2873,27 +2873,6 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(replayed.payload, committed.payload)
             self.assertEqual(replayed.metadata, committed.metadata)
             self.assertEqual(replayed.history, committed.history)
-            }
-
-        session.run_player_turn = enter_forest
-        changed = await self.http.post(
-            f"/api/game/sessions/{first['session_id']}/turn",
-            json={"message": "Ormana gidiyorum."},
-        )
-        self.assertEqual(changed.status_code, 200, changed.text)
-        self.assertEqual(
-            changed.json()["state"]["journal"]["discovered_locations"][0]["location_id"],
-            "forest",
-        )
-
-        untouched = await self.http.get(
-            f"/api/game/sessions/{second['session_id']}/state"
-        )
-        self.assertEqual(untouched.status_code, 200, untouched.text)
-        self.assertEqual(
-            untouched.json()["journal"]["discovered_locations"],
-            [],
-        )
 
 
 if __name__ == "__main__":

@@ -517,6 +517,69 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.store.get_turn_action(campaign_id, request["action_id"]))
         self.assertNotIn(request["action_id"], record.turn_action_receipts)
 
+        # Retry the identical request after removing the storage failure. The
+        # real Normal-mode checkpoint owner must run once and commit its result.
+        url = f"/api/game/sessions/{a['session_id']}/turn"
+        with patch("game.roll_d20", side_effect=fatal_roll) as retry_die, patch(
+            "game.resolve_enemy_attack",
+            return_value={"action": "enemy_attack", "outcome": "miss"},
+        ) as enemy_attack, patch(
+            "game._restore_combat_death_checkpoint",
+            wraps=game._restore_combat_death_checkpoint,
+        ) as rollback, patch(
+            "game._finalize_player_death", wraps=game._finalize_player_death,
+        ) as death_owner, patch.object(
+            self.store, "save_campaign", wraps=self.store.save_campaign,
+        ) as committed_save:
+            retried = await self.http.post(url, json=request)
+            self.assertEqual(retried.status_code, 200, retried.text)
+            self.assertEqual(retried.json()["action_id"], request["action_id"])
+            self.assertEqual(retry_die.call_count, 1)
+            rollback.assert_called_once_with("failed_death_saves")
+            death_owner.assert_called_once_with("failed_death_saves")
+            self.assertEqual(committed_save.call_count, 1)
+            resolution = s.ensure_death_state()["last_resolution"]
+            self.assertTrue(resolution["rolled_back"])
+            self.assertEqual(resolution["cause"], "failed_death_saves")
+            self.assertFalse(s.ensure_death_state()["dead"])
+            self.assertIsNone(s.ensure_death_state()["combat_checkpoint"])
+            self.assertEqual(s.character["current_hp"], checkpoint["player"]["current_hp"])
+            self.assertNotEqual(s.rng.getstate(), before["rng"])
+            for field in ("journal", "narrative_memory"):
+                self.assertEqual(getattr(record, field), checkpoint_campaign[field], field)
+            self.assertEqual(record.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
+            self.assertEqual(record.turn_action_receipts[previous_action_id], before["receipts"][previous_action_id])
+            self.assertEqual(self.store.get_turn_action(a["campaign_id"], previous_action_id),
+                             before["stored_receipt"])
+            saved_receipt = self.store.get_turn_action(a["campaign_id"], request["action_id"])
+            self.assertIsNotNone(saved_receipt)
+            self.assertEqual(saved_receipt["response"], retried.json())
+
+            # Reopen from disk to prove that the successful retry persisted the
+            # rollback, rather than only repairing the active session.
+            reopened = SessionManager(campaign_store=CampaignStore(self.store.path))
+            _, restored, _, _, _ = reopened.resume_campaign(a["campaign_id"])
+            self.assertEqual(restored.game_session.serialize_game_state(), s.serialize_game_state())
+            self.assertEqual(restored.game_session.rng.getstate(), s.rng.getstate())
+            for field in ("journal", "narrative_memory"):
+                self.assertEqual(getattr(restored, field), checkpoint_campaign[field], field)
+            self.assertEqual(restored.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
+            self.assertEqual(snapshot(other), other_before)
+
+            committed = snapshot(record)
+            calls = (retry_die.call_count, enemy_attack.call_count, rollback.call_count,
+                     death_owner.call_count, committed_save.call_count)
+            with patch.object(s, "run_player_turn", side_effect=AssertionError("Replay ran the engine")):
+                repeated = await self.http.post(url, json=request)
+            self.assertEqual(repeated.status_code, 200, repeated.text)
+            self.assertEqual(repeated.json(), retried.json())
+            self.assertEqual(snapshot(record), committed)
+            self.assertEqual(snapshot(other), other_before)
+            self.assertEqual(self.store.get_turn_action(a["campaign_id"], request["action_id"]),
+                             saved_receipt)
+            self.assertEqual((retry_die.call_count, enemy_attack.call_count, rollback.call_count,
+                              death_owner.call_count, committed_save.call_count), calls)
+
     async def test_checkpoint_validation_precedes_all_mutation(self):
         a = await self.create_campaign()
         record = self.manager.get(a["session_id"])
