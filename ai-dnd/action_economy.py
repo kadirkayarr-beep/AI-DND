@@ -779,18 +779,19 @@ def _execute(session, command, action_id=None, session_id=None):
                 fail("reaction_pending", "Resolve or decline the authoritative reaction opportunity.")
             if kind == "react":
                 results.append(react(session, step.get("opportunity_id")))
+                results[-1]["enemy_actions"] = []
                 if session.world_state["combat"]["active"] and session.world_state["combat"]["current_actor_id"] != "player":
                     session.advance_combat_turn()
-                    session._resolve_enemy_turns_until_player()
+                    results[-1]["enemy_actions"] = session._resolve_enemy_turns_until_player()
             elif kind == "decline_reaction":
                 r = ensure(session)["player"]
                 if not r["opportunity"] or r["opportunity"]["id"] != step.get("opportunity_id"):
                     fail("invalid_reaction_trigger", "No matching reaction opportunity.")
                 r["opportunity"] = None
-                results.append({"kind": kind})
+                results.append({"kind": kind, "enemy_actions": []})
                 if session.world_state["combat"]["current_actor_id"] != "player":
                     session.advance_combat_turn()
-                    session._resolve_enemy_turns_until_player()
+                    results[-1]["enemy_actions"] = session._resolve_enemy_turns_until_player()
             elif kind == "move":
                 results.append(move(session, "player", step.get("distance_ft")))
             elif kind == "dash":
@@ -840,9 +841,9 @@ def _execute(session, command, action_id=None, session_id=None):
     for step in results:
         if step["kind"] == "magic":
             narration_parts.append(spell_scope.narration(step["result"]))
-        elif step["kind"] == "end_turn":
+        elif step["kind"] in {"end_turn", "react", "decline_reaction"}:
             narration_parts.append(session._combat_narration({
-                "outcome": "end_turn",
+                "outcome": step["kind"],
                 "enemy_actions": step["enemy_actions"],
                 "combat": {
                     "player_combat_status": session.world_state["player_combat_status"],
