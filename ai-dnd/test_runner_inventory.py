@@ -199,6 +199,45 @@ class RunnerProcessTests(unittest.TestCase):
             capture_output=True, text=True, timeout=20,
         )
 
+    def test_real_listing_skips_invalid_definitions_and_never_starts_gates(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                for gates in self.SUITES.values():
+                    for name in gates:
+                        # Parseable but rejected by preflight, with a sentinel
+                        # that would fire even if listing merely imported a gate.
+                        self.write_gate(root, name, """
+                            def test_result(): pass
+                            def test_result(): pass
+                        """)
+
+                result = self.launch_runner(root, (*argv, "--list"))
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, 0, output)
+                self.assertEqual(result.stderr, "")
+                selected = self.SUITES[inventory]
+                if inventory == "TESTS":
+                    heading = [
+                        f"RELEASE DETERMINISTIC GATES: {len(selected)} selected",
+                        "Excluded historical prototypes: "
+                        + ", ".join(self.SUITES["PROTOTYPE_TESTS"]),
+                    ]
+                else:
+                    heading = [
+                        "HISTORICAL PROTOTYPE CHECKS (NOT RELEASE GATES): "
+                        f"{len(selected)} selected",
+                    ]
+                self.assertEqual(result.stdout.splitlines(), heading + list(selected))
+                self.assertFalse((root / "order.txt").exists())
+                for gates in self.SUITES.values():
+                    for name in gates:
+                        self.assertFalse((root / (name + ".sentinel")).exists(), name)
+                self.assertNotIn("PREFLIGHT", output)
+                self.assertNotIn("PASSED", output)
+                self.assertNotIn("FAILED", output)
+
     def test_real_gates_use_launcher_interpreter_and_copied_runner_directory(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
