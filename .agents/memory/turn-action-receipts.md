@@ -37,3 +37,14 @@ later turn to consume RNG makes the replay check depend on unrelated geometry.
 
 **How to apply:** Prove that the later turn changes canonical combat state, then
 compare the complete RNG state immediately before and after each replay.
+
+For replay assertions after campaign resume, compare persisted campaign metadata
+against a snapshot taken after resume, not before it.
+
+**Why:** Resume may legitimately update the last-played timestamp; comparing
+against the pre-resume record makes an otherwise correct replay test fail at a
+timestamp boundary.
+
+**How to apply:** Assert the saved engine state, history, and receipt survive
+resume separately, then capture the store immediately before replay and verify
+replay itself does not write.
