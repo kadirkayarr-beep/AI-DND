@@ -25,6 +25,9 @@ export const GetGameHealthResponse = zod.object({
 /**
  * @summary Create a new isolated game session
  */
+export const createGameSessionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const createGameSessionResponseStateCampaignTimeOneHourMin = 0;
 export const createGameSessionResponseStateCampaignTimeOneHourMax = 23;
 
@@ -35,6 +38,11 @@ export const createGameSessionResponseStateCampaignTimeOneSecondMin = 0;
 export const createGameSessionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createGameSessionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const createGameSessionResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const createGameSessionResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -205,6 +213,41 @@ export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequired
 export const CreateGameSessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(createGameSessionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -232,6 +275,11 @@ export const CreateGameSessionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(createGameSessionResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(createGameSessionResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -590,6 +638,9 @@ export const GetGameSessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getGameSessionStateResponseExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const getGameSessionStateResponseCampaignTimeOneHourMin = 0;
 export const getGameSessionStateResponseCampaignTimeOneHourMax = 23;
 
@@ -600,6 +651,11 @@ export const getGameSessionStateResponseCampaignTimeOneSecondMin = 0;
 export const getGameSessionStateResponseCampaignTimeOneSecondMax = 59;
 
 export const getGameSessionStateResponseCampaignTimeOneDayIndexMin = 0;
+
+export const getGameSessionStateResponseJourneyOneDistanceMilesMin = 0;
+
+
+export const getGameSessionStateResponseJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -768,6 +824,41 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCou
 
 
 export const GetGameSessionStateResponse = zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(getGameSessionStateResponseExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -795,6 +886,11 @@ export const GetGameSessionStateResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(getGameSessionStateResponseJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(getGameSessionStateResponseJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -1160,6 +1256,9 @@ export const ResolveSpeciesTraitActionBody = zod.object({
   "armed": zod.boolean().nullish()
 })
 
+export const resolveSpeciesTraitActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMin = 0;
 export const resolveSpeciesTraitActionResponseStateCampaignTimeOneHourMax = 23;
 
@@ -1170,6 +1269,11 @@ export const resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMin = 0;
 export const resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resolveSpeciesTraitActionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -1343,6 +1447,41 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "action_id": zod.string().uuid().nullish(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resolveSpeciesTraitActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -1370,6 +1509,11 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resolveSpeciesTraitActionResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resolveSpeciesTraitActionResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -1742,6 +1886,9 @@ export const ResolveSpeciesTraitActionCompatBody = zod.object({
   "armed": zod.boolean().nullish()
 })
 
+export const resolveSpeciesTraitActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMin = 0;
 export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneHourMax = 23;
 
@@ -1752,6 +1899,11 @@ export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMi
 export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -1925,6 +2077,41 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "session_id": zod.string().uuid(),
   "action_id": zod.string().uuid().nullish(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resolveSpeciesTraitActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -1952,6 +2139,11 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resolveSpeciesTraitActionCompatResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -2365,6 +2557,9 @@ export const PlayGameTurnBody = zod.object({
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
+export const playGameTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const playGameTurnResponseStateCampaignTimeOneHourMin = 0;
 export const playGameTurnResponseStateCampaignTimeOneHourMax = 23;
 
@@ -2375,6 +2570,11 @@ export const playGameTurnResponseStateCampaignTimeOneSecondMin = 0;
 export const playGameTurnResponseStateCampaignTimeOneSecondMax = 59;
 
 export const playGameTurnResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const playGameTurnResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const playGameTurnResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -2681,6 +2881,41 @@ export const PlayGameTurnResponse = zod.object({
   "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(playGameTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -2708,6 +2943,11 @@ export const PlayGameTurnResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(playGameTurnResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(playGameTurnResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -3470,6 +3710,9 @@ export const AcceptGameQuestParams = zod.object({
   "quest_id": zod.coerce.string().max(acceptGameQuestPathQuestIdMax)
 })
 
+export const acceptGameQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const acceptGameQuestResponseStateCampaignTimeOneHourMin = 0;
 export const acceptGameQuestResponseStateCampaignTimeOneHourMax = 23;
 
@@ -3480,6 +3723,11 @@ export const acceptGameQuestResponseStateCampaignTimeOneSecondMin = 0;
 export const acceptGameQuestResponseStateCampaignTimeOneSecondMax = 59;
 
 export const acceptGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const acceptGameQuestResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const acceptGameQuestResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -3676,6 +3924,41 @@ export const acceptGameQuestResponseOutcomeOneTurnIndexMin = 0;
 export const AcceptGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(acceptGameQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -3703,6 +3986,11 @@ export const AcceptGameQuestResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(acceptGameQuestResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(acceptGameQuestResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -4088,6 +4376,9 @@ export const CancelGameQuestParams = zod.object({
   "quest_id": zod.coerce.string().max(cancelGameQuestPathQuestIdMax)
 })
 
+export const cancelGameQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const cancelGameQuestResponseStateCampaignTimeOneHourMin = 0;
 export const cancelGameQuestResponseStateCampaignTimeOneHourMax = 23;
 
@@ -4098,6 +4389,11 @@ export const cancelGameQuestResponseStateCampaignTimeOneSecondMin = 0;
 export const cancelGameQuestResponseStateCampaignTimeOneSecondMax = 59;
 
 export const cancelGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const cancelGameQuestResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const cancelGameQuestResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -4294,6 +4590,41 @@ export const cancelGameQuestResponseOutcomeOneTurnIndexMin = 0;
 export const CancelGameQuestResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(cancelGameQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -4321,6 +4652,11 @@ export const CancelGameQuestResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(cancelGameQuestResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(cancelGameQuestResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -4714,6 +5050,9 @@ export const ResolveAmbientEventActionBody = zod.object({
   "action": zod.enum(['interact', 'observe'])
 })
 
+export const resolveAmbientEventActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const resolveAmbientEventActionResponseStateCampaignTimeOneHourMin = 0;
 export const resolveAmbientEventActionResponseStateCampaignTimeOneHourMax = 23;
 
@@ -4724,6 +5063,11 @@ export const resolveAmbientEventActionResponseStateCampaignTimeOneSecondMin = 0;
 export const resolveAmbientEventActionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resolveAmbientEventActionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const resolveAmbientEventActionResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -4901,6 +5245,41 @@ export const resolveAmbientEventActionResponseResultTransitionIdMax = 160;
 export const ResolveAmbientEventActionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resolveAmbientEventActionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -4928,6 +5307,11 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resolveAmbientEventActionResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resolveAmbientEventActionResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -5441,6 +5825,9 @@ export const CreateCampaignBody = zod.object({
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createCampaignBodyDeathModeDefault)
 })
 
+export const createCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const createCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const createCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -5451,6 +5838,11 @@ export const createCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const createCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const createCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const createCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -5680,6 +6072,41 @@ export const CreateCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(createCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -5707,6 +6134,11 @@ export const CreateCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(createCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(createCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -6271,6 +6703,9 @@ export const GetCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const getCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const getCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const getCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -6281,6 +6716,11 @@ export const getCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const getCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const getCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const getCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const getCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -6520,6 +6960,41 @@ export const GetCampaignResponse = zod.object({
   "location": zod.string()
 }),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(getCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -6547,6 +7022,11 @@ export const GetCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(getCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(getCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -7098,6 +7578,9 @@ export const ResumeCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const resumeCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const resumeCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const resumeCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -7108,6 +7591,11 @@ export const resumeCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const resumeCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resumeCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const resumeCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resumeCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -7337,6 +7825,41 @@ export const ResumeCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resumeCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -7364,6 +7887,11 @@ export const ResumeCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resumeCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resumeCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -8017,6 +8545,9 @@ export const GetLegacyCharacterCreationCatalogResponse = zod.object({
  * Compatibility alias for /game/sessions. Prefer the /game route family for new clients.
  * @summary Legacy session-creation alias
  */
+export const createLegacySessionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const createLegacySessionResponseStateCampaignTimeOneHourMin = 0;
 export const createLegacySessionResponseStateCampaignTimeOneHourMax = 23;
 
@@ -8027,6 +8558,11 @@ export const createLegacySessionResponseStateCampaignTimeOneSecondMin = 0;
 export const createLegacySessionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createLegacySessionResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const createLegacySessionResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const createLegacySessionResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -8197,6 +8733,41 @@ export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequir
 export const CreateLegacySessionResponse = zod.object({
   "session_id": zod.string().uuid(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(createLegacySessionResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -8224,6 +8795,11 @@ export const CreateLegacySessionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(createLegacySessionResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(createLegacySessionResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -8583,6 +9159,9 @@ export const GetLegacySessionStateParams = zod.object({
   "session_id": zod.coerce.string().uuid()
 })
 
+export const getLegacySessionStateResponseExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const getLegacySessionStateResponseCampaignTimeOneHourMin = 0;
 export const getLegacySessionStateResponseCampaignTimeOneHourMax = 23;
 
@@ -8593,6 +9172,11 @@ export const getLegacySessionStateResponseCampaignTimeOneSecondMin = 0;
 export const getLegacySessionStateResponseCampaignTimeOneSecondMax = 59;
 
 export const getLegacySessionStateResponseCampaignTimeOneDayIndexMin = 0;
+
+export const getLegacySessionStateResponseJourneyOneDistanceMilesMin = 0;
+
+
+export const getLegacySessionStateResponseJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -8761,6 +9345,41 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredC
 
 
 export const GetLegacySessionStateResponse = zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(getLegacySessionStateResponseExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -8788,6 +9407,11 @@ export const GetLegacySessionStateResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(getLegacySessionStateResponseJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(getLegacySessionStateResponseJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -9196,6 +9820,9 @@ export const PlayLegacyTurnBody = zod.object({
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
 
+export const playLegacyTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const playLegacyTurnResponseStateCampaignTimeOneHourMin = 0;
 export const playLegacyTurnResponseStateCampaignTimeOneHourMax = 23;
 
@@ -9206,6 +9833,11 @@ export const playLegacyTurnResponseStateCampaignTimeOneSecondMin = 0;
 export const playLegacyTurnResponseStateCampaignTimeOneSecondMax = 59;
 
 export const playLegacyTurnResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const playLegacyTurnResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const playLegacyTurnResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -9512,6 +10144,41 @@ export const PlayLegacyTurnResponse = zod.object({
   "action_id": zod.string().uuid(),
   "narration": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(playLegacyTurnResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -9539,6 +10206,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(playLegacyTurnResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(playLegacyTurnResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -10380,6 +11052,9 @@ export const CreateLegacyCampaignBody = zod.object({
   "death_mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']).default(createLegacyCampaignBodyDeathModeDefault)
 })
 
+export const createLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const createLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const createLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -10390,6 +11065,11 @@ export const createLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const createLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const createLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const createLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -10619,6 +11299,41 @@ export const CreateLegacyCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(createLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -10646,6 +11361,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(createLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(createLegacyCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -11212,6 +11932,9 @@ export const GetLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const getLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const getLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const getLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -11222,6 +11945,11 @@ export const getLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const getLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const getLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const getLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const getLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -11461,6 +12189,41 @@ export const GetLegacyCampaignResponse = zod.object({
   "location": zod.string()
 }),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(getLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -11488,6 +12251,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(getLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(getLegacyCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),
@@ -12040,6 +12808,9 @@ export const ResumeLegacyCampaignParams = zod.object({
   "campaign_id": zod.coerce.string().uuid()
 })
 
+export const resumeLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
 export const resumeLegacyCampaignResponseStateCampaignTimeOneHourMin = 0;
 export const resumeLegacyCampaignResponseStateCampaignTimeOneHourMax = 23;
 
@@ -12050,6 +12821,11 @@ export const resumeLegacyCampaignResponseStateCampaignTimeOneSecondMin = 0;
 export const resumeLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resumeLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
+
+export const resumeLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resumeLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
 
 
@@ -12279,6 +13055,41 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "session_id": zod.string().uuid(),
   "name": zod.string(),
   "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resumeLegacyCampaignResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -12306,6 +13117,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resumeLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resumeLegacyCampaignResponseStateJourneyOneRemainingSecondsMin).optional(),
   "destination": zod.string(),
   "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
   "stage": zod.number().int().min(1),

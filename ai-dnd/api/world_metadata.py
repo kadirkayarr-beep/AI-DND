@@ -150,6 +150,10 @@ def world_metadata_for_state(
     clock = public_time(world_state) if isinstance(world_state, dict) else None
     if clock is not None:
         time_of_day = clock["time_of_day"]
+    import local_adventure_catalog
+    if (isinstance(world_state, dict) and world_state.get(local_adventure_catalog.KEY)
+            and world_state.get("location") in local_adventure_catalog.LOCATIONS):
+        weather = local_adventure_catalog.LOCATIONS[world_state["location"]]["weather"]
     return {
         "environment": infer_environment(world_state),
         "time_of_day": time_of_day,

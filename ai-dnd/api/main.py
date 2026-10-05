@@ -692,6 +692,7 @@ def create_app(
         session = record.game_session
         import bounded_encounter
         import authored_dungeon
+        import exploration
         with record.turn_lock:
             if record.revoked:
                 raise HTTPException(status_code=404, detail={"code": "unknown_session", "message": "Session not found."})
@@ -738,7 +739,8 @@ def create_app(
                 )
                 or (
                     request.combat_action is None
-                    and authored_dungeon.native_request(request.message, session)
+                    and (authored_dungeon.native_request(request.message, session)
+                         or exploration.native_request(request.message, session))
                 )
             ):
                 active_adapter = bounded_encounter.MechanicalTurnContext(active_adapter)

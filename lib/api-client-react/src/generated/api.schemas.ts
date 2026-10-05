@@ -37,6 +37,104 @@ export interface HealthResponse {
   model: HealthResponseModel;
 }
 
+export type ExplorationStatePace = typeof ExplorationStatePace[keyof typeof ExplorationStatePace];
+
+
+export const ExplorationStatePace = {
+  fast: 'fast',
+  normal: 'normal',
+  slow: 'slow',
+} as const;
+
+export type ExplorationStateWeather = typeof ExplorationStateWeather[keyof typeof ExplorationStateWeather];
+
+
+export const ExplorationStateWeather = {
+  clear: 'clear',
+  rain: 'rain',
+  fog: 'fog',
+  snow: 'snow',
+  storm: 'storm',
+  unknown: 'unknown',
+} as const;
+
+export interface ExplorationRoute {
+  id: string;
+  origin: string;
+  destination: string;
+  name: string;
+  /** @exclusiveMinimum 0 */
+  distance_miles: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  duration_seconds: number | null;
+  blocked: boolean;
+}
+
+export type ExplorationExitState = typeof ExplorationExitState[keyof typeof ExplorationExitState];
+
+
+export const ExplorationExitState = {
+  open: 'open',
+  closed: 'closed',
+  locked: 'locked',
+  blocked: 'blocked',
+} as const;
+
+export interface ExplorationExit {
+  id: string;
+  destination: string;
+  name: string;
+  state: ExplorationExitState;
+  /** @nullable */
+  door_id: string | null;
+}
+
+export type ExplorationObstacleState = typeof ExplorationObstacleState[keyof typeof ExplorationObstacleState];
+
+
+export const ExplorationObstacleState = {
+  active: 'active',
+  detected: 'detected',
+  disarmed: 'disarmed',
+  bypassed: 'bypassed',
+  triggered: 'triggered',
+  neutralized: 'neutralized',
+} as const;
+
+export interface ExplorationObstacle {
+  id: string;
+  name: string;
+  state: ExplorationObstacleState;
+}
+
+export interface ExplorationDiscovery {
+  id: string;
+  name: string;
+  text: string;
+}
+
+export interface ExplorationAction {
+  label: string;
+  message: string;
+}
+
+/**
+ * Observable Python-owned local adventure state. Catalog possibilities are not campaign history.
+ */
+export interface ExplorationState {
+  catalog_id: string;
+  pace: ExplorationStatePace;
+  weather: ExplorationStateWeather;
+  routes: ExplorationRoute[];
+  exits: ExplorationExit[];
+  obstacles: ExplorationObstacle[];
+  discoveries: ExplorationDiscovery[];
+  actions: ExplorationAction[];
+}
+
 export type CampaignTimeCalendar = typeof CampaignTimeCalendar[keyof typeof CampaignTimeCalendar];
 
 
@@ -105,6 +203,15 @@ export interface PendingEventDecision {
   can_fight: boolean;
 }
 
+export type GameJourneyPace = typeof GameJourneyPace[keyof typeof GameJourneyPace];
+
+
+export const GameJourneyPace = {
+  fast: 'fast',
+  normal: 'normal',
+  slow: 'slow',
+} as const;
+
 export type GameJourneyStatus = typeof GameJourneyStatus[keyof typeof GameJourneyStatus];
 
 
@@ -116,6 +223,14 @@ export const GameJourneyStatus = {
 } as const;
 
 export interface GameJourney {
+  origin?: string;
+  pace?: GameJourneyPace;
+  /** @minimum 0 */
+  distance_miles?: number;
+  /** @minimum 1 */
+  duration_seconds?: number;
+  /** @minimum 0 */
+  remaining_seconds?: number;
   destination: string;
   status: GameJourneyStatus;
   /** @minimum 1 */
@@ -1060,6 +1175,7 @@ export type GameStateLocations = {[key: string]: GameLocation};
  * Public state projection produced by the API serializers.
  */
 export interface GameState {
+  exploration?: ExplorationState | null;
   campaign_time: CampaignTime | null;
   known_scheduled_events: KnownScheduledEvent[];
   pending_event_decisions: PendingEventDecision[];

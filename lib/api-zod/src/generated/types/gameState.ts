@@ -9,6 +9,7 @@ import type { AdventureProjection } from './adventureProjection';
 import type { CampaignJournal } from './campaignJournal';
 import type { CampaignTime } from './campaignTime';
 import type { DeathStateProjection } from './deathStateProjection';
+import type { ExplorationState } from './explorationState';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
@@ -30,6 +31,7 @@ import type { QuestState } from './questState';
  * Public state projection produced by the API serializers.
  */
 export interface GameState {
+  exploration?: ExplorationState | null;
   campaign_time: CampaignTime | null;
   known_scheduled_events: KnownScheduledEvent[];
   pending_event_decisions: PendingEventDecision[];

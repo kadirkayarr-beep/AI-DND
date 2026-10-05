@@ -5,9 +5,18 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameJourneyPace } from './gameJourneyPace';
 import type { GameJourneyStatus } from './gameJourneyStatus';
 
 export interface GameJourney {
+  origin?: string;
+  pace?: GameJourneyPace;
+  /** @minimum 0 */
+  distance_miles?: number;
+  /** @minimum 1 */
+  duration_seconds?: number;
+  /** @minimum 0 */
+  remaining_seconds?: number;
   destination: string;
   status: GameJourneyStatus;
   /** @minimum 1 */

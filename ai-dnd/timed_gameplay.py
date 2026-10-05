@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import math
 
 import campaign_time as clock
 import living_world
@@ -15,9 +16,59 @@ TRAVEL_CATALOG = (
     {"id": "crossing", "text": "Dar geçitte karşıdan gelenler yolun açılmasını bekliyor."},
 )
 DISPOSITIONS = ("sakin", "temkinli", "zorlanıyor")
+PACE_MILES_PER_DAY = {"fast": 30, "normal": 24, "slow": 18}
+
+
+def pace_effects(world, skill, *, pace=None):
+    """Travel-only check modifiers; neither duration nor distance comes from prose."""
+    journey = world.get("journey")
+    if pace is None:
+        if not journey or journey["status"] == "ARRIVED":
+            return False, False
+        pace = journey.get("pace", world.get("flags", {}).get("travel_pace", "normal"))
+    return (
+        pace == "slow" and skill in {"Perception", "Survival"},
+        (pace == "fast" and skill in {"Perception", "Survival", "Stealth"})
+        or (pace == "normal" and skill == "Stealth"),
+    )
+
+
+def validate_route(route, origin, destination, locations):
+    required = {"id", "origin", "destination", "distance_miles", "duration_seconds",
+                "stage_distances_miles", "navigation_dc", "lost_destinations"}
+    if not isinstance(route, dict) or set(route) != required:
+        raise ValueError("Authored travel route fields are invalid.")
+    miles, stages = route["distance_miles"], route["stage_distances_miles"]
+    if (not isinstance(route["id"], str) or not 1 <= len(route["id"]) <= 128
+            or route["origin"] != origin or route["destination"] != destination
+            or origin not in locations or destination not in locations
+            or type(miles) not in {int, float} or not math.isfinite(miles) or not 0 < miles <= 864
+            or type(route["duration_seconds"]) is not int
+            or route["duration_seconds"] != math.ceil(miles * 1200)
+            or not isinstance(stages, list) or not 1 <= len(stages) <= 48
+            or any(type(s) not in {int, float} or not math.isfinite(s) or not 0 < s <= 18 for s in stages)
+            or not math.isclose(sum(stages), miles)
+            or route["navigation_dc"] is not None and
+               (type(route["navigation_dc"]) is not int or route["navigation_dc"] not in {10, 15, 20, 25, 30})
+            or not isinstance(route["lost_destinations"], list)
+            or len(route["lost_destinations"]) > 8
+            or any(not isinstance(d, str) or d not in locations or d == destination for d in route["lost_destinations"])
+            or len(set(route["lost_destinations"])) != len(route["lost_destinations"])):
+        raise ValueError("Authored travel route is invalid.")
+    for alternative in route["lost_destinations"]:
+        candidate = locations[origin].get("travel_routes", {}).get(alternative)
+        if not isinstance(candidate, dict) or candidate.get("origin") != origin or candidate.get("destination") != alternative:
+            raise ValueError("Lost travel must have an explicitly authored alternative route.")
 
 
 def validate_state(world):
+    pace = world.get("flags", {}).get("travel_pace", "normal")
+    if not isinstance(pace, str) or pace not in PACE_MILES_PER_DAY:
+        raise ValueError("Travel pace is invalid.")
+    for origin, location in world.get("locations", {}).items():
+        for destination, route in location.get("travel_routes", {}).items():
+            if isinstance(route, dict):
+                validate_route(route, origin, destination, world["locations"])
     blocked = world.get("blocked_travel_routes", {})
     if not isinstance(blocked, dict) or len(blocked) > 256 or any(
         origin not in world.get("locations", {}) or not isinstance(routes, dict)
@@ -45,15 +96,25 @@ def validate_state(world):
             "origin", "destination", "stages", "stage_index", "stage_spent_seconds",
             "stage_checked", "status", "encounter", "recent_patterns"
         }
-        if not isinstance(journey, dict) or not required <= set(journey) <= required | {"returning"}:
+        if not isinstance(journey, dict) or not required <= set(journey) <= required | {"returning", "pace", "distance_miles", "duration_seconds", "route_id"}:
             raise ValueError("Journey fields are invalid.")
-        if type(journey.get("returning", False)) is not bool:
-            raise ValueError("Journey return state is invalid.")
-        if any(journey[k] not in world.get("locations", {}) for k in ("origin", "destination")):
-            raise ValueError("Journey location is invalid.")
         stages = journey["stages"]
         if not isinstance(stages, list) or not 1 <= len(stages) <= 48 or any(type(s) is not int or not 1 <= s <= clock.DAY for s in stages):
             raise ValueError("Journey stages are invalid.")
+        metadata = {"pace", "distance_miles", "duration_seconds", "route_id"}
+        if metadata & set(journey):
+            if (not metadata <= set(journey) or not isinstance(journey["pace"], str)
+                    or journey["pace"] not in PACE_MILES_PER_DAY
+                    or type(journey["distance_miles"]) not in {int, float}
+                    or not math.isfinite(journey["distance_miles"]) or not 0 <= journey["distance_miles"] <= 864
+                    or type(journey["duration_seconds"]) is not int
+                    or journey["duration_seconds"] != sum(journey["stages"])
+                    or not isinstance(journey["route_id"], str) or not journey["route_id"]):
+                raise ValueError("Journey distance and pace are invalid.")
+        if type(journey.get("returning", False)) is not bool:
+            raise ValueError("Journey return state is invalid.")
+        if any(not isinstance(journey[k], str) or journey[k] not in world.get("locations", {}) for k in ("origin", "destination")):
+            raise ValueError("Journey location is invalid.")
         index = journey["stage_index"]
         if type(index) is not int or not 0 <= index < len(stages):
             raise ValueError("Journey stage index is invalid.")
@@ -61,6 +122,25 @@ def validate_state(world):
             raise ValueError("Journey progress is invalid.")
         if journey["status"] not in {"TRAVELLING", "INTERRUPTED", "STOPPED", "ARRIVED"}:
             raise ValueError("Journey status is invalid.")
+        if metadata <= set(journey):
+            candidates = [
+                route for route in world["locations"][journey["origin"]].get("travel_routes", {}).values()
+                if isinstance(route, dict) and route["id"] == journey["route_id"]
+            ]
+            if len(candidates) != 1:
+                raise ValueError("Journey route identity is invalid.")
+            route = candidates[0]
+            expected_stages = [math.ceil(miles * 28800 / PACE_MILES_PER_DAY[journey["pace"]])
+                               for miles in route["stage_distances_miles"]]
+            if journey.get("returning"):
+                if (journey["origin"] != journey["destination"]
+                        or not 0 < journey["duration_seconds"] <= sum(expected_stages)
+                        or not math.isclose(journey["distance_miles"], route["distance_miles"]
+                                            * journey["duration_seconds"] / sum(expected_stages))):
+                    raise ValueError("Journey retrace progress is invalid.")
+            elif (route["destination"] != journey["destination"] or expected_stages != stages
+                  or route["distance_miles"] != journey["distance_miles"]):
+                raise ValueError("Journey progress does not match its authored route.")
         if not isinstance(journey["recent_patterns"], list) or len(journey["recent_patterns"]) > 2 or any(p not in {e["id"] for e in TRAVEL_CATALOG} for p in journey["recent_patterns"]):
             raise ValueError("Journey recent events are invalid.")
         encounter = journey["encounter"]
@@ -112,15 +192,25 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
-def route_stages(world, destination):
+def route_stages(world, destination, pace=None):
     origin = world.get("location")
     if destination == origin:
         return []
+    import exploration
+    if not exploration.route_allowed(world, origin, destination):
+        return None
     if world.get("blocked_travel_routes", {}).get(origin, {}).get(destination, False):
         return None
     location = world.get("locations", {}).get(origin, {})
     route = location.get("travel_routes", {}).get(destination)
     if route is not None:
+        if isinstance(route, dict):
+            validate_route(route, origin, destination, world["locations"])
+            pace = pace or world.get("flags", {}).get("travel_pace", "normal")
+            if pace not in PACE_MILES_PER_DAY:
+                raise ValueError("Travel pace is invalid.")
+            return [math.ceil(miles * 28800 / PACE_MILES_PER_DAY[pace])
+                    for miles in route["stage_distances_miles"]]
         if not isinstance(route, list) or not 1 <= len(route) <= 48 or any(type(s) is not int or not 1 <= s <= clock.DAY for s in route):
             raise ValueError("Server travel route duration is invalid.")
         return list(route)
@@ -143,6 +233,9 @@ def route_stages(world, destination):
 
 def start_travel(session, destination):
     world = session.world_state
+    import exploration
+    if exploration.active(world):
+        exploration._busy(session, journey=True, movement=True)
     if session.ensure_combat_state()["active"]:
         return _result("travel", "Çatışma sırasında bu yolculuğa başlayamazsın.", status="unsupported", success=False)
     stages = route_stages(world, destination)
@@ -156,26 +249,58 @@ def start_travel(session, destination):
             return return_travel(session)
         return _result("travel", "Zaten buradasın.")
     previous = world.get("journey")
+    navigation = None
+    lost = False
     retraced = 0
     start_time = clock.public_time(world)
     return_events = []
     return_requested = 0
     if previous and previous["status"] != "ARRIVED":
-        # Rerouting uses known routes from the last registered anchor, not an
-        # invented shortcut from a midpoint whose geography is not modeled.
+        # Rerouting uses the known anchor, never a shortcut from a midpoint.
         returning = return_travel(session)
         if world["journey"]["status"] != "ARRIVED":
-            return returning  # Preserve the retrace progress; never jump to the new route.
+            return returning
         back = returning.get("time_result", {})
         retraced = back.get("elapsed_seconds", 0)
         return_events = back.get("player_known_events", [])
         return_requested = back.get("requested_seconds", 0)
+    route = world["locations"].get(world.get("location"), {}).get("travel_routes", {}).get(destination)
+    # Roll only for an authored challenge, once at departure. Existing journeys
+    # retain their chosen destination/check through interruptions and reopening.
+    if isinstance(route, dict) and route["navigation_dc"] is not None:
+        alternatives = [
+            alternative for alternative in route["lost_destinations"]
+            if route_stages(world, alternative) is not None
+        ]
+        character = session.character
+        advantage, disadvantage = pace_effects(
+            world, "Survival", pace=world.get("flags", {}).get("travel_pace", "normal"))
+        navigation = session.perform_skill_check(
+            "Survival", route["navigation_dc"], character["modifiers"],
+            character["proficient_skills"], character["proficiency_bonus"],
+            advantage=advantage, disadvantage=disadvantage,
+            expertise_skills=character.get("expertise_skills", ()),
+        )
+        if navigation["resolution"]["outcome"] != "SUCCESS":
+            if not alternatives:
+                return _result(
+                    "skill_check", "Yönünü doğrulayamadın; bilinmeyen bir yola sapmadın.",
+                    success=False, outcome="failure", **navigation)
+            destination = session.rng.choice(alternatives)
+            stages = route_stages(world, destination)
+            lost = True
     recent = world.get("journey", {}).get("recent_patterns", []) if isinstance(world.get("journey"), dict) else []
     world["journey"] = {
         "origin": world["location"], "destination": destination, "stages": stages,
         "stage_index": 0, "stage_spent_seconds": 0, "stage_checked": False,
         "status": "TRAVELLING", "encounter": None, "recent_patterns": list(recent),
     }
+    route = world["locations"][world["location"]].get("travel_routes", {}).get(destination)
+    if isinstance(route, dict):
+        world["journey"].update(
+            pace=world.get("flags", {}).get("travel_pace", "normal"),
+            distance_miles=route["distance_miles"], duration_seconds=sum(stages), route_id=route["id"],
+        )
     world["active_task"] = None
     result = continue_travel(session)
     if retraced:
@@ -184,6 +309,11 @@ def start_travel(session, destination):
         result["time_result"]["player_known_events"] = return_events + result["time_result"]["player_known_events"]
         result["time_result"]["before"] = start_time
         result["direct_response"] = "Bildiğin yol ayrımına geri dönüp yeni yolu seçtin. " + result["direct_response"]
+    if navigation is not None:
+        result.update(navigation, action="skill_check",
+                      outcome="failure" if lost else "success", success=not lost)
+        if lost:
+            result["direct_response"] = "Yönünü karıştırdın; sisli yol ayrımına uzanan patikaya saptın. " + result["direct_response"]
     return result
 
 
@@ -198,6 +328,8 @@ def return_travel(session):
     if spent == 0:
         previous["status"] = "ARRIVED"
         previous["destination"] = origin
+        for key in ("pace", "distance_miles", "duration_seconds", "route_id"):
+            previous.pop(key, None)
         return _result("travel", "Başlangıç noktasındasın.")
     world["journey"] = {
         "origin": origin, "destination": origin,
@@ -206,11 +338,20 @@ def return_travel(session):
         "encounter": None, "recent_patterns": list(previous["recent_patterns"]),
         "returning": True,
     }
+    if "distance_miles" in previous:
+        world["journey"].update(
+            pace=previous["pace"], route_id=previous["route_id"],
+            distance_miles=previous["distance_miles"] * spent / previous["duration_seconds"],
+            duration_seconds=spent,
+        )
     return continue_travel(session)
 
 
 def continue_travel(session):
     world = session.world_state
+    import exploration
+    if exploration.active(world):
+        exploration._busy(session, journey=True, movement=True)
     journey = world["journey"]
     journey["status"] = "TRAVELLING"
     journey["encounter"] = None
@@ -304,6 +445,10 @@ def resolve_task(session, text, budget):
     if not isinstance(response, str) or not response.strip():
         response = "Bu bölgenin incelemesini tamamladın; yeni bir bulgu yok." if success else "İncelemen tamamlandı; aradığını bulamadın."
     result = _result("task", response, advancement, success=success)
+    import exploration
+    discoveries = exploration.complete_search(world, location, success, target_id)
+    if discoveries:
+        result["direct_response"] = " ".join(discoveries)
     if check is not None:
         result.update(check, action="skill_check",
                       outcome="success" if success else "failure")
@@ -442,6 +587,12 @@ def public_journey(world):
     journey = world.get("journey")
     if not journey or journey["status"] == "ARRIVED":
         return None
-    return {"destination": journey["destination"], "status": journey["status"],
+    result = {"destination": journey["destination"], "status": journey["status"],
             "stage": journey["stage_index"] + 1, "stage_count": len(journey["stages"]),
             "encounter": journey["encounter"]["text"] if journey["encounter"] else None}
+    if "distance_miles" in journey:
+        spent = sum(journey["stages"][:journey["stage_index"]]) + journey["stage_spent_seconds"]
+        result.update(origin=journey["origin"], pace=journey["pace"],
+                      distance_miles=journey["distance_miles"], duration_seconds=journey["duration_seconds"],
+                      remaining_seconds=journey["duration_seconds"] - spent)
+    return result

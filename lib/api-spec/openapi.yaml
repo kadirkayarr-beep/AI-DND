@@ -1523,6 +1523,10 @@ components:
       description: Public state projection produced by the API serializers.
       additionalProperties: false
       properties:
+        exploration:
+          anyOf:
+            - $ref: "#/components/schemas/ExplorationState"
+            - type: "null"
         campaign_time:
           anyOf:
             - $ref: "#/components/schemas/CampaignTime"
@@ -1649,11 +1653,85 @@ components:
       additionalProperties: false
       required: [destination, status, stage, stage_count, encounter]
       properties:
+        origin: {type: string}
+        pace: {type: string, enum: [fast, normal, slow]}
+        distance_miles: {type: number, minimum: 0}
+        duration_seconds: {type: integer, minimum: 1}
+        remaining_seconds: {type: integer, minimum: 0}
         destination: {type: string}
         status: {type: string, enum: [TRAVELLING, INTERRUPTED, STOPPED, ARRIVED]}
         stage: {type: integer, minimum: 1}
         stage_count: {type: integer, minimum: 1}
         encounter: {type: ["string", "null"]}
+    ExplorationState:
+      type: object
+      additionalProperties: false
+      description: Observable Python-owned local adventure state. Catalog possibilities are not campaign history.
+      required: [catalog_id, pace, weather, routes, exits, obstacles, discoveries, actions]
+      properties:
+        catalog_id: {type: string}
+        pace: {type: string, enum: [fast, normal, slow]}
+        weather: {type: string, enum: [clear, rain, fog, snow, storm, unknown]}
+        routes:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationRoute"}
+        exits:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationExit"}
+        obstacles:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationObstacle"}
+        discoveries:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationDiscovery"}
+        actions:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationAction"}
+    ExplorationRoute:
+      type: object
+      additionalProperties: false
+      required: [id, origin, destination, name, distance_miles, duration_seconds, blocked]
+      properties:
+        id: {type: string}
+        origin: {type: string}
+        destination: {type: string}
+        name: {type: string}
+        distance_miles: {type: number, exclusiveMinimum: 0}
+        duration_seconds: {type: [integer, "null"], minimum: 1}
+        blocked: {type: boolean}
+    ExplorationExit:
+      type: object
+      additionalProperties: false
+      required: [id, destination, name, state, door_id]
+      properties:
+        id: {type: string}
+        destination: {type: string}
+        name: {type: string}
+        state: {type: string, enum: [open, closed, locked, blocked]}
+        door_id: {type: [string, "null"]}
+    ExplorationObstacle:
+      type: object
+      additionalProperties: false
+      required: [id, name, state]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        state: {type: string, enum: [active, detected, disarmed, bypassed, triggered, neutralized]}
+    ExplorationDiscovery:
+      type: object
+      additionalProperties: false
+      required: [id, name, text]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        text: {type: string}
+    ExplorationAction:
+      type: object
+      additionalProperties: false
+      required: [label, message]
+      properties:
+        label: {type: string}
+        message: {type: string}
     CampaignJournal:
       type: object
       description: Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.

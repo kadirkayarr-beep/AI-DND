@@ -205,10 +205,11 @@ def _reply(session, message, narration, action, **details):
             "action_result": {"action": action, "status": "resolved", "success": True, **details}}
 
 
-def resolve_command(session, message):
+def resolve_command(session, message, *, player_message=None):
     kind = command(message)
     if not kind:
         return None
+    message = player_message or message
     session.require_player_can_act()
     state = binding(session)
     if kind == ENTER:

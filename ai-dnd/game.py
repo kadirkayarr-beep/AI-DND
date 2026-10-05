@@ -783,6 +783,9 @@ def perform_skill_check(
     disadvantage=False,
     expertise_skills=None,
 ):
+    pace_advantage, pace_disadvantage = timed_gameplay.pace_effects(_session().world_state, skill)
+    advantage = bool(advantage or pace_advantage)
+    disadvantage = bool(disadvantage or pace_disadvantage)
     ability = SKILLS[skill]
     modifier = modifiers[ability]
     is_proficient = skill in proficient_skills
@@ -1739,6 +1742,8 @@ def _validate_save_payload(payload):
     timed_gameplay.validate_state(saved_world)
     import authored_dungeon
     authored_dungeon.validate_state(saved_world)
+    import exploration
+    exploration.validate_state(saved_world)
 
     required_player = {
         "name", "race", "class", "strength", "dexterity", "constitution",
@@ -5442,6 +5447,8 @@ def commit_location_change(location_id, turn_index=None):
             world_state, now, now,
             observation={"kind": "arrival", "location_id": location_id},
         )
+    import exploration
+    exploration.apply_environment(world_state)
     return previous_location != location_id
 
 
@@ -6132,7 +6139,8 @@ def _registered_persistent_object_names(world_state, include_carried=False):
         add_name(scene_names, feature.get("name"))
         add_name(scene_names, feature.get("description"))
 
-    for door in world_state.get("doors", []):
+    import exploration
+    for door in exploration.visible_doors(world_state):
         if not isinstance(door, dict) or door.get("location") != location:
             continue
         add_name(scene_names, door.get("name"))
@@ -10890,6 +10898,13 @@ def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None,
 ):
+    import exploration
+    if (combat_action is None and _session().character.get("current_hp", 0) > 0
+            and exploration.native_request(player_input, _session())):
+        with resolution_action_scope(action_id, session_id):
+            exploration_result = exploration.resolve_command(_session(), player_input)
+        if exploration_result is not None:
+            return exploration_result
     import authored_dungeon
     if combat_action is None:
         dungeon_result = authored_dungeon.resolve_command(_session(), player_input)

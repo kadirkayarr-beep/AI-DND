@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
 import { mergeCombatHistory } from '@/lib/combat-history';
+import { ExplorationControls } from '@/components/exploration-controls';
+import { explorationInputLabel } from '@/lib/exploration-input';
 import {
   AmbientEventActionPanel,
   createAmbientEventActionRequest,
@@ -465,6 +467,7 @@ function StoryColumn({
   message,
   setMessage,
   onSubmit,
+  onExplorationCommand,
   onEconomyCommand,
   sending,
   notice,
@@ -486,6 +489,7 @@ function StoryColumn({
   message: string;
   setMessage: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onExplorationCommand: (message: string) => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
   sending: boolean;
   notice: Notice | null;
@@ -551,9 +555,18 @@ function StoryColumn({
           Sıra {currentActor.name}'de. Önce bu anı tamamlayacak bir söz gönder; ardından kendi hamleni anlat.
         </div>
       )}
-      <Transcript entries={entries} scrollRef={scrollRef} onScroll={onScroll} />
+      <Transcript entries={entries.map((entry) => entry.kind === 'player'
+        ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       <div className="command-box">
+        <details className="data-row mb-3" open={!state.exploration} data-testid="exploration-disclosure">
+          <summary className="cursor-pointer">Keşif ve yolculuk</summary>
+          <div className="mt-3 overflow-y-auto" style={{ maxHeight: '35vh' }}>
+            <ExplorationControls state={state}
+              disabled={sending || state.combat.active || state.character.current_hp <= 0 || !!state.pending_event_decisions?.length}
+              onCommand={onExplorationCommand} />
+          </div>
+        </details>
         <div className="action-suggestions" role="group" aria-label="Bu sahne için önerilen hamleler" data-testid="action-suggestions">
           <div className="action-suggestions-heading">
             <span><Sparkles size={12} aria-hidden="true" /> Bu sahnede deneyebilirsin</span>
@@ -586,7 +599,16 @@ function StoryColumn({
                 ...(!event.forced ? [['Devam etmeyi seç', 'Karşılaşmada devam etmeyi seçiyorum.'], ['Konuş', 'Karşılaşmada konuşmayı seçiyorum.']] : []),
                 ...(event.can_fight ? [['Savaş', 'Karşılaşmada savaşmayı seçiyorum.']] : []),
                 ...(state.journey ? [['Geri dön', 'Geri dönüyorum.']] : []),
-              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => { setMessage(`Karşılaşma: ${event.summary}\nKararım: ${intent}`); messageInputRef.current?.focus(); }}>{label}</button>)}
+              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => {
+                if (state.exploration) {
+                  const choice = label === 'Savaş' ? 'fight' : label === 'Geri dön' ? 'return'
+                    : label === 'Konuş' ? 'talk' : 'continue';
+                  onExplorationCommand('/explore decision ' + choice);
+                } else {
+                  setMessage(`Karşılaşma: ${event.summary}\nKararım: ${intent}`);
+                  messageInputRef.current?.focus();
+                }
+              }}>{label}</button>)}
             </div>}
           </div>)}
           {state.journey && <div className="data-row mb-3" data-testid="journey-decision">
@@ -597,7 +619,10 @@ function StoryColumn({
                 ['Yola devam', 'Yolculuğa devam ediyorum.'],
                 ['Dur', 'Yolculuğu durduruyorum.'],
                 ['Geri dön', 'Geri dönüyorum.'],
-              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active} onClick={() => { setMessage(intent); messageInputRef.current?.focus(); }}>{label}</button>)}
+              ].map(([label, intent]) => <button key={label} className="action-suggestion" type="button" disabled={sending || state.combat.active || !!state.pending_event_decisions?.length} onClick={() => {
+                if (state.exploration) onExplorationCommand('/travel ' + (label === 'Yola devam' ? 'continue' : label === 'Dur' ? 'stop' : 'return'));
+                else { setMessage(intent); messageInputRef.current?.focus(); }
+              }}>{label}</button>)}
             </div>
           </div>}
           {state.combat.active && combatTargets.length > 0 && (
@@ -1340,6 +1365,7 @@ export default function GameBrowser() {
                 message={message}
                 setMessage={setMessage}
                 onSubmit={handleSubmit}
+                onExplorationCommand={submitTurn}
                 onEconomyCommand={submitTurn}
                 sending={playTurn.isPending}
                 notice={notice}

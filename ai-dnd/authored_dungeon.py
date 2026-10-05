@@ -55,6 +55,8 @@ def validate_state(world):
 
 def require_transition(world, destination):
     """Enforce adjacency at the existing location owner, including non-native callers."""
+    import exploration
+    exploration.require_transition(world, destination)
     current = world.get("location")
     if KEY not in world or (current not in ROOMS and destination not in ROOMS):
         return

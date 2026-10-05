@@ -14,6 +14,7 @@ import living_world
 import campaign_time
 import scheduled_events
 import timed_gameplay
+import exploration
 import interaction_adventure
 from pydantic import ValidationError
 from api.schemas import (
@@ -585,7 +586,7 @@ def serialize_session_state(
         "npcs": _project_list(scheduled_events.visible_npcs(world), _NPC_FIELDS),
         "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
         "features": _project_list(world.get("features"), _FEATURE_FIELDS),
-        "doors": _project_list(world.get("doors"), _DOOR_FIELDS),
+        "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
         "combat": {
             **serialize_combat_state(world.get("combat", {})),
             "action_economy": game.action_economy.projection(session)
@@ -599,6 +600,7 @@ def serialize_session_state(
         "quests": quest_state,
         "quest_offers": offers,
         "adventure": interaction_adventure.public(world),
+        "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
     }
 
