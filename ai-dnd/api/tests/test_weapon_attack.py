@@ -1,5 +1,6 @@
 """Weapon & Attack Lock: mechanics, shared callers, boundaries and receipts."""
 import copy
+import json
 import random
 import tempfile
 import unittest
@@ -688,6 +689,61 @@ class WeaponTests(unittest.TestCase):
             with self.assertRaises(CombatRequestError):
                 attack.resolve(s, "player", n["id"], "Longsword")
             self.assertEqual(s.rng.getstate(), before)
+
+    def assert_invalid_reverse_distance_unchanged(self, reverse_pair):
+        s, n = armed("Shortbow")
+        del n["distance_ft"]
+        pairs = {f"{n['id']}|player": reverse_pair}
+        s.world_state["attack_environment"] = {"pairs": pairs}
+        self.assertNotIn(f"player|{n['id']}", pairs)
+        self.assertNotIn("distance_ft", n)
+        self.assertNotIn("attack_results", s.world_state)
+
+        def snapshot(session):
+            # Include the complete save, unsanitized character, messages and RNG.
+            # JSON preserves nonfinite fixture values without NaN equality issues.
+            return json.dumps((
+                session.serialize_game_state(), session.character,
+                session.messages, session.rng.getstate(),
+            ), sort_keys=True)
+
+        before = snapshot(s)
+        default_before = snapshot(game._DEFAULT_SESSION)
+        with patch("game.roll_attack",
+                   side_effect=AssertionError("Rejected attack rolled")) as attack_roll, \
+             patch("game.roll_damage",
+                   side_effect=AssertionError("Rejected attack rolled damage")) as damage_roll, \
+             patch.object(s.rng, "randint",
+                          side_effect=AssertionError("Rejected attack consumed dice")) as dice, \
+             patch.object(game._DEFAULT_SESSION.rng, "randint",
+                          side_effect=AssertionError("Rejected attack used default dice")) as default_dice:
+            with self.assertRaises(CombatRequestError) as raised:
+                attack.resolve(s, "player", n["id"], "Shortbow")
+            self.assertEqual(raised.exception.code, "distance_unknown")
+            attack_roll.assert_not_called()
+            damage_roll.assert_not_called()
+            dice.assert_not_called()
+            default_dice.assert_not_called()
+
+        self.assertNotIn("attack_results", s.world_state)
+        self.assertEqual(snapshot(s), before)
+        self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_reverse_pair_negative_distance_rejected_unchanged(self):
+        self.assert_invalid_reverse_distance_unchanged({"distance_ft": -1})
+
+    def test_reverse_pair_boolean_distance_rejected_unchanged(self):
+        for distance in (False, True):
+            with self.subTest(distance=distance):
+                self.assert_invalid_reverse_distance_unchanged({"distance_ft": distance})
+
+    def test_reverse_pair_nonfinite_distance_rejected_unchanged(self):
+        for distance in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(distance=distance):
+                self.assert_invalid_reverse_distance_unchanged({"distance_ft": distance})
+
+    def test_reverse_pair_missing_distance_rejected_unchanged(self):
+        self.assert_invalid_reverse_distance_unchanged({})
 
     def test_lance_has_2024_two_handed_property_not_2014_mounted_exception(self):
         s, n = armed("Lance")
