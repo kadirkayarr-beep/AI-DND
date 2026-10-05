@@ -28,3 +28,12 @@ journal trimming, without inventing a historical response or request.
 **How to apply:** Reuse the existing campaign receipt owner; preserve original
 receipts, reject ambiguous identities safely, and retain the event owner's
 ALREADY_APPLIED projection instead of inventing another gameplay resolution.
+
+Do not equate combat turn advancement with RNG consumption in replay regressions.
+
+**Why:** A completed turn can advance the scheduler and reset resources while an
+enemy's range gate rejects its attack before any dice are rolled. Requiring that
+later turn to consume RNG makes the replay check depend on unrelated geometry.
+
+**How to apply:** Prove that the later turn changes canonical combat state, then
+compare the complete RNG state immediately before and after each replay.

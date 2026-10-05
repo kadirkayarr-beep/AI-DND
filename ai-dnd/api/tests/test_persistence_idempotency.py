@@ -116,6 +116,92 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CampaignError):
             self.store.save_campaign(b["campaign_id"], record.game_session)
 
+    async def test_combat_receipt_replays_original_snapshot_after_later_turn_and_reopen(self):
+        a, b = await self.create_campaign(), await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        other, _ = self.prepare_spell(b)
+        isolated = self.snapshot(other)
+        session = record.game_session
+        # Keep the encounter alive while the next turn resets nested resources.
+        session.character["armor_class"] = 100
+        self.manager.save_campaign(a["campaign_id"])
+        combat = session.world_state["combat"]
+        command.update(combat_id=combat["combat_id"], combat_round=combat["round"],
+                       combat_turn_index=combat["current_turn_index"])
+        first = await self.post(a, command)
+        self.assertEqual(first.status_code, 200, first.text)
+        expected = copy.deepcopy(first.json())
+        # The public API exposes combat.turn_resources as action_economy actors,
+        # not as a raw engine combat dictionary.
+        resources = expected["state"]["combat"]["action_economy"]["actors"]
+        canonical_resources = copy.deepcopy(session.world_state["combat"]["turn_resources"])
+        for actor, values in canonical_resources.items():
+            for key, value in values.items():
+                self.assertEqual(resources[actor][key], value)
+        self.assertTrue(resources["player"]["base_action_spent"])
+        original_receipt = copy.deepcopy(
+            self.manager.get_turn_action(record, command["action_id"])
+        )
+        self.assertEqual(original_receipt["response"], expected)
+        later = await self.post(a, {
+            "message": "End this combat turn.", "action_id": str(uuid4()),
+            "combat_action": {"steps": [{"kind": "end_turn"}]},
+        })
+        self.assertEqual(later.status_code, 200, later.text)
+        latest_combat = later.json()["state"]["combat"]
+        self.assertGreater(latest_combat["round"],
+                           expected["state"]["combat"]["round"])
+        self.assertFalse(latest_combat["action_economy"]["actors"]["player"]["base_action_spent"])
+        self.assertNotEqual(latest_combat["action_economy"]["actors"], resources)
+        self.assertNotEqual(session.world_state["combat"]["turn_resources"], canonical_resources)
+        self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 2)
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]),
+                         original_receipt)
+        committed = self.snapshot(record)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        # The original combat context is stale, but its receipt must win before
+        # context validation, mechanics, RNG, or another autosave can run.
+        with patch("game.run_player_turn",
+                   side_effect=AssertionError("replayed mechanics")), \
+             patch.object(session.rng, "randint",
+                          side_effect=AssertionError("replayed RNG")):
+            replay = await self.post(a, command)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), expected)
+        self.assertEqual(replay.json()["state"]["combat"]["action_economy"]["actors"], resources)
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]),
+                         original_receipt)
+
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        self.assertIsNot(restored.game_session, session)
+        self.assertEqual(restored.game_session.serialize_game_state(),
+                         session.serialize_game_state())
+        self.assertEqual(restored.game_session.rng.getstate(), session.rng.getstate())
+        self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
+        before = self.snapshot(restored)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        with patch("game.run_player_turn",
+                   side_effect=AssertionError("replayed mechanics after reopen")), \
+             patch.object(restored.game_session.rng, "randint",
+                          side_effect=AssertionError("replayed RNG after reopen")):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                        base_url="http://reload") as client:
+                replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+        # Only the transport session identity changes when reopening a campaign.
+        reopened_expected = copy.deepcopy(expected)
+        reopened_expected["session_id"] = sid
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), reopened_expected)
+        self.assertEqual(replay.json()["state"]["combat"]["action_economy"]["actors"], resources)
+        self.assertEqual(self.snapshot(restored), before)
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+        self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
+
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
