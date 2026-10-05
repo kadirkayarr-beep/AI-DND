@@ -580,6 +580,94 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game.serialize_game_state(), self.default_before)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
+    def test_overlapping_attack_cannot_borrow_another_sessions_visibility(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+        for session, enemy in zip((self.a, self.b), enemies):
+            session.character.update(armor_class=10, current_hp=19)
+            enemy.update(attack_bonus=0, damage_die=6,
+                         damage_dice=1, damage_modifier=2)
+        # Both campaigns know the same distance. Only B's enemy cannot see
+        # the player; its reverse directional entry remains fully visible.
+        self.b.world_state["attack_environment"]["pairs"][
+            f"{enemies[1]['id']}|player"
+        ]["attacker_sees_target"] = False
+        before_a = self.a.serialize_game_state()
+        before_b = self.b.serialize_game_state()
+        rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        visible_attack_waiting = threading.Event()
+        unseen_attack_finished = threading.Event()
+        roll_d20 = self.a.roll_d20
+
+        def overlapping_roll():
+            self.assertIs(game._session(), self.a)
+            visible_attack_waiting.set()
+            self.assertTrue(unseen_attack_finished.wait(timeout=5))
+            self.assertIs(game._session(), self.a)
+            return roll_d20()
+
+        def attack_without_visibility():
+            try:
+                self.assertTrue(visible_attack_waiting.wait(timeout=5))
+                result = game.resolve_enemy_attack(enemies[1], session=self.b)
+                # A is still inside its attack; B must not mutate its state.
+                self.assertEqual(self.a.serialize_game_state(), before_a)
+                self.assertEqual(self.a.rng.getstate(), rng_a)
+                return result
+            finally:
+                unseen_attack_finished.set()
+
+        with self.rolls(self.a, (20, 15), (6, 4)), \
+             self.rolls(self.b, (20, 15), (20, 3)), \
+             self.rolls(game._DEFAULT_SESSION), \
+             patch.object(self.a, "roll_d20", side_effect=overlapping_roll):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                visible = pool.submit(game.resolve_enemy_attack, enemies[0],
+                                      session=self.a)
+                unseen = pool.submit(attack_without_visibility)
+                result_b = unseen.result(timeout=10)
+                result_a = visible.result(timeout=10)
+
+        for result in (result_a, result_b):
+            self.assertEqual(result["actor_id"], enemies[0]["id"])
+            self.assertEqual(result["target_id"], "player")
+            self.assertEqual(result["target_ac"], 10)
+            self.assertEqual(result["target_hp_before"], 19)
+            self.assertEqual(result["target_status"], "active")
+            self.assertFalse(result["critical"])
+            self.assertEqual(result["advantage_sources"], [])
+        self.assertTrue(result_a["success"])
+        self.assertEqual(result_a["outcome"], "hit")
+        self.assertEqual(result_a["attack_rolls"], [15])
+        self.assertEqual(result_a["attack_roll"], 15)
+        self.assertEqual(result_a["disadvantage_sources"], [])
+        self.assertFalse(result_a["disadvantage"])
+        self.assertEqual(result_a["damage"], 6)
+        self.assertEqual(result_a["target_hp_after"], 13)
+        self.assertFalse(result_b["success"])
+        self.assertEqual(result_b["outcome"], "miss")
+        self.assertEqual(result_b["attack_rolls"], [15, 3])
+        self.assertEqual(result_b["attack_roll"], 3)
+        self.assertEqual(result_b["disadvantage_sources"], ["unseen_target"])
+        self.assertTrue(result_b["disadvantage"])
+        self.assertEqual(result_b["damage"], 0)
+        self.assertEqual(result_b["damage_rolls"], [])
+        self.assertEqual(result_b["target_hp_after"], 19)
+        # A hit changes HP; a legal miss still records its owning result.
+        # Everything else, including both directional visibility facts, stays.
+        before_a["player"]["current_hp"] = 13
+        for before, result in ((before_a, result_a), (before_b, result_b)):
+            before["world_state"].setdefault("attack_results", []).append(
+                copy.deepcopy(result)
+            )
+        self.assertEqual(self.a.serialize_game_state(), before_a)
+        self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.a.rng.getstate(), rng_a)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
     def test_overlapping_hits_keep_damage_dice_in_their_own_sessions(self):
         enemies = [self.npc(self.a), self.npc(self.b)]
         self.a.character.update(armor_class=10, current_hp=19)
