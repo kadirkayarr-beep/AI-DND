@@ -492,7 +492,11 @@ class SessionManager:
         narrative_memory: dict[str, Any] | None = None,
         turn_action_receipt: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
-        """Persist a successful turn; caller holds record.turn_lock."""
+        """Persist a successful turn; caller holds record.turn_lock.
+
+        Accepted receipts are detached from caller-owned input: transient
+        sessions retain a deep copy and campaigns store serialized response data.
+        """
         if record.revoked:
             raise CampaignNotFoundError("Campaign session has been revoked.")
         candidate_memory = validate_narrative_memory(

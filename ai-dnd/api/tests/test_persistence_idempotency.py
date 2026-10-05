@@ -204,7 +204,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(other), isolated)
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
 
-    async def assert_returned_combat_receipt_isolation(self, persisted):
+    async def assert_combat_receipt_isolation(self, persisted, *, edit_input=False):
         if persisted:
             a, b = await self.create_campaign(), await self.create_campaign()
         else:
@@ -219,7 +219,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         # Identical action IDs still belong to independent campaign/session owners.
         other_command["action_id"] = command["action_id"]
         other_response = await self.post(b, other_command)
-        first = await self.post(a, command)
+        # Retain the actual caller-owned input, not a lookup copy or an HTTP
+        # JSON decode. The real autosave still performs its normal commit.
+        with patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave:
+            first = await self.post(a, command)
+        autosave.assert_called_once()
+        supplied = autosave.call_args.kwargs["turn_action_receipt"]
         self.assertEqual(other_response.status_code, 200, other_response.text)
         self.assertEqual(first.status_code, 200, first.text)
         expected = copy.deepcopy(first.json())
@@ -228,12 +234,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.manager.get_turn_action(other, command["action_id"])
         )
         self.assertEqual(original["response"], expected)
+        self.assertEqual(supplied["response"], expected)
+        self.assertEqual(supplied["request_hash"], original["request_hash"])
+        self.assertEqual(supplied["action_id"], command["action_id"])
+        supplied_original = copy.deepcopy(supplied)
         self.assertEqual(other_original["response"], other_response.json())
         committed, isolated = self.snapshot(record), self.snapshot(other)
 
-        # Mutate the direct lookup, not a JSON response already detached by HTTP.
-        returned = self.manager.get_turn_action(record, command["action_id"])
-        actors = returned["response"]["state"]["combat"]["action_economy"]["actors"]
+        # Exercise the input-to-owner and owner-to-lookup boundaries separately.
+        caller_receipt = (supplied if edit_input else
+                          self.manager.get_turn_action(record, command["action_id"]))
+        actors = caller_receipt["response"]["state"]["combat"]["action_economy"]["actors"]
         original_actors = original["response"]["state"]["combat"]["action_economy"]["actors"]
         self.assertTrue(actors["player"]["base_action_spent"])
         self.assertGreater(len(actors), 1)
@@ -243,7 +254,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         enemy_id = next(actor for actor in actors if actor != "player")
         actors[enemy_id].clear()
         actors["caller_only_actor"] = {"base_action_spent": True}
-        self.assertNotEqual(returned, original)
+        self.assertNotEqual(caller_receipt,
+                            supplied_original if edit_input else original)
         self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
         self.assertEqual(self.manager.get_turn_action(other, command["action_id"]), other_original)
         self.assertEqual(self.snapshot(record), committed)
@@ -276,7 +288,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             with patch("game.run_player_turn",
                        side_effect=AssertionError("replayed mechanics after reopen")), \
                  patch.object(restored.game_session.rng, "randint",
-                              side_effect=AssertionError("replayed RNG after reopen")):
+                              side_effect=AssertionError("replayed RNG after reopen")), \
+                 patch.object(fresh, "autosave_turn",
+                              side_effect=AssertionError("replayed autosave after reopen")):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                             base_url="http://reload") as client:
                     replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
@@ -289,10 +303,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(self.snapshot(other), isolated)
 
     async def test_persisted_combat_receipt_isolated_from_caller_edits(self):
-        await self.assert_returned_combat_receipt_isolation(persisted=True)
+        await self.assert_combat_receipt_isolation(persisted=True)
 
     async def test_transient_combat_receipt_isolated_from_caller_edits(self):
-        await self.assert_returned_combat_receipt_isolation(persisted=False)
+        await self.assert_combat_receipt_isolation(persisted=False)
+
+    async def test_persisted_combat_receipt_isolated_from_autosave_input_edits(self):
+        await self.assert_combat_receipt_isolation(persisted=True, edit_input=True)
+
+    async def test_transient_combat_receipt_isolated_from_autosave_input_edits(self):
+        await self.assert_combat_receipt_isolation(persisted=False, edit_input=True)
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
