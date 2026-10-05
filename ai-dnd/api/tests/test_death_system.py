@@ -231,6 +231,11 @@ class DeathSystemTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self._assert_stable_recovery_round_trip(mode)
 
+    def test_repeated_stabilization_preserves_saved_recovery_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                self._assert_stable_recovery_round_trip(mode, repeat_stabilization=True)
+
     def test_zero_healing_preserves_stable_recovery_after_reopening(self):
         for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
             with self.subTest(mode=mode):
@@ -263,7 +268,7 @@ class DeathSystemTests(unittest.TestCase):
 
     def _assert_stable_recovery_round_trip(
         self, mode, *, zero_healing=False, rejected_healing=(), rejected_maximum=(),
-        positive_maximum=None
+        positive_maximum=None, repeat_stabilization=False
     ):
         session = make_session()
         peer = make_session(seed=29)
@@ -428,6 +433,30 @@ class DeathSystemTests(unittest.TestCase):
                 )
                 heal.assert_not_called()
                 assert_preserved()
+
+                if repeat_stabilization:
+                    death_at_load = copy.deepcopy(reopened.ensure_death_state())
+                    clock_at_load = copy.deepcopy(reopened.world_state["campaign_time"])
+                    self.assertEqual(reopened.character["current_hp"], 0)
+                    self.assertTrue(death_at_load["stable"])
+                    self.assertIsNot(reopened.rng, session.rng)
+                    # Repeated stabilization must keep the absolute deadline
+                    # created before saving, not start a new duration on reopen.
+                    for _ in range(2):
+                        self.assertEqual(
+                            reopened.stabilize_player(),
+                            {"action": "stabilize", "success": True, "status": "resolved"},
+                        )
+                        self.assertEqual(reopened.serialize_game_state(), committed)
+                        self.assertEqual(reopened.ensure_death_state(), death_at_load)
+                        self.assertEqual(reopened.ensure_death_state()["recovery"], recovery)
+                        self.assertEqual(reopened.world_state["campaign_time"], clock_at_load)
+                        self.assertEqual(reopened.character["current_hp"], 0)
+                        self.assertEqual(
+                            reopened.world_state["player_combat_status"], "unconscious"
+                        )
+                        heal.assert_not_called()
+                        assert_preserved()
 
                 now = reopened.world_state["campaign_time"]["elapsed_seconds"]
                 before = reopened.advance_campaign_time(recovery["at"] - now - 1, "wait")
