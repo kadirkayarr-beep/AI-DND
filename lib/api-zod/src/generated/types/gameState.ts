@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { AdventureProjection } from './adventureProjection';
 import type { CampaignJournal } from './campaignJournal';
 import type { CampaignTime } from './campaignTime';
 import type { DeathStateProjection } from './deathStateProjection';
@@ -53,4 +54,5 @@ export interface GameState {
   turn_index: number;
   quests: QuestState[];
   quest_offers: QuestOffer[];
+  adventure?: AdventureProjection;
 }

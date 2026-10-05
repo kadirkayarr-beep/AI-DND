@@ -30,6 +30,7 @@ _EVENT_TYPES = {
     "item_gained",
     "item_lost",
     "ambient_event_outcome",
+    "adventure_event",
 }
 _QUEST_STATUSES = {"active", "completed", "failed", "cancelled"}
 _OBJECTIVE_STATUSES = {"active", "completed", "failed", "cancelled"}
@@ -751,6 +752,18 @@ def update_campaign_journal(
                     location=current_location,
                     related_item=item,
                 )
+
+    # Copy only accepted structured player-known events, never model prose.
+    import interaction_adventure
+    previous_ids = {e["event_id"] for e in interaction_adventure.get(before_world)["events"]}
+    for event in interaction_adventure.get(after_world)["events"]:
+        if event["event_id"] in previous_ids or not event["player_known"]:
+            continue
+        _add_event(
+            journal, event_type="adventure_event", summary=event["summary"],
+            created_at=now, turn_index=event["turn"], location=current_location,
+            related_npc_id=event["npc_id"],
+        )
 
     validate_campaign_journal(journal)
     return journal

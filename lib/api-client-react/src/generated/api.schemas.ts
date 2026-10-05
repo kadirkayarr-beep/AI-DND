@@ -328,6 +328,7 @@ export const JournalEventEventType = {
   item_gained: 'item_gained',
   item_lost: 'item_lost',
   ambient_event_outcome: 'ambient_event_outcome',
+  adventure_event: 'adventure_event',
 } as const;
 
 export type JournalAmbientEventResultAction = typeof JournalAmbientEventResultAction[keyof typeof JournalAmbientEventResultAction];
@@ -919,6 +920,135 @@ export interface QuestOffer {
   objectives: QuestObjectiveOffer[];
 }
 
+export type AdventureThreadOrigin = typeof AdventureThreadOrigin[keyof typeof AdventureThreadOrigin];
+
+
+export const AdventureThreadOrigin = {
+  player: 'player',
+  local_proposal: 'local_proposal',
+  legacy_quest: 'legacy_quest',
+} as const;
+
+export type AdventureThreadStatus = typeof AdventureThreadStatus[keyof typeof AdventureThreadStatus];
+
+
+export const AdventureThreadStatus = {
+  discovered: 'discovered',
+  offered: 'offered',
+  active: 'active',
+  progressing: 'progressing',
+  reframed: 'reframed',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  abandoned: 'abandoned',
+  expired: 'expired',
+} as const;
+
+export type AdventureThreadObjectivesItemStatus = typeof AdventureThreadObjectivesItemStatus[keyof typeof AdventureThreadObjectivesItemStatus];
+
+
+export const AdventureThreadObjectivesItemStatus = {
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type AdventureThreadObjectivesItem = {
+  objective_id: string;
+  description: string;
+  optional: boolean;
+  status: AdventureThreadObjectivesItemStatus;
+};
+
+export interface AdventureThread {
+  thread_id: string;
+  title: string;
+  origin: AdventureThreadOrigin;
+  status: AdventureThreadStatus;
+  location_id: string;
+  /** @nullable */
+  npc_id: string | null;
+  /** @nullable */
+  allegiance_id: string | null;
+  /** @nullable */
+  deadline: number | null;
+  objectives: AdventureThreadObjectivesItem[];
+}
+
+export type AdventureCommitmentKind = typeof AdventureCommitmentKind[keyof typeof AdventureCommitmentKind];
+
+
+export const AdventureCommitmentKind = {
+  promise: 'promise',
+  conditional: 'conditional',
+  debt: 'debt',
+} as const;
+
+export type AdventureCommitmentStatus = typeof AdventureCommitmentStatus[keyof typeof AdventureCommitmentStatus];
+
+
+export const AdventureCommitmentStatus = {
+  open: 'open',
+  fulfilled: 'fulfilled',
+  broken: 'broken',
+} as const;
+
+export interface AdventureCommitment {
+  commitment_id: string;
+  npc_id: string;
+  quote: string;
+  /** @nullable */
+  thread_id: string | null;
+  kind: AdventureCommitmentKind;
+  status: AdventureCommitmentStatus;
+}
+
+export type AdventurePlanStatus = typeof AdventurePlanStatus[keyof typeof AdventurePlanStatus];
+
+
+export const AdventurePlanStatus = {
+  awaiting_confirmation: 'awaiting_confirmation',
+  paused: 'paused',
+  completed: 'completed',
+  abandoned: 'abandoned',
+} as const;
+
+export type AdventurePlanStepsItemInterruption = typeof AdventurePlanStepsItemInterruption[keyof typeof AdventurePlanStepsItemInterruption];
+
+
+export const AdventurePlanStepsItemInterruption = {
+  player_confirmation: 'player_confirmation',
+} as const;
+
+export type AdventurePlanStepsItem = {
+  quote: string;
+  precondition: string;
+  /** @nullable */
+  depends_on: number | null;
+  interruption: AdventurePlanStepsItemInterruption;
+};
+
+export interface AdventurePlan {
+  plan_id: string;
+  goal: string;
+  status: AdventurePlanStatus;
+  cursor: number;
+  location_id: string;
+  steps: AdventurePlanStepsItem[];
+}
+
+export type AdventureProjectionRecentEventsItem = {
+  event_id: string;
+  summary: string;
+  turn: number;
+};
+
+export interface AdventureProjection {
+  threads: AdventureThread[];
+  commitments: AdventureCommitment[];
+  plan: AdventurePlan | null;
+  recent_events: AdventureProjectionRecentEventsItem[];
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -949,6 +1079,7 @@ export interface GameState {
   turn_index: number;
   quests: QuestState[];
   quest_offers: QuestOffer[];
+  adventure?: AdventureProjection;
 }
 
 export interface GameSession {

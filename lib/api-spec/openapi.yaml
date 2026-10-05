@@ -1415,6 +1415,82 @@ components:
         in_combat: {type: boolean}
         can_fight: {type: boolean}
       required: [summary, forced, in_combat, can_fight]
+    AdventureProjection:
+      type: object
+      properties:
+        threads:
+          type: array
+          items: {$ref: "#/components/schemas/AdventureThread"}
+        commitments:
+          type: array
+          items: {$ref: "#/components/schemas/AdventureCommitment"}
+        plan:
+          anyOf:
+            - {$ref: "#/components/schemas/AdventurePlan"}
+            - {type: "null"}
+        recent_events:
+          type: array
+          items:
+            type: object
+            properties:
+              event_id: {type: string}
+              summary: {type: string}
+              turn: {type: integer}
+            required: [event_id, summary, turn]
+      required: [threads, commitments, plan, recent_events]
+    AdventureThread:
+      type: object
+      properties:
+        thread_id: {type: string}
+        title: {type: string}
+        origin: {type: string, enum: [player, local_proposal, legacy_quest]}
+        status:
+          type: string
+          enum: [discovered, offered, active, progressing, reframed, succeeded, failed, abandoned, expired]
+        location_id: {type: string}
+        npc_id: {type: [string, "null"]}
+        allegiance_id: {type: [string, "null"]}
+        deadline: {type: [integer, "null"]}
+        objectives:
+          type: array
+          items:
+            type: object
+            properties:
+              objective_id: {type: string}
+              description: {type: string}
+              optional: {type: boolean}
+              status: {type: string, enum: [active, completed]}
+            required: [objective_id, description, optional, status]
+      required: [thread_id, title, origin, status, location_id, npc_id, allegiance_id, deadline, objectives]
+    AdventureCommitment:
+      type: object
+      properties:
+        commitment_id: {type: string}
+        npc_id: {type: string}
+        quote: {type: string}
+        thread_id: {type: [string, "null"]}
+        kind: {type: string, enum: [promise, conditional, debt]}
+        status: {type: string, enum: [open, fulfilled, broken]}
+      required: [commitment_id, npc_id, quote, thread_id, kind, status]
+    AdventurePlan:
+      type: object
+      properties:
+        plan_id: {type: string}
+        goal: {type: string}
+        status: {type: string, enum: [awaiting_confirmation, paused, completed, abandoned]}
+        cursor: {type: integer}
+        location_id: {type: string}
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              quote: {type: string}
+              precondition: {type: string}
+              depends_on: {type: [integer, "null"]}
+              interruption: {type: string, enum: [player_confirmation]}
+            required: [quote, precondition, depends_on, interruption]
+      required: [plan_id, goal, status, cursor, location_id, steps]
     GameState:
       type: object
       description: Public state projection produced by the API serializers.
@@ -1491,6 +1567,8 @@ components:
         quest_offers:
           type: array
           items: {$ref: "#/components/schemas/QuestOffer"}
+        adventure:
+          $ref: "#/components/schemas/AdventureProjection"
       required:
         - campaign_time
         - known_scheduled_events
@@ -1680,6 +1758,7 @@ components:
             - item_gained
             - item_lost
             - ambient_event_outcome
+            - adventure_event
         created_at:
           type: string
           format: date-time

@@ -60,6 +60,7 @@ import {
   useSaveCampaign,
 } from '@workspace/api-client-react';
 import { QuestJournalSection } from '@/components/quest-journal-section';
+import { AdventureJournalSection } from '@/components/adventure-journal-section';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
@@ -398,6 +399,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         hasError={acceptQuest.isError || cancelQuest.isError}
         commandNotice={commandNotice}
       />
+      <AdventureJournalSection adventure={state.adventure} />
     </section>
   );
 }

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 process.env.PORT ||= '4180';
 process.env.BASE_PATH ||= '/';
 delete process.env.REPL_ID;
-let vite, helpers, renderContext, renderDate, renderLibrary;
+let vite, helpers, renderContext, renderDate, renderLibrary, renderAdventure;
 before(async () => {
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'),
@@ -14,15 +14,37 @@ before(async () => {
   helpers = await vite.ssrLoadModule('/src/lib/campaign-presentation.ts');
   const { CampaignContextPanel, CampaignDate } = await vite.ssrLoadModule('/src/components/campaign-context-panel.tsx');
   const { CampaignLibrary } = await vite.ssrLoadModule('/src/components/campaign-library.tsx');
+  const { AdventureJournalSection } = await vite.ssrLoadModule('/src/components/adventure-journal-section.tsx');
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   renderContext = (state) => renderToStaticMarkup(React.createElement(CampaignContextPanel, { state }));
   renderDate = (state) => renderToStaticMarkup(React.createElement(CampaignDate, { state }));
+  renderAdventure = (adventure) => renderToStaticMarkup(React.createElement(AdventureJournalSection, { adventure }));
   renderLibrary = (campaigns) => renderToStaticMarkup(React.createElement(QueryClientProvider, { client: new QueryClient() },
     React.createElement(CampaignLibrary, { campaigns, loading: false, resuming: false, resumingCampaignId: null, notice: null })));
 });
 after(async () => { await vite?.close(); });
+test('adventure journal only renders returned thread/commitment/plan state, without authoring controls', () => {
+  assert.equal(renderAdventure(undefined), '');
+  assert.equal(renderAdventure({ threads: [], commitments: [], plan: null }), '');
+  const projection = {
+    threads: [{ thread_id: 'thread:1', title: 'Kendi hedefim', status: 'reframed',
+      objectives: [{ objective_id: 'objective:1', description: 'Bir iz bul', optional: true, status: 'completed' }] }],
+    commitments: [{ commitment_id: 'commitment:1', quote: 'Söz veriyorum', status: 'open' }],
+    plan: { status: 'paused', cursor: 0, steps: [{ quote: 'Dışarı çık', precondition: 'Tehlike geçince' }] },
+  };
+  const untouched = structuredClone(projection);
+  const html = renderAdventure(projection);
+  assert.match(html, /Kendi hedefim/);
+  assert.match(html, /Yönü değişti/);
+  assert.match(html, /Tamamlandı/);
+  assert.match(html, /Henüz yerine gelmedi/);
+  assert.match(html, /planın bekliyor/);
+  assert.doesNotMatch(html, /<button|<input|QUEST ACCEPTED|canonical|Python/);
+  assert.deepEqual(projection, untouched);
+  assert.match(renderAdventure({ ...projection, threads: [{ ...projection.threads[0], status: 'succeeded' }] }), /Sonuca ulaştı/);
+});
 function state() {
   return { location: 'here', locations: {
     here: { id: 'here', name: 'Kuzgun Hanı', description: 'Taş duvarlar.', type: 'tavern' },

@@ -20,6 +20,7 @@
     ".github/workflows/ai-dnd-ci.yml"
   ],
   "regression_selectors": [
+    "api.tests.test_interaction_adventure",
     "api.tests.test_bounded_encounter",
     "test_regression",
     "api.tests.test_campaign_time",

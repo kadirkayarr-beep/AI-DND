@@ -22,3 +22,15 @@ For FastAPI workflow checks, custom INFO loggers need their own stream handler t
 **Why:** Uvicorn's workflow showed access logs but suppressed the adapter's model-call records until the API loggers wrote directly to the workflow stream.
 
 **How to apply:** Record the configured model and per-turn call count server-side, then inspect workflow logs after the real HTTP smoke. Do not expose these diagnostics in client responses.
+
+Schema compliance and HTTP success are not semantic acceptance. Require the
+expected authoritative state change for each live intent, including populated
+plan steps rather than an immersive clarification.
+
+**Why:** Fixture packets accepted a complex plan while real Qwen returned empty
+steps. Requiring its operation/envelope improved goals and promises, but prompt
+and schema adjustments alone did not establish successful live plan handling.
+
+**How to apply:** Report fixture coverage and native model coverage separately.
+Keep failed source-span/dependency validation fail-closed; do not weaken checks,
+substitute a fabricated plan or call a safe fallback a successful interpretation.

@@ -13,6 +13,7 @@ import living_world
 import campaign_time
 import scheduled_events
 import timed_gameplay
+import interaction_adventure
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -596,6 +597,7 @@ def serialize_session_state(
         "turn_index": copy.deepcopy(flags.get("turn_index", 0)),
         "quests": quest_state,
         "quest_offers": offers,
+        "adventure": interaction_adventure.public(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
     }
 

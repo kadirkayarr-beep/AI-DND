@@ -1,0 +1,1150 @@
+AI-DND — INTERACTION & QUEST ADVENTURE V1
+LONG AUTONOMOUS IMPLEMENTATION PASS
+
+You are beginning the first major AI-DND V2 gameplay package:
+
+INTERACTION & QUEST ADVENTURE V1
+
+This is intentionally a large, important package.
+
+The goal is NOT to build a conventional quest-log system or a menu-driven dialogue system.
+
+The goal is to make the player feel that they inhabit a persistent Forgotten Realms world where they can attempt natural, open-ended actions, negotiate, investigate, make plans, create their own goals, betray expectations, change sides, discover hidden truths, and cause persistent consequences.
+
+The player must not feel like they are talking to an AI chatbot.
+
+============================================================
+WORKING MODE
+============================================================
+
+Work autonomously and continue through ordinary implementation problems without asking the user for permission at every step.
+
+Do not optimize for elapsed time.
+
+Continue until:
+- the bounded package goals below are meaningfully implemented and verified, OR
+- you encounter a genuine architecture/rules/lore/save-compatibility blocker that requires user product authority.
+
+If an ordinary bug, failing targeted test, typing issue, migration issue, integration problem, or local implementation mistake occurs:
+diagnose it, fix it carefully, rerun the relevant targeted verification, and continue.
+
+Do NOT stop merely because the first implementation attempt fails.
+
+However, STOP rather than inventing policy if continuing would require:
+- changing Python authority,
+- allowing Qwen prose to mutate canonical state,
+- weakening persistence/idempotency,
+- breaking save compatibility,
+- breaking session isolation,
+- exceeding the 2-model-call contract,
+- creating a new retry loop,
+- silently changing official D&D mechanics,
+- silently changing Forgotten Realms canon,
+- canonizing published adventure outcomes,
+- changing another locked package's behavior,
+- broad engine decomposition,
+- or making a major unresolved product decision.
+
+Do not merge.
+Do not force push.
+Do not push unless explicitly authorized.
+Do not silently reset user work.
+
+At the very beginning record:
+- branch
+- exact HEAD
+- working-tree state
+- relevant remote state if safely available
+- current package-related production owners
+- existing tests/evidence relevant to this package
+
+Do not treat old PASS evidence as proof for new source changes.
+
+============================================================
+NON-NEGOTIABLE ARCHITECTURE
+============================================================
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT, MAY PROPOSE BOUNDED CREATIVE OPTIONS,
+USES VERIFIED CONTEXT, AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+Python remains authoritative for:
+- quest existence
+- quest state
+- objective state
+- success/failure
+- rewards/consequences
+- inventory changes
+- NPC mechanical consequences
+- relationships where mechanically stored
+- campaign events
+- canonical memory
+- RNG
+- time
+- persistence
+- save/load
+- action receipts
+- idempotency
+
+Qwen MAY:
+- interpret ambiguous player intent
+- generate dialogue
+- narrate resolved outcomes
+- propose NPC reactions
+- propose negotiations
+- propose local campaign events
+- propose adventure seeds
+- propose quest structures
+- propose complications
+- propose alternative approaches
+- propose scene texture
+
+But:
+
+QWEN PROPOSAL != GAME REALITY.
+
+No Qwen proposal becomes canon until Python validates and accepts it.
+
+Python must create canonical IDs, state transitions, receipts, event records,
+inventory changes, quest changes, and persistence.
+
+Do not allow narration text itself to mutate state.
+
+============================================================
+MODEL CALL CONTRACT
+============================================================
+
+Maximum 2 model calls per player turn.
+
+Preferred pattern where needed:
+
+1. optional intent / structured proposal call
+2. Python validation + authoritative resolution
+3. optional narration call
+
+Many turns may use zero or one model call.
+
+No model retry loops.
+
+If intent/proposal output is invalid:
+fail closed or use deterministic fallback.
+
+If narration is rejected:
+use deterministic immersive fallback.
+DO NOT call Qwen again.
+
+Do not add a third call for:
+- novelty checking
+- quest generation
+- NPC decision checking
+- safety validation
+- rewriting rejected narration
+
+If multiple creative candidates are needed, request multiple bounded proposals
+inside ONE permitted proposal call and let Python validate/select.
+
+============================================================
+SOURCE AUTHORITY
+============================================================
+
+Mechanical rules:
+1. Player's Handbook 2024
+2. Dungeon Master's Guide 2024
+3. current uploaded Monster Manual where relevant
+
+Setting:
+- Forgotten Realms: Heroes of Faerûn
+- Forgotten Realms: Adventures in Faerûn
+
+Campaign baseline:
+1501 DR, Year of the Shining Mythal.
+
+Published adventures are possibilities, NOT assumed past campaign events.
+
+Do not silently convert a published adventure hook/outcome/death/reward
+into campaign history.
+
+Local procedural campaign-specific people/events may be created only through
+the campaign-event acceptance path.
+
+If a source conflict is discovered:
+report it.
+Do not invent reconciliation.
+
+============================================================
+PACKAGE PHILOSOPHY
+============================================================
+
+PLAYER FREEDOM IS OPEN-ENDED, NOT MENU-BOUNDED.
+
+The player should not be restricted to predefined choices like:
+
+A) Accept
+B) Decline
+C) Ask for more gold
+
+The player may instead say:
+
+"I don't want the gold. Give me the sword you're carrying."
+
+"I don't trust you. I'm leaving."
+
+"I'll help you, but first tell me what you're hiding."
+
+"I want to work with the bandits instead."
+
+"I think the mayor is corrupt. I want to investigate him."
+
+"I wait until the guard shift changes, enter through the back alley,
+find the records room, and if caught I pretend to work for the merchant."
+
+The system should attempt to understand and resolve such intentions through
+general contracts rather than thousands of hardcoded phrase branches.
+
+============================================================
+CORE CONTRACT A — OPEN-ENDED PLAYER AGENCY
+============================================================
+
+Implement or harden the architecture required for natural open-ended player actions.
+
+At minimum support the design needed for:
+
+- natural interaction
+- open-ended negotiation
+- bargaining
+- reward counter-offers
+- refusal
+- delay
+- conditional agreement
+- threats
+- promises
+- requests for information
+- requests for services
+- requests for items
+- changing sides
+- abandoning a plan
+- betraying a quest giver
+- helping an unexpected faction
+- player-created goals
+- off-script problem solving
+
+Do NOT special-case every sentence.
+
+Prefer a generic structured intent/action/proposal contract consistent with
+existing architecture.
+
+Example:
+
+NPC offers 100 GP.
+
+Player:
+"I don't care about the gold. Give me your sword."
+
+The engine should be able to represent:
+
+intent = negotiate / counter_offer
+requested consideration = existing canonical sword
+rejected consideration = 100 GP
+
+Python must validate:
+- NPC exists
+- sword exists
+- NPC owns it
+- transfer is possible
+- item is not mechanically/lore locked
+- proposed exchange does not violate canonical state
+
+NPC willingness may use bounded Qwen agency based on verified context,
+but final transaction occurs only through Python.
+
+Do NOT implement the full Equipment/Loot/Economy V1 package here.
+
+Use existing inventory/equipment capabilities only where already available.
+Create clean interfaces for later package expansion instead of prematurely
+building the economy package.
+
+============================================================
+CORE CONTRACT B — NPC KNOWLEDGE, BELIEF, SECRETS, AND AGENCY
+============================================================
+
+NPCs must not act like universal information terminals.
+
+Where the existing architecture supports it, distinguish conceptually and,
+where appropriate, structurally:
+
+- actual campaign reality
+- what an NPC knows
+- what an NPC believes
+- what an NPC claims
+- public rumor
+- player claims
+- aliases/false identities
+- witnessed facts
+- secrets
+- lies
+- mistaken information
+
+NPCs may:
+- know
+- not know
+- lie
+- hide part of the truth
+- misunderstand
+- repeat rumors
+- manipulate
+- refuse to answer
+- ask for something in return
+
+Do not automatically expose hidden canonical truth to Qwen.
+
+Only send NPC-appropriate verified knowledge.
+
+Bounded NPC agency should allow Qwen to propose plausible reactions from:
+- personality
+- goals
+- fears
+- loyalties
+- relationships
+- leverage
+- debts
+- promises
+- current context
+
+But Qwen does not directly alter state.
+
+============================================================
+CORE CONTRACT C — IMMERSIVE UNCERTAINTY / NO CHATBOT LANGUAGE
+============================================================
+
+This is HIGH PRIORITY.
+
+The player-facing game must not say things such as:
+
+"I don't have information about that."
+"I cannot answer that."
+"I don't have access to that data."
+"This action is unsupported."
+"I cannot perform this command."
+"The backend cannot..."
+"The model doesn't know..."
+"Python..."
+"server..."
+"canonical record..."
+
+Unknown, impossible, unavailable, unsupported, or uncertain situations
+must be expressed DIEGETICALLY.
+
+Examples:
+
+Bad:
+"I don't have information about Thay."
+
+Good:
+"Thay? Wrong person to ask. A caravan from the east passed through last tenday;
+they might know more."
+
+Bad:
+"This action is unsupported."
+
+Good:
+"The stone door refuses to move, no matter how you brace yourself against it."
+
+Bad narrator:
+"There is insufficient data to answer."
+
+Good narrator:
+"Nothing you have learned so far confirms that claim."
+
+Create or harden validation for:
+- meta-AI language
+- developer/backend terminology
+- data-access language
+- unsupported certainty
+- out-of-world refusal wording
+
+Rejected narration must use deterministic immersive fallback.
+NO model retry.
+
+NPC ignorance is allowed.
+META ignorance is not.
+
+============================================================
+CORE CONTRACT D — SOCIAL RESOLUTION
+============================================================
+
+Social interaction must not become:
+
+roll Persuasion -> mind control.
+
+Where mechanical checks are appropriate, use verified 2024 rules and existing
+Python-owned check resolution.
+
+Not every conversation needs a roll.
+
+"What's your name?"
+usually needs no Persuasion check.
+
+Social resolution may consider verified context such as:
+- NPC goals
+- leverage
+- relationship
+- fear
+- evidence
+- promises
+- bribes/offers
+- risks
+- existing loyalties
+- player reputation where already available
+- relevant skill check where rules call for one
+
+A high roll cannot make an impossible request automatically succeed.
+
+Preserve player agency AND NPC agency.
+
+Support partial success / success with complication where legitimate,
+but the canonical consequence must still be Python-owned.
+
+============================================================
+CORE CONTRACT E — QUESTS AS PERSISTENT ADVENTURE THREADS
+============================================================
+
+Do not build a simplistic MMORPG quest box.
+
+The internal system may still expose structured state, but conceptually treat
+quests as persistent ADVENTURE THREADS.
+
+Potential lifecycle may include, where appropriate:
+
+latent
+discovered
+offered
+accepted
+active
+progressing
+reframed
+succeeded
+failed
+abandoned
+expired
+
+Do not force every thread through every state.
+
+Support:
+- explicit quests
+- implicit adventure threads
+- player-created goals
+- optional objectives
+- hidden facts/objectives
+- branching paths
+- objective reframing
+- side switching
+- betrayal
+- refusal
+- abandonment
+- failure
+- time-sensitive developments
+- consequences that outlive the quest
+
+A quest is not just:
+
+go there -> kill X -> return -> reward
+
+A completed or failed adventure may generate campaign events such as:
+- NPC survived/died
+- NPC opinion changed
+- local rumor changed
+- promise fulfilled/broken
+- another opportunity opened
+- a faction became aware
+- a later callback became possible
+
+Only create consequences justified by the resolved outcome.
+
+Do not silently implement full Reputation/Factions/Living World V1.
+Where later packages own deeper behavior, create narrow integration points.
+
+============================================================
+CORE CONTRACT F — MULTIPLE WAYS TO PROGRESS
+============================================================
+
+Avoid hardcoded single-solution adventures.
+
+Where reasonable, the player should be able to:
+- negotiate
+- investigate
+- sneak
+- deceive
+- bribe
+- threaten
+- ask another NPC
+- use evidence
+- side with the opposition
+- leave
+- return later
+- fail and discover another route
+
+The engine must not require the exact authored path if the player's alternative
+is mechanically and fictionally legitimate.
+
+No-dead-end policy:
+
+A missed clue should not automatically make the entire campaign impossible.
+
+But do NOT make progress automatic either.
+
+Alternative progression should come from plausible world state,
+new evidence, consequences, other actors, investigation, or later opportunity.
+
+============================================================
+CORE CONTRACT G — PLANS, NOT ONLY SINGLE ACTIONS
+============================================================
+
+This is important.
+
+The player may express a multi-step intention such as:
+
+"After the guards change shift, I go through the back alley,
+find the records room, and if someone catches me I claim I work
+for the merchant."
+
+Do not simply execute the entire plan invisibly.
+
+Design a bounded plan/intention representation that can identify:
+
+- goal
+- stated steps
+- preconditions
+- dependencies
+- interruption points
+- likely checks
+- conditions under which control must return to the player
+
+The game must never make major unstated decisions on behalf of the player.
+
+Safe/obvious plan continuation may proceed where existing rules allow,
+but meaningful decisions, new risks, irreversible choices, or unexpected
+situations should return control to the player.
+
+Do not turn this into a separate planning AI loop.
+
+Respect the 2-call budget.
+
+============================================================
+CORE CONTRACT H — EMERGENT ADVENTURE GENERATION
+============================================================
+
+Implement a bounded foundation for emergent local adventures.
+
+Do NOT create a random quest spam generator.
+
+Prefer:
+
+world state
++ location
++ campaign time
++ NPC state
++ recent events
++ player history
++ open threads
++ recent adventure themes
+
+-> bounded Qwen proposal(s)
+-> Python validation
+-> accepted campaign-specific adventure thread
+
+Qwen may propose:
+- local problem
+- opportunity
+- rumor
+- complication
+- NPC request
+- social conflict
+- investigation seed
+- small encounter hook
+- callback
+
+Qwen may NOT:
+- rewrite official Forgotten Realms canon
+- kill/change major lore figures by invention
+- assign unique artifacts casually
+- rewrite faction leadership
+- manufacture unsupported historical facts
+- directly persist the generated idea
+
+Use GENERATIVE IMPACT TIERS.
+
+Low-impact local campaign-specific events:
+more generative freedom.
+
+High-impact changes affecting:
+- major lore
+- major factions
+- famous figures
+- unique artifacts
+- regional political reality
+- permanent high-impact world changes
+
+require stricter authority and should normally fail closed unless supported.
+
+============================================================
+CORE CONTRACT I — NOVELTY / ANTI-REPETITION
+============================================================
+
+Create a bounded novelty mechanism so emergent adventure generation does not
+collapse into endless variants of:
+
+missing relative
+missing cat
+stolen cargo
+bandits
+mysterious stranger
+
+Track enough recent campaign-generation metadata to detect repetition, such as:
+
+- recent themes
+- recent conflict types
+- recent NPC motivations
+- recent objective structures
+- recent locations
+- recent antagonist types
+- recent reward patterns
+- recent resolution styles
+
+Do NOT store raw Qwen prose as canonical novelty truth.
+
+Prefer structured tags/categories owned by Python.
+
+If one model call is used for generation, it may return multiple structured
+candidate proposals.
+
+Python may reject repetitive/invalid candidates and choose another candidate
+from the SAME call.
+
+Do NOT retry the model if all candidates fail.
+
+============================================================
+CORE CONTRACT J — WORLD MOVEMENT WITHOUT THE PLAYER
+============================================================
+
+Use the existing authoritative Campaign Time system.
+
+Some adventure threads may change because time passes.
+
+Possible examples:
+- deadline expires
+- NPC leaves
+- prisoner is moved
+- rival actor acts first
+- target escapes
+- planned event happens
+- opportunity closes
+- another actor resolves part of the problem
+
+Do NOT use wall-clock time.
+
+Closing the game must not advance campaign time.
+
+Do NOT create a second scheduler.
+
+Do NOT implement the full Living World V1 package.
+
+This package only needs the minimum thread/event hooks required for
+Interaction & Quest Adventure V1.
+
+Player absence should matter where appropriate,
+but avoid making the player constantly lose content off-screen.
+
+============================================================
+CORE CONTRACT K — NPC INITIATIVE
+============================================================
+
+The world should not always wait passively for the player to speak first.
+
+Where existing world/event infrastructure allows, support bounded NPC-initiated
+interaction such as:
+- greeting
+- warning
+- request
+- reminder
+- demand
+- fleeing
+- approaching
+- reacting to a known prior event
+
+Important:
+
+Do NOT create uncontrolled Qwen self-conversation.
+
+Python decides that a valid NPC/world beat occurs.
+Qwen may narrate it.
+
+============================================================
+CORE CONTRACT L — WITNESSES, PRIVACY, AND INFORMATION PROPAGATION
+============================================================
+
+Do not assume every NPC knows every campaign event.
+
+Where appropriate, preserve:
+- who witnessed an event
+- who heard a statement
+- whether speech was public/private
+- whether an event had survivors
+- whether information later became a rumor
+
+Multi-NPC scenes should respect:
+- intended addressee
+- public speech
+- whispers/private conversation
+- possible overhearing where justified
+
+Do NOT implement a massive simulation.
+
+Build the smallest coherent foundation needed to prevent
+telepathic NPC knowledge and enable future rumor/reputation systems.
+
+============================================================
+CORE CONTRACT M — CONSEQUENCE ECHOES / CALLBACKS
+============================================================
+
+Campaign history should be capable of producing later callbacks.
+
+Examples:
+- a spared enemy returns later
+- a person helped earlier recognizes the player
+- a broken promise resurfaces
+- a rumor from an old event reaches a new place
+- an NPC asks about a previous unresolved matter
+
+Do NOT force every event to return.
+
+Callbacks should be selective and grounded in persisted campaign canon.
+
+Qwen can narrate or propose callbacks,
+but Python chooses eligible historical facts and validates the resulting event.
+
+============================================================
+CORE CONTRACT N — ADVENTURE DIRECTOR / PACING
+============================================================
+
+Create or design the smallest useful pacing layer necessary to prevent
+constant quest spam.
+
+The game should distinguish between possible world beats such as:
+
+- quiet scene
+- ordinary conversation
+- observation
+- social opportunity
+- rumor
+- callback
+- quest/adventure seed
+- complication
+- discovery
+- danger
+- nothing notable
+
+The purpose is NOT for an AI "director" to author reality.
+
+Python determines eligibility from canonical state.
+
+Qwen may propose content inside an eligible category where appropriate.
+
+Sometimes NOTHING SHOULD HAPPEN.
+
+Do not turn every tavern conversation, rest, street walk, or NPC greeting
+into a quest.
+
+This layer must respect:
+- recent activity
+- recent quest generation
+- campaign context
+- existing open threads
+- novelty
+- pacing
+- Campaign Time
+
+============================================================
+PERSISTENCE / IDEMPOTENCY
+============================================================
+
+Any new canonical state introduced by this package must survive:
+
+- save
+- reload
+- process restart
+- action receipt replay
+- duplicate requests
+- response loss/retry
+- campaign isolation
+- session isolation
+
+Duplicate action IDs must NOT:
+- generate a second quest
+- roll a second check
+- create a second promise
+- transfer a reward twice
+- advance an objective twice
+- create duplicate campaign events
+- consume a second RNG value
+- advance time twice
+- generate another emergent adventure
+
+Preserve old saves where reasonably possible.
+
+If schema migration is required:
+make it explicit, minimal, backward-compatible, and tested.
+
+============================================================
+FRONTEND
+============================================================
+
+Frontend presents canonical state only.
+
+Do not make frontend buttons author quest state.
+
+Do not make UI choices the only possible actions.
+
+The player must remain able to type natural actions.
+
+Avoid player-facing technical terminology.
+
+Do NOT perform a broad visual redesign in this package.
+
+Only add or adjust UI presentation required to make the new interaction/adventure
+state understandable and immersive.
+
+Quest/adventure information should not necessarily appear as loud:
+
+QUEST ACCEPTED!
+
+Prefer immersive presentation where appropriate.
+
+Internal structured state may exist without exposing developer-like UI.
+
+============================================================
+FIRST PHASE — READ-ONLY AUDIT
+============================================================
+
+Before implementation, inspect the current production system.
+
+Identify existing owners for:
+
+- player intent
+- dialogue routing
+- active addressee
+- observation
+- generic interaction
+- skill checks
+- social checks if present
+- procedural NPCs
+- NPC memory
+- quest state
+- quest catalog
+- campaign events
+- Campaign Time
+- scheduled events
+- inventory transfer
+- save/load
+- SQLite persistence
+- action receipts/idempotency
+- RNG
+- narration validation
+- Qwen call budgeting
+- public API projections
+- frontend interaction surfaces
+
+Classify each needed capability:
+
+A — already authoritative and reusable
+B — exists but incomplete
+C — missing
+D — legacy/conflicting
+E — belongs to a later package and should only receive an interface
+
+Do not rebuild A.
+
+Prefer extending existing owners.
+
+============================================================
+DESIGN CONTRACT
+============================================================
+
+After the audit, create a durable package-specific design/spec document
+following the repository's existing docs convention.
+
+The document must record:
+
+- package purpose
+- product philosophy
+- source authority
+- canonical ownership
+- Qwen proposal authority
+- open-ended player agency
+- NPC knowledge/belief boundaries
+- adventure-thread model
+- emergent-generation impact tiers
+- novelty contract
+- pacing contract
+- persistence/idempotency contract
+- model-call contract
+- later-package boundaries
+- acceptance matrix
+
+Do not rewrite the master Project Bible unless truly required.
+
+Do not silently change the agreed six-package roadmap.
+
+============================================================
+IMPLEMENTATION STRATEGY
+============================================================
+
+Work in small reviewable slices.
+
+A recommended dependency order is:
+
+1. current-system audit
+2. package contract/spec
+3. generic open-ended intent/proposal envelope
+4. NPC knowledge / bounded agency / diegetic uncertainty
+5. adventure-thread lifecycle foundation
+6. open-ended negotiation and player-created goals
+7. off-script resolution / reframing / side switching
+8. persistence + idempotency hardening
+9. emergent adventure proposal foundation
+10. novelty / anti-repetition
+11. time-aware thread progression
+12. NPC initiative / witness/privacy hooks
+13. pacing/adventure director foundation
+14. frontend/API projection as needed
+15. focused test matrix
+16. regression/integration verification
+
+Do not follow this order blindly if the current codebase shows a safer dependency order.
+Document why you deviate.
+
+Avoid broad rewrites.
+
+Do not start engine decomposition.
+
+============================================================
+IMPORTANT PACKAGE BOUNDARIES
+============================================================
+
+DO NOT accidentally implement the next roadmap packages in full.
+
+Do NOT build full:
+- Equipment / Loot / Economy V1
+- Exploration / Travel / Dungeon Adventure V1
+- Forgotten Realms Canon & Living World V1
+- Spells & Magic V1
+- Character Progression & Build V1
+
+This package MAY define narrow interfaces into those future systems.
+
+Examples:
+
+Reward negotiation may reference an existing item,
+but do not build the whole economy.
+
+A timed adventure may use Campaign Time,
+but do not build the whole Living World simulation.
+
+Investigation may support interaction/discovery,
+but do not build the entire dungeon/exploration package.
+
+============================================================
+TARGETED ACCEPTANCE CASES
+============================================================
+
+Add focused automated coverage for the highest-value new behaviors.
+
+At minimum cover representative cases for:
+
+1. Player rejects 100 GP and asks for an NPC-owned item instead.
+2. Qwen proposal cannot transfer an item Python says the NPC does not own.
+3. Player creates a personal goal not pre-authored as a quest.
+4. Player chooses an unexpected but legitimate solution path.
+5. Player changes sides / betrays the original quest giver.
+6. Quest/adventure state can be reframed by new verified information.
+7. Missed clue does not require the exact authored solution path.
+8. NPC does not magically know hidden campaign truth.
+9. NPC can express ignorance diegetically without chatbot/meta language.
+10. NPC can lie or state a belief without rewriting campaign truth.
+11. Persuasion does not grant impossible mind-control results.
+12. Promise/debt/commitment persists through save/reload.
+13. Duplicate request does not duplicate a promise or quest event.
+14. Duplicate request does not generate another adventure.
+15. Time-sensitive thread progresses through Campaign Time exactly once.
+16. Closing/restarting does not advance wall-clock quest time.
+17. Private statement is not automatically known by unrelated NPCs.
+18. Multi-NPC addressee remains correct.
+19. Repeated emergent proposals are rejected by novelty logic where appropriate.
+20. All candidates rejected -> no model retry.
+21. Narration validation rejection -> deterministic immersive fallback, no retry.
+22. No turn exceeds 2 model calls.
+23. Qwen prose cannot directly complete/fail/create canonical quest state.
+24. Save/restart preserves adventure thread state.
+25. Two campaigns do not leak goals, rumors, quests, commitments, or NPC beliefs.
+
+Do not create hundreds of low-value tests.
+Prefer high-value contract coverage.
+
+============================================================
+LIVE / INTEGRATION VERIFICATION
+============================================================
+
+After implementation is stable:
+
+Run the smallest relevant focused suites first.
+
+Then run the existing bounded regression required by the repository's
+development tooling.
+
+If frontend changed:
+run existing frontend typecheck/tests/build relevant to the package.
+
+If authenticated real Qwen is available safely:
+run a bounded live smoke focused on this package.
+
+The live smoke should include natural inputs such as:
+
+"I don't want the gold. Give me the sword you're carrying."
+
+"I don't trust this man. I leave."
+
+"I want to find out whether the mayor is corrupt."
+
+"I whisper to Gromm so only he can hear me."
+
+"I'll help the bandits instead."
+
+"I wait until the shift changes, sneak in through the rear entrance,
+and look for the records room."
+
+"What do you know about this symbol?"
+
+Verify:
+- natural interpretation
+- correct Python resolution
+- immersive narration
+- <=2 model calls
+- no model retry
+- no state mutation from prose
+- no chatbot/meta wording
+- persistence where applicable
+
+If real Qwen is unavailable:
+report LIVE QWEN NOT RUN.
+
+Never fake live verification with mocks.
+
+============================================================
+HEALTH / FINAL GATE
+============================================================
+
+Only after the package changes are stable:
+
+Use the existing development Health Check / Final Gate infrastructure if appropriate.
+
+Do not create duplicate gate infrastructure.
+
+Do not weaken gates to make them green.
+
+If a check is NOT RUN:
+report it as NOT RUN.
+
+If Final Gate cannot legitimately return GO:
+report NO-GO and the exact blocker.
+
+Historical Final Gate results from earlier SHAs do not prove this new package.
+
+============================================================
+FINAL REPORT
+============================================================
+
+When you finish, return ONE concise but complete report containing:
+
+1. STARTING STATE
+- branch
+- exact starting HEAD
+- working-tree state
+
+2. AUDIT
+- reusable existing systems
+- real gaps found
+
+3. IMPLEMENTATION
+- what was changed
+- why
+- important architecture decisions
+
+4. PACKAGE CONTRACT
+- where the durable spec was written
+
+5. TESTS
+For every test/suite actually run:
+- exact command or test identity
+- result
+- pass/fail/skip counts where available
+
+6. LIVE VERIFICATION
+- real Qwen used or NOT RUN
+- HTTP/browser used or NOT RUN
+- model-call maximum observed if measured
+
+7. PERSISTENCE / COMPATIBILITY
+- save compatibility
+- session isolation
+- idempotency status
+
+8. GIT STATE
+- exact final HEAD
+- working-tree state
+- any auto-created local commits
+- confirm no push/merge performed
+
+9. REMAINING GAPS
+Classify only real remaining gaps:
+P0 architecture/canonical risk
+P1 required package correctness
+P2 deferred/later-package work
+
+10. DECISION
+Return one:
+
+INTERACTION & QUEST ADVENTURE V1 — READY FOR REVIEW
+
+or
+
+INTERACTION & QUEST ADVENTURE V1 — PARTIAL / BLOCKED
+
+with exact reason.
+
+============================================================
+FINAL REMINDERS
+============================================================
+
+Do not sacrifice immersion for easy implementation.
+
+Do not sacrifice authoritative state for generative freedom.
+
+Do not solve every free-form action with a new hardcoded keyword branch.
+
+Do not turn Qwen into the game-state owner.
+
+Do not turn Python into a giant dialogue-script author.
+
+Use each layer for what it is good at.
+
+The desired end state is:
+
+THE PLAYER SPEAKS NATURALLY.
+QWEN UNDERSTANDS AND MAY PROPOSE.
+PYTHON VALIDATES AND DECIDES WHAT BECOMES REAL.
+LORE AUTHORITY PROTECTS FAERÛN.
+CAMPAIGN EVENTS PRESERVE CONSEQUENCES.
+QWEN TELLS THE RESULT AS A BELIEVABLE ADVENTURE.
+THE FRONTEND NEVER BREAKS THE ILLUSION.

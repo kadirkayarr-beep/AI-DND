@@ -1,0 +1,83 @@
+============================================================
+OPERATIONAL HYGIENE — DO NOT WASTE THE RUN
+============================================================
+
+This is a long gameplay implementation pass.
+
+Do NOT spend substantial time on irrelevant repository housekeeping,
+design artifacts, screenshots, canvas/mockup work, or cosmetic Git cleanup.
+
+The priority is INTERACTION & QUEST ADVENTURE V1.
+
+DO NOT intentionally:
+- create screenshots for documentation unless a browser acceptance check genuinely requires visual evidence
+- save screenshots into the repository
+- create or edit Canva/design/mockup/canvas variants
+- touch artifacts/mockup-sandbox
+- touch generated mockup registries
+- create targeted_element_*.png or similar UI selection assets
+- create pasted prompt/text files inside the repository
+- generate unrelated design assets
+- perform cosmetic repository cleanup
+- reorganize unrelated files
+- rewrite historical evidence
+- create backup branches
+- create recovery branches
+- create tags
+- create commits merely to checkpoint progress
+- amend commits
+- rebase
+- merge
+- push
+- force push
+
+Do not change Git history merely to make the workspace look clean.
+
+If Replit/platform automation creates an unrelated screenshot, asset,
+evidence-only commit, or other platform-generated artifact despite these
+instructions:
+
+1. identify it,
+2. verify whether it affects gameplay/source behavior,
+3. do NOT derail the main implementation pass trying to clean it up,
+4. do NOT reset/rewrite history during the run merely to remove it,
+5. continue the gameplay task if it is harmless,
+6. report it clearly in the final Git-state section.
+
+If an unrelated generated artifact DOES affect source/build/runtime behavior,
+isolate the problem with the smallest safe correction and continue.
+
+Tool-owned test/evidence output produced by the existing Health Check,
+Final Gate, or regression evidence system is allowed when the relevant
+verification is intentionally run.
+
+Do not repeatedly run gates simply to generate evidence.
+Run expensive/broad gates only after the implementation is stable enough
+for them to be meaningful.
+
+Temporary browser/test artifacts should remain temporary and outside the
+tracked application source whenever possible.
+
+Do not spend the autonomous work window trying to make:
+
+local HEAD == remote main
+
+or performing post-run Git publication cleanup.
+
+That reconciliation is a separate review step after the user and ChatGPT
+inspect the completed implementation.
+
+At completion, simply report:
+
+- starting HEAD
+- final HEAD
+- whether Replit/platform auto-created commits
+- exact commit SHAs/messages if any
+- whether each such commit contains gameplay source, evidence only,
+  screenshots/assets only, or another category
+- tracked working-tree changes
+- untracked files
+- confirm whether any push occurred
+
+The autonomous run must prioritize useful gameplay implementation and
+verification over repository cosmetics.

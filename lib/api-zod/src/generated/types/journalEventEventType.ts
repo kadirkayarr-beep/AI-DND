@@ -19,4 +19,5 @@ export const JournalEventEventType = {
   item_gained: 'item_gained',
   item_lost: 'item_lost',
   ambient_event_outcome: 'ambient_event_outcome',
+  adventure_event: 'adventure_event',
 } as const;
