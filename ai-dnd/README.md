@@ -55,12 +55,26 @@ and chat messages are not included in that format.
 python ai-dnd/run_tests.py
 ```
 
-The runner covers the portable deterministic gates, including both historical
-V2 commands. `test_combat_v2.py` contains 15 turn-pipeline scenarios with fresh
-sessions, scripted initiative/attack/damage dice, and scoped model stubs.
-`test_combat_v2_fixed.py` is a compatibility entry point to that same suite,
-not an additional set of scenarios. The authoritative V2 suite remains separate.
-Initiative precedes attacks; a surviving exchange advances one round per command.
+The default runner selects release deterministic gates (`--suite release` is
+equivalent). Combat coverage includes `test_combat.py` and
+`test_combat_v2_authoritative.py`, the authoritative scheduler contract.
+Every selected gate is source-preflighted before execution; failures remain
+nonzero and are listed even when later gates pass.
+
+The retired `test_combat_v2.py` and `test_combat_v2_fixed.py` are historical
+prototype diagnostics, **not release gates**. Their obsolete fixture assumptions
+may fail against the current engine. The fixed entry point delegates to the
+same prototype scenarios, so these commands are not independent coverage.
+They remain available explicitly, with their own nonzero failure reporting:
+
+```bash
+python ai-dnd/run_tests.py --suite prototype
+python ai-dnd/run_tests.py --list
+python ai-dnd/run_tests.py --suite prototype --list
+```
+
+Listing only shows the selected inventory; it does not certify a passing run.
+Prototype results cannot certify or block the default release selection.
 
 Live tests are separate:
 

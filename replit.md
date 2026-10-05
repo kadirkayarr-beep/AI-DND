@@ -9,6 +9,8 @@ Türkçe doğal dil ile oynanan, Python kurallar motoru ve Qwen anlatıcısı ku
 - `pnpm run build` — typecheck + build all packages
 - `python main.py` — start the AI-DND terminal game
 - `python ai-dnd/run_tests.py` — run the deterministic AI-DND gates
+- `python ai-dnd/run_tests.py --list` — list release gates without executing them
+- `python ai-dnd/run_tests.py --suite prototype` — run historical prototype diagnostics, not release gates
 - `python ai-dnd/acceptance_test.py` — run the live Qwen acceptance suite when Ollama and `qwen3:8b` are available
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
@@ -62,6 +64,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - The deterministic runner scans every configured gate before execution and rejects duplicate module functions and class methods with file and definition-line diagnostics. Control-flow blocks share their enclosing namespace; nested local functions and separate module/class scopes do not collide.
 - The live suites require a reachable Ollama server with `qwen3:8b`; a missing server is an environment limitation, not a deterministic test failure.
 - Do not use the prototype `test_combat_v2.py` or `test_combat_v2_fixed.py` as release gates; the authoritative suite is `test_combat_v2_authoritative.py`.
+- The runner defaults to `--suite release`, retaining `test_combat.py` and the authoritative combat suite. Prototype checks require `--suite prototype`; their failures stay nonzero but separate from release results.
 - Keep model output out of mechanical state mutation paths.
 
 ## Pointers
