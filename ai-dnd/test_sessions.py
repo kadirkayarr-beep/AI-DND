@@ -3253,6 +3253,101 @@ class SessionTests(unittest.TestCase):
                         self.assertEqual(session.serialize_game_state(), expected)
                         self.assertEqual(session.messages, messages)
                         self.assertEqual(session.rng.getstate(), rng)
+                    # Persist the committed hits separately, then deliberately
+                    # erase each owner's outcome before reopening its own file.
+                    # Save/load does not serialize messages or rewind RNG.
+                    committed = [session.serialize_game_state()
+                                 for session in sessions]
+                    held = [
+                        (session.world_state, session.character,
+                         session.recent_dm_narrations, session.messages, session.rng)
+                        for session in sessions
+                    ]
+                    with tempfile.TemporaryDirectory() as directory:
+                        paths = [Path(directory) / f"orc-{index}.json"
+                                 for index in range(2)]
+                        for session, path, snapshot in zip(sessions, paths, committed):
+                            self.assertEqual(session.save_game(path), path)
+                            self.assertEqual(
+                                json.loads(path.read_text(encoding="utf-8")), snapshot,
+                            )
+                        for index, (session, path, snapshot) in enumerate(zip(
+                                sessions, paths, committed)):
+                            peer = sessions[1 - index]
+                            peer_before = peer.serialize_game_state()
+                            peer_rng = peer.rng.getstate()
+                            peer_messages = copy.deepcopy(peer.messages)
+                            session.character["current_hp"] = 7
+                            session.character["species_trait_state"].update(
+                                temporary_hit_points=2,
+                                relentless_endurance_available=index != fatal_index,
+                            )
+                            session.world_state["player_combat_status"] = "active"
+                            session.world_state["death_state"].update(
+                                dead=False, failures=0, last_resolution=None,
+                            )
+                            session.world_state["attack_results"].clear()
+                            session.recent_dm_narrations.append("Unsaved change")
+                            session.messages.append(
+                                {"role": "user", "content": f"Reopen Orc {index}"}
+                            )
+                            session.rng.random()
+                            rng_at_load = session.rng.getstate()
+                            messages_at_load = copy.deepcopy(session.messages)
+                            self.assertNotEqual(session.serialize_game_state(), snapshot)
+                            with self.rolls(session), self.rolls(peer), \
+                                 self.rolls(game._DEFAULT_SESSION):
+                                self.assertEqual(session.load_game(path), snapshot)
+                            self.assertEqual(session.serialize_game_state(), snapshot)
+                            self.assertEqual(peer.serialize_game_state(), peer_before)
+                            self.assertEqual(peer.rng.getstate(), peer_rng)
+                            self.assertEqual(peer.messages, peer_messages)
+                            self.assertEqual(session.rng.getstate(), rng_at_load)
+                            self.assertEqual(session.messages, messages_at_load)
+                            self.assertEqual(game.serialize_game_state(),
+                                             self.default_before)
+                            self.assertEqual(game._DEFAULT_SESSION.rng.getstate(),
+                                             rng_default)
+                            self.assertEqual(game._DEFAULT_SESSION.messages,
+                                             default_messages)
+                            self.assertEqual(random.getstate(), rng_module)
+                        for index, (session, snapshot, references) in enumerate(zip(
+                                sessions, committed, held)):
+                            fatal = index == fatal_index
+                            self.assertEqual(session.serialize_game_state(), snapshot)
+                            self.assertEqual(session.character["current_hp"],
+                                             0 if fatal else 1)
+                            trait_state = session.character["species_trait_state"]
+                            self.assertEqual(trait_state["temporary_hit_points"], 0)
+                            self.assertEqual(
+                                trait_state["relentless_endurance_available"], fatal,
+                            )
+                            self.assertEqual(session.world_state["player_combat_status"],
+                                             "dead" if fatal else "active")
+                            self.assertEqual(session.world_state["death_state"],
+                                             snapshot["world_state"]["death_state"])
+                            self.assertEqual(session.world_state["attack_results"],
+                                             [results[index]])
+                            for actual, reference in zip(
+                                    (session.world_state, session.character,
+                                     session.recent_dm_narrations, session.messages,
+                                     session.rng), references):
+                                self.assertIs(actual, reference)
+                    # Restoring either owner must leave genuinely independent
+                    # streams, not just equal snapshots with aliased RNG objects.
+                    self.assertIsNot(sessions[0].rng, sessions[1].rng)
+                    self.assertNotEqual(sessions[0].rng.getstate(),
+                                        sessions[1].rng.getstate())
+                    for index, session in enumerate(sessions):
+                        peer = sessions[1 - index]
+                        peer_rng = peer.rng.getstate()
+                        reference_rng = random.Random()
+                        reference_rng.setstate(session.rng.getstate())
+                        self.assertEqual(session.roll_d20(),
+                                         reference_rng.randint(1, 20))
+                        self.assertEqual(session.rng.getstate(), reference_rng.getstate())
+                        self.assertEqual(peer.rng.getstate(), peer_rng)
+                        self.assertEqual(session.serialize_game_state(), committed[index])
                     self.assertIs(game._session(), game._DEFAULT_SESSION)
                     self.assertEqual(game.serialize_game_state(), self.default_before)
                     self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
