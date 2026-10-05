@@ -72,6 +72,17 @@ fragments, then check syntax and definition uniqueness together. An AST comparis
 against the last parseable integrated version can confirm every pre-existing
 method body is preserved while identifying only the intended new methods.
 
+Locate orphaned duplicate tails by their surrounding method before removing
+them; matching text alone can identify the intact original first.
+
+**Why:** An integration tail can be byte-identical to part of a complete earlier
+test. First-occurrence replacement would damage the valid test instead of
+removing the orphan.
+
+**How to apply:** Confirm the original body remains intact, remove the fragment
+with unique surrounding context, and compare method inventories and fixture
+contents against a parseable version before running the combined suites.
+
 Reference-mutation tests that require exactly one failure should run their
 owning parity check directly rather than assume the whole suite has only one
 check capable of detecting the drift.

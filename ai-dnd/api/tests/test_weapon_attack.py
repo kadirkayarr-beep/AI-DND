@@ -2111,6 +2111,137 @@ class WeaponPushPersistenceTests(unittest.TestCase):
                 self.assertEqual(reopened_store.get_campaign(campaign_id), persisted_before)
 
 
+    def assert_npc_push_persists_without_reverse_permission(
+            self, s, actor_id, target_id, corridor, unrelated, stale_keys, mirrors):
+        forward_key = f"{actor_id}|{target_id}"
+        reverse_key = f"{target_id}|{actor_id}"
+        expected_geometry = {"pairs": {
+            **copy.deepcopy(unrelated),
+            forward_key: {"distance_ft": 15, "push_clear_ft": corridor - 10},
+        }}
+        with tempfile.TemporaryDirectory() as directory:
+            s.initialize_species_trait_state()
+            store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+            campaign_id = str(uuid4())
+            s.world_state["campaign_id"] = campaign_id
+            store.create_campaign(campaign_id, "NPC push persistence", s)
+            rng_before = s.rng.getstate()
+            self.assertEqual(attack.push(s, actor_id, target_id, 10), {
+                "kind": "push", "applied": True, "distance_ft": 10,
+                "resulting_distance_ft": 15})
+            self.assertEqual(s.rng.getstate(), rng_before)
+            self.assertEqual(s.world_state["attack_environment"], expected_geometry)
+            store.save_campaign(campaign_id, s)
+            saved_world = store.get_campaign(campaign_id).payload["engine_save"]["world_state"]
+            self.assertEqual(saved_world["attack_environment"], expected_geometry)
+            self.assertEqual({
+                npc["id"]: npc["distance_ft"] for npc in saved_world["npcs"]
+                if npc["id"] in mirrors}, mirrors)
+
+            # Use entirely new persistence/session owners, not the live fixture.
+            reopened_store = CampaignStore(store.path)
+            manager = SessionManager(campaign_store=reopened_store)
+            _, record, _, _, _ = manager.resume_campaign(campaign_id)
+            restored = record.game_session
+            self.assertIsNot(restored, s)
+            self.assertEqual(restored.rng.getstate(), rng_before)
+            self.assertEqual(restored.world_state["attack_environment"], expected_geometry)
+            live_pairs = restored.world_state["attack_environment"]["pairs"]
+            for key in (reverse_key, *stale_keys):
+                self.assertNotIn(key, live_pairs)
+            self.assertEqual({key: live_pairs[key] for key in unrelated}, unrelated)
+            self.assertEqual({
+                npc["id"]: npc["distance_ft"] for npc in restored.world_state["npcs"]
+                if npc["id"] in mirrors}, mirrors)
+            self.assertGreaterEqual(live_pairs[forward_key]["push_clear_ft"], 10)
+            self.assertEqual(attack.pair(restored, target_id, actor_id),
+                             {"distance_ft": 15})
+
+            # Snapshot every session attribute after loader normalization,
+            # including ephemeral fields and RNG, not just saved geometry.
+            def snapshot():
+                return copy.deepcopy({
+                    key: value.getstate() if key == "rng" else value
+                    for key, value in vars(restored).items()})
+
+            restored.serialize_game_state()
+            before = snapshot()
+            persisted_before = copy.deepcopy(reopened_store.get_campaign(campaign_id))
+            with patch.object(restored.rng, "randint",
+                              side_effect=AssertionError("blocked push rolled")):
+                rejected = attack.push(restored, target_id, actor_id, 10)
+            self.assertEqual(rejected, {
+                "kind": "push", "applied": False,
+                "reason": "position_unresolved_or_blocked"})
+            self.assertEqual(snapshot(), before)
+            self.assertEqual(reopened_store.get_campaign(campaign_id), persisted_before)
+
+    def test_npc_push_player_corridor_stays_invalidated_after_campaign_reopen(self):
+        for corridor in (20, 30):
+            with self.subTest(corridor=corridor):
+                s, actor = armed("Warhammer", mastery=True)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                unrelated = {
+                    f"{actor['id']}|{other['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 10},
+                    f"{other['id']}|{actor['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 0},
+                }
+                stale = {
+                    f"player|{other['id']}": {"distance_ft": 30, "push_clear_ft": 20},
+                    f"{other['id']}|player": {"distance_ft": 30, "push_clear_ft": 0},
+                }
+                s.world_state["attack_environment"] = {"pairs": {
+                    **copy.deepcopy(unrelated), **stale,
+                    f"{actor['id']}|player": {
+                        "distance_ft": 5, "push_clear_ft": corridor},
+                    f"player|{actor['id']}": {"distance_ft": 5, "push_clear_ft": 20},
+                }}
+                self.assert_npc_push_persists_without_reverse_permission(
+                    s, actor["id"], "player", corridor, unrelated, stale,
+                    {actor["id"]: 15, other["id"]: 30})
+
+    def test_npc_push_npc_corridor_stays_invalidated_after_campaign_reopen(self):
+        for corridor in (20, 30):
+            with self.subTest(corridor=corridor):
+                s, actor = armed("Warhammer", mastery=True)
+                actor["distance_ft"] = 40
+                target = s.create_npc_from_ai({
+                    "name": "Push target", "role": "Guard", "location": "tavern"})
+                target.update(size="medium", distance_ft=35)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                unrelated = {
+                    f"player|{actor['id']}": {"distance_ft": 40, "push_clear_ft": 20},
+                    f"{actor['id']}|player": {"distance_ft": 40, "push_clear_ft": 0},
+                    f"player|{other['id']}": {"distance_ft": 30},
+                    f"{other['id']}|player": {"distance_ft": 30},
+                    f"{actor['id']}|{other['id']}": {"distance_ft": 15},
+                    f"{other['id']}|{actor['id']}": {"distance_ft": 15},
+                }
+                stale = {
+                    f"player|{target['id']}": {"distance_ft": 35, "push_clear_ft": 20},
+                    f"{target['id']}|player": {"distance_ft": 35, "push_clear_ft": 0},
+                    f"{target['id']}|{other['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 10},
+                    f"{other['id']}|{target['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 0},
+                }
+                s.world_state["attack_environment"] = {"pairs": {
+                    **copy.deepcopy(unrelated), **stale,
+                    f"{actor['id']}|{target['id']}": {
+                        "distance_ft": 5, "push_clear_ft": corridor},
+                    f"{target['id']}|{actor['id']}": {
+                        "distance_ft": 5, "push_clear_ft": 20},
+                }}
+                self.assert_npc_push_persists_without_reverse_permission(
+                    s, actor["id"], target["id"], corridor, unrelated, stale,
+                    {actor["id"]: 40, target["id"]: 35, other["id"]: 30})
+
+
 class WeaponApiTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = CombatLifecycleApiTests.asyncSetUp
     asyncTearDown = CombatLifecycleApiTests.asyncTearDown
