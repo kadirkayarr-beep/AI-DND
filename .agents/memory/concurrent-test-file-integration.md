@@ -41,6 +41,17 @@ prove all intended tests remain discoverable.
 **How to apply:** Run ordinary module collection and fixture-equivalence checks,
 and confirm independently added test methods are still discovered.
 
+Successful working-tree cleanup does not guarantee the completion merge retains
+those deletions. If review reports duplicates that local checks did not see,
+inspect the integrated committed tree before retrying completion.
+
+**Why:** Concurrent integration has reintroduced already removed duplicate
+fixture definitions and orphaned test tails after a clean local suite run.
+
+**How to apply:** Apply cleanup against the integrated version, preserve all
+distinct complete tests, and check the committed source as well as the working
+tree before resubmitting.
+
 Restore unterminated multiline fixture delimiters before deciding which
 surrounding test definitions are duplicates.
 

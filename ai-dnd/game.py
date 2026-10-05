@@ -4806,8 +4806,10 @@ def resolve_npc_reference(player_input):
     )):
         flags = world_state.setdefault("flags", {})
         active_id = flags.get("active_npc_id") or flags.get("last_npc_id")
+        active_until = flags.get("active_npc_until_turn", -1)
         active = next((npc for npc in available if npc.get("id") == active_id), None)
-        if active and active.get("location") == world_state.get("location"):
+        if (active and active.get("location") == world_state.get("location")
+                and flags.get("turn_index", 0) <= active_until):
             matches = [active]
         elif len(available) == 1:
             matches = available[:]

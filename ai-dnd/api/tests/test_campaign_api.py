@@ -6515,5 +6515,148 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
                 self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
 
+    async def test_reopened_expired_conversation_clarifies_personal_question(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        original_session = self.manager.get(created["session_id"]).game_session
+        world = original_session.world_state
+        local_npcs = [
+            {
+                "id": "npc_expired_personal_traveler",
+                "name": "Derya",
+                "role": "Yolcu",
+                "location": world["location"],
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            },
+            {
+                "id": "npc_expired_personal_guard",
+                "name": "Duru",
+                "role": "Muhafız",
+                "location": world["location"],
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            },
+        ]
+        for npc in local_npcs:
+            local_dialogue.ensure_personal_profile(npc)
+        world["npcs"].extend(local_npcs)
+        flags = world["flags"]
+        flags["active_npc_id"] = flags["last_npc_id"] = local_npcs[0]["id"]
+        flags["active_npc_until_turn"] = flags["turn_index"] - 1
+        saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
+        self.assertEqual(saved.status_code, 200, saved.text)
+        committed = self.store.get_campaign(campaign_id)
+        saved_world = committed.payload["engine_save"]["world_state"]
+        saved_npcs = copy.deepcopy(saved_world["npcs"])
+        saved_ids = [npc["id"] for npc in saved_npcs]
+        self.assertEqual(len(saved_ids), len(set(saved_ids)))
+        self.assertLess(
+            saved_world["flags"]["active_npc_until_turn"],
+            saved_world["flags"]["turn_index"],
+        )
+        body = {"message": "Mesleğin nedir?", "action_id": str(uuid.uuid4())}
+        self.assertEqual(local_dialogue.personal_question_kind(body["message"]), "occupation")
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            session = reopened_manager.get(session_id).game_session
+            self.assertIsNot(session, original_session)
+            self.assertEqual(session.serialize_game_state(), committed.payload["engine_save"])
+            self.assertEqual(resumed.json()["history"], committed.history)
+            self.assertIsNone(reopened_store.get_turn_action(campaign_id, body["action_id"]))
+
+            # As with expired scene references, no selected target means the
+            # saved referent cannot authorize an answer. Observe (do not replace)
+            # the real resolver and turn through the HTTP endpoint.
+            real_turn = session.run_player_turn
+            results = []
+
+            @wraps(real_turn)
+            def capture_turn(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                results.append(copy.deepcopy(result))
+                return result
+
+            with (
+                patch.object(session, "run_player_turn", new=capture_turn),
+                patch.object(game, "resolve_npc_reference", wraps=game.resolve_npc_reference) as resolver,
+            ):
+                response = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=body
+                )
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(len(results), 1)
+            resolver.assert_called_with(body["message"])
+            action = results[0]["action_result"]
+            self.assertEqual(action["action"], "dialogue")
+            self.assertEqual(action["status"], "clarification")
+            self.assertFalse(action["success"])
+            self.assertEqual(action["state_changes"], [])
+            self.assertIsNone(action.get("npc_id"))
+            turn = response.json()
+            self.assertEqual(turn["action_id"], body["action_id"])
+            self.assertEqual(turn["narration"], results[0]["narration"])
+            expected_narration = game.npc_ambiguity_response(
+                {"npcs": saved_npcs}
+            )
+            self.assertEqual(turn["narration"], expected_narration)
+            for npc in local_npcs:
+                self.assertIn(npc["name"], turn["narration"])
+                self.assertNotEqual(
+                    turn["narration"],
+                    f'{npc["name"]}, “{npc["personal_profile"]["occupation"]}” diye yanıt verir.',
+                )
+
+            persisted = reopened_store.get_campaign(campaign_id)
+            self.assertEqual(persisted.payload["engine_save"], session.serialize_game_state())
+            persisted_world = persisted.payload["engine_save"]["world_state"]
+            # Clarification must not choose a person, append NPC dialogue memory,
+            # regenerate profiles, or refresh the expired conversation.
+            self.assertEqual(persisted_world["npcs"], saved_npcs)
+            for key in ("active_npc_id", "last_npc_id", "active_npc_until_turn"):
+                self.assertEqual(persisted_world["flags"][key], saved_world["flags"][key])
+            self.assertEqual(
+                persisted_world["flags"]["turn_index"],
+                saved_world["flags"]["turn_index"] + 1,
+            )
+            self.assertEqual(persisted.history[:-1], committed.history)
+            self.assertEqual(len(persisted.history), len(committed.history) + 1)
+            self.assertEqual(persisted.history[-1]["player_message"], body["message"])
+            self.assertEqual(persisted.history[-1]["narration"], expected_narration)
+            receipt = copy.deepcopy(reopened_store.get_turn_action(campaign_id, body["action_id"]))
+            self.assertEqual(receipt["response"], turn)
+
+        final_store = CampaignStore(self.store.path)
+        final_manager = SessionManager(campaign_store=final_store)
+        final_app = create_app(
+            session_manager=final_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=final_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            final_record = final_manager.get(resumed.json()["session_id"])
+            self.assertIsNot(final_record.game_session, session)
+            self.assertEqual(
+                final_record.game_session.serialize_game_state(), persisted.payload["engine_save"]
+            )
+            self.assertEqual(final_record.journal, persisted.payload["journal"])
+            self.assertEqual(resumed.json()["history"], persisted.history)
+            self.assertEqual(final_store.get_campaign(campaign_id).history, persisted.history)
+            self.assertEqual(final_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+            self.assertEqual(final_manager.get_turn_action(final_record, body["action_id"]), receipt)
+
 if __name__ == "__main__":
     unittest.main()
