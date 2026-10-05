@@ -3604,6 +3604,116 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
+    def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
+        # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
+        # a surviving reserve, and spillover into regular HP. Explicit expected
+        # values do not reuse the production damage owner as an oracle.
+        expectations = {
+            # (temporary HP before, damage): (absorbed, reserve after, HP after)
+            (0, 1): (0, 0, 18),
+            (1, 1): (1, 0, 19),
+            (2, 1): (1, 1, 19),
+            (0, 3): (0, 0, 16),
+            (1, 3): (1, 0, 17),
+            (2, 3): (2, 0, 18),
+        }
+        for damage in (1, 3):
+            for reserves in ((0, 1), (1, 0), (0, 2), (2, 0), (1, 2), (2, 1)):
+                with self.subTest(damage=damage, reserves=reserves):
+                    sessions = (game.create_session(seed=17),
+                                game.create_session(seed=17))
+                    enemies = [self.npc(session) for session in sessions]
+                    for session, enemy, reserve in zip(sessions, enemies, reserves):
+                        session.character.update(
+                            species="Orc", race="Orc", proficiency_bonus=2,
+                            armor_class=10, current_hp=19, max_hp=19,
+                            resistances=[], immunities=[], vulnerabilities=[],
+                        )
+                        game.initialize_species_trait_state(session=session)
+                        session.character["species_trait_state"][
+                            "temporary_hit_points"
+                        ] = reserve
+                        enemy.update(attack_bonus=0, damage_die=6,
+                                     damage_dice=1, damage_modifier=0)
+                    self.assertEqual(enemies[0], enemies[1])
+                    self.assertEqual(sessions[0].world_state["attack_environment"],
+                                     sessions[1].world_state["attack_environment"])
+                    before = [session.serialize_game_state() for session in sessions]
+                    rng_before = [session.rng.getstate() for session in sessions]
+                    rng_default = game._DEFAULT_SESSION.rng.getstate()
+                    rng_module = random.getstate()
+                    attack_barrier = threading.Barrier(2)
+                    damage_barrier = threading.Barrier(2)
+                    # Both contexts are live at attack and damage rolls. Keep
+                    # the real temporary-HP/regular-HP owners in the call path.
+                    with self.rolls(sessions[0], (20, 15), (6, damage),
+                                    barrier=attack_barrier,
+                                    damage_barrier=damage_barrier), \
+                         self.rolls(sessions[1], (20, 15), (6, damage),
+                                    barrier=attack_barrier,
+                                    damage_barrier=damage_barrier), \
+                         self.rolls(game._DEFAULT_SESSION):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            futures = [
+                                pool.submit(game.resolve_enemy_attack, enemy,
+                                            session=session)
+                                for session, enemy in zip(sessions, enemies)
+                            ]
+                            results = [future.result(timeout=10) for future in futures]
+                    for session, enemy, reserve, result, expected, rng in zip(
+                        sessions, enemies, reserves, results, before, rng_before
+                    ):
+                        absorbed, remaining, hp_after = expectations[(reserve, damage)]
+                        self.assertEqual(result["actor_id"], enemy["id"])
+                        self.assertEqual(result["target_id"], "player")
+                        self.assertEqual(result["attack_rolls"], [15])
+                        self.assertEqual(result["attack_roll"], 15)
+                        self.assertEqual(result["attack_total"], 15)
+                        self.assertEqual(result["target_ac"], 10)
+                        self.assertEqual(result["advantage_sources"], [])
+                        self.assertEqual(result["disadvantage_sources"], [])
+                        self.assertFalse(result["critical"])
+                        self.assertTrue(result["hit"])
+                        self.assertTrue(result["success"])
+                        self.assertEqual(result["outcome"], "hit")
+                        self.assertEqual(result["damage_type"], "slashing")
+                        self.assertEqual(result["damage_rolls"], [
+                            {"source": "weapon", "die": 6, "count": 1,
+                             "rolls": [damage]},
+                        ])
+                        self.assertEqual(result["raw_damage"], damage)
+                        self.assertEqual(result["damage"], damage)
+                        self.assertEqual(result["temporary_hp_before"], reserve)
+                        self.assertEqual(result["temporary_hp_absorbed"], absorbed)
+                        self.assertEqual(result["temporary_hp_after"], remaining)
+                        self.assertEqual(result["hp_damage"], 19 - hp_after)
+                        self.assertEqual(result["target_hp_before"], 19)
+                        self.assertEqual(result["target_hp_after"], hp_after)
+                        self.assertEqual(result["target_status"], "active")
+                        self.assertEqual(result["species_effects"], [])
+                        self.assertIsNone(result["death_resolution"])
+                        self.assertEqual(session.character["current_hp"], hp_after)
+                        self.assertEqual(
+                            session.character["species_trait_state"][
+                                "temporary_hit_points"
+                            ], remaining,
+                        )
+                        # Only the owning HP/reserve and its attack receipt may
+                        # change; preserve the rest of the complete snapshot.
+                        expected["player"]["current_hp"] = hp_after
+                        expected["player"]["species_trait_state"][
+                            "temporary_hit_points"
+                        ] = remaining
+                        expected["world_state"].setdefault("attack_results", []).append(
+                            copy.deepcopy(result)
+                        )
+                        self.assertEqual(session.serialize_game_state(), expected)
+                        self.assertEqual(session.rng.getstate(), rng)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                    self.assertEqual(random.getstate(), rng_module)
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()
