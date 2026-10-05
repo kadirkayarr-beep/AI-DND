@@ -6217,5 +6217,6 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for action_id, receipt in receipts.items():
                 self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
                 self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
+
 if __name__ == "__main__":
     unittest.main()

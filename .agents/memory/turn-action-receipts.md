@@ -71,3 +71,12 @@ response. Replacing a session ID first can conceal a missing required field.
 **How to apply:** Reject incomplete replay contracts explicitly at the command
 boundary, without mechanics or persistence, while preserving legacy identity
 reservation and valid response replay.
+
+A retained transient action ID remains reserved even when its receipt is null
+or otherwise malformed; only an absent key permits a new action.
+
+**Why:** Treating a damaged null receipt as a cache miss repeats already accepted
+mechanics. Malformed envelopes must fail explicitly, not be repaired or replaced.
+
+**How to apply:** Distinguish key absence from invalid retained values before
+request comparison, and preserve detached copies for valid receipt lookups.

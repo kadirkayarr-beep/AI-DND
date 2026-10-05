@@ -29,6 +29,7 @@ from api.lore_authority.campaign_catalog import (
 from api.lore_authority.models import CampaignLoreState, EntityType
 from api.lore_authority.registry import LoreRegistry
 from api.persistence.campaign_models import (
+    CampaignCorruptError,
     CampaignNotActiveError,
     CampaignNotFoundError,
     CampaignStorageError,
@@ -571,8 +572,19 @@ class SessionManager:
                     "canonical_event_id": event.get("event_id"),
                 }}
             return None
-        receipt = record.turn_action_receipts.get(action_id)
-        return copy.deepcopy(receipt) if receipt is not None else None
+        if action_id not in record.turn_action_receipts:
+            return None
+        receipt = record.turn_action_receipts[action_id]
+        # A retained but damaged receipt still reserves its action ID. Reject
+        # before callers compare hashes or execute mechanics; never repair it.
+        if (
+            not isinstance(receipt, dict)
+            or not isinstance(receipt.get("request_hash"), str)
+            or not receipt["request_hash"]
+            or not isinstance(receipt.get("response"), dict)
+        ):
+            raise CampaignCorruptError("Campaign action receipt is invalid.")
+        return copy.deepcopy(receipt)
 
     def assert_current(self, record: ManagedSession) -> None:
         if record.revoked:

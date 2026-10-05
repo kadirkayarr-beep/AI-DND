@@ -276,7 +276,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             (field_path, mode, invalid_value), operation,
                         )
 
-    async def assert_transient_response_validation(self, operation):
+    async def assert_transient_response_validation(self, operation, *, envelope_only=False):
         created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         created = created.json()
@@ -380,7 +380,27 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(runtime_snapshot(), committed)
             await retry_without_effects(200)
 
-        for field_path, invalid_value in fields:
+        if envelope_only:
+            damaged_receipts = [
+                ("non_dictionary", value) for value in (None, [], "", 0, False, ["receipt"])
+            ]
+            for field in ("request_hash", "response"):
+                damaged = copy.deepcopy(original)
+                del damaged[field]
+                damaged_receipts.append((f"missing_{field}", damaged))
+                for value in (None, [], 123, ""):
+                    damaged = copy.deepcopy(original)
+                    damaged[field] = value
+                    damaged_receipts.append((f"invalid_{field}_{value!r}", damaged))
+            for corruption, damaged in damaged_receipts:
+                with self.subTest(operation=operation, corruption=corruption):
+                    record.turn_action_receipts[command["action_id"]] = damaged
+                    await retry_without_effects(409)
+                    self.assertEqual(record.turn_action_receipts[command["action_id"]], damaged)
+                    record.turn_action_receipts[command["action_id"]] = copy.deepcopy(original)
+                    self.assertEqual(runtime_snapshot(), committed)
+
+        for field_path, invalid_value in (() if envelope_only else fields):
             for mode in ("missing", "wrong_type"):
                 with self.subTest(operation=operation, field=field_path, mode=mode):
                     # Deliberately damage the retained owner, not a detached
@@ -403,6 +423,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(runtime_snapshot(), committed)
         # A final intact control rules out a broken route or blanket rejection.
         await retry_without_effects(200)
+
+    async def test_malformed_transient_turn_receipt_blocks_http_retry(self):
+        await self.assert_transient_response_validation("turn", envelope_only=True)
+
+    async def test_malformed_transient_species_receipt_blocks_http_retry(self):
+        await self.assert_transient_response_validation("short_rest", envelope_only=True)
 
     async def test_incomplete_transient_turn_response_blocks_http_retry(self):
         await self.assert_transient_response_validation("turn")
