@@ -787,6 +787,54 @@ class WeaponTests(unittest.TestCase):
                     # A supplied invalid value must never become NPC/reverse fallback.
                     self.assert_unknown_distance_unchanged(s, n, npc_origin=True)
 
+    def assert_invalid_canonical_npc_distance_unchanged(self, distance, *, missing=False):
+        for geometry in ("no_environment", "empty_pairs", "forward_only", "reverse_only"):
+            for attack_source in ("equipped_weapon", "stat_block"):
+                with self.subTest(geometry=geometry, attack_source=attack_source):
+                    s, n = armed("Shortbow", distance=distance)
+                    if missing:
+                        del n["distance_ft"]
+                    if attack_source == "equipped_weapon":
+                        n.update(weapon_id="shortbow", inventory=["Shortbow"],
+                                 equipment={"main_hand": "shortbow", "off_hand": None},
+                                 dexterity=14, dexterity_mod=2, proficiency_bonus=2,
+                                 weapon_proficiencies=["simple"], weapon_masteries=[],
+                                 ammunition={"arrow": 20})
+                    else:
+                        self.assertNotIn("weapon_id", n)
+                    s.character["armor_class"] = 12
+                    s.world_state.pop("attack_environment", None)
+                    pairs = {}
+                    if geometry in ("forward_only", "reverse_only"):
+                        key = (f"{n['id']}|player" if geometry == "forward_only"
+                               else f"player|{n['id']}")
+                        pairs[key] = {"cover": "half", "attacker_sees_target": False,
+                                      "target_sees_attacker": True}
+                    if geometry != "no_environment":
+                        s.world_state["attack_environment"] = {"pairs": pairs}
+                    # No authored distance can mask the canonical NPC fallback.
+                    for authored_pair in pairs.values():
+                        self.assertNotIn("distance_ft", authored_pair)
+                    if missing:
+                        self.assertNotIn("distance_ft", n)
+                    else:
+                        self.assertIn("distance_ft", n)
+                    s.advance_combat_turn()
+                    self.assertEqual(s.world_state["combat"]["current_actor_id"], n["id"])
+                    self.assert_unknown_distance_unchanged(s, n, npc_origin=True)
+
+    def test_npc_invalid_canonical_distance_rejected_without_authored_distance(self):
+        invalid_distances = (
+            None, False, True, -1, float("nan"), float("inf"), float("-inf"),
+            "30", "30.0", [], [30], {}, {"distance_ft": 30},
+        )
+        for distance in invalid_distances:
+            with self.subTest(distance=distance):
+                self.assert_invalid_canonical_npc_distance_unchanged(distance)
+
+    def test_npc_absent_canonical_distance_rejected_without_authored_distance(self):
+        self.assert_invalid_canonical_npc_distance_unchanged(None, missing=True)
+
     def test_forward_pair_missing_distance_uses_valid_npc_distance(self):
         s, n = armed("Shortbow", distance=30)
         # Unlike supplied-invalid-distance cases, an absent key permits fallback.
