@@ -615,6 +615,81 @@ class WeaponTests(unittest.TestCase):
             if applied:
                 self.assertEqual(r["mastery_effect"]["distance_ft"], 10)
 
+    def test_push_uses_only_forward_corridor_and_invalidates_target_geometry(self):
+        cases = (
+            ("blocked", {"distance_ft": 5, "push_clear_ft": 0}, 20, False),
+            ("too_short", {"distance_ft": 5, "push_clear_ft": 5}, 20, False),
+            ("missing_corridor", {"distance_ft": 5}, 20, False),
+            ("reverse_only", None, 20, False),
+            ("clear_exactly", {"distance_ft": 5, "push_clear_ft": 10}, 0, True),
+            ("clear_longer", {"distance_ft": 5, "push_clear_ft": 20}, 5, True),
+        )
+        for name, forward, reverse_clear, applied in cases:
+            with self.subTest(case=name):
+                s, n = armed("Warhammer", mastery=True)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                forward_key = f"player|{n['id']}"
+                pairs = {
+                    f"{n['id']}|player": {
+                        "distance_ft": 5, "push_clear_ft": reverse_clear},
+                    f"{n['id']}|{other['id']}": {"distance_ft": 25},
+                    f"{other['id']}|{n['id']}": {"distance_ft": 25},
+                    f"player|{other['id']}": {"distance_ft": 30},
+                    f"{other['id']}|player": {"distance_ft": 30},
+                }
+                if forward is not None:
+                    pairs[forward_key] = copy.deepcopy(forward)
+                else:
+                    # Force distance to come from the reverse pair, but never
+                    # borrow its directional corridor to authorize this push.
+                    del n["distance_ft"]
+                s.world_state["attack_environment"] = {"pairs": pairs}
+                if forward is None:
+                    self.assertEqual(attack.pair(s, "player", n["id"]),
+                                     {"distance_ft": 5})
+                geometry_before = copy.deepcopy(s.world_state["attack_environment"])
+                target_distance_before = {
+                    k: n[k] for k in ("distance_ft",) if k in n}
+                # No fixture supplies coordinates or a destination.
+                position_keys = ("position", "position_ft", "coordinates", "x", "y", "z")
+                positions_before = copy.deepcopy([
+                    {k: data[k] for k in position_keys if k in data}
+                    for data in (s.character, n, other)])
+
+                r = resolve(s, n, "Warhammer", rolls=(20,))
+                self.assertTrue(r["hit"])
+                expected_effect = (
+                    {"kind": "push", "applied": True, "distance_ft": 10,
+                     "resulting_distance_ft": 15} if applied else
+                    {"kind": "push", "applied": False,
+                     "reason": "position_unresolved_or_blocked"})
+                self.assertEqual(r["mastery_effect"], expected_effect)
+                self.assertEqual(r["resulting_position"], expected_effect)
+                if applied:
+                    expected_pairs = {
+                        key: value for key, value in geometry_before["pairs"].items()
+                        if n["id"] not in key.split("|")}
+                    expected_pairs[forward_key] = {
+                        **forward, "distance_ft": 15,
+                        "push_clear_ft": forward["push_clear_ft"] - 10}
+                    self.assertEqual(s.world_state["attack_environment"],
+                                     {"pairs": expected_pairs})
+                    self.assertEqual(n["distance_ft"], 15)
+                    # Symmetric distance may be reused; the new forward
+                    # corridor must not become a reverse push permission.
+                    self.assertEqual(attack.pair(s, n["id"], "player"),
+                                     {"distance_ft": 15})
+                else:
+                    self.assertEqual(s.world_state["attack_environment"], geometry_before)
+                    self.assertEqual({k: n[k] for k in ("distance_ft",) if k in n},
+                                     target_distance_before)
+                self.assertEqual(other["distance_ft"], 30)
+                self.assertEqual([
+                    {k: data[k] for k in position_keys if k in data}
+                    for data in (s.character, n, other)], positions_before)
+
     def test_push_unresolved_does_not_invent_position(self):
         s, n = armed("Warhammer", mastery=True)
         r = resolve(s, n, "Warhammer")
