@@ -3244,6 +3244,41 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(created["session_id"])
         session = record.game_session
         url = f"/api/game/sessions/{created['session_id']}/turn"
+        observation_body = {
+            "message": "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        observation_results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_observation(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            observation_results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        # Commit real city progress before testing a later failed discovery.
+        with patch.object(session, "run_player_turn", new=capture_observation):
+            observed = await self.http.post(url, json=observation_body)
+        self.assertEqual(observed.status_code, 200, observed.text)
+        self.assertEqual(len(observation_results), 1)
+        self.assertEqual(observation_results[0]["action"], "explore")
+        self.assertEqual(observation_results[0]["status"], "observed")
+        self.assertTrue(observation_results[0]["success"])
+        self.assertNotEqual(observed.json()["state"], created["state"])
+        self.assertTrue(record.journal["notable_events"])
+        self.assertIn(
+            city_id,
+            [entry["location_id"] for entry in record.journal["discovered_locations"]],
+        )
+        observation_receipt = copy.deepcopy(
+            self.manager.get_turn_action(record, observation_body["action_id"])
+        )
+        self.assertEqual(observation_receipt["response"], observed.json())
+        self.assertEqual(
+            self.store.get_turn_action(campaign_id, observation_body["action_id"]),
+            observation_receipt,
+        )
         body = {
             "message": "Buralarda bir tücaar var mı?",
             "action_id": str(uuid.uuid4()),
@@ -3256,7 +3291,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         before_world = before_save["world_state"]
         self.assertEqual(before_world["location"], city_id)
         self.assertEqual(before_world["shops"], [])
-        self.assertEqual(before_campaign.history, [])
+        self.assertTrue(before_world["scene_state"]["scenes"][city_id]["materialized"])
+        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(before_campaign.payload["engine_save"], before_save)
+        self.assertEqual(before_campaign.payload["journal"], before_journal)
         results = []
         attempted_saves = []
         real_turn = session.run_player_turn
@@ -3311,8 +3349,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record.journal, before_journal)
         self.assertEqual(record.narrative_memory, before_memory)
         self.assertEqual(record.turn_action_receipts, before_receipts)
+        self.assertEqual(
+            self.manager.get_turn_action(record, observation_body["action_id"]),
+            observation_receipt,
+        )
         self.assertIsNone(self.manager.get_turn_action(record, body["action_id"]))
         self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
+        self.assertEqual(
+            self.store.get_turn_action(campaign_id, observation_body["action_id"]),
+            observation_receipt,
+        )
         self.assertIsNone(self.store.get_turn_action(campaign_id, body["action_id"]))
 
         reopened_store = CampaignStore(self.store.path)
@@ -3327,7 +3373,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         ) as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
         self.assertEqual(resumed.status_code, 200, resumed.text)
-        self.assertEqual(resumed.json()["state"], created["state"])
+        self.assertEqual(resumed.json()["state"], observed.json()["state"])
+        self.assertEqual(resumed.json()["history"], before_campaign.history)
         reopened_record = reopened_manager.get(resumed.json()["session_id"])
         self.assertEqual(
             reopened_record.game_session.serialize_game_state(), before_save
@@ -3335,7 +3382,28 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reopened_record.journal, before_journal)
         self.assertEqual(reopened_record.narrative_memory, before_memory)
         self.assertEqual(reopened_record.turn_action_receipts, before_receipts)
-        self.assertEqual(reopened_store.get_campaign(campaign_id), before_campaign)
+        self.assertEqual(
+            reopened_manager.get_turn_action(
+                reopened_record, observation_body["action_id"]
+            ),
+            observation_receipt,
+        )
+        reopened_campaign = reopened_store.get_campaign(campaign_id)
+        # Resume can refresh metadata timestamps without changing saved progress.
+        self.assertEqual(reopened_campaign.payload, before_campaign.payload)
+        self.assertEqual(reopened_campaign.history, before_campaign.history)
+        self.assertEqual(reopened_campaign.combat_history, before_campaign.combat_history)
+        reopened_world = reopened_record.game_session.world_state
+        self.assertNotIn(
+            uncommitted_shop_id, [shop["id"] for shop in reopened_world["shops"]]
+        )
+        self.assertNotIn(
+            uncommitted_npc_id, [npc["id"] for npc in reopened_world["npcs"]]
+        )
+        self.assertEqual(
+            reopened_store.get_turn_action(campaign_id, observation_body["action_id"]),
+            observation_receipt,
+        )
         self.assertIsNone(
             reopened_store.get_turn_action(campaign_id, body["action_id"])
         )
@@ -3368,7 +3436,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         committed_campaign = self.store.get_campaign(campaign_id)
         self.assertEqual(committed_campaign.payload["engine_save"], committed_save)
         self.assertEqual(committed_campaign.payload["journal"], committed_journal)
-        self.assertEqual(len(committed_campaign.history), 1)
+        self.assertEqual(len(committed_campaign.history), len(before_campaign.history) + 1)
+        self.assertEqual(committed_campaign.history[:-1], before_campaign.history)
+        self.assertEqual(
+            self.store.get_turn_action(campaign_id, observation_body["action_id"]),
+            observation_receipt,
+        )
         self.assertEqual(
             self.manager.get_turn_action(record, body["action_id"])["response"],
             retry.json(),
