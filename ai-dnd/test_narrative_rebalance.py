@@ -524,9 +524,8 @@ class TestNarrativeRebalance(unittest.TestCase):
     # 27 (D). direct factual queries return from Python without forcing a Qwen call
     @patch("game.ollama.chat")
     def test_27_direct_factual_queries_use_zero_model_calls(self, mock_chat):
-        # Retain the genuine location-query regression as a visible failure.
-        # Subtests keep presence and identity checks reachable; the scoped mock
-        # prevents an unexpected dialogue dispatch from calling a live model.
+        # Keep the location-query regression alongside presence and identity.
+        # The scoped mock prevents a routing regression from calling a live model.
         mock_chat.return_value = self.mock_ollama_response(
             '{"narration": "Hancı başını sallar.", "world_updates": {}, "lore_claims": []}'
         )
@@ -543,6 +542,33 @@ class TestNarrativeRebalance(unittest.TestCase):
             with self.subTest(query=text, contract="canonical_answer"):
                 self.assertEqual(result["action_result"]["action"], "query")
                 self.assertIn(expected, result["narration"])
+
+    @patch("game.ollama.chat")
+    def test_location_queries_bypass_conversation_proposals(self, mock_chat):
+        for text, target_id in (
+            ("Neredeyim?", None),
+            ("Şu an neredeyim?", None),
+            ("Konumum neresi?", None),
+            ("Hancı, hangi yerdeyim?", "npc_barkeep"),
+            ("Buranın adı ne?", None),
+        ):
+            with self.subTest(query=text, target_id=target_id):
+                npc_memory = copy.deepcopy(self.session.world_state["npcs"][0]["memory"])
+                with patch("game.parse_player_intent") as parse_intent:
+                    result = self.session.run_player_turn(text, target_id=target_id)
+                parse_intent.assert_not_called()
+                mock_chat.assert_not_called()
+                self.assertEqual(result["action_result"]["query_type"], "location")
+                self.assertEqual(
+                    result["action_result"]["direct_response"],
+                    "Bulunduğun yer: Eski Han.",
+                )
+                self.assertIn("Bulunduğun yer: Eski Han.", result["narration"])
+                telemetry = result["_engine_event_evidence"]["telemetry"]
+                self.assertEqual(telemetry["intent_model_calls"], 0)
+                self.assertEqual(telemetry["narration_model_calls"], 0)
+                self.assertEqual(self.session.world_state["location"], "l_tavern")
+                self.assertEqual(self.session.world_state["npcs"][0]["memory"], npc_memory)
 
     # 28 (E). all tested turns remain <= 2 total model calls
     @patch("game.ollama.chat")

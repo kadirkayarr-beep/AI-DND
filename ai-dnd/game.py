@@ -11765,6 +11765,24 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             )
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
 
+    # An active conversation is not authority over the player's location.
+    # Resolve only recognized location queries here; NPC dialogue, interaction
+    # proposals and world-lore questions retain their existing routing.
+    if _detect_query_type(player_input, npc_target) == "location":
+        query_response = _handle_query(player_input, "location", npc_target)
+        action_result = {
+            "action": "query",
+            "status": "answered_from_campaign_state",
+            "success": True,
+            "query_type": "location",
+            "state_changes": [],
+            "direct_response": query_response,
+        }
+        return finish_turn(
+            action_result, query_response,
+            safety_handling="python_scene_response",
+        )
+
     interaction_hint = interaction_adventure.hint(player_input, npc_target)
     if interaction_hint and not combat["active"]:
         intent_model_calls = 1
