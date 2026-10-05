@@ -991,6 +991,31 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                               side_effect=AssertionError("replayed RNG after reopen")), \
                  patch.object(fresh, "autosave_turn",
                               side_effect=AssertionError("replayed autosave after reopen")):
+                # The resumed manager's lookup is caller-owned too: mutate
+                # nested values without changing the command or saved receipt.
+                resumed_receipt = fresh.get_turn_action(restored, command["action_id"])
+                self.assertEqual(resumed_receipt, original)
+                resumed_actors = resumed_receipt["response"]["state"]["combat"][
+                    "action_economy"
+                ]["actors"]
+                self.assertTrue(resumed_actors["player"]["base_action_spent"])
+                self.assertGreater(len(resumed_actors), 1)
+                resumed_actors["player"]["base_action_spent"] = False
+                resumed_actors["player"]["caller_only"] = {"spent": ["corrupted"]}
+                resumed_enemy = next(actor for actor in resumed_actors if actor != "player")
+                resumed_actors[resumed_enemy].clear()
+                resumed_actors["caller_only_actor"] = {"base_action_spent": True}
+                self.assertNotEqual(resumed_receipt, original)
+                self.assertEqual(
+                    fresh.get_turn_action(restored, command["action_id"]), original
+                )
+                self.assertEqual(
+                    self.store.get_turn_action(a["campaign_id"], command["action_id"]),
+                    saved_receipt,
+                )
+                self.assertEqual(self.snapshot(restored), before)
+                self.assertEqual(self.snapshot(record), committed)
+                self.assertEqual(self.snapshot(other), isolated)
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                             base_url="http://reload") as client:
                     replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
@@ -998,6 +1023,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             reopened_expected["session_id"] = sid
             self.assertEqual(replay.status_code, 200, replay.text)
             self.assertEqual(replay.json(), reopened_expected)
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
+            self.assertEqual(
+                self.store.get_turn_action(a["campaign_id"], command["action_id"]),
+                saved_receipt,
+            )
             self.assertEqual(self.snapshot(restored), before)
             self.assertEqual(self.snapshot(record), committed)
             self.assertEqual(self.snapshot(other), isolated)
