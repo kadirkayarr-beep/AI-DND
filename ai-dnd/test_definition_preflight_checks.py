@@ -206,6 +206,245 @@ class DefinitionPreflightTests(unittest.TestCase):
             "rename or remove the duplicate definition"
         ])
 
+    def test_assignments_report_original_and_replacement_lines_in_each_namespace(self):
+        replacements = [
+            "helper = None",
+            "helper: object = replacement",
+            "helper += replacement",
+            "helper, other = replacements",
+            "other, *helper = replacements",
+            "helper = other = replacement",
+            "(helper := replacement)",
+            "helper = unrelated(original=helper)",
+            "helper = factory(helper=helper)",
+            "helper = helper()",
+            "helper = helper(helper)",
+            "helper = wrapper(helper())",
+            "class helper: pass",
+        ]
+        for namespace in ("module", "class"):
+            for replacement in replacements:
+                with self.subTest(namespace=namespace, replacement=replacement):
+                    source = "async def helper(): pass\n" + replacement + "\n"
+                    if namespace == "class":
+                        source = "class Checks:\n" + textwrap.indent(source, "    ")
+                    path = self.write_fixture("rebound.py", source)
+                    errors = check_test_definitions([path])
+                    first, second = (1, 2) if namespace == "module" else (2, 3)
+                    kind = "module function helper" if namespace == "module" \
+                        else "method Checks.helper"
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertIn(f"{path}:{second}:", errors[0])
+                    self.assertIn(f"overwrites {kind}", errors[0])
+                    self.assertIn(
+                        f"first defined at line {first}, rebound at line {second}",
+                        errors[0],
+                    )
+
+    def test_import_bindings_cannot_replace_functions_or_methods(self):
+        imports = [
+            "import helper",
+            "import helper.submodule",
+            "import unrelated as helper",
+            "from unrelated import helper",
+            "from unrelated import other as helper",
+            "from .unrelated import other as helper",
+        ]
+        for namespace in ("module", "class"):
+            for binding in imports:
+                with self.subTest(namespace=namespace, binding=binding):
+                    source = "def helper(): pass\n" + binding + "\n"
+                    if namespace == "class":
+                        source = "class Checks:\n" + textwrap.indent(source, "    ")
+                    path = self.write_fixture("import_binding.py", source)
+                    errors = check_test_definitions([path])
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertIn("import binding overwrites", errors[0])
+                    self.assertIn("helper", errors[0])
+
+    def test_wildcard_import_reports_each_previously_defined_function(self):
+        path = self.write_fixture("wildcard.py", """
+            from earlier import *
+            def test_result(): pass
+            async def helper(): pass
+            from later import *
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 2, errors)
+        for error, name, first in zip(
+            errors, ("test_result", "helper"), (2, 3)
+        ):
+            self.assertIn(f"{path}:4: import binding overwrites module function {name}", error)
+            self.assertIn(f"first defined at line {first}, rebound at line 4", error)
+
+    def test_control_flow_bindings_share_the_enclosing_namespace(self):
+        replacements = [
+            "if False:\n    helper = None",
+            "for helper in values:\n    pass",
+            "with context as helper:\n    pass",
+            "try:\n    pass\nexcept Exception as helper:\n    pass",
+            "match value:\n    case helper:\n        pass",
+            "match value:\n    case [*helper]:\n        pass",
+            'match value:\n    case {"key": value, **helper}:\n        pass',
+            "del helper",
+        ]
+        for namespace in ("module", "class"):
+            for replacement in replacements:
+                with self.subTest(namespace=namespace, replacement=replacement):
+                    source = "def helper(): pass\n" + replacement + "\n"
+                    if namespace == "class":
+                        source = "class Checks:\n" + textwrap.indent(source, "    ")
+                    path = self.write_fixture("blocks.py", source)
+                    errors = check_test_definitions([path])
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertIn("overwrites", errors[0])
+                    self.assertIn("helper", errors[0])
+
+    def test_identity_decorator_assignments_and_new_name_aliases_remain_valid(self):
+        path = self.write_fixture("valid_assignments.py", """
+            raise AssertionError("must not execute decorators or imports")
+            helper = None
+            from earlier import helper
+            @decorate
+            def helper(): pass
+            alias = helper
+            alias = None
+            helper = helper
+            helper: object
+            helper: object = decorator(helper)
+            helper = outer(inner(helper), option=True)
+            helper = factory(option=True)(helper)
+            other = third = helper
+            from other_module import helper as imported_alias
+            import helper.submodule as another_alias
+            class Checks:
+                @decorate
+                def helper(self): pass
+                alias = helper
+                helper = staticmethod(helper)
+                helper = classmethod(helper)
+                helper = decorator(helper, option=True)
+                helper: object = helper
+                helper: object
+        """)
+        self.assertEqual(check_test_definitions([path]), [])
+
+    def test_same_name_bindings_in_other_scopes_do_not_replace_a_function(self):
+        source = """
+            def helper():
+                helper = None
+                import unrelated as helper
+                def local(): pass
+                local = None
+            def other():
+                global helper
+                helper = None
+            class Checks:
+                helper = None
+                def method(self):
+                    method = None
+                class Nested:
+                    method = None
+            values = [helper for helper in items]
+            values = {helper for helper in items}
+            values = {helper: helper for helper in items}
+            values = (helper for helper in items)
+            value = lambda helper: helper
+            obj.helper = None
+            mapping["helper"] = None
+        """
+        paths = [self.write_fixture(name, source) for name in ("one.py", "two.py")]
+        self.assertEqual(check_test_definitions(paths), [])
+
+    def test_allowed_wrapping_does_not_reset_first_definition_protection(self):
+        path = self.write_fixture("wrapped.py", """
+            def helper(): pass
+            helper = decorator(helper)
+            helper = None
+            from other import helper
+            def helper(): pass
+        """)
+        errors = check_test_definitions([path])
+        self.assertEqual(len(errors), 3, errors)
+        self.assertTrue(all("first defined at line 1" in error for error in errors))
+        self.assertIn("assignment overwrites", errors[0])
+        self.assertIn("import binding overwrites", errors[1])
+        self.assertIn("duplicate module function", errors[2])
+
+    def test_comprehension_walrus_assignments_are_not_local_iteration_bindings(self):
+        expressions = [
+            "[(helper := None) for item in items]",
+            "{(helper := None) for item in items}",
+            "{item: (helper := None) for item in items}",
+            "((helper := None) for item in items)",
+            "[item for item in items if (helper := None)]",
+            "[[(helper := None) for inner in items] for outer in items]",
+        ]
+        for expression in expressions:
+            with self.subTest(expression=expression):
+                path = self.write_fixture(
+                    "walrus.py", "def helper(): pass\nvalues = " + expression + "\n"
+                )
+                errors = check_test_definitions([path])
+                self.assertEqual(len(errors), 1, errors)
+                self.assertIn(
+                    f"{path}:2: assignment overwrites module function helper", errors[0]
+                )
+                self.assertIn("first defined at line 1, rebound at line 2", errors[0])
+
+    def test_runner_rejects_rebinding_in_later_gate_before_any_execution(self):
+        replacements = [
+            "test_hidden = None",
+            "from unrelated import replacement as test_hidden",
+            "class Bad:\n    def test_hidden(self): pass\n    test_hidden = None",
+            "class Bad:\n    def test_hidden(self): pass\n    import other as test_hidden",
+        ]
+        self.write_fixture("first.py", "def test_ok(): pass\n")
+        for replacement in replacements:
+            with self.subTest(replacement=replacement):
+                bad = self.write_fixture(
+                    "later.py",
+                    "raise AssertionError('must never import a gate')\n"
+                    "def test_hidden(): pass\n" + replacement + "\n",
+                )
+                stderr = StringIO()
+                with patch.object(run_tests, "ROOT", self.root), \
+                     patch.object(run_tests, "TESTS", ("first.py", "later.py")), \
+                     patch.object(run_tests.subprocess, "run") as execute, \
+                     redirect_stderr(stderr), redirect_stdout(StringIO()):
+                    self.assertEqual(run_tests.main(), 1)
+                execute.assert_not_called()
+                self.assertIn("PREFLIGHT FAILED", stderr.getvalue())
+                self.assertIn(str(bad), stderr.getvalue())
+                self.assertIn("overwrites", stderr.getvalue())
+                self.assertIn("test_hidden", stderr.getvalue())
+                self.assertIn("first defined at line", stderr.getvalue())
+                self.assertIn("rebound at line", stderr.getvalue())
+
+    def test_runner_executes_gates_with_valid_aliases_and_decorator_assignments(self):
+        names = ("wrapped.py", "alias.py")
+        self.write_fixture(names[0], """
+            def test_result(): pass
+            test_result = decorator(test_result)
+        """)
+        self.write_fixture(names[1], """
+            class Checks:
+                def test_result(self): pass
+                alias = test_result
+                test_result = staticmethod(test_result)
+        """)
+        with patch.object(run_tests, "ROOT", self.root), \
+             patch.object(run_tests, "TESTS", names), \
+             patch.object(run_tests.subprocess, "run") as execute, \
+             redirect_stdout(StringIO()):
+            execute.return_value.returncode = 0
+            self.assertEqual(run_tests.main(), 0)
+        self.assertEqual(execute.call_count, 2)
+        self.assertEqual(
+            [call.args[0] for call in execute.call_args_list],
+            [[run_tests.sys.executable, str(self.root / name)] for name in names],
+        )
+
     def test_runner_rejects_standalone_regression_before_any_gate_executes(self):
         self.write_fixture("first.py", "def test_ok(): pass\n")
         bad = self.write_fixture("test_regression.py", """
