@@ -4962,6 +4962,248 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     receipts_after,
                 )
 
+    async def test_first_merchant_search_same_id_race_rolls_back_and_replays_winner(self):
+        city_id = "fr:city:neverwinter"
+        created = await self.http.post(
+            "/api/game/campaigns",
+            json={"campaign_start": {
+                "setting_id": "forgotten_realms",
+                "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                "region_id": "fr:region:the_north",
+                "starting_location_id": city_id,
+            }},
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        campaign_id = created.json()["campaign_id"]
+        resume_url = f"/api/game/campaigns/{campaign_id}/resume"
+        winner_store = CampaignStore(self.store.path)
+        loser_store = CampaignStore(self.store.path)
+        winner_manager = SessionManager(campaign_store=winner_store)
+        loser_manager = SessionManager(campaign_store=loser_store)
+        winner_app = create_app(
+            session_manager=winner_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        loser_app = create_app(
+            session_manager=loser_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+
+        def receipt_rows():
+            with closing(sqlite3.connect(self.store.path)) as connection:
+                return connection.execute(
+                    "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
+                    "ORDER BY action_id", (campaign_id,),
+                ).fetchall()
+
+        async with (
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=winner_app),
+                base_url="http://testserver",
+            ) as winner_http,
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=loser_app),
+                base_url="http://testserver",
+            ) as loser_http,
+        ):
+            winner_resume = await winner_http.post(resume_url)
+            loser_resume = await loser_http.post(resume_url)
+            for response in (winner_resume, loser_resume):
+                self.assertEqual(response.status_code, 200, response.text)
+            winner_id = winner_resume.json()["session_id"]
+            loser_id = loser_resume.json()["session_id"]
+            winner_record = winner_manager.get(winner_id)
+            loser_record = loser_manager.get(loser_id)
+            winner_session = winner_record.game_session
+            loser_session = loser_record.game_session
+            self.assertIsNot(winner_store, loser_store)
+            self.assertIsNot(winner_manager, loser_manager)
+            self.assertNotEqual(winner_id, loser_id)
+            self.assertIsNot(winner_session, loser_session)
+            self.assertIsNot(winner_session.world_state, loser_session.world_state)
+            before_campaign = loser_store.get_campaign(campaign_id)
+            before_engine = copy.deepcopy(loser_session.serialize_game_state())
+            before_journal = copy.deepcopy(loser_record.journal)
+            before_memory = copy.deepcopy(loser_record.narrative_memory)
+            before_receipts = copy.deepcopy(loser_record.turn_action_receipts)
+            before_version = loser_session._campaign_persistence_version
+            before_rows = receipt_rows()
+            self.assertEqual(before_engine["world_state"]["shops"], [])
+            self.assertFalse(any(
+                npc.get("shop_id") for npc in before_engine["world_state"]["npcs"]
+            ))
+            self.assertEqual(winner_session.serialize_game_state(), before_engine)
+            self.assertEqual(before_campaign.payload["engine_save"], before_engine)
+            self.assertEqual(before_version, (campaign_id, before_campaign.metadata["revision"]))
+            self.assertEqual(winner_session._campaign_persistence_version, before_version)
+            body = {"message": "Bir tüccar arıyorum.", "action_id": str(uuid.uuid4())}
+            self.assertIsNone(loser_store.get_turn_action(campaign_id, body["action_id"]))
+            winner_url = f"/api/game/sessions/{winner_id}/turn"
+            loser_url = f"/api/game/sessions/{loser_id}/turn"
+            results = {"winner": [], "loser": []}
+
+            def observe_turn(session, key):
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def observed(*args, **kwargs):
+                    result = real_turn(*args, **kwargs)
+                    results[key].append(copy.deepcopy(result["action_result"]))
+                    return result
+
+                return observed
+
+            save_reached = threading.Event()
+            release_save = threading.Event()
+            attempts = []
+            real_save = loser_store.save_campaign
+
+            @wraps(real_save)
+            def pause_loser_save(*args, **kwargs):
+                attempts.append({
+                    "engine": copy.deepcopy(loser_session.serialize_game_state()),
+                    "journal": copy.deepcopy(kwargs["journal"]),
+                    "memory": copy.deepcopy(kwargs["narrative_memory"]),
+                    "receipt": copy.deepcopy(kwargs["turn_action_receipt"]),
+                    "version": loser_session._campaign_persistence_version,
+                })
+                save_reached.set()
+                if not release_save.wait(timeout=30):
+                    raise AssertionError("The competing first discovery did not release the save.")
+                return real_save(*args, **kwargs)
+
+            # Both requests enter against the merchant-free revision. Pause only
+            # after the loser's real engine has materialized its first shop.
+            with (
+                patch.object(
+                    loser_session, "run_player_turn", new=observe_turn(loser_session, "loser"),
+                ),
+                patch.object(
+                    winner_session, "run_player_turn", new=observe_turn(winner_session, "winner"),
+                ),
+                patch.object(loser_store, "save_campaign", side_effect=pause_loser_save) as raced_save,
+            ):
+                pending = asyncio.create_task(loser_http.post(loser_url, json=body))
+                try:
+                    self.assertTrue(
+                        await asyncio.to_thread(save_reached.wait, 30),
+                        "First discovery never reached persistence.",
+                    )
+                    winner = await asyncio.wait_for(
+                        winner_http.post(winner_url, json=body), timeout=30,
+                    )
+                    self.assertEqual(winner.status_code, 200, winner.text)
+                    committed = winner_store.get_campaign(campaign_id)
+                    committed_rows = receipt_rows()
+                finally:
+                    release_save.set()
+                    loser = await asyncio.wait_for(pending, timeout=30)
+
+            raced_save.assert_called_once()
+            self.assertEqual(loser.status_code, 409, loser.text)
+            self.assertEqual(loser.json()["detail"]["code"], "campaign_stale")
+            self.assertEqual(len(attempts), 1)
+            attempted = attempts[0]
+            attempted_world = attempted["engine"]["world_state"]
+            saved_world = committed.payload["engine_save"]["world_state"]
+            before_npc_ids = {npc["id"] for npc in before_engine["world_state"]["npcs"]}
+            for key, world in (("loser", attempted_world), ("winner", saved_world)):
+                self.assertEqual(len(results[key]), 1)
+                result = results[key][0]
+                self.assertEqual(result["action"], "local_search")
+                self.assertEqual(result["status"], "found")
+                self.assertTrue(result["success"])
+                self.assertEqual(world["location"], city_id)
+                self.assertEqual(len(world["shops"]), 1)
+                shop = world["shops"][0]
+                shopkeepers = [npc for npc in world["npcs"] if npc.get("shop_id") == shop["id"]]
+                self.assertEqual(len(shopkeepers), 1)
+                self.assertEqual(shopkeepers[0]["id"], shop["shopkeeper_id"])
+                self.assertNotIn(shop["shopkeeper_id"], before_npc_ids)
+                self.assertEqual(result["shop_id"], shop["id"])
+                self.assertEqual(result["target_id"], shop["shopkeeper_id"])
+                self.assertEqual(
+                    world["flags"]["turn_index"],
+                    before_engine["world_state"]["flags"]["turn_index"] + 1,
+                )
+            self.assertNotEqual(attempted["engine"], before_engine)
+            self.assertNotEqual(attempted["journal"], before_journal)
+            self.assertEqual(attempted["version"], before_version)
+            self.assertEqual(attempted["receipt"]["action_id"], body["action_id"])
+            self.assertEqual(attempted["receipt"]["response"]["session_id"], loser_id)
+            # Full equality includes every newly materialized NPC, not just the
+            # shopkeeper: city discovery may also introduce unrelated bystanders.
+            self.assertEqual(loser_session.serialize_game_state(), before_engine)
+            self.assertEqual(loser_record.journal, before_journal)
+            self.assertEqual(loser_record.narrative_memory, before_memory)
+            self.assertEqual(loser_record.turn_action_receipts, before_receipts)
+            self.assertEqual(loser_session._campaign_persistence_version, before_version)
+            self.assertEqual(committed.metadata["revision"], before_version[1] + 1)
+            self.assertEqual(committed.history[:-1], before_campaign.history)
+            self.assertEqual(len(committed.history), len(before_campaign.history) + 1)
+            self.assertEqual(committed.history[-1]["player_message"], body["message"])
+            self.assertEqual(committed.payload["engine_save"], winner_session.serialize_game_state())
+            self.assertEqual(committed.payload["journal"], winner_record.journal)
+            self.assertEqual(committed.payload["narrative_memory"], winner_record.narrative_memory)
+            self.assertEqual(loser_store.get_campaign(campaign_id), committed)
+            self.assertEqual(winner_store.get_campaign(campaign_id), committed)
+            self.assertEqual(receipt_rows(), committed_rows)
+            self.assertEqual(len(committed_rows), len(before_rows) + 1)
+            self.assertTrue(all(row in committed_rows for row in before_rows))
+            receipt = winner_store.get_turn_action(campaign_id, body["action_id"])
+            self.assertEqual(receipt["response"], winner.json())
+            self.assertEqual(receipt["request_hash"], attempted["receipt"]["request_hash"])
+            self.assertEqual(receipt["response"]["session_id"], winner_id)
+            self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+
+            refreshed = await loser_http.post(resume_url)
+            self.assertEqual(refreshed.status_code, 200, refreshed.text)
+            self.assertEqual(refreshed.json()["session_id"], loser_id)
+            self.assertEqual(refreshed.json()["history"], committed.history)
+            self.assertIs(loser_manager.get(loser_id), loser_record)
+            self.assertIs(loser_record.game_session, loser_session)
+            self.assertEqual(loser_session.serialize_game_state(), committed.payload["engine_save"])
+            self.assertEqual(loser_record.journal, committed.payload["journal"])
+            self.assertEqual(loser_record.narrative_memory, committed.payload["narrative_memory"])
+            self.assertEqual(
+                loser_session._campaign_persistence_version,
+                (campaign_id, committed.metadata["revision"]),
+            )
+            resumed_campaign = loser_store.get_campaign(campaign_id)
+            replay_receipts = copy.deepcopy(loser_record.turn_action_receipts)
+            with (
+                patch.object(loser_session, "run_player_turn", side_effect=AssertionError(
+                    "The shared first-discovery receipt must not execute another turn.",
+                )) as blocked_turn,
+                patch.object(loser_store, "save_campaign", side_effect=AssertionError(
+                    "The shared first-discovery receipt must not save again.",
+                )) as blocked_save,
+            ):
+                replay = await asyncio.wait_for(loser_http.post(loser_url, json=body), timeout=30)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            expected = copy.deepcopy(winner.json())
+            expected["session_id"] = loser_id
+            self.assertEqual(replay.json(), expected)
+            blocked_turn.assert_not_called()
+            blocked_save.assert_not_called()
+            self.assertEqual(loser_session.serialize_game_state(), committed.payload["engine_save"])
+            self.assertEqual(loser_record.journal, committed.payload["journal"])
+            self.assertEqual(loser_record.narrative_memory, committed.payload["narrative_memory"])
+            self.assertEqual(loser_record.turn_action_receipts, replay_receipts)
+            self.assertEqual(
+                loser_session._campaign_persistence_version,
+                (campaign_id, committed.metadata["revision"]),
+            )
+            self.assertEqual(resumed_campaign.payload, committed.payload)
+            self.assertEqual(resumed_campaign.history, committed.history)
+            self.assertEqual(resumed_campaign.metadata["revision"], committed.metadata["revision"])
+            self.assertEqual(loser_store.get_campaign(campaign_id), resumed_campaign)
+            self.assertEqual(winner_store.get_campaign(campaign_id), resumed_campaign)
+            self.assertEqual(receipt_rows(), committed_rows)
+            self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+            self.assertEqual(len(results["winner"]), 1)
+            self.assertEqual(len(results["loser"]), 1)
+
     async def test_recovered_merchant_search_save_race_rolls_back_and_retries_once(self):
         await self._assert_recovered_merchant_search_save_race(shared_action=False)
 
