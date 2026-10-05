@@ -1147,6 +1147,185 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(len(revisited_store.get_campaign(campaign_id).history), 4)
 
+    async def test_stale_resume_refreshes_journal_and_conversation_memory(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        active_id = created["session_id"]
+        active_record = self.manager.get(active_id)
+        active_session = active_record.game_session
+        location_id = active_session.world_state["location"]
+        active_session.world_state["npcs"] = [
+            {
+                "id": "npc_resume_mira",
+                "name": "Mira",
+                "role": "innkeeper",
+                "location": location_id,
+                "memory": [],
+            },
+            {
+                "id": "npc_resume_aldren",
+                "name": "Aldren",
+                "role": "patron",
+                "location": location_id,
+                "memory": [],
+            },
+        ]
+        self.manager.save_campaign(campaign_id)
+        active_url = f"/api/game/sessions/{active_id}/turn"
+        old_body = {
+            "message": "Benim adım Arven.",
+            "target_id": "npc_resume_mira",
+            "action_id": str(uuid.uuid4()),
+        }
+        old_turn = await self.http.post(active_url, json=old_body)
+        self.assertEqual(old_turn.status_code, 200, old_turn.text)
+        self.assertIn("Arven", old_turn.json()["narration"])
+        old_saved = self.store.get_campaign(campaign_id)
+        old_receipt = self.store.get_turn_action(campaign_id, old_body["action_id"])
+
+        stale_store = CampaignStore(self.store.path)
+        stale_manager = SessionManager(campaign_store=stale_store)
+        stale_app = create_app(
+            session_manager=stale_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=stale_app),
+            base_url="http://testserver",
+        ) as stale_http:
+            resume_url = f"/api/game/campaigns/{campaign_id}/resume"
+            first_resume = await stale_http.post(resume_url)
+            self.assertEqual(first_resume.status_code, 200, first_resume.text)
+            stale_id = first_resume.json()["session_id"]
+            stale_record = stale_manager.get(stale_id)
+            stale_session = stale_record.game_session
+            self.assertIsNot(stale_session, active_session)
+            stale_engine = copy.deepcopy(stale_session.serialize_game_state())
+            stale_journal = copy.deepcopy(stale_record.journal)
+            stale_memory = copy.deepcopy(stale_record.narrative_memory)
+            stale_version = stale_session._campaign_persistence_version
+            self.assertEqual(stale_journal, old_saved.payload["journal"])
+            self.assertEqual(stale_memory, old_saved.payload["narrative_memory"])
+            self.assertEqual(first_resume.json()["history"], old_saved.history)
+            self.assertEqual(
+                {npc["npc_id"] for npc in stale_journal["known_npcs"]},
+                {"npc_resume_mira"},
+            )
+
+            new_body = {
+                "message": "Benim adım Rowan.",
+                "target_id": "npc_resume_mira",
+                "action_id": str(uuid.uuid4()),
+            }
+            meet_body = {
+                "message": "Adın ne?",
+                "target_id": "npc_resume_aldren",
+                "action_id": str(uuid.uuid4()),
+            }
+            new_turn = await self.http.post(active_url, json=new_body)
+            meet_turn = await self.http.post(active_url, json=meet_body)
+            for response in (new_turn, meet_turn):
+                self.assertEqual(response.status_code, 200, response.text)
+            self.assertIn("Rowan", new_turn.json()["narration"])
+            self.assertIn("Aldren", meet_turn.json()["narration"])
+            latest = self.store.get_campaign(campaign_id)
+            self.assertNotEqual(latest.payload["journal"], stale_journal)
+            self.assertNotEqual(latest.payload["narrative_memory"], stale_memory)
+            self.assertEqual(latest.history[:len(old_saved.history)], old_saved.history)
+            self.assertEqual(len(latest.history), len(old_saved.history) + 2)
+            receipts = {
+                body["action_id"]: self.store.get_turn_action(
+                    campaign_id, body["action_id"]
+                )
+                for body in (old_body, new_body, meet_body)
+            }
+            self.assertEqual(receipts[old_body["action_id"]], old_receipt)
+            # Another manager's accepted turns must not silently update this cache.
+            self.assertEqual(stale_session.serialize_game_state(), stale_engine)
+            self.assertEqual(stale_record.journal, stale_journal)
+            self.assertEqual(stale_record.narrative_memory, stale_memory)
+            self.assertEqual(stale_session._campaign_persistence_version, stale_version)
+
+            resumed = await stale_http.post(resume_url)
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(resumed.json()["session_id"], stale_id)
+            self.assertIs(stale_manager.get(stale_id), stale_record)
+            self.assertIs(stale_record.game_session, stale_session)
+            self.assertEqual(
+                stale_session.serialize_game_state(), latest.payload["engine_save"]
+            )
+            self.assertEqual(
+                stale_session._campaign_persistence_version,
+                (campaign_id, latest.metadata["revision"]),
+            )
+            self.assertEqual(stale_record.journal, latest.payload["journal"])
+            self.assertEqual(
+                stale_record.narrative_memory, latest.payload["narrative_memory"]
+            )
+            self.assertEqual(resumed.json()["state"]["journal"], stale_record.journal)
+            self.assertEqual(resumed.json()["history"], latest.history)
+            self.assertEqual(
+                {npc["npc_id"] for npc in stale_record.journal["known_npcs"]},
+                {"npc_resume_mira", "npc_resume_aldren"},
+            )
+            refreshed = stale_store.get_campaign(campaign_id)
+            self.assertEqual(refreshed.payload, latest.payload)
+            self.assertEqual(refreshed.history, latest.history)
+            stale_url = f"/api/game/sessions/{stale_id}/turn"
+            with (
+                patch.object(
+                    stale_session, "run_player_turn",
+                    side_effect=AssertionError("Saved turns must replay without execution"),
+                ),
+                patch.object(
+                    stale_store, "save_campaign",
+                    side_effect=AssertionError("Replay must not save another turn"),
+                ),
+            ):
+                for body, response in (
+                    (old_body, old_turn), (new_body, new_turn), (meet_body, meet_turn)
+                ):
+                    replay = await stale_http.post(stale_url, json=body)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    expected = response.json()
+                    expected["session_id"] = stale_id
+                    self.assertEqual(replay.json(), expected)
+            self.assertEqual(stale_store.get_campaign(campaign_id), refreshed)
+            self.assertEqual(stale_record.journal, latest.payload["journal"])
+            self.assertEqual(
+                stale_record.narrative_memory, latest.payload["narrative_memory"]
+            )
+
+            recall_body = {
+                "message": "Bana adımla hitap et",
+                "target_id": "npc_resume_mira",
+                "action_id": str(uuid.uuid4()),
+            }
+            recall = await stale_http.post(stale_url, json=recall_body)
+            self.assertEqual(recall.status_code, 200, recall.text)
+            self.assertIn("Mira", recall.json()["narration"])
+            self.assertIn("Rowan", recall.json()["narration"])
+            self.assertNotIn("Arven", recall.json()["narration"])
+            after_recall = stale_store.get_campaign(campaign_id)
+            self.assertEqual(after_recall.history[:-1], latest.history)
+            self.assertEqual(
+                after_recall.history[-1]["player_message"], recall_body["message"]
+            )
+            self.assertEqual(after_recall.payload["journal"], stale_record.journal)
+            self.assertEqual(
+                after_recall.payload["narrative_memory"], stale_record.narrative_memory
+            )
+            for action_id, receipt in receipts.items():
+                self.assertEqual(
+                    stale_store.get_turn_action(campaign_id, action_id), receipt
+                )
+            self.assertEqual(
+                stale_store.get_turn_action(campaign_id, recall_body["action_id"])[
+                    "response"
+                ],
+                recall.json(),
+            )
+
     async def test_selected_npc_identity_query_is_deterministic(self):
         created_response = await self.http.post(
             "/api/game/campaigns",
@@ -3813,7 +3992,5 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 exit_receipt,
             )
             self.assertEqual(stale_session.serialize_game_state(), stale_save)
-
-
 if __name__ == "__main__":
     unittest.main()
