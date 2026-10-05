@@ -244,8 +244,16 @@ class DeathSystemTests(unittest.TestCase):
                         mode, rejected_healing=(amount,)
                     )
 
+    def test_rejected_max_hp_preserves_stable_recovery_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for maximum in (-1, 1.0, 1.5, "1", None, True, False):
+                with self.subTest(mode=mode, maximum=maximum):
+                    self._assert_stable_recovery_round_trip(
+                        mode, rejected_maximum=(maximum,)
+                    )
+
     def _assert_stable_recovery_round_trip(
-        self, mode, *, zero_healing=False, rejected_healing=()
+        self, mode, *, zero_healing=False, rejected_healing=(), rejected_maximum=()
     ):
         session = make_session()
         peer = make_session(seed=29)
@@ -263,6 +271,36 @@ class DeathSystemTests(unittest.TestCase):
         recovery = copy.deepcopy(session.ensure_death_state()["recovery"])
         self.assertEqual(recovery, {"hours": 2, "at": 137 + 7200})
         session.advance_campaign_time(600, "wait")
+        if rejected_maximum:
+            before_maximum = session.serialize_game_state()
+            maximum_hp = session.character["max_hp"]
+            death_state = copy.deepcopy(session.ensure_death_state())
+            clock = copy.deepcopy(session.world_state["campaign_time"])
+            session_rng = session.rng.getstate()
+            module_rng = random.getstate()
+            with (
+                patch.object(
+                    session.rng, "randint",
+                    side_effect=AssertionError("Rejected HP maximum rerolled recovery"),
+                ),
+                patch("game.roll_d20", side_effect=AssertionError("Rejected HP maximum rolled dice")),
+            ):
+                for maximum in rejected_maximum:
+                    with self.assertRaisesRegex(ValueError, "^HP maximum is invalid\\.$"):
+                        session.set_player_max_hp(maximum)
+            self.assertEqual(session.serialize_game_state(), before_maximum)
+            self.assertEqual(session.character["current_hp"], 0)
+            self.assertEqual(session.character["max_hp"], maximum_hp)
+            self.assertEqual(session.ensure_death_state(), death_state)
+            self.assertTrue(session.ensure_death_state()["stable"])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
+            self.assertEqual(session.world_state["campaign_time"], clock)
+            self.assertEqual(session.rng.getstate(), session_rng)
+            self.assertEqual(random.getstate(), module_rng)
+            # Additional progress before saving must not restart the deadline.
+            progress = session.advance_campaign_time(91, "wait")
+            self.assertEqual(progress["death_results"], [])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
         if zero_healing or rejected_healing:
             before_healing = session.serialize_game_state()
             healing_rng = session.rng.getstate()
