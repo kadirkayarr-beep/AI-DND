@@ -14,3 +14,13 @@ Keep imported-module character aliases, but do not reintroduce character-state s
 **Why:** Plain dictionary assignment cannot be intercepted by module properties. Supporting both made test setup a second implicit input into the default adventure; those consumers were migrated to explicit sessions deliberately.
 
 **How to apply:** Use explicit session ownership for test setup and new callers. Preserve terminal default-session behavior and imported-module aliases, and exercise overlapping adventures when changing session dispatch.
+
+Do not treat character reinitialization as a fresh campaign fixture.
+
+**Why:** Runtime fixture audits found that shared-session character resets retained
+earlier journeys, scenes and campaign time, making otherwise isolated narration
+assertions depend on test order.
+
+**How to apply:** Prefer a fresh explicit session for each regression case. Test
+shared-session restoration deliberately when that is the contract, rather than
+relying on it for unrelated scenario setup.

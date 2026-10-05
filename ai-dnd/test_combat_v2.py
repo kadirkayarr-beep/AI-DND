@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """V2 turn-pipeline regressions, aligned with the authoritative exchange rules.
 
-Initiative is rolled once, before attacks. Each command resolves player then
-enemy and advances one round, regardless of initiative metadata. All randomness
-is scripted on the owning session, including damage; no live model is called.
+Initiative is rolled once and owns actor order. Plain attacks auto-complete the
+player turn; all distance, equipment and perception are authored fixture facts.
+All randomness is scripted on the owning session; no live model is called.
 """
 import copy
+import json
 from contextlib import contextmanager
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import game
+import monster_combat
+from combat_lifecycle import CombatRequestError
 
 
 class CombatV2Turns(unittest.TestCase):
@@ -19,18 +24,25 @@ class CombatV2Turns(unittest.TestCase):
         self.session.character.update(
             current_hp=30, max_hp=30, armor_class=12,
             strength_mod=2, dexterity_mod=2, proficiency_bonus=2,
+            strength=14, dexterity=14, weapon_proficiencies=["longsword"],
+            weapon_masteries=[], conditions=[],
         )
         self.world = self.session.world_state
         self.world.update(location="tavern", npcs=[], inventory=["Kılıç"],
                           player_combat_status="active")
+        self.world["equipment"] = {"main_hand": "longsword", "off_hand": None}
         self.npc = {
             "id": "npc_001", "name": "Gromm", "role": "Barmen",
             "location": "tavern", "memory": [], "knowledge": [],
             "max_hp": 100, "current_hp": 100, "armor_class": 10,
             "combat_status": "active", "attack_bonus": 2,
             "damage_die": 6, "damage_dice": 1, "damage_modifier": 3,
+            "distance_ft": 5, "attack_damage_type": "slashing",
         }
         self.world["npcs"].append(self.npc)
+        self.world["monster_perception"] = {
+            self.npc["id"]: {"player": {"visible": True}},
+        }
         for name, result in (
             ("parse_player_intent", {"intent": "attack", "action": "attack",
                                     "target": {"type": "npc", "reference": "Gromm"},
@@ -93,8 +105,13 @@ class CombatV2Turns(unittest.TestCase):
         with self.rolls((20, 2), (20, 18)):
             self.session.start_combat(self.npc)
         self.assertEqual(self.world["combat"]["initiative_order"], ["npc_001", "player"])
+        # A player attack is not a pulse for an enemy-owned initiative slot.
+        with self.rolls():
+            with self.assertRaises(CombatRequestError) as rejected:
+                self.turn()
+        self.assertEqual(rejected.exception.code, "out_of_turn")
         with self.rolls((20, 1)):
-            pending = self.turn()
+            pending = self.session.run_player_turn("Devam")["action_result"]
         self.assertEqual(pending["outcome"], "enemy_turn_resolved")
         self.assertEqual(self.world["combat"]["current_actor_id"], "player")
         with self.rolls((20, 15), (8, 4)):
@@ -136,11 +153,11 @@ class CombatV2Turns(unittest.TestCase):
                          ("critical_hit", True, 10))
         self.assertEqual(self.session.character["current_hp"], 20)
 
-    def test_player_knocks_out_npc(self):
+    def test_player_lethal_attack_kills_npc(self):
         self.npc["current_hp"] = 5
         with self.rolls((20, 15), (20, 5), (20, 20), (8, 3), (8, 4)):
             result = self.turn()
-        self.assertEqual(result["target_status"], "unconscious")
+        self.assertEqual(result["target_status"], "dead")
         self.assertEqual(self.npc["current_hp"], 0)
         self.assertTrue(result["combat_ended"])
         self.assertEqual(result["end_reason"], "target_defeated")
@@ -151,14 +168,39 @@ class CombatV2Turns(unittest.TestCase):
 
     def test_npc_knocks_out_player(self):
         self.session.character["current_hp"] = 1
-        with self.rolls((20, 15), (20, 5), (20, 1), (20, 20), (6, 3), (6, 4)):
+        # Zero HP retains the player's slot. Three successful death saves,
+        # with intervening enemy misses, stabilize rather than end combat.
+        original_turn = monster_combat.run_turn
+
+        def enemy_turn(session, actor_id):
+            # Observe the real owner, without skipping any legitimate turn.
+            # A forbidden continuation fails clearly before unplanned dice.
+            self.assertFalse(self.world["death_state"]["stable"],
+                             "Enemy attacked again after stabilization")
+            return original_turn(session, actor_id)
+
+        with patch.object(monster_combat, "run_turn", side_effect=enemy_turn), self.rolls(
+            (20, 15), (20, 5), (20, 1), (20, 20), (6, 3), (6, 4),
+            (20, 10), (20, 1), (20, 1), (20, 10),
+            (20, 1), (20, 1), (20, 10), (4, 2),
+        ):
             result = self.turn()
-        self.assertTrue(result["combat_ended"])
-        self.assertEqual(result["end_reason"], "player_defeated")
+        self.assertEqual(result["enemy_action"]["outcome"], "critical_hit")
+        self.assertEqual(result["enemy_action"]["damage"], 10)
+        saves = [action["death_save"] for action in result["enemy_actions"]
+                 if action["action"] == "death_save"]
+        self.assertEqual([save["roll"] for save in saves], [10, 10, 10])
+        self.assertEqual(saves[-1]["outcome"], "stable")
+        self.assertFalse(result.get("combat_ended", False))
         self.assertEqual(self.session.character["current_hp"], 0)
         self.assertEqual(self.world["player_combat_status"], "unconscious")
-        self.assertFalse(result["combat"]["active"])
+        self.assertTrue(result["combat"]["active"])
+        self.assertEqual(result["combat"]["current_actor_id"], "player")
+        self.assertTrue(self.world["death_state"]["stable"])
         self.assert_snapshot(result)
+        attacks = [action for action in result["enemy_actions"]
+                   if action["action"] == "enemy_attack"]
+        self.assertEqual(len(attacks), 3, "Enemy attacked again after stabilization")
 
     def test_round_advance(self):
         # Initiative consumes two dice only once, then two misses per exchange.
@@ -172,8 +214,22 @@ class CombatV2Turns(unittest.TestCase):
                 self.assert_snapshot(result)
 
     def test_combat_state_legacy(self):
-        del self.world["combat"]
-        del self.world["player_combat_status"]
+        payload = self.session.serialize_game_state()
+        payload["version"] = 2
+        payload["world_state"]["combat"] = {
+            "active": False, "round": 0, "initiative_order": [],
+            "current_turn_index": 0, "participants": [], "target_id": None,
+        }
+        rng_before = self.session.rng.getstate()
+        # Exercise the real compatibility boundary, not a malformed native
+        # world handed directly to the modern request validator.
+        with tempfile.TemporaryDirectory() as directory:
+            save = Path(directory) / "legacy.json"
+            save.write_text(json.dumps(payload), encoding="utf-8")
+            self.session.load_game(save)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+        self.npc = self.world["npcs"][0]
+        self.assertEqual(self.world["combat"]["schema_version"], 3)
         with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             result = self.turn()
         self.assertTrue(result["combat"]["active"])
@@ -255,7 +311,7 @@ class CombatV2Turns(unittest.TestCase):
         self.assertFalse(self.world["combat"]["active"])
         self.assertEqual(self.session.rng.getstate(), rng_before)
 
-    def test_ambiguous_attack_in_player_turn_keeps_attack_clarification(self):
+    def test_ambiguous_attack_in_player_turn_is_rejected_before_resolution(self):
         second_npc = dict(
             self.npc,
             id="npc_002",
@@ -265,23 +321,26 @@ class CombatV2Turns(unittest.TestCase):
             max_hp=24,
         )
         self.world["npcs"].append(second_npc)
-        result = self.session.run_player_turn(
-            "Ona saldırıyorum", []
-        )["action_result"]
-
-        self.assertEqual(result["action"], "attack")
-        self.assertEqual(result["status"], "clarification")
-        self.assertEqual(result["outcome"], "ambiguous_target")
-        self.assertIn("Gromm", result["direct_response"])
-        self.assertIn("Lyra", result["direct_response"])
-        self.assertFalse(self.world["combat"]["active"])
+        before = self.session.serialize_game_state()
+        rng_before = self.session.rng.getstate()
+        with self.rolls():
+            with self.assertRaises(CombatRequestError) as rejected:
+                self.session.run_player_turn("Ona saldırıyorum", [])
+        self.assertEqual(rejected.exception.code, "invalid_combat_target")
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
         game.parse_player_intent.assert_not_called()
 
     def test_wrong_location_blocked(self):
         self.npc["location"] = "forest"
+        before = self.session.serialize_game_state()
+        rng_before = self.session.rng.getstate()
         with self.rolls():
-            result = self.turn()
-        self.assertEqual(result["outcome"], "no_target")
+            with self.assertRaises(CombatRequestError) as rejected:
+                self.turn()
+        self.assertEqual(rejected.exception.code, "invalid_combat_target")
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
         self.assertEqual(self.npc["current_hp"], 100)
         self.assertEqual(self.session.character["current_hp"], 30)
         self.assertFalse(self.world["combat"]["active"])

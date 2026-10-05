@@ -11,12 +11,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import game
 import local_dialogue
 import living_world
+import interaction_adventure
+import campaign_time
 
 
 class TestNarrativeRebalance(unittest.TestCase):
     def setUp(self):
-        game.initialize_game(creation_choice="1", print_fn=lambda x: None, input_fn=lambda x: "1")
-        self.session = game._DEFAULT_SESSION
+        # Character initialization is not a world reset. Each case owns a
+        # fresh session so earlier journeys/scenes cannot change its evidence.
+        self.session = game.create_session(seed=42)
         self.session.character["current_hp"] = 10
         self.session.character["max_hp"] = 10
         self.session.character["name"] = "Tester"
@@ -57,8 +60,9 @@ class TestNarrativeRebalance(unittest.TestCase):
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertEqual(telemetry["intent_model_calls"], 0)
         self.assertEqual(telemetry["narration_model_calls"], 1)
-        self.assertEqual(telemetry["intent_source"], "deterministic")
+        self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
         self.assertEqual(telemetry["narration_source"], "qwen")
+        mock_chat.assert_called_once()
 
     # 2. ambiguous input may use: intent model -> Python resolution -> narration model
     @patch("game.ollama.chat")
@@ -144,8 +148,17 @@ class TestNarrativeRebalance(unittest.TestCase):
         )
         result = self.session.run_player_turn("Hancı, buralarda neler dönüyor?")
         telemetry = result["_engine_event_evidence"]["telemetry"]
-        self.assertEqual(telemetry["fallback_reason"], "UNVERIFIED_LORE_CLAIM")
-        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+        # Conversation-only packets are stripped of unsupported updates/claims
+        # by the interaction owner before the general narration validator.
+        self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(
+            self.session.world_state["npcs"][0]))
+        self.assertNotIn("King Vharion", result["narration"])
+        self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
+        self.assertEqual(telemetry["narration_source"], "qwen")
+        self.assertEqual(telemetry["narration_validation_result"], "accepted")
+        self.assertIsNone(telemetry["fallback_reason"])
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        mock_chat.assert_called_once()
 
     # 10. NPC-scoped player-name memory works ONLY when evidence exists
     @patch("game.ollama.chat")
@@ -294,14 +307,80 @@ class TestNarrativeRebalance(unittest.TestCase):
         telemetry = result["_engine_event_evidence"]["telemetry"]
         self.assertLessEqual(telemetry["total_model_calls"], 2)
 
-        # 6. fallback/validation telemetry truthfully reports what happened
-        self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
-        self.assertEqual(telemetry["fallback_reason"], "CANONICAL_RELATIONSHIP_CONTRADICTION")
-        self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+        # 6. The interaction owner substitutes safe prose before validation;
+        # telemetry describes that accepted text, not the discarded model text.
+        self.assertEqual(result["narration"], interaction_adventure.immersive_unknown(npc))
+        self.assertEqual(telemetry["narration_validation_result"], "accepted")
+        self.assertIsNone(telemetry["fallback_reason"])
+        self.assertEqual(telemetry["intent_source"], "deterministic_dialogue")
+        self.assertEqual(telemetry["narration_source"], "qwen")
+        self.assertEqual(telemetry["total_model_calls"], 1)
+        mock_chat.assert_called_once()
+
+    @patch("game.ollama.chat")
+    def test_general_narrator_still_rejects_lore_and_relationship_invention(self, chat):
+        # Greetings take the ordinary resolved-smalltalk narration route, not
+        # the conversation packet sanitizer tested above. Keep both guards.
+        for narration, claims, reason in (
+            ("Neverwinter is ruled by King Vharion.",
+             [{"subject": "Neverwinter", "predicate": "ruled_by",
+               "object_id_or_value": "King Vharion"}], "UNVERIFIED_LORE_CLAIM"),
+            ("Hancı artık sana tamamen güveniyor ve seni en iyi dostu ilan ediyor.",
+             [], "CANONICAL_RELATIONSHIP_CONTRADICTION"),
+        ):
+            with self.subTest(reason=reason):
+                self.session.recent_dm_narrations.clear()
+                chat.reset_mock()
+                chat.return_value = self.mock_ollama_response(json.dumps({
+                    "valid_response": True, "narration": narration,
+                    "lore_claims": claims, "world_updates": {},
+                }))
+                result = self.session.run_player_turn("Hancı'ya selam veriyorum")
+                telemetry = result["_engine_event_evidence"]["telemetry"]
+                self.assertEqual(result["action_result"]["status"], "answered_smalltalk")
+                self.assertEqual(telemetry["fallback_reason"], reason)
+                self.assertEqual(telemetry["narration_source"], "deterministic_fallback")
+                self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
+                self.assertEqual(telemetry["total_model_calls"], 1)
+                self.assertNotEqual(result["narration"], narration)
+                self.assertEqual(self.session.world_state["npcs"][0]["relationship"], "neutral")
+                chat.assert_called_once()
+
+    @patch("game.ollama.chat")
+    def test_registered_proposal_without_an_authored_route_does_not_move_player(self, chat):
+        initial_location = self.session.world_state["location"]
+        chat.side_effect = [
+            self.mock_ollama_response(json.dumps({
+                "intent": "travel", "action": "travel",
+                "target": {"type": "location", "reference": "Eski Kütüphane"},
+                "completion": "completed", "confidence": 0.9,
+            })),
+            self.mock_ollama_response(json.dumps({
+                "valid_response": True,
+                "narration": "Eski Kütüphane kapısına vardın.",
+                "lore_claims": [], "world_updates": {"create_locations": [{
+                    "name": "Eski Kütüphane", "type": "library",
+                    "description": "Terk edilmiş eski kütüphane.",
+                }]},
+            })),
+        ]
+        with patch.object(self.session.rng, "randint") as dice:
+            result = self.session.run_player_turn("Eski kütüphaneye gidiyorum")
+        self.assertEqual(result["action_result"]["status"], "unverified")
+        self.assertFalse(result["action_result"]["success"])
+        self.assertEqual(self.session.world_state["location"], initial_location)
+        self.assertEqual(len(self.session.world_state["locations"]), 2)
+        self.assertNotIn("journey", self.session.world_state)
+        self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"], 0)
+        dice.assert_not_called()
+        self.assertEqual(chat.call_count, 2)
 
     # 18. legitimate unknown procedural travel destination creates matching location
     @patch("game.ollama.chat")
     def test_18_legitimate_unknown_procedural_travel_destination_creates_matching_location(self, mock_chat):
+        # Both ends are authored local procedural fiction: the Time owner
+        # permits its explicit five-minute pedestrian convention.
+        self.session.world_state["locations"]["l_tavern"]["reality_layer"] = "PROCEDURAL_LOCAL_FICTION"
         intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Kuzeydeki Terkedilmiş Maden"}, "completion": "completed", "confidence": 0.9}'
         narration_payload = '{"valid_response": true, "narration": "Kuzeydeki Terkedilmiş Maden girişine ulaştın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Kuzeydeki Terkedilmiş Maden", "type": "dungeon", "description": "Terk edilmiş bir maden."}]}}'
         mock_chat.side_effect = [
@@ -309,10 +388,16 @@ class TestNarrativeRebalance(unittest.TestCase):
             self.mock_ollama_response(narration_payload)
         ]
         locs_before = len(self.session.world_state.get("locations", {}))
-        result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
+        with patch.object(self.session.rng, "randint", return_value=6) as dice:
+            result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
         locs_after = len(self.session.world_state.get("locations", {}))
         self.assertEqual(locs_after, locs_before + 1)
         self.assertEqual(result["action_result"]["status"], "completed")
+        dice.assert_called_once_with(1, 6)
+        self.assertEqual(result["action_result"]["time_result"]["elapsed_seconds"], 300)
+        location = self.session.world_state["locations"][self.session.world_state["location"]]
+        self.assertEqual(location["name"], "Kuzeydeki Terkedilmiş Maden")
+        self.assertEqual(self.session.world_state["journey"]["status"], "ARRIVED")
 
     # 19. unrelated model-proposed location is rejected
     @patch("game.ollama.chat")
@@ -368,6 +453,7 @@ class TestNarrativeRebalance(unittest.TestCase):
     # 23. successful committed travel produces correct canonical location
     @patch("game.ollama.chat")
     def test_23_successful_committed_travel_produces_correct_canonical_location(self, mock_chat):
+        self.session.world_state["locations"]["l_tavern"]["reality_layer"] = "PROCEDURAL_LOCAL_FICTION"
         initial_loc = self.session.world_state.get("location")
         intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Eski Kütüphane"}, "completion": "completed", "confidence": 0.9}'
         narration_payload = '{"valid_response": true, "narration": "Eski Kütüphane kapısına vardın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Eski Kütüphane", "type": "library", "description": "Terk edilmiş eski kütüphane."}]}}'
@@ -375,11 +461,16 @@ class TestNarrativeRebalance(unittest.TestCase):
             self.mock_ollama_response(intent_payload),
             self.mock_ollama_response(narration_payload)
         ]
-        result = self.session.run_player_turn("Eski kütüphaneye gidiyorum")
+        with patch.object(self.session.rng, "randint", return_value=6) as dice:
+            result = self.session.run_player_turn("Eski kütüphaneye gidiyorum")
         new_loc = self.session.world_state.get("location")
         self.assertNotEqual(new_loc, initial_loc)
         self.assertIn(new_loc, self.session.world_state.get("locations", {}))
         self.assertEqual(result["action_result"]["status"], "completed")
+        dice.assert_called_once_with(1, 6)
+        self.assertEqual(result["action_result"]["new_location"], new_loc)
+        self.assertEqual(self.session.world_state["locations"][new_loc]["name"], "Eski Kütüphane")
+        self.assertEqual(result["action_result"]["time_result"]["elapsed_seconds"], 300)
 
     # 24 (A). multiple NPCs present + active NPC exists: "Etrafımda neler var?" resolves as explore, not dialogue clarification
     @patch("game.ollama.chat")
@@ -431,18 +522,27 @@ class TestNarrativeRebalance(unittest.TestCase):
         self.assertEqual(result["action_result"]["status"], "observed")
 
     # 27 (D). direct factual queries return from Python without forcing a Qwen call
-    def test_27_direct_factual_queries_use_zero_model_calls(self):
-        res_loc = self.session.run_player_turn("Neredeyim?")
-        self.assertEqual(res_loc["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
-        self.assertIn("Eski Han", res_loc["narration"])
-
-        res_pres = self.session.run_player_turn("Tavernada kimler var?")
-        self.assertEqual(res_pres["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
-        self.assertEqual(res_pres["action_result"]["action"], "query")
-
-        res_ident = self.session.run_player_turn("Hancı, senin adın ne?")
-        self.assertEqual(res_ident["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
-        self.assertIn("Hancı", res_ident["narration"])
+    @patch("game.ollama.chat")
+    def test_27_direct_factual_queries_use_zero_model_calls(self, mock_chat):
+        # Retain the genuine location-query regression as a visible failure.
+        # Subtests keep presence and identity checks reachable; the scoped mock
+        # prevents an unexpected dialogue dispatch from calling a live model.
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"narration": "Hancı başını sallar.", "world_updates": {}, "lore_claims": []}'
+        )
+        for text, expected in (
+            ("Neredeyim?", "Eski Han"),
+            ("Tavernada kimler var?", "Hancı"),
+            ("Hancı, senin adın ne?", "Hancı"),
+        ):
+            mock_chat.reset_mock()
+            result = self.session.run_player_turn(text)
+            with self.subTest(query=text, contract="python_only"):
+                self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+                mock_chat.assert_not_called()
+            with self.subTest(query=text, contract="canonical_answer"):
+                self.assertEqual(result["action_result"]["action"], "query")
+                self.assertIn(expected, result["narration"])
 
     # 28 (E). all tested turns remain <= 2 total model calls
     @patch("game.ollama.chat")
@@ -506,11 +606,14 @@ class TestNarrativeRebalance(unittest.TestCase):
         ]
         unverified_input = "Gromm bana ejderha hazinesinden bahsetmişti."
         model_affirmation = "Gromm’un sözleri hâlâ kulaklarında çınlıyor; ejderha hazinesinin sırlarını açan bir yolun olması gerektiğini belirtti."
-        output = self.session.finalize_narration(
+        # API narration observers may wrap this module callable without exposing
+        # GameSession's dynamic-helper marker. Bind the owning session explicitly.
+        output = game.finalize_narration(
             model_affirmation,
             unverified_input,
             npc_target=None,
             action_result={"action": "dialogue", "status": "unverified", "success": False},
+            session=self.session,
         )
         self.assertTrue(
             self.session.last_narration_safety["reason_code"] in ("UNSUPPORTED_CAMPAIGN_HISTORY_CLAIM", "NPC_MEMORY_UNSUPPORTED_CLAIM"),
@@ -796,6 +899,11 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
 
     @patch("game.ollama.chat")
     def test_proposal_turn_preserves_final_action_fallback(self, chat):
+        self.world["locations"]["tavern"] = {
+            "id": "tavern", "name": "Taverna",
+            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        }
+        campaign_time.initialize(self.world)
         chat.return_value = {"message": {"content": json.dumps({
             "narration": self.unsafe_response,
             "world_updates": {"create_locations": [{
@@ -813,10 +921,13 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
             raw_result={"action_result": action, "_engine_event_evidence": {}},
             allow_new_locations=True, lore_context=self.session.lore_authority_context,
         )
-        result = self.session._narrate_resolved_turn(
-            resolved, "Sessiz Avlu'ya gidiyorum.", None, None
-        )
+        with patch.object(self.session.rng, "randint", return_value=6) as dice:
+            result = self.session._narrate_resolved_turn(
+                resolved, "Sessiz Avlu'ya gidiyorum.", None, None
+            )
         self.assertEqual(action["status"], "completed")
+        dice.assert_called_once_with(1, 6)
+        self.assertEqual(action["time_result"]["elapsed_seconds"], 300)
         self.assertEqual(action["new_location"], self.world["location"])
         self.assertEqual(result["narration"], self.session._fallback_for_action_result(
             "Sessiz Avlu'ya gidiyorum.", action
