@@ -36,6 +36,9 @@ from api.schemas import (
     CharacterCreateInput,
     CharacterCreationOptions,
     CharacterCreationCatalogResponse,
+    DeathResolutionResult,
+    DeathSaveResult,
+    DeathStateProjection,
     HealthResponse,
     SessionResponse,
     SpeciesTraitActionRequest,
@@ -199,6 +202,39 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_nested_death_schemas_match_runtime_models(self):
+        for model in (DeathSaveResult, DeathResolutionResult, DeathStateProjection):
+            schema_name = model.__name__
+            runtime = model.model_json_schema()
+            with self.subTest(schema=schema_name):
+                self.assertEqual(_property_names(schema_name), _runtime_field_names(model))
+                self.assertEqual(
+                    set(_schema(schema_name).get("required", [])),
+                    set(runtime.get("required", [])),
+                )
+                self.assertEqual(
+                    _schema(schema_name).get("additionalProperties"),
+                    runtime.get("additionalProperties"),
+                )
+            for field_name, runtime_property in runtime["properties"].items():
+                with self.subTest(schema=schema_name, field=field_name):
+                    published = _property(schema_name, field_name)
+                    self.assertEqual(
+                        _enum_values(schema_name, field_name),
+                        set(runtime_property.get("enum", [])),
+                    )
+                    self.assertEqual(_is_nullable(published), _is_nullable(runtime_property))
+                    for constraint in (
+                        "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+                    ):
+                        self.assertEqual(
+                            published.get(constraint),
+                            runtime_property.get(constraint),
+                            f"{schema_name}.{field_name}.{constraint}",
+                        )
+                    if "enum" in runtime_property or "minimum" in runtime_property:
+                        self.assertEqual(published.get("type"), runtime_property.get("type"))
+
     def test_documented_routes_match_fastapi_and_preserve_both_alias_families(self):
         methods = {
             method
@@ -776,15 +812,6 @@ components:
 """
     COMPACT_FIXTURE = """
 servers: [{url: /api}]
-paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
-components:
-  schemas:
-    Example: {type: object, required: [combat_id], additionalProperties: false, properties: {
-      combat_id: {type: ["string", "null"]},
-      result: {anyOf: [{type: object}, {type: "null"}]},
-      message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}
-"""
-
     def _parity_result(self, spec):
         suite = unittest.defaultTestLoader.loadTestsFromTestCase(ContractParityTests)
         result = unittest.TestResult()
@@ -862,6 +889,209 @@ components:
         def nonnullable_field(spec):
             spec["components"]["schemas"]["CombatTurnResult"]["properties"]["combat_id"] = {
                 "type": "string", "description": 'The word "null" is not nullability',
+            }
+
+        def wrong_enum(spec):
+            spec["components"]["schemas"]["HealthResponse"]["properties"]["status"]["enum"] = ["wrong"]
+
+        def wrong_constraint(spec):
+            spec["components"]["schemas"]["GameTurnInput"]["properties"]["message"]["maxLength"] = 400
+
+        def missing_alias(spec):
+            del spec["paths"]["/health"]
+
+        def duplicate_operation_id(spec):
+            spec["paths"]["/health"]["get"]["operationId"] = (
+                spec["paths"]["/game/health"]["get"]["operationId"]
+            )
+
+        def missing_operation_id(spec):
+            del spec["paths"]["/health"]["get"]["operationId"]
+
+        def missing_status(spec):
+            del spec["paths"]["/game/sessions/{session_id}/turn"]["post"]["responses"]["409"]
+
+        def wrong_delete_reference(spec):
+            spec["paths"]["/campaigns/{campaign_id}"]["delete"]["responses"]["200"][
+                "content"
+            ]["application/json"]["schema"]["$ref"] = "#/components/schemas/GameSession"
+
+        for mutate in (
+            missing_field, nonnullable_field, wrong_enum, wrong_constraint,
+            missing_alias, duplicate_operation_id, missing_operation_id,
+            missing_status, wrong_delete_reference,
+        ):
+            for flow_style in (False, True):
+                with self.subTest(mutation=mutate.__name__, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    mutate(spec)
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = self._parity_result(_load_spec(text))
+                    self.assertFalse(result.wasSuccessful())
+                    self.assertTrue(result.failures or result.errors)
+
+    def test_species_action_contract_drift_is_detected_in_both_formats(self):
+        mutations = []
+        for schema_name in (
+            "SpeciesTraitActionInput", "SpeciesTraitActionResult", "SpeciesTraitCommandResult"
+        ):
+            schema_path = ("components", "schemas", schema_name)
+            published = _schema(schema_name)
+            mutations.extend([
+                (schema_path + ("additionalProperties",), True),
+                (schema_path + ("additionalProperties",), None),
+                (schema_path + ("required",), []),
+                (schema_path + ("properties", "unexpected"), {"type": "string"}),
+            ])
+            for field_name, field_schema in published["properties"].items():
+                field_path = schema_path + ("properties", field_name)
+                # Missing fields and incompatible types, including nested result refs.
+                mutations.append((field_path, None))
+                mutations.append((field_path, {"type": "integer"}))
+                if _is_nullable(field_schema):
+                    nonnullable = deepcopy(field_schema)
+                    nonnullable["type"] = [
+                        value for value in field_schema["type"] if value != "null"
+                    ]
+                    mutations.append((field_path, nonnullable))
+                    mutations.append((
+                        schema_path + ("required",),
+                        [*published["required"], field_name],
+                    ))
+                else:
+                    mutations.append((field_path, {
+                        "anyOf": [deepcopy(field_schema), {"type": "null"}],
+                    }))
+            # Each required field must remain required, not just the whole set.
+            for required_field in published["required"]:
+                mutations.append((
+                    schema_path + ("required",),
+                    [value for value in published["required"] if value != required_field],
+                ))
+        input_path = ("components", "schemas", "SpeciesTraitActionInput", "properties")
+        for field_name in ("action", "form", "ancestry"):
+            values = _enum_values("SpeciesTraitActionInput", field_name)
+            mutations.append((input_path + (field_name, "enum"), [*values, "unsupported"]))
+            mutations.append((input_path + (field_name, "enum"), None))
+            for value in values:
+                mutations.append((
+                    input_path + (field_name, "enum"),
+                    [item for item in values if item != value],
+                ))
+        result_path = ("components", "schemas", "SpeciesTraitActionResult", "properties")
+        for constraint, wrong_value in (("minLength", 0), ("maxLength", 501)):
+            mutations.append((result_path + ("message", constraint), wrong_value))
+            mutations.append((result_path + ("message", constraint), None))
+        mutations.append((result_path + ("effects", "additionalProperties"), False))
+        mutations.append((result_path + ("effects", "additionalProperties"), None))
+        command_path = ("components", "schemas", "SpeciesTraitCommandResult", "properties")
+        for field_name in ("state", "result"):
+            mutations.append((
+                command_path + (field_name, "$ref"),
+                "#/components/schemas/GameSession",
+            ))
+
+        for path, value in mutations:
+            for flow_style in (False, True):
+                with self.subTest(path=path, value=value, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    target = spec
+                    for key in path[:-1]:
+                        target = target[key]
+                    if value is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = value
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                        ContractParityTests(
+                            "test_species_action_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Undetected species-action drift: {path}")
+
+    def test_nested_death_contract_mutations_fail_in_both_formats(self):
+        # Each case changes only a deep-copied published schema. The same
+        # parity test used for the real contract must reject every mutation.
+        mutations = []
+        for schema_name in (
+            "DeathSaveResult", "DeathResolutionResult", "DeathStateProjection",
+        ):
+            mutations.extend([
+                (schema_name, ("properties", _schema(schema_name)["required"][0]),
+                 None, "delete"),
+                (schema_name, ("properties", "unexpected"), {"type": "boolean"}, "set"),
+                (schema_name, ("required",), [], "set"),
+                (schema_name, ("additionalProperties",), True, "set"),
+            ])
+        enum_fields = {
+            "DeathSaveResult": ("outcome",),
+            "DeathResolutionResult": ("mode", "outcome", "cause"),
+            "DeathStateProjection": ("mode", "status"),
+        }
+        for schema_name, fields in enum_fields.items():
+            for field_name in fields:
+                enum = _property(schema_name, field_name)["enum"]
+                for replacement in (enum[:-1], enum + ["unexpected"], None):
+                    mutations.append((
+                        schema_name, ("properties", field_name, "enum"),
+                        replacement, "delete" if replacement is None else "set",
+                    ))
+        bounded_fields = {
+            "DeathSaveResult": ("roll", "successes", "failures"),
+            "DeathStateProjection": ("successes", "failures"),
+        }
+        for schema_name, fields in bounded_fields.items():
+            for field_name in fields:
+                for bound in ("minimum", "maximum"):
+                    value = _property(schema_name, field_name)[bound]
+                    for replacement in (value - 1, value + 1, None):
+                        mutations.append((
+                            schema_name, ("properties", field_name, bound),
+                            replacement, "delete" if replacement is None else "set",
+                        ))
+                mutations.append((
+                    schema_name, ("properties", field_name, "type"), "number", "set",
+                ))
+        for schema_name, field_name in (
+            ("DeathSaveResult", "action_id"),
+            ("DeathSaveResult", "resolution_id"),
+            ("DeathSaveResult", "death_resolution"),
+            ("DeathStateProjection", "last_death_save"),
+            ("DeathStateProjection", "last_resolution"),
+        ):
+            mutations.extend([
+                (schema_name, ("properties", field_name), None, "delete"),
+                (schema_name, ("required",),
+                 _schema(schema_name)["required"] + [field_name], "set"),
+                (schema_name, ("properties", field_name),
+                 {"type": "string"}, "set"),
+            ])
+
+        for schema_name, path, replacement, operation in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    schema=schema_name, path=path, replacement=replacement,
+                    operation=operation, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if operation == "delete":
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = replacement
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                        ContractParityTests(
+                            "test_nested_death_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertTrue(result.failures, result.errors)
+                    self.assertFalse(result.errors, result.errors)
             }
 
         def wrong_enum(spec):
