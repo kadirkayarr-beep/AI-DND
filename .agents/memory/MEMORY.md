@@ -20,6 +20,7 @@
 - [Weapon attack boundaries](weapon-attack-boundaries.md) — missing geometry must fail safely; feature grants and weapon choices remain separate.
 - [Monster owner evidence](monster-owner-evidence.md) — fixture executors prove contracts, not native mechanic coverage; report missing owners explicitly.
 - [Partial patch results](partial-patch-results.md) — a failed multi-file patch may already have applied earlier changes; inspect before retrying.
+- [Concurrent test-file integration](concurrent-test-file-integration.md) — recheck parse and suite after parallel task integration; earlier local success does not certify the merged file.
 - [Regression evidence authority](regression-evidence-authority.md) — new suite runs cannot certify missing historical runs; real HTTP acceptance remains separate.
 - [Development evidence cleanliness](development-evidence-cleanliness.md) — sequential checks must exempt only proven tool outputs, not genuine user or historical changes.
 - [Death and save policy](death-policy.md) — Policy A governs new lethal NPC damage; preserve historical unconscious canon; no mode automatically deletes saves.
