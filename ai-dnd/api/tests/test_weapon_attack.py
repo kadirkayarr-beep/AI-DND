@@ -690,6 +690,89 @@ class WeaponTests(unittest.TestCase):
                     {k: data[k] for k in position_keys if k in data}
                     for data in (s.character, n, other)], positions_before)
 
+    def test_npc_push_player_uses_forward_corridor_and_actor_distance_mirror(self):
+        cases = (
+            ("blocked", {"distance_ft": 5, "push_clear_ft": 0}, 20, False),
+            ("too_short", {"distance_ft": 5, "push_clear_ft": 5}, 20, False),
+            ("missing_corridor", {"distance_ft": 5}, 20, False),
+            ("reverse_only", None, 20, False),
+            ("clear_exactly", {"distance_ft": 5, "push_clear_ft": 10}, 0, True),
+            ("clear_longer", {"distance_ft": 5, "push_clear_ft": 20}, 5, True),
+        )
+        for name, forward, reverse_clear, applied in cases:
+            with self.subTest(case=name):
+                s, n = armed("Warhammer", mastery=True)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                forward_key = f"{n['id']}|player"
+                pairs = {
+                    f"player|{n['id']}": {
+                        "distance_ft": 5, "push_clear_ft": reverse_clear},
+                    f"player|{other['id']}": {
+                        "distance_ft": 30, "push_clear_ft": 20},
+                    f"{other['id']}|player": {
+                        "distance_ft": 30, "push_clear_ft": 0},
+                    f"{n['id']}|{other['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 10},
+                    f"{other['id']}|{n['id']}": {
+                        "distance_ft": 25, "push_clear_ft": 0},
+                }
+                if forward is not None:
+                    pairs[forward_key] = copy.deepcopy(forward)
+                else:
+                    # Only symmetric distance may come from the reverse pair.
+                    del n["distance_ft"]
+                    self.assertNotIn(forward_key, pairs)
+                s.world_state["attack_environment"] = {"pairs": pairs}
+                if forward is None:
+                    self.assertEqual(attack.pair(s, n["id"], "player"),
+                                     {"distance_ft": 5})
+                expected_world = copy.deepcopy(s.world_state)
+                unchanged = copy.deepcopy((s.character, s.messages, s.rng.getstate()))
+                actor_distance_before = {
+                    k: n[k] for k in ("distance_ft",) if k in n}
+                # No destination coordinates are supplied or justified.
+                position_keys = ("position", "position_ft", "coordinates", "x", "y", "z")
+                positions_before = copy.deepcopy([
+                    {k: data[k] for k in position_keys if k in data}
+                    for data in (s.character, n, other)])
+
+                result = attack.push(s, n["id"], "player", 10)
+
+                expected_effect = (
+                    {"kind": "push", "applied": True, "distance_ft": 10,
+                     "resulting_distance_ft": 15} if applied else
+                    {"kind": "push", "applied": False,
+                     "reason": "position_unresolved_or_blocked"})
+                self.assertEqual(result, expected_effect)
+                if applied:
+                    expected_pairs = {
+                        key: value for key, value in
+                        expected_world["attack_environment"]["pairs"].items()
+                        if "player" not in key.split("|")}
+                    expected_pairs[forward_key] = {
+                        **forward, "distance_ft": 15,
+                        "push_clear_ft": forward["push_clear_ft"] - 10}
+                    expected_world["attack_environment"]["pairs"] = expected_pairs
+                    expected_actor = next(
+                        npc for npc in expected_world["npcs"] if npc["id"] == n["id"])
+                    expected_actor["distance_ft"] = 15
+                    self.assertEqual(n["distance_ft"], 15)
+                    self.assertEqual(attack.pair(s, "player", n["id"]),
+                                     {"distance_ft": 15})
+                else:
+                    self.assertEqual({k: n[k] for k in ("distance_ft",) if k in n},
+                                     actor_distance_before)
+                # Includes exact pair invalidation, unrelated NPC-to-NPC
+                # geometry, and every other canonical world field.
+                self.assertEqual(s.world_state, expected_world)
+                self.assertEqual((s.character, s.messages, s.rng.getstate()), unchanged)
+                self.assertEqual(other["distance_ft"], 30)
+                self.assertEqual([
+                    {k: data[k] for k in position_keys if k in data}
+                    for data in (s.character, n, other)], positions_before)
+
     def test_push_unresolved_does_not_invent_position(self):
         s, n = armed("Warhammer", mastery=True)
         r = resolve(s, n, "Warhammer")
