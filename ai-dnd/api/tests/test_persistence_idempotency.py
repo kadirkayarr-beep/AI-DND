@@ -1993,6 +1993,198 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(replay.json(), successful.json())
             self.assertEqual(self.snapshot(restored), after_retry)
 
+    async def test_concurrent_ambient_and_rest_share_only_one_committed_action(self):
+        for rest_action in ("short_rest", "long_rest"):
+            for winner in ("ambient", "rest"):
+                with self.subTest(rest_action=rest_action, winner=winner):
+                    created = await self.create_campaign()
+                    campaign_id, sid = created["campaign_id"], created["session_id"]
+                    record = self.manager.get(sid)
+                    session = record.game_session
+                    session.commit_location_change("tavern")
+                    session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+                    session.initialize_species_trait_state()
+                    session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+                    event_id = self.install_test_ambient_event(session)
+                    self.manager.save_campaign(campaign_id)
+                    before = self.snapshot(record)
+                    before_character = copy.deepcopy(session.character)
+                    action_id = str(uuid4())
+                    commands = {
+                        "ambient": (f"ambient-events/{event_id}/actions",
+                                    {"action": "interact", "action_id": action_id}),
+                        "rest": ("species-actions",
+                                 {"action": rest_action, "action_id": action_id}),
+                    }
+                    loser = "rest" if winner == "ambient" else "ambient"
+
+                    def saved_rows(store):
+                        with closing(store._connect()) as connection:
+                            return {
+                                table: [tuple(row) for row in connection.execute(
+                                    f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                                    (campaign_id,),
+                                )]
+                                for table in ("campaigns", "campaign_turn_actions",
+                                              "campaign_history", "campaign_combat_history")
+                            }
+
+                    # Start the selected winner first, but block its initial
+                    # lookup until BOTH sync handlers arrive. Order only their
+                    # real lock acquisition, never mechanics or persistence.
+                    barrier = threading.Barrier(2)
+                    first_arrived = threading.Event()
+                    winner_finished = threading.Event()
+                    local = threading.local()
+                    original_get, original_lock = self.manager.get, record.turn_lock
+                    winning_commit = {}
+                    test = self
+
+                    def rendezvous(session_id):
+                        found = original_get(session_id)
+                        if not hasattr(local, "winner"):
+                            local.winner = not first_arrived.is_set()
+                            first_arrived.set()
+                            barrier.wait(timeout=10)
+                        return found
+
+                    class OrderedLock:
+                        def __enter__(self):
+                            if not local.winner and not winner_finished.wait(timeout=10):
+                                raise AssertionError("Winning handler did not finish")
+                            original_lock.acquire()
+
+                        def __exit__(self, exc_type, exc_value, traceback):
+                            try:
+                                if local.winner:
+                                    winning_commit["snapshot"] = test.snapshot(record)
+                                    winning_commit["auxiliary"] = copy.deepcopy((
+                                        session.messages, session.world_metadata,
+                                    ))
+                                    winning_commit["rows"] = saved_rows(test.store)
+                            finally:
+                                original_lock.release()
+                                if local.winner:
+                                    winner_finished.set()
+
+                    async def send(kind, client=self.http, session_id=sid):
+                        endpoint, command = commands[kind]
+                        return await client.post(
+                            f"/api/game/sessions/{session_id}/{endpoint}", json=command,
+                        )
+
+                    with patch.object(self.manager, "get", side_effect=rendezvous), \
+                         patch.object(record, "turn_lock", OrderedLock()):
+                        first = asyncio.create_task(send(winner))
+                        try:
+                            self.assertTrue(await asyncio.to_thread(first_arrived.wait, 10))
+                            accepted, rejected = await asyncio.wait_for(
+                                asyncio.gather(first, send(loser)), timeout=20,
+                            )
+                        finally:
+                            if not first.done():
+                                first.cancel()
+                                await asyncio.gather(first, return_exceptions=True)
+
+                    def assert_conflict(response):
+                        if loser == "rest":
+                            self.assertEqual(response.status_code, 409, response.text)
+                            self.assertEqual(response.json()["detail"]["code"], "action_id_conflict")
+                        else:
+                            self.assertEqual(response.status_code, 200, response.text)
+                            result = response.json()["result"]
+                            self.assertEqual(result["status"], "REJECTED")
+                            self.assertEqual(result["reason_code"], "action_id_conflict")
+                            self.assertEqual(result["action_id"], action_id)
+                            self.assertEqual(result["event_instance_id"], event_id)
+                            self.assertIsNone(result["transition_id"])
+                            self.assertIsNone(result["canonical_event_id"])
+
+                    self.assertEqual(accepted.status_code, 200, accepted.text)
+                    assert_conflict(rejected)
+                    committed = self.snapshot(record)
+                    self.assertEqual(committed, winning_commit["snapshot"])
+                    self.assertEqual((session.messages, session.world_metadata),
+                                     winning_commit["auxiliary"])
+                    self.assertEqual(saved_rows(self.store), winning_commit["rows"])
+                    receipt = self.store.get_turn_action(campaign_id, action_id)
+                    self.assertEqual(len(winning_commit["rows"]["campaign_turn_actions"]), 1)
+                    self.assertEqual(receipt["response"]["action_id"], action_id)
+                    self.assertEqual(self.manager.get_turn_action(record, action_id), receipt)
+                    elapsed = session.world_state["campaign_time"]["elapsed_seconds"]
+                    before_elapsed = before[0]["world_state"]["campaign_time"]["elapsed_seconds"]
+                    outcomes = [entry for entry in record.journal["notable_events"]
+                                if entry.get("event_type") == "ambient_event_outcome"]
+                    if winner == "ambient":
+                        result = accepted.json()["result"]
+                        self.assertEqual(result["status"], "APPLIED")
+                        self.assertTrue(result["transition_id"])
+                        self.assertTrue(result["canonical_event_id"])
+                        self.assertEqual(receipt["response"]["ambient_event_response"], accepted.json())
+                        self.assertEqual(committed[-1].history, before[-1].history)
+                        self.assertEqual(len(outcomes), 1)
+                        self.assertEqual(outcomes[0]["event_id"], result["canonical_event_id"])
+                        self.assertEqual(outcomes[0]["event_result"]["action_id"], action_id)
+                        self.assertEqual(session.character, before_character)
+                        self.assertEqual(elapsed, before_elapsed)
+                    else:
+                        self.assertEqual(accepted.json()["result"]["action"], rest_action)
+                        self.assertEqual(receipt["response"], accepted.json())
+                        self.assertEqual(len(committed[-1].history), len(before[-1].history) + 1)
+                        self.assertEqual(committed[-1].history[-1]["player_message"], rest_action)
+                        self.assertEqual(record.journal, before[2])
+                        self.assertEqual(outcomes, [])
+                        self.assertEqual(elapsed - before_elapsed,
+                                         3600 if rest_action == "short_rest" else 28800)
+                        self.assertEqual(
+                            session.character["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                            session.character["proficiency_bonus"],
+                        )
+                        self.assertEqual(session.character["current_hp"],
+                                         20 if rest_action == "long_rest" else 1)
+                    self.assertEqual(record.combat_history, before[5])
+                    self.assertEqual(session.rng.getstate(), before[1])
+                    self.assertEqual(committed[-1].metadata["revision"],
+                                     before[-1].metadata["revision"] + 1)
+
+                    fresh_store = CampaignStore(self.store.path)
+                    fresh = SessionManager(campaign_store=fresh_store)
+                    app = create_app(session_manager=fresh, ollama_adapter=None)
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                                base_url="http://reload") as client:
+                        resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+                        self.assertEqual(resumed.status_code, 200, resumed.text)
+                        new_sid = resumed.json()["session_id"]
+                        restored = fresh.get(new_sid)
+                        self.assertIsNot(restored.game_session, session)
+                        self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+                        self.assertEqual(fresh_store.get_campaign(campaign_id).payload,
+                                         committed[-1].payload)
+                        self.assertEqual(resumed.json()["history"], committed[-1].history)
+                        self.assertEqual(fresh.get_turn_action(restored, action_id), receipt)
+                        reopened = self.snapshot(restored)
+                        rows = saved_rows(fresh_store)
+                        auxiliary = copy.deepcopy((
+                            restored.game_session.messages, restored.game_session.world_metadata,
+                        ))
+                        assert_conflict(await send(loser, client, new_sid))
+                        replay = await send(winner, client, new_sid)
+                        self.assertEqual(replay.status_code, 200, replay.text)
+                        if winner == "ambient":
+                            self.assertEqual(replay.json()["result"]["status"], "ALREADY_APPLIED")
+                            for key in ("action_id", "transition_id", "canonical_event_id"):
+                                self.assertEqual(replay.json()["result"][key],
+                                                 accepted.json()["result"][key])
+                        else:
+                            expected = copy.deepcopy(accepted.json())
+                            expected["session_id"] = new_sid
+                            self.assertEqual(replay.json(), expected)
+                        self.assertEqual(self.snapshot(restored), reopened)
+                        self.assertEqual((restored.game_session.messages,
+                                          restored.game_session.world_metadata), auxiliary)
+                        self.assertEqual(saved_rows(fresh_store), rows)
+                        self.assertEqual(fresh_store.get_turn_action(campaign_id, action_id), receipt)
+
     async def test_concurrent_duplicate_spell_executes_once_and_replays(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
