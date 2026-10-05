@@ -3487,6 +3487,162 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(stale_store.get_campaign(campaign_id), retried)
             self.assertEqual(receipt_rows(), committed_receipts)
 
+    async def test_reopened_merchant_search_with_equivalent_wording_reuses_saved_identities(self):
+        city_id = "fr:city:neverwinter"
+        response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        created = response.json()
+        campaign_id = created["campaign_id"]
+        requests = [
+            {"message": message, "action_id": str(uuid.uuid4())}
+            for message in (
+                "Buralarda bir tücaar var mı?",
+                "Bir tüccar arıyorum.",
+                "Yakınlarda bir satıcı bulunuyor mu?",
+            )
+        ]
+        self.assertEqual(len({body["message"] for body in requests}), 3)
+        self.assertEqual(len({body["action_id"] for body in requests}), 3)
+        results = []
+        receipts = {}
+
+        async def search(http, manager, store, session_id, body):
+            record = manager.get(session_id)
+            session = record.game_session
+            before = store.get_campaign(campaign_id)
+            self.assertIsNone(store.get_turn_action(campaign_id, body["action_id"]))
+            real_turn = session.run_player_turn
+            captured = []
+
+            @wraps(real_turn)
+            def capture_search(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                captured.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            # Observe the real offline engine; no scripted discovery or replay.
+            with patch.object(session, "run_player_turn", new=capture_search):
+                searched = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=body
+                )
+            self.assertEqual(searched.status_code, 200, searched.text)
+            self.assertEqual(searched.json()["action_id"], body["action_id"])
+            self.assertEqual(len(captured), 1)
+            result = captured[0]
+            self.assertEqual(result["action"], "local_search")
+            self.assertEqual(result["status"], "found")
+            self.assertTrue(result["success"])
+            results.append(result)
+
+            persisted = store.get_campaign(campaign_id)
+            self.assertEqual(
+                persisted.payload["engine_save"], session.serialize_game_state()
+            )
+            self.assertEqual(persisted.payload["journal"], record.journal)
+            self.assertEqual(len(persisted.history), len(before.history) + 1)
+            self.assertEqual(persisted.history[:-1], before.history)
+            self.assertEqual(
+                persisted.history[-1]["player_message"], body["message"]
+            )
+            world = persisted.payload["engine_save"]["world_state"]
+            self.assertEqual(world["location"], city_id)
+            self.assertEqual(len(world["shops"]), 1)
+            shop = world["shops"][0]
+            self.assertEqual(shop["id"], results[0]["shop_id"])
+            self.assertEqual(shop["shopkeeper_id"], results[0]["target_id"])
+            self.assertEqual(shop["location"], city_id)
+            self.assertEqual(result["shop_id"], shop["id"])
+            self.assertEqual(result["target_id"], shop["shopkeeper_id"])
+            self.assertEqual(
+                [npc["id"] for npc in world["npcs"]
+                 if npc.get("shop_id") == shop["id"]],
+                [shop["shopkeeper_id"]],
+            )
+            shopkeepers = [
+                npc for npc in world["npcs"] if npc["id"] == shop["shopkeeper_id"]
+            ]
+            self.assertEqual(len(shopkeepers), 1)
+            self.assertEqual(shopkeepers[0]["location"], city_id)
+            if len(results) > 1:
+                previous_world = before.payload["engine_save"]["world_state"]
+                for collection in ("shops", "npcs"):
+                    self.assertEqual(
+                        [item["id"] for item in world[collection]],
+                        [item["id"] for item in previous_world[collection]],
+                    )
+
+            for action_id, receipt in receipts.items():
+                self.assertEqual(store.get_turn_action(campaign_id, action_id), receipt)
+                self.assertEqual(manager.get_turn_action(record, action_id), receipt)
+            receipt = store.get_turn_action(campaign_id, body["action_id"])
+            self.assertIsNotNone(receipt)
+            self.assertEqual(receipt["response"], searched.json())
+            self.assertEqual(manager.get_turn_action(record, body["action_id"]), receipt)
+            receipts[body["action_id"]] = copy.deepcopy(receipt)
+            self.assertEqual(
+                len({item["request_hash"] for item in receipts.values()}),
+                len(receipts),
+            )
+            return persisted
+
+        committed = await search(
+            self.http, self.manager, self.store, created["session_id"], requests[0]
+        )
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            loaded_record = reopened_manager.get(session_id)
+            self.assertEqual(
+                loaded_record.game_session.serialize_game_state(),
+                committed.payload["engine_save"],
+            )
+            self.assertEqual(resumed.json()["history"], committed.history)
+            for body in requests[1:]:
+                with self.subTest(message=body["message"]):
+                    committed = await search(
+                        http, reopened_manager, reopened_store, session_id, body
+                    )
+
+        # A second reopen verifies the paraphrases are durable independent turns.
+        final_store = CampaignStore(self.store.path)
+        final_manager = SessionManager(campaign_store=final_store)
+        final_id, _, _, _, _ = final_manager.resume_campaign(campaign_id)
+        final_record = final_manager.get(final_id)
+        self.assertEqual(
+            final_record.game_session.serialize_game_state(),
+            committed.payload["engine_save"],
+        )
+        self.assertEqual(final_record.journal, committed.payload["journal"])
+        final_campaign = final_store.get_campaign(campaign_id)
+        self.assertEqual(final_campaign.history, committed.history)
+        self.assertEqual(
+            [entry["player_message"] for entry in final_campaign.history],
+            [body["message"] for body in requests],
+        )
+        for action_id, receipt in receipts.items():
+            self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
+            self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
+
     async def test_failed_merchant_discovery_is_rolled_back_and_retry_commits_once(self):
         city_id = "fr:city:neverwinter"
         response = await self.http.post(
