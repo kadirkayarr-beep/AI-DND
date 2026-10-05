@@ -3,8 +3,12 @@
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
+import ast
+import shutil
 import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -136,6 +140,126 @@ class RunnerInventoryTests(unittest.TestCase):
                 self.assertEqual(run_tests.main(("--suite", "prototype")), 1)
                 execute.assert_not_called()
                 self.assertIn("PREFLIGHT FAILED", stderr.getvalue())
+
+
+class RunnerProcessTests(unittest.TestCase):
+    """Exercise real preflight and child processes using only offline toy gates."""
+
+    SUITES = {
+        "TESTS": ("release_first.py", "release_later.py"),
+        "PROTOTYPE_TESTS": ("prototype_first.py", "prototype_later.py"),
+    }
+    SELECTIONS = (
+        ((), "TESTS"),
+        (("--suite", "release"), "TESTS"),
+        (("--suite", "prototype"), "PROTOTYPE_TESTS"),
+    )
+
+    def copy_runner(self, root):
+        for name in ("run_tests.py", "test_definition_preflight.py"):
+            shutil.copyfile(run_tests.ROOT / name, root / name)
+        runner = root / "run_tests.py"
+        source = runner.read_text(encoding="utf-8")
+        lines = source.splitlines(keepends=True)
+        # Change only the copied inventories, leaving the runner's CLI, preflight,
+        # subprocess execution and exit handling intact. Never copy real gates.
+        inventories = {
+            node.targets[0].id: node
+            for node in ast.parse(source).body
+            if isinstance(node, ast.Assign) and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in self.SUITES
+        }
+        self.assertEqual(set(inventories), set(self.SUITES))
+        for name, node in sorted(inventories.items(),
+                                 key=lambda item: item[1].lineno, reverse=True):
+            lines[node.lineno - 1:node.end_lineno] = [
+                f"{name} = {self.SUITES[name]!r}\n"
+            ]
+        runner.write_text("".join(lines), encoding="utf-8")
+
+    def write_gate(self, root, name, body):
+        # Write the sentinel before any definitions: even merely importing a
+        # rejected gate would leave evidence. The shared log proves child order.
+        (root / name).write_text(
+            "from pathlib import Path\n"
+            f"Path({name + '.sentinel'!r}).write_text('started', encoding='utf-8')\n"
+            + textwrap.dedent(body).lstrip("\n")
+            + f"\nwith Path('order.txt').open('a', encoding='utf-8') as log:\n"
+            f"    log.write({name + chr(10)!r})\n",
+            encoding="utf-8",
+        )
+
+    def launch_runner(self, root, argv):
+        return subprocess.run(
+            [sys.executable, str(root / "run_tests.py"), *argv],
+            cwd=root, capture_output=True, text=True, timeout=20,
+        )
+
+    def test_later_alias_replacement_blocks_every_gate_in_real_process(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                first, later = self.SUITES[inventory]
+                self.write_gate(root, first, "def test_ok(): pass\n")
+                self.write_gate(root, later, """
+                    class Checks:
+                        def test_result(self): pass
+                    Alias = Checks
+                    Alias.test_result = None
+                """)
+                result = self.launch_runner(root, argv)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("TEST DEFINITION PREFLIGHT FAILED:", result.stderr)
+                self.assertIn(str(root / later), result.stderr)
+                self.assertIn("overwrites method Alias.test_result", result.stderr)
+                self.assertFalse((root / "order.txt").exists())
+                for name in (first, later):
+                    self.assertFalse((root / (name + ".sentinel")).exists(), name)
+                self.assertNotIn("PASSED", result.stdout)
+
+    def test_valid_aliases_and_decorators_run_real_gates_in_order(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                first, later = self.SUITES[inventory]
+                self.write_gate(root, first, """
+                    def decorator(function):
+                        return function
+                    def test_result(): pass
+                    alias = test_result
+                    test_result = decorator(test_result)
+                    assert alias is test_result
+                """)
+                self.write_gate(root, later, """
+                    def wrapper(function):
+                        return function
+                    class Checks:
+                        def test_result(self): pass
+                        alias = test_result
+                        test_result = staticmethod(test_result)
+                    Checks.test_result = wrapper(Checks.test_result)
+                    Alias = Checks
+                    Alias.test_result = wrapper(Alias.test_result)
+                    assert Alias is Checks
+                    assert Checks.alias is Alias.test_result
+                """)
+                # Unselected sources are deliberately absent. A runner that
+                # preflights or executes the wrong suite cannot pass this case.
+                result = self.launch_runner(root, argv)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual((root / "order.txt").read_text(encoding="utf-8")
+                                 .splitlines(), [first, later])
+                for name in (first, later):
+                    self.assertEqual((root / (name + ".sentinel"))
+                                     .read_text(encoding="utf-8"), "started")
+                summary = ("ALL 2 DETERMINISTIC GATES PASSED" if inventory == "TESTS"
+                           else "ALL 2 HISTORICAL PROTOTYPE CHECKS PASSED "
+                           "(NOT RELEASE GATES)")
+                self.assertIn(summary, result.stdout)
 
 
 if __name__ == "__main__":
