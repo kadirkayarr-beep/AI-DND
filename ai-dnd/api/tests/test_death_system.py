@@ -428,6 +428,7 @@ class DeathSystemTests(unittest.TestCase):
             self.assertEqual(peer.save_game(peer_path), peer_path)
             saved_bytes = path.read_bytes()
             peer_bytes = peer_path.read_bytes()
+            saved_files = {path: saved_bytes, peer_path: peer_bytes}
             committed = session.serialize_game_state()
             self.assertEqual(json.loads(saved_bytes), committed)
             owners = (session, peer, game._DEFAULT_SESSION)
@@ -450,9 +451,9 @@ class DeathSystemTests(unittest.TestCase):
                 self.assertIs(game._session(), game._DEFAULT_SESSION)
                 self.assertEqual(reopened.rng.getstate(), load_rng)
                 self.assertEqual(reopened.messages, load_history)
-                self.assertEqual(path.read_bytes(), saved_bytes)
-                self.assertEqual(peer_path.read_bytes(), peer_bytes)
-                self.assertEqual(set(Path(directory).iterdir()), {path, peer_path})
+                for saved_path, content in saved_files.items():
+                    self.assertEqual(saved_path.read_bytes(), content)
+                self.assertEqual(set(Path(directory).iterdir()), set(saved_files))
 
             with (
                 patch.object(
@@ -520,6 +521,16 @@ class DeathSystemTests(unittest.TestCase):
                 heal.assert_not_called()
                 assert_preserved()
 
+                if not healed:
+                    replacement_path, replacement_bytes = (
+                        self._assert_replacement_recovery_second_reopening(
+                            mode, reopened, owners, path, peer_path, cancelled_recovery
+                        )
+                    )
+                    saved_files[replacement_path] = replacement_bytes
+                    assert_preserved()
+                    return
+
                 for duration, expected_time in (
                     (1, cancelled_recovery["at"]),
                     (7200, cancelled_recovery["at"] + 7200),
@@ -539,6 +550,121 @@ class DeathSystemTests(unittest.TestCase):
                     self.assertEqual(recovery_die.call_count, 0 if healed else 1)
                     heal.assert_not_called()
                     assert_preserved()
+
+    def _assert_replacement_recovery_second_reopening(
+        self, mode, source, owners, cancelled_path, peer_path, cancelled_recovery
+    ):
+        # Persist after stabilization and time already spent on the replacement
+        # episode: loading must retain its absolute deadline, not restart four hours.
+        replacement = copy.deepcopy(source.ensure_death_state()["recovery"])
+        expected_death = copy.deepcopy(source.ensure_death_state())
+        self.assertLess(cancelled_recovery["at"], replacement["at"])
+        replacement_path = cancelled_path.with_name("replacement-recovery.json")
+        self.assertEqual(source.save_game(replacement_path), replacement_path)
+        committed = source.serialize_game_state()
+        paths = (cancelled_path, peer_path, replacement_path)
+        saved_bytes = {path: path.read_bytes() for path in paths}
+        self.assertEqual(json.loads(saved_bytes[replacement_path]), committed)
+        protected = (*owners, source)
+        snapshots = [owner.serialize_game_state() for owner in protected]
+        rng_states = [owner.rng.getstate() for owner in protected]
+        histories = [copy.deepcopy(owner.messages) for owner in protected]
+        module_rng = random.getstate()
+        second = make_session(seed=101)
+        second.messages.append({"role": "user", "content": "Second reopen history"})
+        second_rng = second.rng.getstate()
+        second_history = copy.deepcopy(second.messages)
+
+        def assert_preserved():
+            for owner, snapshot, rng_state, history in zip(
+                protected, snapshots, rng_states, histories
+            ):
+                self.assertEqual(owner.serialize_game_state(), snapshot)
+                self.assertEqual(owner.rng.getstate(), rng_state)
+                self.assertEqual(owner.messages, history)
+            self.assertEqual(random.getstate(), module_rng)
+            self.assertIs(game._session(), game._DEFAULT_SESSION)
+            self.assertEqual(second.rng.getstate(), second_rng)
+            self.assertEqual(second.messages, second_history)
+            for path, content in saved_bytes.items():
+                self.assertEqual(path.read_bytes(), content)
+            self.assertEqual(set(cancelled_path.parent.iterdir()), set(paths))
+
+        with (
+            patch.object(
+                second.rng, "randint",
+                side_effect=AssertionError("Replacement load or recovery rolled dice"),
+            ),
+            patch(
+                "game.roll_d20",
+                side_effect=AssertionError("Replacement recovery rolled a death save"),
+            ),
+            patch("game.heal_player", wraps=game.heal_player) as heal,
+        ):
+            self.assertEqual(second.load_game(replacement_path), committed)
+            self.assertEqual(second.serialize_game_state(), committed)
+            self.assertEqual(second.ensure_death_state(), expected_death)
+            for owner in protected:
+                self.assertIsNot(second.world_state, owner.world_state)
+                self.assertIsNot(second.character, owner.character)
+                self.assertIsNot(
+                    second.ensure_death_state(), owner.ensure_death_state()
+                )
+            self.assertIsNot(
+                second.ensure_death_state()["recovery"],
+                source.ensure_death_state()["recovery"],
+            )
+            heal.assert_not_called()
+            assert_preserved()
+
+            # The saved episode is one second before the cancelled deadline.
+            # Crossing that deadline must not revive the player or alter the
+            # replacement episode; neither may the second load reschedule it.
+            self.assertEqual(
+                second.world_state["campaign_time"]["elapsed_seconds"],
+                cancelled_recovery["at"] - 1,
+            )
+            for deadline in (cancelled_recovery["at"], replacement["at"] - 1):
+                now = second.world_state["campaign_time"]["elapsed_seconds"]
+                result = second.advance_campaign_time(deadline - now, "wait")
+                self.assertEqual(result["death_results"], [])
+                self.assertEqual(
+                    second.world_state["campaign_time"]["elapsed_seconds"], deadline
+                )
+                self.assertEqual(second.character["current_hp"], 0)
+                self.assertEqual(second.world_state["player_combat_status"], "unconscious")
+                self.assertEqual(second.ensure_death_state(), expected_death)
+                heal.assert_not_called()
+                assert_preserved()
+
+            due = second.advance_campaign_time(1, "wait")
+            self.assertEqual(
+                second.world_state["campaign_time"]["elapsed_seconds"], replacement["at"]
+            )
+            self.assertEqual(
+                due["death_results"], [{"action": "stable_recovery", "current_hp": 1}]
+            )
+            self.assertEqual(second.character["current_hp"], 1)
+            self.assertEqual(second.world_state["player_combat_status"], "active")
+            death = second.ensure_death_state()
+            self.assertFalse(death["stable"])
+            self.assertFalse(death["dead"])
+            self.assertFalse(death["terminal"])
+            self.assertEqual(death["mode"], mode)
+            self.assertIsNone(death["recovery"])
+            self.assertIsNone(death["noncombat_next_save_at"])
+            heal.assert_called_once_with(1)
+            assert_preserved()
+
+            later = second.advance_campaign_time(14400, "wait")
+            self.assertEqual(later["death_results"], [])
+            self.assertEqual(second.character["current_hp"], 1)
+            self.assertEqual(second.world_state["player_combat_status"], "active")
+            self.assertIsNone(second.ensure_death_state()["recovery"])
+            heal.assert_called_once_with(1)
+            assert_preserved()
+
+        return replacement_path, saved_bytes[replacement_path]
 
     def _assert_nonfatal_death_save_round_trip(
         self, mode, roll, outcome, successes, failures
