@@ -2124,6 +2124,153 @@ class SessionTests(unittest.TestCase):
                 )
                 assert_isolated(expected)
 
+    def test_overlapping_orc_and_aasimar_bonus_actions_keep_transformations_session_owned(self):
+        for eligible_index in (0, 1):
+            with self.subTest(eligible_species=("Orc", "Aasimar")[eligible_index]):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                eligible = sessions[eligible_index]
+                spent = sessions[1 - eligible_index]
+                requests = (
+                    {"action": "adrenaline_rush"},
+                    {"action": "celestial_revelation", "form": "heavenly_wings"},
+                )
+                use_keys = ("adrenaline_rush_uses_remaining",
+                            "celestial_revelation_uses_remaining")
+                for index, (session, species) in enumerate(zip(sessions, ("Orc", "Aasimar"))):
+                    session.character.update(
+                        species=species, race=species, level=5,
+                        proficiency_bonus=3, current_hp=11 + index * 7,
+                        max_hp=19,
+                    )
+                    game.initialize_species_trait_state(session=session)
+                    session.character["speed_ft"] = 30 + index * 5
+                    enemy = self.npc(session)
+                    with patch.object(game, "roll_initiative_player", return_value=20), \
+                         patch.object(game, "roll_initiative", return_value=1):
+                        session.start_combat(enemy)
+                    combat = session.world_state["combat"]
+                    self.assertTrue(combat["active"])
+                    self.assertEqual(combat["current_actor_id"], "player")
+                    state = session.character["species_trait_state"]
+                    state.update(
+                        temporary_hit_points=index,
+                        movement_budget_ft=10 + index * 10,
+                        movement_effect={"kind": "dash", "distance_ft": 10 + index * 10},
+                    )
+                    state[use_keys[index]] = 1
+                    resources = game.action_economy.ensure(session)["player"]
+                    resources.update(
+                        bonus_action_spent=session is spent,
+                        base_action_spent=bool(index),
+                        reaction_spent=not bool(index),
+                        movement_used=5 + index * 5,
+                    )
+                    # Both branches have uses; only the ledger may reject one.
+                    self.assertGreater(state[use_keys[index]], 0)
+                    self.assertIsNone(state["bonus_action_used_round"])
+                    self.assertIsNone(state["active_celestial_form"])
+                    session.messages.append({
+                        "role": "user", "content": f"{species} campaign history",
+                    })
+                before = [session.serialize_game_state() for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                messages_before = [copy.deepcopy(session.messages) for session in sessions]
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                rng_module = random.getstate()
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                eligible_waiting = threading.Event()
+                rejection_finished = threading.Event()
+                bonus_action_owner = game._species_bonus_action
+
+                def overlapping_bonus_action():
+                    owner = game._session()
+                    if owner is eligible:
+                        eligible_waiting.set()
+                        self.assertTrue(rejection_finished.wait(timeout=5))
+                    else:
+                        self.assertIs(owner, spent)
+                        self.assertTrue(eligible_waiting.is_set())
+                    self.assertIs(game._session(), owner)
+                    return bonus_action_owner()
+
+                def assert_isolated(expected):
+                    for session, snapshot, rng, messages in zip(
+                        sessions, expected, rng_before, messages_before
+                    ):
+                        self.assertEqual(session.serialize_game_state(), snapshot)
+                        self.assertEqual(session.messages, messages)
+                        self.assertEqual(session.rng.getstate(), rng)
+                    self.assertIs(game._session(), game._DEFAULT_SESSION)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                    self.assertEqual(random.getstate(), rng_module)
+
+                def reject_spent():
+                    try:
+                        self.assertTrue(eligible_waiting.wait(timeout=5))
+                        with self.assertRaisesRegex(
+                            ValueError, "^Bu tur bonus eylemini zaten kullandın\\.$"
+                        ):
+                            game.resolve_species_trait_action(
+                                **requests[1 - eligible_index], session=spent
+                            )
+                        # The eligible handler is still paused at the real owner.
+                        assert_isolated(before)
+                    finally:
+                        rejection_finished.set()
+
+                with patch.object(game, "_species_bonus_action",
+                                  side_effect=overlapping_bonus_action) as bonus_action, \
+                     self.rolls(eligible), self.rolls(spent), \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        jobs = (
+                            lambda: game.resolve_species_trait_action(
+                                **requests[eligible_index], session=eligible
+                            ),
+                            reject_spent,
+                        )
+                        # Reverse submission order along with species eligibility.
+                        if eligible_index:
+                            rejected = pool.submit(jobs[1])
+                            granted = pool.submit(jobs[0])
+                        else:
+                            granted = pool.submit(jobs[0])
+                            rejected = pool.submit(jobs[1])
+                        rejected.result(timeout=10)
+                        grant = granted.result(timeout=10)
+                    self.assertEqual(bonus_action.call_count, 2)
+                self.assertEqual(grant["action"], requests[eligible_index]["action"])
+                expected = copy.deepcopy(before)
+                state = expected[eligible_index]["player"]["species_trait_state"]
+                state[use_keys[eligible_index]] = 0
+                state["bonus_action_used_round"] = (
+                    before[eligible_index]["world_state"]["combat"]["round"]
+                )
+                resources = expected[eligible_index]["world_state"]["combat"]["turn_resources"]["player"]
+                resources["bonus_action_spent"] = True
+                if eligible_index == 0:
+                    self.assertEqual(grant["effects"], {
+                        "temporary_hit_points": 3, "dash_distance_ft": 60,
+                    })
+                    state.update(
+                        temporary_hit_points=3, movement_budget_ft=60,
+                        movement_effect={"kind": "dash", "distance_ft": 60},
+                    )
+                    resources.update(dash_count=1, movement_available=60)
+                else:
+                    self.assertEqual(grant["effects"], {
+                        "form": "heavenly_wings", "duration_turns": 10,
+                    })
+                    state.update(
+                        active_celestial_form="heavenly_wings",
+                        celestial_revelation_turns_remaining=10,
+                        movement_effect={"kind": "flight", "speed_ft": 35},
+                    )
+                assert_isolated(expected)
+
     def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
         # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
         # a surviving reserve, and spillover into regular HP. Explicit expected
