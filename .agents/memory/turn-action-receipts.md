@@ -48,3 +48,14 @@ timestamp boundary.
 **How to apply:** Assert the saved engine state, history, and receipt survive
 resume separately, then capture the store immediately before replay and verify
 replay itself does not write.
+
+Distinguish retry after failed persistence from replay of a committed receipt.
+The former must reproduce gameplay and restore RNG, but need not reuse generated
+identities for history entries that never committed.
+
+**Why:** Requiring full response equality with an uncommitted attempt incorrectly
+treats newly generated history identities as a gameplay rollback failure.
+
+**How to apply:** Compare mechanical outcomes and narration across failed-save
+retry; require exact accepted-response equality only once a receipt has committed
+(apart from the current session ID after reopening).

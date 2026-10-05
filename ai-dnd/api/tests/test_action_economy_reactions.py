@@ -3,11 +3,15 @@ import copy
 import unittest
 from unittest.mock import patch
 
+import game
+import httpx
 import action_economy as ae
+from api.main import create_app
 from api.tests import test_action_economy as economy_tests
 from api.tests.test_campaign_time import scene
 from api.tests.test_action_economy_end_turn import opponents
 from api.persistence.campaign_store import CampaignStore
+from api.persistence.campaign_models import CampaignStorageError
 from api.session_manager import SessionManager
 
 
@@ -148,6 +152,139 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
     request = economy_tests.ActionEconomyApiTests.request
     post = economy_tests.ActionEconomyApiTests.post
     command = economy_tests.ActionEconomyApiTests.command
+
+    async def test_failed_react_save_rolls_back_and_retries_once_after_reopening(self):
+        await self.assert_failed_resolution_retry("react")
+
+    async def test_failed_decline_save_rolls_back_and_retries_once_after_reopening(self):
+        await self.assert_failed_resolution_retry("decline_reaction")
+
+    async def assert_failed_resolution_retry(self, kind):
+        record = self.manager.get(self.sid)
+        session = record.game_session
+        npcs, identity = interrupted(session)
+        # These real d20 rolls both hit. Fix only damage and the readied strike's
+        # miss so this remains a nonfatal scheduler/persistence regression.
+        session.rng.seed(0)
+        campaign_id = self.created["campaign_id"]
+        self.manager.save_campaign(campaign_id)
+        command = self.command(session, npcs[0], {
+            "kind": kind, "opportunity_id": identity,
+        })
+
+        def runtime(current):
+            engine = current.game_session
+            return copy.deepcopy((
+                engine.serialize_game_state(), engine.rng.getstate(), engine.messages,
+                current.journal, current.combat_history, current.narrative_memory,
+                current.turn_action_receipts,
+            ))
+
+        before = runtime(record)
+        combat_before = copy.deepcopy(session.world_state["combat"])
+        resources_before = copy.deepcopy(ae.ensure(session)["player"])
+        saved_before = self.store.get_campaign(campaign_id)
+        self.assertEqual(session.character["current_hp"], 100)
+        self.assertEqual(combat_before["current_actor_id"], npcs[0]["id"])
+        self.assertEqual(resources_before["opportunity"]["id"], identity)
+        self.assertFalse(resources_before["reaction_spent"])
+        self.assertIsNotNone(resources_before["ready"])
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        attempted_receipts = []
+
+        def fail_save(*args, **kwargs):
+            # Prove we reached autosave AFTER resolving the actual pending attacks,
+            # rather than rejecting the request or failing before combat changed.
+            receipt = copy.deepcopy(kwargs["turn_action_receipt"])
+            attempted_receipts.append(receipt)
+            body = receipt["response"]
+            assert_continuation(
+                self, {"action_result": body["combat_result"],
+                       "narration": body["narration"]},
+                session, npcs, kind, ["hit", "hit"], [4, 4],
+            )
+            self.assertEqual(session.world_state["player_combat_status"], "active")
+            self.assertNotEqual(session.rng.getstate(), before[1])
+            self.assertIsNotNone(kwargs["turn_entry"])
+            self.assertIsNotNone(kwargs["combat_history_entry"])
+            raise CampaignStorageError("controlled reaction autosave failure")
+
+        with patch("game.roll_attack", return_value=1) as reaction_roll, \
+             patch("game.roll_d20", wraps=game.roll_d20) as enemy_roll, \
+             patch("game.roll_damage", return_value=4), \
+             patch.object(self.store, "save_campaign", side_effect=fail_save) as save:
+            failed = await self.post(command)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(enemy_roll.call_count, 2)
+        self.assertEqual(reaction_roll.call_count, int(kind == "react"))
+        self.assertEqual(runtime(record), before)
+        self.assertEqual(session.character["current_hp"], 100)
+        self.assertEqual(session.world_state["combat"], combat_before)
+        self.assertEqual(ae.ensure(session)["player"], resources_before)
+        self.assertEqual(self.store.get_campaign(campaign_id), saved_before)
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        self.assertIsNone(self.store.get_turn_action(campaign_id, command["action_id"]))
+
+        with patch("game.roll_attack", return_value=1) as reaction_roll, \
+             patch("game.roll_d20", wraps=game.roll_d20) as enemy_roll, \
+             patch("game.roll_damage", return_value=4), \
+             patch.object(self.store, "save_campaign", wraps=self.store.save_campaign) as save:
+            successful = await self.post(command)
+        self.assertEqual(successful.status_code, 200, successful.text)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(enemy_roll.call_count, 2)
+        self.assertEqual(reaction_roll.call_count, int(kind == "react"))
+        body = successful.json()
+        # A failed attempt's uncommitted history event gets a fresh UUID on retry;
+        # the mechanical outcome and narration must still be identical.
+        self.assertEqual(body["combat_result"], attempted_receipts[0]["response"]["combat_result"])
+        self.assertEqual(body["narration"], attempted_receipts[0]["response"]["narration"])
+        assert_continuation(
+            self, {"action_result": body["combat_result"], "narration": body["narration"]},
+            session, npcs, kind, ["hit", "hit"], [4, 4],
+        )
+        self.assertNotEqual(session.rng.getstate(), before[1])
+        committed = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(committed.history), len(saved_before.history) + 1)
+        self.assertEqual(len(committed.combat_history), len(saved_before.combat_history) + 1)
+        receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(receipt["request_hash"], attempted_receipts[0]["request_hash"])
+        self.assertEqual(receipt["response"], body)
+        self.assertEqual(record.combat_history, committed.combat_history)
+
+        accepted = runtime(record)
+        with patch.object(session, "run_player_turn", side_effect=AssertionError("replay ran turn")), \
+             patch.object(self.store, "save_campaign", side_effect=AssertionError("replay saved")):
+            replay = await self.post(command)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), body)
+        self.assertEqual(runtime(record), accepted)
+        self.assertEqual(self.store.get_campaign(campaign_id), committed)
+
+        reopened_store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
+        sid, restored, _, history, _ = manager.resume_campaign(campaign_id)
+        self.assertEqual(runtime(restored), accepted)
+        self.assertEqual(history, committed.history)
+        self.assertEqual(manager.get_turn_action(restored, command["action_id"]), receipt)
+        # Resume can update metadata; compare replay with the post-resume store.
+        reopened_before = reopened_store.get_campaign(campaign_id)
+        app = create_app(session_manager=manager, ollama_adapter=self.app.state.ollama_adapter)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test",
+        ) as client:
+            with patch.object(restored.game_session, "run_player_turn",
+                              side_effect=AssertionError("reopened replay ran turn")), \
+                 patch.object(reopened_store, "save_campaign",
+                              side_effect=AssertionError("reopened replay saved")):
+                for _ in range(2):
+                    replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(replay.json(), dict(body, session_id=sid))
+                    self.assertEqual(runtime(restored), accepted)
+                    self.assertEqual(reopened_store.get_campaign(campaign_id), reopened_before)
+                    self.assertEqual(manager.get_turn_action(restored, command["action_id"]), receipt)
 
     async def test_both_reaction_responses_and_saved_receipts_retain_enemy_attacks(self):
         for kind in ("react", "decline_reaction"):
