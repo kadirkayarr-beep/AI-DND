@@ -515,6 +515,134 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CampaignError):
             self.store.save_campaign(b["campaign_id"], record.game_session)
 
+    async def test_saved_rest_action_rejects_combat_payload_after_reopen(self):
+        for rest_action in ("short_rest", "long_rest"):
+            with self.subTest(rest_action=rest_action):
+                created = await self.create_campaign()
+                campaign_id = created["campaign_id"]
+                record = self.manager.get(created["session_id"])
+                session = record.game_session
+                session.commit_location_change("tavern")
+                session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+                session.initialize_species_trait_state()
+                session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+                self.manager.save_campaign(campaign_id)
+                rest_command = {"action": rest_action, "action_id": str(uuid4())}
+                elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
+                accepted = await self.http.post(
+                    f"/api/game/sessions/{created['session_id']}/species-actions",
+                    json=rest_command,
+                )
+                self.assertEqual(accepted.status_code, 200, accepted.text)
+                self.assertEqual(accepted.json()["result"]["action"], rest_action)
+                self.assertEqual(
+                    session.character["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                    session.character["proficiency_bonus"],
+                )
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"] - elapsed_before,
+                    3600 if rest_action == "short_rest" else 28800,
+                )
+                if rest_action == "long_rest":
+                    self.assertEqual(session.character["current_hp"], 20)
+                original_receipt = copy.deepcopy(
+                    self.store.get_turn_action(campaign_id, rest_command["action_id"])
+                )
+                self.assertEqual(original_receipt["response"], accepted.json())
+
+                # Populate real retained combat history after the rest, without
+                # replacing its receipt. The conflicting request is otherwise a
+                # valid combat command in the reopened encounter.
+                record, combat_command = self.prepare_spell(created)
+                session.character["armor_class"] = 100
+                session.character["current_hp"] = 20
+                self.manager.save_campaign(campaign_id)
+                combat_response = await self.post(created, combat_command)
+                self.assertEqual(combat_response.status_code, 200, combat_response.text)
+                self.assertEqual(len(record.combat_history), 1)
+                committed = self.snapshot(record)
+                self.assertEqual(len(committed[-1].history), 2)
+                self.assertEqual(
+                    self.store.get_turn_action(campaign_id, rest_command["action_id"]),
+                    original_receipt,
+                )
+
+                fresh_store = CampaignStore(self.store.path)
+                fresh = SessionManager(campaign_store=fresh_store)
+                app = create_app(session_manager=fresh, ollama_adapter=None)
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                            base_url="http://reload") as client:
+                    resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+                    self.assertEqual(resumed.status_code, 200, resumed.text)
+                    sid = resumed.json()["session_id"]
+                    restored = fresh.get(sid)
+                    self.assertNotEqual(sid, created["session_id"])
+                    self.assertIsNot(restored.game_session, session)
+                    self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+                    self.assertEqual(resumed.json()["history"], committed[-1].history)
+                    self.assertEqual(
+                        fresh_store.get_turn_action(campaign_id, rest_command["action_id"]),
+                        original_receipt,
+                    )
+
+                    retry = copy.deepcopy(combat_command)
+                    retry["action_id"] = rest_command["action_id"]
+                    combat = restored.game_session.world_state["combat"]
+                    self.assertTrue(combat["active"])
+                    retry.update(combat_id=combat["combat_id"], combat_round=combat["round"],
+                                 combat_turn_index=combat["current_turn_index"])
+                    self.assertEqual(retry["action_id"], rest_command["action_id"])
+                    self.assertNotEqual(retry, rest_command)
+                    # Resume can update metadata; baseline every owner only
+                    # after it has completed, including the original SQL receipt.
+                    before = self.snapshot(restored)
+                    before_auxiliary = copy.deepcopy((
+                        restored.game_session.messages, restored.game_session.world_metadata,
+                    ))
+
+                    def saved_rows():
+                        with closing(fresh_store._connect()) as connection:
+                            return {
+                                table: [tuple(row) for row in connection.execute(
+                                    f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                                    (campaign_id,),
+                                )]
+                                for table in ("campaigns", "campaign_turn_actions",
+                                              "campaign_history", "campaign_combat_history")
+                            }
+
+                    before_rows = saved_rows()
+                    with patch.object(restored.game_session, "run_player_turn",
+                                      side_effect=AssertionError("Rest ID executed combat")) as engine, \
+                         patch("game.run_player_turn",
+                               side_effect=AssertionError("Rest ID reached core combat")) as core_engine, \
+                         patch.object(restored.game_session.rng, "randint",
+                                      side_effect=AssertionError("Rest ID consumed dice")) as dice, \
+                         patch.object(fresh, "autosave_turn",
+                                      side_effect=AssertionError("Rest ID autosaved")) as autosave, \
+                         patch.object(fresh_store, "save_campaign",
+                                      side_effect=AssertionError("Rest ID saved")) as save:
+                        conflict = await client.post(
+                            f"/api/game/sessions/{sid}/turn", json=retry,
+                        )
+                    self.assertEqual(conflict.status_code, 409, conflict.text)
+                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                    for guard in (engine, core_engine, dice, autosave, save):
+                        guard.assert_not_called()
+                    self.assertEqual(self.snapshot(restored), before)
+                    self.assertEqual((
+                        restored.game_session.messages, restored.game_session.world_metadata,
+                    ), before_auxiliary)
+                    self.assertEqual(saved_rows(), before_rows)
+                    self.assertEqual(
+                        fresh_store.get_turn_action(campaign_id, rest_command["action_id"]),
+                        original_receipt,
+                    )
+                    self.assertEqual(
+                        fresh.get_turn_action(restored, rest_command["action_id"]),
+                        original_receipt,
+                    )
+
     async def test_combat_receipt_replays_original_snapshot_after_later_turn_and_reopen(self):
         a, b = await self.create_campaign(), await self.create_campaign()
         record, command = self.prepare_spell(a)
