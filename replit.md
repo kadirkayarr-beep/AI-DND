@@ -59,7 +59,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 ## Gotchas
 
 - Run deterministic gates from the repository root with `python ai-dnd/run_tests.py`.
-- The deterministic runner scans every configured gate before execution and rejects duplicate class methods with file and definition-line diagnostics.
+- The deterministic runner scans every configured gate before execution and rejects duplicate module functions and class methods with file and definition-line diagnostics. Control-flow blocks share their enclosing namespace; nested local functions and separate module/class scopes do not collide.
 - The live suites require a reachable Ollama server with `qwen3:8b`; a missing server is an environment limitation, not a deterministic test failure.
 - Do not use the prototype `test_combat_v2.py` or `test_combat_v2_fixed.py` as release gates; the authoritative suite is `test_combat_v2_authoritative.py`.
 - Keep model output out of mechanical state mutation paths.

@@ -1,17 +1,22 @@
-"""Source-only checks for methods that Python would silently overwrite."""
+"""Source-only checks for functions that Python would silently overwrite."""
 
 import ast
 from pathlib import Path
 
 
-class _ClassMethods(ast.NodeVisitor):
-    """Collect one class namespace, excluding function and nested-class scopes."""
+class _NamespaceFunctions(ast.NodeVisitor):
+    """Collect one namespace, excluding function and nested-class scopes.
+
+    Control-flow blocks do not introduce namespaces, so definitions inside
+    them belong to the enclosing module or class. Function bodies are opaque:
+    local functions are not module functions or methods.
+    """
 
     def __init__(self):
-        self.methods = []
+        self.functions = []
 
     def visit_FunctionDef(self, node):
-        self.methods.append(node)
+        self.functions.append(node)
 
     visit_AsyncFunctionDef = visit_FunctionDef
 
@@ -31,22 +36,26 @@ def check_test_definitions(paths):
             errors.append(f"{path}: cannot inspect test definitions: {exc}")
             continue
 
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            collector = _ClassMethods()
+        namespaces = [tree] + [
+            node for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
+        ]
+        for node in namespaces:
+            collector = _NamespaceFunctions()
             for statement in node.body:
                 collector.visit(statement)
             first_lines = {}
-            for method in collector.methods:
-                if method.name in first_lines:
+            is_class = isinstance(node, ast.ClassDef)
+            kind = "method" if is_class else "module function"
+            for function in collector.functions:
+                name = f"{node.name}.{function.name}" if is_class else function.name
+                if function.name in first_lines:
                     errors.append(
-                        f"{path}:{method.lineno}: duplicate method "
-                        f"{node.name}.{method.name} "
-                        f"(first defined at line {first_lines[method.name]}, "
-                        f"redefined at line {method.lineno}); "
+                        f"{path}:{function.lineno}: duplicate {kind} "
+                        f"{name} "
+                        f"(first defined at line {first_lines[function.name]}, "
+                        f"redefined at line {function.lineno}); "
                         "rename or remove the duplicate definition"
                     )
                 else:
-                    first_lines[method.name] = method.lineno
+                    first_lines[function.name] = function.lineno
     return errors
