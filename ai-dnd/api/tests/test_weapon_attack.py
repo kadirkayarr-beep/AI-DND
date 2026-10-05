@@ -818,6 +818,24 @@ class WeaponTests(unittest.TestCase):
             with self.subTest(distance=distance):
                 self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
 
+    def test_forward_pair_none_distance_not_replaced_by_valid_npc(self):
+        self.assert_invalid_forward_distance_not_replaced_by_npc(None)
+
+    def test_forward_pair_numeric_string_distance_not_replaced_by_valid_npc(self):
+        for distance in ("30", "30.0"):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
+
+    def test_forward_pair_list_distance_not_replaced_by_valid_npc(self):
+        for distance in ([], [30]):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
+
+    def test_forward_pair_dict_distance_not_replaced_by_valid_npc(self):
+        for distance in ({}, {"distance_ft": 30}):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_not_replaced_by_npc(distance)
+
     def test_reverse_pair_negative_distance_rejected_unchanged(self):
         self.assert_invalid_reverse_distance_unchanged({"distance_ft": -1})
 
