@@ -2790,6 +2790,186 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(random.getstate(), rng_module)
 
 
+    def test_overlapping_fatal_rollback_cannot_restore_another_orcs_endurance(self):
+        for rollback_index in (0, 1):
+            with self.subTest(rollback_index=rollback_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                enemies = [self.npc(session) for session in sessions]
+                for index, (session, enemy) in enumerate(zip(sessions, enemies)):
+                    session.character.update(
+                        species="Orc", race="Orc", proficiency_bonus=2,
+                        armor_class=10, current_hp=19, max_hp=19,
+                        resistances=[], immunities=[], vulnerabilities=[],
+                    )
+                    session.initialize_species_trait_state()
+                    session.ensure_campaign_clock()
+                    session.world_state["campaign_id"] = f"rollback-campaign-{index}"
+                    session.world_state["inventory"].append(f"keepsake-{index}")
+                    session.world_state["attack_results"] = [
+                        {"marker": f"precombat-{index}"}
+                    ]
+                    session.recent_dm_narrations.append(f"precombat-{index}")
+                    session.messages.append(
+                        {"role": "user", "content": f"campaign-{index}"}
+                    )
+                    enemy.update(attack_bonus=0, damage_die=12,
+                                 damage_dice=1, damage_modifier=10)
+                rollback = sessions[rollback_index]
+                survivor = sessions[1 - rollback_index]
+                checkpoint_snapshot = rollback.serialize_game_state()
+                checkpoint_rng = rollback.rng.getstate()
+                # Use the real checkpoint owner, as in test_death_system.py.
+                game._capture_combat_death_checkpoint(session=rollback)
+                self.assertEqual(rollback.world_state["death_state"]["mode"],
+                                 "NORMAL")
+                self.assertEqual(
+                    rollback.world_state["death_state"]["combat_checkpoint"][
+                        "campaign_id"
+                    ], rollback.world_state["campaign_id"],
+                )
+                for session in sessions:
+                    session.character["current_hp"] = 3
+                rollback.character["species_trait_state"][
+                    "relentless_endurance_available"
+                ] = False
+                rollback.world_state["inventory"].append("combat-only loot")
+                rollback.world_state["attack_results"].append(
+                    {"marker": "combat-only attack"}
+                )
+                rollback.recent_dm_narrations.append("combat-only narration")
+                # Advance both streams after the checkpoint. Rollback must not
+                # rewind even its own RNG, much less the other campaign's.
+                for session in sessions:
+                    session.rng.random()
+                before = [session.serialize_game_state() for session in sessions]
+                messages = [copy.deepcopy(session.messages) for session in sessions]
+                references = [(session.world_state, session.character,
+                               session.recent_dm_narrations)
+                              for session in sessions]
+                expected_rng = []
+                for session in sessions:
+                    reference_rng = random.Random()
+                    reference_rng.setstate(session.rng.getstate())
+                    reference_rng.randint(1, 20)
+                    reference_rng.randint(1, 12)
+                    expected_rng.append(reference_rng.getstate())
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                rng_module = random.getstate()
+                attack_barrier = threading.Barrier(2)
+                damage_barrier = threading.Barrier(2)
+                survivor_finished = threading.Event()
+                survivor_results = []
+                original_restore = game._restore_combat_death_checkpoint
+
+                def assert_survivor_unchanged():
+                    expected = copy.deepcopy(before[1 - rollback_index])
+                    expected["player"]["current_hp"] = 1
+                    expected["player"]["species_trait_state"][
+                        "relentless_endurance_available"
+                    ] = False
+                    expected["world_state"]["attack_results"].append(
+                        copy.deepcopy(survivor_results[0])
+                    )
+                    self.assertEqual(survivor.serialize_game_state(), expected)
+                    self.assertEqual(survivor.rng.getstate(),
+                                     expected_rng[1 - rollback_index])
+                    self.assertEqual(survivor.messages, messages[1 - rollback_index])
+
+                def overlapping_restore(cause):
+                    self.assertIs(game._session(), rollback)
+                    self.assertTrue(survivor_finished.wait(timeout=5),
+                                    "Survivable hit did not finish before rollback")
+                    assert_survivor_unchanged()
+                    resolution = original_restore(cause)
+                    self.assertIs(game._session(), rollback)
+                    assert_survivor_unchanged()
+                    return resolution
+
+                def scripted_roll(session, damage_roll):
+                    original_randint = session.rng.randint
+                    remaining = iter(((20, 15), (12, damage_roll)))
+
+                    def randint(low, high):
+                        sides, value = next(remaining)
+                        self.assertEqual((low, high), (1, sides))
+                        self.assertIs(game._session(), session)
+                        original_randint(low, high)
+                        barrier = attack_barrier if sides == 20 else damage_barrier
+                        barrier.wait(timeout=5)
+                        self.assertIs(game._session(), session)
+                        return value
+
+                    return randint, remaining
+
+                rolls = [scripted_roll(session, 12 if index == rollback_index else 11)
+                         for index, session in enumerate(sessions)]
+
+                def attack(index):
+                    session = sessions[index]
+                    result = game.resolve_enemy_attack(enemies[index], session=session)
+                    if session is survivor:
+                        survivor_results.append(result)
+                        survivor_finished.set()
+                    return result
+
+                with patch.object(sessions[0].rng, "randint", side_effect=rolls[0][0]), \
+                     patch.object(sessions[1].rng, "randint", side_effect=rolls[1][0]), \
+                     patch("game._restore_combat_death_checkpoint",
+                           side_effect=overlapping_restore) as restore, \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        futures = [pool.submit(attack, index) for index in range(2)]
+                        results = [future.result(timeout=10) for future in futures]
+                    restore.assert_called_once_with("massive_damage")
+                for _, remaining in rolls:
+                    self.assertIsNone(next(remaining, None), "Unused scripted dice")
+                resolution = {
+                    "mode": "NORMAL", "outcome": "rolled_back",
+                    "cause": "massive_damage", "rolled_back": True, "terminal": False,
+                }
+                for index, result in enumerate(results):
+                    fatal = index == rollback_index
+                    self.assertTrue(result["hit"])
+                    self.assertTrue(result["success"])
+                    self.assertFalse(result["critical"])
+                    self.assertEqual(result["attack_rolls"], [15])
+                    self.assertEqual(result["damage"], 22 if fatal else 21)
+                    self.assertEqual(result["target_hp_before"], 3)
+                    self.assertEqual(result["target_hp_after"], 19 if fatal else 1)
+                    self.assertEqual(result["target_status"], "active")
+                    self.assertEqual(result["death_resolution"],
+                                     resolution if fatal else None)
+                    self.assertEqual(result["species_effects"], [] if fatal else [
+                        {"trait": "relentless_endurance", "current_hp": 1},
+                    ])
+                expected = copy.deepcopy(checkpoint_snapshot)
+                expected["world_state"]["death_state"]["last_resolution"] = resolution
+                expected["world_state"]["attack_results"].append(
+                    copy.deepcopy(results[rollback_index])
+                )
+                self.assertEqual(rollback.serialize_game_state(), expected)
+                self.assertIsNone(rollback.world_state["death_state"]["combat_checkpoint"])
+                self.assertTrue(rollback.character["species_trait_state"][
+                    "relentless_endurance_available"
+                ])
+                self.assertNotEqual(rollback.rng.getstate(), checkpoint_rng)
+                assert_survivor_unchanged()
+                for index, session in enumerate(sessions):
+                    self.assertEqual(session.rng.getstate(), expected_rng[index])
+                    self.assertEqual(session.messages, messages[index])
+                    world, character, narrations = references[index]
+                    self.assertIs(session.world_state, world)
+                    self.assertIs(session.character, character)
+                    self.assertIs(session.recent_dm_narrations, narrations)
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                self.assertEqual(random.getstate(), rng_module)
+
+
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()
