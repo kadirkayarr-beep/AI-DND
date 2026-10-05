@@ -1723,6 +1723,123 @@ class SessionTests(unittest.TestCase):
                     self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
                     self.assertEqual(random.getstate(), rng_module)
 
+    def test_overlapping_exhausted_adrenaline_rush_cannot_borrow_another_sessions_uses(self):
+        for eligible_index in (0, 1):
+            with self.subTest(eligible_index=eligible_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                eligible = sessions[eligible_index]
+                exhausted = sessions[1 - eligible_index]
+                for session in sessions:
+                    can_activate = session is eligible
+                    session.character.update(
+                        species="Orc", race="Orc",
+                        level=5 if can_activate else 1,
+                        proficiency_bonus=3 if can_activate else 2,
+                        current_hp=18 if can_activate else 11, max_hp=19,
+                    )
+                    game.initialize_species_trait_state(session=session)
+                    session.character["species_trait_state"].update(
+                        adrenaline_rush_uses_remaining=2 if can_activate else 0,
+                        temporary_hit_points=0 if can_activate else 1,
+                        movement_budget_ft=20 if can_activate else 10,
+                        movement_effect={
+                            "kind": "dash",
+                            "distance_ft": 20 if can_activate else 10,
+                        },
+                    )
+                before = [session.serialize_game_state() for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                messages_before = [copy.deepcopy(session.messages) for session in sessions]
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                rng_module = random.getstate()
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                eligible_waiting = threading.Event()
+                rejection_finished = threading.Event()
+                bonus_action_owner = game._species_bonus_action
+
+                def overlapping_bonus_action():
+                    # The real handler has bound its character/trait state and
+                    # passed its use check, but has not consumed a use or granted
+                    # HP/movement. An exhausted handler must never reach here.
+                    self.assertIs(game._session(), eligible)
+                    eligible_waiting.set()
+                    self.assertTrue(rejection_finished.wait(timeout=5))
+                    self.assertIs(game._session(), eligible)
+                    return bonus_action_owner()
+
+                def reject_exhausted():
+                    try:
+                        self.assertTrue(eligible_waiting.wait(timeout=5))
+                        with self.assertRaisesRegex(
+                            ValueError, "^Adrenalin Patlaması için kullanım kalmadı\\.$"
+                        ):
+                            game.resolve_species_trait_action(
+                                "adrenaline_rush", session=exhausted
+                            )
+                        # Rejection must leave both complete snapshots untouched,
+                        # including the eligible campaign's still-pending grant.
+                        for session, snapshot, rng, messages in zip(
+                            sessions, before, rng_before, messages_before
+                        ):
+                            self.assertEqual(session.serialize_game_state(), snapshot)
+                            self.assertEqual(session.rng.getstate(), rng)
+                            self.assertEqual(session.messages, messages)
+                        self.assertIs(game._session(), game._DEFAULT_SESSION)
+                        self.assertEqual(game.serialize_game_state(), self.default_before)
+                        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                        self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                        self.assertEqual(random.getstate(), rng_module)
+                    finally:
+                        rejection_finished.set()
+
+                with patch.object(game, "_species_bonus_action",
+                                  side_effect=overlapping_bonus_action) as bonus_action, \
+                     self.rolls(eligible), self.rolls(exhausted), \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        # Reverse submission order as well as campaign roles;
+                        # events guarantee overlap without timing-based sleeps.
+                        jobs = (
+                            lambda: game.resolve_species_trait_action(
+                                "adrenaline_rush", session=eligible
+                            ),
+                            reject_exhausted,
+                        )
+                        if eligible_index:
+                            rejected = pool.submit(jobs[1])
+                            granted = pool.submit(jobs[0])
+                        else:
+                            granted = pool.submit(jobs[0])
+                            rejected = pool.submit(jobs[1])
+                        rejected.result(timeout=10)
+                        grant = granted.result(timeout=10)
+                    bonus_action.assert_called_once_with()
+
+                self.assertEqual(grant["action"], "adrenaline_rush")
+                self.assertEqual(grant["effects"], {
+                    "temporary_hit_points": 3,
+                    "dash_distance_ft": 60,
+                })
+                expected = copy.deepcopy(before)
+                expected[eligible_index]["player"]["species_trait_state"].update(
+                    adrenaline_rush_uses_remaining=1,
+                    temporary_hit_points=3,
+                    movement_budget_ft=60,
+                    movement_effect={"kind": "dash", "distance_ft": 60},
+                )
+                for session, snapshot, rng, messages in zip(
+                    sessions, expected, rng_before, messages_before
+                ):
+                    self.assertEqual(session.serialize_game_state(), snapshot)
+                    self.assertEqual(session.rng.getstate(), rng)
+                    self.assertEqual(session.messages, messages)
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                self.assertEqual(random.getstate(), rng_module)
+
     def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
         # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
         # a surviving reserve, and spillover into regular HP. Explicit expected
