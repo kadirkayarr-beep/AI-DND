@@ -1744,6 +1744,171 @@ class SessionTests(unittest.TestCase):
                     )
                     assert_preserved()
 
+    def test_overlapping_interrupted_long_rest_keeps_healing_and_spells_session_owned(self):
+        import spell_scope
+        from api.tests.test_campaign_time import scene
+        from api.tests.test_campaign_time_edges import event, flag
+
+        for interrupted_index in (0, 1):
+            for first_index in (0, 1):
+                with self.subTest(interrupted_index=interrupted_index,
+                                  first_index=first_index):
+                    sessions = [scene(), scene()]
+                    fixtures = [("Wizard", 7, 19, 0, 17),
+                                ("Cleric", 13, 27, 1, 29)]
+                    for session, (cls, hp, maximum, slots, seed) in zip(
+                        sessions, fixtures
+                    ):
+                        session.rng.seed(seed)
+                        session.character.update(
+                            species="Human", race="Human", level=1,
+                            proficiency_bonus=2, current_hp=hp, max_hp=maximum,
+                            **{"class": cls},
+                        )
+                        game.initialize_species_trait_state(session=session)
+                        spell_scope.initialize(session)
+                        session.world_state["spellcasting_v1"]["slots"]["1"] = slots
+                        # A rest must not erase the existing slot-turn receipt.
+                        session.world_state["spellcasting_v1"]["slot_turn"] = [
+                            f"combat-{cls}", 1, 1,
+                        ]
+                        game.ensure_death_state(session=session)
+                        game.ensure_combat_state(session=session)
+                    interrupted = sessions[interrupted_index]
+                    encounter = event(
+                        interrupted, "long-rest-stop", 1200, 1800,
+                        behavior="INTERRUPTIVE", requires_decision=True,
+                        summary="A visitor needs a decision.",
+                        effects=[flag("long_rest_encounter")],
+                    )
+                    before = [session.serialize_game_state() for session in sessions]
+                    characters_before = [copy.deepcopy(session.character)
+                                         for session in sessions]
+                    expected = copy.deepcopy(before)
+                    for index, snapshot in enumerate(expected):
+                        world = snapshot["world_state"]
+                        # Compute only clock/event changes on detached worlds;
+                        # healing and slots have explicit, independent expectations.
+                        game.campaign_time.advance(
+                            world, 8 * 3600, "long_rest",
+                            f"turn:{world.get('flags', {}).get('turn_index', 0)}",
+                        )
+                        if index != interrupted_index:
+                            snapshot["player"]["current_hp"] = fixtures[index][2]
+                            world["spellcasting_v1"]["slots"] = copy.deepcopy(
+                                spell_scope.CLASS_DEFINITIONS[fixtures[index][0]][
+                                    "spell_slots"
+                                ]
+                            )
+                    rng_before = [session.rng.getstate() for session in sessions]
+                    messages_before = [copy.deepcopy(session.messages)
+                                       for session in sessions]
+                    default_rng = game._DEFAULT_SESSION.rng.getstate()
+                    default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                    module_rng = random.getstate()
+                    self.assertIsNot(sessions[0].rng, sessions[1].rng)
+                    self.assertNotEqual(rng_before[0], rng_before[1])
+                    first, waiting = sessions[first_index], sessions[1 - first_index]
+                    waiting_entered = threading.Event()
+                    release_waiting = threading.Event()
+                    time_owner = game.advance_campaign_time
+
+                    def overlapping_time(*args, **kwargs):
+                        owner = game._session()
+                        self.assertTrue(any(owner is session for session in sessions))
+                        if owner is waiting:
+                            waiting_entered.set()
+                            self.assertTrue(release_waiting.wait(timeout=5))
+                        else:
+                            self.assertTrue(waiting_entered.wait(timeout=5))
+                        self.assertIs(game._session(), owner)
+                        result = time_owner(*args, **kwargs)
+                        self.assertIs(game._session(), owner)
+                        return result
+
+                    def assert_preserved():
+                        for session, rng, messages in zip(
+                            sessions, rng_before, messages_before
+                        ):
+                            self.assertEqual(session.rng.getstate(), rng)
+                            self.assertEqual(session.messages, messages)
+                        self.assertEqual(game.serialize_game_state(), self.default_before)
+                        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+                        self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                        self.assertEqual(random.getstate(), module_rng)
+
+                    results = {}
+                    with patch.object(game, "advance_campaign_time",
+                                      side_effect=overlapping_time), \
+                         self.rolls(first), self.rolls(waiting), \
+                         self.rolls(game._DEFAULT_SESSION):
+                        with ThreadPoolExecutor(max_workers=2) as pool:
+                            waiting_future = pool.submit(
+                                game.resolve_species_trait_action,
+                                "long_rest", session=waiting,
+                            )
+                            first_future = pool.submit(
+                                game.resolve_species_trait_action,
+                                "long_rest", session=first,
+                            )
+                            try:
+                                results[first_index] = first_future.result(timeout=10)
+                                self.assertEqual(first.serialize_game_state(),
+                                                 expected[first_index])
+                                self.assertEqual(waiting.serialize_game_state(),
+                                                 before[1 - first_index])
+                                assert_preserved()
+                            finally:
+                                release_waiting.set()
+                            results[1 - first_index] = waiting_future.result(timeout=10)
+
+                    for index, session in enumerate(sessions):
+                        result = results[index]
+                        stopped = index == interrupted_index
+                        self.assertEqual(result["action"], "long_rest")
+                        effects = result["effects"]
+                        time_result = effects["time_result"]
+                        self.assertEqual(time_result["interrupted"], stopped)
+                        self.assertEqual(time_result["requested_seconds"], 28800)
+                        self.assertEqual(time_result["elapsed_seconds"],
+                                         1200 if stopped else 28800)
+                        self.assertEqual(time_result["remaining_seconds"],
+                                         27600 if stopped else 0)
+                        self.assertEqual(
+                            session.character["current_hp"],
+                            fixtures[index][1] if stopped else fixtures[index][2],
+                        )
+                        if stopped:
+                            self.assertFalse(effects["rest_completed"])
+                            self.assertNotIn("current_hp", effects)
+                            self.assertNotIn("refreshed", effects)
+                            self.assertEqual(session.character, characters_before[index])
+                            self.assertEqual(
+                                session.world_state["spellcasting_v1"],
+                                before[index]["world_state"]["spellcasting_v1"],
+                            )
+                        else:
+                            self.assertEqual(effects["current_hp"], fixtures[index][2])
+                            self.assertEqual(
+                                session.world_state["spellcasting_v1"]["slots"],
+                                spell_scope.CLASS_DEFINITIONS[fixtures[index][0]][
+                                    "spell_slots"
+                                ],
+                            )
+                            self.assertEqual(time_result["player_known_events"], [])
+                            self.assertNotIn("scheduled:long_rest_encounter",
+                                             session.world_state["flags"])
+                        self.assertEqual(session.serialize_game_state(), expected[index])
+                    self.assertEqual(encounter["status"], "OCCURRED")
+                    self.assertEqual(encounter["decision_status"], "PENDING")
+                    self.assertEqual(encounter["encounter_status"], "OBSERVED")
+                    self.assertTrue(encounter["player_observed"])
+                    self.assertEqual(encounter["canonical_result"]["resolved_at"], 1200)
+                    self.assertTrue(
+                        interrupted.world_state["flags"]["scheduled:long_rest_encounter"]
+                    )
+                    assert_preserved()
+
     def test_overlapping_adrenaline_rush_grants_and_absorption_stay_session_owned(self):
         # Different proficiency bonuses and uses expose a borrowed character
         # or trait state. Reverse the fixtures to avoid depending on call order.
