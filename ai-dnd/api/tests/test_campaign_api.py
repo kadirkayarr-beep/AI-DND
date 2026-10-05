@@ -704,13 +704,101 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 revisit_results.append(copy.deepcopy(result["action_result"]))
                 return result
 
-            with patch.object(loaded, "run_player_turn", new=capture_revisit):
-                revisit = await http.post(turn_url, json=revisit_body)
-            self.assertEqual(revisit.status_code, 200, revisit.text)
+            # The real second entry completes in the engine, but a failed
+            # autosave must leave both the live session and disk at the exit.
+            exited_record = reloaded_manager.get(session_id)
+            exited_journal = copy.deepcopy(exited_record.journal)
+            exited_memory = copy.deepcopy(exited_record.narrative_memory)
+            exited_receipts = copy.deepcopy(exited_record.turn_action_receipts)
+            exited_campaign = reloaded_store.get_campaign(campaign_id)
+            with (
+                patch.object(loaded, "run_player_turn", new=capture_revisit),
+                patch.object(
+                    reloaded_store,
+                    "save_campaign",
+                    side_effect=CampaignStorageError("database unavailable"),
+                ) as failed_save,
+            ):
+                failed_revisit = await http.post(turn_url, json=revisit_body)
+            failed_save.assert_called_once()
+            self.assertEqual(failed_revisit.status_code, 503, failed_revisit.text)
+            self.assertEqual(
+                failed_revisit.json()["detail"]["code"],
+                "campaign_storage_unavailable",
+            )
+            self.assertNotIn("database unavailable", failed_revisit.text)
             self.assertEqual(len(revisit_results), 1)
             self.assertEqual(revisit_results[0]["action"], "enter")
             self.assertEqual(revisit_results[0]["status"], "completed")
             self.assertEqual(revisit_results[0]["target_id"], tavern_id)
+            self.assertEqual(loaded.serialize_game_state(), exited_save)
+            self.assertEqual(resumed_world["location"], city_id)
+            self.assertEqual(
+                resumed_world["scene_state"]["player_position"]["location_id"],
+                city_id,
+            )
+            self.assertEqual(
+                resumed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
+                tavern_visits,
+            )
+            self.assertEqual(
+                resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
+                city_visits + 1,
+            )
+            self.assertEqual(exited_record.journal, exited_journal)
+            self.assertEqual(exited_record.narrative_memory, exited_memory)
+            self.assertEqual(exited_record.turn_action_receipts, exited_receipts)
+            self.assertNotIn(revisit_body["action_id"], exited_record.turn_action_receipts)
+            failed_campaign = reloaded_store.get_campaign(campaign_id)
+            self.assertEqual(failed_campaign.payload, exited_campaign.payload)
+            self.assertEqual(failed_campaign.metadata, exited_campaign.metadata)
+            self.assertEqual(failed_campaign.history, exited_campaign.history)
+            self.assertEqual(len(failed_campaign.history), 3)
+            self.assertIsNone(
+                reloaded_store.get_turn_action(campaign_id, revisit_body["action_id"])
+            )
+
+            # Independently reopening after the failure must see the city exit,
+            # with no uncommitted second visit, history entry, or action receipt.
+            failed_resume_store = CampaignStore(self.store.path)
+            failed_resume_manager = SessionManager(campaign_store=failed_resume_store)
+            failed_resume_app = create_app(
+                session_manager=failed_resume_manager,
+                ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+            )
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=failed_resume_app),
+                base_url="http://testserver",
+            ) as failed_resume_http:
+                failed_resume = await failed_resume_http.post(
+                    f"/api/game/campaigns/{campaign_id}/resume"
+                )
+            self.assertEqual(failed_resume.status_code, 200, failed_resume.text)
+            self.assertEqual(failed_resume.json()["state"], exit_response.json()["state"])
+            failed_resume_record = failed_resume_manager.get(
+                failed_resume.json()["session_id"]
+            )
+            self.assertEqual(
+                failed_resume_record.game_session.serialize_game_state(), exited_save
+            )
+            self.assertEqual(
+                failed_resume_store.get_campaign(campaign_id).history,
+                exited_campaign.history,
+            )
+            self.assertIsNone(
+                failed_resume_store.get_turn_action(
+                    campaign_id, revisit_body["action_id"]
+                )
+            )
+
+            # Retry the same uncommitted action after storage recovers.
+            with patch.object(loaded, "run_player_turn", new=capture_revisit):
+                revisit = await http.post(turn_url, json=revisit_body)
+            self.assertEqual(revisit.status_code, 200, revisit.text)
+            self.assertEqual(len(revisit_results), 2)
+            self.assertEqual(revisit_results[-1]["action"], "enter")
+            self.assertEqual(revisit_results[-1]["status"], "completed")
+            self.assertEqual(revisit_results[-1]["target_id"], tavern_id)
             self.assertEqual(revisit.json()["state"]["location"], tavern_id)
             self.assertEqual(resumed_world["locations"], locations_before_exit)
             self.assertEqual(resumed_world["locations"][tavern_id], tavern)
@@ -738,6 +826,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 revisited_save,
             )
             self.assertEqual(len(reloaded_store.get_campaign(campaign_id).history), 4)
+            self.assertEqual(
+                reloaded_store.get_turn_action(
+                    campaign_id, revisit_body["action_id"]
+                )["response"],
+                revisit.json(),
+            )
 
             with patch.object(
                 loaded, "run_player_turn",
