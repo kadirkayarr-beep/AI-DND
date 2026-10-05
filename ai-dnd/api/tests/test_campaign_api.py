@@ -4963,6 +4963,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 )
 
     async def test_recovered_merchant_search_save_race_rolls_back_and_retries_once(self):
+        await self._assert_recovered_merchant_search_save_race(shared_action=False)
+
+    async def test_recovered_merchant_search_same_id_race_rolls_back_and_replays_winner(self):
+        await self._assert_recovered_merchant_search_save_race(shared_action=True)
+
+    async def _assert_recovered_merchant_search_save_race(self, *, shared_action):
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
             "/api/game/campaigns",
@@ -5016,6 +5022,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             record = recovered_manager.get(recovered_id)
             session = record.game_session
             self.assertIsNot(active_store, recovered_store)
+            self.assertIsNot(active_manager, recovered_manager)
+            self.assertNotEqual(active_id, recovered_id)
             self.assertIsNot(active_session, session)
             self.assertIsNot(active_session.world_state, session.world_state)
             self.assertEqual(session.world_state["shops"], [])
@@ -5082,6 +5090,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             before_version = session._campaign_persistence_version
             before_rows = receipt_rows()
             self.assertEqual(before_version, (campaign_id, before_race.metadata["revision"]))
+            self.assertEqual(active_session._campaign_persistence_version, before_version)
             self.assertIsNone(recovered_store.get_turn_action(
                 campaign_id, rejected_body["action_id"]
             ))
@@ -5118,11 +5127,24 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 "message": "Bir tüccar arıyorum.",
                 "action_id": str(uuid.uuid4()),
             }
+            if shared_action:
+                competing_body = copy.deepcopy(rejected_body)
+                self.assertEqual(competing_body, rejected_body)
+            active_results = []
+            real_active_turn = active_session.run_player_turn
+
+            @wraps(real_active_turn)
+            def observe_competing_search(*args, **kwargs):
+                result = real_active_turn(*args, **kwargs)
+                active_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
             # The barrier is after entry validation AND the real recovered turn,
             # but before the store's transactional revision check. No sleeps or
             # injected storage exceptions substitute for the competing commit.
             with (
                 patch.object(session, "run_player_turn", new=observe_search),
+                patch.object(active_session, "run_player_turn", new=observe_competing_search),
                 patch.object(
                     recovered_store, "save_campaign", side_effect=pause_recovered_save
                 ) as raced_save,
@@ -5135,17 +5157,25 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.to_thread(save_reached.wait, 30),
                         "Recovered request never reached persistence.",
                     )
-                    competing = await active_http.post(active_url, json=competing_body)
+                    competing = await asyncio.wait_for(
+                        active_http.post(active_url, json=competing_body), timeout=30,
+                    )
                     self.assertEqual(competing.status_code, 200, competing.text)
                     newer = active_store.get_campaign(campaign_id)
                     newer_rows = receipt_rows()
                 finally:
                     release_save.set()
-                    rejected = await pending
+                    rejected = await asyncio.wait_for(pending, timeout=30)
             raced_save.assert_called_once()
             self.assertEqual(rejected.status_code, 409, rejected.text)
             self.assertEqual(rejected.json()["detail"]["code"], "campaign_stale")
             self.assertEqual(len(results), 1)
+            self.assertEqual(len(active_results), 1)
+            self.assertEqual(active_results[0]["action"], "local_search")
+            self.assertEqual(active_results[0]["status"], "found")
+            self.assertTrue(active_results[0]["success"])
+            self.assertEqual(active_results[0]["shop_id"], shop["id"])
+            self.assertEqual(active_results[0]["target_id"], shop["shopkeeper_id"])
             self.assertEqual(results[0]["action"], "local_search")
             self.assertEqual(results[0]["status"], "found")
             self.assertTrue(results[0]["success"])
@@ -5170,6 +5200,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(newer.history[:-1], before_race.history)
             self.assertEqual(newer.history[-1]["player_message"], competing_body["message"])
             self.assertEqual(newer.payload["engine_save"], active_session.serialize_game_state())
+            self.assertEqual(
+                newer.payload["engine_save"]["world_state"]["flags"]["turn_index"],
+                before_save["world_state"]["flags"]["turn_index"] + 1,
+            )
             self.assertEqual(active_store.get_campaign(campaign_id), newer)
             self.assertEqual(recovered_store.get_campaign(campaign_id), newer)
             self.assertEqual(receipt_rows(), newer_rows)
@@ -5179,10 +5213,27 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 campaign_id, competing_body["action_id"]
             )
             self.assertEqual(competing_receipt["response"], competing.json())
-            self.assertIsNone(recovered_store.get_turn_action(
-                campaign_id, rejected_body["action_id"]
-            ))
-            self.assertIsNone(recovered_manager.get_turn_action(record, rejected_body["action_id"]))
+            if shared_action:
+                self.assertEqual(
+                    attempts[0]["receipt"]["request_hash"], competing_receipt["request_hash"],
+                )
+                self.assertEqual(
+                    attempts[0]["receipt"]["response"]["session_id"], recovered_id,
+                )
+                self.assertEqual(competing_receipt["response"]["session_id"], active_id)
+                self.assertEqual(
+                    recovered_store.get_turn_action(campaign_id, rejected_body["action_id"]),
+                    competing_receipt,
+                )
+                self.assertEqual(
+                    recovered_manager.get_turn_action(record, rejected_body["action_id"]),
+                    competing_receipt,
+                )
+            else:
+                self.assertIsNone(recovered_store.get_turn_action(
+                    campaign_id, rejected_body["action_id"]
+                ))
+                self.assertIsNone(recovered_manager.get_turn_action(record, rejected_body["action_id"]))
             assert_identities_and_discovery(newer)
 
             refreshed = await recovered_http.post(resume_url)
@@ -5194,6 +5245,52 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(record.narrative_memory, newer.payload["narrative_memory"])
             self.assertEqual(session._campaign_persistence_version, (campaign_id, newer.metadata["revision"]))
             self.assertEqual(receipt_rows(), newer_rows)
+
+            if shared_action:
+                # The winner already owns the shared ID. Recovery must replay its
+                # response, not commit the loser's previously rolled-back turn.
+                resumed_campaign = recovered_store.get_campaign(campaign_id)
+                replay_save = copy.deepcopy(session.serialize_game_state())
+                replay_journal = copy.deepcopy(record.journal)
+                replay_memory = copy.deepcopy(record.narrative_memory)
+                replay_receipts = copy.deepcopy(record.turn_action_receipts)
+                replay_version = session._campaign_persistence_version
+                with (
+                    patch.object(session, "run_player_turn", side_effect=AssertionError(
+                        "The winning shared receipt must not execute another search."
+                    )) as blocked_turn,
+                    patch.object(recovered_store, "save_campaign", side_effect=AssertionError(
+                        "The winning shared receipt must not save again."
+                    )) as blocked_save,
+                ):
+                    replay = await asyncio.wait_for(
+                        recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                    )
+                self.assertEqual(replay.status_code, 200, replay.text)
+                expected = copy.deepcopy(competing.json())
+                expected["session_id"] = recovered_id
+                self.assertEqual(replay.json(), expected)
+                blocked_turn.assert_not_called()
+                blocked_save.assert_not_called()
+                self.assertEqual(len(results), 1)
+                self.assertEqual(len(active_results), 1)
+                self.assertEqual(session.serialize_game_state(), replay_save)
+                self.assertEqual(record.journal, replay_journal)
+                self.assertEqual(record.narrative_memory, replay_memory)
+                self.assertEqual(record.turn_action_receipts, replay_receipts)
+                self.assertEqual(session._campaign_persistence_version, replay_version)
+                self.assertEqual(resumed_campaign.payload, newer.payload)
+                self.assertEqual(resumed_campaign.history, newer.history)
+                self.assertEqual(resumed_campaign.metadata["revision"], newer.metadata["revision"])
+                self.assertEqual(recovered_store.get_campaign(campaign_id), resumed_campaign)
+                self.assertEqual(active_store.get_campaign(campaign_id), resumed_campaign)
+                self.assertEqual(receipt_rows(), newer_rows)
+                self.assertEqual(
+                    recovered_store.get_turn_action(campaign_id, rejected_body["action_id"]),
+                    competing_receipt,
+                )
+                assert_identities_and_discovery(resumed_campaign)
+                return
 
             # The failed ID is still free: one real retry commits, then replay
             # returns that accepted receipt without executing or saving again.
