@@ -834,6 +834,115 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(record)[:7], committed[:7])
         self.assertEqual(self.snapshot(other), isolated)
 
+    async def test_evicted_combat_action_replays_saved_receipt_after_reopen(self):
+        a = await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        session = record.game_session
+        # Keep real combat alive throughout the retention window.
+        session.character.update(current_hp=10000, max_hp=10000)
+        enemy_id = command["combat_action"]["steps"][0]["target_id"]
+        enemy = next(npc for npc in session.world_state["npcs"]
+                     if npc["id"] == enemy_id)
+        enemy.update(current_hp=10000, max_hp=10000)
+        combat = session.world_state["combat"]
+        command.update(combat_id=combat["combat_id"], combat_round=combat["round"],
+                       combat_turn_index=combat["current_turn_index"])
+        command["combat_action"]["steps"].append({"kind": "end_turn"})
+        self.manager.save_campaign(a["campaign_id"])
+        self.assertEqual(record.combat_history, [])
+
+        accepted_entries = []
+        real_turn = session.run_player_turn
+        engine_calls = []
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            engine_calls.append(result)
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            for index in range(MAX_COMBAT_HISTORY_ENTRIES + 1):
+                with self.subTest(turn=index):
+                    body = command if index == 0 else {
+                        "message": "End this combat turn.", "action_id": str(uuid4()),
+                        "combat_action": {"steps": [{"kind": "end_turn"}]},
+                    }
+                    response = await self.post(a, body)
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(len(engine_calls), index + 1)
+                    result = engine_calls[-1]["action_result"]
+                    self.assertEqual(result["status"], "resolved")
+                    self.assertTrue(result["success"])
+                    self.assertTrue(session.world_state["combat"]["active"])
+                    entry = copy.deepcopy(record.combat_history[-1])
+                    self.assertEqual(entry["event_id"],
+                                     response.json()["combat_history_entry"]["event_id"])
+                    accepted_entries.append(entry)
+                    self.assertEqual(record.combat_history,
+                                     accepted_entries[-MAX_COMBAT_HISTORY_ENTRIES:])
+                    if index == 0:
+                        expected_response = copy.deepcopy(response.json())
+                        original_receipt = self.store.get_turn_action(
+                            a["campaign_id"], command["action_id"])
+                        self.assertEqual(original_receipt["response"], expected_response)
+                        self.assertGreater(result["economy_steps"][0]["result"]["damage"], 0)
+
+        evicted_id = accepted_entries[0]["event_id"]
+        surviving = accepted_entries[1:]
+        self.assertEqual(len(surviving), MAX_COMBAT_HISTORY_ENTRIES)
+        self.assertEqual(record.combat_history, surviving)
+        self.assertNotIn(evicted_id, {entry["event_id"] for entry in surviving})
+        self.assertEqual(self.store.get_campaign(a["campaign_id"]).combat_history, surviving)
+        self.assertEqual(self.store.get_turn_action(a["campaign_id"], command["action_id"]),
+                         original_receipt)
+        committed = self.snapshot(record)
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        self.assertNotEqual(sid, a["session_id"])
+        self.assertIsNot(restored.game_session, session)
+        self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+        self.assertEqual(restored.combat_history, surviving)
+        self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
+
+        def history_rows():
+            with closing(fresh_store._connect()) as db:
+                return [tuple(row) for row in db.execute(
+                    """SELECT * FROM campaign_combat_history
+                       WHERE campaign_id = ? ORDER BY sequence""",
+                    (a["campaign_id"],),
+                )]
+
+        # Resume may update metadata; baseline all owners after reopening.
+        before = self.snapshot(restored)
+        before_rows = history_rows()
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        with patch.object(restored.game_session, "run_player_turn",
+                          side_effect=AssertionError("Evicted action executed again")) as engine, \
+             patch("game.run_player_turn",
+                   side_effect=AssertionError("Evicted action reached engine")) as core_engine, \
+             patch.object(fresh, "autosave_turn",
+                          side_effect=AssertionError("Evicted action autosaved")) as autosave:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                        base_url="http://reload") as client:
+                replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+        engine.assert_not_called()
+        core_engine.assert_not_called()
+        autosave.assert_not_called()
+        expected_response["session_id"] = sid
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), expected_response)
+        # Includes complete RNG, canonical gameplay, journals, history and store.
+        self.assertEqual(self.snapshot(restored), before)
+        self.assertEqual(history_rows(), before_rows)
+        self.assertEqual(restored.combat_history, surviving)
+        self.assertEqual(fresh_store.get_campaign(a["campaign_id"]).combat_history, surviving)
+        self.assertNotIn(evicted_id, {entry["event_id"] for entry in restored.combat_history})
+        self.assertEqual(fresh_store.get_turn_action(a["campaign_id"], command["action_id"]),
+                         original_receipt)
+
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
