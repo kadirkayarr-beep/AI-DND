@@ -4405,7 +4405,9 @@ def _combat_narration(result):
         text = f"{target}, {kind} alır: {result.get('damage', 0)} hasar."
     else:
         return "Bu saldırı gerçekleşmez."
-    if result.get("target_status") == "unconscious":
+    if result.get("target_status") == "dead":
+        text += f" {target} ölür."
+    elif result.get("target_status") == "unconscious":
         text += f" {target} bilincini kaybeder."
     enemy = result.get("enemy_action", {})
     if enemy.get("outcome") == "miss":

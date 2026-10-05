@@ -3353,8 +3353,6 @@ class SessionTests(unittest.TestCase):
                     self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
                     self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
                     self.assertEqual(random.getstate(), rng_module)
-
-
 class CompatibilityTests(unittest.TestCase):
     def test_module_aliases_remain_live_without_scalar_mirrors(self):
         before = game.serialize_game_state()

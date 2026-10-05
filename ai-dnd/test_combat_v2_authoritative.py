@@ -359,6 +359,69 @@ class CombatV2(unittest.TestCase):
         self.assertIn('9 hasar', narration)
         self.assertIn('Bilincini kaybedersin', narration)
 
+    def test_W_npc_lethal_hit_narration(self):
+        self.npc['current_hp'] = 1
+        with self.rolls((20, 15), (20, 5), (20, 15), (8, 3)):
+            result = self.attack()
+        narration = game.finalize_narration(
+            'Hedef dimdik ayakta kalır.', 'saldırıyorum', self.npc,
+            result, session=self.session,
+        )
+        self.assertEqual(result['outcome'], 'hit')
+        self.assertEqual(result['damage'], 5)
+        self.assertEqual(result['target_status'], 'dead')
+        self.assertEqual(self.npc['combat_status'], 'dead')
+        self.assertIn('5 hasar', narration)
+        self.assertIn('Sentinel ölür.', narration)
+        self.assertNotIn('kritik', narration)
+        self.assertNotIn('bilincini kaybeder', narration)
+
+    def test_W_npc_nonlethal_hit_narration(self):
+        with self.rolls((20, 15), (20, 5), (20, 15), (8, 3), (20, 1)):
+            result = self.attack()
+        narration = game.finalize_narration(
+            'Hedef ölür.', 'saldırıyorum', self.npc,
+            result, session=self.session,
+        )
+        self.assertEqual(result['target_status'], 'active')
+        self.assertEqual(self.npc['combat_status'], 'active')
+        self.assertEqual(self.npc['current_hp'], 95)
+        self.assertIn('5 hasar', narration)
+        self.assertNotIn('ölür', narration)
+        self.assertNotIn('bilincini kaybeder', narration)
+
+    def test_W_historical_unconscious_npc_narration(self):
+        self.npc.update(current_hp=0, combat_status='unconscious')
+        result = {'action': 'attack', 'outcome': 'hit', 'target_name': 'Sentinel',
+                  'damage': 4, 'target_status': 'unconscious', 'target_hp': 0}
+        world_before = copy.deepcopy(self.w)
+        character_before = copy.deepcopy(self.session.character)
+        rng_before = self.session.rng.getstate()
+        narration = game.finalize_narration(
+            'Hedef ölür.', 'saldırıyorum', self.npc,
+            result, session=self.session,
+        )
+        self.assertIn('4 hasar', narration)
+        self.assertIn('Sentinel bilincini kaybeder.', narration)
+        self.assertNotIn('ölür', narration)
+        self.assertEqual(self.w, world_before)
+        self.assertEqual(self.session.character, character_before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+
+    def test_W_critical_damage_narration(self):
+        with self.rolls((20, 15), (20, 5), (20, 20), (8, 3), (8, 4), (20, 1)):
+            result = self.attack()
+        narration = game.finalize_narration(
+            'Hedef ölür.', 'saldırıyorum', self.npc,
+            result, session=self.session,
+        )
+        self.assertEqual((result['outcome'], result['critical'], result['damage']),
+                         ('critical_hit', True, 9))
+        self.assertEqual(self.npc['current_hp'], 91)
+        self.assertEqual(result['target_status'], 'active')
+        self.assertIn('kritik bir darbe alır: 9 hasar.', narration)
+        self.assertNotIn('ölür', narration)
+
     def test_X_inventory_parser_no_op(self):
         # No transfer means no normalization or creation, even for legacy data.
         for legacy, mapping in [([], {}), (['Kalkan'], {}), ([], None)]:
