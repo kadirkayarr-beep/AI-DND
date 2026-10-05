@@ -13,7 +13,7 @@ import httpx
 from api.main import create_app
 
 from api.persistence.campaign_models import CampaignError
-from api.persistence.campaign_store import CampaignStore
+from api.persistence.campaign_store import CampaignStore, MAX_COMBAT_HISTORY_ENTRIES
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_spell_scope as spells
@@ -531,6 +531,108 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_transient_combat_history_owns_engine_result_after_resource_reset(self):
         await self.assert_combat_history_engine_ownership(persisted=False)
+
+    async def test_real_combat_history_rollover_preserves_surviving_results_on_resume(self):
+        a = await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        session = record.game_session
+        # Enough health for the entire bounded-history window, without replacing
+        # combat resolution, dice, history serialization, or autosave.
+        session.character.update(current_hp=10000, max_hp=10000)
+        enemy_id = command["combat_action"]["steps"][0]["target_id"]
+        enemy = next(npc for npc in session.world_state["npcs"]
+                     if npc["id"] == enemy_id)
+        enemy.update(current_hp=10000, max_hp=10000)
+        self.manager.save_campaign(a["campaign_id"])
+        self.assertEqual(record.combat_history, [])
+
+        b = await self.create_campaign()
+        other, other_command = self.prepare_spell(b)
+        other_response = await self.post(b, other_command)
+        self.assertEqual(other_response.status_code, 200, other_response.text)
+        isolated = self.snapshot(other)
+
+        captured = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            captured.append(result)
+            return result
+
+        accepted_entries = []
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            for index in range(MAX_COMBAT_HISTORY_ENTRIES + 2):
+                with self.subTest(turn=index):
+                    body = copy.deepcopy(command)
+                    body["action_id"] = str(uuid4())
+                    # The third entry survives both evictions and has guaranteed
+                    # nested damage. Other turns advance the real encounter
+                    # without spending spell slots or relying on attack modes.
+                    if index != 2:
+                        body["combat_action"]["steps"] = []
+                    body["combat_action"]["steps"].append({"kind": "end_turn"})
+                    response = await self.post(a, body)
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(len(captured), index + 1)
+                    result = captured[-1]["action_result"]
+                    self.assertEqual(result["status"], "resolved")
+                    self.assertTrue(result["success"])
+                    self.assertTrue(session.world_state["combat"]["active"])
+                    entry = record.combat_history[-1]
+                    response_entry = response.json()["combat_history_entry"]
+                    self.assertEqual(entry["event_id"], response_entry["event_id"])
+                    self.assertEqual(entry["result"],
+                                     {key: result[key] for key in entry["result"]})
+                    self.assertEqual(entry["result"],
+                                     {key: response_entry["result"][key]
+                                      for key in entry["result"]})
+                    accepted_entries.append(copy.deepcopy(entry))
+                    if index == 2:
+                        retained = entry
+                        original = copy.deepcopy(retained)
+                        engine_result = result
+                        engine_snapshot = copy.deepcopy(engine_result)
+                        steps = engine_result["economy_steps"]
+                        self.assertEqual(steps[0]["kind"], "magic")
+                        self.assertGreater(steps[0]["result"]["damage"], 0)
+                    # Check the exact chronological window, not just its size.
+                    expected = accepted_entries[-MAX_COMBAT_HISTORY_ENTRIES:]
+                    self.assertEqual(record.combat_history, expected)
+                    if index >= MAX_COMBAT_HISTORY_ENTRIES - 1:
+                        committed = self.snapshot(record)
+                        stored = self.store.get_campaign(a["campaign_id"])
+                        self.assertEqual(stored.combat_history, expected)
+                        self.assertEqual(retained, original)
+                        self.assertEqual(engine_result, engine_snapshot)
+                        self.assertEqual(self.snapshot(record), committed)
+                        self.assertEqual(self.snapshot(other), isolated)
+
+        self.assertEqual(len(record.combat_history), MAX_COMBAT_HISTORY_ENTRIES)
+        self.assertEqual(record.combat_history[0], original)
+        evicted_ids = {entry["event_id"] for entry in accepted_entries[:2]}
+        surviving_ids = {entry["event_id"] for entry in record.combat_history}
+        self.assertTrue(evicted_ids.isdisjoint(surviving_ids))
+        self.assertEqual(len(surviving_ids), MAX_COMBAT_HISTORY_ENTRIES)
+
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        self.assertIsNot(restored.game_session, session)
+        before_observation = self.snapshot(restored)
+        self.assertEqual(restored.combat_history, expected)
+        self.assertEqual(restored.combat_history[0], original)
+        reopened = self.store.get_campaign(a["campaign_id"])
+        self.assertEqual(reopened.combat_history, record.combat_history)
+        self.assertEqual(reopened.history, stored.history)
+        self.assertEqual(reopened.payload, stored.payload)
+        # Resume can change last-played metadata, but no gameplay owner or RNG.
+        self.assertEqual(before_observation[:7], committed[:7])
+        self.assertEqual(retained, original)
+        self.assertEqual(engine_result, engine_snapshot)
+        self.assertEqual(self.snapshot(restored), before_observation)
+        self.assertEqual(self.snapshot(record)[:7], committed[:7])
+        self.assertEqual(self.snapshot(other), isolated)
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
