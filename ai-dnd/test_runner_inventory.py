@@ -4,6 +4,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 import ast
+import json
 import shutil
 import subprocess
 import sys
@@ -191,11 +192,51 @@ class RunnerProcessTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def launch_runner(self, root, argv):
+    def launch_runner(self, root, argv, cwd=None):
         return subprocess.run(
             [sys.executable, str(root / "run_tests.py"), *argv],
-            cwd=root, capture_output=True, text=True, timeout=20,
+            cwd=root if cwd is None else cwd,
+            capture_output=True, text=True, timeout=20,
         )
+
+    def test_real_gates_use_launcher_interpreter_and_copied_runner_directory(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory) / "runner"
+                root.mkdir()
+                self.copy_runner(root)
+                selected = self.SUITES[inventory]
+                for name in selected:
+                    self.write_gate(root, name, """
+                        import json
+                        import sys
+
+                        def test_ok(): pass
+
+                        Path(__file__).with_suffix('.environment.json').write_text(
+                            json.dumps({
+                                'executable': sys.executable,
+                                'cwd': str(Path.cwd()),
+                            }),
+                            encoding='utf-8',
+                        )
+                    """)
+
+                # Launch outside the copied runner directory so inheriting the
+                # launcher's cwd cannot accidentally satisfy the child contract.
+                result = self.launch_runner(root, argv, cwd=Path(directory))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stderr, "")
+                for name in selected:
+                    with self.subTest(gate=name):
+                        recorded = json.loads(
+                            (root / name).with_suffix(".environment.json")
+                            .read_text(encoding="utf-8")
+                        )
+                        self.assertEqual(recorded["executable"], sys.executable)
+                        self.assertEqual(Path(recorded["cwd"]), root.resolve())
+                self.assertEqual((root / "order.txt").read_text(encoding="utf-8")
+                                 .splitlines(), list(selected))
 
     def test_later_alias_replacement_blocks_every_gate_in_real_process(self):
         for argv, inventory in self.SELECTIONS:
