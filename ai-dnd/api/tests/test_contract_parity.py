@@ -1796,6 +1796,31 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             f"Undetected reference drift: {schema_name}.{field_name}",
                         )
 
+    def test_health_success_status_drift_fails_in_both_formats(self):
+        for path in ("/game/health", "/health"):
+            for mutation in ("missing success", "extra success", "changed success"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, mutation=mutation, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        responses = spec["paths"][path]["get"]["responses"]
+                        if mutation == "missing success":
+                            del responses["200"]
+                        elif mutation == "extra success":
+                            responses["201"] = deepcopy(responses["200"])
+                        else:
+                            responses["201"] = responses.pop("200")
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            ContractParityTests(
+                                "test_health_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn("binding='success statuses'", result.failures[0][0].id())
+
     def test_health_wrong_references_fail_in_both_formats(self):
         for path in ("/game/health", "/health"):
             for flow_style in (False, True):
@@ -1807,17 +1832,23 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     wrong_model = "CampaignSummary"
                     self.assertIn(wrong_model, spec["components"]["schemas"])
                     schema["$ref"] = f"#/components/schemas/{wrong_model}"
-                    # Change only this alias's response, not its inventory or
-                    # the valid HealthResponse and replacement definitions.
-                    expected = deepcopy(SPEC)
-                    expected["paths"][path]["get"]["responses"]["200"][
-                        "content"
-                    ]["application/json"]["schema"]["$ref"] = schema["$ref"]
-                    self.assertEqual(spec, expected)
                     self.assertEqual(spec["components"], SPEC["components"])
                     text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    parsed = _load_spec(text)
+                    self.assertEqual(parsed, spec)
+                    # Restoring only the response target recovers the whole
+                    # contract, including the other alias and component fields.
+                    restored = deepcopy(parsed)
+                    restored["paths"][path]["get"]["responses"]["200"][
+                        "content"
+                    ]["application/json"]["schema"] = deepcopy(
+                        SPEC["paths"][path]["get"]["responses"]["200"][
+                            "content"
+                        ]["application/json"]["schema"]
+                    )
+                    self.assertEqual(restored, SPEC)
                     result = unittest.TestResult()
-                    with patch.dict(globals(), SPEC=_load_spec(text)):
+                    with patch.dict(globals(), SPEC=parsed):
                         for test_name in (
                             "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
                             "test_operation_ids_are_unique_and_error_statuses_are_documented",

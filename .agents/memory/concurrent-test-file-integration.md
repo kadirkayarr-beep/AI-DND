@@ -41,6 +41,15 @@ prove all intended tests remain discoverable.
 **How to apply:** Run ordinary module collection and fixture-equivalence checks,
 and confirm independently added test methods are still discovered.
 
+When repairing a structurally corrupted integration, compare against the last
+parseable integrated parent and preserve its full test-method inventory.
+
+**Why:** A merge can lose entire parity methods while duplicating mutation
+tails; fixing only the first syntax error does not restore coverage.
+
+**How to apply:** Retain independent merged checks, reapply only intact scoped
+additions, and verify method preservation and uniqueness before running the suite.
+
 Successful working-tree cleanup does not guarantee the completion merge retains
 those deletions. If review reports duplicates that local checks did not see,
 inspect the integrated committed tree before retrying completion.
