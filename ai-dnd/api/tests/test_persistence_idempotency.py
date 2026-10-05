@@ -644,6 +644,150 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         original_receipt,
                     )
 
+    async def test_saved_rest_action_rejects_ambient_event_after_reopen(self):
+        for rest_action in ("short_rest", "long_rest"):
+            with self.subTest(rest_action=rest_action):
+                created = await self.create_campaign()
+                campaign_id = created["campaign_id"]
+                record = self.manager.get(created["session_id"])
+                session = record.game_session
+                session.commit_location_change("tavern")
+                session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+                session.initialize_species_trait_state()
+                session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+                self.manager.save_campaign(campaign_id)
+                rest_command = {"action": rest_action, "action_id": str(uuid4())}
+                elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
+                accepted = await self.http.post(
+                    f"/api/game/sessions/{created['session_id']}/species-actions",
+                    json=rest_command,
+                )
+                self.assertEqual(accepted.status_code, 200, accepted.text)
+                self.assertEqual(accepted.json()["result"]["action"], rest_action)
+                self.assertEqual(
+                    session.character["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                    session.character["proficiency_bonus"],
+                )
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"] - elapsed_before,
+                    3600 if rest_action == "short_rest" else 28800,
+                )
+                if rest_action == "long_rest":
+                    self.assertEqual(session.character["current_hp"], 20)
+                original_receipt = copy.deepcopy(
+                    self.store.get_turn_action(campaign_id, rest_command["action_id"])
+                )
+                self.assertEqual(original_receipt["response"], accepted.json())
+
+                # Materialize a valid, unresolved event after the rest so the
+                # rest's elapsed time cannot expire the test's referent.
+                event_id = self.install_test_ambient_event(session)
+                self.manager.save_campaign(campaign_id)
+                committed = self.snapshot(record)
+                self.assertEqual(len(committed[-1].history), 1)
+                self.assertEqual(
+                    self.store.get_turn_action(campaign_id, rest_command["action_id"]),
+                    original_receipt,
+                )
+
+                fresh_store = CampaignStore(self.store.path)
+                fresh = SessionManager(campaign_store=fresh_store)
+                app = create_app(session_manager=fresh, ollama_adapter=None)
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                            base_url="http://reload") as client:
+                    resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+                    self.assertEqual(resumed.status_code, 200, resumed.text)
+                    sid = resumed.json()["session_id"]
+                    restored = fresh.get(sid)
+                    self.assertNotEqual(sid, created["session_id"])
+                    self.assertIsNot(restored.game_session, session)
+                    self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+                    self.assertEqual(resumed.json()["history"], committed[-1].history)
+                    self.assertEqual(
+                        resumed.json()["state"]["scene"]["ambient_event"]["instance_id"],
+                        event_id,
+                    )
+                    self.assertEqual(
+                        fresh_store.get_turn_action(campaign_id, rest_command["action_id"]),
+                        original_receipt,
+                    )
+                    self.assertEqual(
+                        fresh.get_turn_action(restored, rest_command["action_id"]),
+                        original_receipt,
+                    )
+
+                    # Resume may update last-played metadata. Capture every
+                    # owner after resume, immediately before the conflict.
+                    before = self.snapshot(restored)
+                    before_auxiliary = copy.deepcopy((
+                        restored.game_session.messages, restored.game_session.world_metadata,
+                    ))
+
+                    def saved_rows():
+                        with closing(fresh_store._connect()) as connection:
+                            return {
+                                table: [tuple(row) for row in connection.execute(
+                                    f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                                    (campaign_id,),
+                                )]
+                                for table in ("campaigns", "campaign_turn_actions",
+                                              "campaign_history", "campaign_combat_history")
+                            }
+
+                    before_rows = saved_rows()
+                    event_url = (
+                        f"/api/game/sessions/{sid}/ambient-events/{event_id}/actions"
+                    )
+                    with patch.object(
+                        restored.game_session, "resolve_ambient_event_action",
+                        side_effect=AssertionError("Rest ID resolved an ambient event"),
+                    ) as resolve, \
+                         patch.object(restored.game_session.rng, "randint",
+                                      side_effect=AssertionError("Rest ID consumed dice")) as dice, \
+                         patch.object(fresh, "save_campaign_locked",
+                                      side_effect=AssertionError("Rest ID saved an event")) as save_locked, \
+                         patch.object(fresh_store, "save_campaign",
+                                      side_effect=AssertionError("Rest ID wrote SQL")) as save:
+                        conflict = await client.post(event_url, json={
+                            "action": "interact", "action_id": rest_command["action_id"],
+                        })
+                    self.assertEqual(conflict.status_code, 200, conflict.text)
+                    result = conflict.json()["result"]
+                    self.assertEqual(result["status"], "REJECTED")
+                    self.assertEqual(result["reason_code"], "action_id_conflict")
+                    self.assertEqual(result["action_id"], rest_command["action_id"])
+                    self.assertEqual(result["event_instance_id"], event_id)
+                    self.assertIsNone(result["transition_id"])
+                    self.assertIsNone(result["canonical_event_id"])
+                    for guard in (resolve, dice, save_locked, save):
+                        guard.assert_not_called()
+                    self.assertEqual(self.snapshot(restored), before)
+                    self.assertEqual((
+                        restored.game_session.messages, restored.game_session.world_metadata,
+                    ), before_auxiliary)
+                    self.assertEqual(saved_rows(), before_rows)
+                    self.assertEqual(
+                        fresh_store.get_turn_action(campaign_id, rest_command["action_id"]),
+                        original_receipt,
+                    )
+                    self.assertEqual(
+                        fresh.get_turn_action(restored, rest_command["action_id"]),
+                        original_receipt,
+                    )
+
+                    # A new ID applies the very same event through the real
+                    # engine/API, proving rejection was not an invalid fixture.
+                    applied = await client.post(event_url, json={
+                        "action": "interact", "action_id": str(uuid4()),
+                    })
+                    self.assertEqual(applied.status_code, 200, applied.text)
+                    self.assertEqual(applied.json()["result"]["status"], "APPLIED")
+                    self.assertTrue(applied.json()["result"]["canonical_event_id"])
+                    self.assertEqual(
+                        fresh_store.get_turn_action(campaign_id, rest_command["action_id"]),
+                        original_receipt,
+                    )
+
     async def test_combat_receipt_replays_original_snapshot_after_later_turn_and_reopen(self):
         a, b = await self.create_campaign(), await self.create_campaign()
         record, command = self.prepare_spell(a)
