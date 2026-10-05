@@ -3998,6 +3998,12 @@ def _resolve_enemy_turns_until_player():
                 break
             if _session().character.get("current_hp", 0) > 0:
                 break
+            # A save can establish the stable boundary on this very turn.
+            # Leave its initiative slot intact instead of exposing the player
+            # to another enemy cycle before returning control.
+            if ensure_death_state()["stable"]:
+                _combat_end_if_decided()
+                break
             if combat["current_actor_id"] == "player":
                 _mark_combat_action_used("player")
                 if _combat_end_if_decided():

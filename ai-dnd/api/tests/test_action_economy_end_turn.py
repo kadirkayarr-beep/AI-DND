@@ -92,7 +92,7 @@ class EndTurnNarrationTests(unittest.TestCase):
 
     def test_final_status_follows_scheduler_death_save_and_damage_results(self):
         for status, hp, maximum, damage, rolls, stable, expected in (
-            ("unconscious", 1, 100, 4, [15, 10, 1, 1, 10, 1, 1, 10, 1, 1], True, "Bilincini kaybedersin."),
+            ("unconscious", 1, 100, 4, [15, 10, 1, 1, 10, 1, 1, 10], True, "Bilincini kaybedersin."),
             ("dead", 1, 4, 8, [15], False, "Ölürsün."),
             ("active", 1, 100, 4, [15, 20], False, "Bilincin açık; 1/100 canın kaldı."),
         ):
@@ -118,6 +118,52 @@ class EndTurnNarrationTests(unittest.TestCase):
                     saves = [a for a in actions if a["action"] == "death_save"]
                     self.assertEqual(saves[-1]["outcome"], "stable" if stable else "revived")
                 self.assertEqual(result["model_calls"], 0)
+
+    def test_third_successful_death_save_stops_before_another_enemy_attack(self):
+        for next_attack_roll in (1, 15):
+            for message, command in (
+                ("Hamle.", {"steps": [{"kind": "end_turn"}]}),
+                ("Turumu bitiriyorum", None),
+            ):
+                with self.subTest(next_attack_roll=next_attack_roll, message=message):
+                    session, npcs = battle(player={
+                        "current_hp": 1, "max_hp": 100, "armor_class": 12,
+                    })
+                    session.world_state["death_state"]["mode"] = "PERMADEATH"
+                    session.world_state["monster_perception"] = {
+                        npcs[0]["id"]: {"player": {"visible": True}}
+                    }
+                    combat = session.world_state["combat"]
+                    order = copy.deepcopy(combat["initiative_order"])
+                    initiative_results = copy.deepcopy(combat["initiative_results"])
+                    # Hit to knock out, then three successful saves with two
+                    # intervening misses (advantage against an unconscious target).
+                    rolls = [15, 10, 1, 1, 10, 1, 1, 10]
+                    with patch("game.roll_d20", side_effect=(
+                        rolls + [next_attack_roll, next_attack_roll]
+                    )) as roller, patch("game.roll_damage", return_value=4):
+                        result = session.run_player_turn(message, combat_action=command)
+                    actions = result["action_result"]["economy_steps"][0]["enemy_actions"]
+                    self.assertEqual([a["action"] for a in actions], [
+                        "enemy_attack", "death_save", "enemy_attack", "death_save",
+                        "enemy_attack", "death_save",
+                    ])
+                    self.assertEqual([a["outcome"] for a in actions],
+                                     ["hit", "success", "miss", "success", "miss", "stable"])
+                    self.assertEqual(roller.call_count, len(rolls))
+                    self.assertEqual(session.character["current_hp"], 0)
+                    self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+                    death = session.world_state["death_state"]
+                    self.assertTrue(death["stable"])
+                    self.assertFalse(death["dead"])
+                    self.assertFalse(death["terminal"])
+                    self.assertEqual((death["successes"], death["failures"]), (0, 0))
+                    self.assertTrue(combat["active"])
+                    self.assertEqual(combat["current_actor_id"], "player")
+                    self.assertEqual(combat["round"], 4)
+                    self.assertEqual(combat["initiative_order"], order)
+                    self.assertEqual(combat["initiative_results"], initiative_results)
+                    self.assertEqual(result["model_calls"], 0)
 
 
 class EndTurnNarrationApiTests(unittest.IsolatedAsyncioTestCase):

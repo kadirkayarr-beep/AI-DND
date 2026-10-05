@@ -66,29 +66,6 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def create_campaign(self):
         response = await self.http.post("/api/game/campaigns", json={})
-    async def asyncSetUp(self):
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.store = CampaignStore(
-            Path(self.temporary_directory.name) / "campaigns.sqlite3"
-        )
-        self.manager = SessionManager(campaign_store=self.store)
-        adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
-        self.enterContext(adapter.engine_binding())
-        self.app = create_app(
-            session_manager=self.manager,
-            ollama_adapter=adapter,
-        )
-        self.http = httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=self.app),
-            base_url="http://testserver",
-        )
-
-    async def asyncTearDown(self):
-        await self.http.aclose()
-        self.temporary_directory.cleanup()
-
-    async def create_campaign(self):
-        response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
