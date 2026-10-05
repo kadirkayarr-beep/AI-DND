@@ -668,6 +668,164 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game.serialize_game_state(), self.default_before)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
+    def test_overlapping_attacks_keep_directional_cover_in_their_own_sessions(self):
+        # The same noncritical roll hits the lower AC and misses the higher AC.
+        # Swap the cover owners as well, so either campaign can expose leakage.
+        cases = [
+            ("none", "half", 11, 10, 12),
+            ("half", "none", 11, 12, 10),
+            ("half", ["none", "half", "three_quarters"], 14, 12, 15),
+            (["three_quarters", "half", "none"], "half", 14, 15, 12),
+        ]
+        for cover_a, cover_b, roll, ac_a, ac_b in cases:
+            with self.subTest(cover_a=cover_a, cover_b=cover_b):
+                self.a = game.create_session(seed=17)
+                self.b = game.create_session(seed=17)
+                sessions = (self.a, self.b)
+                enemies = [self.npc(session) for session in sessions]
+                self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+                for session, enemy, cover in zip(
+                    sessions, enemies, (cover_a, cover_b)
+                ):
+                    session.character.update(armor_class=10, current_hp=19)
+                    enemy.update(attack_bonus=0, damage_die=6,
+                                 damage_dice=1, damage_modifier=2)
+                    pairs = session.world_state["attack_environment"]["pairs"]
+                    pairs[f"{enemy['id']}|player"]["cover"] = cover
+                    # Reverse geometry must not grant cover to this defender.
+                    pairs[f"player|{enemy['id']}"]["cover"] = "total"
+                    self.assertEqual(pairs[f"{enemy['id']}|player"]["distance_ft"], 5)
+                before = [session.serialize_game_state() for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                barrier = threading.Barrier(2)
+                dice_a = ((20, roll),) + (((6, 4),) if roll >= ac_a else ())
+                dice_b = ((20, roll),) + (((6, 4),) if roll >= ac_b else ())
+                with self.rolls(self.a, *dice_a, barrier=barrier), \
+                     self.rolls(self.b, *dice_b, barrier=barrier), \
+                     self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        futures = [
+                            pool.submit(game.resolve_enemy_attack, enemy,
+                                        session=session)
+                            for session, enemy in zip(sessions, enemies)
+                        ]
+                        results = [future.result(timeout=10) for future in futures]
+
+                for session, enemy, result, expected, rng, ac in zip(
+                    sessions, enemies, results, before, rng_before, (ac_a, ac_b)
+                ):
+                    hit = roll >= ac
+                    self.assertEqual(result["actor_id"], enemy["id"])
+                    self.assertEqual(result["target_id"], "player")
+                    self.assertEqual(result["target_ac_base"], 10)
+                    self.assertEqual(result["target_ac"], ac)
+                    self.assertEqual(result["cover_state"],
+                                     {10: "none", 12: "half", 15: "three_quarters"}[ac])
+                    self.assertEqual(result["attack_rolls"], [roll])
+                    self.assertEqual(result["attack_roll"], roll)
+                    self.assertEqual(result["attack_total"], roll)
+                    self.assertEqual(result["advantage_sources"], [])
+                    self.assertEqual(result["disadvantage_sources"], [])
+                    self.assertFalse(result["critical"])
+                    self.assertEqual(result["success"], hit)
+                    self.assertEqual(result["outcome"], "hit" if hit else "miss")
+                    self.assertEqual(result["damage"], 6 if hit else 0)
+                    if not hit:
+                        self.assertEqual(result["damage_rolls"], [])
+                    self.assertEqual(result["target_hp_before"], 19)
+                    self.assertEqual(result["target_hp_after"], 13 if hit else 19)
+                    self.assertEqual(result["target_status"], "active")
+                    expected["player"]["current_hp"] = 13 if hit else 19
+                    expected["world_state"].setdefault("attack_results", []).append(
+                        copy.deepcopy(result)
+                    )
+                    self.assertEqual(session.serialize_game_state(), expected)
+                    self.assertEqual(session.rng.getstate(), rng)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
+    def test_overlapping_attack_cannot_borrow_another_sessions_total_cover(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+        for session, enemy, cover, reverse_cover in (
+            (self.a, enemies[0], "none", "total"),
+            (self.b, enemies[1], ["half", "total"], "none"),
+        ):
+            session.character.update(armor_class=10, current_hp=19)
+            enemy.update(attack_bonus=0, damage_die=6,
+                         damage_dice=1, damage_modifier=2)
+            pairs = session.world_state["attack_environment"]["pairs"]
+            pairs[f"{enemy['id']}|player"]["cover"] = cover
+            pairs[f"player|{enemy['id']}"]["cover"] = reverse_cover
+            self.assertEqual(pairs[f"{enemy['id']}|player"]["distance_ft"], 5)
+        before_a = self.a.serialize_game_state()
+        before_b = self.b.serialize_game_state()
+        rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        legal_attack_waiting = threading.Event()
+        blocked_attack_finished = threading.Event()
+        roll_d20 = self.a.roll_d20
+
+        def overlapping_roll():
+            self.assertIs(game._session(), self.a)
+            legal_attack_waiting.set()
+            self.assertTrue(blocked_attack_finished.wait(timeout=5))
+            self.assertIs(game._session(), self.a)
+            return roll_d20()
+
+        def reject_total_cover():
+            try:
+                self.assertTrue(legal_attack_waiting.wait(timeout=5))
+                with self.assertRaises(game.combat_lifecycle.CombatRequestError) as error:
+                    game.resolve_enemy_attack(enemies[1], session=self.b)
+                self.assertEqual(error.exception.code, "total_cover")
+                # Rejection consumes no dice and commits no result or state;
+                # A is still paused inside its own otherwise legal attack.
+                self.assertEqual(self.a.serialize_game_state(), before_a)
+                self.assertEqual(self.b.serialize_game_state(), before_b)
+                self.assertEqual(self.a.rng.getstate(), rng_a)
+                self.assertEqual(self.b.rng.getstate(), rng_b)
+            finally:
+                blocked_attack_finished.set()
+
+        with self.rolls(self.a, (20, 15), (6, 4)), \
+             self.rolls(self.b), self.rolls(game._DEFAULT_SESSION), \
+             patch.object(self.a, "roll_d20", side_effect=overlapping_roll):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                legal = pool.submit(game.resolve_enemy_attack, enemies[0],
+                                    session=self.a)
+                blocked = pool.submit(reject_total_cover)
+                blocked.result(timeout=10)
+                result = legal.result(timeout=10)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["outcome"], "hit")
+        self.assertEqual(result["actor_id"], enemies[0]["id"])
+        self.assertEqual(result["target_id"], "player")
+        self.assertEqual(result["cover_state"], "none")
+        self.assertEqual(result["target_ac_base"], 10)
+        self.assertEqual(result["target_ac"], 10)
+        self.assertEqual(result["attack_rolls"], [15])
+        self.assertEqual(result["attack_total"], 15)
+        self.assertEqual(result["advantage_sources"], [])
+        self.assertEqual(result["disadvantage_sources"], [])
+        self.assertFalse(result["critical"])
+        self.assertEqual(result["damage"], 6)
+        self.assertEqual(result["target_hp_before"], 19)
+        self.assertEqual(result["target_hp_after"], 13)
+        self.assertEqual(result["target_status"], "active")
+        before_a["player"]["current_hp"] = 13
+        before_a["world_state"].setdefault("attack_results", []).append(
+            copy.deepcopy(result)
+        )
+        self.assertEqual(self.a.serialize_game_state(), before_a)
+        self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.a.rng.getstate(), rng_a)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
     def test_overlapping_hits_keep_damage_dice_in_their_own_sessions(self):
         enemies = [self.npc(self.a), self.npc(self.b)]
         self.a.character.update(armor_class=10, current_hp=19)
