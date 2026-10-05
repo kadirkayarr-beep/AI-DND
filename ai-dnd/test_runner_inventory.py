@@ -50,7 +50,9 @@ class RunnerInventoryTests(unittest.TestCase):
                 self.assertEqual(list(preflight.call_args.args[0]),
                                  [run_tests.ROOT / name for name in run_tests.TESTS])
                 self.assertEqual([call.args[0] for call in execute.call_args_list], [
-                    ([run_tests.sys.executable, "-m", "unittest",
+                    ([run_tests.sys.executable, "-c",
+                      "import sys; from run_tests import run_unittest_gate; "
+                      "sys.exit(run_unittest_gate(sys.argv[1]))",
                       name.removesuffix(".py").replace("/", ".")]
                      if name.startswith("api/tests/") else
                      [run_tests.sys.executable, str(run_tests.ROOT / name)])
@@ -531,6 +533,66 @@ class RunnerProcessTests(unittest.TestCase):
                         self.assertNotIn("GATES PASSED", output)
                     else:
                         self.assertIn("ALL 2 DETERMINISTIC GATES PASSED", result.stdout)
+
+    def test_empty_api_unittest_gate_cannot_pass_release(self):
+        empty_sources = {
+            # Source definitions alone do not make a unittest-discoverable test.
+            "plain_function": "def test_boundary(): pass\n",
+            # Even a real TestCase can be hidden by a module's loading hook.
+            "load_tests": (
+                "class SchedulerTests(unittest.TestCase):\n"
+                "    def test_boundary(self):\n"
+                "        Path('assertion.sentinel').write_text('ran')\n"
+                "def load_tests(loader, tests, pattern):\n"
+                "    return unittest.TestSuite()\n"
+            ),
+        }
+        for name in ("api/tests/test_death_bounded.py",
+                     "api/tests/test_initiative.py"):
+            suites = {
+                "TESTS": (name, "release_later.py"),
+                "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+            }
+            for argv in ((), ("--suite", "release")):
+                for kind, source in empty_sources.items():
+                    with self.subTest(name=name, argv=argv, kind=kind), \
+                         tempfile.TemporaryDirectory() as directory, \
+                         patch.object(self, "SUITES", suites):
+                        root = Path(directory) / "runner"
+                        root.mkdir()
+                        self.copy_runner(root)
+                        package = root / "api" / "tests"
+                        package.mkdir(parents=True)
+                        (package.parent / "__init__.py").touch()
+                        (package / "__init__.py").touch()
+                        (root / name).write_text(
+                            "import unittest\nfrom pathlib import Path\n"
+                            "with Path('order.txt').open('a') as log:\n"
+                            f"    log.write({name + chr(10)!r})\n"
+                            + source, encoding="utf-8",
+                        )
+                        self.write_gate(root, "release_later.py", "def test_ok(): pass\n")
+                        # Preflight must remain source-only: it accepts intact
+                        # definitions without importing the gate or its hook.
+                        self.assertEqual(run_tests.check_test_definitions(
+                            root / gate for gate in suites["TESTS"]), [])
+                        self.assertFalse((root / "order.txt").exists())
+                        result = self.launch_runner(root, argv, cwd=Path(directory))
+                        output = result.stdout + result.stderr
+                        self.assertEqual(result.returncode, 1, output)
+                        self.assertIn("Ran 0 tests", result.stderr)
+                        self.assertIn(
+                            f"UNITTEST GATE FAILED: {name[:-3].replace('/', '.')} "
+                            "ran no tests", result.stderr,
+                        )
+                        self.assertIn(f"FAILED: {name}", result.stdout)
+                        self.assertNotIn("PASSED", output)
+                        self.assertNotIn("PREFLIGHT FAILED", output)
+                        self.assertEqual((root / "order.txt").read_text().splitlines(),
+                                         list(suites["TESTS"]))
+                        self.assertFalse((root / "assertion.sentinel").exists())
+                        self.assertEqual((root / "release_later.py.sentinel").read_text(),
+                                         "started")
 
     def test_multiple_failed_real_gates_are_reported_in_inventory_order(self):
         # Non-alphabetical order catches summaries that sort instead of retaining

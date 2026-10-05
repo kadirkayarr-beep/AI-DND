@@ -41,6 +41,18 @@ PROTOTYPE_TESTS = (
 )
 
 
+def run_unittest_gate(module):
+    """Require both successful assertions and evidence of executed tests."""
+    import unittest
+
+    suite = unittest.defaultTestLoader.loadTestsFromName(module)
+    result = unittest.TextTestRunner().run(suite)
+    if result.testsRun == 0:
+        print(f"UNITTEST GATE FAILED: {module} ran no tests", file=sys.stderr)
+        return 1
+    return 0 if result.wasSuccessful() else 1
+
+
 def main(argv=()):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", choices=("release", "prototype"), default="release",
@@ -72,7 +84,12 @@ def main(argv=()):
         # Keep script execution for existing gates with custom main functions.
         if Path(test_name).parent != Path("."):
             module = ".".join(Path(test_name).with_suffix("").parts)
-            command = [sys.executable, "-m", "unittest", module]
+            command = [
+                sys.executable, "-c",
+                "import sys; from run_tests import run_unittest_gate; "
+                "sys.exit(run_unittest_gate(sys.argv[1]))",
+                module,
+            ]
         else:
             command = [sys.executable, str(ROOT / test_name)]
         result = subprocess.run(command, cwd=ROOT)
