@@ -11793,6 +11793,20 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             safety_handling="python_scene_response",
         )
 
+    # Character-sheet facts are Python-owned even during an NPC conversation.
+    # Keep combat on its existing path and leave real disclosures/memory
+    # questions to the dialogue owner when no supported self-query matches.
+    character_reply = known_character_answer(player_input) if not combat["active"] else None
+    if character_reply:
+        action_result = {
+            "action": "character_query",
+            "status": "answered_from_campaign_state",
+            "success": True,
+            "state_changes": [],
+            "direct_response": character_reply,
+        }
+        return finish_turn(action_result, character_reply)
+
     interaction_hint = interaction_adventure.hint(player_input, npc_target)
     if interaction_hint and not combat["active"]:
         intent_model_calls = 1

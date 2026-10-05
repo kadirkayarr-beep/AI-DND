@@ -570,6 +570,93 @@ class TestNarrativeRebalance(unittest.TestCase):
                 self.assertEqual(self.session.world_state["location"], "l_tavern")
                 self.assertEqual(self.session.world_state["npcs"][0]["memory"], npc_memory)
 
+    @patch("game.ollama.chat")
+    def test_character_queries_bypass_active_npc_conversation_proposals(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"narration": "Hancı başını sallar.", "world_updates": {}, "lore_claims": []}'
+        )
+        self.session.character.update(
+            name="Tester", race="Elf", **{"class": "Wizard"}, level=7,
+        )
+        npc = self.session.world_state["npcs"][0]
+        self.session.world_state["npcs"].append({
+            "id": "npc_patron", "name": "Yolcu", "role": "Patron",
+            "location": "l_tavern", "relationship": "neutral",
+            "memory": [], "knowledge": [],
+        })
+        # An NPC may remember an alias; it is not character-sheet authority.
+        npc["memory"] = [{"speaker": "player", "text": "Benim adım Arven."}]
+        for text, expected in (
+            ("Benim adım ne?", "Adın Tester."),
+            ("Benim ismim ne?", "Adın Tester."),
+            ("Karakterimin adı ne?", "Adın Tester."),
+            ("Karakterimin ismi ne?", "Adın Tester."),
+            ("Ben kimim?", "Adın Tester."),
+            ("Karakterim kim?", "Adın Tester."),
+            ("Kim oynuyorum?", "Adın Tester."),
+            ("Hangi sınıfım?", "sınıfın Wizard."),
+            ("Sınıfım ne?", "sınıfın Wizard."),
+            ("Hangi class?", "sınıfın Wizard."),
+            ("Hangi ırktayım?", "ırkın Elf."),
+            ("Irkım ne?", "ırkın Elf."),
+            ("Hangi ırkım?", "ırkın Elf."),
+            ("Seviyem kaç?", "seviyen 7."),
+            ("Levelim kaç?", "seviyen 7."),
+            ("Kaçıncı seviyedeyim?", "seviyen 7."),
+            ("Hancı, benim adım ne?", "Adın Tester."),
+            ("Benim adım ne, sınıfım ne, ırkım ne, seviyem kaç?",
+             "Adın Tester; ırkın Elf; sınıfın Wizard; seviyen 7."),
+        ):
+            for target_id in (None, "npc_barkeep"):
+                with self.subTest(query=text, target_id=target_id):
+                    character_before = copy.deepcopy(self.session.character)
+                    memory_before = copy.deepcopy(npc["memory"])
+                    with patch("game.parse_player_intent") as parse_intent:
+                        result = self.session.run_player_turn(text, target_id=target_id)
+                    parse_intent.assert_not_called()
+                    mock_chat.assert_not_called()
+                    self.assertEqual(result["action_result"]["action"], "character_query")
+                    self.assertEqual(result["action_result"]["direct_response"], expected)
+                    self.assertEqual(result["narration"], expected)
+                    telemetry = result["_engine_event_evidence"]["telemetry"]
+                    self.assertEqual(telemetry["intent_model_calls"], 0)
+                    self.assertEqual(telemetry["narration_model_calls"], 0)
+                    self.assertEqual(telemetry["total_model_calls"], 0)
+                    self.assertEqual(npc["memory"], memory_before)
+                    self.assertEqual(self.session.character, character_before)
+                    self.assertEqual(self.session.world_state["flags"]["active_npc_id"], "npc_barkeep")
+
+    @patch("game.ollama.chat")
+    def test_name_disclosure_and_npc_recall_remain_separate_from_character_facts(self, mock_chat):
+        mock_chat.return_value = self.mock_ollama_response(
+            '{"narration": "Hancı başını sallar.", "world_updates": {}, "lore_claims": []}'
+        )
+        npc = self.session.world_state["npcs"][0]
+        disclosure = "Benim adım Arven."
+        result = self.session.run_player_turn(disclosure)
+        self.assertEqual(result["action_result"]["action"], "dialogue")
+        self.assertEqual(result["action_result"]["status"], "player_name_disclosed")
+        mock_chat.assert_not_called()
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+        self.assertTrue(any(
+            entry.get("speaker") == "player" and entry.get("text") == disclosure
+            for entry in npc["memory"]
+        ))
+        self.assertEqual(self.session.character["name"], "Tester")
+
+        mock_chat.reset_mock()
+        recall = self.session.run_player_turn("Adımı hatırlıyor musun?")
+        self.assertIn("Arven", recall["narration"])
+        self.assertEqual(
+            recall["_engine_event_evidence"]["telemetry"]["narration_source"],
+            "python_memory_response",
+        )
+        mock_chat.assert_not_called()
+
+        self_query = self.session.run_player_turn("Benim adım ne?")
+        self.assertEqual(self_query["narration"], "Adın Tester.")
+        mock_chat.assert_not_called()
+
     # 28 (E). all tested turns remain <= 2 total model calls
     @patch("game.ollama.chat")
     def test_28_all_tested_turns_remain_under_max_2_calls(self, mock_chat):
