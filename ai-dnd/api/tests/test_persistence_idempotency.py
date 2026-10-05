@@ -276,6 +276,143 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             (field_path, mode, invalid_value), operation,
                         )
 
+    async def assert_transient_response_validation(self, operation):
+        created = await self.http.post("/api/game/sessions")
+        self.assertEqual(created.status_code, 200, created.text)
+        created = created.json()
+        record = self.manager.get(created["session_id"])
+        self.assertIsNone(record.campaign_id)
+        session = record.game_session
+        endpoint = "turn" if operation == "turn" else "species-actions"
+        if operation == "turn":
+            record, command = self.prepare_spell(created)
+            fields = (
+                (("session_id",), 123),
+                (("narration",), []),
+                (("state",), []),
+            )
+        else:
+            session.commit_location_change("tavern")
+            session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+            session.initialize_species_trait_state()
+            session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+            command = {"action": operation, "action_id": str(uuid4())}
+            fields = (
+                (("session_id",), 123),
+                (("state",), []),
+                (("result",), []),
+                (("result", "action"), 123),
+                (("result", "message"), []),
+                (("result", "effects"), []),
+            )
+        path = f"/api/game/sessions/{created['session_id']}/{endpoint}"
+        before_action = copy.deepcopy(session.serialize_game_state())
+        with patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave:
+            accepted = await self.http.post(path, json=command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        autosave.assert_called_once()
+        supplied = autosave.call_args.kwargs["turn_action_receipt"]
+        expected = accepted.json()
+        original = copy.deepcopy(record.turn_action_receipts[command["action_id"]])
+        self.assertEqual(original["response"], expected)
+        self.assertEqual(original["action_id"], command["action_id"])
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+        self.assertNotEqual(session.serialize_game_state(), before_action)
+        if operation == "turn":
+            self.assertTrue(record.combat_history)
+        else:
+            self.assertEqual(expected["result"]["action"], operation)
+            self.assertEqual(
+                session.character["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                session.character["proficiency_bonus"],
+            )
+            self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"],
+                             3600 if operation == "short_rest" else 28800)
+            if operation == "long_rest":
+                self.assertEqual(session.character["current_hp"], 20)
+
+        def runtime_snapshot():
+            # Messages are transient narration history; the shared snapshot also
+            # covers canonical state, RNG, journal, memories and combat history.
+            return copy.deepcopy((
+                self.snapshot(record), session.messages, session.world_metadata,
+            ))
+
+        async def retry_without_effects(status):
+            before_retry = runtime_snapshot()
+            with patch.object(session, "run_player_turn",
+                              side_effect=AssertionError("Replay executed a turn")) as engine, \
+                 patch.object(session, "resolve_species_trait_action",
+                              side_effect=AssertionError("Replay repeated species mechanics")) as species, \
+                 patch.object(session.rng, "randint",
+                              side_effect=AssertionError("Replay consumed dice")) as dice, \
+                 patch.object(self.manager, "autosave_turn",
+                              side_effect=AssertionError("Replay replaced a receipt")) as save, \
+                 patch.object(self.store, "save_campaign",
+                              side_effect=AssertionError("Transient replay persisted")) as persisted:
+                retry = await self.http.post(path, json=command)
+            self.assertEqual(retry.status_code, status, retry.text)
+            if status == 200:
+                self.assertEqual(retry.json(), expected)
+            else:
+                self.assertEqual(retry.json()["detail"]["code"], "campaign_unavailable")
+                self.assertIsInstance(retry.json()["detail"]["message"], str)
+                self.assertTrue(retry.json()["detail"]["message"])
+            for guard in (engine, species, dice, save, persisted):
+                guard.assert_not_called()
+            self.assertEqual(runtime_snapshot(), before_retry)
+
+        committed = runtime_snapshot()
+        # Both receipt ingress and lookup must detach nested caller-owned data.
+        # Damage only these copies first: a valid HTTP replay must still succeed.
+        for caller_receipt in (
+            supplied, self.manager.get_turn_action(record, command["action_id"]),
+        ):
+            caller_receipt["response"]["state"].clear()
+            if operation == "turn":
+                del caller_receipt["response"]["narration"]
+            else:
+                caller_receipt["response"]["result"]["effects"].clear()
+                del caller_receipt["response"]["result"]["message"]
+            self.assertNotEqual(caller_receipt, original)
+            self.assertEqual(record.turn_action_receipts[command["action_id"]], original)
+            self.assertEqual(runtime_snapshot(), committed)
+            await retry_without_effects(200)
+
+        for field_path, invalid_value in fields:
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(operation=operation, field=field_path, mode=mode):
+                    # Deliberately damage the retained owner, not a detached
+                    # lookup copy. Identity and request hash remain valid.
+                    damaged = copy.deepcopy(original)
+                    parent = damaged["response"]
+                    for field in field_path[:-1]:
+                        parent = parent[field]
+                    if mode == "missing":
+                        del parent[field_path[-1]]
+                    else:
+                        parent[field_path[-1]] = invalid_value
+                    self.assertEqual(damaged["action_id"], original["action_id"])
+                    self.assertEqual(damaged["request_hash"], original["request_hash"])
+                    self.assertEqual(damaged["response"]["action_id"], command["action_id"])
+                    record.turn_action_receipts[command["action_id"]] = damaged
+                    await retry_without_effects(409)
+                    self.assertEqual(record.turn_action_receipts[command["action_id"]], damaged)
+                    record.turn_action_receipts[command["action_id"]] = copy.deepcopy(original)
+                    self.assertEqual(runtime_snapshot(), committed)
+        # A final intact control rules out a broken route or blanket rejection.
+        await retry_without_effects(200)
+
+    async def test_incomplete_transient_turn_response_blocks_http_retry(self):
+        await self.assert_transient_response_validation("turn")
+
+    async def test_incomplete_transient_short_rest_response_blocks_http_retry(self):
+        await self.assert_transient_response_validation("short_rest")
+
+    async def test_incomplete_transient_long_rest_response_blocks_http_retry(self):
+        await self.assert_transient_response_validation("long_rest")
+
     async def test_corrupt_short_rest_receipts_block_http_retry_after_resume(self):
         for corruption in ("hash", "json", "action_id"):
             with self.subTest(corruption=corruption):
