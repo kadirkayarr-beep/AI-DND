@@ -803,6 +803,142 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(restored.world_state[key], persisted["world_state"][key])
             await assert_replay(http, manager, sid)
 
+    async def test_old_interrupted_rest_replay_cannot_restore_resolved_encounter_after_resume(self):
+        record = self.manager.get(self.sid)
+        session = record.game_session
+        session.character.update(
+            species="Orc", race="Orc", level=1, proficiency_bonus=2,
+            current_hp=7, max_hp=19, cantrips=["Fire Bolt"],
+            spells=["Magic Missile", "Shield"], **{"class": "Wizard"},
+        )
+        game.initialize_species_trait_state(session=session)
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        spell_scope.initialize(session)
+        session.world_state["spellcasting_v1"]["slots"]["1"] = 0
+        session.world_state["spellcasting_v1"]["slot_turn"] = ["previous-combat", 1, 1]
+        traits = copy.deepcopy(session.character["species_trait_state"])
+        spells = copy.deepcopy(session.world_state["spellcasting_v1"])
+        event(session, "resolved-rest-stop", 1200, 1800, behavior="INTERRUPTIVE",
+              requires_decision=True, summary="A visitor needs a decision.",
+              effects=[flag("resolved_rest_encounter")])
+        campaign_id = self.created["campaign_id"]
+        stored_before_rest = self.store.get_campaign(campaign_id)
+        rest_request = {"action": "long_rest", "action_id": str(uuid4())}
+        interrupted = await self.http.post(
+            f"/api/game/sessions/{self.sid}/species-actions", json=rest_request,
+        )
+        self.assertEqual(interrupted.status_code, 200, interrupted.text)
+        rest_response = interrupted.json()
+        self.assertFalse(rest_response["result"]["effects"]["rest_completed"])
+        self.assertTrue(rest_response["result"]["effects"]["time_result"]["interrupted"])
+        self.assertEqual(rest_response["result"]["effects"]["time_result"]["elapsed_seconds"], 1200)
+        self.assertEqual(len(rest_response["state"]["pending_event_decisions"]), 1)
+        self.assertEqual(events.pending_events(session.world_state)[0]["event_id"], "resolved-rest-stop")
+        rest_receipt = copy.deepcopy(self.store.get_turn_action(campaign_id, rest_request["action_id"]))
+        self.assertEqual(rest_receipt["response"], rest_response)
+        interrupted_save = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(interrupted_save.history), len(stored_before_rest.history) + 1)
+        self.assertEqual(interrupted_save.payload["engine_save"], session.serialize_game_state())
+        partial_clock = copy.deepcopy(session.world_state["campaign_time"])
+        decision_request = {"message": "Konuşmayı seçiyorum.", "action_id": str(uuid4())}
+        decision = await self.http.post(
+            f"/api/game/sessions/{self.sid}/turn", json=decision_request,
+        )
+        self.assertEqual(decision.status_code, 200, decision.text)
+        decision_response = decision.json()
+        self.assertEqual(decision_response["state"]["pending_event_decisions"], [])
+
+        def assert_resolved(character, world):
+            self.assertEqual(character["current_hp"], 7)
+            self.assertLess(character["current_hp"], character["max_hp"])
+            self.assertEqual(character["species_trait_state"], traits)
+            self.assertEqual(character["species_trait_state"]["adrenaline_rush_uses_remaining"], 0)
+            self.assertEqual(world["spellcasting_v1"], spells)
+            self.assertEqual(world["spellcasting_v1"]["slots"]["1"], 0)
+            self.assertEqual(world["campaign_time"], partial_clock)
+            self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1200)
+            item = next(e for e in world["scheduled_events"] if e["event_id"] == "resolved-rest-stop")
+            self.assertEqual(item["status"], "OCCURRED")
+            self.assertEqual(item["decision_status"], "RESOLVED")
+            self.assertEqual(item["player_decision"], "interact")
+            self.assertEqual(item["canonical_result"]["effects_applied"], 1)
+            self.assertTrue(world["flags"]["scheduled:resolved_rest_encounter"])
+            self.assertEqual(events.pending_events(world), [])
+
+        assert_resolved(session.character, session.world_state)
+        committed = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(committed.history), len(interrupted_save.history) + 1)
+        engine_save = copy.deepcopy(committed.payload["engine_save"])
+        self.assertEqual(engine_save, session.serialize_game_state())
+        assert_resolved(engine_save["player"], engine_save["world_state"])
+        decision_receipt = copy.deepcopy(
+            self.store.get_turn_action(campaign_id, decision_request["action_id"]),
+        )
+        self.assertEqual(decision_receipt["response"], decision_response)
+
+        async def assert_old_rest_replay(http, manager, store, sid):
+            active_record = manager.get(sid)
+            active = active_record.game_session
+            self.assertEqual(manager.get_turn_action(active_record, rest_request["action_id"]), rest_receipt)
+            self.assertEqual(manager.get_turn_action(active_record, decision_request["action_id"]), decision_receipt)
+            engine_before = copy.deepcopy(active.serialize_game_state())
+            rng_before = active.rng.getstate()
+            messages_before = copy.deepcopy(active.messages)
+            journal_before = copy.deepcopy(active_record.journal)
+            memory_before = copy.deepcopy(active_record.narrative_memory)
+            receipts_before = copy.deepcopy(active_record.turn_action_receipts)
+            # Resume may update metadata; replay itself must leave the store untouched.
+            stored_before = store.get_campaign(campaign_id)
+            with patch.object(active, "resolve_species_trait_action",
+                              side_effect=AssertionError("Old receipt executed another rest")), \
+                 patch.object(active, "run_player_turn",
+                              side_effect=AssertionError("Old receipt resolved another encounter")), \
+                 patch.object(manager, "autosave_turn",
+                              side_effect=AssertionError("Old receipt saved another turn")):
+                replay = await http.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=rest_request,
+                )
+            self.assertEqual(replay.status_code, 200, replay.text)
+            # Historical response still says PENDING; canonical state must stay RESOLVED.
+            self.assertEqual(replay.json(), {**rest_response, "session_id": sid})
+            self.assertEqual(len(replay.json()["state"]["pending_event_decisions"]), 1)
+            assert_resolved(active.character, active.world_state)
+            self.assertEqual(serialize_session_state(active)["pending_event_decisions"], [])
+            self.assertEqual(active.serialize_game_state(), engine_before)
+            self.assertEqual(active.rng.getstate(), rng_before)
+            self.assertEqual(active.messages, messages_before)
+            self.assertEqual(active_record.journal, journal_before)
+            self.assertEqual(active_record.narrative_memory, memory_before)
+            self.assertEqual(active_record.turn_action_receipts, receipts_before)
+            self.assertEqual(store.get_campaign(campaign_id), stored_before)
+            self.assertEqual(store.get_campaign(campaign_id).history, committed.history)
+            self.assertEqual(store.get_turn_action(campaign_id, rest_request["action_id"]), rest_receipt)
+            self.assertEqual(store.get_turn_action(campaign_id, decision_request["action_id"]), decision_receipt)
+            self.assertEqual(manager.get_turn_action(active_record, rest_request["action_id"]), rest_receipt)
+            self.assertEqual(manager.get_turn_action(active_record, decision_request["action_id"]), decision_receipt)
+
+        await assert_old_rest_replay(self.http, self.manager, self.store, self.sid)
+        reopened_store = CampaignStore(self.store.path)
+        manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
+        app = v1.create_app(session_manager=manager,
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                     base_url="http://test") as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            self.assertNotEqual(sid, self.sid)
+            restored = manager.get(sid).game_session
+            self.assertIsNot(restored, session)
+            assert_resolved(restored.character, restored.world_state)
+            self.assertEqual(restored.serialize_game_state(), engine_save)
+            reopened = reopened_store.get_campaign(campaign_id)
+            self.assertEqual(reopened.payload["engine_save"], engine_save)
+            self.assertEqual(reopened.history, committed.history)
+            for key in ("character", "spellcasting", "campaign_time", "pending_event_decisions"):
+                self.assertEqual(resumed.json()["state"][key], decision_response["state"][key])
+            await assert_old_rest_replay(http, manager, reopened_store, sid)
+
     async def test_interrupted_rest_decision_failed_save_restores_pending_then_retries_and_replays(self):
         record = self.manager.get(self.sid)
         session = record.game_session
