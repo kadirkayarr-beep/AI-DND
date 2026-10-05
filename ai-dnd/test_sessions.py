@@ -29,17 +29,6 @@ class SessionTests(unittest.TestCase):
     def npc(self, session):
         session.world_state["location"] = "tavern"
         npc = {
-    def setUp(self):
-        self.a = game.create_session(seed=17)
-        self.b = game.create_session(seed=17)
-        self.default_before = game.serialize_game_state()
-
-    def tearDown(self):
-        self.assertEqual(game.serialize_game_state(), self.default_before)
-
-    def npc(self, session):
-        session.world_state["location"] = "tavern"
-        npc = {
             "id": "npc_001", "name": "Gromm", "role": "Barmen",
             "location": "tavern", "personality": "", "appearance": "",
             "relationship": "neutral", "knowledge": [], "memory": [],
@@ -2445,6 +2434,173 @@ class SessionTests(unittest.TestCase):
                     )
                 assert_isolated(expected)
 
+    def test_overlapping_necrotic_shroud_saves_and_fear_stay_in_own_campaign(self):
+        for eligible_index in (0, 1):
+            with self.subTest(eligible_index=eligible_index):
+                sessions = (game.create_session(seed=17),
+                            game.create_session(seed=29))
+                eligible = sessions[eligible_index]
+                spent = sessions[1 - eligible_index]
+                for index, session in enumerate(sessions):
+                    session.character.update(
+                        species="Aasimar", race="Aasimar", level=3,
+                        proficiency_bonus=2, charisma_mod=3,
+                    )
+                    game.initialize_species_trait_state(session=session)
+                    first = self.npc(session)
+                    first["charisma_save_bonus"] = 0
+                    second = copy.deepcopy(first)
+                    second.update(id="npc_002", name="Second enemy",
+                                  hostile=True, charisma_save_bonus=0)
+                    session.world_state["npcs"].append(second)
+                    with patch.object(game, "roll_initiative_player", return_value=20), \
+                         patch.object(game, "roll_initiative", return_value=1):
+                        session.start_combat(first)
+                    combat = session.world_state["combat"]
+                    self.assertTrue(combat["active"])
+                    self.assertEqual(combat["current_actor_id"], "player")
+                    self.assertEqual(combat["participants"],
+                                     ["player", "npc_001", "npc_002"])
+                    state = session.character["species_trait_state"]
+                    self.assertGreater(state["celestial_revelation_uses_remaining"], 0)
+                    self.assertIsNone(state["active_celestial_form"])
+                    self.assertIsNone(state["bonus_action_used_round"])
+                    game.action_economy.ensure(session)["player"][
+                        "bonus_action_spent"
+                    ] = session is spent
+                    session.messages.append({
+                        "role": "user", "content": f"Aasimar campaign {index}",
+                    })
+                    # The eligible saves will be 5 (failure) and 19 (success)
+                    # against DC 13, without substituting scripted roll results.
+                    session.rng.setstate(random.Random(1).getstate())
+                self.assertEqual(
+                    [npc["id"] for npc in eligible.world_state["npcs"]],
+                    [npc["id"] for npc in spent.world_state["npcs"]],
+                )
+                before = [session.serialize_game_state() for session in sessions]
+                messages_before = [copy.deepcopy(session.messages) for session in sessions]
+                rng_before = [session.rng.getstate() for session in sessions]
+                default_rng = game._DEFAULT_SESSION.rng.getstate()
+                default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+                module_rng = random.getstate()
+                expected_rng = random.Random()
+                expected_rng.setstate(rng_before[eligible_index])
+                self.assertEqual(
+                    [expected_rng.randint(1, 20) for _ in range(2)], [5, 19]
+                )
+                eligible_waiting = threading.Event()
+                rejection_finished = threading.Event()
+                bonus_action_owner = game._species_bonus_action
+
+                def overlapping_bonus_action():
+                    owner = game._session()
+                    if owner is eligible:
+                        eligible_waiting.set()
+                        self.assertTrue(rejection_finished.wait(timeout=5))
+                    else:
+                        self.assertIs(owner, spent)
+                        self.assertTrue(eligible_waiting.is_set())
+                    self.assertIs(game._session(), owner)
+                    return bonus_action_owner()
+
+                def assert_unchanged():
+                    for session, snapshot, messages, rng in zip(
+                        sessions, before, messages_before, rng_before
+                    ):
+                        self.assertEqual(session.serialize_game_state(), snapshot)
+                        self.assertEqual(session.messages, messages)
+                        self.assertEqual(session.rng.getstate(), rng)
+                    self.assertIs(game._session(), game._DEFAULT_SESSION)
+                    self.assertEqual(game.serialize_game_state(), self.default_before)
+                    self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                    self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+                    self.assertEqual(random.getstate(), module_rng)
+
+                def reject_spent():
+                    try:
+                        self.assertTrue(eligible_waiting.wait(timeout=5))
+                        with self.assertRaisesRegex(
+                            ValueError, "^Bu tur bonus eylemini zaten kullandın\\.$"
+                        ):
+                            game.resolve_species_trait_action(
+                                "celestial_revelation", form="necrotic_shroud",
+                                session=spent,
+                            )
+                        assert_unchanged()
+                    finally:
+                        rejection_finished.set()
+
+                with patch.object(game, "_species_bonus_action",
+                                  side_effect=overlapping_bonus_action) as owner, \
+                     self.rolls(spent), self.rolls(game._DEFAULT_SESSION):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        if eligible_index:
+                            rejected = pool.submit(reject_spent)
+                            granted = pool.submit(
+                                game.resolve_species_trait_action,
+                                "celestial_revelation", form="necrotic_shroud",
+                                session=eligible,
+                            )
+                        else:
+                            granted = pool.submit(
+                                game.resolve_species_trait_action,
+                                "celestial_revelation", form="necrotic_shroud",
+                                session=eligible,
+                            )
+                            rejected = pool.submit(reject_spent)
+                        rejected.result(timeout=10)
+                        grant = granted.result(timeout=10)
+                    self.assertEqual(owner.call_count, 2)
+                self.assertEqual(grant["action"], "celestial_revelation")
+                self.assertEqual(grant["effects"]["form"], "necrotic_shroud")
+                self.assertEqual(grant["effects"]["duration_turns"], 10)
+                saves = grant["effects"]["saves"]
+                self.assertEqual(
+                    [(save["target_id"], save["save_roll"], save["save_bonus"],
+                      save["save_dc"], save["frightened"]) for save in saves],
+                    [("npc_001", 5, 0, 13, True),
+                     ("npc_002", 19, 0, 13, False)],
+                )
+                self.assertEqual(
+                    [(save["resolution"]["resolution_type"],
+                      save["resolution"]["ability"],
+                      save["resolution"]["outcome"]) for save in saves],
+                    [("saving_throw", "charisma", "FAILURE"),
+                     ("saving_throw", "charisma", "SUCCESS")],
+                )
+                expected = copy.deepcopy(before)
+                state = expected[eligible_index]["player"]["species_trait_state"]
+                state.update(
+                    celestial_revelation_uses_remaining=(
+                        state["celestial_revelation_uses_remaining"] - 1
+                    ),
+                    active_celestial_form="necrotic_shroud",
+                    celestial_revelation_turns_remaining=10,
+                    bonus_action_used_round=before[eligible_index][
+                        "world_state"]["combat"]["round"],
+                )
+                expected[eligible_index]["world_state"]["combat"][
+                    "turn_resources"]["player"]["bonus_action_spent"] = True
+                expected[eligible_index]["world_state"]["npcs"][0][
+                    "frightened_until_player_turn"
+                ] = state["player_turn_counter"] + 2
+                for session, snapshot, messages in zip(
+                    sessions, expected, messages_before
+                ):
+                    self.assertEqual(session.serialize_game_state(), snapshot)
+                    self.assertEqual(session.messages, messages)
+                self.assertNotIn(
+                    "frightened_until_player_turn", eligible.world_state["npcs"][1]
+                )
+                self.assertEqual(spent.rng.getstate(), rng_before[1 - eligible_index])
+                self.assertEqual(eligible.rng.getstate(), expected_rng.getstate())
+                self.assertIs(game._session(), game._DEFAULT_SESSION)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+                self.assertEqual(random.getstate(), module_rng)
+
     def test_overlapping_hits_keep_temporary_hp_in_their_own_sessions(self):
         # Legal Orc reserves (proficiency bonus 2) exercise full absorption,
         # a surviving reserve, and spillover into regular HP. Explicit expected
@@ -3102,46 +3258,6 @@ class SessionTests(unittest.TestCase):
                     self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
                     self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
                     self.assertEqual(random.getstate(), rng_module)
-                }
-                for index, result in enumerate(results):
-                    fatal = index == rollback_index
-                    self.assertTrue(result["hit"])
-                    self.assertTrue(result["success"])
-                    self.assertFalse(result["critical"])
-                    self.assertEqual(result["attack_rolls"], [15])
-                    self.assertEqual(result["damage"], 22 if fatal else 21)
-                    self.assertEqual(result["target_hp_before"], 3)
-                    self.assertEqual(result["target_hp_after"], 19 if fatal else 1)
-                    self.assertEqual(result["target_status"], "active")
-                    self.assertEqual(result["death_resolution"],
-                                     resolution if fatal else None)
-                    self.assertEqual(result["species_effects"], [] if fatal else [
-                        {"trait": "relentless_endurance", "current_hp": 1},
-                    ])
-                expected = copy.deepcopy(checkpoint_snapshot)
-                expected["world_state"]["death_state"]["last_resolution"] = resolution
-                expected["world_state"]["attack_results"].append(
-                    copy.deepcopy(results[rollback_index])
-                )
-                self.assertEqual(rollback.serialize_game_state(), expected)
-                self.assertIsNone(rollback.world_state["death_state"]["combat_checkpoint"])
-                self.assertTrue(rollback.character["species_trait_state"][
-                    "relentless_endurance_available"
-                ])
-                self.assertNotEqual(rollback.rng.getstate(), checkpoint_rng)
-                assert_survivor_unchanged()
-                for index, session in enumerate(sessions):
-                    self.assertEqual(session.rng.getstate(), expected_rng[index])
-                    self.assertEqual(session.messages, messages[index])
-                    world, character, narrations = references[index]
-                    self.assertIs(session.world_state, world)
-                    self.assertIs(session.character, character)
-                    self.assertIs(session.recent_dm_narrations, narrations)
-                self.assertIs(game._session(), game._DEFAULT_SESSION)
-                self.assertEqual(game.serialize_game_state(), self.default_before)
-                self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
-                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
-                self.assertEqual(random.getstate(), rng_module)
 
 
 class CompatibilityTests(unittest.TestCase):
