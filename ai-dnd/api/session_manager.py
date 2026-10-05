@@ -580,7 +580,8 @@ class SessionManager:
         if (
             not isinstance(receipt, dict)
             or not isinstance(receipt.get("request_hash"), str)
-            or not receipt["request_hash"]
+            or len(receipt["request_hash"]) != 64
+            or any(char not in "0123456789abcdef" for char in receipt["request_hash"])
             or not isinstance(receipt.get("response"), dict)
         ):
             raise CampaignCorruptError("Campaign action receipt is invalid.")
