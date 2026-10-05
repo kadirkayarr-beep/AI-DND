@@ -1,0 +1,685 @@
+AI-DND — FINAL PRE-PACKAGE-#3 CLOSEOUT
+Dynamic task discovery, draft triage, blocker resolution, exact-HEAD verification, cleanup and release-ready closeout.
+
+GOAL
+
+Finish the entire pre-Package-#3 hardening cycle and determine whether AI-DND is genuinely ready to begin:
+
+Package #3 — Exploration, Travel & Dungeon Adventure V1.
+
+A large number of hardening tasks have now been completed.
+The current highest task number is unknown and must be discovered dynamically.
+There are also approximately two dozen current PROPOSED/draft tasks.
+
+Do not assume any task number or status from previous reports.
+
+This run must discover the CURRENT repository and CURRENT task state and close the pre-#3 cycle based on evidence.
+
+This is intended to be the FINAL pre-#3 closeout.
+
+Do not continue the endless regression-task cycle.
+
+==================================================
+ARCHITECTURAL CONSTITUTION
+==================================================
+
+These contracts are binding:
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT, USES VERIFIED CONTEXT, AND TELLS THE STORY.
+FRONTEND PRESENTS REALITY.
+
+Preserve:
+
+- Python ownership of canonical mechanics/state.
+- Forgotten Realms lore authority for setting reality.
+- Campaign-state and accepted-event authority.
+- Qwen must never directly author canonical mechanics/state.
+- Frontend must never create gameplay truth.
+- Maximum 2 model calls per player turn.
+- Rejected narration must deterministically fall back with no model retry.
+- Save compatibility.
+- Session/campaign isolation.
+- Persistence and idempotency.
+- Combat ownership.
+- Campaign Time ownership.
+- Inventory/equipment ownership.
+- Quest ownership.
+- Action-economy ownership.
+- Death/recovery ownership.
+- Receipt/replay/rollback ownership.
+
+Do not silently redesign architecture.
+
+==================================================
+PHASE 1 — DISCOVER AND FREEZE CURRENT STATE
+==================================================
+
+At the beginning of this run, determine:
+
+- current branch
+- exact starting HEAD
+- upstream branch
+- upstream SHA
+- ahead/behind state
+- git status
+- highest existing task number
+- every DONE / MERGED task
+- every IN PROGRESS task
+- every PROPOSED / draft task
+- every CANCELLED / ARCHIVED task if applicable
+
+Inspect the actual task records.
+
+Do NOT assume that a task is completed merely because its number is lower than the current highest task.
+
+Do NOT assume previously reported draft counts are still current.
+
+The effective audit range is:
+
+#77 through CURRENT HIGHEST TASK AT START
+
+Include every PROPOSED/draft task that exists when this run begins.
+
+Once this initial snapshot is complete:
+
+FREEZE THE TASK UNIVERSE.
+
+Do not add later speculative tasks to this closeout.
+
+Any new idea discovered after the freeze must not become another numbered task during this run.
+
+==================================================
+PHASE 2 — VERIFY COMPLETED WORK REALLY IS COMPLETED
+==================================================
+
+The user believes the previously accepted hardening tasks have now finished.
+
+Verify this from actual task state and repository evidence.
+
+For each task marked DONE/MERGED:
+
+- do not automatically rerun every task-local test,
+- but identify whether it changed production behavior,
+- identify whether its owner/risk boundary is covered by the final authoritative verification.
+
+If a supposedly completed task is actually still unfinished or partially implemented, treat that as evidence, not as an assumption.
+
+==================================================
+PHASE 3 — CLASSIFY EVERY CURRENT DRAFT
+==================================================
+
+Every task that is PROPOSED at the initial snapshot must appear exactly once as:
+
+A. PRE-#3 BLOCKER
+
+B. NON-BLOCKING HARDENING
+
+C. REDUNDANT / SUFFICIENTLY COVERED
+
+D. NEEDS EVIDENCE
+
+E. ALREADY ADDRESSED BY CURRENT IMPLEMENTATION
+
+A proposed task may be PRE-#3 BLOCKER only if there is concrete evidence of at least one of:
+
+1. Reproducible current-HEAD production defect.
+
+2. Current authoritative test/release-gate failure.
+
+3. Broken import/parse/discovery preventing authoritative verification.
+
+4. A genuinely new uncovered boundary involving:
+   - canonical Python state
+   - persistence/rollback
+   - save compatibility/migration
+   - session/campaign isolation
+   - action receipts/idempotency
+   - Campaign Time
+   - combat/death/action economy
+   - model-call budget
+   - deterministic fallback
+   - API/runtime/OpenAPI/client parity
+
+5. A production-changing completed task whose critical behavior cannot be demonstrated by the existing final verification gates.
+
+Do NOT classify something as blocking merely because it adds:
+
+- another actor combination
+- another species
+- another mode
+- another endpoint
+- another wording
+- another pronoun
+- another malformed type
+- another reopen
+- another action-ID combination
+- another replay
+- another caller mutation
+- another OpenAPI reference mutation
+- another save/reload permutation
+
+unless that variation demonstrates a materially new owner/risk boundary or an actual defect.
+
+“Not an exact duplicate” is NOT sufficient.
+
+==================================================
+PHASE 4 — BLOCKER EXECUTION RULE
+==================================================
+
+This closeout is allowed to IMPLEMENT genuine PRE-#3 blockers.
+
+If there are 1–3 genuinely independent evidence-backed PRE-#3 blockers:
+
+IMPLEMENT AND VERIFY THEM in this run.
+
+Do not create separate numbered tasks first.
+
+Use the smallest safe fix.
+
+If there are more than 3 genuinely independent blockers:
+
+STOP before broad implementation and report them.
+
+Do not turn this closeout into another long hardening program.
+
+Multiple variants of the same root owner/risk count as ONE blocker.
+
+A draft previously considered non-blocking may only become blocking if CURRENT evidence proves its risk.
+
+Do not implement optional drafts merely because time remains.
+
+==================================================
+PHASE 5 — RE-CHECK PREVIOUSLY KNOWN BLOCKERS
+==================================================
+
+Do not assume previous blockers still exist.
+
+Check current reality.
+
+Previously known issues included:
+
+1. Selected-NPC Turkish pronoun resolution.
+
+A prior defect caused phrases equivalent to:
+
+"Ona selam veriyorum."
+
+to fail to resolve the valid selected NPC.
+
+Later work may already have fixed or expanded this behavior.
+
+Verify representative:
+
+- valid selected conversation
+- expired conversation
+- unknown explicitly named target
+- representative pronoun handling already covered by current tests
+
+If fixed:
+do not reimplement it.
+
+If broken:
+fix it narrowly.
+
+Do not create a full Turkish-language combinatorial test matrix.
+
+2. Contract-parity environment/dependency health.
+
+Previously, PyYAML import/discovery was blocked in one environment.
+
+Check the CURRENT project interpreter.
+
+Verify:
+
+- actual interpreter path
+- `import yaml`
+- contract-parity module import
+- contract-parity discovery
+- contract-parity execution
+
+If already fixed:
+do nothing.
+
+If broken:
+reconcile the environment/dependency using the existing project dependency-management approach.
+
+Do NOT weaken contract tests or change gameplay to hide the issue.
+
+3. Exact-HEAD integration evidence.
+
+Previous audits found production-changing work without a combined verification run on the merged HEAD.
+
+Close this gap using the final verification phases below.
+
+Do NOT create more regression tasks merely to address this.
+
+==================================================
+PHASE 6 — PRODUCTION-CHANGE INVENTORY
+==================================================
+
+Inspect completed tasks from #77 through the current highest task.
+
+Identify every task that ACTUALLY changed production behavior.
+
+Classify into:
+
+- canonical gameplay mechanics
+- persistence
+- save compatibility
+- migration
+- session/state ownership
+- action economy
+- Campaign Time
+- death/recovery
+- receipt/idempotency
+- API/runtime contract
+- OpenAPI/generated-client contract
+- deterministic routing
+- narration/projection
+- environment/dependency
+- other
+
+Do not rely only on task titles.
+
+Pay particular attention to:
+
+- legacy migration
+- action ledger consistency
+- historical result/snapshot ownership
+- death/stabilization/recovery
+- failed-save rollback
+- stale managers
+- action receipts
+- combat-history retention
+- deterministic character/location queries
+- NPC targeting
+- NPC memory
+- narration projection
+- strict replay-response validation
+- ambient/event ownership
+- runtime/OpenAPI/client parity
+- any newer production changes introduced after the previous audit
+
+==================================================
+PHASE 7 — TEST AND RELEASE-GATE INTEGRITY
+==================================================
+
+Before trusting green results, verify the verification system itself.
+
+Confirm:
+
+- Python production/test sources parse.
+- authoritative suites import/discover.
+- duplicate-definition preflight works.
+- no accidental duplicate test-method overwrites exist.
+- no new skip/skipTest/xfail/expectedFailure hides failures.
+- meaningful assertions were not weakened solely to obtain green results.
+- authoritative suites were not removed from release inventory.
+- prototype/historical suites remain separate only where project authority explicitly permits it.
+- release runner continues after gate failures and exits nonzero.
+- zero-test nested gates cannot PASS.
+- loader errors cannot PASS.
+- contract-parity suite is actually runnable.
+- release PASS is not treated as proof of contract parity if contract parity is outside the default runner.
+
+Do not weaken gates.
+
+==================================================
+PHASE 8 — FOCUSED CURRENT-HEAD VERIFICATION
+==================================================
+
+After genuine blockers are fixed, run focused deterministic verification on CURRENT exact HEAD.
+
+Use existing authoritative suites.
+
+At minimum cover:
+
+- session/campaign isolation
+- RNG isolation
+- persistence/idempotency
+- save/load/reopen
+- failed-save rollback
+- receipt replay/conflict
+- stale-manager/concurrency coverage already represented by authoritative suites
+- combat geometry
+- action economy
+- initiative
+- death/recovery/stabilization
+- Campaign Time
+- species actions/rests
+- weapon attacks
+- NPC targeting/conversation resolution
+- deterministic location queries
+- deterministic character facts
+- NPC memory scope
+- narrative safety
+- maximum-two-model-call contract
+- narration validation failure with no retry
+- campaign API
+- runtime/OpenAPI parity
+- contract parity
+
+Do not invent new task ideas while running these tests.
+
+==================================================
+PHASE 9 — FULL CURRENT-HEAD VERIFICATION
+==================================================
+
+Once focused verification is green, run the project's authoritative broad verification on the exact current HEAD.
+
+Use the repository's established release commands/inventory.
+
+Include where applicable:
+
+- preflight
+- runner integrity/inventory
+- authoritative combat
+- session suites
+- persistence/idempotency
+- Campaign Time
+- action economy
+- weapon attack
+- death
+- initiative
+- bounded death
+- campaign API
+- living-world authoritative suites
+- selected narrative/routing suites
+- contract parity
+- default release runner
+
+If current API/client work affects frontend contracts, also run:
+
+- frontend typecheck
+- frontend tests
+- frontend production build
+
+Prototype/historical suites must be reported separately.
+
+Do not redefine release authority.
+
+Do not perform unnecessary live-model calls.
+
+If an established bounded real-model/runtime smoke exists and is required by current project release authority, use that existing smoke only.
+
+Preserve the maximum 2 model calls per player turn.
+
+Do not retry rejected narration.
+
+==================================================
+PHASE 10 — FAILURE HANDLING
+==================================================
+
+For every failure classify it as:
+
+- genuine production defect
+- stale/incorrect test expectation
+- test infrastructure defect
+- dependency/environment issue
+- API/client contract drift
+- unrelated pre-existing issue
+
+If claiming PRE-EXISTING:
+provide evidence.
+
+For genuine defects introduced or exposed by the completed hardening work:
+
+fix them narrowly and rerun the affected gates.
+
+Do NOT:
+
+- weaken canonical mechanics
+- remove authoritative tests
+- broaden Qwen authority
+- add model retries
+- relax save/session isolation
+- change persistence rules merely to make tests pass
+- perform unrelated refactors
+
+If a fix exposes another genuine failure inside the SAME owner contract, continue until that owner is correct.
+
+Do not create a numbered follow-up task.
+
+==================================================
+PHASE 11 — FINAL DRAFT DISPOSITION
+==================================================
+
+Return every draft from the INITIAL frozen snapshot.
+
+For each:
+
+Task | Final classification | Implemented? | Evidence | Recommendation
+
+Any draft classified:
+
+- NON-BLOCKING HARDENING
+- REDUNDANT / SUFFICIENTLY COVERED
+- NEEDS EVIDENCE
+
+must remain deferred unless CURRENT verification directly proved its defect/risk.
+
+Do not implement optional drafts merely because time remains.
+
+Do not transform deferred drafts into a new pre-#3 queue.
+
+==================================================
+PHASE 12 — CLEANUP
+==================================================
+
+After required gates are green:
+
+- remove only accidental temporary/debug artifacts created during this work
+- preserve legitimate evidence/reports
+- preserve task records
+- do not delete project/user source files
+- do not rewrite history
+
+Do not accidentally commit uploaded external prompt/audit text files.
+
+Report final git status.
+
+==================================================
+PHASE 13 — COMMIT AND PUSH
+==================================================
+
+Only if:
+
+- all PRE-#3 blockers are resolved
+- authoritative verification is green
+- contract verification is green
+- repository integrity is confirmed
+
+then:
+
+1. Fetch existing upstream.
+
+2. Confirm upstream has not unexpectedly diverged.
+
+3. If this closeout produced tracked changes, create ONE normal descriptive closeout commit.
+
+4. Do NOT:
+   - amend
+   - squash
+   - rebase
+   - merge
+   - reset
+   - force-push
+   - rewrite history
+
+5. Push normally to the existing upstream branch.
+
+6. Fetch again.
+
+7. Prove:
+
+local HEAD == upstream HEAD
+
+8. Prove tracked working tree is clean.
+
+If push is rejected because upstream changed:
+
+STOP.
+
+Do not merge/rebase/reset automatically.
+
+If there are no tracked changes, do not create an empty commit.
+
+==================================================
+PHASE 14 — HARDENING SATURATION DECISION
+==================================================
+
+Explicitly determine whether pre-#3 hardening has now reached sufficient risk closure.
+
+Judge by OWNER/RISK BOUNDARIES, not task count.
+
+If remaining drafts are mostly:
+
+- actor permutations
+- endpoint permutations
+- replay permutations
+- pronoun/wording permutations
+- contract-reference permutations
+- save/reopen permutations
+- mode/species variations
+
+and their underlying owner contracts are already proven:
+
+state that these are deferred non-blocking hardening.
+
+They must NOT delay Package #3.
+
+The existence of another possible test is not evidence that the project is unsafe.
+
+==================================================
+REQUIRED FINAL REPORT
+==================================================
+
+A. STARTING STATE
+
+- branch
+- starting HEAD
+- upstream SHA
+- git status
+- highest task number
+- DONE/MERGED count
+- IN PROGRESS count
+- PROPOSED count
+- CANCELLED/ARCHIVED count
+
+B. INITIAL DRAFT CLASSIFICATION
+
+Task | Classification | Evidence | Action taken
+
+Every draft from the initial snapshot must appear exactly once.
+
+C. BLOCKERS RESOLVED
+
+For each blocker:
+
+- blocker
+- evidence
+- change made
+- verification performed
+
+D. PRODUCTION CHANGES VERIFIED
+
+Task/risk area | Verification evidence | Result
+
+E. TEST / RELEASE RESULTS
+
+For every authoritative command/suite:
+
+- exact scope
+- PASS/FAIL
+- counts where available
+
+Never say PASS without execution evidence.
+
+F. CONTRACT PARITY
+
+Explicitly report:
+
+- actual project interpreter
+- PyYAML import result
+- contract-parity import/discovery result
+- contract-parity execution result
+- any runtime/OpenAPI/client mismatch
+
+G. MODEL-CALL SAFETY
+
+Explicitly report whether evidence confirms:
+
+- maximum 2 model calls per player turn
+- deterministic zero-model canonical query routing where intended
+- rejected narration causes no model retry
+
+H. SAVE / PERSISTENCE / SESSION SAFETY
+
+Report evidence for:
+
+- save compatibility
+- migration
+- rollback
+- replay/idempotency
+- session isolation
+- stale-manager behavior represented by authoritative coverage
+
+I. DEFERRED NON-BLOCKING HARDENING
+
+List all initial drafts intentionally deferred.
+
+These MUST NOT automatically become another pre-#3 blocking queue.
+
+J. FINAL GIT STATE
+
+- final HEAD
+- upstream HEAD
+- clean/dirty
+- commit created or not
+- push result
+
+K. HARDENING SATURATION
+
+State whether additional pre-#3 permutations now have diminishing value.
+
+L. FINAL VERDICT
+
+End with EXACTLY ONE:
+
+GO — Package #3 may begin
+
+or
+
+NO-GO — Package #3 must wait
+
+If NO-GO:
+
+list ONLY concrete evidence-backed blockers.
+
+==================================================
+ABSOLUTE STOP CONDITION
+==================================================
+
+DO NOT generate new numbered regression tasks after this closeout.
+
+DO NOT finish with suggestions for:
+
+- one more edge case
+- another useful permutation
+- another language wording
+- another reopen variation
+- another response-binding mutation
+- additional hardening before #3
+
+unless CURRENT execution has demonstrated a genuinely new material blocker.
+
+The goal is RISK CLOSURE.
+
+If evidence-backed blockers are resolved and authoritative current HEAD is green, the pre-#3 hardening cycle is finished.
+
+If the final verdict is GO:
+
+Package #3 begins next.

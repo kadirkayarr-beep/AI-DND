@@ -1236,7 +1236,19 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                          original_receipt)
 
         fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
-        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        resume_time = (
+            datetime.fromisoformat(committed[-1].metadata["last_played_at"])
+            + timedelta(seconds=2)
+        ).isoformat()
+        with patch("api.persistence.campaign_store._now",
+                   return_value=resume_time) as resume_clock:
+            sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        resume_clock.assert_called_once_with()
+        # Resume legitimately updates this one metadata field. Force a clock
+        # boundary and preserve exact equality for every other saved field.
+        committed_after_resume = copy.deepcopy(committed)
+        committed_after_resume[-1].metadata["last_played_at"] = resume_time
+        self.assertEqual(self.snapshot(record), committed_after_resume)
         self.assertIsNot(restored.game_session, session)
         self.assertEqual(restored.game_session.serialize_game_state(),
                          session.serialize_game_state())
@@ -1258,7 +1270,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(replay.json(), reopened_expected)
         self.assertEqual(replay.json()["state"]["combat"]["action_economy"]["actors"], resources)
         self.assertEqual(self.snapshot(restored), before)
-        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(record), committed_after_resume)
         self.assertEqual(self.snapshot(other), isolated)
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
 

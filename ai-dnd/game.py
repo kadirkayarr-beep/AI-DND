@@ -10661,6 +10661,8 @@ def plan_living_world_turn(player_input, target_id=None):
         and action != "presence"
         and action != "look"
         and not world_subject_question
+        # A character-sheet question has no NPC subject to disambiguate.
+        and not known_character_answer(player_input)
     ):
         if target_id is not None:
             resolved_npc = next(
@@ -11712,6 +11714,9 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             safety_handling="python_scene_response",
         )
 
+    # Character-sheet questions do not require an unambiguous NPC. Keep the
+    # existing combat and explicit-target validation boundaries intact.
+    character_reply = known_character_answer(player_input) if not combat["active"] else None
     if target_id is not None:
         if not isinstance(target_id, str) or not target_id:
             result = {
@@ -11767,7 +11772,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             if npc_target is not None
             else resolve_npc_reference(player_input)
         )
-        if npc_resolution["status"] == "ambiguous":
+        if npc_resolution["status"] == "ambiguous" and not character_reply:
             if _has_explicit_attack_verb(player_input):
                 action_result = execute_intent(
                     {"intent": "attack"},
@@ -11806,7 +11811,6 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     # Character-sheet facts are Python-owned even during an NPC conversation.
     # Keep combat on its existing path and leave real disclosures/memory
     # questions to the dialogue owner when no supported self-query matches.
-    character_reply = known_character_answer(player_input) if not combat["active"] else None
     if character_reply:
         action_result = {
             "action": "character_query",

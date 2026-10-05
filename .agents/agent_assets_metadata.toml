@@ -28,3 +28,17 @@ mtime_ms = 1790687801533
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/89d2b591-c6ea-4885-a451-d485cabe16e6/73cf029b-ac7f-4afa-9ed2-26313f8631ac"
 storage_version_token = "1790687842916697"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "RJPPIaT2X_vpTPeC1L6Go"
+uri = "file://.local/pre-package3-closeout/closeout-report.html"
+type = "html"
+title = "AI-DND — Final pre-Package #3 closeout"
+description = "A–L closeout report with the frozen task inventory and downloadable original execution evidence. Gameplay checks pass; GitHub authentication prevents Git closeout."
+logical_id = "33fe1c2b-058f-4731-aa58-05c97a3675fd"
+content_hash = "sha256:e07a9973b50ee0069176f3543ce1d3201637de382b7c1518fa8a35de73184494"
+size = 1731702
+mtime_ms = 1791223387857
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/33fe1c2b-058f-4731-aa58-05c97a3675fd/0458c050-5564-4840-b0bd-1bf8391c956e"
+storage_version_token = "1791223423187719"
+content_type = "text/html"
