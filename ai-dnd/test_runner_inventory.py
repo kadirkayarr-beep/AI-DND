@@ -709,6 +709,73 @@ class RunnerProcessTests(unittest.TestCase):
                     self.assertNotIn("PREFLIGHT FAILED", result.stdout + result.stderr)
                     self.assertNotIn("PASSED", result.stdout + result.stderr)
 
+    def test_multiple_failed_api_gates_are_reported_before_later_script_success(self):
+        # Reverse alphabetical order so sorting the failures cannot pass.
+        api_gates = ("api/tests/test_initiative.py",
+                     "api/tests/test_death_bounded.py")
+        later = "release_later.py"
+        suites = {
+            "TESTS": (*api_gates, later),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        for argv in ((), ("--suite", "release")):
+            with self.subTest(argv=argv), \
+                 tempfile.TemporaryDirectory() as directory, \
+                 patch.object(self, "SUITES", suites):
+                root = Path(directory) / "runner"
+                root.mkdir()
+                self.copy_runner(root)
+                package = root / "api" / "tests"
+                package.mkdir(parents=True)
+                (package.parent / "__init__.py").touch()
+                (package / "__init__.py").touch()
+                for name in api_gates:
+                    # No script entrypoint: only unittest execution reaches the
+                    # failing assertion and records this gate in the order log.
+                    (root / name).write_text(
+                        "import unittest\nfrom pathlib import Path\n"
+                        f"Path({name + '.sentinel'!r}).write_text('imported')\n"
+                        "class BoundaryTests(unittest.TestCase):\n"
+                        "    def test_boundary(self):\n"
+                        "        with Path('order.txt').open('a') as log:\n"
+                        f"            log.write({name + chr(10)!r})\n"
+                        f"        self.fail({name + ' assertion executed'!r})\n",
+                        encoding="utf-8",
+                    )
+                self.write_gate(root, later, "def test_ok(): pass\n")
+
+                # Inspecting valid sources must not import any fixture.
+                self.assertEqual(run_tests.check_test_definitions(
+                    root / gate for gate in suites["TESTS"]), [])
+                self.assertFalse((root / "order.txt").exists())
+                for name in suites["TESTS"]:
+                    self.assertFalse((root / (name + ".sentinel")).exists())
+
+                result = self.launch_runner(root, argv, cwd=Path(directory))
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, 1, output)
+                self.assertEqual(
+                    (root / "order.txt").read_text(encoding="utf-8").splitlines(),
+                    list(suites["TESTS"]),
+                )
+                self.assertEqual(result.stderr.count("Ran 1 test"), 2, output)
+                for name in api_gates:
+                    self.assertIn(name + " assertion executed", result.stderr)
+                    self.assertEqual(
+                        (root / (name + ".sentinel")).read_text(encoding="utf-8"),
+                        "imported",
+                    )
+                self.assertEqual(
+                    (root / (later + ".sentinel")).read_text(encoding="utf-8"),
+                    "started",
+                )
+                self.assertEqual(
+                    result.stdout.splitlines()[-1],
+                    f"RELEASE DETERMINISTIC GATES FAILED: {', '.join(api_gates)}",
+                )
+                self.assertNotIn("PREFLIGHT FAILED", output)
+                self.assertNotIn("PASSED", output)
+
     def test_valid_aliases_and_decorators_run_real_gates_in_order(self):
         for argv, inventory in self.SELECTIONS:
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
