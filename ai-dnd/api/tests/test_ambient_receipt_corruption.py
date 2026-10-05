@@ -216,6 +216,113 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
 
+    async def test_malformed_transient_event_receipts_fail_without_repeating_outcomes(self):
+        # Event application requires persistence. Obtain a genuine accepted
+        # receipt, then seed the transient owner through its normal receipt
+        # ingress; the HTTP replay lookup precedes the persistence requirement.
+        created = await self.create_campaign()
+        source = self.manager.get(created["session_id"])
+        event_id = self.install_test_ambient_event(source.game_session)
+        command = {"action_id": str(uuid4()), "action": "interact"}
+        endpoint = f"ambient-events/{event_id}/actions"
+        before_apply = copy.deepcopy(source.game_session.serialize_game_state())
+        accepted = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/{endpoint}", json=command,
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
+        self.assertNotEqual(source.game_session.serialize_game_state(), before_apply)
+        original = self.store.get_turn_action(created["campaign_id"], command["action_id"])
+        self.assertEqual(original["response"]["ambient_event_response"], accepted.json())
+        # SQL lookup omits the key supplied separately at transient ingress.
+        original["action_id"] = command["action_id"]
+
+        transient = await self.http.post("/api/game/sessions")
+        self.assertEqual(transient.status_code, 200, transient.text)
+        sid = transient.json()["session_id"]
+        record = self.manager.get(sid)
+        self.assertIsNone(record.campaign_id)
+        with record.turn_lock:
+            self.manager.autosave_turn(
+                record, player_message="", narration="", turn_action_receipt=original,
+            )
+        self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+        session = record.game_session
+        path = f"/api/game/sessions/{sid}/{endpoint}"
+        expected_result = copy.deepcopy(accepted.json()["result"])
+        expected_result.update(
+            status="ALREADY_APPLIED", reason_code="event_already_resolved",
+        )
+        source_before = self.snapshot(source)
+        rows_before = self.raw_rows(self.store, created["campaign_id"])
+
+        def runtime_snapshot():
+            return copy.deepcopy((
+                self.snapshot(record), session.messages, session.world_metadata,
+            ))
+
+        async def retry_without_effects(status):
+            before = runtime_snapshot()
+            with patch.object(session, "resolve_ambient_event_action",
+                              side_effect=AssertionError("Replay repeated event mechanics")) as mechanics, \
+                 patch.object(session.rng, "randint",
+                              side_effect=AssertionError("Replay rolled dice")) as dice, \
+                 patch.object(session.rng, "random",
+                              side_effect=AssertionError("Replay consumed RNG")) as random, \
+                 patch.object(session.rng, "getrandbits",
+                              side_effect=AssertionError("Replay consumed RNG bits")) as bits, \
+                 patch.object(self.manager, "save_campaign_locked",
+                              side_effect=AssertionError("Replay saved event outcome")) as locked_save, \
+                 patch.object(self.manager, "autosave_turn",
+                              side_effect=AssertionError("Replay replaced receipt")) as autosave, \
+                 patch.object(self.store, "save_campaign",
+                              side_effect=AssertionError("Transient replay persisted")) as save, \
+                 patch.object(self.store, "get_turn_action",
+                              side_effect=AssertionError("Transient replay read persisted receipt")) as lookup:
+                retry = await self.http.post(path, json=command)
+            self.assertEqual(retry.status_code, status, retry.text)
+            if status == 200:
+                self.assertEqual(retry.json()["session_id"], sid)
+                self.assertEqual(retry.json()["result"], expected_result)
+            else:
+                self.assertEqual(retry.json()["detail"]["code"], "campaign_unavailable")
+                self.assertIsInstance(retry.json()["detail"]["message"], str)
+                self.assertTrue(retry.json()["detail"]["message"])
+            for guard in (mechanics, dice, random, bits, locked_save, autosave, save, lookup):
+                guard.assert_not_called()
+            self.assertEqual(runtime_snapshot(), before)
+            self.assertEqual(self.snapshot(source), source_before)
+            self.assertEqual(self.raw_rows(self.store, created["campaign_id"]), rows_before)
+            return retry.json()
+
+        committed = runtime_snapshot()
+        valid_replay = await retry_without_effects(200)
+        damaged_receipts = [
+            ("non_dictionary", value) for value in (None, [], "", 0, False, ["receipt"])
+        ]
+        for field, invalid_values in (
+            ("request_hash", (None, [], 123, "", False, {})),
+            ("response", (None, [], 123, "", False)),
+        ):
+            damaged = copy.deepcopy(original)
+            del damaged[field]
+            damaged_receipts.append((f"missing_{field}", damaged))
+            for value in invalid_values:
+                damaged = copy.deepcopy(original)
+                damaged[field] = value
+                damaged_receipts.append((f"invalid_{field}_{value!r}", damaged))
+
+        for corruption, damaged in damaged_receipts:
+            with self.subTest(corruption=corruption):
+                record.turn_action_receipts[command["action_id"]] = damaged
+                await retry_without_effects(409)
+                # Lookup must neither remove, repair nor replace a damaged owner.
+                self.assertIn(command["action_id"], record.turn_action_receipts)
+                self.assertIs(record.turn_action_receipts[command["action_id"]], damaged)
+                record.turn_action_receipts[command["action_id"]] = copy.deepcopy(original)
+                self.assertEqual(runtime_snapshot(), committed)
+                self.assertEqual(await retry_without_effects(200), valid_replay)
+
     async def check_mismatched_nested_identity(self, field):
         def replace_identity(response):
             original = copy.deepcopy(response)
