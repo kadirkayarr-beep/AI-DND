@@ -5495,6 +5495,62 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(recovered_manager.get_turn_action(record, rejected_body["action_id"]))
             assert_identities_and_discovery(newer)
 
+            if changed_payload:
+                # Rollback left this session one revision behind. Receipt
+                # validation must still precede stale-session recovery, both
+                # for the losing payload and for an exact replay of the winner.
+                def assert_stale_retry_unchanged():
+                    self.assertIs(recovered_manager.get(recovered_id), record)
+                    self.assertIs(record.game_session, session)
+                    self.assertEqual(session.serialize_game_state(), before_save)
+                    self.assertEqual(record.journal, before_journal)
+                    self.assertEqual(record.narrative_memory, before_memory)
+                    self.assertEqual(record.turn_action_receipts, before_receipts)
+                    self.assertEqual(session._campaign_persistence_version, before_version)
+                    self.assertEqual(recovered_store.get_campaign(campaign_id), newer)
+                    self.assertEqual(active_store.get_campaign(campaign_id), newer)
+                    self.assertEqual(receipt_rows(), newer_rows)
+                    self.assertEqual(
+                        recovered_store.get_turn_action(campaign_id, competing_body["action_id"]),
+                        competing_receipt,
+                    )
+                    self.assertEqual(
+                        recovered_manager.get_turn_action(record, rejected_body["action_id"]),
+                        competing_receipt,
+                    )
+                    assert_identities_and_discovery(newer)
+
+                self.assertLess(before_version[1], newer.metadata["revision"])
+                with (
+                    patch.object(session, "run_player_turn", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not execute another search."
+                    )) as blocked_turn,
+                    patch.object(recovered_store, "save_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not save."
+                    )) as blocked_save,
+                ):
+                    conflict = await asyncio.wait_for(
+                        recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                    )
+                    self.assertEqual(conflict.status_code, 409, conflict.text)
+                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                    blocked_turn.assert_not_called()
+                    blocked_save.assert_not_called()
+                    assert_stale_retry_unchanged()
+
+                    replay = await asyncio.wait_for(
+                        recovered_http.post(recovered_url, json=competing_body), timeout=30,
+                    )
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    expected = copy.deepcopy(competing.json())
+                    expected["session_id"] = recovered_id
+                    self.assertEqual(replay.json(), expected)
+                    blocked_turn.assert_not_called()
+                    blocked_save.assert_not_called()
+                    assert_stale_retry_unchanged()
+                self.assertEqual(len(results), 1)
+                self.assertEqual(len(active_results), 1)
+
             refreshed = await recovered_http.post(resume_url)
             self.assertEqual(refreshed.status_code, 200, refreshed.text)
             self.assertEqual(refreshed.json()["session_id"], recovered_id)
