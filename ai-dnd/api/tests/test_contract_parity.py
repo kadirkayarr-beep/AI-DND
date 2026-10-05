@@ -615,6 +615,61 @@ class ContractParityTests(unittest.TestCase):
                         )},
                     )
 
+    def test_campaign_creation_and_save_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        # Creation has public model names; saves reuse Python's summary name.
+        runtime_to_published_refs = {
+            "#/components/schemas/CampaignCreateRequest": "#/components/schemas/CampaignCreateInput",
+            "#/components/schemas/CampaignSessionResponse": "#/components/schemas/CampaignSession",
+        }
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            published = _operation(path, "post")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
+            with self.subTest(path=path, binding="requestBody"):
+                self.assertEqual("requestBody" in published, "requestBody" in runtime)
+                if "requestBody" in runtime:
+                    runtime_body = runtime["requestBody"]
+                    published_body = published["requestBody"]
+                    runtime_schema = runtime_body["content"]["application/json"]["schema"]
+                    self.assertEqual(
+                        published_body["content"]["application/json"]["schema"],
+                        {"$ref": runtime_to_published_refs.get(
+                            runtime_schema["$ref"], runtime_schema["$ref"],
+                        )},
+                    )
+                    self.assertEqual(
+                        published_body.get("required", False),
+                        runtime_body.get("required", False),
+                    )
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            # Missing statuses are already reported above, not as a KeyError.
+            for status in runtime_successes.keys() & published_successes.keys():
+                with self.subTest(path=path, binding="response", status=status):
+                    runtime_schema = runtime_successes[status]["content"]["application/json"]["schema"]
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        {"$ref": runtime_to_published_refs.get(
+                            runtime_schema["$ref"], runtime_schema["$ref"],
+                        )},
+                    )
+
     def test_turn_route_bindings_match_fastapi(self):
         runtime_spec = app.openapi()
         base_path = SPEC["servers"][0]["url"].rstrip("/")
@@ -1590,6 +1645,110 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                 )
                             ContractParityTests(
                                 "test_session_creation_and_campaign_resume_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_campaign_creation_and_save_wrong_bindings_fail_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            for binding in ("requestBody", "response"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, binding=binding, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if binding == "requestBody":
+                            if path.endswith("/save"):
+                                self.assertNotIn("requestBody", operation)
+                                operation["requestBody"] = {
+                                    "required": True,
+                                    "content": {"application/json": {"schema": {
+                                        "$ref": "#/components/schemas/CampaignCreateInput",
+                                    }}},
+                                }
+                            else:
+                                operation["requestBody"]["content"]["application/json"]["schema"]["$ref"] = (
+                                    "#/components/schemas/GameTurnInput"
+                                )
+                        else:
+                            operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] = (
+                                "#/components/schemas/CampaignSession"
+                                if path.endswith("/save")
+                                else "#/components/schemas/CampaignSummary"
+                            )
+                        # Only this operation changes; every component stays valid.
+                        self.assertEqual(spec["components"], SPEC["components"])
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                                "test_health_and_request_schemas_match_runtime_models",
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                "test_session_creation_and_campaign_resume_route_bindings_match_fastapi",
+                                "test_turn_route_bindings_match_fastapi",
+                                "test_species_action_route_bindings_match_fastapi",
+                                "test_nested_death_schemas_match_runtime_models",
+                                "test_nested_death_references_match_runtime_models",
+                                "test_enemy_result_references_match_runtime_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            ContractParityTests(
+                                "test_campaign_creation_and_save_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_campaign_creation_and_save_body_and_status_drift_fail_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            mutations = ["missing success", "extra success", "changed success"]
+            if not path.endswith("/save"):
+                mutations.extend(["missing body", "optional body", "omitted required"])
+            for mutation in mutations:
+                binding = "requestBody" if mutation.endswith(("body", "required")) else "success statuses"
+                for flow_style in (False, True):
+                    with self.subTest(path=path, mutation=mutation, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if mutation == "missing body":
+                            del operation["requestBody"]
+                        elif mutation == "optional body":
+                            operation["requestBody"]["required"] = False
+                        elif mutation == "omitted required":
+                            del operation["requestBody"]["required"]
+                        elif mutation == "missing success":
+                            del operation["responses"]["200"]
+                        elif mutation == "extra success":
+                            operation["responses"]["201"] = deepcopy(operation["responses"]["200"])
+                        else:
+                            operation["responses"]["201"] = operation["responses"].pop("200")
+                        self.assertEqual(spec["components"], SPEC["components"])
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            ContractParityTests(
+                                "test_campaign_creation_and_save_route_bindings_match_fastapi"
                             ).run(result)
                         self.assertEqual(result.testsRun, 1)
                         self.assertEqual(result.errors, [], result.errors)
