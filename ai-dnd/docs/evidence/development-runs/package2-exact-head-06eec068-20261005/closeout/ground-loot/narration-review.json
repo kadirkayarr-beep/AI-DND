@@ -1,0 +1,32 @@
+[
+  {
+    "action_id": "2c67ea73-1426-47d1-a217-1f4c2f91a770",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "f81015b0-6b57-440c-b36f-a6072c75b8cd",
+    "input": "/item request item_000012 npc_001",
+    "narration": "Club [item_000012] açık rızayla devredildi."
+  },
+  {
+    "action_id": "0d1542ca-0abd-4dba-8bc2-c8c882fa8f54",
+    "input": "/item drop item_000012",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "0d1542ca-0abd-4dba-8bc2-c8c882fa8f54",
+    "input": "/item drop item_000012",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "1ad5b0f1-3cf1-433a-8db3-512944493299",
+    "input": "/item take item_000012",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "1ad5b0f1-3cf1-433a-8db3-512944493299",
+    "input": "/item take item_000012",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  }
+]

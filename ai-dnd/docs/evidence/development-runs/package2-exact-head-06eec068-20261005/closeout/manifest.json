@@ -1,0 +1,389 @@
+{
+  "created_at": "2026-10-05T12:17:17.271392+00:00",
+  "evidence_kind": "NEW current exact-HEAD Package2 bounded V1 closeout",
+  "historical_certification": false,
+  "branch": "main",
+  "initial_head": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+  "final_head": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+  "initial_working_tree_clean": true,
+  "source_sha256": "0bb0a6efa49f9c77791ff90f5f40b9575aa9c201730b788711b66df6fe8adb64",
+  "source_unchanged": true,
+  "production_test_frontend_edits": [],
+  "source_matches_current_commit": true,
+  "records": [
+    {
+      "path": "20261005T120816Z-f418804ffc8b435ebd9583247ba7e942/run.json",
+      "kind": "suite_run",
+      "source_revision": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+      "started_at": "2026-10-05T12:08:16.779086+00:00",
+      "ended_at": "2026-10-05T12:08:31.316858+00:00",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 78,
+        "per_test_outcomes": {
+          "pass": 78
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "result": null
+    },
+    {
+      "path": "20261005T120831Z-449bea31502d45f2b4be93fbcb886dba/run.json",
+      "kind": "suite_run",
+      "source_revision": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+      "started_at": "2026-10-05T12:08:31.522191+00:00",
+      "ended_at": "2026-10-05T12:08:52.119934+00:00",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 299,
+        "per_test_outcomes": {
+          "pass": 299
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "result": null
+    },
+    {
+      "path": "20261005T120855Z-0100a7881a004f73926b8df0b9cc0507/run.json",
+      "kind": "suite_run",
+      "source_revision": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+      "started_at": "2026-10-05T12:08:55.885193+00:00",
+      "ended_at": "2026-10-05T12:10:39.525419+00:00",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 161,
+        "per_test_outcomes": {
+          "pass": 161
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "result": null
+    },
+    {
+      "path": "20261005T120855Z-8bcd21d1699d44f59a3d428cd7dac836/run.json",
+      "kind": "final_gate",
+      "source_revision": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+      "started_at": "2026-10-05T12:08:55.322406+00:00",
+      "ended_at": "2026-10-05T12:10:56.454699+00:00",
+      "exit_status": 1,
+      "aggregate": null,
+      "result": "NO-GO"
+    }
+  ],
+  "server_identity": {
+    "pid": 8715,
+    "cwd": "/home/runner/workspace/ai-dnd",
+    "cmdline": "python -m uvicorn api.main:app --host 0.0.0.0 --port 8008 ",
+    "stat": "8715 (python) S 31 8715 8715 34819 8715 4194560 18557 870 36 2 234 49 1 0 20 0 3 0 385196 228507648 17516 18446744073709551615 94236481576960 94236481577305 140736486733312 0 0 0 0 20451328 16386 0 0 0 17 4 0 0 0 0 0 94236481588568 94236481589264 94236842881024 140736486741804 140736486741862 140736486741862 140736486764465 0\n",
+    "method": "Managed 8008 backend restarted after current-HEAD/start capture; workspace runtime stayed exact-HEAD identical; own-session proxied access and adapter logs independently tie live requests to this process.",
+    "published_server": "NOT VERIFIED"
+  },
+  "actual_server_model_telemetry": [
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "actual_chat_starts": 2
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "actual_chat_starts": 2
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "aca0816a-ae83-40bb-b815-54897167ff84",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "f1553178-cb37-48f8-a462-9a3c68cd9f99",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    },
+    {
+      "session_id": "15b5bc3a-2abd-43dc-bf31-764629771ce7",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "actual_chat_starts": 0
+    }
+  ],
+  "live_http": {
+    "natural_transfer": "PASS",
+    "merchant_reward_replay_resume_isolation": "PASS",
+    "ground_drop_take_replay_conflict_equipment": "PASS"
+  },
+  "rollback_save_compatibility": {
+    "method": "NEW current-HEAD full API contracts and persistence/legacy-save suite",
+    "live_storage_failure_injection": "NOT PERFORMED",
+    "scope": "Existing autosave owner fault injection, atomic receipts, inventory/consent/equipment/RNG restoration, resume and cross-session boundaries"
+  },
+  "loot_boundaries": {
+    "ground_producer_consumer_real_http": "PASS",
+    "corpse_container_consumers": "PASS via existing owner-boundary fixtures",
+    "fresh_combat_defeat_or_arbitrary_container_producer": "NOT CLAIMED"
+  },
+  "known_new_gameplay_p0_p1": [],
+  "package2_bounded_v1_decision": "READY/COMPLETE",
+  "repository_release_decision": "NO-GO",
+  "gate_path": "20261005T120855Z-8bcd21d1699d44f59a3d428cd7dac836/run.json",
+  "gate_blocking_checks": [
+    {
+      "name": "Working tree",
+      "status": "FAIL",
+      "required": true,
+      "detail": "Dirty: 0 staged, 0 unstaged, 4 untracked; see repository_state.entries"
+    },
+    {
+      "name": "Infrastructure scope",
+      "status": "FAIL",
+      "required": true,
+      "detail": {
+        "protected_changes": [
+          "ai-dnd/api/campaign_journal.py",
+          "ai-dnd/api/character_creation.py",
+          "ai-dnd/api/dnd_2024_rules.py",
+          "ai-dnd/api/serializers.py",
+          "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/closeout/retain-evidence.py",
+          "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/closeout/verify-http.py",
+          "ai-dnd/equipment_economy.py",
+          "ai-dnd/equipment_native.py",
+          "ai-dnd/game.py",
+          "ai-dnd/interaction_adventure.py",
+          "ai-dnd/weapon_catalog.py",
+          "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx",
+          "artifacts/ai-dnd-experience/src/lib/character-catalog-defaults.ts"
+        ],
+        "baseline": "062c5804ef734a3ab8655847905c0e4e1d0c62ec",
+        "scope": "Only infrastructure work is approved for this package"
+      }
+    },
+    {
+      "name": "Working tree after execution",
+      "status": "FAIL",
+      "required": true,
+      "detail": {
+        "source_entries": [
+          {
+            "index": "?",
+            "worktree": "?",
+            "path": "ai-dnd/docs/evidence/development-runs/package2-exact-head-06eec068-20261005/20261005T120816Z-f418804ffc8b435ebd9583247ba7e942/output.log"
+          },
+          {
+            "index": "?",
+            "worktree": "?",
+            "path": "ai-dnd/docs/evidence/development-runs/package2-exact-head-06eec068-20261005/20261005T120816Z-f418804ffc8b435ebd9583247ba7e942/run.json"
+          },
+          {
+            "index": "?",
+            "worktree": "?",
+            "path": "ai-dnd/docs/evidence/development-runs/package2-exact-head-06eec068-20261005/20261005T120831Z-449bea31502d45f2b4be93fbcb886dba/output.log"
+          },
+          {
+            "index": "?",
+            "worktree": "?",
+            "path": "ai-dnd/docs/evidence/development-runs/package2-exact-head-06eec068-20261005/20261005T120831Z-449bea31502d45f2b4be93fbcb886dba/run.json"
+          }
+        ],
+        "ownership_errors": []
+      }
+    }
+  ],
+  "gate_live_checks": "NOT RUN by gate; separate NEW live records above",
+  "git_history_actions_this_pass": "No commit/checkpoint/push/merge/rebase/force-push/amend",
+  "final_working_tree": "Only newly requested evidence under archive root; no cleanup or ignore edits",
+  "unverified": [
+    "GitHub Actions",
+    "published-server revision",
+    "excluded future gameplay"
+  ],
+  "no_future_scope_started": true
+}

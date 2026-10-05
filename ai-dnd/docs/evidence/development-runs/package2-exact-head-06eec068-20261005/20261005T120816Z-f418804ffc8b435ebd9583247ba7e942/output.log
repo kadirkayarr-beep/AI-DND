@@ -1,0 +1,133 @@
+test_failed_autosave_restores_inventory_consent_equipment_and_rng (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_failed_autosave_restores_inventory_consent_equipment_and_rng) ... Executing <Task finished name='Task-1' coro=<CampaignApiTests.asyncSetUp() done, defined at /home/runner/workspace/ai-dnd/api/tests/test_campaign_api.py:44> result=None created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.108 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=RuntimeError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_item_ids_cannot_transfer_another_sessions_possessions (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_item_ids_cannot_transfer_another_sessions_possessions) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_native_request_replay_conflict_resume_and_save_failure (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_native_request_replay_conflict_resume_and_save_failure) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+ERROR: Campaign autosave failed (error_type=RuntimeError)
+INFO: Lore retrieval turn=2 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=1 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_native_shop_buy_sell_and_reward_through_http (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_native_shop_buy_sell_and_reward_through_http) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=6 selected_fact_count=1 selected_fact_ids=['fr:fact:dagult_neverember_current_lord']
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=7 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_natural_request_full_turn_contract (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_natural_request_full_turn_contract) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_transfer_replay_conflict_and_restart (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_transfer_replay_conflict_and_restart) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_existing_shop_possessions_survive_python_stock_provisioning (api.tests.test_equipment_native.NativeEquipmentTests.test_existing_shop_possessions_survive_python_stock_provisioning) ... ok
+test_historical_equipment_is_not_monetized_on_load (api.tests.test_equipment_native.NativeEquipmentTests.test_historical_equipment_is_not_monetized_on_load) ... ok
+test_live_actor_loot_denied_dead_actor_actual_item_only (api.tests.test_equipment_native.NativeEquipmentTests.test_live_actor_loot_denied_dead_actor_actual_item_only) ... ok
+test_native_market_stock_wallet_and_no_repeat_mint (api.tests.test_equipment_native.NativeEquipmentTests.test_native_market_stock_wallet_and_no_repeat_mint) ... ok
+test_native_request_records_consent_and_cleans_source_hand (api.tests.test_equipment_native.NativeEquipmentTests.test_native_request_records_consent_and_cleans_source_hand) ... ok
+test_native_reward_cash_is_reserved_from_merchant_buybacks (api.tests.test_equipment_native.NativeEquipmentTests.test_native_reward_cash_is_reserved_from_merchant_buybacks) ... ok
+test_native_work_dialogue_completion_and_funded_once_reward (api.tests.test_equipment_native.NativeEquipmentTests.test_native_work_dialogue_completion_and_funded_once_reward) ... ok
+test_natural_interaction_request_uses_the_same_native_policy (api.tests.test_equipment_native.NativeEquipmentTests.test_natural_interaction_request_uses_the_same_native_policy) ... ok
+test_new_background_currency_is_source_certified (api.tests.test_equipment_native.NativeEquipmentTests.test_new_background_currency_is_source_certified) ... ok
+test_open_container_only_transfers_actual_contents (api.tests.test_equipment_native.NativeEquipmentTests.test_open_container_only_transfers_actual_contents) ... ok
+test_price_offer_does_not_imply_gift_consent (api.tests.test_equipment_native.NativeEquipmentTests.test_price_offer_does_not_imply_gift_consent) ... ok
+test_translated_owned_starter_weapon_does_not_block_unrelated_sale (api.tests.test_equipment_native.NativeEquipmentTests.test_translated_owned_starter_weapon_does_not_block_unrelated_sale) ... ok
+test_active_combat_is_not_bypassed (api.tests.test_equipment_economy.EquipmentEconomyTests.test_active_combat_is_not_bypassed) ... ok
+test_armor_changes_fail_closed (api.tests.test_equipment_economy.EquipmentEconomyTests.test_armor_changes_fail_closed) ... ok
+test_bad_command_cannot_commit_migration (api.tests.test_equipment_economy.EquipmentEconomyTests.test_bad_command_cannot_commit_migration) ... ok
+test_bad_wallet_type_rejects (api.tests.test_equipment_economy.EquipmentEconomyTests.test_bad_wallet_type_rejects) ... ok
+test_buy_sell_conserves_money_and_item_identity (api.tests.test_equipment_economy.EquipmentEconomyTests.test_buy_sell_conserves_money_and_item_identity) ... ok
+test_consent_bound_to_recipient_and_operation (api.tests.test_equipment_economy.EquipmentEconomyTests.test_consent_bound_to_recipient_and_operation) ... ok
+test_duplicate_ids_reject_without_partial_migration (api.tests.test_equipment_economy.EquipmentEconomyTests.test_duplicate_ids_reject_without_partial_migration) ... ok
+test_identity_drop_take_and_equipment_cleanup (api.tests.test_equipment_economy.EquipmentEconomyTests.test_identity_drop_take_and_equipment_cleanup) ... ok
+test_insufficient_funds_rolls_back_entire_buy (api.tests.test_equipment_economy.EquipmentEconomyTests.test_insufficient_funds_rolls_back_entire_buy) ... ok
+test_legacy_and_record_save_roundtrip (api.tests.test_equipment_economy.EquipmentEconomyTests.test_legacy_and_record_save_roundtrip) ... ok
+test_legacy_drop_still_works_after_migration (api.tests.test_equipment_economy.EquipmentEconomyTests.test_legacy_drop_still_works_after_migration) ... ok
+test_legacy_migration_preserves_duplicates_as_distinct_instances (api.tests.test_equipment_economy.EquipmentEconomyTests.test_legacy_migration_preserves_duplicates_as_distinct_instances) ... ok
+test_missing_ownership_never_uses_equipment_default (api.tests.test_equipment_economy.EquipmentEconomyTests.test_missing_ownership_never_uses_equipment_default) ... ok
+test_npc_transfer_denied_without_explicit_consent (api.tests.test_equipment_economy.EquipmentEconomyTests.test_npc_transfer_denied_without_explicit_consent) ... ok
+test_player_gift_needs_acceptance (api.tests.test_equipment_economy.EquipmentEconomyTests.test_player_gift_needs_acceptance) ... ok
+test_public_projection_preserves_string_contract (api.tests.test_equipment_economy.EquipmentEconomyTests.test_public_projection_preserves_string_contract) ... ok
+test_remote_npc_cannot_transfer (api.tests.test_equipment_economy.EquipmentEconomyTests.test_remote_npc_cannot_transfer) ... ok
+test_reward_atomicity_and_once_only (api.tests.test_equipment_economy.EquipmentEconomyTests.test_reward_atomicity_and_once_only) ... ok
+test_reward_missing_second_item_rolls_back_all_sources (api.tests.test_equipment_economy.EquipmentEconomyTests.test_reward_missing_second_item_rolls_back_all_sources) ... ok
+test_reward_requires_completed_existing_quest (api.tests.test_equipment_economy.EquipmentEconomyTests.test_reward_requires_completed_existing_quest) ... ok
+test_session_and_rng_isolation (api.tests.test_equipment_economy.EquipmentEconomyTests.test_session_and_rng_isolation) ... ok
+test_terminal_or_unconscious_actor_is_not_bypassed (api.tests.test_equipment_economy.EquipmentEconomyTests.test_terminal_or_unconscious_actor_is_not_bypassed) ... ok
+test_two_party_transfer_preserves_id_and_consumes_consent (api.tests.test_equipment_economy.EquipmentEconomyTests.test_two_party_transfer_preserves_id_and_consumes_consent) ... ok
+test_unknown_price_is_not_invented (api.tests.test_equipment_economy.EquipmentEconomyTests.test_unknown_price_is_not_invented) ... ok
+test_failed_autosave_restores_inventory_consent_equipment_and_rng (api.tests.test_equipment_economy_http.EquipmentHttpTests.test_failed_autosave_restores_inventory_consent_equipment_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=RuntimeError)
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_item_ids_cannot_transfer_another_sessions_possessions (api.tests.test_equipment_economy_http.EquipmentHttpTests.test_item_ids_cannot_transfer_another_sessions_possessions) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_transfer_replay_conflict_and_restart (api.tests.test_equipment_economy_http.EquipmentHttpTests.test_transfer_replay_conflict_and_restart) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_a1_1_ac_calculated_strictly_from_validated_equipment (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_ac_calculated_strictly_from_validated_equipment)
+Equipment-dependent AC is derived solely from Python-validated gear. ... ok
+test_a1_1_equipment_transfer_to_canonical_inventory (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_equipment_transfer_to_canonical_inventory)
+Valid equipment from creation is transferred to session.world_state['inventory']. ... ok
+test_a1_1_equipment_validation_bypass_without_package_rejected (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_equipment_validation_bypass_without_package_rejected)
+Omitting package and providing arbitrary equipment choices is rejected. ... ok
+test_a1_1_fake_rolled_scores_rejected_in_custom_mode (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_fake_rolled_scores_rejected_in_custom_mode)
+Client-submitted rolled ability scores cannot override Python engine authority. ... ok
+test_a1_1_invalid_and_fake_equipment_rejected (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_invalid_and_fake_equipment_rejected)
+Arbitrary/fake equipment invented by client is rejected fail-closed. ... ok
+test_a1_1_random_character_creation_and_rolls_authority (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_random_character_creation_and_rolls_authority)
+Random mode generates 4d6-drop-lowest abilities and starting equipment authoritatively. ... ok
+test_a1_1_real_sqlite_persistence_preserves_canonical_inventory (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_a1_1_real_sqlite_persistence_preserves_canonical_inventory)
+Verify real SQLite persistence path round-trips character and world_state inventory. ... ok
+test_alignment_validation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_alignment_validation) ... ok
+test_background_bonus_limit_20_and_no_duplicate_bonus (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_background_bonus_limit_20_and_no_duplicate_bonus) ... ok
+test_background_equipment_option_a_vs_b (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_background_equipment_option_a_vs_b) ... ok
+test_catalog_returns_all_rules_data (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_catalog_returns_all_rules_data) ... ok
+test_custom_mode_background_bonus_validation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_background_bonus_validation) ... ok
+test_custom_mode_fail_closed_missing_choices_rejected (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_fail_closed_missing_choices_rejected) ... ok
+test_custom_mode_never_silently_substitutes_defaults (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_never_silently_substitutes_defaults) ... ok
+test_custom_mode_point_buy_validation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_point_buy_validation) ... ok
+test_custom_mode_skill_choice_validation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_skill_choice_validation) ... ok
+test_custom_mode_with_standard_array_valid (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_custom_mode_with_standard_array_valid) ... ok
+test_derived_stats_follow_equipment_species_and_feat_rules (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_derived_stats_follow_equipment_species_and_feat_rules) ... ok
+test_every_spellcasting_class_has_enough_level_one_choices (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_every_spellcasting_class_has_enough_level_one_choices) ... ok
+test_expertise_progression_validation_and_campaign_restore (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_expertise_progression_validation_and_campaign_restore) ... ok
+test_half_elf_requires_two_distinct_species_bonus_skills (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_half_elf_requires_two_distinct_species_bonus_skills) ... ok
+test_human_bonus_skills_and_origin_feat_are_validated_and_persisted (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_human_bonus_skills_and_origin_feat_are_validated_and_persisted) ... ok
+test_languages_validation_and_preservation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_languages_validation_and_preservation) ... ok
+test_persisted_save_without_rp_fields_loads_safely (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_persisted_save_without_rp_fields_loads_safely) ... ok
+test_persistence_round_trip_preservation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_persistence_round_trip_preservation) ... ok
+test_random_generation_4d6_drop_lowest (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_random_generation_4d6_drop_lowest) ... ok
+test_random_humans_and_half_elves_receive_species_bonuses (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_random_humans_and_half_elves_receive_species_bonuses) ... ok
+test_random_mode_produces_complete_2024_character (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_random_mode_produces_complete_2024_character) ... ok
+test_random_mode_rejects_custom_fields (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_random_mode_rejects_custom_fields) ... ok
+test_roleplay_identity_fields_persisted_and_non_mechanical (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_roleplay_identity_fields_persisted_and_non_mechanical) ... ok
+test_sailor_background_matches_2024_phb (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_sailor_background_matches_2024_phb) ... ok
+test_spellcaster_cantrip_and_spell_validation (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_spellcaster_cantrip_and_spell_validation) ... ok
+test_standard_array_duplicate_and_missing_rejected (api.tests.test_character_creation_2024.CharacterCreation2024Tests.test_standard_array_duplicate_and_missing_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 78 tests in 2.192s
+
+OK

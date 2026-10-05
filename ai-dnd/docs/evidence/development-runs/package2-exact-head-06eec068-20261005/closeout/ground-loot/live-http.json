@@ -1,0 +1,418 @@
+{
+  "head": "06eec0686746d7f88d6477f5b29eaba3405072cf",
+  "kind": "real development HTTP / existing native ground-loot producer and consumer",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/campaign-start-options",
+      "expected": 200,
+      "start": 1791202275.30957,
+      "status": 200,
+      "end": 1791202275.3619864,
+      "response_sha256": "42c5c27ee74f3fb635ff9ad16c819a97b1400c02573b9696b5c91383ee21cc8d"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791202275.3623843,
+      "status": 200,
+      "end": 1791202275.4283679,
+      "response_sha256": "a8e8bd5b8386753f5c6b7cba548e72acdc48f80bf42b6fe9d0b47ab35cfcd6e6"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202275.4294322,
+      "status": 200,
+      "end": 1791202277.3253536,
+      "response_sha256": "1e9d4520777d1247129a5acd117aa67802df3cd50c8695f301f66b35243bf52b"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202277.3271043,
+      "status": 200,
+      "end": 1791202277.8726082,
+      "response_sha256": "89aed3378151a9c5eff56497d575ec051f11ae9e667366c24d3377029c39cab6"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202277.8744369,
+      "status": 200,
+      "end": 1791202278.408355,
+      "response_sha256": "885e15cf7830339b63f79ce3fabdb84c77a6006d8699b08c3dcd07253ca1676e"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202278.41177,
+      "status": 200,
+      "end": 1791202278.4395025,
+      "response_sha256": "885e15cf7830339b63f79ce3fabdb84c77a6006d8699b08c3dcd07253ca1676e"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 409,
+      "start": 1791202278.441039,
+      "status": 409,
+      "end": 1791202278.4707546,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202278.4717588,
+      "status": 200,
+      "end": 1791202279.0023396,
+      "response_sha256": "7f8ec54b3d30ee6865ea71744d547bd448779603572eeb5a1f649b49e3b1288e"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 200,
+      "start": 1791202279.0052142,
+      "status": 200,
+      "end": 1791202279.0337095,
+      "response_sha256": "7f8ec54b3d30ee6865ea71744d547bd448779603572eeb5a1f649b49e3b1288e"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/15b5bc3a-2abd-43dc-bf31-764629771ce7/turn",
+      "expected": 409,
+      "start": 1791202279.0356817,
+      "status": 409,
+      "end": 1791202279.060596,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "DELETE",
+      "path": "/campaigns/b96133f7-13c3-4960-8f2e-1197e4ea34ce",
+      "expected": 200,
+      "start": 1791202279.0629723,
+      "status": 200,
+      "end": 1791202279.0873134,
+      "response_sha256": "222f9d379e4b104f344fecb5a6b892398bebb09b1036c03c3d02417388d9549c"
+    }
+  ],
+  "status": "PASS",
+  "campaigns_created": [
+    "b96133f7-13c3-4960-8f2e-1197e4ea34ce"
+  ],
+  "cleanup": [
+    {
+      "campaign_id": "b96133f7-13c3-4960-8f2e-1197e4ea34ce",
+      "status": "PASS"
+    }
+  ],
+  "model_use": "none requested; confirm zero adapter calls in server logs",
+  "before": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç",
+        "weapon_id": "longsword"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      },
+      {
+        "item_id": "item_000012",
+        "name": "Club",
+        "weapon_id": "club"
+      }
+    ],
+    "equipment": {
+      "main_hand": "longsword",
+      "off_hand": null
+    },
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          }
+        ],
+        "equipment": {
+          "main_hand": null,
+          "off_hand": null
+        },
+        "item_release_policy": {},
+        "item_consents": {}
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "ground_items": [],
+    "ground_items_by_location": {},
+    "flags": {
+      "last_npc_id": null,
+      "active_npc_id": null,
+      "active_npc_until_turn": -1,
+      "turn_index": 2,
+      "pending_destination": null
+    }
+  },
+  "operations": [
+    {
+      "verb": "drop",
+      "item_id": "item_000012",
+      "action_id": "0d1542ca-0abd-4dba-8bc2-c8c882fa8f54",
+      "player_count": 0,
+      "local_ground_count": 1,
+      "wallets": {
+        "player": 800,
+        "npc_001": 1000
+      },
+      "exact_replay": true,
+      "changed_body_conflict": 409
+    },
+    {
+      "verb": "take",
+      "item_id": "item_000012",
+      "action_id": "1ad5b0f1-3cf1-433a-8db3-512944493299",
+      "player_count": 1,
+      "local_ground_count": 0,
+      "wallets": {
+        "player": 800,
+        "npc_001": 1000
+      },
+      "exact_replay": true,
+      "changed_body_conflict": 409
+    }
+  ],
+  "item_id": "item_000012",
+  "after": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç",
+        "weapon_id": "longsword"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      },
+      {
+        "item_id": "item_000012",
+        "name": "Club",
+        "weapon_id": "club"
+      }
+    ],
+    "equipment": {
+      "main_hand": "item_000002",
+      "off_hand": null
+    },
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          }
+        ],
+        "equipment": {
+          "main_hand": null,
+          "off_hand": null
+        },
+        "item_release_policy": {},
+        "item_consents": {}
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "ground_items": [],
+    "ground_items_by_location": {
+      "fr:city:neverwinter": []
+    },
+    "flags": {
+      "last_npc_id": null,
+      "active_npc_id": null,
+      "active_npc_until_turn": -1,
+      "turn_index": 4,
+      "pending_destination": null
+    }
+  },
+  "exclusions": "No combat defeat or arbitrary container producer is claimed."
+}
