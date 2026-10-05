@@ -2029,6 +2029,88 @@ for name in ("missing_distance", "long_range", "missing_weapon", "not_held", "ha
     setattr(WeaponTests, "test_invalid_" + name, invalid_test(name))
 
 
+class WeaponPushPersistenceTests(unittest.TestCase):
+    def test_reverse_push_stays_blocked_after_campaign_reopen(self):
+        # Keep disk-backed coverage separate from the in-memory push cases.
+        for corridor in (20, 30):
+            with self.subTest(corridor=corridor), tempfile.TemporaryDirectory() as directory:
+                s, n = armed("Warhammer", mastery=True)
+                other = s.create_npc_from_ai({
+                    "name": "Bystander", "role": "Guard", "location": "tavern"})
+                other["distance_ft"] = 30
+                forward_key = f"player|{n['id']}"
+                reverse_key = f"{n['id']}|player"
+                unrelated = {
+                    f"player|{other['id']}": {"distance_ft": 30},
+                    f"{other['id']}|player": {"distance_ft": 30},
+                }
+                s.world_state["attack_environment"] = {"pairs": {
+                    **copy.deepcopy(unrelated),
+                    forward_key: {"distance_ft": 5, "push_clear_ft": corridor},
+                    reverse_key: {"distance_ft": 5, "push_clear_ft": 20},
+                    f"{n['id']}|{other['id']}": {"distance_ft": 25},
+                    f"{other['id']}|{n['id']}": {"distance_ft": 25},
+                }}
+                s.initialize_species_trait_state()
+                store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+                campaign_id = str(uuid4())
+                s.world_state["campaign_id"] = campaign_id
+                store.create_campaign(campaign_id, "Push persistence", s)
+
+                result = resolve(s, n, "Warhammer", rolls=(20,))
+                self.assertTrue(result["hit"])
+                self.assertEqual(result["mastery_effect"], {
+                    "kind": "push", "applied": True, "distance_ft": 10,
+                    "resulting_distance_ft": 15})
+                expected_geometry = {"pairs": {
+                    **unrelated,
+                    forward_key: {
+                        "distance_ft": 15, "push_clear_ft": corridor - 10},
+                }}
+                self.assertEqual(s.world_state["attack_environment"], expected_geometry)
+                store.save_campaign(campaign_id, s)
+                self.assertEqual(
+                    store.get_campaign(campaign_id).payload["engine_save"]["world_state"]["attack_environment"],
+                    expected_geometry)
+                saved_rng = s.rng.getstate()
+
+                # New store, manager, and session: no retained live geometry.
+                reopened_store = CampaignStore(store.path)
+                manager = SessionManager(campaign_store=reopened_store)
+                _, record, _, _, _ = manager.resume_campaign(campaign_id)
+                restored = record.game_session
+                self.assertIsNot(restored, s)
+                self.assertEqual(restored.rng.getstate(), saved_rng)
+                self.assertEqual(restored.world_state["attack_results"], s.world_state["attack_results"])
+                self.assertEqual(restored.world_state["attack_environment"], expected_geometry)
+                self.assertNotIn(reverse_key, restored.world_state["attack_environment"]["pairs"])
+                # Remaining forward clearance is sufficient, but is not
+                # permission to push in the opposite direction.
+                self.assertGreaterEqual(
+                    restored.world_state["attack_environment"]["pairs"][forward_key]["push_clear_ft"], 10)
+                self.assertEqual(attack.pair(restored, n["id"], "player"),
+                                 {"distance_ft": 15})
+                mirrors = {
+                    npc["id"]: npc["distance_ft"]
+                    for npc in restored.world_state["npcs"]
+                    if npc["id"] in (n["id"], other["id"])
+                }
+                self.assertEqual(mirrors, {n["id"]: 15, other["id"]: 30})
+                before = copy.deepcopy((
+                    restored.world_state, restored.character, restored.messages,
+                    restored.rng.getstate(), restored.serialize_game_state()))
+                persisted_before = copy.deepcopy(reopened_store.get_campaign(campaign_id))
+                with patch.object(restored.rng, "randint", side_effect=AssertionError("blocked push rolled")):
+                    rejected = attack.push(restored, n["id"], "player", 10)
+                self.assertEqual(rejected, {
+                    "kind": "push", "applied": False,
+                    "reason": "position_unresolved_or_blocked"})
+                self.assertEqual((
+                    restored.world_state, restored.character, restored.messages,
+                    restored.rng.getstate(), restored.serialize_game_state()), before)
+                self.assertEqual(reopened_store.get_campaign(campaign_id), persisted_before)
+
+
 class WeaponApiTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = CombatLifecycleApiTests.asyncSetUp
     asyncTearDown = CombatLifecycleApiTests.asyncTearDown

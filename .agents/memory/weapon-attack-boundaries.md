@@ -50,3 +50,16 @@ misses do not, so otherwise identical fixtures can produce misleading diffs.
 **How to apply:** Establish neutral owner state before taking the baseline,
 then explicitly expect the legitimate attack sequence, observation, result
 record, and HP changes. Keep unrelated state and session-owned RNG assertions.
+
+For persistence-backed rejection tests, measure the complete no-mutation
+baseline after reopening; prove the intended gameplay facts separately across
+the save boundary.
+
+**Why:** Minimal armed fixtures can contain stale NPC mirrors that the loader
+normalizes. Comparing every pre-load field to every post-load field can obscure
+the geometry regression being tested, whereas dropping fields from the
+rejected-action comparison would weaken its safety guarantee.
+
+**How to apply:** Assert exact persisted and reopened geometry, distance
+mirrors, result records, and RNG, then snapshot the entire reopened state before
+the rejected action and require full equality afterward.
