@@ -236,7 +236,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC_TEXT)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 29)
+        self.assertEqual(len(documented_routes), 31)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -249,6 +249,7 @@ class ContractParityTests(unittest.TestCase):
             ("GET", "/api/game/campaigns", "/api/campaigns"),
             ("POST", "/api/game/campaigns", "/api/campaigns"),
             ("GET", "/api/game/campaigns/{campaign_id}", "/api/campaigns/{campaign_id}"),
+            ("DELETE", "/api/game/campaigns/{campaign_id}", "/api/campaigns/{campaign_id}"),
             ("POST", "/api/game/campaigns/{campaign_id}/resume", "/api/campaigns/{campaign_id}/resume"),
             ("POST", "/api/game/campaigns/{campaign_id}/save", "/api/campaigns/{campaign_id}/save"),
         )
@@ -274,6 +275,8 @@ class ContractParityTests(unittest.TestCase):
             ("/game/campaigns/{campaign_id}", "get"): {
                 "200", "404", "409", "422", "500", "503"
             },
+            ("/game/campaigns/{campaign_id}", "delete"): {"200", "503"},
+            ("/campaigns/{campaign_id}", "delete"): {"200", "503"},
         }
         for (path, method), expected in status_expectations.items():
             with self.subTest(path=path, method=method):
@@ -282,6 +285,27 @@ class ContractParityTests(unittest.TestCase):
                     re.findall(r'(?m)^        "(\d{3})":\s*$', operation)
                 )
                 self.assertEqual(actual, expected)
+
+    def test_campaign_deletion_aliases_share_the_response_contract(self):
+        self.assertEqual(
+            _property_names("CampaignDeleteResult"),
+            {"campaign_id", "deleted"},
+        )
+        self.assertIn(
+            "required: [campaign_id, deleted]",
+            _schema_block("CampaignDeleteResult"),
+        )
+        for path in ("/game/campaigns/{campaign_id}", "/campaigns/{campaign_id}"):
+            with self.subTest(path=path):
+                operation = _operation_block(path, "delete")
+                self.assertIn(
+                    '$ref: "#/components/schemas/CampaignDeleteResult"',
+                    operation,
+                )
+                self.assertIn(
+                    '$ref: "#/components/responses/ApiError"',
+                    operation,
+                )
 
     def test_health_and_request_schemas_match_runtime_models(self):
         self.assertEqual(

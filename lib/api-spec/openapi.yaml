@@ -333,15 +333,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [campaign_id, deleted]
-                properties:
-                  campaign_id:
-                    type: string
-                  deleted:
-                    type: boolean
+                $ref: "#/components/schemas/CampaignDeleteResult"
         "503":
-          description: Deletion failed; no successful deletion is reported
+          $ref: "#/components/responses/ApiError"
     get:
       operationId: getCampaign
       tags: [game]
@@ -595,6 +589,20 @@ paths:
         schema:
           type: string
           format: uuid
+    delete:
+      operationId: deleteLegacyCampaign
+      tags: [game]
+      summary: Legacy campaign-deletion alias
+      description: Compatibility alias for /game/campaigns/{campaign_id}. Prefer the /game route family for new clients.
+      responses:
+        "200":
+          description: Campaign is absent after the atomic deletion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDeleteResult"
+        "503":
+          $ref: "#/components/responses/ApiError"
     get:
       operationId: getLegacyCampaign
       tags: [game]
@@ -679,6 +687,14 @@ paths:
           $ref: "#/components/responses/ApiError"
 components:
   schemas:
+    CampaignDeleteResult:
+      type: object
+      required: [campaign_id, deleted]
+      properties:
+        campaign_id:
+          type: string
+        deleted:
+          type: boolean
     HealthResponse:
       type: object
       additionalProperties: false
@@ -714,9 +730,16 @@ components:
           anyOf:
             - $ref: "#/components/schemas/CombatActionInput"
             - type: "null"
-        combat_id: {type: ["string", "null"], minLength: 1, maxLength: 128}
-        combat_round: {type: ["integer", "null"], minimum: 1}
-        combat_turn_index: {type: ["integer", "null"], minimum: 0}
+        combat_id:
+          type: ["string", "null"]
+          minLength: 1
+          maxLength: 128
+        combat_round:
+          type: ["integer", "null"]
+          minimum: 1
+        combat_turn_index:
+          type: ["integer", "null"]
+          minimum: 0
         message:
           type: string
           minLength: 1
@@ -1189,10 +1212,14 @@ components:
         economy_steps:
           type: ["array", "null"]
           items: {type: object, additionalProperties: true}
-        combat_id: {type: ["string", "null"]}
-        combat_status: {type: ["string", "null"]}
-        round: {type: ["integer", "null"]}
-        current_turn_index: {type: ["integer", "null"]}
+        combat_id:
+          type: ["string", "null"]
+        combat_status:
+          type: ["string", "null"]
+        round:
+          type: ["integer", "null"]
+        current_turn_index:
+          type: ["integer", "null"]
         action:
           type: ["string", "null"]
         status:
@@ -2371,7 +2398,8 @@ components:
         action_economy:
           type: ["object", "null"]
           additionalProperties: true
-        combat_id: {type: ["string", "null"]}
+        combat_id:
+          type: ["string", "null"]
         active:
           type: boolean
         status:

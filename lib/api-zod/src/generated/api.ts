@@ -11192,6 +11192,20 @@ export const CreateLegacyCampaignResponse = zod.object({
 
 /**
  * Compatibility alias for /game/campaigns/{campaign_id}. Prefer the /game route family for new clients.
+ * @summary Legacy campaign-deletion alias
+ */
+export const DeleteLegacyCampaignParams = zod.object({
+  "campaign_id": zod.coerce.string().uuid()
+})
+
+export const DeleteLegacyCampaignResponse = zod.object({
+  "campaign_id": zod.string(),
+  "deleted": zod.boolean()
+})
+
+
+/**
+ * Compatibility alias for /game/campaigns/{campaign_id}. Prefer the /game route family for new clients.
  * @summary Legacy campaign-detail alias
  */
 export const GetLegacyCampaignParams = zod.object({

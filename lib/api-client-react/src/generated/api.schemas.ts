@@ -5,6 +5,11 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+export interface CampaignDeleteResult {
+  campaign_id: string;
+  deleted: boolean;
+}
+
 export type HealthResponseStatus = typeof HealthResponseStatus[keyof typeof HealthResponseStatus];
 
 
@@ -1984,9 +1989,4 @@ export type RequestValidationErrorResponse = RequestValidationError;
  * Request validation failed or the requested character was invalid.
  */
 export type CampaignCreateValidationErrorResponse = RequestValidationError | ApiErrorResponse;
-
-export type DeleteCampaign200 = {
-  campaign_id: string;
-  deleted: boolean;
-};
 

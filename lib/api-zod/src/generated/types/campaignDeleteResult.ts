@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type DeleteCampaign200 = {
+export interface CampaignDeleteResult {
   campaign_id: string;
   deleted: boolean;
-};
+}

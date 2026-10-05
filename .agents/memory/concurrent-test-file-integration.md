@@ -19,3 +19,13 @@ integrated fixture dependency contained an orphaned duplicate test fragment.
 **How to apply:** When collection fails after integration, inspect the reported
 fixture dependency and preserve the original test before removing duplicate
 fragments. Rerun the affected regression and the dependency's suite together.
+
+Completion can combine concurrent changes after a successful local test run. If
+its checks report new syntax errors or shadowed fixtures, inspect the current
+integrated file rather than relying on the earlier passing run.
+
+**Why:** Integration at the completion boundary can invalidate local evidence
+without any new edits by the task's agent.
+
+**How to apply:** Repair duplicated fragments without dropping intact tests,
+then run source-definition preflight and the affected suites on that version.

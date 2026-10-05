@@ -25,13 +25,13 @@ import type {
   ApiErrorResponse,
   CampaignCreateInput,
   CampaignCreateValidationErrorResponse,
+  CampaignDeleteResult,
   CampaignDetail,
   CampaignSession,
   CampaignStartOptionsResponse,
   CampaignSummary,
   CharacterCreationCatalogResponse,
   CharacterCreationOptions,
-  DeleteCampaign200,
   GameSession,
   GameState,
   GameTurnInput,
@@ -1216,9 +1216,9 @@ export const getDeleteCampaignUrl = (campaignId: string,) => {
 /**
  * @summary Permanently delete a selected campaign and revoke its active session
  */
-export const deleteCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<DeleteCampaign200> => {
+export const deleteCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<CampaignDeleteResult> => {
 
-  return customFetch<DeleteCampaign200>(getDeleteCampaignUrl(campaignId),
+  return customFetch<CampaignDeleteResult>(getDeleteCampaignUrl(campaignId),
   {
     ...options,
     method: 'DELETE'
@@ -1233,7 +1233,7 @@ export const deleteCampaign = async (campaignId: string, options?: Parameters<ty
 
 export const getDeleteCampaignMutationKey = () => ['deleteCampaign'] as const;
 
-export const getDeleteCampaignMutationOptions = <TError = ErrorType<void>,
+export const getDeleteCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext> => {
 
@@ -1262,13 +1262,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCampaign>>>
 
-    export type DeleteCampaignMutationError = ErrorType<void>
+    export type DeleteCampaignMutationError = ErrorType<ApiErrorResponse>
     export type DeleteCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Permanently delete a selected campaign and revoke its active session
  */
-export const useDeleteCampaign = <TError = ErrorType<void>,
+export const useDeleteCampaign = <TError = ErrorType<ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteCampaign>>,
@@ -2224,6 +2224,81 @@ export const useCreateLegacyCampaign = <TError = ErrorType<CampaignCreateValidat
         TContext
       > => {
       return useMutation(getCreateLegacyCampaignMutationOptions(options));
+    }
+
+export const getDeleteLegacyCampaignUrl = (campaignId: string,) => {
+
+
+
+
+  return `/api/campaigns/${campaignId}`
+}
+
+/**
+ * Compatibility alias for /game/campaigns/{campaign_id}. Prefer the /game route family for new clients.
+ * @summary Legacy campaign-deletion alias
+ */
+export const deleteLegacyCampaign = async (campaignId: string, options?: Parameters<typeof customFetch>[1]): Promise<CampaignDeleteResult> => {
+
+  return customFetch<CampaignDeleteResult>(getDeleteLegacyCampaignUrl(campaignId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLegacyCampaignMutationKey = () => ['deleteLegacyCampaign'] as const;
+
+export const getDeleteLegacyCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext> => {
+
+const mutationKey = getDeleteLegacyCampaignMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLegacyCampaign>>, DeleteLegacyCampaignMutationVariables> = (props) => {
+          const {campaignId} = props ?? {};
+
+          return  deleteLegacyCampaign(campaignId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLegacyCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLegacyCampaign>>>
+
+    export type DeleteLegacyCampaignMutationError = ErrorType<ApiErrorResponse>
+    export type DeleteLegacyCampaignMutationVariables = {campaignId: string}
+
+    /**
+ * @summary Legacy campaign-deletion alias
+ */
+export const useDeleteLegacyCampaign = <TError = ErrorType<ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLegacyCampaign>>,
+        TError,
+        DeleteLegacyCampaignMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteLegacyCampaignMutationOptions(options));
     }
 
 export const getGetLegacyCampaignUrl = (campaignId: string,) => {
