@@ -213,6 +213,62 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(self.b.rng.getstate(), rng_b)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
+    def test_combat_result_stays_detached_after_owning_campaign_advances(self):
+        for owner_index in (0, 1):
+            with self.subTest(owner_index=owner_index):
+                sessions = [game.create_session(seed=17),
+                            game.create_session(seed=17)]
+                for session in sessions:
+                    enemy = self.npc(session)
+                    session.character["armor_class"] = 100
+                    enemy["armor_class"] = 100
+                    with patch.object(game, "roll_initiative_player", return_value=20), \
+                         patch.object(game, "roll_initiative", return_value=1):
+                        session.start_combat(enemy)
+                owner, other = sessions[owner_index], sessions[1 - owner_index]
+                other_before = other.serialize_game_state()
+                other_rng = other.rng.getstate()
+                default_rng = game._DEFAULT_SESSION.rng.getstate()
+                module_rng = random.getstate()
+                world = owner.world_state
+                combat = world["combat"]
+
+                with self.rolls(owner, (20, 1), (20, 1),
+                                (20, 1), (20, 1)), \
+                     self.rolls(other), self.rolls(game._DEFAULT_SESSION):
+                    first = game.execute_intent(
+                        {"intent": "attack"}, "Gromm'a saldır", session=owner,
+                    )
+                    first_before = copy.deepcopy(first)
+                    first_round = first["combat"]["round"]
+                    second = game.execute_intent(
+                        {"intent": "attack"}, "Gromm'a saldır", session=owner,
+                    )
+
+                self.assertEqual(first, first_before)
+                self.assertEqual(second["combat"]["round"], first_round + 1)
+                self.assertEqual(second["combat"]["turn_resources"],
+                                 combat["turn_resources"])
+                self.assertIs(owner.world_state, world)
+                self.assertIs(world["combat"], combat)
+
+                # Detachment works both ways, including containers nested
+                # inside per-actor resource dictionaries.
+                owner_after = owner.serialize_game_state()
+                second_before = copy.deepcopy(second)
+                first["combat"]["turn_resources"]["player"]["movement_used"] = 999
+                first["combat"]["turn_resources"]["player"]["additional_actions"].append(
+                    {"source": "caller-only", "nested": ["not canonical"]}
+                )
+                first["combat"]["participants"].append("caller-only")
+                self.assertEqual(owner.serialize_game_state(), owner_after)
+                self.assertEqual(second, second_before)
+                self.assertEqual(other.serialize_game_state(), other_before)
+                self.assertEqual(other.rng.getstate(), other_rng)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng)
+                self.assertEqual(random.getstate(), module_rng)
+
     def test_rng_streams_are_independent_and_not_module_random(self):
         control = random.Random(17)
         module_state = random.getstate()

@@ -60,7 +60,6 @@ class ResolvedTurn:
     quest_world_before: Optional[Dict[str, Any]] = None
 
 
-
 def ollama_response_content(response):
     """Read message content from both dict and typed Ollama SDK responses."""
     if isinstance(response, dict):
@@ -4397,13 +4396,13 @@ def _combat_snapshot():
     """Detached snapshot of committed encounter and player combat state."""
     world_state = _session().world_state
     combat = ensure_combat_state()
-    snapshot = {key: list(value) if isinstance(value, list) else value for key, value in combat.items()}
+    snapshot = dict(combat)
     snapshot.update(
         player_current_hp=_session().character["current_hp"],
         player_max_hp=_session().character["max_hp"],
         player_combat_status=world_state["player_combat_status"]
     )
-    return snapshot
+    return copy.deepcopy(snapshot)
 
 
 def _finish_combat_result(result, before):
@@ -4447,8 +4446,6 @@ def _combat_narration(result):
     }
     text += monster_text.get(enemy.get("outcome"), "")
     return text
-
-
 
 
 def validate_world_updates(
