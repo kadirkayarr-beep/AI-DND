@@ -378,6 +378,145 @@ class DeathSystemTests(unittest.TestCase):
             self.assertEqual(set(Path(directory).iterdir()), {path, peer_path})
             assert_isolation()
 
+    def test_natural_twenty_revival_survives_reopening_without_another_death_save(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                self._assert_natural_twenty_revival_round_trip(mode)
+
+    def _assert_natural_twenty_revival_round_trip(self, mode):
+        session = make_session()
+        peer = make_session(seed=29)
+        reopened = make_session(seed=83)
+        session.world_state["death_state"]["mode"] = mode
+        start_test_combat(session)
+        session.ensure_campaign_clock()
+        peer.ensure_campaign_clock()
+        peer.character["name"] = "Unrelated Adventurer"
+        peer.recent_dm_narrations.append("Unrelated campaign history")
+        peer.messages.append({"role": "user", "content": "Unrelated message"})
+        session.character["current_hp"] = 0
+        session.world_state["player_combat_status"] = "unconscious"
+        # Nonzero counters prove revival resets them rather than retaining defaults.
+        session.world_state["death_state"].update(successes=2, failures=2)
+        combat = session.world_state["combat"]
+        turn_key = f"{combat['combat_id']}:{combat['round']}"
+        unrelated = (peer, game._DEFAULT_SESSION)
+        snapshots = [owner.serialize_game_state() for owner in unrelated]
+        rng_states = [owner.rng.getstate() for owner in unrelated]
+        messages = [copy.deepcopy(owner.messages) for owner in unrelated]
+        module_rng = random.getstate()
+
+        def assert_isolation():
+            for owner, snapshot, rng_state, history in zip(
+                unrelated, snapshots, rng_states, messages
+            ):
+                self.assertEqual(owner.serialize_game_state(), snapshot)
+                self.assertEqual(owner.rng.getstate(), rng_state)
+                self.assertEqual(owner.messages, history)
+            self.assertEqual(random.getstate(), module_rng)
+            self.assertIs(game._session(), game._DEFAULT_SESSION)
+
+        def assert_revived(owner):
+            self.assertEqual(owner.character["current_hp"], 1)
+            self.assertEqual(owner.world_state["player_combat_status"], "active")
+            death = owner.world_state["death_state"]
+            self.assertEqual(death["mode"], mode)
+            self.assertTrue(death["prone"])
+            self.assertEqual((death["successes"], death["failures"]), (0, 0))
+            self.assertFalse(death["stable"])
+            self.assertFalse(death["dead"])
+            self.assertFalse(death["terminal"])
+            self.assertEqual(death["last_death_save_turn_key"], turn_key)
+            self.assertEqual(death["last_death_save_result"], result)
+            current_combat = owner.world_state["combat"]
+            self.assertTrue(current_combat["active"])
+            self.assertEqual(current_combat["combat_id"], combat["combat_id"])
+            self.assertEqual(current_combat["round"], combat["round"])
+            self.assertEqual(current_combat["current_actor_id"], "player")
+            public_death = serialize_session_state(owner)["death_state"]
+            self.assertEqual(public_death["status"], "active")
+            self.assertTrue(public_death["prone"])
+            self.assertEqual(
+                public_death["last_death_save"],
+                {key: value for key, value in result.items() if value is not None},
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "revived.json"
+            peer_path = Path(directory) / "unrelated.json"
+            self.assertEqual(peer.save_game(peer_path), peer_path)
+            peer_bytes = peer_path.read_bytes()
+            with patch("game.roll_d20", return_value=20) as die:
+                result = game._resolve_player_death_turn(session=session)
+            die.assert_called_once_with()
+            self.assertEqual(result["roll"], 20)
+            self.assertEqual(result["outcome"], "revived")
+            self.assertEqual((result["successes"], result["failures"]), (0, 0))
+            self.assertTrue(result["prone"])
+            self.assertFalse(result["stable"])
+            self.assertFalse(result["dead"])
+            self.assertNotIn("death_resolution", result)
+            assert_revived(session)
+            assert_isolation()
+            committed = session.serialize_game_state()
+            self.assertEqual(session.save_game(path), path)
+            committed_bytes = path.read_bytes()
+            self.assertEqual(json.loads(committed_bytes), committed)
+            source_rng = session.rng.getstate()
+            source_messages = copy.deepcopy(session.messages)
+
+            reopened.character["name"] = "Unsaved replacement"
+            reopened.recent_dm_narrations.append("Unsaved replacement history")
+            reopened.messages.append({"role": "user", "content": "Reopen save"})
+            reopened.rng.random()
+            rng_at_load = reopened.rng.getstate()
+            messages_at_load = copy.deepcopy(reopened.messages)
+            held = (reopened.world_state, reopened.character,
+                    reopened.recent_dm_narrations, reopened.messages, reopened.rng)
+            self.assertNotEqual(reopened.serialize_game_state(), committed)
+            with (
+                patch("game.roll_d20",
+                      side_effect=AssertionError("Revived player rolled a death save")),
+                patch.object(reopened.rng, "randint",
+                             side_effect=AssertionError("Load or retry rolled dice")),
+                patch.object(session.rng, "randint",
+                             side_effect=AssertionError("Source rolled dice")),
+                patch.object(peer.rng, "randint",
+                             side_effect=AssertionError("Peer rolled dice")),
+                patch.object(game._DEFAULT_SESSION.rng, "randint",
+                             side_effect=AssertionError("Default session rolled dice")),
+            ):
+                self.assertEqual(reopened.load_game(path), committed)
+                assert_revived(reopened)
+                # Unlike an unconscious replay, consciousness takes precedence
+                # over the stored result for this same scheduled turn.
+                self.assertIsNone(game._resolve_player_death_turn(session=reopened))
+                self.assertIsNone(game._resolve_player_death_turn(session=reopened))
+                assert_revived(reopened)
+            self.assertEqual(reopened.serialize_game_state(), committed)
+            self.assertEqual(reopened.rng.getstate(), rng_at_load)
+            self.assertEqual(reopened.messages, messages_at_load)
+            for actual, reference in zip(
+                (reopened.world_state, reopened.character,
+                 reopened.recent_dm_narrations, reopened.messages, reopened.rng), held
+            ):
+                self.assertIs(actual, reference)
+            self.assertIsNot(reopened.world_state, session.world_state)
+            self.assertIsNot(reopened.character, session.character)
+            self.assertIsNot(reopened.rng, session.rng)
+            self.assertIsNot(reopened.rng, peer.rng)
+            self.assertIsNot(
+                reopened.world_state["death_state"]["last_death_save_result"],
+                session.world_state["death_state"]["last_death_save_result"],
+            )
+            self.assertEqual(session.serialize_game_state(), committed)
+            self.assertEqual(session.rng.getstate(), source_rng)
+            self.assertEqual(session.messages, source_messages)
+            assert_isolation()
+            self.assertEqual(path.read_bytes(), committed_bytes)
+            self.assertEqual(peer_path.read_bytes(), peer_bytes)
+            self.assertEqual(set(Path(directory).iterdir()), {path, peer_path})
+
     def _assert_fatal_death_save_round_trip(self, mode, *, terminal):
         session = make_session()
         peer = make_session(seed=29)
