@@ -936,6 +936,91 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 self.assertEqual(session.character, before_character)
                 self.assertEqual(session.world_state, before_world)
 
+    def test_partial_death_markers_block_current_city_ruler_question(self):
+        question = "Bu şehrin hükümdarı kim?"
+        for death_marker in ("player_combat_status", "death_state"):
+            for target_id in (None, "npc:elara"):
+                with self.subTest(death_marker=death_marker, target_id=target_id):
+                    session = game.GameSession(seed=11)
+                    session.character.update(
+                        name="Tester", current_hp=10, max_hp=10
+                    )
+                    # Prepare combat before introducing the inconsistent markers:
+                    # ensure_combat_state also normalizes death state.
+                    self.assertFalse(session.ensure_combat_state()["active"])
+                    session.character["current_hp"] = 0
+                    session.world_state["player_combat_status"] = (
+                        "dead" if death_marker == "player_combat_status" else "active"
+                    )
+                    session.world_state["death_state"]["dead"] = (
+                        death_marker == "death_state"
+                    )
+                    session.world_state["location"] = "fr:city:neverwinter"
+                    session.world_state["npcs"] = [{
+                        "id": "npc:elara",
+                        "name": "Elara",
+                        "role": "Guide",
+                        "location": "fr:city:neverwinter",
+                        "memory": [],
+                        "knowledge": [],
+                    }]
+                    session.lore_authority_context = (
+                        PRODUCTION_REGISTRY.retrieve_lore_context(
+                            current_location_id="fr:city:neverwinter",
+                            player_message=question,
+                            mentioned_entity_ids=set(),
+                            campaign_state=CampaignLoreState.legacy_unbound(),
+                        )
+                    )
+                    self.assertEqual(
+                        game._supported_lore_question_response(
+                            question,
+                            session.lore_authority_context,
+                            session.world_state,
+                        ),
+                        "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+                    )
+                    before_character = copy.deepcopy(session.character)
+                    before_lore = copy.deepcopy(session.lore_authority_context)
+                    before_world = copy.deepcopy(session.world_state)
+                    expected_world = copy.deepcopy(before_world)
+                    expected_world["player_combat_status"] = "dead"
+                    expected_world["death_state"]["dead"] = True
+                    self.assertNotEqual(before_world, expected_world)
+                    self.assertFalse(before_world["combat"]["active"])
+
+                    with (
+                        patch.object(
+                            game,
+                            "ask_dungeon_master",
+                            side_effect=AssertionError(
+                                "Partially marked dead actions must not call narration."
+                            ),
+                        ) as narration_model,
+                        patch.object(
+                            game,
+                            "parse_player_intent",
+                            side_effect=AssertionError(
+                                "Partially marked dead actions must not call intent parsing."
+                            ),
+                        ) as intent_model,
+                    ):
+                        with self.assertRaisesRegex(
+                            ValueError,
+                            r"^Ölü karakter eylem gerçekleştiremez\.$",
+                        ):
+                            session.run_player_turn(
+                                question, target_id=target_id, scene_plan={}
+                            )
+
+                    intent_model.assert_not_called()
+                    narration_model.assert_not_called()
+                    self.assertEqual(session.character, before_character)
+                    self.assertEqual(session.lore_authority_context, before_lore)
+                    # The exact world comparison also forbids turn advancement,
+                    # NPC changes, or any other changes beyond death normalization.
+                    self.assertEqual(session.world_state, expected_world)
+
     def test_turkish_current_city_ruler_is_deterministic_and_fails_closed(self):
         question = "Bu şehrin hükümdarı kim?"
         session = game.GameSession(seed=11)
