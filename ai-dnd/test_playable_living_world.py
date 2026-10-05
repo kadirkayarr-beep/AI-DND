@@ -74,6 +74,54 @@ class PlayableLivingWorldTests(unittest.TestCase):
                 self.assertNotIn("npc", result)
                 self.assertEqual(self.world, before)
 
+    def test_pronoun_greetings_select_conversation_at_deadline(self):
+        for active in (True, False):
+            for player_input in ("Ona selam veriyorum.", "Kendisine selam veriyorum."):
+                with self.subTest(active_npc_present=active, player_input=player_input):
+                    npcs = self._set_npc_conversation_deadline(12, active=active)
+
+                    result = self.session.resolve_npc_reference(player_input)
+
+                    self.assertEqual(result["status"], "found")
+                    self.assertEqual(result["npc"]["id"], npcs[0]["id"])
+                    self.assertEqual(self.world["flags"]["active_npc_id"], npcs[0]["id"])
+                    self.assertEqual(self.world["flags"]["last_npc_id"], npcs[0]["id"])
+                    self.assertEqual(self.world["flags"]["active_npc_until_turn"], 18)
+
+    def test_pronoun_greetings_are_ambiguous_after_conversation_expiry(self):
+        for active in (True, False):
+            for player_input in ("Ona selam veriyorum.", "Kendisine selam veriyorum."):
+                with self.subTest(active_npc_present=active, player_input=player_input):
+                    npcs = self._set_npc_conversation_deadline(13, active=active)
+                    before = copy.deepcopy(self.world)
+
+                    result = self.session.resolve_npc_reference(player_input)
+
+                    self.assertEqual(result["status"], "ambiguous")
+                    self.assertEqual(
+                        {npc["id"] for npc in result["npcs"]},
+                        {npc["id"] for npc in npcs},
+                    )
+                    self.assertNotIn("npc", result)
+                    self.assertEqual(self.world, before)
+
+    def test_unknown_named_greetings_do_not_fall_back_to_conversation(self):
+        for turn_index in (12, 13):
+            for player_input in (
+                "Bora'ya selam veriyorum.",
+                "Bora'yla konuşuyorum.",
+                "Ona selam veriyorum, Bora'ya selam veriyorum.",
+            ):
+                with self.subTest(turn_index=turn_index, player_input=player_input):
+                    self._set_npc_conversation_deadline(turn_index)
+                    before = copy.deepcopy(self.world)
+
+                    result = self.session.resolve_npc_reference(player_input)
+
+                    self.assertEqual(result["status"], "none")
+                    self.assertIsNone(result["npc"])
+                    self.assertEqual(self.world, before)
+
     def test_expired_npc_conversation_still_allows_explicit_name_or_role(self):
         for active in (True, False):
             for player_input in (

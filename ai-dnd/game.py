@@ -4797,10 +4797,14 @@ def resolve_npc_reference(player_input):
         role_match = _entity_reference_in_text(npc.get("role", ""), text)
         if name_match or role_match:
             matches.append(npc)
-    explicit_unresolved_reference = bool(re.search(
-        r"\b[\wçğıöşü]+(?:la|le|dan|den|tan|ten|a|e)\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
-        player_input.casefold(),
-    ))
+    # Pronouns can use the current conversation; unknown named targets cannot.
+    explicit_unresolved_reference = any(
+        match.group("target") not in {"ona", "ondan", "onunla", "kendisine"}
+        for match in re.finditer(
+            r"\b(?P<target>[\wçğıöşü]+(?:la|le|dan|den|tan|ten|a|e))\s+(?:konuş\w*|sohbet\w*|selam\s+ver\w*)\b",
+            player_input.casefold(),
+        )
+    )
     if not matches and not explicit_unresolved_reference and (is_npc_dialogue_input(player_input) or re.search(
         r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text
     )):
