@@ -510,6 +510,76 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
 
+    def test_overlapping_attack_cannot_borrow_another_sessions_distance(self):
+        enemies = [self.npc(self.a), self.npc(self.b)]
+        self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+        for session, enemy in zip((self.a, self.b), enemies):
+            session.character.update(armor_class=10, current_hp=19)
+            enemy.update(attack_bonus=0, damage_die=6,
+                         damage_dice=1, damage_modifier=2)
+        # Remove both directional entries so neither reverse-pair geometry nor
+        # an NPC distance can supply the missing prerequisite in campaign B.
+        del self.b.world_state["attack_environment"]
+        self.assertNotIn("distance_ft", enemies[1])
+        before_a = self.a.serialize_game_state()
+        before_b = self.b.serialize_game_state()
+        rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+        rng_default = game._DEFAULT_SESSION.rng.getstate()
+        valid_attack_waiting = threading.Event()
+        rejected_attack_finished = threading.Event()
+        roll_d20 = self.a.roll_d20
+
+        def overlapping_roll():
+            self.assertIs(game._session(), self.a)
+            valid_attack_waiting.set()
+            self.assertTrue(rejected_attack_finished.wait(timeout=5))
+            self.assertIs(game._session(), self.a)
+            return roll_d20()
+
+        def reject_without_distance():
+            try:
+                self.assertTrue(valid_attack_waiting.wait(timeout=5))
+                with self.assertRaises(game.combat_lifecycle.CombatRequestError) as error:
+                    game.resolve_enemy_attack(enemies[1], session=self.b)
+                self.assertEqual(error.exception.code, "distance_unknown")
+                self.assertEqual(self.b.serialize_game_state(), before_b)
+                self.assertEqual(self.b.rng.getstate(), rng_b)
+            finally:
+                rejected_attack_finished.set()
+
+        with self.rolls(self.a, (20, 15), (6, 4)), \
+             self.rolls(self.b), self.rolls(game._DEFAULT_SESSION), \
+             patch.object(self.a, "roll_d20", side_effect=overlapping_roll):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                valid = pool.submit(game.resolve_enemy_attack, enemies[0],
+                                    session=self.a)
+                rejected = pool.submit(reject_without_distance)
+                rejected.result(timeout=10)
+                result = valid.result(timeout=10)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["outcome"], "hit")
+        self.assertEqual(result["actor_id"], enemies[0]["id"])
+        self.assertEqual(result["target_id"], "player")
+        self.assertEqual(result["attack_rolls"], [15])
+        self.assertEqual(result["target_ac"], 10)
+        self.assertEqual(result["damage"], 6)
+        self.assertEqual(result["target_hp_before"], 19)
+        self.assertEqual(result["target_hp_after"], 13)
+        self.assertEqual(result["target_status"], "active")
+        # Compare the whole owning state, including its complete result record,
+        # rather than just HP; B and the legacy default must remain untouched.
+        before_a["player"]["current_hp"] = 13
+        before_a["world_state"].setdefault("attack_results", []).append(
+            copy.deepcopy(result)
+        )
+        self.assertEqual(self.a.serialize_game_state(), before_a)
+        self.assertEqual(self.b.serialize_game_state(), before_b)
+        self.assertEqual(self.a.rng.getstate(), rng_a)
+        self.assertEqual(self.b.rng.getstate(), rng_b)
+        self.assertEqual(game.serialize_game_state(), self.default_before)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
     def test_overlapping_hits_keep_damage_dice_in_their_own_sessions(self):
         enemies = [self.npc(self.a), self.npc(self.b)]
         self.a.character.update(armor_class=10, current_hp=19)
