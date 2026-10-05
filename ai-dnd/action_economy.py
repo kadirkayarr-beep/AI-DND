@@ -54,8 +54,13 @@ def can_act(session, actor):
 
 
 def speed(session, actor):
-    data = actor_data(session, actor)
-    if not can_act(session, actor) or conditions(session, actor) & {"grappled", "restrained"}:
+    outside_player = actor == "player" and not session.world_state.get("combat", {}).get("active")
+    data = session.character if outside_player else actor_data(session, actor)
+    active_conditions = weapon_attack.conditions(session, actor, data) if outside_player else conditions(session, actor)
+    capable = (data.get("current_hp", 0) > 0 and not active_conditions & {
+        "incapacitated", "unconscious", "dead", "paralyzed", "stunned", "petrified"
+    }) if outside_player else can_act(session, actor)
+    if not capable or active_conditions & {"grappled", "restrained"}:
         return 0
     value = int(data.get("speed_ft", 30 if actor == "player" else 0))
     if actor == "player":

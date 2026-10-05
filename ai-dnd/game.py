@@ -5449,6 +5449,8 @@ def commit_location_change(location_id, turn_index=None):
         )
     import exploration
     exploration.apply_environment(world_state)
+    exploration.record_knowledge(world_state)
+    exploration.notice_passively(_session())
     return previous_location != location_id
 
 
@@ -8467,6 +8469,47 @@ def ask_dungeon_master(
 ):
     """Request one structured narration turn; apply only Python-validated lore updates."""
     world_state = _session().world_state
+    if (action_result or {}).get("action") == "exploration_resolved":
+        # Scoped narration never receives the catalog, hidden topology or mutable proposals.
+        resolved = action_result["direct_response"]
+        prompt = (
+            "Türkçe RPG anlatımı. Aşağıdaki doğrulanmış metni AYNEN koru. "
+            "Ardına en fazla bir kısa atmosfer cümlesi ekle; yeni olay, kişi, "
+            "keşif, eşya, ödül veya mekanik sonuç ekleme. world_updates ve lore_claims boş olsun.\n"
+            + json.dumps({"resolved": resolved, "weather": action_result["weather"]}, ensure_ascii=False)
+        )
+        try:
+            raw = ollama.chat(
+                model="qwen3:8b", messages=[{"role": "user", "content": prompt}],
+                format=_dm_response_schema_for_turn(narration_only=True),
+                think=False, options={"temperature": 0.2, "num_predict": 220})
+            packet = _extract_json_object(ollama_response_content(raw))
+            narration = packet.get("narration", "") if isinstance(packet, dict) else ""
+            extra = narration[len(resolved):].strip() if narration.startswith(resolved) else ""
+            import exploration
+            import local_adventure_catalog as catalog
+            hidden = [
+                value for identity, definition in catalog.LOCATIONS.items()
+                if identity not in exploration.known_locations(world_state)
+                for value in (identity, definition["name"])
+            ] + [
+                value for identity, definition in catalog.TRAPS.items()
+                if (world_state.get(catalog.KEY) or {}).get("trap_states", {}).get(identity) == "hidden"
+                for value in (identity, definition["name"])
+            ]
+            valid = (
+                narration.startswith(resolved) and len(extra) <= 240
+                and not packet.get("lore_claims")
+                and not any((packet.get("world_updates") or {}).values())
+                and not any(value.casefold() in narration.casefold() for value in hidden)
+                and not re.search(r"buldu|kazandı|ödül|altın|kilit|tuzak|yeni bir|geçtin|ulaştın", extra.casefold())
+            )
+        except Exception:
+            valid, narration = False, resolved
+        details = {"narration": narration if valid else resolved,
+                   "world_updates": {}, "lore_claims": [], "valid_response": valid,
+                   "fallback_reason_code": None if valid else "EXPLORATION_NARRATION_REJECTED"}
+        return details if return_details else details["narration"]
     if (action_result or {}).get("action") == "interaction":
         # Never include the global world/lore/legacy memory packet in NPC agency.
         scoped = interaction_adventure.context(world_state, npc_target)

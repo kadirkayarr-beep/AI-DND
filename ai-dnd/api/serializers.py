@@ -437,11 +437,20 @@ def serialize_session_state(
     flags = world.get("flags", {})
 
     raw_locations = world.get("locations", {})
+    known_location_ids = exploration.known_locations(world)
+    visible_world = {
+        **world,
+        "features": exploration.player_entities(world, world.get("features", [])),
+        "shops": exploration.player_entities(world, world.get("shops", [])),
+        "doors": exploration.visible_doors(world),
+        "npcs": exploration.player_entities(world, scheduled_events.visible_npcs(world)),
+    }
     locations = {
         str(location_id): _project_fields(record, _LOCATION_FIELDS)
         for location_id, record in raw_locations.items()
         if isinstance(raw_locations, Mapping)
         and isinstance(record, Mapping)
+        and location_id in known_location_ids
     } if isinstance(raw_locations, Mapping) else {}
     world_metadata = world_metadata_for_state(
         world,
@@ -569,7 +578,7 @@ def serialize_session_state(
         "pending_event_decisions": scheduled_events.public_pending(world),
         "journey": timed_gameplay.public_journey(world),
         "scene": living_world.public_scene_projection(
-            world, flags.get("turn_index", 0)
+            visible_world, flags.get("turn_index", 0)
         ),
         "world": world_metadata,
         "journal": copy.deepcopy(
@@ -583,9 +592,9 @@ def serialize_session_state(
              for key in ("cantrips", "prepared", "slots", "slot_turn")}
             if world.get("spellcasting_v1") is not None else None
         ),
-        "npcs": _project_list(scheduled_events.visible_npcs(world), _NPC_FIELDS),
-        "shops": _project_list(world.get("shops"), _SHOP_FIELDS),
-        "features": _project_list(world.get("features"), _FEATURE_FIELDS),
+        "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
+        "shops": _project_list(exploration.player_entities(world, world.get("shops", [])), _SHOP_FIELDS),
+        "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
         "combat": {
             **serialize_combat_state(world.get("combat", {})),

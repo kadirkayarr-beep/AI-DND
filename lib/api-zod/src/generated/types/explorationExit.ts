@@ -9,7 +9,8 @@ import type { ExplorationExitState } from './explorationExitState';
 
 export interface ExplorationExit {
   id: string;
-  destination: string;
+  /** @nullable */
+  destination: string | null;
   name: string;
   state: ExplorationExitState;
   /** @nullable */

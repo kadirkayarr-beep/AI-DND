@@ -22,6 +22,7 @@ export function explorationInputLabel(input: string): string {
   return ({
     begin: 'Taş patikanın macerasını seçiyorum.',
     search: 'Bulunduğum yeri dikkatle araştırıyorum.',
+    investigate: 'Fark ettiğim ipucunu anlamaya çalışıyorum.',
     exit: 'Seçtiğim geçitten geçiyorum.',
     trap: 'Fark ettiğim tuzağı güvenli hâle getirmeyi deniyorum.',
     hazard: 'Önümdeki engeli aşmayı deniyorum.',

@@ -1705,7 +1705,7 @@ components:
       required: [id, destination, name, state, door_id]
       properties:
         id: {type: string}
-        destination: {type: string}
+        destination: {type: [string, "null"]}
         name: {type: string}
         state: {type: string, enum: [open, closed, locked, blocked]}
         door_id: {type: [string, "null"]}

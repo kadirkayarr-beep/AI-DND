@@ -777,6 +777,11 @@ def create_app(
                 ) from None
 
             snapshot = _capture_session(session)
+            # Runtime capability only; never serialized into campaign state.
+            session._exploration_narration_available = (
+                isinstance(active_adapter, bounded_encounter.MechanicalTurnContext)
+                and active_adapter.adapter is not None
+            )
             metadata_snapshot = dict(
                 getattr(session, "world_metadata", {})
             )

@@ -52,6 +52,32 @@ INTERACTIONS = {
     "stone_lever": {"location": HALL, "name": "Taş Kaldıraç", "hazard_id": "stone_rubble"},
 }
 SCOUTING = {"dc": 15, "seconds": 60}
+PROVENANCE = {
+    "source_type": SOURCE,
+    "source_id": CATALOG_ID,
+    "note": "Owner-approved local campaign fiction; not a Forgotten Realms publication.",
+}
+# Rule metadata is separate from the immutable V1 geography saved in campaigns.
+SEARCH_POLICIES = {
+    room: {"skill": "Perception", "dc": 15, "retry": "careful_second_pass", "seconds": 360}
+    for room in ROOM_IDS
+}
+OBSTACLE_SECONDS = 60
+INTERACTION_SECONDS = 6
+ROUTE_POLICIES = {
+    "stone_camp_ruins": {"terrain_max_pace": "normal", "good_road": False,
+                        "navigation_risk": "unmarked branching footpath", "weather": "clear"},
+}
+ENTITY_PROVENANCE = {
+    identity: dict(PROVENANCE)
+    for group in (LOCATIONS, DOORS, EXITS, DISCOVERIES, TRAPS, HAZARDS, INTERACTIONS)
+    for identity in group
+}
+INVESTIGATION = {
+    "stone_secret": "Taş çizgilerinin bir kapı mandalına bağlandığını anladın.",
+    "stone_wire": "Görünen telin eşikte gerilerek düzeneği tetiklediğini anladın.",
+    "stone_marker": "İşaretin bu mahzenden girişe dönen gizli geçidi anlattığını anladın.",
+}
 
 
 def route(identity, origin, destination, miles, *, navigation=False, lost=()):

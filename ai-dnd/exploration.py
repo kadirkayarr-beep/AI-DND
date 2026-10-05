@@ -7,6 +7,7 @@ import timed_gameplay
 from combat_lifecycle import CombatRequestError
 
 TRAP_STATES = frozenset({"hidden", "detected", "disarmed", "bypassed", "triggered", "neutralized"})
+KNOWLEDGE_FIELDS = {"known_locations", "search_attempts", "inferences", "investigation_attempts"}
 
 
 def fail(code, message):
@@ -17,11 +18,28 @@ def validate_state(world):
     state = world.get(catalog.KEY)
     if state is None:
         return
-    if (not isinstance(state, dict) or set(state) != set(catalog.initial_state(""))
+    if (not isinstance(state, dict) or not set(catalog.initial_state("")) <= set(state)
+            or set(state) - set(catalog.initial_state("")) - KNOWLEDGE_FIELDS
             or state["catalog_id"] != catalog.CATALOG_ID
             or not isinstance(state["origin"], str) or state["origin"] not in world["locations"]
             or state["origin"] in catalog.LOCATIONS):
         raise ValueError("Local adventure binding is invalid.")
+    known = state.get("known_locations", [])
+    attempts = state.get("search_attempts", {})
+    if (not isinstance(known, list) or any(not isinstance(v, str) or v not in world["locations"] for v in known)
+            or len(set(known)) != len(known)
+            or not isinstance(attempts, dict)
+            or any(k not in catalog.ROOM_IDS or type(v) is not int or not 0 <= v <= 2 for k, v in attempts.items())):
+        raise ValueError("Local adventure player knowledge is invalid.")
+    inferences = state.get("inferences", [])
+    reasoning = state.get("investigation_attempts", {})
+    if (not isinstance(state["discoveries"], list)
+            or not isinstance(inferences, list)
+            or any(not isinstance(v, str) or v not in state["discoveries"] for v in inferences)
+            or len(set(inferences)) != len(inferences)
+            or not isinstance(reasoning, dict) or any(k not in state["discoveries"]
+                or type(v) is not int or not 0 <= v <= 2 for k, v in reasoning.items())):
+        raise ValueError("Local adventure clue reasoning is invalid.")
     for field, identities in (("discoveries", catalog.DISCOVERIES), ("interactions", catalog.INTERACTIONS)):
         values = state[field]
         if (not isinstance(values, list) or any(not isinstance(v, str) or v not in identities for v in values)
@@ -59,6 +77,40 @@ def validate_state(world):
 
 def active(world):
     return world.get(catalog.KEY) is not None
+
+
+def known_locations(world):
+    """Player knowledge, never the set of registered world possibilities."""
+    if not active(world):
+        return set(world.get("locations", {}))
+    state = world[catalog.KEY]
+    known = set(state.get("known_locations", ()))
+    known.update({state["origin"], catalog.CAMP, world["location"]})
+    # An ordinary path can be known without claiming that its destination was visited.
+    if world["location"] == catalog.CAMP:
+        known.add(catalog.ENTRY)
+    journey = world.get("journey") or {}
+    if journey.get("destination") in catalog.LOCATIONS:
+        known.add(journey["destination"])
+    for exit in catalog.EXITS.values():
+        if exit["from"] == world["location"] and visible_exit(world, exit) and not exit_obstacle(world, exit):
+            known.add(exit["to"])
+    return (set(world["locations"]) - set(catalog.LOCATIONS)) | known
+
+
+def record_knowledge(world):
+    if active(world):
+        world[catalog.KEY]["known_locations"] = sorted(known_locations(world) & (set(catalog.LOCATIONS) | {world[catalog.KEY]["origin"]}))
+
+
+def player_entities(world, entities):
+    """Filter local-content references at the server boundary, not in React."""
+    known = known_locations(world)
+    return [e for e in (entities or []) if not e.get("hidden", False) and (
+            e.get("location", e.get("location_id")) not in catalog.LOCATIONS
+            or e.get("location", e.get("location_id")) == world["location"]
+            and e.get("location", e.get("location_id")) in known
+            )]
 
 
 def door(world, identity):
@@ -120,7 +172,38 @@ def complete_search(world, location, success, target_id=None):
             if identity in catalog.TRAPS:
                 state["trap_states"][identity] = "detected"
             found.append(definition["text"])
+            if identity == "stone_marker" and "stone_secret" not in state["discoveries"]:
+                state["discoveries"].append("stone_secret")
     return found
+
+
+def search_policy(world, location, target_id):
+    if not active(world) or location not in catalog.ROOM_IDS or target_id != location:
+        return None
+    attempts = world[catalog.KEY].get("search_attempts", {}).get(location, 0)
+    return {**catalog.SEARCH_POLICIES[location], "automatic": attempts >= 1}
+
+
+def finish_search(world, location, success, target_id):
+    if active(world) and location in catalog.ROOM_IDS and target_id == location:
+        attempts = world[catalog.KEY].setdefault("search_attempts", {})
+        attempts[location] = min(2, attempts.get(location, 0) + 1)
+    return complete_search(world, location, success, target_id)
+
+
+def notice_passively(session):
+    """PHB passive notice; no roll, no remote search, and no state in GETs."""
+    world = session.world_state
+    if not active(world) or world["location"] not in catalog.ROOM_IDS:
+        return []
+    import weapon_attack
+    if "blinded" in weapon_attack.conditions(session, "player", session.character):
+        return []
+    player = session.character
+    bonus = player["modifiers"]["wisdom"]
+    if "Perception" in player["proficient_skills"]:
+        bonus += player["proficiency_bonus"] * (2 if "Perception" in player.get("expertise_skills", ()) else 1)
+    return complete_search(world, world["location"], 10 + bonus >= catalog.SEARCH_POLICIES[world["location"]]["dc"], world["location"])
 
 
 def apply_environment(world):
@@ -155,6 +238,18 @@ def _reply(session, message, text, action, **result):
     from authored_dungeon import _reply as owned_reply
     response = owned_reply(session, message, text, action)
     response["action_result"].update(result)
+    if (getattr(session, "_exploration_narration_available", False)
+            and action in {"dungeon_traverse", "environment_interaction"}
+            and not (result.get("time_result") or {}).get("interrupted")):
+        import game
+        packet = game.ask_dungeon_master(
+            session.messages, message, return_details=True, narration_only=True,
+            action_result={"action": "exploration_resolved", "direct_response": text,
+                           "weather": catalog.LOCATIONS.get(session.world_state["location"], {}).get("weather", "unknown")})
+        if packet.get("valid_response"):
+            response["narration"] = packet["narration"]
+            if session.messages and session.messages[-1].get("role") == "assistant":
+                session.messages[-1]["content"] = packet["narration"]
     return response
 
 
@@ -210,6 +305,7 @@ def _begin(session, message):
     if catalog.CAMP in world["locations"][origin].get("travel_routes", {}):
         fail("adventure_route_collision", "Bu patikanın kaydı zaten mevcut.")
     world[catalog.KEY] = catalog.initial_state(origin)
+    world[catalog.KEY]["known_locations"] = [origin, catalog.CAMP]
     world["locations"].update(catalog.locations(origin))
     world["locations"][origin].setdefault("travel_routes", {})[catalog.CAMP] = catalog.approach(origin)
     world["doors"].extend([
@@ -237,6 +333,8 @@ def _traverse(session, message, identity):
         return _reply(session, message, "Eşikteki tuzak seni yere düşürdü; geçidi aşamadın.", "trap_triggered", damage_result=damage, time_result=advancement)
     previous = world["location"]
     session.commit_location_change(exit["to"])
+    notice_passively(session)
+    record_knowledge(world)
     text = f"{world['locations'][exit['to']]['name']} konumuna geçtin."
     if damage:
         text = "Eşikteki tel gerildi ve tuzak tetiklendi. " + text
@@ -272,6 +370,7 @@ def _door_action(session, message, identity, operation):
             gate.update(locked=False, open=True, broken=True)
         else:
             gate["open"] = operation == "open"
+        record_knowledge(world)
     text = f"{gate['name']}: " + ("girişimin sonuç verdi." if check.get("success", True) else "girişimin sonuç vermedi.")
     return _reply(session, message, text, check.pop("action", "door_interaction"), time_result=advancement, **check)
 
@@ -296,7 +395,7 @@ def _obstacle_action(session, message, kind, identity, operation):
         fail("exploration_trap_spent", "Tuzak zaten tetiklenmiş; kalıntılarını kaldırabilirsin.")
     if kind == "trap" and operation == "neutralize" and state[field][identity] != "triggered":
         fail("exploration_trap_active", "Bu tuzak hâlâ kurulu; önce etkisizleştirmeyi veya geçmeyi dene.")
-    advancement = _time(session, 60)
+    advancement = _time(session, catalog.OBSTACLE_SECONDS)
     if advancement.get("interrupted"):
         return _reply(session, message, "Engelle uğraşırken bir karşılaşma seni durdurdu.", "exploration_interrupted", time_result=advancement)
     check = {} if operation == "neutralize" else _check(
@@ -353,7 +452,7 @@ def resolve_command(session, message):
         return _timed_reply(session, message, result)
     if len(parts) == 3 and parts[:2] == ["/travel", "go"]:
         _busy(session)
-        if not route_allowed(world, world["location"], parts[2]) or timed_gameplay.route_stages(world, parts[2]) is None:
+        if parts[2] not in known_locations(world) or not route_allowed(world, world["location"], parts[2]) or timed_gameplay.route_stages(world, parts[2]) is None:
             fail("travel_route_unknown", "Buradan bu konuma bilinen bir rota yok.")
         return _timed_reply(session, message, timed_gameplay.start_travel(session, parts[2]))
     if parts in (["/travel", "continue"], ["/travel", "return"], ["/travel", "stop"]):
@@ -383,7 +482,29 @@ def resolve_command(session, message):
         return _reply(session, message, text, check.pop("action"), time_result=advancement, **check)
     if parts == ["/explore", "search"]:
         _busy(session, task=True)
+        if "blinded" in __import__("weapon_attack").conditions(session, "player", session.character):
+            fail("exploration_search_blinded", "Görmeye bağlı ipuçlarını şu anda inceleyemezsin.")
         return _timed_reply(session, message, timed_gameplay.resolve_task(session, message, None))
+    if len(parts) == 3 and parts[:2] == ["/explore", "investigate"]:
+        _busy(session)
+        identity = parts[2]
+        state = world[catalog.KEY]
+        if (identity not in state["discoveries"]
+                or catalog.DISCOVERIES[identity]["location"] != world["location"]):
+            fail("exploration_clue_unknown", "Önce burada görünen bir ipucu bulmalısın.")
+        if identity in state.get("inferences", []):
+            return _reply(session, message, catalog.INVESTIGATION[identity], "clue_known")
+        attempts = state.get("investigation_attempts", {}).get(identity, 0)
+        advancement = _time(session, catalog.SEARCH_POLICIES[world["location"]]["seconds"])
+        if advancement.get("interrupted"):
+            return _reply(session, message, "Bir karşılaşma ipucunu incelemeni durdurdu.", "exploration_interrupted", time_result=advancement)
+        check = _check(session, "Investigation", catalog.SEARCH_POLICIES[world["location"]]["dc"]) if not attempts else {}
+        state.setdefault("investigation_attempts", {})[identity] = min(2, attempts + 1)
+        if check.get("success", True):
+            state.setdefault("inferences", []).append(identity)
+        text = catalog.INVESTIGATION[identity] if check.get("success", True) else "Görünen ipucunu inceledin; bağlantısını henüz çözemedin."
+        return _reply(session, message, text, check.pop("action", "clue_investigation"),
+                      time_result=advancement, **check)
     if len(parts) == 3 and parts[:2] == ["/explore", "exit"]:
         return _traverse(session, message, parts[2])
     if len(parts) == 4 and parts[0] == "/explore" and parts[1] in {"door", "trap", "hazard"}:
@@ -394,7 +515,7 @@ def resolve_command(session, message):
         if not definition or definition["location"] != world["location"]:
             fail("exploration_interaction_unknown", "Burada bu nesneye erişemiyorsun.")
         state = world[catalog.KEY]
-        advancement = _time(session, 6)
+        advancement = _time(session, catalog.INTERACTION_SECONDS)
         if not advancement.get("interrupted"):
             if parts[2] not in state["interactions"]:
                 state["interactions"].append(parts[2])
@@ -448,16 +569,17 @@ def describe(world):
     if not active(world):
         return "Taş patikanın yerel macerasını seçebilirsin."
     current = world["location"]
-    names = [world["locations"][e["to"]]["name"] for e in catalog.EXITS.values()
-             if e["from"] == current and visible_exit(world, e)]
+    names = [e["name"] for e in public_projection(world)["exits"]]
     return "Buradan görünen geçitler: " + (", ".join(names) if names else "henüz bilinen bir geçit yok.")
 
 
 def visible_doors(world):
     if not active(world):
         return world.get("doors", [])
-    known = world[catalog.KEY]["discoveries"]
-    return [d for d in world.get("doors", []) if d.get("id") != "stone_secret_door" or "stone_secret" in known]
+    local = {e.get("door_id") for e in catalog.EXITS.values()
+             if e["from"] == world["location"] and visible_exit(world, e)}
+    return [d for d in world.get("doors", []) if not d.get("hidden", False)
+            and (d.get("id") not in catalog.DOORS or d.get("id") in local)]
 
 
 def public_projection(world):
@@ -477,7 +599,9 @@ def public_projection(world):
         add("Çevreyi araştır", "/explore search")
         for identity, exit in catalog.EXITS.items():
             if exit["from"] == current and visible_exit(world, exit):
-                exits.append({"id": identity, "destination": exit["to"], "name": world["locations"][exit["to"]]["name"],
+                known = known_locations(world)
+                exits.append({"id": identity, "destination": exit["to"] if exit["to"] in known else None,
+                              "name": world["locations"][exit["to"]]["name"] if exit["to"] in known else door(world, exit.get("door_id"))["name"],
                               "state": exit_obstacle(world, exit) or "open", "door_id": exit.get("door_id")})
                 if not exit_obstacle(world, exit):
                     add(world["locations"][exit["to"]]["name"] + " yönüne geç", "/explore exit " + identity)
@@ -509,9 +633,12 @@ def public_projection(world):
                 add("Taş kaldıracı çek", "/explore interact " + identity)
         if current == catalog.ENTRY and world.get("bounded_encounter") is None:
             add("Avluyu incele", "/explore encounter")
+        for identity in state["discoveries"]:
+            if catalog.DISCOVERIES[identity]["location"] == current and identity not in state.get("inferences", []):
+                add(catalog.DISCOVERIES[identity]["name"] + " · ipucunu incele", "/explore investigate " + identity)
     routes = []
     for destination, route in world["locations"].get(current, {}).get("travel_routes", {}).items():
-        if isinstance(route, dict):
+        if isinstance(route, dict) and destination in known_locations(world):
             blocked = world.get("blocked_travel_routes", {}).get(current, {}).get(destination, False)
             durations = timed_gameplay.route_stages(world, destination)
             routes.append({"id": route["id"], "origin": current, "destination": destination,

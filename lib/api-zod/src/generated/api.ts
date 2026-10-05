@@ -228,7 +228,7 @@ export const CreateGameSessionResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -839,7 +839,7 @@ export const GetGameSessionStateResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -1462,7 +1462,7 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -2092,7 +2092,7 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -2896,7 +2896,7 @@ export const PlayGameTurnResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -3939,7 +3939,7 @@ export const AcceptGameQuestResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -4605,7 +4605,7 @@ export const CancelGameQuestResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -5260,7 +5260,7 @@ export const ResolveAmbientEventActionResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -6087,7 +6087,7 @@ export const CreateCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -6975,7 +6975,7 @@ export const GetCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -7840,7 +7840,7 @@ export const ResumeCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -8748,7 +8748,7 @@ export const CreateLegacySessionResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -9360,7 +9360,7 @@ export const GetLegacySessionStateResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -10159,7 +10159,7 @@ export const PlayLegacyTurnResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -11314,7 +11314,7 @@ export const CreateLegacyCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -12204,7 +12204,7 @@ export const GetLegacyCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()
@@ -13070,7 +13070,7 @@ export const ResumeLegacyCampaignResponse = zod.object({
 })),
   "exits": zod.array(zod.object({
   "id": zod.string(),
-  "destination": zod.string(),
+  "destination": zod.string().nullable(),
   "name": zod.string(),
   "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
   "door_id": zod.string().nullable()

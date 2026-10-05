@@ -38,6 +38,16 @@ instruction for unrelated additional time consumers.
 Pending encounters must survive their window closing, saving, and combat handoff.
 Finishing combat does not automatically continue the interrupted action.
 
+PHB2024 minute, hourly and daily pace tables are distinct rounded conventions,
+not interchangeable conversion formulas. Preserve the owner's exact values
+(400/300/200 ft per minute, 4/3/2 miles per hour, 30/24/18 miles per day).
+
+**Why:** Scaling the hourly values by eight hours would change the explicitly
+requested fast and slow daily values; scaling feet/minute also differs.
+
+**How to apply:** Choose the table for the duration unit being resolved, and do
+not silently "correct" another table to make the arithmetic agree.
+
 **Why:** The owner's edge-case design lock explicitly makes these separate player
 decision points, not scheduler decisions or successful completion by default.
 

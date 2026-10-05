@@ -42,7 +42,8 @@ export function ExplorationControls({ state, disabled, onCommand }: { state: Gam
   }
 
   const journeyActive = Boolean(state.journey);
-  const paceLabel = PACES.find((p) => p.id === exploration.pace)?.label ?? exploration.pace;
+  const effectivePace = state.journey?.pace ?? exploration.pace;
+  const paceLabel = PACES.find((p) => p.id === effectivePace)?.label ?? effectivePace;
 
   return (
     <section className="state-panel" data-testid="panel-exploration" aria-labelledby="exploration-title">

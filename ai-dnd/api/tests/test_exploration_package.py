@@ -66,7 +66,7 @@ class ExplorationPackageTests(NativeBase):
     def test_pace_distances_and_duration_are_owned_and_legacy_is_unchanged(self):
         self.call("/explore begin")
         world = self.session.world_state
-        for pace, duration in (("fast", 5760), ("normal", 7200), ("slow", 9600)):
+        for pace, duration in (("fast", 5400), ("normal", 7200), ("slow", 10800)):
             self.call("/travel pace " + pace)
             self.assertEqual(sum(timed_gameplay.route_stages(world, catalog.CAMP)), duration)
         legacy = copy.deepcopy(world)
@@ -94,8 +94,8 @@ class ExplorationPackageTests(NativeBase):
             body, reply = self.call("/travel go " + catalog.CAMP)
         canonical = self.canonical()
         self.assertEqual(reply["state"]["journey"]["distance_miles"], 6)
-        self.assertEqual(reply["state"]["journey"]["duration_seconds"], 5760)
-        self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"] - before, 2880)
+        self.assertEqual(reply["state"]["journey"]["duration_seconds"], 5400)
+        self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"] - before, 2700)
         self.assertEqual(self.client.post(f"/api/sessions/{self.sid}/turn", json=body).json(), reply)
         self.assertEqual(self.canonical(), canonical)
         manager = SessionManager(campaign_store=CampaignStore(self.path))
@@ -116,8 +116,10 @@ class ExplorationPackageTests(NativeBase):
         journey = self.session.world_state["journey"]
         self.assertEqual(journey["destination"], catalog.FORK)
         self.assertEqual(result["skill_check_result"]["skill"], "Survival")
-        self.assertTrue(result["skill_check_result"]["disadvantage"])
-        self.assertEqual(len(result["skill_check_result"]["d20_rolls"]), 2)
+        # An unmarked footpath caps effective pace at normal, independently of
+        # the player's requested fast setting.
+        self.assertFalse(result["skill_check_result"]["disadvantage"])
+        self.assertEqual(journey["pace"], "normal")
         self.assertEqual(journey["route_id"], "stone_camp_fork")
         self.reject("/travel pace slow")
 
@@ -326,7 +328,8 @@ class ExplorationPackageTests(NativeBase):
     def test_authored_weather_reaches_the_public_world_projection(self):
         self.call("/explore begin")
         self.arrive(catalog.CAMP)
-        self.arrive(catalog.FORK)
+        self.arrive(catalog.ENTRY, roll=1)
+        self.assertEqual(self.session.world_state["location"], catalog.FORK)
         state = self.client.get(f"/api/sessions/{self.sid}/state").json()
         self.assertEqual(state["world"]["weather"], "fog")
         self.assertEqual(state["world"]["environment"], "wilderness")
@@ -354,7 +357,7 @@ class ExplorationPackageTests(NativeBase):
     def test_fog_visual_disadvantage_cancels_slow_pace_advantage(self):
         self.call("/explore begin")
         self.arrive(catalog.CAMP)
-        self.arrive(catalog.FORK)
+        self.arrive(catalog.ENTRY, roll=1)
         self.call("/travel pace slow")
         with patch.object(timed_gameplay, "travel_dice", return_value=(None, {})):
             self.call("/travel go " + catalog.CAMP)

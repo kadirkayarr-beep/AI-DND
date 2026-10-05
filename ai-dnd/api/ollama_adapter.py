@@ -181,6 +181,8 @@ class AuthenticatedOllamaAdapter:
 
         calls = _MODEL_CALLS.get()
         if calls is not None:
+            if len(calls) >= MAX_MODEL_CALLS_PER_TURN:
+                raise RuntimeError("Model call budget exhausted.")
             calls.append(MODEL_NAME)
         _logger.info("Ollama chat request started (model=%s)", MODEL_NAME)
         try:
