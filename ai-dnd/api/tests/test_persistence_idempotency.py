@@ -2,6 +2,7 @@
 import copy
 import asyncio
 from contextlib import closing
+from datetime import datetime, timedelta
 from functools import wraps
 import threading
 import unittest
@@ -806,17 +807,35 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
         if persisted:
             fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
-            sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
-            # Resume may update last_played_at in this same shared database.
-            # Preserve every other committed field, then baseline replay after resume.
-            reopened = self.store.get_campaign(a["campaign_id"])
             saved = committed[-1]
+            resume_time = (
+                datetime.fromisoformat(saved.metadata["last_played_at"])
+                + timedelta(days=1)
+            ).isoformat(timespec="seconds")
+            saved_receipt = copy.deepcopy(
+                self.store.get_turn_action(a["campaign_id"], command["action_id"])
+            )
+            with patch("api.persistence.campaign_store._now",
+                       return_value=resume_time) as resume_clock:
+                sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+            resume_clock.assert_called_once_with()
+            # Force a timestamp boundary without sleeping, then preserve every
+            # other committed field and baseline replay after resume.
+            reopened = self.store.get_campaign(a["campaign_id"])
+            self.assertNotEqual(
+                reopened.metadata["last_played_at"], saved.metadata["last_played_at"]
+            )
+            self.assertEqual(reopened.metadata["last_played_at"], resume_time)
             self.assertEqual(reopened.payload, saved.payload)
             self.assertEqual(reopened.history, saved.history)
             self.assertEqual(reopened.combat_history, saved.combat_history)
             self.assertEqual(
                 reopened.metadata,
-                {**saved.metadata, "last_played_at": reopened.metadata["last_played_at"]},
+                {**saved.metadata, "last_played_at": resume_time},
+            )
+            self.assertEqual(
+                self.store.get_turn_action(a["campaign_id"], command["action_id"]),
+                saved_receipt,
             )
             committed = (*committed[:-1], reopened)
             self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
