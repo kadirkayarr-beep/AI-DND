@@ -427,6 +427,130 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
                 self.assertEqual(s.character["current_hp"], 1 if roll == 20 else 0)
 
+    async def test_natural_twenty_revival_on_http_replay_after_reopen(self):
+        import uuid
+        import httpx
+        import action_economy as ae
+
+        a = await self.create_campaign()
+        s = self.manager.get(a["session_id"]).game_session
+        s.ensure_death_state()["mode"] = "PERMADEATH"
+        death_fixtures.start_test_combat(s)
+        s._apply_player_damage(s.character["current_hp"], took_damage=True)
+        s.ensure_death_state().update(successes=1, failures=1)
+        self.assertEqual(s.character["current_hp"], 0)
+        self.assertEqual(s.world_state["player_combat_status"], "unconscious")
+        self.assertEqual(s.ensure_combat_state()["current_actor_id"], "player")
+        before_combat = copy.deepcopy(s.ensure_combat_state())
+        before_economy = copy.deepcopy(ae.ensure(s))
+        self.app.state.ollama_adapter = None
+        request = {
+            "message": "Ölüm kurtarmasını bekliyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch("game.roll_d20", return_value=20) as die, patch(
+            "game.resolve_enemy_attack",
+            side_effect=AssertionError("Revival must not start enemy attacks"),
+        ) as enemy_attack, patch(
+            "game.advance_combat_turn",
+            side_effect=AssertionError("Revival must preserve initiative"),
+        ) as advance, patch(
+            "game._mark_combat_action_used",
+            side_effect=AssertionError("Revival must not consume an action"),
+        ) as consume:
+            first = await self.http.post(
+                f"/api/game/sessions/{a['session_id']}/turn", json=request,
+            )
+            self.assertEqual(first.status_code, 200, first.text)
+            die.assert_called_once_with()
+            enemy_attack.assert_not_called()
+            advance.assert_not_called()
+            consume.assert_not_called()
+
+        result = first.json()["combat_result"]
+        self.assertEqual(result["action"], "death_save")
+        self.assertEqual(result["outcome"], "revived")
+        self.assertTrue(result["success"])
+        self.assertEqual(result["death_save"]["roll"], 20)
+        self.assertTrue(result["death_save"]["prone"])
+        self.assertEqual(result["enemy_actions"], [])
+        self.assertIsNone(result["enemy_action"])
+        self.assertFalse(result["combat_ended"])
+        self.assertEqual(s.character["current_hp"], 1)
+        self.assertEqual(s.world_state["player_combat_status"], "active")
+        self.assertTrue(s.ensure_death_state()["prone"])
+        self.assertEqual(s.ensure_death_state()["successes"], 0)
+        self.assertEqual(s.ensure_death_state()["failures"], 0)
+        for key in ("active", "current_actor_id", "initiative_order",
+                    "initiative_results", "round", "current_turn_index", "actions_used"):
+            self.assertEqual(s.ensure_combat_state()[key], before_combat[key], key)
+        self.assertEqual(ae.ensure(s), before_economy)
+        committed_combat = copy.deepcopy(s.ensure_combat_state())
+        committed_state = copy.deepcopy(s.serialize_game_state())
+        committed_rng = s.rng.getstate()
+        receipt = copy.deepcopy(
+            self.store.get_turn_action(a["campaign_id"], request["action_id"])
+        )
+        self.assertIsNotNone(receipt)
+        self.assertEqual(receipt["response"], first.json())
+
+        # Reconstruct every HTTP/persistence owner so replay uses the saved receipt.
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = campaign_fixtures.create_app(
+            session_manager=reopened_manager, ollama_adapter=None,
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{a['campaign_id']}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            self.assertNotEqual(session_id, a["session_id"])
+            restored = reopened_manager.get(session_id).game_session
+            self.assertEqual(restored.serialize_game_state(), committed_state)
+            self.assertEqual(restored.rng.getstate(), committed_rng)
+            stored_before_replay = reopened_store.get_campaign(a["campaign_id"])
+            with patch.object(
+                restored, "run_player_turn",
+                side_effect=AssertionError("Receipt replay must not run the engine"),
+            ) as engine, patch(
+                "game.roll_d20", side_effect=AssertionError("Replay must not reroll"),
+            ) as reroll, patch.object(
+                restored.rng, "randint",
+                side_effect=AssertionError("Replay must not roll any dice"),
+            ) as rng_roll, patch(
+                "game.heal_player",
+                side_effect=AssertionError("Replay must not heal again"),
+            ) as healing, patch(
+                "game.resolve_enemy_attack",
+                side_effect=AssertionError("Replay must not attack"),
+            ) as enemy_attack, patch.object(
+                reopened_store, "save_campaign",
+                side_effect=AssertionError("Replay must not write the campaign"),
+            ) as save:
+                replay = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=request,
+                )
+                self.assertEqual(replay.status_code, 200, replay.text)
+                for forbidden in (engine, reroll, rng_roll, healing, enemy_attack, save):
+                    forbidden.assert_not_called()
+            self.assertEqual(replay.json(), {**first.json(), "session_id": session_id})
+            self.assertEqual(restored.character["current_hp"], 1)
+            self.assertEqual(restored.world_state["player_combat_status"], "active")
+            self.assertTrue(restored.ensure_death_state()["prone"])
+            self.assertEqual(restored.ensure_combat_state(), committed_combat)
+            self.assertEqual(ae.ensure(restored), before_economy)
+            self.assertEqual(restored.serialize_game_state(), committed_state)
+            self.assertEqual(restored.rng.getstate(), committed_rng)
+            self.assertEqual(reopened_store.get_campaign(a["campaign_id"]),
+                             stored_before_replay)
+            self.assertEqual(
+                reopened_store.get_turn_action(a["campaign_id"], request["action_id"]),
+                receipt,
+            )
+
     async def test_real_damage_at_zero_normal_rollback_and_receipt_replay(self):
         import uuid
         a = await self.create_campaign()
