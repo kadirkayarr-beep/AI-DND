@@ -68,6 +68,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def assert_corrupt_saved_receipt_blocks_retry(
         self, corruption, operation="turn", *, conflicting_action=None,
+        conflicting_message=None,
     ):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
@@ -163,6 +164,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         else:
             self.fail(f"Unknown receipt corruption: {corruption}")
         retry_command = copy.deepcopy(command)
+        if conflicting_message is not None:
+            self.assertEqual(operation, "turn")
+            self.assertIsInstance(corruption, tuple)
+            retry_command["message"] = conflicting_message
+            self.assertNotEqual(retry_command["message"], command["message"])
+            self.assertEqual(retry_command["action_id"], command["action_id"])
+            expected_status, expected_code = 409, "action_id_conflict"
         if conflicting_action is not None:
             self.assertIn(operation, ("short_rest", "long_rest"))
             self.assertIsInstance(corruption, tuple)
@@ -174,7 +182,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             updated = connection.execute(sql, (value, campaign_id, command["action_id"]))
             self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
-        if conflicting_action is not None:
+        if conflicting_action is not None or conflicting_message is not None:
             damaged_receipt = self.store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(damaged_receipt["request_hash"], receipt["request_hash"])
             self.assertEqual(damaged_receipt["response"], response)
@@ -281,6 +289,21 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 with self.subTest(field=field_path, mode=mode):
                     await self.assert_corrupt_saved_receipt_blocks_retry(
                         (field_path, mode, invalid_value),
+                    )
+
+    async def test_changed_turn_request_conflicts_before_damaged_response_after_resume(self):
+        for field_path, invalid_value in (
+            (("session_id",), 123),
+            (("narration",), []),
+            (("state",), []),
+        ):
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(field=field_path, mode=mode):
+                    # The committed request hash must reject a changed ordinary
+                    # turn before the damaged saved reply reaches validation.
+                    await self.assert_corrupt_saved_receipt_blocks_retry(
+                        (field_path, mode, invalid_value),
+                        conflicting_message="Resolve a different selected spell.",
                     )
 
     async def test_incomplete_species_response_blocks_http_retry_after_resume(self):
