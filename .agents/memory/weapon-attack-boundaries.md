@@ -27,3 +27,14 @@ visibility after supported displacement.
 direct and structured calls. Reuse the existing bounded invalidation; never
 invent an endpoint. Failed actions and transaction rollback must preserve the
 previous geometry, resources and RNG.
+
+Treat a repaired legacy isolation fixture as unproven until its scripted attack
+and damage dice are consumed and its post-attack isolation assertions pass.
+
+**Why:** The first missing prerequisite can hide later fixture gaps, including
+damage provenance and perception. A valid miss can also produce an owned result
+record without damaging the target; that is not cross-campaign leakage.
+
+**How to apply:** Supply explicit test-owned facts through existing owners and
+include legitimate result records in expected snapshots. Do not bypass attack
+validation or discard unrelated state comparisons to make old tests pass.

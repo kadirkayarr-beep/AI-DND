@@ -33,8 +33,20 @@ class SessionTests(unittest.TestCase):
             "relationship": "neutral", "knowledge": [], "memory": [],
             "backstory": "", "max_hp": 100, "current_hp": 100,
             "armor_class": 10, "combat_status": "active",
+            "attack_damage_type": "slashing",
         }
         session.world_state["npcs"].append(npc)
+        # Explicit fixture geometry lets both player and enemy attacks reach
+        # the isolation assertions without bypassing unknown-distance rejection.
+        pairs = session.world_state.setdefault(
+            "attack_environment", {}
+        ).setdefault("pairs", {})
+        for actor, target in (("player", npc["id"]), (npc["id"], "player")):
+            pairs[f"{actor}|{target}"] = {
+                "distance_ft": 5,
+                "attacker_sees_target": True,
+                "target_sees_attacker": True,
+            }
         return npc
 
     @contextmanager
@@ -584,6 +596,11 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(follow_up["outcome"], "miss")
             self.assertEqual(follow_up["attack_rolls"], [1, 2])
             self.assertEqual(follow_up["damage"], 0)
+            # A resolved miss records its result in the owning campaign. The
+            # expected fixture includes exactly that record, not other changes.
+            before_a["world_state"]["attack_results"].append(
+                copy.deepcopy(follow_up)
+            )
             self.assertEqual(self.a.serialize_game_state(), before_a)
             self.assertEqual(self.b.serialize_game_state(), before_b)
             self.assertEqual(self.a.rng.getstate(), rng_a)
