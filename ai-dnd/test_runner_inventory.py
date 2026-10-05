@@ -594,6 +594,92 @@ class RunnerProcessTests(unittest.TestCase):
                         self.assertEqual((root / "release_later.py.sentinel").read_text(),
                                          "started")
 
+    def test_api_loader_errors_block_release_but_not_prototype_selection(self):
+        failures = {
+            "import": (
+                "raise RuntimeError('scheduler import failure')\n",
+                "scheduler import failure",
+            ),
+            "load_tests": (
+                "def load_tests(loader, tests, pattern):\n"
+                "    with Path('order.txt').open('a') as log:\n"
+                "        log.write('load_tests\\n')\n"
+                "    raise RuntimeError('scheduler loading hook failure')\n",
+                "scheduler loading hook failure",
+            ),
+        }
+        for name in ("api/tests/test_death_bounded.py",
+                     "api/tests/test_initiative.py"):
+            suites = {
+                "TESTS": (name, "release_later.py"),
+                "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+            }
+            for argv, inventory in self.SELECTIONS:
+                for kind, (source, diagnostic) in failures.items():
+                    with self.subTest(name=name, argv=argv, kind=kind), \
+                         tempfile.TemporaryDirectory() as directory, \
+                         patch.object(self, "SUITES", suites):
+                        root = Path(directory) / "runner"
+                        root.mkdir()
+                        self.copy_runner(root)
+                        package = root / "api" / "tests"
+                        package.mkdir(parents=True)
+                        (package.parent / "__init__.py").touch()
+                        (package / "__init__.py").touch()
+                        (root / name).write_text(
+                            "import unittest\nfrom pathlib import Path\n"
+                            "with Path('order.txt').open('a') as log:\n"
+                            f"    log.write({name + chr(10)!r})\n"
+                            "class SchedulerTests(unittest.TestCase):\n"
+                            "    def test_boundary(self):\n"
+                            "        Path('assertion.sentinel').write_text('ran')\n"
+                            + source, encoding="utf-8",
+                        )
+                        for gate in ("release_later.py", *suites["PROTOTYPE_TESTS"]):
+                            self.write_gate(root, gate, "def test_ok(): pass\n")
+
+                        # Intact source definitions pass without executing the
+                        # import-time error or the unittest loading hook.
+                        self.assertEqual(run_tests.check_test_definitions(
+                            root / gate for gate in suites["TESTS"]), [])
+                        self.assertFalse((root / "order.txt").exists())
+                        result = self.launch_runner(root, argv, cwd=Path(directory))
+                        output = result.stdout + result.stderr
+                        self.assertNotIn("PREFLIGHT FAILED", output)
+                        self.assertFalse((root / "assertion.sentinel").exists())
+                        if inventory == "TESTS":
+                            self.assertEqual(result.returncode, 1, output)
+                            self.assertIn(f"RuntimeError: {diagnostic}", result.stderr)
+                            self.assertEqual(
+                                result.stdout.splitlines()[-1],
+                                f"RELEASE DETERMINISTIC GATES FAILED: {name}",
+                            )
+                            self.assertNotIn("PASSED", output)
+                            expected_order = [name]
+                            if kind == "load_tests":
+                                expected_order.append("load_tests")
+                            expected_order.append("release_later.py")
+                            self.assertEqual(
+                                (root / "release_later.py.sentinel").read_text(),
+                                "started",
+                            )
+                            for gate in suites["PROTOTYPE_TESTS"]:
+                                self.assertFalse((root / (gate + ".sentinel")).exists())
+                        else:
+                            self.assertEqual(result.returncode, 0, output)
+                            self.assertEqual(result.stderr, "")
+                            self.assertIn(
+                                "ALL 2 HISTORICAL PROTOTYPE CHECKS PASSED "
+                                "(NOT RELEASE GATES)", result.stdout,
+                            )
+                            self.assertNotIn("DETERMINISTIC GATES PASSED", output)
+                            self.assertFalse((root / "release_later.py.sentinel").exists())
+                            expected_order = list(suites["PROTOTYPE_TESTS"])
+                        self.assertEqual(
+                            (root / "order.txt").read_text().splitlines(),
+                            expected_order,
+                        )
+
     def test_multiple_failed_real_gates_are_reported_in_inventory_order(self):
         # Non-alphabetical order catches summaries that sort instead of retaining
         # the selected inventory's execution order.
