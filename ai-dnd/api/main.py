@@ -16,6 +16,7 @@ from uuid import UUID, uuid4
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ValidationError
 
 import game
 import combat_lifecycle
@@ -443,6 +444,23 @@ def create_app(
             },
         )
 
+    def replay_action_response(
+        response: dict[str, Any],
+        response_model: type[BaseModel],
+        session_id: str,
+    ) -> dict[str, Any]:
+        # Validate the stored contract before replacing session identity: an
+        # incomplete receipt must not be repaired or reach response serialization.
+        try:
+            response_model.model_validate(response, strict=True)
+        except ValidationError:
+            raise campaign_http_exception(
+                CampaignCorruptError("Campaign action response is invalid.")
+            ) from None
+        replay = copy.deepcopy(response)
+        replay["session_id"] = session_id
+        return replay
+
     def require_current(record: Any) -> None:
         try:
             manager.assert_current(record)
@@ -690,10 +708,9 @@ def create_app(
                             "message": "This action ID was already used for a different turn.",
                         },
                     )
-                replay = copy.deepcopy(previous_action["response"])
-                replay["session_id"] = session_id
-                replay["action_id"] = action_id
-                return replay
+                return replay_action_response(
+                    previous_action["response"], TurnResponse, session_id,
+                )
             require_current(record)
             if isinstance(session, game.GameSession):
                 try:
@@ -1319,9 +1336,9 @@ def create_app(
                         "code": "action_id_conflict",
                         "message": "This action ID was already used for a different action.",
                     })
-                replay = copy.deepcopy(previous["response"])
-                replay["session_id"] = session_id
-                return replay
+                return replay_action_response(
+                    previous["response"], SpeciesTraitCommandResult, session_id,
+                )
             require_current(record)
             snapshot = _capture_session(session)
             metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))

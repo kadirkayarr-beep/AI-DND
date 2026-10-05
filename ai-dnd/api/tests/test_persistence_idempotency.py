@@ -142,6 +142,21 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             response["action_id"] = str(uuid4())
             value = json.dumps(response)
             expected_status, expected_code = 409, "campaign_unavailable"
+        elif isinstance(corruption, tuple):
+            field_path, mode, invalid_value = corruption
+            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            response = copy.deepcopy(accepted.json())
+            parent = response
+            for field in field_path[:-1]:
+                parent = parent[field]
+            if mode == "missing":
+                del parent[field_path[-1]]
+            else:
+                parent[field_path[-1]] = invalid_value
+            self.assertIsInstance(response, dict)
+            self.assertEqual(response["action_id"], command["action_id"])
+            value = json.dumps(response)
+            expected_status, expected_code = 409, "campaign_unavailable"
         else:
             self.fail(f"Unknown receipt corruption: {corruption}")
         with self.store._transaction() as connection:
@@ -199,6 +214,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 retry = await client.post(f"/api/game/sessions/{sid}/{endpoint}", json=command)
             self.assertEqual(retry.status_code, expected_status, retry.text)
             self.assertEqual(retry.json()["detail"]["code"], expected_code)
+            self.assertIsInstance(retry.json()["detail"]["message"], str)
+            self.assertTrue(retry.json()["detail"]["message"])
             engine.assert_not_called()
             rest.assert_not_called()
             autosave.assert_not_called()
@@ -230,6 +247,34 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_corrupt_saved_receipt_action_id_blocks_http_retry_after_resume(self):
         await self.assert_corrupt_saved_receipt_blocks_retry("action_id")
+
+    async def test_incomplete_turn_response_blocks_http_retry_after_resume(self):
+        for field_path, invalid_value in (
+            (("session_id",), 123),
+            (("narration",), []),
+            (("state",), []),
+        ):
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(field=field_path, mode=mode):
+                    await self.assert_corrupt_saved_receipt_blocks_retry(
+                        (field_path, mode, invalid_value),
+                    )
+
+    async def test_incomplete_species_response_blocks_http_retry_after_resume(self):
+        for operation in ("short_rest", "long_rest"):
+            for field_path, invalid_value in (
+                (("session_id",), 123),
+                (("state",), []),
+                (("result",), []),
+                (("result", "action"), 123),
+                (("result", "message"), []),
+                (("result", "effects"), []),
+            ):
+                for mode in ("missing", "wrong_type"):
+                    with self.subTest(operation=operation, field=field_path, mode=mode):
+                        await self.assert_corrupt_saved_receipt_blocks_retry(
+                            (field_path, mode, invalid_value), operation,
+                        )
 
     async def test_corrupt_short_rest_receipts_block_http_retry_after_resume(self):
         for corruption in ("hash", "json", "action_id"):

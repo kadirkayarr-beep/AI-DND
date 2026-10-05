@@ -59,3 +59,15 @@ treats newly generated history identities as a gameplay rollback failure.
 **How to apply:** Compare mechanical outcomes and narration across failed-save
 retry; require exact accepted-response equality only once a receipt has committed
 (apart from the current session ID after reopening).
+
+Validate saved responses against the receiving command's contract before
+rewriting the session identity. Do not impose a single response schema on the
+shared receipt store.
+
+**Why:** Turn, species, and ambient-event receipts share storage, and legacy
+ambient receipts intentionally reserve identities without a complete HTTP
+response. Replacing a session ID first can conceal a missing required field.
+
+**How to apply:** Reject incomplete replay contracts explicitly at the command
+boundary, without mechanics or persistence, while preserving legacy identity
+reservation and valid response replay.
