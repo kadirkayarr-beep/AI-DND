@@ -37,6 +37,7 @@ from api.schemas import (
     CharacterCreationOptions,
     CharacterCreationCatalogResponse,
     CombatAttackResult,
+    CombatHistoryEntry,
     CombatTurnResult,
     DeathResolutionResult,
     DeathSaveResult,
@@ -229,6 +230,9 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_turn_result_references_match_runtime_models(self):
+        runtime_properties = TurnResponse.model_json_schema(
+            ref_template="#/components/schemas/{model}"
     def test_turn_result_references_match_runtime_models(self):
         runtime_properties = TurnResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -443,6 +447,7 @@ class ContractParityTests(unittest.TestCase):
             "CharacterCreationCatalogResponse": CharacterCreationCatalogResponse,
             "CampaignSummary": CampaignSummary,
             "CampaignHistoryEntry": CampaignHistoryEntry,
+            "CombatHistoryEntry": CombatHistoryEntry,
             "CampaignDetail": CampaignDetailResponse,
             "CampaignSession": CampaignSessionResponse,
             "GameTurnResult": TurnResponse,
@@ -1074,6 +1079,101 @@ class ContractParityTests(unittest.TestCase):
         )
         self.assertEqual(missing_body["detail"]["code"], "unknown_session")
 
+    def test_saved_combat_history_references_match_runtime_models(self):
+        fields = (
+            ("CombatHistoryEntry", CombatHistoryEntry, "result", CombatTurnResult),
+            ("CampaignDetail", CampaignDetailResponse, "combat_history", CombatHistoryEntry),
+            ("CampaignSession", CampaignSessionResponse, "combat_history", CombatHistoryEntry),
+        )
+        for schema_name, model, field_name, result_model in fields:
+            with self.subTest(schema=schema_name, field=field_name):
+                runtime = model.model_json_schema(
+                    ref_template="#/components/schemas/{model}"
+                )["properties"][field_name]
+                published = _property(schema_name, field_name)
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                if field_name == "combat_history":
+                    runtime = runtime["items"]
+                    published = _mapping(
+                        published.get("items"), f"{schema_name}.{field_name}.items"
+                    )
+                    self.assertEqual(_schema_types(published), _schema_types(runtime))
+                    self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                expected = _schema_references(runtime)
+                self.assertEqual(
+                    expected, {f"#/components/schemas/{result_model.__name__}"},
+                    f"Runtime {schema_name}.{field_name} must reference {result_model.__name__}",
+                )
+                self.assertEqual(
+                    _schema_references(published), expected,
+                    f"{schema_name}.{field_name} reference target",
+                )
+            }
+        )
+        self.assertIsNotNone(projected)
+        self.assertEqual(
+            set(projected or {}),
+            {
+                "action", "status", "attack_roll", "combat_started",
+                "enemy_action", "enemy_actions",
+            },
+        )
+        self.assertEqual(
+            set((projected or {})["enemy_action"]),
+            {"action", "attack_roll"},
+        )
+        self.assertEqual(
+            set((projected or {})["enemy_actions"][0]),
+            {"action", "actor", "actor_name", "attack_roll"},
+        )
+
+    def test_error_schemas_and_runtime_error_envelopes_match(self):
+        self.assertEqual(_property_names("ApiErrorResponse"), {"detail"})
+        self.assertEqual(_property_names("ApiErrorDetail"), {"code", "message"})
+        self.assertEqual(
+            _property_names("RequestValidationError"),
+            {"detail"},
+        )
+        self.assertEqual(
+            _property_names("RequestValidationIssue"),
+            {"loc", "msg", "type"},
+        )
+        self.assertEqual(
+            _enum_values("ApiErrorDetail", "code"),
+            {
+                "campaign_not_found", "campaign_unavailable", "campaign_not_active",
+                "campaign_storage_unavailable", "campaign_error",
+                "invalid_character", "unknown_session", "ollama_unavailable",
+                "model_unavailable", "engine_error", "journal_error",
+            },
+        )
+
+        client = TestClient(app)
+        validation = client.post(
+            "/api/game/sessions/not-a-uuid/turn",
+            json={"message": "   "},
+        )
+        self.assertEqual(validation.status_code, 422)
+        validation_body = validation.json()
+        self.assertEqual(set(validation_body), {"detail"})
+        self.assertTrue(validation_body["detail"])
+        self.assertEqual(
+            set(validation_body["detail"][0]),
+            {"loc", "msg", "type"},
+        )
+        self.assertNotIn("input", validation_body["detail"][0])
+
+        missing = client.get("/api/game/sessions/not-a-session/state")
+        self.assertEqual(missing.status_code, 404)
+        missing_body = missing.json()
+        self.assertEqual(set(missing_body), {"detail"})
+        self.assertEqual(
+            set(missing_body["detail"]),
+            _property_names("ApiErrorDetail"),
+        )
+        self.assertEqual(missing_body["detail"]["code"], "unknown_session")
+
 
 class ContractYamlReaderTests(unittest.TestCase):
     BLOCK_FIXTURE = """
@@ -1113,10 +1213,6 @@ components:
 """
     COMPACT_FIXTURE = """
 servers: [{url: /api}]
-paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
-components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
-"""
-
     def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/species-actions",
@@ -1672,6 +1768,186 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                     "content": {"application/json": {"schema": {
                                         "$ref": "#/components/schemas/CampaignCreateInput",
                                     }}},
+                                }
+                            else:
+                                operation["requestBody"]["content"]["application/json"]["schema"]["$ref"] = (
+                                    "#/components/schemas/GameTurnInput"
+                                )
+                        else:
+                            operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"] = (
+                                "#/components/schemas/CampaignSession"
+                                if path.endswith("/save")
+                                else "#/components/schemas/CampaignSummary"
+                            )
+                        # Only this operation changes; every component stays valid.
+                        self.assertEqual(spec["components"], SPEC["components"])
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                                "test_health_and_request_schemas_match_runtime_models",
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                "test_session_creation_and_campaign_resume_route_bindings_match_fastapi",
+                                "test_turn_route_bindings_match_fastapi",
+                                "test_species_action_route_bindings_match_fastapi",
+                                "test_nested_death_schemas_match_runtime_models",
+                                "test_nested_death_references_match_runtime_models",
+                                "test_enemy_result_references_match_runtime_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            ContractParityTests(
+                                "test_campaign_creation_and_save_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_campaign_creation_and_save_body_and_status_drift_fail_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            mutations = ["missing success", "extra success", "changed success"]
+            if not path.endswith("/save"):
+                mutations.extend(["missing body", "optional body", "omitted required"])
+            for mutation in mutations:
+                binding = "requestBody" if mutation.endswith(("body", "required")) else "success statuses"
+                for flow_style in (False, True):
+                    with self.subTest(path=path, mutation=mutation, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if mutation == "missing body":
+                            del operation["requestBody"]
+                        elif mutation == "optional body":
+                            operation["requestBody"]["required"] = False
+                        elif mutation == "omitted required":
+                            del operation["requestBody"]["required"]
+                        elif mutation == "missing success":
+                            del operation["responses"]["200"]
+                        elif mutation == "extra success":
+                            operation["responses"]["201"] = deepcopy(operation["responses"]["200"])
+                        else:
+                            operation["responses"]["201"] = operation["responses"].pop("200")
+                        self.assertEqual(spec["components"], SPEC["components"])
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            ContractParityTests(
+                                "test_campaign_creation_and_save_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_turn_wrong_route_bindings_fail_in_both_formats(self):
+        for path in (
+            "/game/sessions/{session_id}/turn",
+            "/sessions/{session_id}/turn",
+        ):
+            for binding in ("requestBody", "response"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, binding=binding, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if binding == "requestBody":
+                            schema = operation["requestBody"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/SpeciesTraitActionInput"
+                        else:
+                            schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+                            wrong_ref = "#/components/schemas/SpeciesTraitCommandResult"
+                        schema["$ref"] = wrong_ref
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            # Only a binding changes; inventory, statuses and models stay valid.
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                                "test_health_and_request_schemas_match_runtime_models",
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            ContractParityTests(
+                                "test_turn_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
+
+    def test_saved_combat_history_wrong_references_fail_in_both_formats(self):
+        fields = (
+            ("CombatHistoryEntry", "result", ("CombatAttackResult", "GameSession")),
+            ("CampaignDetail", "combat_history", ("CampaignHistoryEntry", "CombatTurnResult")),
+            ("CampaignSession", "combat_history", ("CampaignHistoryEntry", "CombatTurnResult")),
+        )
+        for schema_name, field_name, wrong_models in fields:
+            original = _property(schema_name, field_name)
+            original_target = (
+                original["items"] if field_name == "combat_history" else original
+            )
+            for wrong_model in wrong_models:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name,
+                        replacement=wrong_model, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        field = spec["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        target = field["items"] if field_name == "combat_history" else field
+                        target["$ref"] = f"#/components/schemas/{wrong_model}"
+                        self.assertEqual(_schema_types(field), _schema_types(original))
+                        self.assertEqual(_is_nullable(field), _is_nullable(original))
+                        self.assertEqual(_schema_types(target), _schema_types(original_target))
+                        self.assertEqual(_is_nullable(target), _is_nullable(original_target))
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        parsed = _load_spec(text)
+                        self.assertEqual(parsed, spec)
+                        # Restoring only the target recovers the entire original
+                        # contract: routes, operations and schema/field inventories
+                        # (including required fields) were never changed.
+                        restored = deepcopy(parsed)
+                        restored_field = restored["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        restored_target = (
+                            restored_field["items"]
+                            if field_name == "combat_history" else restored_field
+                        )
+                        restored_target["$ref"] = original_target["$ref"]
+                        self.assertEqual(restored, SPEC)
+                        result = self._parity_result(parsed)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        failed_test, failure = result.failures[0]
+                        self.assertIn(
+                            "test_saved_combat_history_references_match_runtime_models",
+                            failed_test.id(),
+                        )
+                        self.assertIn(
+                            f"{schema_name}.{field_name} reference target", failure,
+                        )
                                 }
                             else:
                                 operation["requestBody"]["content"]["application/json"]["schema"]["$ref"] = (
