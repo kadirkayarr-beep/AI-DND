@@ -511,6 +511,163 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 len(self.store.get_campaign(created["campaign_id"]).history), 3
             )
 
+    async def test_failed_tavern_discovery_is_rolled_back_and_retry_commits_once(self):
+        city_id = "fr:city:neverwinter"
+        response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        created = response.json()
+        campaign_id = created["campaign_id"]
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        url = f"/api/game/sessions/{created['session_id']}/turn"
+        body = {
+            "message": "Yakınlarda bir taverna arıyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        before_save = copy.deepcopy(session.serialize_game_state())
+        before_journal = copy.deepcopy(record.journal)
+        before_memory = copy.deepcopy(record.narrative_memory)
+        before_receipts = copy.deepcopy(record.turn_action_receipts)
+        before_campaign = self.store.get_campaign(campaign_id)
+        self.assertEqual(before_save["world_state"]["location"], city_id)
+        self.assertFalse(any(
+            location.get("scene_kind") == "tavern"
+            for location in session.world_state["locations"].values()
+        ))
+        self.assertEqual(before_campaign.history, [])
+        results = []
+        attempted_saves = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            attempted_saves.append(copy.deepcopy(session.serialize_game_state()))
+            return result
+
+        # Observe a genuine offline discovery, failing only its persistence.
+        with (
+            patch.object(session, "run_player_turn", new=capture_turn),
+            patch.object(
+                self.store,
+                "save_campaign",
+                side_effect=CampaignStorageError("database unavailable"),
+            ) as failed_save,
+        ):
+            failed = await self.http.post(url, json=body)
+        failed_save.assert_called_once()
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(
+            failed.json()["detail"]["code"], "campaign_storage_unavailable"
+        )
+        self.assertNotIn("database unavailable", failed.text)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["action"], "local_search")
+        self.assertEqual(results[0]["status"], "found")
+        self.assertTrue(results[0]["success"])
+        uncommitted_id = results[0]["target_id"]
+        self.assertNotIn(uncommitted_id, before_save["world_state"]["locations"])
+        self.assertEqual(
+            attempted_saves[0]["world_state"]["locations"][uncommitted_id][
+                "scene_kind"
+            ],
+            "tavern",
+        )
+        self.assertEqual(session.serialize_game_state(), before_save)
+        self.assertNotIn(uncommitted_id, session.world_state["locations"])
+        self.assertEqual(record.journal, before_journal)
+        self.assertEqual(record.narrative_memory, before_memory)
+        self.assertEqual(record.turn_action_receipts, before_receipts)
+        self.assertNotIn(body["action_id"], record.turn_action_receipts)
+        self.assertIsNone(self.manager.get_turn_action(record, body["action_id"]))
+        failed_campaign = self.store.get_campaign(campaign_id)
+        self.assertEqual(failed_campaign, before_campaign)
+        self.assertIsNone(self.store.get_turn_action(campaign_id, body["action_id"]))
+
+        # A new manager must load the original city without any unsaved venue,
+        # scene changes, journal entries, history, or receipt.
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+        self.assertEqual(resumed.status_code, 200, resumed.text)
+        self.assertEqual(resumed.json()["state"], created["state"])
+        reopened_record = reopened_manager.get(resumed.json()["session_id"])
+        self.assertEqual(
+            reopened_record.game_session.serialize_game_state(), before_save
+        )
+        self.assertEqual(reopened_record.journal, before_journal)
+        self.assertEqual(reopened_record.narrative_memory, before_memory)
+        self.assertNotIn(body["action_id"], reopened_record.turn_action_receipts)
+        self.assertEqual(reopened_store.get_campaign(campaign_id), before_campaign)
+        self.assertIsNone(
+            reopened_store.get_turn_action(campaign_id, body["action_id"])
+        )
+
+        # Recover storage and retry the identical action on the live session.
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            retry = await self.http.post(url, json=body)
+        self.assertEqual(retry.status_code, 200, retry.text)
+        self.assertEqual(retry.json()["action_id"], body["action_id"])
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[-1]["action"], "local_search")
+        self.assertEqual(results[-1]["status"], "found")
+        self.assertTrue(results[-1]["success"])
+        tavern_id = results[-1]["target_id"]
+        taverns = [
+            location
+            for location in session.world_state["locations"].values()
+            if location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(taverns), 1)
+        self.assertEqual(taverns[0], session.world_state["locations"][tavern_id])
+        self.assertEqual(taverns[0]["parent_location_id"], city_id)
+        self.assertEqual(taverns[0]["exit_location_id"], city_id)
+        self.assertEqual(retry.json()["state"]["location"], city_id)
+        committed_save = copy.deepcopy(session.serialize_game_state())
+        committed_journal = copy.deepcopy(record.journal)
+        committed_campaign = self.store.get_campaign(campaign_id)
+        self.assertEqual(committed_campaign.payload["engine_save"], committed_save)
+        self.assertEqual(committed_campaign.payload["journal"], committed_journal)
+        self.assertEqual(len(committed_campaign.history), 1)
+        self.assertEqual(
+            self.manager.get_turn_action(record, body["action_id"])["response"],
+            retry.json(),
+        )
+        self.assertEqual(
+            self.store.get_turn_action(campaign_id, body["action_id"])["response"],
+            retry.json(),
+        )
+        with patch.object(
+            session,
+            "run_player_turn",
+            side_effect=AssertionError("Discovery replay must not execute a turn"),
+        ):
+            replay = await self.http.post(url, json=body)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), retry.json())
+        self.assertEqual(session.serialize_game_state(), committed_save)
+        self.assertEqual(record.journal, committed_journal)
+        self.assertEqual(self.store.get_campaign(campaign_id), committed_campaign)
+
     async def test_discovered_tavern_visit_city_return_and_revisit_survive_resume(self):
         city_id = "fr:city:neverwinter"
         response = await self.http.post(
