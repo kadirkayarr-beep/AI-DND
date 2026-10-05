@@ -1459,9 +1459,31 @@ def create_app(
             if previous is not None:
                 if previous["request_hash"] != request_hash:
                     return response_for("REJECTED", "action_id_conflict")
-                prior = previous.get("legacy_ambient_result") or previous.get("response", {}).get("legacy_ambient_result")
-                if prior is None:
-                    prior = previous["response"]["ambient_event_response"]["result"]
+                try:
+                    if "legacy_ambient_result" in previous:
+                        prior = previous["legacy_ambient_result"]
+                    elif "legacy_ambient_result" in previous["response"]:
+                        prior = previous["response"]["legacy_ambient_result"]
+                    else:
+                        saved = AmbientEventCommandResult.model_validate(
+                            previous["response"]["ambient_event_response"], strict=True,
+                        )
+                        prior = saved.result.model_dump()
+                    # Legacy receipts reserve identity without a complete HTTP
+                    # response. Only validate the fields used by this projection.
+                    if not isinstance(prior, dict) or any(
+                        prior.get(key) is not None and (
+                            not isinstance(prior[key], str) or len(prior[key]) > limit
+                        )
+                        for key, limit in (
+                            ("transition_id", 160), ("canonical_event_id", 36),
+                        )
+                    ):
+                        raise ValueError("Invalid ambient event projection.")
+                except (KeyError, TypeError, ValueError):
+                    raise campaign_http_exception(
+                        CampaignCorruptError("Campaign ambient event response is invalid.")
+                    ) from None
                 # Preserve the locked event owner's ALREADY_APPLIED projection.
                 return response_for("ALREADY_APPLIED", "event_already_resolved",
                                     prior.get("transition_id"), prior.get("canonical_event_id"))
