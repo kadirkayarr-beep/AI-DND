@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import game
+from combat_lifecycle import CombatRequestError
 from pathlib import Path
 import tempfile
 import unittest
@@ -18,15 +19,26 @@ class CombatV2(unittest.TestCase):
     def setUp(self):
         self.session = game.create_session()
         self.session.character.update(current_hp=30, max_hp=30, armor_class=12,
-                                      strength_mod=2, dexterity_mod=2, proficiency_bonus=2)
+                                      strength=14, dexterity=14,
+                                      strength_mod=2, dexterity_mod=2, proficiency_bonus=2,
+                                      weapon_proficiencies=['longsword'],
+                                      weapon_masteries=[], conditions=[])
         self.w = self.session.world_state
         self.w.update(location='tavern', npcs=[], player_combat_status='active')
+        self.w['inventory'] = ['Macera çantası', 'Kılıç']
+        self.w['equipment'] = {'main_hand': 'longsword', 'off_hand': None}
         self.npc = {'id': 'npc_test', 'name': 'Sentinel', 'role': 'guard',
                     'location': 'tavern', 'max_hp': 100, 'current_hp': 100,
                     'armor_class': 10, 'combat_status': 'active',
                     'attack_bonus': 2, 'damage_die': 6, 'damage_dice': 2,
-                    'damage_modifier': 3, 'memory': []}
+                    'damage_modifier': 3, 'memory': [],
+                    # Authored fixture distance, never an engine fallback.
+                    'distance_ft': 5, 'attack_damage_type': 'slashing'}
         self.w['npcs'].append(self.npc)
+        # Distance alone does not prove the enemy can perceive its target.
+        self.w['monster_perception'] = {
+            self.npc['id']: {'player': {'visible': True}},
+        }
 
     @contextlib.contextmanager
     def rolls(self, *expected, session=None):
@@ -109,7 +121,10 @@ class CombatV2(unittest.TestCase):
         self.npc['damage_modifier'] = -20
         with self.rolls((20, 15), (6, 1), (6, 1)):
             result = self.session.resolve_enemy_attack(self.npc)
-        self.assertEqual(result['damage'], 1)
+        # Negative modifiers cannot heal the target; PHB damage floors at zero.
+        self.assertEqual(result['damage'], 0)
+        self.assertEqual((result['target_hp_before'], result['target_hp_after']), (18, 18))
+        self.assertEqual(self.session.character['current_hp'], 18)
 
     def test_E_enemy_miss(self):
         with self.rolls((20, 2)):
@@ -130,11 +145,13 @@ class CombatV2(unittest.TestCase):
         self.assertEqual((result['outcome'], result['critical'], result['damage']), ('critical_hit', True, 17))
         self.assertEqual((result['target_hp_before'], result['target_hp_after']), (30, 13))
 
-    def test_H_player_knocks_out_npc(self):
+    def test_H_player_lethal_damage_kills_npc(self):
         self.npc['current_hp'] = 1
         with self.rolls((20, 15), (20, 5), (20, 15), (8, 4)):
             result = self.attack()
-        self.assertEqual(self.npc['combat_status'], 'unconscious')
+        self.assertEqual(self.npc['combat_status'], 'dead')
+        self.assertEqual(self.npc['current_hp'], 0)
+        self.assertEqual(result['target_status'], 'dead')
         self.assertNotIn('enemy_action', result)
         self.assertEqual(result['end_reason'], 'target_defeated')
         self.assertFalse(result['combat']['active'])
@@ -147,13 +164,15 @@ class CombatV2(unittest.TestCase):
             (20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5),
             (20, 10), (20, 1), (20, 1),
             (20, 10), (20, 1), (20, 1),
-            (20, 10), (20, 1), (20, 1),
+            # Stabilization schedules recovery with an owned 1d4-hour roll.
+            (20, 10), (4, 2), (20, 1), (20, 1),
         ):
             result = self.attack()
         self.assertEqual(self.session.character['current_hp'], 0)
         self.assertEqual(self.w['player_combat_status'], 'unconscious')
         self.assertEqual(result['enemy_action']['target_hp_before'], 2)
         self.assertTrue(self.w['death_state']['stable'])
+        self.assertEqual(self.w['death_state']['recovery']['hours'], 2)
         self.assertTrue(result['combat']['active'])
         death_saves = [
             action for action in result['enemy_actions']
@@ -243,11 +262,15 @@ class CombatV2(unittest.TestCase):
         self.start()
         self.session.commit_location_change('tavern')
         self.assertTrue(self.w['combat']['active'])
-        result = self.session.execute_intent({'intent': 'travel', 'target': {'reference': 'forest'},
-                                              'completion': 'completed'}, 'ormana gidiyorum')
+        before = copy.deepcopy((self.w, self.session.character, self.session.rng.getstate()))
+        with self.rolls(), self.assertRaises(CombatRequestError) as rejected:
+            self.session.execute_intent({'intent': 'travel', 'target': {'reference': 'forest'},
+                                         'completion': 'completed'}, 'ormana gidiyorum')
+        self.assertEqual(rejected.exception.code, 'combat_travel')
+        self.assertEqual(rejected.exception.status_code, 400)
         self.assertEqual(self.w['location'], 'tavern')
         self.assertTrue(self.w['combat']['active'])
-        self.assertEqual(result['outcome'], 'unsupported_combat_action')
+        self.assertEqual((self.w, self.session.character, self.session.rng.getstate()), before)
 
     def test_R_incapacitated(self):
         for hp, status in [(0, 'active'), (10, 'unconscious')]:
@@ -262,7 +285,8 @@ class CombatV2(unittest.TestCase):
     def test_S_qwen_npc_mechanics(self):
         before = copy.deepcopy(self.npc)
         fields = ['max_hp', 'current_hp', 'armor_class', 'combat_status',
-                  'attack_bonus', 'damage_die', 'damage_dice', 'damage_modifier']
+            'attack_bonus', 'damage_die', 'damage_dice', 'damage_modifier',
+            'distance_ft', 'attack_damage_type']
         updates = {'update_npcs': [dict(id=self.npc['id'], **dict.fromkeys(fields, 999))]}
         self.session.merge_world_updates(self.session.validate_world_updates(updates))
         self.assertEqual(self.npc, before)
@@ -296,11 +320,13 @@ class CombatV2(unittest.TestCase):
         self.assertEqual(self.npc['memory'], [])
         self.assertIn('ıskalar', result['narration'])
 
-    def test_W_combat_narration_and_duplicate_guard(self):
+    def test_W_single_end_combat_definition(self):
         import ast
         tree = ast.parse(SOURCE.read_text(encoding='utf-8-sig'))
         self.assertEqual(sum(isinstance(n, ast.FunctionDef) and n.name == 'end_combat'
                              for n in ast.walk(tree)), 1)
+
+    def test_W_npc_death_narration(self):
         self.npc['current_hp'] = 1
         with self.rolls((20, 15), (20, 5), (20, 20), (8, 3), (8, 4)):
             result = self.attack()
@@ -311,9 +337,15 @@ class CombatV2(unittest.TestCase):
             result,
             session=self.session,
         )
+        self.assertEqual(result['target_status'], 'dead')
+        self.assertEqual(self.npc['combat_status'], 'dead')
         self.assertIn('kritik', narration)
-        self.assertIn('bilincini kaybeder', narration)
         self.assertEqual(self.npc['memory'], [])
+        # Preserve the outcome-narration contract under Policy A, even if
+        # production omits the death sentence. Never turn this into an xfail.
+        self.assertIn('ölür', narration)
+
+    def test_W_player_unconscious_narration(self):
         result = {'action': 'attack', 'outcome': 'hit', 'target_name': 'Sentinel', 'damage': 4,
                   'target_status': 'active', 'enemy_action': {'outcome': 'critical_hit', 'damage': 9},
                   'combat': {'player_combat_status': 'unconscious'}}
@@ -423,9 +455,11 @@ class CombatV2(unittest.TestCase):
             'location': 'tavern', 'max_hp': 50, 'current_hp': 50,
             'armor_class': 10, 'combat_status': 'active', 'hostile': True,
             'attack_bonus': 0, 'damage_die': 6, 'damage_dice': 1,
-            'damage_modifier': 0, 'memory': [],
+            'damage_modifier': 0, 'memory': [], 'distance_ft': 5,
+            'attack_damage_type': 'piercing',
         }
         self.w['npcs'].append(archer)
+        self.w['monster_perception'][archer['id']] = {'player': {'visible': True}}
 
         with self.rolls(
             (20, 10), (20, 10), (20, 10),
@@ -562,4 +596,5 @@ class CombatV2(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2, failfast=True)
+    # A real contract failure must not conceal later retained assertions.
+    unittest.main(verbosity=2)

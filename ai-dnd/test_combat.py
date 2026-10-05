@@ -176,8 +176,8 @@ def run_tests():
     finally:
         game.roll_d20 = original_roll
 
-    # Test E: Zero HP -> unconscious
-    print("\nTEST E: Zero HP -> unconscious")
+    # Test E: Policy A: ordinary lethal NPC damage at zero HP means dead.
+    print("\nTEST E: Zero HP from lethal NPC damage -> dead")
     reset_world_state()
     npc = add_npc("Test", "Dummy", hp=5, ac=5, combat=True)
     original_roll = game.roll_d20
@@ -193,10 +193,10 @@ def run_tests():
         print(f"  Target HP: {result['target_hp_before']} -> {result['target_hp_after']}")
         print(f"  Status: {result['target_status']}")
         assert result['target_hp_after'] == 0, f"HP should be 0, got {result['target_hp_after']}"
-        assert result['target_status'] == 'unconscious', "Should be unconscious"
+        assert result['target_status'] == 'dead', "Lethal NPC damage should kill"
         assert result["damage"] == 16
         assert npc["current_hp"] == 0
-        assert npc["combat_status"] == "unconscious"
+        assert npc["combat_status"] == "dead"
         print("  PASS")
     finally:
         game.roll_d20 = original_roll

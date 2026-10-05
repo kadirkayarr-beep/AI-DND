@@ -49,6 +49,18 @@ locked result. Use the actual campaign save/resume envelope for RNG restart
 claims; a bare engine JSON snapshot is not equivalent evidence. Keep the
 starting dirty production state distinguishable from changes made by verification.
 
+Fixture reconciliation must distinguish authored prerequisites from an owner's
+missing output. A test may supply known geometry, perception, equipment, and
+damage provenance; it must not fabricate a migration-owned identity or accept
+missing mortality narration just to restore a green release check.
+
+**Why:** Early prerequisite failures can conceal genuine later contracts, so
+making the first scenario pass is not evidence that the suite is trustworthy.
+
+**How to apply:** Run all retained scenarios without fail-fast; keep independent
+assertion groups reachable and report genuine remaining failures separately
+from corrected fixture assumptions.
+
 Retain combined legacy/API regression evidence in both selector orders when
 changing shared model-mock ownership. A passing isolated run does not turn a
 failed combined invocation into passing evidence.
