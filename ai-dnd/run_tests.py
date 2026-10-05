@@ -5,9 +5,12 @@ from pathlib import Path
 import subprocess
 import sys
 
+from test_definition_preflight import check_test_definitions
+
 
 ROOT = Path(__file__).resolve().parent
 TESTS = (
+    "test_definition_preflight_checks.py",
     "test_ai_pipeline_port.py",
     "test_ai_pipeline_semantics.py",
     "test_startup.py",
@@ -30,6 +33,13 @@ TESTS = (
 
 
 def main():
+    errors = check_test_definitions(ROOT / test_name for test_name in TESTS)
+    if errors:
+        print("TEST DEFINITION PREFLIGHT FAILED:", file=sys.stderr)
+        for error in errors:
+            print(error, file=sys.stderr)
+        return 1
+
     failures = []
     for test_name in TESTS:
         print(f"\n=== {test_name} ===", flush=True)
