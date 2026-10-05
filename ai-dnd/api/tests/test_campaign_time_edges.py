@@ -1976,11 +1976,17 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(manager.get_turn_action(restored_record, request["action_id"]), receipt)
 
     async def test_interrupted_rest_combat_exit_failed_save_rolls_back_then_reopens_retries_and_replays(self):
+        await self.assert_interrupted_rest_exit_save_failure(window_expired=False)
+
+    async def test_expired_interrupted_rest_combat_exit_failed_save_rolls_back_then_reopens_retries_and_replays(self):
+        await self.assert_interrupted_rest_exit_save_failure(window_expired=True)
+
+    async def assert_interrupted_rest_exit_save_failure(self, *, window_expired):
         record = self.manager.get(self.sid)
         session = record.game_session
         session.character.update(
             species="Orc", race="Orc", level=1, proficiency_bonus=2,
-            current_hp=7, max_hp=19, cantrips=["Fire Bolt"],
+            current_hp=7, max_hp=19, armor_class=30, cantrips=["Fire Bolt"],
             spells=["Magic Missile", "Shield"], **{"class": "Wizard"},
         )
         game.initialize_species_trait_state(session=session)
@@ -1993,9 +1999,20 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         npc = session.create_npc_from_ai({"name": "Rakip", "role": "Guard", "location": "tavern"})
         npc.update(current_hp=10, max_hp=10, armor_class=10, hostile=True, distance_ft=5)
         session.world_state.setdefault("monster_perception", {})[npc["id"]] = {"player": {"visible": True}}
+        session.world_state["attack_environment"] = {"pairs": {
+            "player|" + npc["id"]: {
+                "distance_ft": 5, "attacker_sees_target": True,
+                "target_sees_attacker": True, "cover": "none",
+            },
+            npc["id"] + "|player": {
+                "distance_ft": 5, "attacker_sees_target": True,
+                "target_sees_attacker": True, "cover": "none",
+            },
+        }}
         if not session.find_weapon_in_inventory("Kılıç")[0]:
             session.world_state["inventory"].append({"name": "Kılıç"})
-        event(session, "rest-exit-stop", 1200, 1800, behavior="INTERRUPTIVE",
+        window_end = 1212 if window_expired else 1800
+        event(session, "rest-exit-stop", 1200, window_end, behavior="INTERRUPTIVE",
               requires_decision=True, combat_npc_id=npc["id"],
               summary="A rival interrupts the rest.", effects=[flag("rest_exit_encounter")])
         campaign_id = self.created["campaign_id"]
@@ -2009,15 +2026,57 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(rest_response["result"]["effects"]["time_result"]["interrupted"])
         self.assertEqual(rest_response["result"]["effects"]["time_result"]["remaining_seconds"],
                          8 * 3600 - 1200)
+        canonical = copy.deepcopy(session.world_state["scheduled_events"][0]["canonical_result"])
+        self.assertEqual(canonical, {"resolved_at": 1200, "effects_applied": 1})
         partial_clock = copy.deepcopy(session.world_state["campaign_time"])
         fight_request = {"message": "Savaşmayı seçiyorum.", "action_id": str(uuid4())}
         with patch("game.roll_initiative_player", return_value=20), \
-             patch("game.roll_initiative", return_value=1):
+             patch("game.roll_initiative", return_value=1), \
+             patch.object(events, "_occur", side_effect=AssertionError("Fight reapplied event effects")):
             fight = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=fight_request)
         self.assertEqual(fight.status_code, 200, fight.text)
+        prior_requests = [rest_request, fight_request]
+        if window_expired:
+            initial_round = session.world_state["combat"]["round"]
+            # Cross the window using actual API combat rounds, not clock edits.
+            for completed_rounds in range(1, 4):
+                active_combat = session.world_state["combat"]
+                round_request = {
+                    "message": "End this combat turn.", "action_id": str(uuid4()),
+                    "combat_id": active_combat["combat_id"],
+                    "combat_round": active_combat["round"],
+                    "combat_turn_index": active_combat["current_turn_index"],
+                    "combat_action": {"steps": [{"kind": "end_turn"}]},
+                }
+                with patch("game.roll_attack", return_value=1), \
+                     patch("game.roll_d20", return_value=1), \
+                     patch.object(events, "_occur", side_effect=AssertionError("Round reapplied event effects")), \
+                     patch.object(session, "resolve_species_trait_action",
+                                  side_effect=AssertionError("Round completed the interrupted rest")):
+                    advanced = await self.http.post(
+                        f"/api/game/sessions/{self.sid}/turn", json=round_request,
+                    )
+                self.assertEqual(advanced.status_code, 200, advanced.text)
+                self.assertEqual(session.world_state["combat"]["round"], initial_round + completed_rounds)
+                self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"],
+                                 1200 + 6 * completed_rounds)
+                self.assertEqual(session.character["current_hp"], 7)
+                self.assertEqual(session.character["species_trait_state"],
+                                 {**traits, "player_turn_counter": completed_rounds})
+                self.assertEqual(session.world_state["spellcasting_v1"]["slots"], spells["slots"])
+                self.assertEqual(session.world_state["scheduled_events"][0]["canonical_result"], canonical)
+                self.assertTrue(advanced.json()["state"]["pending_event_decisions"][0]["in_combat"])
+                self.assertEqual(self.store.get_campaign(campaign_id).payload["engine_save"],
+                                 session.serialize_game_state())
+                prior_requests.append(round_request)
+            # Turn counters/slot bookkeeping may change in combat; resources stay depleted.
+            traits = copy.deepcopy(session.character["species_trait_state"])
+            spells = copy.deepcopy(session.world_state["spellcasting_v1"])
+            partial_clock = copy.deepcopy(session.world_state["campaign_time"])
+            self.assertGreater(partial_clock["elapsed_seconds"], window_end)
         prior_receipts = {
             request["action_id"]: copy.deepcopy(self.store.get_turn_action(campaign_id, request["action_id"]))
-            for request in (rest_request, fight_request)
+            for request in prior_requests
         }
         combat = copy.deepcopy(session.world_state["combat"])
 
@@ -2029,16 +2088,20 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(world["spellcasting_v1"], spells)
             self.assertEqual(world["spellcasting_v1"]["slots"]["1"], 0)
             self.assertEqual(world["campaign_time"], partial_clock)
-            self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1200)
+            self.assertEqual(world["campaign_time"]["elapsed_seconds"], 1218 if window_expired else 1200)
+            if window_expired:
+                self.assertGreater(world["campaign_time"]["elapsed_seconds"], window_end)
+            self.assertEqual(len(world["scheduled_events"]), 1)
             pending = events.pending_events(world)
             self.assertEqual(len(pending), 1)
             item = pending[0]
             self.assertEqual(item["event_id"], "rest-exit-stop")
             self.assertEqual(item["status"], "OCCURRED")
+            self.assertEqual(item["encounter_status"], "OBSERVED")
             self.assertEqual(item["decision_status"], status)
             self.assertEqual(item["player_decision"], "")
             self.assertEqual(item["combat_npc_id"], npc["id"])
-            self.assertEqual(item["canonical_result"]["effects_applied"], 1)
+            self.assertEqual(item["canonical_result"], canonical)
             self.assertTrue(world["flags"]["scheduled:rest_exit_encounter"])
             self.assertEqual(world["combat"]["active"], status == "IN_COMBAT")
             self.assertEqual(events.public_pending(world)[0]["in_combat"], status == "IN_COMBAT")
@@ -2079,6 +2142,9 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             raise CampaignStorageError("test interrupted rest combat exit autosave failure")
 
         with patch("game.roll_attack", return_value=20), patch("game.roll_damage", return_value=100), \
+             patch.object(events, "_occur", side_effect=AssertionError("Failed exit reapplied event effects")), \
+             patch.object(session, "resolve_species_trait_action",
+                          side_effect=AssertionError("Failed exit completed the interrupted rest")), \
              patch.object(events, "combat_finished", wraps=events.combat_finished) as finish, \
              patch.object(self.store, "save_campaign", side_effect=reject_exit) as save:
             failed = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=request)
@@ -2109,6 +2175,7 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             stored_before = store.get_campaign(campaign_id)
             with patch.object(active, "run_player_turn",
                               side_effect=AssertionError("Replay executed another turn")), \
+                 patch.object(events, "_occur", side_effect=AssertionError("Replay reapplied event effects")), \
                  patch.object(events, "combat_finished",
                               side_effect=AssertionError("Replay returned the event to pending again")), \
                  patch.object(active, "resolve_species_trait_action",
@@ -2137,13 +2204,15 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                             ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
-            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            with patch.object(events, "_occur", side_effect=AssertionError("Resume reapplied event effects")):
+                resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
             self.assertEqual(resumed.status_code, 200, resumed.text)
             sid = resumed.json()["session_id"]
             restored_record = manager.get(sid)
             restored = restored_record.game_session
             self.assertIsNot(restored, session)
             self.assertEqual(restored.serialize_game_state(), before)
+            self.assertEqual(restored.rng.getstate(), rng)
             assert_rest_unfinished(restored.character, restored.world_state, "IN_COMBAT")
             self.assertEqual(restored_record.combat_history, history)
             self.assertEqual(reopened_store.get_campaign(campaign_id).history, stored.history)
@@ -2151,6 +2220,7 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(reopened_store.get_turn_action(campaign_id, request["action_id"]))
             with patch("game.roll_attack", return_value=20) as attack, \
                  patch("game.roll_damage", return_value=100) as damage, \
+                 patch.object(events, "_occur", side_effect=AssertionError("Retry reapplied event effects")), \
                  patch.object(events, "combat_finished", wraps=events.combat_finished) as finish, \
                  patch.object(restored, "resolve_species_trait_action",
                               side_effect=AssertionError("Combat exit completed the interrupted rest")), \
@@ -2184,7 +2254,8 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
                                      base_url="http://test") as http:
-            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            with patch.object(events, "_occur", side_effect=AssertionError("Reload reapplied event effects")):
+                resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
             self.assertEqual(resumed.status_code, 200, resumed.text)
             sid = resumed.json()["session_id"]
             reloaded_record = replay_manager.get(sid)
