@@ -1203,6 +1203,44 @@ class ContractParityTests(unittest.TestCase):
                         f"{schema_name}.{field_name}.{constraint}",
                     )
 
+    def test_campaign_history_item_references_match_runtime_models(self):
+        for schema_name, model in (
+            ("CampaignDetail", CampaignDetailResponse),
+            ("CampaignSession", CampaignSessionResponse),
+        ):
+            runtime_properties = model.model_json_schema(
+                ref_template="#/components/schemas/{model}"
+            )["properties"]
+            for field_name, entry_model in (
+                ("history", CampaignHistoryEntry),
+                ("combat_history", CombatHistoryEntry),
+            ):
+                with self.subTest(schema=schema_name, field=field_name):
+                    runtime = runtime_properties[field_name]
+                    published = _property(schema_name, field_name)
+                    self.assertEqual(_schema_types(published), _schema_types(runtime))
+                    self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                    published_items = _mapping(
+                        published.get("items"), f"{schema_name}.{field_name}.items"
+                    )
+                    runtime_items = runtime["items"]
+                    self.assertEqual(
+                        _schema_types(published_items), _schema_types(runtime_items)
+                    )
+                    self.assertEqual(
+                        _is_nullable(published_items), _is_nullable(runtime_items)
+                    )
+                    expected = _schema_references(runtime_items)
+                    self.assertEqual(
+                        expected, {f"#/components/schemas/{entry_model.__name__}"},
+                        f"Runtime {schema_name}.{field_name} items must reference "
+                        f"{entry_model.__name__}",
+                    )
+                    self.assertEqual(
+                        _schema_references(published_items), expected,
+                        f"{schema_name}.{field_name}.items reference target",
+                    )
+
     def test_saved_combat_history_references_match_runtime_models(self):
         fields = (
             ("CombatHistoryEntry", CombatHistoryEntry, "result", CombatTurnResult),
@@ -2190,6 +2228,65 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         failure,
                     )
 
+    def test_campaign_history_wrong_item_references_fail_in_both_formats(self):
+        for schema_name in ("CampaignDetail", "CampaignSession"):
+            for field_name, wrong_models in (
+                ("history", ("CombatHistoryEntry", "CampaignSummary")),
+                ("combat_history", ("CampaignHistoryEntry", "CombatTurnResult")),
+            ):
+                original = _property(schema_name, field_name)
+                for wrong_model in wrong_models:
+                    for flow_style in (False, True):
+                        with self.subTest(
+                            schema=schema_name, field=field_name,
+                            replacement=wrong_model, compact=flow_style,
+                        ):
+                            self.assertIn(wrong_model, SPEC["components"]["schemas"])
+                            spec = deepcopy(SPEC)
+                            field = spec["components"]["schemas"][schema_name][
+                                "properties"
+                            ][field_name]
+                            field["items"]["$ref"] = f"#/components/schemas/{wrong_model}"
+                            text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                            parsed = _load_spec(text)
+                            self.assertEqual(parsed, spec)
+                            mutated = parsed["components"]["schemas"][schema_name][
+                                "properties"
+                            ][field_name]
+                            for before, after in (
+                                (original, mutated),
+                                (original["items"], mutated["items"]),
+                            ):
+                                self.assertEqual(_schema_types(after), _schema_types(before))
+                                self.assertEqual(_is_nullable(after), _is_nullable(before))
+                            # Only the item target changed, not the surrounding
+                            # schema, field inventory or route bindings.
+                            restored = deepcopy(parsed)
+                            restored["components"]["schemas"][schema_name]["properties"][
+                                field_name
+                            ]["items"]["$ref"] = original["items"]["$ref"]
+                            self.assertEqual(restored, SPEC)
+                            with patch.dict(globals(), SPEC=parsed):
+                                inventory = unittest.TestResult()
+                                ContractParityTests(
+                                    "test_campaign_and_session_schema_fields_match_fastapi_models"
+                                ).run(inventory)
+                                self.assertTrue(
+                                    inventory.wasSuccessful(),
+                                    inventory.failures + inventory.errors,
+                                )
+                                result = unittest.TestResult()
+                                ContractParityTests(
+                                    "test_campaign_history_item_references_match_runtime_models"
+                                ).run(result)
+                            self.assertEqual(result.testsRun, 1)
+                            self.assertEqual(result.errors, [], result.errors)
+                            self.assertEqual(len(result.failures), 1, result.failures)
+                            self.assertIn(
+                                f"{schema_name}.{field_name}.items reference target",
+                                result.failures[0][1],
+                            )
+
     def test_saved_combat_history_wrong_references_fail_in_both_formats(self):
         fields = (
             ("CombatHistoryEntry", "result", ("CombatAttackResult", "GameSession")),
@@ -2233,7 +2330,12 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         )
                         restored_target["$ref"] = original_target["$ref"]
                         self.assertEqual(restored, SPEC)
-                        result = self._parity_result(parsed)
+                        with patch.dict(globals(), SPEC=parsed):
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_saved_combat_history_references_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
                         self.assertEqual(result.errors, [], result.errors)
                         self.assertEqual(len(result.failures), 1, result.failures)
                         failed_test, failure = result.failures[0]

@@ -69,3 +69,14 @@ duplicated tails can look like a valid continuation of another test.
 
 **How to apply:** Compare complete test bodies in the source before removing
 fragments, then check syntax and definition uniqueness together.
+
+Reference-mutation tests that require exactly one failure should run their
+owning parity check directly rather than assume the whole suite has only one
+check capable of detecting the drift.
+
+**Why:** Adding independent collection-reference coverage can legitimately
+produce a second failure for an existing mutation without weakening either
+check.
+
+**How to apply:** Keep the full suite as the baseline acceptance check, but
+isolate the target parity method when asserting an exact mutation failure count.
