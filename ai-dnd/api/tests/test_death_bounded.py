@@ -675,7 +675,19 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
     async def test_ironman_fatal_death_save_terminal_on_http_replay_after_reopen(self):
         await self._assert_accepted_fatal_death_save_replay_after_reopen("IRONMAN")
 
-    async def _assert_accepted_fatal_death_save_replay_after_reopen(self, mode):
+    async def test_normal_fatal_death_save_conflict_after_reopen_preserves_rollback(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "NORMAL", reject_changed_message=True,
+        )
+
+    async def test_ironman_fatal_death_save_conflict_after_reopen_preserves_terminal_death(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "IRONMAN", reject_changed_message=True,
+        )
+
+    async def _assert_accepted_fatal_death_save_replay_after_reopen(
+        self, mode, *, reject_changed_message=False,
+    ):
         import random
         import uuid
         import httpx
@@ -816,6 +828,40 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 reopened_store.get_turn_action(a["campaign_id"], request["action_id"]),
                 receipt,
             )
+            if reject_changed_message:
+                changed_request = {**request, "message": "1 saat bekle."}
+                with patch.object(
+                    restored, "run_player_turn",
+                    side_effect=AssertionError("Conflict must not run the engine"),
+                ) as engine, patch(
+                    "game.roll_d20",
+                    side_effect=AssertionError("Conflict must not reroll"),
+                ) as reroll, patch.object(
+                    restored.rng, "randint",
+                    side_effect=AssertionError("Conflict must not roll any dice"),
+                ) as rng_roll, patch.object(
+                    reopened_store, "save_campaign",
+                    side_effect=AssertionError("Conflict must not write the campaign"),
+                ) as save:
+                    rejected = await http.post(
+                        f"/api/game/sessions/{session_id}/turn", json=changed_request,
+                    )
+                    self.assertEqual(rejected.status_code, 409, rejected.text)
+                    self.assertEqual(rejected.json(), {"detail": {
+                        "code": "action_id_conflict",
+                        "message": "This action ID was already used for a different turn.",
+                    }})
+                    for forbidden in (engine, reroll, rng_roll, save):
+                        forbidden.assert_not_called()
+                assert_mode_outcome(restored)
+                self.assertEqual(restored.serialize_game_state(), committed_state)
+                self.assertEqual(restored.rng.getstate(), committed_rng)
+                self.assertEqual(reopened_store.get_campaign(a["campaign_id"]),
+                                 stored_before_replay)
+                self.assertEqual(
+                    reopened_store.get_turn_action(a["campaign_id"], request["action_id"]),
+                    receipt,
+                )
             with patch.object(
                 restored, "run_player_turn",
                 side_effect=AssertionError("Receipt replay must not run the engine"),
