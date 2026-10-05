@@ -511,6 +511,181 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 len(self.store.get_campaign(created["campaign_id"]).history), 3
             )
 
+    async def test_discovered_tavern_visit_and_city_return_survive_resume(self):
+        city_id = "fr:city:neverwinter"
+        response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        created = response.json()
+        campaign_id = created["campaign_id"]
+        session = self.manager.get(created["session_id"]).game_session
+        url = f"/api/game/sessions/{created['session_id']}/turn"
+        results = []
+
+        # Keep the real engine and HTTP save path; capture only the internal
+        # action result, which the public TurnResponse does not expose.
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        search_body = {
+            "message": "Yakınlarda bir taverna arıyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        enter_body = {
+            "message": "Enter the tavern.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            search = await self.http.post(url, json=search_body)
+            self.assertEqual(search.status_code, 200, search.text)
+            self.assertEqual(results[-1]["action"], "local_search")
+            self.assertEqual(results[-1]["status"], "found")
+            tavern_id = results[-1]["target_id"]
+            self.assertEqual(search.json()["state"]["location"], city_id)
+            city_visits = session.world_state["scene_state"]["scenes"][city_id][
+                "visit_revision"
+            ]
+
+            enter = await self.http.post(url, json=enter_body)
+            self.assertEqual(enter.status_code, 200, enter.text)
+            self.assertEqual(results[-1]["action"], "enter")
+            self.assertEqual(results[-1]["status"], "completed")
+            self.assertEqual(results[-1]["target_id"], tavern_id)
+            self.assertEqual(enter.json()["state"]["location"], tavern_id)
+
+        entered_world = session.world_state
+        tavern = entered_world["locations"][tavern_id]
+        self.assertEqual(tavern["scene_kind"], "tavern")
+        self.assertEqual(tavern["parent_location_id"], city_id)
+        self.assertEqual(tavern["exit_location_id"], city_id)
+        self.assertEqual(
+            sum(
+                location.get("scene_kind") == "tavern"
+                and location.get("parent_location_id") == city_id
+                for location in entered_world["locations"].values()
+            ),
+            1,
+        )
+        tavern_visits = entered_world["scene_state"]["scenes"][tavern_id][
+            "visit_revision"
+        ]
+        self.assertGreater(tavern_visits, 0)
+        self.assertEqual(
+            entered_world["scene_state"]["player_position"]["location_id"],
+            tavern_id,
+        )
+        entered_save = copy.deepcopy(session.serialize_game_state())
+        self.assertEqual(
+            self.store.get_campaign(campaign_id).payload["engine_save"],
+            entered_save,
+        )
+
+        # A new manager/store must restore the venue and its visit, not
+        # reconstruct a second local tavern when the player exits.
+        reloaded_store = CampaignStore(self.store.path)
+        reloaded_manager = SessionManager(campaign_store=reloaded_store)
+        reloaded_app = create_app(
+            session_manager=reloaded_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reloaded_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(resumed.json()["state"], enter.json()["state"])
+            session_id = resumed.json()["session_id"]
+            loaded = reloaded_manager.get(session_id).game_session
+            self.assertEqual(loaded.serialize_game_state(), entered_save)
+            resumed_world = loaded.world_state
+            self.assertEqual(resumed_world["locations"][tavern_id], tavern)
+            self.assertEqual(
+                resumed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
+                tavern_visits,
+            )
+            self.assertEqual(
+                resumed_world["scene_state"]["player_position"]["location_id"],
+                tavern_id,
+            )
+            locations_before_exit = copy.deepcopy(resumed_world["locations"])
+            exit_body = {
+                "message": "Tavernadan dışarı çıkıyorum.",
+                "action_id": str(uuid.uuid4()),
+            }
+            real_exit = loaded.run_player_turn
+            exit_results = []
+
+            @wraps(real_exit)
+            def capture_exit(*args, **kwargs):
+                result = real_exit(*args, **kwargs)
+                exit_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            turn_url = f"/api/game/sessions/{session_id}/turn"
+            with patch.object(loaded, "run_player_turn", new=capture_exit):
+                exit_response = await http.post(turn_url, json=exit_body)
+            self.assertEqual(exit_response.status_code, 200, exit_response.text)
+            self.assertEqual(exit_results[0]["action"], "exit")
+            self.assertEqual(exit_results[0]["status"], "completed")
+            self.assertEqual(exit_results[0]["target_id"], city_id)
+            self.assertEqual(exit_response.json()["state"]["location"], city_id)
+            self.assertEqual(resumed_world["locations"], locations_before_exit)
+            self.assertEqual(
+                resumed_world["scene_state"]["player_position"]["location_id"],
+                city_id,
+            )
+            self.assertEqual(
+                resumed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
+                tavern_visits,
+            )
+            self.assertEqual(
+                resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
+                city_visits + 1,
+            )
+            exited_save = copy.deepcopy(loaded.serialize_game_state())
+            self.assertEqual(
+                reloaded_store.get_campaign(campaign_id).payload["engine_save"],
+                exited_save,
+            )
+
+            # All three receipts must replay historical responses, even though
+            # the current location is now different from the search/enter turns.
+            with patch.object(
+                loaded, "run_player_turn",
+                side_effect=AssertionError("Receipt replay must not execute a turn"),
+            ):
+                for body, original in (
+                    (search_body, search),
+                    (enter_body, enter),
+                    (exit_body, exit_response),
+                ):
+                    replay = await http.post(turn_url, json=body)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(
+                        replay.json(), {**original.json(), "session_id": session_id}
+                    )
+                    self.assertEqual(loaded.serialize_game_state(), exited_save)
+            self.assertEqual(
+                reloaded_store.get_campaign(campaign_id).payload["engine_save"],
+                exited_save,
+            )
+            self.assertEqual(len(reloaded_store.get_campaign(campaign_id).history), 3)
+
     async def test_selected_npc_identity_query_is_deterministic(self):
         created_response = await self.http.post(
             "/api/game/campaigns",
