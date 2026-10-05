@@ -391,19 +391,131 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_failed_fatal_turn_persistence_restores_engine_and_rng(self):
         import uuid
+        from api.lore_authority.models import CampaignLoreState
+
         a = await self.create_campaign()
-        s = self.manager.get(a["session_id"]).game_session
+        b = await self.create_campaign()
+        record = self.manager.get(a["session_id"])
+        other = self.manager.get(b["session_id"])
+        s = record.game_session
+        s.ensure_death_state()["mode"] = "NORMAL"
+        timestamp = "2026-01-01T00:00:00+00:00"
+        quest_id = str(uuid.uuid4())
+        record.journal["quests"].append({
+            "quest_id": quest_id, "title": "Find the lost map",
+            "description": "Recover the map before leaving town.",
+            "status": "active", "giver_npc_id": None,
+            "objectives": [{
+                "objective_id": str(uuid.uuid4()),
+                "description": "Find the map.", "status": "active",
+            }],
+            "created_at": timestamp, "updated_at": timestamp,
+            "completed_at": None,
+        })
+        record.narrative_memory["quest_memory"][quest_id] = {
+            "quest_id": quest_id, "title": "Find the lost map",
+            "authority": "canonical",
+        }
+        record.narrative_memory["story_summary"]["player_history"] = [{
+            "text": "The map is still missing.", "source": "player_message",
+            "authority": "narrative_continuity",
+        }]
+        lore = record.lore_authority.to_dict()
+        lore["player_known_fact_ids"] = ["fact:map:missing"]
+        record.lore_authority = CampaignLoreState.from_mapping(lore)
+        previous_action_id = str(uuid.uuid4())
+        previous_receipt = {
+            "action_id": previous_action_id, "request_hash": "a" * 64,
+            "response": {"action_id": previous_action_id},
+        }
+        self.manager.autosave_turn(
+            record, "Look for the map.", "The search continues.",
+            turn_action_receipt=previous_receipt,
+        )
+        record.turn_action_receipts[previous_action_id] = copy.deepcopy(previous_receipt)
         death_fixtures.start_test_combat(s)
+        checkpoint = copy.deepcopy(s.ensure_death_state()["combat_checkpoint"])
+        self.assertIsNotNone(checkpoint)
+        checkpoint_campaign = checkpoint["campaign_state"]
+
+        # Progress earned after the checkpoint must survive a failed save,
+        # even though the successful Normal-mode death rollback would undo it.
+        quest = record.journal["quests"][0]
+        quest.update(status="completed", updated_at="2026-01-02T00:00:00+00:00",
+                     completed_at="2026-01-02T00:00:00+00:00")
+        quest["objectives"][0]["status"] = "completed"
+        record.narrative_memory["story_summary"]["player_history"][0]["text"] = "The map was found."
+        record.narrative_memory["quest_memory"][quest_id]["title"] = "The recovered map"
+        lore["player_known_fact_ids"].append("fact:map:found")
+        record.lore_authority = CampaignLoreState.from_mapping(lore)
+        s.messages.append({"role": "user", "content": "I found the map."})
         s._apply_player_damage(s.character["current_hp"], took_damage=True)
+        s.ensure_death_state()["failures"] = 1
         s.ensure_combat_state()
-        before = s.serialize_game_state(), s.rng.getstate()
-        with patch("game.roll_d20", return_value=1), patch(
+        self.manager.save_campaign(a["campaign_id"])
+        request = {
+            "message": "Ölüm kurtarmasını bekliyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+
+        def snapshot(managed):
+            session = managed.game_session
+            return copy.deepcopy({
+                "engine": session.serialize_game_state(),
+                "rng": session.rng.getstate(),
+                "journal": managed.journal,
+                "narrative_memory": managed.narrative_memory,
+                "lore_authority": managed.lore_authority.to_dict(),
+                "world_metadata": session.world_metadata,
+                "messages": session.messages,
+                "receipts": managed.turn_action_receipts,
+                "combat_history": managed.combat_history,
+                "stored_campaign": self.store.get_campaign(managed.campaign_id),
+                "stored_receipt": self.store.get_turn_action(
+                    managed.campaign_id, previous_action_id,
+                ),
+            })
+
+        before, other_before = snapshot(record), snapshot(other)
+        for field in ("journal", "narrative_memory", "lore_authority"):
+            self.assertNotEqual(before[field], checkpoint_campaign[field], field)
+
+        def fatal_roll(*args, **kwargs):
+            # Exercise RNG restoration too, rather than a constant mock that
+            # leaves the pre-request RNG unchanged.
+            s.rng.randint(1, 20)
+            return 1
+
+        def fail_save(campaign_id, session, **kwargs):
+            self.assertEqual(campaign_id, a["campaign_id"])
+            self.assertIs(session, s)
+            resolution = s.ensure_death_state()["last_resolution"]
+            self.assertTrue(resolution["rolled_back"])
+            self.assertEqual(resolution["cause"], "failed_death_saves")
+            self.assertGreater(s.character["current_hp"], 0)
+            self.assertNotEqual(s.rng.getstate(), before["rng"])
+            for field in ("journal", "narrative_memory"):
+                self.assertEqual(getattr(record, field), checkpoint_campaign[field], field)
+                self.assertEqual(kwargs[field], checkpoint_campaign[field], field)
+            self.assertEqual(record.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
+            self.assertEqual(kwargs["lore_authority"].to_dict(), checkpoint_campaign["lore_authority"])
+            self.assertEqual(kwargs["turn_action_receipt"]["action_id"], request["action_id"])
+            raise CampaignStorageError("failure")
+
+        with patch("game.roll_d20", side_effect=fatal_roll) as die, patch(
             "game.resolve_enemy_attack", return_value={"action": "enemy_attack", "outcome": "miss"}
-        ), patch.object(self.store, "save_campaign", side_effect=CampaignStorageError("failure")):
+        ), patch.object(self.store, "save_campaign", side_effect=fail_save) as save:
             response = await self.http.post(f"/api/game/sessions/{a['session_id']}/turn",
-                json={"message": "Ölüm kurtarmasını bekliyorum.", "action_id": str(uuid.uuid4())})
-        self.assertNotEqual(response.status_code, 200)
-        self.assertEqual((s.serialize_game_state(), s.rng.getstate()), before)
+                json=request)
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "campaign_storage_unavailable")
+        self.assertEqual(die.call_count, 1)
+        self.assertEqual(save.call_count, 1)
+        self.assertEqual(snapshot(record), before)
+        self.assertEqual(snapshot(other), other_before)
+        for campaign_id in (a["campaign_id"], b["campaign_id"]):
+            self.assertIsNone(self.store.get_turn_action(campaign_id, request["action_id"]))
+        self.assertNotIn(request["action_id"], record.turn_action_receipts)
 
     async def test_checkpoint_validation_precedes_all_mutation(self):
         a = await self.create_campaign()
