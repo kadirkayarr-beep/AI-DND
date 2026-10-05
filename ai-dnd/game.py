@@ -4420,7 +4420,9 @@ def _combat_narration(result):
     elif enemy.get("outcome") in ("hit", "critical_hit"):
         kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
         text += f" Rakibinin {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
-    if result.get("combat", {}).get("player_combat_status") == "unconscious":
+    if result.get("combat", {}).get("player_combat_status") == "dead":
+        text += " Ölürsün."
+    elif result.get("combat", {}).get("player_combat_status") == "unconscious":
         text += " Bilincini kaybedersin."
     monster_text = {
         "dodge": " Rakibin savunmaya geçer.",

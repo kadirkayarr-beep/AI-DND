@@ -359,6 +359,98 @@ class CombatV2(unittest.TestCase):
         self.assertIn('9 hasar', narration)
         self.assertIn('Bilincini kaybedersin', narration)
 
+    def assert_player_outcome_narration(self, result, expected_status):
+        """Finalization reads the result without changing gameplay or its receipt."""
+        self.assertEqual(result['combat']['player_combat_status'], expected_status)
+        self.assert_snapshot(result)
+        before = copy.deepcopy((self.w, self.session.character, result))
+        rng_before = self.session.rng.getstate()
+        narration = game.finalize_narration(
+            'Rakibin ıskalar; sapasağlamsın.' if expected_status == 'dead'
+            else 'Ölürsün.',
+            'saldırıyorum', self.npc, result, session=self.session,
+        )
+        self.assertIn(f"{result['enemy_action']['damage']} hasar alırsın.", narration)
+        self.assertEqual((self.w, self.session.character, result), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+        if expected_status == 'dead':
+            self.assertIn('Ölürsün.', narration)
+            self.assertNotIn('Bilincini kaybedersin', narration)
+        else:
+            self.assertNotIn('ölür', narration.casefold())
+            if expected_status == 'unconscious':
+                self.assertIn('Bilincini kaybedersin.', narration)
+            else:
+                self.assertNotIn('Bilincini kaybedersin', narration)
+        return narration
+
+    def test_W_fatal_enemy_hit_player_death_narration(self):
+        self.session.character.update(species='Orc', race='Orc',
+                                      current_hp=3, max_hp=19)
+        self.session.initialize_species_trait_state()
+        self.session.ensure_death_state()['mode'] = 'PERMADEATH'
+        self.npc.update(damage_die=12, damage_dice=1, damage_modifier=10)
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (12, 12)):
+            result = self.attack()
+        enemy = result['enemy_action']
+        self.assertEqual((enemy['outcome'], enemy['damage'], enemy['hp_damage']),
+                         ('hit', 22, 22))
+        self.assertEqual(enemy['target_hp_after'], 0)
+        self.assertEqual(enemy['death_resolution']['cause'], 'massive_damage')
+        self.assertEqual(enemy['species_effects'], [])
+        self.assertTrue(self.session.character['species_trait_state'][
+            'relentless_endurance_available'])
+        self.assertFalse(result['combat']['active'])
+        self.assertEqual(self.w['player_combat_status'], 'dead')
+        self.assert_player_outcome_narration(result, 'dead')
+
+    def test_W_enemy_knockout_is_not_narrated_as_death(self):
+        self.session.character['current_hp'] = 2
+        with self.rolls(
+            (20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5),
+            (20, 10), (20, 1), (20, 1),
+            (20, 10), (20, 1), (20, 1),
+            (20, 10), (4, 2), (20, 1), (20, 1),
+        ):
+            result = self.attack()
+        self.assertEqual(result['enemy_action']['target_hp_after'], 0)
+        self.assertTrue(self.w['death_state']['stable'])
+        self.assertFalse(self.w['death_state']['dead'])
+        self.assert_player_outcome_narration(result, 'unconscious')
+
+    def test_W_orc_survival_is_not_narrated_as_death(self):
+        self.session.character.update(species='Orc', race='Orc',
+                                      current_hp=2, max_hp=30)
+        self.session.initialize_species_trait_state()
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (6, 4), (6, 5)):
+            result = self.attack()
+        self.assertEqual(result['enemy_action']['target_hp_after'], 1)
+        self.assertEqual(result['enemy_action']['species_effects'],
+                         [{'trait': 'relentless_endurance', 'current_hp': 1}])
+        self.assertFalse(self.w['death_state']['dead'])
+        self.assert_player_outcome_narration(result, 'active')
+
+    def test_W_temporary_hp_survival_is_not_narrated_as_death(self):
+        self.session.character.update(species='Orc', race='Orc',
+                                      current_hp=3, max_hp=19)
+        self.session.initialize_species_trait_state()
+        self.session.character['species_trait_state']['temporary_hit_points'] = 2
+        self.session.ensure_death_state()['mode'] = 'PERMADEATH'
+        self.npc.update(damage_die=12, damage_dice=1, damage_modifier=10)
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 15), (12, 12)):
+            result = self.attack()
+        enemy = result['enemy_action']
+        # Absorption keeps this otherwise fatal hit below instant death,
+        # allowing the supported Orc trait to keep the player alive.
+        self.assertEqual((enemy['damage'], enemy['temporary_hp_absorbed'],
+                          enemy['hp_damage'], enemy['target_hp_after']),
+                         (22, 2, 20, 1))
+        self.assertEqual(enemy['temporary_hp_after'], 0)
+        self.assertEqual(enemy['species_effects'],
+                         [{'trait': 'relentless_endurance', 'current_hp': 1}])
+        self.assertFalse(self.w['death_state']['dead'])
+        self.assert_player_outcome_narration(result, 'active')
+
     def test_W_npc_lethal_hit_narration(self):
         self.npc['current_hp'] = 1
         with self.rolls((20, 15), (20, 5), (20, 15), (8, 3)):
