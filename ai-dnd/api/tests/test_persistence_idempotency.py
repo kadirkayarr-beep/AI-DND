@@ -18,6 +18,7 @@ from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_spell_scope as spells
 from api.tests import test_campaign_time as clocks
+import json
 
 
 class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
@@ -62,6 +63,106 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             return await asyncio.wait_for(asyncio.gather(
                 *(self.post(a, body) for body in bodies)
             ), timeout=20)
+
+    async def assert_corrupt_saved_receipt_blocks_retry(self, corruption):
+        created = await self.create_campaign()
+        record, command = self.prepare_spell(created)
+        accepted = await self.post(created, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        campaign_id = created["campaign_id"]
+        committed = copy.deepcopy(self.store.get_campaign(campaign_id))
+        receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(receipt["response"], accepted.json())
+        self.assertEqual(len(committed.history), 1)
+
+        if corruption == "hash":
+            # Correct length, but not hexadecimal: not an ordinary request mismatch.
+            sql = "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?"
+            value = "g" * 64
+            expected_status, expected_code = 409, "campaign_unavailable"
+        elif corruption == "json":
+            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            value = '{"action_id":'
+            expected_status, expected_code = 503, "campaign_storage_unavailable"
+        elif corruption == "action_id":
+            sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
+            response = copy.deepcopy(accepted.json())
+            response["action_id"] = str(uuid4())
+            value = json.dumps(response)
+            expected_status, expected_code = 409, "campaign_unavailable"
+        else:
+            self.fail(f"Unknown receipt corruption: {corruption}")
+        with self.store._transaction() as connection:
+            updated = connection.execute(sql, (value, campaign_id, command["action_id"]))
+            self.assertEqual(updated.rowcount, 1)
+        self.assertEqual(self.store.get_campaign(campaign_id), committed)
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://reload") as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = fresh.get(sid)
+            self.assertIsNot(restored.game_session, record.game_session)
+            reopened = fresh_store.get_campaign(campaign_id)
+            self.assertEqual(reopened.payload, committed.payload)
+            self.assertEqual(reopened.metadata["revision"], committed.metadata["revision"])
+            self.assertEqual(reopened.history, committed.history)
+            self.assertEqual(reopened.combat_history, committed.combat_history)
+            self.assertEqual(resumed.json()["history"], committed.history)
+            before_runtime = self.snapshot(restored)
+            # Include raw metadata and the damaged receipt, neither of which may
+            # be repaired or overwritten by the retry. Resume alone may mark played.
+            with closing(fresh_store._connect()) as connection:
+                before_rows = [
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                    )
+                ]
+                before_receipts = [
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+                        (campaign_id,),
+                    )
+                ]
+            with patch("game.run_player_turn",
+                       side_effect=AssertionError("Corrupt receipt executed the engine")) as engine, \
+                 patch.object(fresh, "autosave_turn",
+                              side_effect=AssertionError("Corrupt receipt autosaved")) as autosave, \
+                 patch.object(fresh_store, "save_campaign",
+                              side_effect=AssertionError("Corrupt receipt saved")) as save:
+                retry = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+            self.assertEqual(retry.status_code, expected_status, retry.text)
+            self.assertEqual(retry.json()["detail"]["code"], expected_code)
+            engine.assert_not_called()
+            autosave.assert_not_called()
+            save.assert_not_called()
+            self.assertEqual(self.snapshot(restored), before_runtime)
+            self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
+            with closing(fresh_store._connect()) as connection:
+                self.assertEqual([
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                    )
+                ], before_rows)
+                self.assertEqual([
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+                        (campaign_id,),
+                    )
+                ], before_receipts)
+
+    async def test_corrupt_saved_receipt_hash_blocks_http_retry_after_resume(self):
+        await self.assert_corrupt_saved_receipt_blocks_retry("hash")
+
+    async def test_corrupt_saved_receipt_json_blocks_http_retry_after_resume(self):
+        await self.assert_corrupt_saved_receipt_blocks_retry("json")
+
+    async def test_corrupt_saved_receipt_action_id_blocks_http_retry_after_resume(self):
+        await self.assert_corrupt_saved_receipt_blocks_retry("action_id")
 
     async def test_independently_loaded_stale_save_cannot_overwrite_newer_truth(self):
         a = await self.create_campaign()
@@ -283,6 +384,18 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         if persisted:
             fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
             sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+            # Resume may update last_played_at in this same shared database.
+            # Preserve every other committed field, then baseline replay after resume.
+            reopened = self.store.get_campaign(a["campaign_id"])
+            saved = committed[-1]
+            self.assertEqual(reopened.payload, saved.payload)
+            self.assertEqual(reopened.history, saved.history)
+            self.assertEqual(reopened.combat_history, saved.combat_history)
+            self.assertEqual(
+                reopened.metadata,
+                {**saved.metadata, "last_played_at": reopened.metadata["last_played_at"]},
+            )
+            committed = (*committed[:-1], reopened)
             self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
             before = self.snapshot(restored)
             app = create_app(session_manager=fresh, ollama_adapter=None)
