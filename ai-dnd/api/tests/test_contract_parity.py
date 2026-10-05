@@ -535,6 +535,63 @@ class ContractParityTests(unittest.TestCase):
             "#/components/schemas/SpeciesTraitActionResult",
         )
 
+    def test_session_creation_and_campaign_resume_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        # Client-facing session names intentionally differ from Python's models.
+        runtime_to_published_refs = {
+            "#/components/schemas/SessionResponse": "#/components/schemas/GameSession",
+            "#/components/schemas/CampaignSessionResponse": "#/components/schemas/CampaignSession",
+            "#/components/schemas/CampaignCreateRequest": "#/components/schemas/CampaignCreateInput",
+        }
+        for path in (
+            "/game/sessions",
+            "/sessions",
+            "/game/campaigns/{campaign_id}/resume",
+            "/campaigns/{campaign_id}/resume",
+        ):
+            published = _operation(path, "post")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
+            with self.subTest(path=path, binding="requestBody"):
+                # These operations currently have no body. An added client body
+                # is contract drift even when it points at a valid schema.
+                self.assertEqual("requestBody" in published, "requestBody" in runtime)
+                if "requestBody" in runtime:
+                    runtime_body = runtime["requestBody"]
+                    published_body = published["requestBody"]
+                    runtime_schema = runtime_body["content"]["application/json"]["schema"]
+                    self.assertEqual(
+                        published_body["content"]["application/json"]["schema"],
+                        {"$ref": runtime_to_published_refs.get(
+                            runtime_schema["$ref"], runtime_schema["$ref"],
+                        )},
+                    )
+                    self.assertEqual(
+                        published_body.get("required", False),
+                        runtime_body.get("required", False),
+                    )
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            for status, response in runtime_successes.items():
+                with self.subTest(path=path, binding="response", status=status):
+                    runtime_schema = response["content"]["application/json"]["schema"]
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        {"$ref": runtime_to_published_refs.get(
+                            runtime_schema["$ref"], runtime_schema["$ref"],
+                        )},
+                    )
+
     def test_turn_route_bindings_match_fastapi(self):
         runtime_spec = app.openapi()
         base_path = SPEC["servers"][0]["url"].rstrip("/")
@@ -1406,6 +1463,62 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             result.failures,
                             f"Undetected reference drift: {schema_name}.{field_name}",
                         )
+
+    def test_session_creation_and_campaign_resume_wrong_bindings_fail_in_both_formats(self):
+        for path in (
+            "/game/sessions",
+            "/sessions",
+            "/game/campaigns/{campaign_id}/resume",
+            "/campaigns/{campaign_id}/resume",
+        ):
+            for binding in ("requestBody", "response"):
+                for flow_style in (False, True):
+                    with self.subTest(path=path, binding=binding, compact=flow_style):
+                        spec = deepcopy(SPEC)
+                        operation = spec["paths"][path]["post"]
+                        if binding == "requestBody":
+                            self.assertNotIn("requestBody", operation)
+                            operation["requestBody"] = {
+                                "required": True,
+                                "content": {"application/json": {"schema": {
+                                    "$ref": "#/components/schemas/CampaignCreateInput",
+                                }}},
+                            }
+                        else:
+                            schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+                            # Both targets remain valid components; only the
+                            # operation's binding to the component is wrong.
+                            schema["$ref"] = (
+                                "#/components/schemas/CampaignSession"
+                                if path.endswith("/sessions")
+                                else "#/components/schemas/GameSession"
+                            )
+                        self.assertEqual(spec["components"], SPEC["components"])
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=_load_spec(text)):
+                            for test_name in (
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                                "test_health_and_request_schemas_match_runtime_models",
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                "test_turn_route_bindings_match_fastapi",
+                                "test_species_action_route_bindings_match_fastapi",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            ContractParityTests(
+                                "test_session_creation_and_campaign_resume_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"path='{path}'", result.failures[0][0].id())
+                        self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
 
     def test_turn_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
