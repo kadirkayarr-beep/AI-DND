@@ -34,3 +34,4 @@
 - [Vite dependency preview](vite-dependency-preview.md) — missing optimized dev dependencies can blank the preview despite healthy source/API routes and a passing build.
 - [Large source transport](large-source-transport.md) — use file-backed transport rather than large shell stdout for authoritative source contents.
 - [Source preflight boundaries](source-preflight-boundaries.md) — accidental definition-loss checks must stay separate from intentional runtime patch fixtures.
+- [API engine spy signatures](api-engine-spy-signatures.md) — preserve callable signatures when observing real turns; generic mocks can change API dispatch.

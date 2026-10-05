@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from functools import wraps
 import json
 from pathlib import Path
 import sqlite3
@@ -362,6 +363,153 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(turn["narration"].strip())
         self.assertIsInstance(turn.get("state"), dict)
         self.assertTrue(turn["state"])
+
+    async def test_city_observation_and_discovery_receipts_survive_resume(self):
+        city_id = "fr:city:neverwinter"
+        response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "name": "City observation and discovery receipt regression",
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        created = response.json()
+        session = self.manager.get(created["session_id"]).game_session
+        messages = [
+            "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
+            "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?",
+            "Buralarda bir tücaar var mı?",
+        ]
+        requests = [
+            {"message": message, "action_id": str(uuid.uuid4())}
+            for message in messages
+        ]
+        turns = []
+        engine_results = []
+
+        async def execute_and_replay(http, session_id, game_session, body, index):
+            # Observe the real engine boundary: TurnResponse deliberately exposes
+            # narration/state rather than the living-world action_result.
+            real_turn = game_session.run_player_turn
+
+            @wraps(real_turn)
+            def capture_turn(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                engine_results.append(copy.deepcopy(result["action_result"]))
+                return result
+
+            url = f"/api/game/sessions/{session_id}/turn"
+            with patch.object(game_session, "run_player_turn", new=capture_turn):
+                first = await http.post(url, json=body)
+                self.assertEqual(first.status_code, 200, first.text)
+                turn = first.json()
+                self.assertEqual(turn["action_id"], body["action_id"])
+                self.assertTrue(turn["narration"].strip())
+                self.assertEqual(turn["state"]["location"], city_id)
+                result = engine_results[-1]
+                self.assertEqual(result["action"], "explore" if index == 0 else "local_search")
+                self.assertEqual(result["status"], "observed" if index == 0 else "found")
+                self.assertTrue(result["success"])
+                self.assertTrue(result["direct_response"].strip())
+                before_replay = copy.deepcopy(game_session.serialize_game_state())
+                replay = await http.post(url, json=body)
+                self.assertEqual(replay.status_code, 200, replay.text)
+                self.assertEqual(replay.json(), turn)
+                self.assertEqual(game_session.serialize_game_state(), before_replay)
+                self.assertEqual(len(engine_results), index + 1)
+                self.assertEqual(
+                    len(self.store.get_campaign(created["campaign_id"]).history),
+                    index + 1,
+                )
+            turns.append(turn)
+
+        await execute_and_replay(
+            self.http, created["session_id"], session, requests[0], 0
+        )
+        scene = copy.deepcopy(session.world_state["scene_state"]["scenes"][city_id])
+        self.assertEqual(scene["kind"], "city")
+        self.assertTrue(scene["materialized"])
+        self.assertIn("Neverwinter", turns[0]["narration"])
+
+        # Reopen before discovery as well as after it: no original in-memory
+        # scene or manager may be needed to continue this sequence.
+        reloaded_manager = SessionManager(campaign_store=CampaignStore(self.store.path))
+        reloaded_app = create_app(
+            session_manager=reloaded_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reloaded_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{created['campaign_id']}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(resumed.json()["state"], turns[0]["state"])
+            session_id = resumed.json()["session_id"]
+            loaded = reloaded_manager.get(session_id).game_session
+            for index in (1, 2):
+                await execute_and_replay(http, session_id, loaded, requests[index], index)
+
+        world = loaded.world_state
+        tavern_id = engine_results[1]["target_id"]
+        tavern = world["locations"][tavern_id]
+        self.assertEqual(tavern["scene_kind"], "tavern")
+        self.assertEqual(tavern["parent_location_id"], city_id)
+        self.assertEqual(tavern["exit_location_id"], city_id)
+        self.assertEqual(len(world["shops"]), 1)
+        shop = world["shops"][0]
+        self.assertEqual(shop["id"], engine_results[2]["shop_id"])
+        self.assertEqual(shop["location"], city_id)
+        self.assertEqual(shop["shopkeeper_id"], engine_results[2]["target_id"])
+        shopkeeper = next(npc for npc in world["npcs"] if npc["id"] == shop["shopkeeper_id"])
+        self.assertEqual(shopkeeper["location"], city_id)
+        self.assertEqual(world["location"], city_id)
+        self.assertEqual(world["scene_state"]["scenes"][city_id], scene)
+        saved_state = copy.deepcopy(loaded.serialize_game_state())
+
+        restarted_manager = SessionManager(campaign_store=CampaignStore(self.store.path))
+        restarted_app = create_app(
+            session_manager=restarted_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=restarted_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{created['campaign_id']}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            self.assertEqual(resumed.json()["state"], turns[-1]["state"])
+            session_id = resumed.json()["session_id"]
+            reopened = restarted_manager.get(session_id).game_session
+            self.assertEqual(reopened.serialize_game_state(), saved_state)
+            with patch.object(
+                reopened, "run_player_turn",
+                side_effect=AssertionError("Receipt replay must not execute a turn"),
+            ):
+                for body, original in zip(requests, turns):
+                    replay = await http.post(
+                        f"/api/game/sessions/{session_id}/turn", json=body
+                    )
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    # Resume rebinds only session_id; the saved result,
+                    # narration, action ID and historical state stay identical.
+                    self.assertEqual(
+                        replay.json(), {**original, "session_id": session_id}
+                    )
+                    self.assertEqual(reopened.serialize_game_state(), saved_state)
+            self.assertEqual(
+                len(self.store.get_campaign(created["campaign_id"]).history), 3
+            )
 
     async def test_selected_npc_identity_query_is_deterministic(self):
         created_response = await self.http.post(
