@@ -880,6 +880,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(other), isolated)
 
     async def test_evicted_combat_action_replays_saved_receipt_after_reopen(self):
+        await self.assert_evicted_combat_receipt_after_reopen(changed_payload=False)
+
+    async def test_evicted_combat_action_rejects_changed_payload_after_reopen(self):
+        await self.assert_evicted_combat_receipt_after_reopen(changed_payload=True)
+
+    async def assert_evicted_combat_receipt_after_reopen(self, *, changed_payload):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
         session = record.game_session
@@ -963,6 +969,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         # Resume may update metadata; baseline all owners after reopening.
         before = self.snapshot(restored)
         before_rows = history_rows()
+        retry_command = copy.deepcopy(command)
+        if changed_payload:
+            retry_command["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
+            self.assertEqual(retry_command["action_id"], command["action_id"])
+            self.assertNotEqual(retry_command["combat_action"], command["combat_action"])
         app = create_app(session_manager=fresh, ollama_adapter=None)
         with patch.object(restored.game_session, "run_player_turn",
                           side_effect=AssertionError("Evicted action executed again")) as engine, \
@@ -972,13 +983,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                           side_effect=AssertionError("Evicted action autosaved")) as autosave:
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                         base_url="http://reload") as client:
-                replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+                replay = await client.post(f"/api/game/sessions/{sid}/turn", json=retry_command)
         engine.assert_not_called()
         core_engine.assert_not_called()
         autosave.assert_not_called()
-        expected_response["session_id"] = sid
-        self.assertEqual(replay.status_code, 200, replay.text)
-        self.assertEqual(replay.json(), expected_response)
+        if changed_payload:
+            self.assertEqual(replay.status_code, 409, replay.text)
+            self.assertEqual(replay.json()["detail"]["code"], "action_id_conflict")
+        else:
+            expected_response["session_id"] = sid
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), expected_response)
         # Includes complete RNG, canonical gameplay, journals, history and store.
         self.assertEqual(self.snapshot(restored), before)
         self.assertEqual(history_rows(), before_rows)
