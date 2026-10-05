@@ -231,7 +231,12 @@ class DeathSystemTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self._assert_stable_recovery_round_trip(mode)
 
-    def _assert_stable_recovery_round_trip(self, mode):
+    def test_zero_healing_preserves_stable_recovery_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                self._assert_stable_recovery_round_trip(mode, zero_healing=True)
+
+    def _assert_stable_recovery_round_trip(self, mode, *, zero_healing=False):
         session = make_session()
         peer = make_session(seed=29)
         reopened = make_session(seed=83)
@@ -248,6 +253,28 @@ class DeathSystemTests(unittest.TestCase):
         recovery = copy.deepcopy(session.ensure_death_state()["recovery"])
         self.assertEqual(recovery, {"hours": 2, "at": 137 + 7200})
         session.advance_campaign_time(600, "wait")
+        if zero_healing:
+            before_healing = session.serialize_game_state()
+            healing_rng = session.rng.getstate()
+            with (
+                patch.object(
+                    session.rng, "randint",
+                    side_effect=AssertionError("Zero healing rerolled recovery"),
+                ),
+                patch("game.roll_d20", side_effect=AssertionError("Zero healing rolled dice")),
+            ):
+                self.assertEqual(session.heal_player(0), 0)
+            self.assertEqual(session.serialize_game_state(), before_healing)
+            self.assertEqual(session.rng.getstate(), healing_rng)
+            self.assertEqual(session.character["current_hp"], 0)
+            self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+            self.assertTrue(session.ensure_death_state()["stable"])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
+            # Saving later must retain the original deadline, not restart the
+            # two-hour duration from either zero healing or reopening.
+            progress = session.advance_campaign_time(91, "wait")
+            self.assertEqual(progress["death_results"], [])
+            self.assertEqual(session.ensure_death_state()["recovery"], recovery)
         session.messages.append({"role": "user", "content": "Source history"})
         peer.messages.append({"role": "user", "content": "Unrelated history"})
 
@@ -304,6 +331,7 @@ class DeathSystemTests(unittest.TestCase):
                     reopened.ensure_death_state()["recovery"],
                     session.ensure_death_state()["recovery"],
                 )
+                heal.assert_not_called()
                 assert_preserved()
 
                 now = reopened.world_state["campaign_time"]["elapsed_seconds"]
