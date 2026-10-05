@@ -314,6 +314,92 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def test_transient_combat_receipt_isolated_from_autosave_input_edits(self):
         await self.assert_combat_receipt_isolation(persisted=False, edit_input=True)
 
+    async def assert_combat_history_input_isolation(self, persisted):
+        if persisted:
+            a = await self.create_campaign()
+        else:
+            created = await self.http.post("/api/game/sessions")
+            self.assertEqual(created.status_code, 200, created.text)
+            a = created.json()
+        record, command = self.prepare_spell(a)
+        self.assertEqual(record.campaign_id is not None, persisted)
+        self.assertEqual(record.combat_history, [])
+
+        # Keep a separate saved campaign with its own accepted combat history.
+        b = await self.create_campaign()
+        other, other_command = self.prepare_spell(b)
+        other_response = await self.post(b, other_command)
+        self.assertEqual(other_response.status_code, 200, other_response.text)
+        isolated = self.snapshot(other)
+
+        # Observe the exact object passed by the real offline turn. A history
+        # lookup or response.json() would only test a detached reader copy.
+        with patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave:
+            response = await self.post(a, command)
+        self.assertEqual(response.status_code, 200, response.text)
+        autosave.assert_called_once()
+        self.assertIs(autosave.call_args.args[0], record)
+        supplied = autosave.call_args.kwargs["combat_history_entry"]
+        original = copy.deepcopy(supplied)
+        # HTTP models also emit unset optional fields as null; compare the
+        # accepted fields without mistaking that formatting for history data.
+        response_result = response.json()["combat_result"]
+        self.assertEqual(original["result"],
+                         {key: response_result[key] for key in original["result"]})
+        self.assertEqual(original["event_id"],
+                         response.json()["combat_history_entry"]["event_id"])
+        self.assertEqual(record.combat_history, [original])
+        self.assertIsNot(record.combat_history[0], supplied)
+        committed = self.snapshot(record)
+        self.assertEqual(self.snapshot(other), isolated)
+        if persisted:
+            stored = self.store.get_campaign(a["campaign_id"])
+            self.assertEqual(stored.combat_history, [original])
+            self.assertEqual(len(stored.history), 1)
+
+        # Edit existing nested data, rather than only adding a new top-level
+        # key: both a nested dict alias and a shallow-copied list must be caught.
+        steps = supplied["result"]["economy_steps"]
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(steps[0]["kind"], "magic")
+        spell_result = steps[0]["result"]
+        self.assertGreater(spell_result["damage"], 0)
+        spell_result["damage"] = -1
+        self.assertNotEqual(supplied, original)
+        self.assertEqual(record.combat_history, [original])
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+        steps.clear()
+        self.assertNotEqual(supplied, original)
+        self.assertEqual(record.combat_history, [original])
+        # Includes complete RNG state, game state, journal, narrative memory,
+        # lore, combat history, receipts, and the entire persisted campaign.
+        self.assertEqual(self.snapshot(record), committed)
+        self.assertEqual(self.snapshot(other), isolated)
+
+        if persisted:
+            self.assertEqual(self.store.get_campaign(a["campaign_id"]), stored)
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+            self.assertIsNot(restored.game_session, record.game_session)
+            self.assertEqual(restored.combat_history, [original])
+            reopened = self.store.get_campaign(a["campaign_id"])
+            self.assertEqual(reopened.combat_history, [original])
+            self.assertEqual(reopened.history, stored.history)
+            self.assertEqual(reopened.payload, stored.payload)
+            # Resume may update last-played metadata, not accepted gameplay or
+            # any of the in-memory owners (including the full RNG state).
+            self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+            self.assertEqual(record.combat_history, [original])
+            self.assertEqual(self.snapshot(other), isolated)
+
+    async def test_persisted_combat_history_isolated_from_autosave_input_edits(self):
+        await self.assert_combat_history_input_isolation(persisted=True)
+
+    async def test_transient_combat_history_isolated_from_autosave_input_edits(self):
+        await self.assert_combat_history_input_isolation(persisted=False)
+
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
