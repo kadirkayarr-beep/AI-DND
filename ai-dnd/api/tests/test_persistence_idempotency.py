@@ -773,6 +773,121 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(record), committed)
         self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
 
+    async def test_late_pruning_sql_failure_preserves_full_combat_history_on_resume_then_retry(self):
+        a = await self.create_campaign()
+        record, command = self.prepare_spell(a)
+        session = record.game_session
+        session.character.update(current_hp=10000, max_hp=10000)
+        enemy_id = command["combat_action"]["steps"][0]["target_id"]
+        enemy = next(npc for npc in session.world_state["npcs"]
+                     if npc["id"] == enemy_id)
+        enemy.update(current_hp=10000, max_hp=10000)
+        self.manager.save_campaign(a["campaign_id"])
+
+        # Fill the real retention window via accepted API turns, not fabricated
+        # history rows. End-turn actions leave a spell slot for the failed turn.
+        accepted_entries = []
+        for index in range(MAX_COMBAT_HISTORY_ENTRIES):
+            with self.subTest(turn=index):
+                response = await self.post(a, {
+                    "message": "End my turn.", "action_id": str(uuid4()),
+                    "combat_action": {"steps": [{"kind": "end_turn"}]},
+                })
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertTrue(session.world_state["combat"]["active"])
+                accepted_entries.append(copy.deepcopy(record.combat_history[-1]))
+                self.assertEqual(record.combat_history, accepted_entries)
+                response_entry = response.json()["combat_history_entry"]
+                entry = accepted_entries[-1]
+                self.assertEqual(response_entry["event_id"], entry["event_id"])
+                self.assertEqual(entry["result"],
+                                 {key: response_entry["result"][key]
+                                  for key in entry["result"]})
+        self.assertEqual(len(record.combat_history), MAX_COMBAT_HISTORY_ENTRIES)
+        before = self.snapshot(record)
+        oldest = copy.deepcopy(accepted_entries[0])
+
+        def stored_rows():
+            with closing(self.store._connect()) as db:
+                return [tuple(row) for row in db.execute(
+                    """SELECT * FROM campaign_combat_history
+                       WHERE campaign_id = ? ORDER BY sequence""",
+                    (a["campaign_id"],),
+                )]
+
+        before_rows = stored_rows()
+        # Unlike the receipt INSERT failure above, this fires AFTER an oldest
+        # row is deleted, with the new result and receipt already written.
+        # RAISE(ABORT) must roll back the enclosing save, not just that DELETE.
+        with closing(self.store._connect()) as db:
+            db.execute(f"""
+                CREATE TRIGGER reject_combat_pruning
+                AFTER DELETE ON campaign_combat_history
+                WHEN (SELECT COUNT(*) FROM campaign_combat_history
+                      WHERE campaign_id = OLD.campaign_id) = {MAX_COMBAT_HISTORY_ENTRIES}
+                 AND EXISTS (SELECT 1 FROM campaign_turn_actions
+                             WHERE campaign_id = OLD.campaign_id
+                               AND action_id = '{command["action_id"]}')
+                BEGIN SELECT RAISE(ABORT, 'injected failure after pruning'); END
+            """)
+        with patch("game.apply_npc_damage", wraps=game.apply_npc_damage) as damage, \
+             patch.object(session.rng, "randint", wraps=session.rng.randint) as dice:
+            failed = await self.post(a, command)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(damage.call_count, 1)
+        self.assertEqual(dice.call_count, 3)
+        self.assertEqual(self.snapshot(record), before)
+        self.assertEqual(record.combat_history, accepted_entries)
+        self.assertEqual(record.combat_history[0], oldest)
+        self.assertEqual(session.rng.getstate(), before[1])
+        self.assertEqual(stored_rows(), before_rows)
+        stored = self.store.get_campaign(a["campaign_id"])
+        self.assertEqual(stored.combat_history, accepted_entries)
+        self.assertEqual(stored.history, before[7].history)
+        self.assertEqual(stored.payload, before[7].payload)
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        self.assertIsNone(self.store.get_turn_action(a["campaign_id"], command["action_id"]))
+        with closing(self.store._connect()) as db:
+            db.execute("DROP TRIGGER reject_combat_pruning")
+
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
+        self.assertIsNot(restored.game_session, session)
+        # Resume may update last-played metadata, but not history or RNG.
+        self.assertEqual(self.snapshot(restored)[:7], before[:7])
+        self.assertEqual(restored.combat_history[0], oldest)
+        self.assertEqual(restored.game_session.rng.getstate(), before[1])
+        self.assertEqual(stored_rows(), before_rows)
+        reopened = self.store.get_campaign(a["campaign_id"])
+        self.assertEqual(reopened.combat_history, accepted_entries)
+        self.assertEqual(reopened.history, stored.history)
+        self.assertEqual(reopened.payload, stored.payload)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://testserver") as client:
+            successful = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+            self.assertEqual(successful.status_code, 200, successful.text)
+            new_entry = copy.deepcopy(restored.combat_history[-1])
+            self.assertEqual(new_entry["event_id"],
+                             successful.json()["combat_history_entry"]["event_id"])
+            expected = accepted_entries[1:] + [new_entry]
+            self.assertEqual(restored.combat_history, expected)
+            committed = self.store.get_campaign(a["campaign_id"])
+            self.assertEqual(committed.combat_history, expected)
+            self.assertEqual(len(committed.combat_history), MAX_COMBAT_HISTORY_ENTRIES)
+            self.assertNotIn(oldest["event_id"],
+                             {entry["event_id"] for entry in committed.combat_history})
+            self.assertEqual(stored_rows()[:-1], before_rows[1:])
+            self.assertEqual(len(committed.history), len(stored.history) + 1)
+            self.assertNotEqual(restored.game_session.rng.getstate(), before[1])
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"])["response"],
+                             successful.json())
+            after_retry = self.snapshot(restored)
+            replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), successful.json())
+            self.assertEqual(self.snapshot(restored), after_retry)
+
     async def test_concurrent_duplicate_spell_executes_once_and_replays(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
