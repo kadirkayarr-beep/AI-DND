@@ -236,7 +236,17 @@ class DeathSystemTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self._assert_stable_recovery_round_trip(mode, zero_healing=True)
 
-    def _assert_stable_recovery_round_trip(self, mode, *, zero_healing=False):
+    def test_rejected_healing_preserves_stable_recovery_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for amount in (-1, 1.0, 1.5, "1", None, True, False):
+                with self.subTest(mode=mode, amount=amount):
+                    self._assert_stable_recovery_round_trip(
+                        mode, rejected_healing=(amount,)
+                    )
+
+    def _assert_stable_recovery_round_trip(
+        self, mode, *, zero_healing=False, rejected_healing=()
+    ):
         session = make_session()
         peer = make_session(seed=29)
         reopened = make_session(seed=83)
@@ -253,25 +263,33 @@ class DeathSystemTests(unittest.TestCase):
         recovery = copy.deepcopy(session.ensure_death_state()["recovery"])
         self.assertEqual(recovery, {"hours": 2, "at": 137 + 7200})
         session.advance_campaign_time(600, "wait")
-        if zero_healing:
+        if zero_healing or rejected_healing:
             before_healing = session.serialize_game_state()
             healing_rng = session.rng.getstate()
+            module_healing_rng = random.getstate()
+            healing_clock = copy.deepcopy(session.world_state["campaign_time"])
             with (
                 patch.object(
                     session.rng, "randint",
-                    side_effect=AssertionError("Zero healing rerolled recovery"),
+                    side_effect=AssertionError("Non-healing input rerolled recovery"),
                 ),
-                patch("game.roll_d20", side_effect=AssertionError("Zero healing rolled dice")),
+                patch("game.roll_d20", side_effect=AssertionError("Non-healing input rolled dice")),
             ):
-                self.assertEqual(session.heal_player(0), 0)
+                if zero_healing:
+                    self.assertEqual(session.heal_player(0), 0)
+                for amount in rejected_healing:
+                    with self.assertRaisesRegex(ValueError, "^Healing amount is invalid\\.$"):
+                        session.heal_player(amount)
             self.assertEqual(session.serialize_game_state(), before_healing)
             self.assertEqual(session.rng.getstate(), healing_rng)
+            self.assertEqual(random.getstate(), module_healing_rng)
+            self.assertEqual(session.world_state["campaign_time"], healing_clock)
             self.assertEqual(session.character["current_hp"], 0)
             self.assertEqual(session.world_state["player_combat_status"], "unconscious")
             self.assertTrue(session.ensure_death_state()["stable"])
             self.assertEqual(session.ensure_death_state()["recovery"], recovery)
             # Saving later must retain the original deadline, not restart the
-            # two-hour duration from either zero healing or reopening.
+            # two-hour duration from the healing input or reopening.
             progress = session.advance_campaign_time(91, "wait")
             self.assertEqual(progress["death_results"], [])
             self.assertEqual(session.ensure_death_state()["recovery"], recovery)
