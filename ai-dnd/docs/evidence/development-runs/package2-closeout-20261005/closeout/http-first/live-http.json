@@ -1,0 +1,32 @@
+{
+  "head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "kind": "real development HTTP / real configured Qwen",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/campaign-start-options",
+      "expected": 200,
+      "start": 1791199741.786786,
+      "status": 200,
+      "end": 1791199741.8777862,
+      "response_sha256": "42c5c27ee74f3fb635ff9ad16c819a97b1400c02573b9696b5c91383ee21cc8d"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791199741.8782403,
+      "status": 422,
+      "end": 1791199741.9039702,
+      "response_sha256": "c1ef2ccc24c51ea33ae043d37b197fcbddbac2d422152b5a75a85cd6e30ae013"
+    }
+  ],
+  "status": "FAIL",
+  "campaigns_created": [],
+  "cleanup": [],
+  "error": {
+    "type": "AssertionError",
+    "detail": "('/campaigns', 422, {'detail': {'code': 'invalid_character', 'message': 'Alignment must be explicitly selected.'}})",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 95, in <module>\n    c = create(selection)\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 64, in create\n    result = request(\"POST\", \"/campaigns\", {\n        \"name\": \"Disposable Package2 exact-HEAD closeout\",\n    ...<3 lines>...\n                      \"background_equipment_option\": \"A\"},\n    })\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 46, in request\n    assert status == expect, (path, status, result)\n           ^^^^^^^^^^^^^^^^\nAssertionError: ('/campaigns', 422, {'detail': {'code': 'invalid_character', 'message': 'Alignment must be explicitly selected.'}})\n"
+  }
+}

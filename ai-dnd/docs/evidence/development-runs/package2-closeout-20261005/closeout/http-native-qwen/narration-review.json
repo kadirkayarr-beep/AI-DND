@@ -1,0 +1,27 @@
+[
+  {
+    "action_id": "7481c0c2-7ead-4081-a771-5f4c76cb86d7",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "487eaeb4-5838-4f98-b2ee-461714a4175f",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "e09c0fb4-0913-406d-b34b-55e8cc53dfa7",
+    "input": "/item request item_000011 npc_001",
+    "narration": "Eşya işlemi reddedildi: npc_consent_required. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "eb34e223-f9d6-4f37-9add-3c7c3fc89b70",
+    "input": "Elindeki Dagger adlı eşyayı ücretsiz bana vermeni istiyorum.",
+    "narration": "Eşya satıcısı elindekini bırakmıyor. \"Önce ne istediğimizi açıkça konuşalım.\""
+  },
+  {
+    "action_id": "6d097519-180c-4bd4-8208-7df1aa514e05",
+    "input": "Elindeki Club adlı eşyayı bana vermeni istiyorum.",
+    "narration": "Equipment Merchant başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”"
+  }
+]

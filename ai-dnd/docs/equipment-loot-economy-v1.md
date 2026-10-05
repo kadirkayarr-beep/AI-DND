@@ -393,3 +393,146 @@ Committing an approved tree and obtaining an appropriate feature-level gate
 authorization remain repository/release prerequisites, not failed economy
 transactions. There is no automatic permission to push/merge or rewrite that
 policy.
+
+## 2026-10-05 independent exact-HEAD closeout — NEW evidence
+
+**Overall decision: PARTIAL, not COMPLETE/READY.** The bounded corrected
+working-tree feature is verified with no remaining known gameplay P0/P1 in
+the exercised scope. This is **not** certification of the clean committed HEAD:
+the genuine P1 corrections below remain uncommitted. Repository/release gate
+remains **NO-GO**. Earlier sections/results are retained as historical claims,
+not relabeled or retroactively certified by this pass.
+
+Start: branch `main`, clean HEAD
+`775b963a2cadff8f390104e539ad751e2769620b`. Final HEAD is unchanged.
+Initial full source fingerprint:
+`ddb9caea647ddb1dc3ad73b5893ba7dd04f723fdf490fe761eff440007b866f1`.
+Final tested source fingerprint:
+`15c07443a8bbecd51841da2df5e1fb0469dea38c67a369ea180b991bb0af02ba`.
+Both use the existing snapshot implementation excluding generated evidence.
+The final gate, integration suite and retained final source agree; no
+runtime/test/frontend source was edited after final verification. This section
+and memory/evidence-only writes occur afterward and are separately accounted
+for, not treated as runtime edits.
+
+### Minimal genuine corrections
+
+- Successful natural item requests returned a turn envelope where the interaction
+  caller expected a flat action result, producing a full-turn API failure.
+  Return the existing result shape with Python-validated NPC identity, consent
+  and actual changes; keep the journal/receipt/autosave owners unchanged.
+- That nested item transaction advanced the turn a second time. Its outer turn
+  already owns advancement; suppress only the nested increment rather than
+  relaxing canonical lore-evidence validation.
+- Actual owned starter label `Uzun Kılıç` did not resolve against an existing
+  `longsword` hand reference, blocking unrelated merchant sales. Add only that
+  exact translation to the existing Longsword catalog aliases. Do not grant
+  missing/default equipment ownership or change prices/proficiency/mastery.
+- Real Qwen could misclassify an explicit item imperative as information. Clarify
+  the existing request-envelope instruction; interpretation still supplies no
+  NPC consent, price, ownership or successful outcome. No new parser, model
+  retry, third call, inventory owner or persistence path was introduced.
+
+### Final-source verification
+
+All links below are relative to this document's directory.
+
+| Verification | New observed result |
+|---|---|
+| Targeted native/economy/economy-HTTP/character-creation subset | **78/78 PASS**, individually retained within the combined run |
+| Bounded integration including persistence, idempotency, weapon attack and journal | **299/299 PASS**, zero skips |
+| Final Gate selected Python regression | **161/161 PASS**, zero skips |
+| Frontend library check and primary experience typecheck | **PASS** |
+| Primary experience tests | **57/57 PASS** |
+| Primary experience production build | **PASS** |
+| Real proxied development HTTP + configured Qwen | **PASS**, separately executed, not claimed as a gate-owned live run |
+| Final gate/integration source stability | **PASS**, `source_changed_during_run=false` |
+| Clean committed-HEAD certification | **NOT READY**: P1 corrections are uncommitted |
+| Repository Final Gate | **NO-GO**, exit 1; genuine dirty source and unchanged infrastructure-only scope policy |
+| GitHub Actions / published-server verification | **NOT RUN** |
+
+- [Final 299-test run](evidence/development-runs/package2-closeout-20261005/20261005T114227Z-dacaaa376e2b415b80bbd1b2a1d02148/run.json).
+- [Final 161-test gate regression](evidence/development-runs/package2-closeout-20261005/20261005T114327Z-ef9aafb139744802bcfad503dc7cd995/run.json).
+- [Unmodified Final Gate decision](evidence/development-runs/package2-closeout-20261005/20261005T114327Z-dc5ec887b5c04951a5920c23b3292353/run.json).
+- [Exact-source / attempt / telemetry manifest](evidence/development-runs/package2-closeout-20261005/closeout/manifest.json).
+- [Real HTTP acceptance](evidence/development-runs/package2-closeout-20261005/closeout/http-validated/live-http.json).
+- [Dedicated raw synthetic input/narration review](evidence/development-runs/package2-closeout-20261005/closeout/http-validated/narration-review.json).
+- [Retained evidence checksums](evidence/development-runs/package2-closeout-20261005/closeout/checksums.json).
+
+### What acceptance actually established
+
+The final real-network verifier creates a custom Fighter/Acolyte through the
+public character/campaign API, seeds possessions only through `/item market`,
+and reads canonical SQLite state **only for its own disposable campaign IDs**.
+No fixture stock, save injection or model substitution is used in this run.
+
+An unreleasable Dagger request is denied; the real Qwen interpretation of
+`Elindeki Club'ı bana ver.` moves **the same** owned Club instance exactly once,
+records Python consent, consumes that consent/release policy, and clears the
+NPC hand. A duplicate request and changed-body `409` cannot repeat movement.
+The existing model-roll/consent forgery rejection remains covered; a social
+claim or model-provided roll cannot authorize a transfer.
+
+The corrected verifier requires canonical same-ID movement **and actual
+payment**, not HTTP 200 or agreeable narration:
+
+| Operation | Player CP | Merchant CP |
+|---|---:|---:|
+| Initial, and after consent transfer | 800 | 1000 |
+| Sell Club | 805 | 995 |
+| Buy Dagger | 605 | 1195 |
+| Sell Dagger | 705 | 1095 |
+| Canonically completed, once-only funded reward | 805 | 995 |
+
+Total remains **1800 CP**. Exact replay of sales, purchase and reward does not
+move items/pay again; altered bodies receive `409`. An unfinished reward,
+second claim, resume/replay and another session's reference cannot mint funds
+or import possessions. Autosave-failure rollback and atomic receipt/state
+coverage come from the retained full-turn HTTP contract suite, not forced
+failures in the live server.
+
+The real workflow records **two Qwen calls** for each of the two natural
+inputs, zero for native commands, and no calls on receipt replay. Final
+regression also executes the max-two-call and rejected-narration/no-retry
+contracts. Actual server calls are retained from adapter/workflow logs rather
+than inferred from prose. The restarted local 8008 managed process, startup
+PID **5469**, cwd/cmdline and session-bound proxied access logs establish this
+development server's provenance. No published server revision is inferred.
+
+Ground/corpse/container ownership, locality/accessibility/defeat, ambiguity,
+missing stock, funding/reservations, wrong recipients, hand cleanup and legacy
+save compatibility are covered by the combined suite. Boundary fixtures are
+**not** fresh combat-defeat or arbitrary container-content producer proof.
+Unrelated weapons, lore, AC/time ownership and excluded mechanics retain their
+previous authority boundaries.
+
+### Failed attempts and verifier limitations remain visible
+
+The durable archive keeps setup `422` attempts (no gameplay/model calls),
+unsuccessful real Qwen attempts, the envelope/clock failures, the first
+incorrectly named offline narrator mock, the pre-alias sale failure, and all
+earlier gate attempts. They are not replaced by the final passing run.
+
+In particular `closeout/http-final/live-http.json` originally reported PASS,
+but its old verifier checked only HTTP 200/replay for trading; canonical
+narration/state show both sales were rejected. Its raw result is preserved
+unchanged and the manifest explicitly sets **accepted=false**. Only
+`http-validated` supplies the accepted end-to-end claim. Earlier attempt
+verifier/server fingerprints are not invented retrospectively.
+
+The first clean-source gate failed infrastructure scope; subsequent corrections
+required new verification, and earlier passes do not certify later source.
+The final gate also lists untracked earlier NEW evidence as tree entries under
+its unchanged ownership policy. The manifest distinguishes those generated
+records from the four genuine modified runtime/test files; no deletion,
+ignore-list change or policy relaxation is used to manufacture GO.
+
+The primary `/ai-dnd-experience/` preview initially hit Vite optimized-dependency
+`504`s. Restarting the same managed frontend restored rendering with no source
+or routing changes; this is recorded separately from passed frontend checks.
+
+**Package #3:** no known functional P0/P1 remains in the final tested bounded
+working tree. However exact committed-HEAD closeout and the appropriate
+repository feature-level authorization remain unresolved; this pass does
+**not** approve or start Package #3. No commit, push, merge, force-push, rebase,
+amend, mission or new feature was performed.

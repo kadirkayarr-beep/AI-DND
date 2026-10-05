@@ -1,0 +1,2479 @@
+{
+  "evidence_kind": "Package2 bounded V1 exact-HEAD closeout",
+  "created_at": "2026-10-05T11:46:45.117306+00:00",
+  "historical_certification": false,
+  "initial_head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "final_head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "initial_branch": "main",
+  "initial_tree_clean": true,
+  "final_git_status_before_docs": " M ai-dnd/api/tests/test_equipment_native.py\n M ai-dnd/equipment_economy.py\n M ai-dnd/interaction_adventure.py\n M ai-dnd/weapon_catalog.py\n?? ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/\n",
+  "source_stability": {
+    "final_source_matches_last_gate": true,
+    "last_gate_changed_during_run": false,
+    "runtime_test_frontend_fingerprints": [
+      {
+        "path": "ai-dnd/acceptance_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fd78d6f4b7669c302d9964263f1c3a1af183a8a2bcdf478c1094df9a896dd214"
+      },
+      {
+        "path": "ai-dnd/action_economy.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ed8918bfa04c80d69a4d03e7529ee8c71e516c0a6d79847f52b4c322ce92f8a0"
+      },
+      {
+        "path": "ai-dnd/ambient_event_catalog.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2b522ffc00dfc34ff86957f56a92de75a7fa9ea57b00f07ea2d4e2ec88adaf12"
+      },
+      {
+        "path": "ai-dnd/api/__init__.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "32d7f215e6e579ea900200128673ce29a99ab4edbe1111b37a71cb81ff281dc5"
+      },
+      {
+        "path": "ai-dnd/api/campaign_journal.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ef556af446a0178ab5113b6440cc708ec5c1c1065d7cc9a76be3980225dd2e5d"
+      },
+      {
+        "path": "ai-dnd/api/character_creation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2dc586bf8cf5af2fa5475addcad34d53f17ba7ca7ee1cb4824f7a8fd4b416947"
+      },
+      {
+        "path": "ai-dnd/api/core_resolution.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8c37ff2040f60942df8d0d00cd18cad6df9748cf3c06d3a9141106f1c9df4e3e"
+      },
+      {
+        "path": "ai-dnd/api/dnd_2024_rules.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f740af6f278233006f6917ec60717e168cab024701693c50a728d2ec1d5aab37"
+      },
+      {
+        "path": "ai-dnd/api/live_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0186a8fab235d14deb0d31c3fa67bacb3babcfddf4182ed6ffc69eefd4461f52"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/__init__.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "57ff099e013534e13026366d23490456fdd622ebfa9011022d60a35fc84f7de4"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/campaign_catalog.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7ca0b687153cf6faee7be44726bdaf79946f9690136cc1622cf9e473b3b9af2d"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/campaign_state.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b57e8031b33de791e27ec4e35f4d19034767f443df75dc427e7177d5b2a81b9f"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/ingestion.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "aa705387b45b1a687ce0c5e11a301870a122c4dc73ce45a034256d95d59583ff"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/models.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b413a67e08852bffd575dcfcaa1a82f265147919ec32745031fab97fc71ff492"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/pack_loader.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0e60bacbe59497d43157d3aa0314a01c8c5e7eaeb8c7d0271123d30effb09da7"
+      },
+      {
+        "path": "ai-dnd/api/lore_authority/registry.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f6294772db36ae40f2a17d1de18324958848033ab5596dd3a83d417963ae1730"
+      },
+      {
+        "path": "ai-dnd/api/main.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "17b9642c93928752299b17b021b4f8a2c7c6eef9ad5b55b51eef30f3a7167907"
+      },
+      {
+        "path": "ai-dnd/api/narrative_director.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "68d5d0b0d12621973d7c8188a9f5ed1b81063211a5b03c9d53fe5f944eb133a1"
+      },
+      {
+        "path": "ai-dnd/api/narrative_memory.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "116b26432611b8fae5cf03df4acff3a68294a2e9317d55c846e38c92d38e68ed"
+      },
+      {
+        "path": "ai-dnd/api/ollama_adapter.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1e6760f9b417ada7f05c024ad336ad567fd7be4c0aece80afbde271c98c18bd1"
+      },
+      {
+        "path": "ai-dnd/api/opening_narrative.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0607b4e5d8b6efefe1b3222102392bc069a8cd9f1a823363739b65074c07237c"
+      },
+      {
+        "path": "ai-dnd/api/persistence/__init__.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "608a3e8635fa3555033a417e337f18aab4db93626d0ae19453fd493ce0cdd462"
+      },
+      {
+        "path": "ai-dnd/api/persistence/campaign_models.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c4a42015a81edb810c8ebefacc36d97505333559c82435057a3454f798a98bea"
+      },
+      {
+        "path": "ai-dnd/api/persistence/campaign_serializer.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c3be8b83e4fffb5b4d8edc2f6b2e9ec4fe17bd2d9ca3ee18b9d5722a0770a8ab"
+      },
+      {
+        "path": "ai-dnd/api/persistence/campaign_store.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7a1f334544beb54ea7f18e6408c69424801658f1f1620d8ef22f5df8c33edc11"
+      },
+      {
+        "path": "ai-dnd/api/persistence/campaign_validation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8be2b3016fc8ecfcd947e06ceb7d25ab067352772dae7abc8f8f8a693d0d1eb0"
+      },
+      {
+        "path": "ai-dnd/api/schemas.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3652c724bcee04916a5f967f49cfe27880674053e97c6aaa948ce82933677ef8"
+      },
+      {
+        "path": "ai-dnd/api/serializers.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "253c902a2c839d8acb0409aae6fe0a5d6acf8c79513820214ec1ee8611ec9d57"
+      },
+      {
+        "path": "ai-dnd/api/session_manager.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "baf070ef1be46197bba7ffdc5b0a8831378d83c5c4dbb4f33825b2865e33b733"
+      },
+      {
+        "path": "ai-dnd/api/tests/live_campaign_restart_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "10b69cfcd1d9bf9e05540085e08ca7a0d63a1d3dfa6ea728ef8b973502ea0bf9"
+      },
+      {
+        "path": "ai-dnd/api/tests/live_neverwinter_canon_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7698106555184892fa6b7c143a30ac00411ece0f8f4ad37f3b8800d3dec0df88"
+      },
+      {
+        "path": "ai-dnd/api/tests/live_playable_living_world_v1_1_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "90e0a0e7da15e1637e93c29a5f39aa034eb4d35216e7d62e4e87b66b339ef071"
+      },
+      {
+        "path": "ai-dnd/api/tests/live_playable_living_world_v1_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2c05d1368200dae275a9cd934db27be797a59462450c2ae89f3bb054821f1bd7"
+      },
+      {
+        "path": "ai-dnd/api/tests/playable_living_world_v1_review.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c1271699ed01b29bbe1c9c38a4af03ba23080241e59aa66a21f940ea21def1bb"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_action_economy.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3cef789d61b13cac2a135e169864acaa17d67506315f986e49d96ee3c91d2cce"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_api.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "cfa8b137af027c8fbf9e5006c87a633887d76296adbbc0d190669edeb28d569a"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_bounded_encounter.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3a5c7cfa486c9f66b148f9c201ac256a7ff7652a920657346851973d532923b8"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_api.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "dd9484f03ff1db1eae57835915b19c121d23e623fa26a10d0232e70f653263ef"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_journal.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "81108bb39f06184fce1ffbc8d01336e251f4711931bae4c7ae2c888f4fa2ff05"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_lore_persistence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1fe3e6c9012e3de91cc63ff0db86c8a7654cf010d762017a8fbecee77f1fdb67"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_persistence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a628dfdfabd47ebf13bda337e160256c2642b4c6c29a9224a3dafe4c72304442"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_starts.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "efe9b37f5975441be77ebf8e4884e62e48a00920e00ccade835aace1ac24cb4d"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_time.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9d15ff1216b9fc2460ba014095fea53c66c57a6b952c26baa52c7455be562999"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_campaign_time_edges.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0b460d417dd160a9d1a8a2ce475031f4e3334f19cff742189955f1e265176801"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_character_creation_2024.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f772d0287c254a583bd4f14dcea0078614bf460e366910a3f70780c4cd55c620"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_combat_lifecycle.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0a503413fd47af91fbf54f6c19503538cbd4bed8bce507b69bbc6ae644ac20a4"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_combat_test_matrix.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "29e6b9547bbf46430a1d33e40cec6b4de48367f3ff8e319dde27ac10e964a727"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_contract_parity.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0a1a6fd983beff569014cf140c9e03b25cdbf7027faa374cf61c4c00bd403ab0"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_core_resolution.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2485fa87b7f4edb6614b71a3efd9191bebcceced63001e14cfe79be27d7f4990"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_death_bounded.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3e921dc7910c3c295fe928189787fc46155e95f28418e9b79b08f43f6444fa40"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_death_system.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bd7331f45af35419129aca908e05962f7e85ecf2fa98214752270022bddb7a9c"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_development_tooling.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "15c5a469be4cbe2b8956925c7cb8b7440b835cf976b5ef820a975dbe65e9b9c5"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_equipment_economy.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "245bc09eca6d3dbac061216f94c59f89465629c13abed71591691962f15cba05"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_equipment_economy_http.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "99da548088b111c723b2871e94ab70a96e3e06166106d09400e0d36363ba2461"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_equipment_native.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0abf9806d1276f2a8caa2c11d18a58c295e49aff59c0c9eebe8836e5759ce62f"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_http_acceptance_evidence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "395f337dc4eb199d9b1b63501aa8957a3191953aec0048803e9ddad659e3402a"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_initiative.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d8e0e5803c9c0127ff9f0ea20b95aceec8990dff7e79927344826879ad65bc79"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_interaction_adventure.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2d4a54e078630a67c338a6834ffda29e687d6f70379b4757f235cee8cabe50f6"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_legacy_script_isolation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "67415c91ebe2add77409df5fe6cb4994379360fc0e98d546342b5d42087fbfd4"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_live_playable_living_world_v1_1_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "151fc1746a05a771981f7deeace632e0cef15a2142bddb836ad7e9e816e1288a"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_live_playable_living_world_v1_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f31c0349d24c867686a57ca8941267c1ee5c84c45791988faab3e14646143b8b"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_living_world_v2_foundation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b4f5aea2cf37ea524f05adaa0c7a60c8b6e22588c94ee98fe709d66c55ebbd9b"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_lore_authority.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e3955646eb66de8e7bedfd531d06001e33c73097f9f3a26d7991b25a504c764e"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_lore_engine_integration.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "aa5775f01be85a4f248d7f718410f158728beeb7cf8a405bd73824344b3f995e"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_model_isolation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fa68b5b324aaaea1871dee6f83fc54a94a6660d2852c69a91e7d7c9bbec8c822"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_monster_combat.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b4551a2bb76fb956689c43c2b61e914882dad042114fbfc3fb1f2376920868e1"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_monster_hardening.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1972fd8824aedbb240823acaa6efbd64342aafac601b376808a9526714f4f692"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_narrative_director.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d201f8c78eeca203700e92653784a5bb5f4ea0ed82031a164b968998aea06c22"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_narrative_memory.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "6498c6c306a4b7bc80de5724cecb4da1d5b2d118de53e40f60d73cbf1f70a389"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_persistence_idempotency.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "53f2fb0c9086ed232be743864d30da401bf168e1134d525d0fc4379b6ceecf20"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_playable_living_world_v1_review.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "573f07a7d5269454066ec9c02c8c0fc128fd6d86f97fb269cf418de6d5ef0dac"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_quest_outcomes.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9a76644f53070d125f3bf6b00af5188066d12e078baf3871013d40764039c1e5"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_regression_evidence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f9ed376bed13164f6c919249d6125edaeb55515e8f490b40d0d30fe697b2df9b"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_species_traits.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3f1ece4c9c602ba139d80e83284755b314f3e4a12ef467d2c5f938637b0da7dd"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_spell_presentation.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7c94a76a00d47542b7cd3de8bb76a23cb84cc64921558b78093daa3be9a14046"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_spell_scope.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4ffb81ac3707da45cc547eebfd2eba9b27cacfddd101af83a5e1664fd88b6c93"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_weapon_attack.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1d5fd107d13b7786b6fef75bd1d31e34d76244e087c56266bc7e1b944918d3ca"
+      },
+      {
+        "path": "ai-dnd/api/tests/test_world_metadata.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2fc2f3a3a3a7b1a3b482c5c19de2edaa7d9d8fa7fd8dc6ead6f6d54f44b8e0c3"
+      },
+      {
+        "path": "ai-dnd/api/world_metadata.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "dab0691870dba01efce92e43c5dba2b83945afc0f89610423df427dc452efcf4"
+      },
+      {
+        "path": "ai-dnd/bounded_encounter.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "65eb5588b32a25be7c1bf4e89fbe674043ffffe8db7b18f6560caa11e66474cf"
+      },
+      {
+        "path": "ai-dnd/campaign_time.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f3c7ebdb642bc7863bad8a328b333c27ea55097a5bb71c98fcd2388cd4a56f1e"
+      },
+      {
+        "path": "ai-dnd/combat_lifecycle.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8e33223ac5741a342a86db5f43fb5a37270528ce55a7589c768573a3251298f8"
+      },
+      {
+        "path": "ai-dnd/equipment_economy.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1dd18fa65d3ef74635f17706e9f7b77db3d5260fc881af2b9d2af6b30412b15a"
+      },
+      {
+        "path": "ai-dnd/equipment_native.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2fcf0a1b2c1fe195cfb33ce1b575b0909529f7a4a279ddb48f82ac14bfd9dc5b"
+      },
+      {
+        "path": "ai-dnd/game.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "293e841b359731831c2deec8e07b0d94fb93ebb314904647df56a0589015c251"
+      },
+      {
+        "path": "ai-dnd/game_backup.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b68fbc56606255611ad33e7e9d1518ca255f5315e85ebf938682b03755611e5b"
+      },
+      {
+        "path": "ai-dnd/game_checkpoint_major_phase_d_20260929.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "be99d1e0f99482715ecff124ebca7d4023baed6129d9378dd1b72e418e4818a4"
+      },
+      {
+        "path": "ai-dnd/game_v10_backup_20260927.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2e78db08e6879cca00786a355b8f0f449a8bf268273ee3261efc08ab5a2bfbba"
+      },
+      {
+        "path": "ai-dnd/game_v10_backup_before_v11_20260927.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2e78db08e6879cca00786a355b8f0f449a8bf268273ee3261efc08ab5a2bfbba"
+      },
+      {
+        "path": "ai-dnd/initiative.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e01269e493b2cc44bdfcd39237bc7538c083d6361b2a3e95bd48af4d6ef62bb6"
+      },
+      {
+        "path": "ai-dnd/interaction_adventure.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "848b29d5f7489d27de57d8998c0b51f5cd116ba04966c695e488ccf595587e35"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/check_npc.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "80023a212decb7637eb7172b40a34789874332754317cc52da13ccf6e96e0cd3"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/check_source.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "997a5443e0f3a16ffde863d8083b72df76a312a257ef90c4fe24040fcbcedf05"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/combat_functions.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "33c215cd4c26eb0b880f5c26359806ba1515a147c8a038d94d5128b71d9cb355"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f1273c316995541eaf2b8f433946a7c8a5dc585b0df79cede36476fafa1ac28e"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "99646747a818c340036d21f86efc85b50bcddf241a550db2a733b0d0a8764891"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "28234170eb11d0aa59cb9cdbe3399645799cabbfdff7d767373d1df9650f1d8c"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat_simple.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8e85ff9b8dc5c74ae2c4ea90175dc6ffe738e355e411a02d3b02e2ba23e7defc"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat_start.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "075abe7132123215370567e45d799bc6140fb2053dbf36cf09116fefc09cd4ab"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_combat_start2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ead63b409b2e5cdd51cae3d80b8bf911fa99c91557db74eed29384fc39867099"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_detailed.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4ef9cbe9ed20fa43918a36b7eda7f31e3f79543ca8abde134ef023a05bc6585b"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_hit2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d8c90cf328f982a598e083df17779e2e14ae9d85bce75495854f0a36400446f3"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_hit_detailed.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "672c7170a0600417384580c746b7ef8e14e51b2c88dfc90a6ab05e75354e6a7a"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_miss.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2ef3fc137b52077f861171f61dbba24ef0f17112d74353d271a17e8cc9bbfc8b"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_miss2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9625fe10d74397e26153ef8ff0f80a542e47b5acff4a15efa582115be971871b"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_miss3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8be8d37bf762cf1154878c118be8cf0ba6959812b4033035fa23dd6e1971bd98"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_miss4.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a37393919c9419c9c54ce8db53a5e3bad1ade1c73192aafdb0397e37b4471de4"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_enemy_miss_final.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "59b80450f9b64af9a29ea5db1e393b1a907b62e2d30e7dec384d8ee82cc891ef"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_failures.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c005ad3f5fecd57b164db1687b6c2e8b4f95b73b1b9900dcee152a47d09449e3"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_failures_detailed.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2b4e0dcb422cf2d1dfbb4bdbb8dab33c0473a1144141840327ed4935a4812527"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_init.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "506bfd6f9437ab5f9f34b4234755332b5bddaff5fcbb70519418817fb36ea942"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_init2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d900205107d454b2fd6fe12ab4d8c52ccedd61c8fcb9b6a669c7b93c70b66830"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_init3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "79f53eb7bcf0124671d636ed1f3518a134fd067e36a295da995bc81d95741919"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_npc_init.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "660fc3eca4dd428f4ea094f04eba06064f4912b48dd25221b3757b9108ccead6"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fa2e8b47b53a64dbddfa220bea3c9383818e2d06e991441a89098858fb70e081"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_test_e.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "07efed9eb1775576f283b7d0c573c40f88bf50ddf424616398c5ac492354b073"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/debug_tests.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "5ca027322d4024de19edb168b2b9537df75c0bf8d44a92e25d7c60324b419503"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/edit_patch.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a9b32d668b51682c9568bfe5aa716dbbedcb0503aa3bca5a43b6eb4aa13ae3b0"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/edit_patch2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0d9cd451a852fd59c7bbfe2d995392bfd07fb61a229974ecab4351fcb5fce13b"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/edit_patch3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "12d4d14a5a97a2ff51d34de2dc1d165ca74e1f9284da50929508e9332fcb2c79"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/edit_patch4.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9f2fd22a0e6704af3d78ea7c01dbbd2d90d7a70a2c106bf4902108cec32543bf"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_acceptance.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d96c074791782b6211d7fcc8075d1ef7a7d259c4c78f86503f4799ac47cf570d"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_debug.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4c985e38181cf763f7f0518c18f6f0a1da7534c87e5c2ee3434ca668a40bd727"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_enemy_attack.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "18a1419a5ee9d8e972a01ff7475b4a5c9c2d8f55cb36f68e93b34518f59a1383"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_enemy_attack3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "31271490b1acf4bf03aae55b2b0c30d6c9f409a454c969b567485d0bc498cebb"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_import.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0d8d8d23d784e9adc14d882c95eecf19ff505c16cb2a258f7128d9fad6f210b8"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_run.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "081f5babd14853dd9211a23e72b6818bad7c9f1a9c55b73afd336138e59c10be"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_run_turn.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9c1f0ed269fb848190870c455d49d30278f832ddc65bb04110531cbc4f9c4750"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_run_turn2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9a5f309c6606c43951582070d6ca2ca0c85819e83b3c86f1a492f420a3f6c9f0"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_run_turn3.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1647750b566a1e1bcd3a42d18da1820039ed35e4ae950aa9caa805d6b9ff1971"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_run_turn4.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2f197e37a3b304578bb9c16ce626bf9ba0229bb35aef04e22b3d113ddd3cfed8"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1d6f33b701c96fe22dfabf6f5467e0d613aac82b7688d625ba4bd69341a590c0"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test_f.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7b88f89d4032d0b258b7b0c58fc1c569e31f23f63633cd52471ef46fcd1e77e8"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test_f2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "87e24c00a2165f538c490bf3aa541d6f535c2c52d80dc35ed85938ca90494d14"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test_f_final.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fb0815c852275979b228f3b6d7d64dd5db095ac8b91780584ab14b1afa8081f4"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test_j.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b8635dcba009b8a83395c5f5c9dbd2b17c4b69fa97b34d26cb2815d1191fa764"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_test_j2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a456d30468f1addc243abd4feb4b1f9ff39ee98cd9b4a9e532c3a98c14e5483b"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_turn_advance.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d9032a21ded5147ad90828339629a312640226ac776764f68c714bed4c599895"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/fix_turn_logic.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "39b5d521483a30fe3b89c5090b9e6a8975359576389e75c051dafd394047025f"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/patch_forbidden.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bf26eb38b7a12a00c19fcf858f210aab88d7d435543379219c0c40ad6ba184b5"
+      },
+      {
+        "path": "ai-dnd/legacy_debug/test_nat1.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "df0e96cda573cfd09abd41014c14cf420a602ca68621b0c66df499d8a569ad47"
+      },
+      {
+        "path": "ai-dnd/live_integration_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bfb28f18d82d5ecb1adca58370a78bbd5e9c242f3598f8c4f8fe09411ef1652f"
+      },
+      {
+        "path": "ai-dnd/live_intent_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ae181d1dcaf014bbfeada17437fa946547d5be5de209221511f06e05b6665ba0"
+      },
+      {
+        "path": "ai-dnd/live_memory_test.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "12c5b34b5fcc2d9b4d62ca32f4e6fd02779b95bdb18d005056da2f56225e2a97"
+      },
+      {
+        "path": "ai-dnd/live_narration_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f0d05a23c56c35ecb22ea1af13fdc08f438c18530fcfce8a8c9958b61e428710"
+      },
+      {
+        "path": "ai-dnd/live_phase_c_narrative_smoke.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7a7a07effe986bb965be268dfe5b4a85481dfe4f1297baf017a80b27b431c75c"
+      },
+      {
+        "path": "ai-dnd/living_world.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bb34f8c6b5d6541266cf5914d0c90442659a37863a0ebfab11c9dca931a37709"
+      },
+      {
+        "path": "ai-dnd/local_dialogue.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "5f869456e3f4403f5e77e03f5801af37c957e23427a09445a5cfde50069c6d51"
+      },
+      {
+        "path": "ai-dnd/monster_capabilities.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0a0ff6ba93d9bf8d62b7babc7fa519d480097de88798fec4dadf20f2f14ea3ac"
+      },
+      {
+        "path": "ai-dnd/monster_combat.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9d9f7782280039029a2f045d8811a9bd068558a35db535663b94b43432c32149"
+      },
+      {
+        "path": "ai-dnd/monster_perception.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "31a55a2cf24e9e20403553da3395dfa08303d1d5280e3c2d7591b3d4b61a07b4"
+      },
+      {
+        "path": "ai-dnd/offline_test_support.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4243f29e0863dfbd47f1b5248d94c7b6f38ddba630f70c191bebedb9c7d935fd"
+      },
+      {
+        "path": "ai-dnd/quest_catalog.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ae42c977d4c678d869151f892629841324c869d8abee8ee62cbff00cc394d519"
+      },
+      {
+        "path": "ai-dnd/run_tests.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "06994b057936f4c1fa884946031ec70036811f182d6ee918b7d4fa5d406b9339"
+      },
+      {
+        "path": "ai-dnd/scheduled_events.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "79c745a34f0031b1d03631e4d4145405692b14a4aa668eeadd3e5281a265b171"
+      },
+      {
+        "path": "ai-dnd/scripts/development_archive.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "43ae31226a873f1fe895d1dcdb64dfadeca252eba513bb6ec8263501a0bab35d"
+      },
+      {
+        "path": "ai-dnd/scripts/development_checks.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bf0ac54cdb6e6c6e56c15049b8654403935c168fc302e23d9436949e789aebe9"
+      },
+      {
+        "path": "ai-dnd/scripts/development_ownership.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d53f621a1f742b4cb49803907e221a3b74b79ee6490516c3cfbdf9312b93e2fe"
+      },
+      {
+        "path": "ai-dnd/scripts/final_gate.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "49de433f01101fcab43d58071f92b0b826dbb8329e00cbeaefb0e78fb3a66d9f"
+      },
+      {
+        "path": "ai-dnd/scripts/project_health_check.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a2c2b9e89213b2ac0a1af6e888a74085a7776fdcba0315f8c78c75a717541ca8"
+      },
+      {
+        "path": "ai-dnd/scripts/run_regression_evidence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "36bbf6742558f57d821399a950e06aa95343b225bf5b399d3b936be9f01607ac"
+      },
+      {
+        "path": "ai-dnd/scripts/verify_bounded_encounter_http.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1945faff974e807fe4dae4b446daba26cb07ee4ece3b0fff8190adf3df1e3df6"
+      },
+      {
+        "path": "ai-dnd/spell_scope.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0ebc4d54983b362d9c78b72682dd971d6d4c72717abdffaa4af1cf3ef7bebaf3"
+      },
+      {
+        "path": "ai-dnd/test_actual_logic.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7ef38c7f7c792bcb354f8d0923d9325add2c0e4bffc5b36bf3c721af174bc989"
+      },
+      {
+        "path": "ai-dnd/test_ai_pipeline_port.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "0d35014f0d0b52cd4c7e93a1e406bfdffa0075ed2a5432ade768d6c8fde5d917"
+      },
+      {
+        "path": "ai-dnd/test_ai_pipeline_semantics.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8bdbe38f3d1c8518ebd5eb59b34d70c108241b129f1791ba7df3f84123e27495"
+      },
+      {
+        "path": "ai-dnd/test_combat.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4d1044198688f14acaaa17a521d7d3a40ce8615c16a6ee310558bbed22869c82"
+      },
+      {
+        "path": "ai-dnd/test_combat_v2.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "650f852b31aaeeb23acdc2b5b0e20c4ff6bdaf25bd820b75559ad9e48bc0f0d7"
+      },
+      {
+        "path": "ai-dnd/test_combat_v2_authoritative.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e14e9cc04c7f67287217dfe3fd52fdbf68bd1ae9222a633fc4b53c2df810bf72"
+      },
+      {
+        "path": "ai-dnd/test_combat_v2_fixed.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d6448aef3e53c838017ad4bbc5141794db0a03fb6b83f0e10b270a9e9a6fb2ab"
+      },
+      {
+        "path": "ai-dnd/test_door_enter.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1f8e7d70914c3d9388b9075ab6e1a396bf898749b65cddf4aecbfc10fd3daee0"
+      },
+      {
+        "path": "ai-dnd/test_migration.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "5532dbcee05269f8410f26904f1a32e30688e40f7d9fef46514aa23a74e151ca"
+      },
+      {
+        "path": "ai-dnd/test_migration_harden.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "621ce01fc5ba9501f6b7622cd4fd0218effca16352ff2b342aa6996e3fc414dc"
+      },
+      {
+        "path": "ai-dnd/test_narrative_rebalance.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e011f56a5f84b2fd2afbd6766cf2a158365af641e2b930bcd11f46c732a4afc4"
+      },
+      {
+        "path": "ai-dnd/test_narrative_safety_calibration.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8b2ad86432ce594f1b7986c925b3f72e814e554c3f359a2b06de6ca2c5fc2319"
+      },
+      {
+        "path": "ai-dnd/test_npc_query.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "af43aaa7845bd3df446ed842048bae27c0c99417e809e61ce5147473d1a15b2b"
+      },
+      {
+        "path": "ai-dnd/test_persistence.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "3706399e85f84acc929e5e7c2706e3ea42f0bfeca1aae608f51791b73659a425"
+      },
+      {
+        "path": "ai-dnd/test_playable_living_world.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fa95d45b4dcaa7962b2b49b5270f6d2c715495414ae8661551ef2ade398b8af1"
+      },
+      {
+        "path": "ai-dnd/test_query.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e9006db8af54f31765e0d8a929400490b5a28b453b372110e3a53a9c3a9de58a"
+      },
+      {
+        "path": "ai-dnd/test_query_logic.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1ded1f424ba45ef3031533e4cfe70bed0b785dc54408f78c391b231b5ec1ae65"
+      },
+      {
+        "path": "ai-dnd/test_regression.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ea5edbf9e8f3556feb01789b911c9fff7dd0cb5babb689c5bebba5b00b1dc5f8"
+      },
+      {
+        "path": "ai-dnd/test_self_query.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "eff85261c762bc56e5f40371c82a520c7d108c1f5ef3337197448a909e467fee"
+      },
+      {
+        "path": "ai-dnd/test_sessions.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2a21d2df1b3ae121971063c343ee884e6b904fe7aba7d9f9c0616938f8b3856e"
+      },
+      {
+        "path": "ai-dnd/test_shops.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "69353e347d4cbdb288d81a0f2d6a137c2232d1746a06aa08f70fcfebf71c04d5"
+      },
+      {
+        "path": "ai-dnd/test_startup.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "91c601d1986f4ca7c31bf31cec2a8e703dc8fbc5e4c3aee3ff94a3aeafebd8a2"
+      },
+      {
+        "path": "ai-dnd/test_validate.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "22f02cdb05da9dfec6960f375b1fda1d89bb8429fc0af9a307cf5ba24050a707"
+      },
+      {
+        "path": "ai-dnd/timed_gameplay.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "017ef2bec879cf095b31e411f0b5e2c4e39aa06016266dbdfefe18edb4e08645"
+      },
+      {
+        "path": "ai-dnd/trace_ai_pipeline.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1110265cadb771bef35d0816b9108d1c90b5cc675be2a027d9cfd5d0f00991ff"
+      },
+      {
+        "path": "ai-dnd/weapon_attack.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d0e91a94c69d24f1be47983b37d7f26d8b8048837a46eb74c04d471a1647b1e0"
+      },
+      {
+        "path": "ai-dnd/weapon_catalog.py",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9937c63adb6482bd26c8103afd8e0e482d9ea8f5d5d5f1bc469922c07ee168a1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/App.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8a500bc92973e8012744c72902219e44e8936241f49b0fc92ab22287be448688"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/action-economy-panel.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "5b8214dd8fb3dd27641ff44b488d8cb22474e9f621bca0824393116e5829fee6"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/adventure-journal-section.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "165e3b84313598eab2ad994e32222f68638ffa5724552723d6d9e40383077c46"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ambient-event-actions.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f9f662d25d928955a38b81b47651bd71eb14268d92be001a9ee9033315401f60"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/campaign-context-panel.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "77430f13db196fb9ccce094d45999b628882a46a667a7c3a4a58893620d548a3"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/campaign-library.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fcd2bac25e90007f2e07530eb45ccaf6087aeafbfc932999592615ca3494cf8c"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "51e955d6467598386a95f51d2215c434715ad608b52ad854c860c49192f84276"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/combat-panel.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1cbce9731547bbfbbe68e30ddfd621d6256bb57b762e2f66018bb1360b1aaad4"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/death-recovery-controls.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c3da2403c0868577e5d24d24e9819120e1e158cd331b8377708e70723c99329b"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/environment-theme.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b12db1a896fce10a8bc99805958c4f640963670aa44722625eb46041de823c3b"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/error-boundary.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "239fb6a272c5a9109c9dde446fcacf40bceb4763bfb8b1e71a3a8c7d4627c21d"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/quest-journal-section.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e9d3dbbd25c451a55af4089a09ad903d30b7699480e469affb260eaf0c6b51ca"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/skill-check-result.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a3bb56fc18a80c48853c93eacd9f140dea3fc1dd3b64da6e9976759b44ba0437"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/species-trait-controls.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "76552806511eabd3dbe7a18687e63b2ba1e221f6f6c6a730d8a4c07bcdb716b0"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/spellcasting-panel.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "79650cce40ef9033d7b47099aea2f1880c47aec1adb69b8e9e758a97c8dd95e4"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/accordion.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8e4230a3e6d38bfab7b02f00f9e948c8c4038432c5b1bf2d0ea44dc8b5ce09cc"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/alert-dialog.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d76901a06e6881e94aa3847fde2602ee6f6ddc9f4cace9fa238627a5572bd24e"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/alert.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "695369ea4d1ba4438dcedacaa8059b08b6463ac93170360f3bd42b983b7608e9"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/aspect-ratio.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2f5b0ed3cbcf84e526caad0c6b88d4457f8745a365c86cc74d924a1b6e013a36"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/avatar.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "429f5e82fc3dcf265625650176f16ff9b35e55826183e1f1b2d4dc2a338f9b15"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/badge.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ba6f51e428a520f54e600fded4ea030a8099fa6a9a7b7110af8dca34795415d1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/breadcrumb.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "44b4de47f806eec0e3de5130f0399e83700eaf0bc8deb47af5ffda2bb11eb3f1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/button-group.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b89025c11d08652597cb46b097d3e04658ad2c383bf81ed445c8182c0ed1b260"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/button.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9c20a340ca0c948d0164158eff44fca2e26343c8ee387ffc22f9cd677c59d27d"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/calendar.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1cdd1e62797356fe62f61f5521fcf0da8e3570b1120868ccca2b48370157fe46"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/card.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "9fed39a53303c12fa6ac6f5f8813c1683e2198df9ee067cffbdfe69044cf3e4f"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/carousel.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4ae2f69bc2c1ce33c60b23ddc5382f4b93882dac07c2d18cce32fb148ff52c48"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/chart.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ac747c83483d742e207426a193ba5e2cf639fa18cd819c1f12d12329520c6c12"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/checkbox.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "6b9e336fa42475bbb2ad4d76478afb8d2555e6e26bac245b9ccde62a9a033adc"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/collapsible.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "aedcd10b62404b39d8d5544c01fee90aa7b66e7280bb80a215601ad198a1b8fd"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/command.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d8fb66e44f9f8de558f6a94c781f3d890871d76dbabcda64e6fab3c917b3237d"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/context-menu.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "bdff38b45a6010e3db808c099c799bd61e6aca619378074e7b14b63c1291e4c9"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/dialog.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e0d3fa53f4cb7d8011ab09f2d198c24234062d24638fabf5142f5fbce57d2ba5"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/drawer.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "152bc340ad982e84f851e3bc1a6b8e7ffd0151a7445c6ecf1b1e3e13cbc19210"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/dropdown-menu.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "a79d5419ee174de35880340aef44d67847cee54846c058e02ac4a846b603c60f"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/empty.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "48824b1b37bd406fa74f48db726a4f1d70cf88db5b3432f7b1d59f584f1c5dad"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/field.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c3787ffb045354e9f18e70d94890627caea94939a226e49c1e6cedee84a1e9e1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/form.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1960463b09152760fdd99ca3eb16187408d064c7599ed66384b42d1613d3a3a3"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/hover-card.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e0b4e3f0126757a8eb5c6e436c8c041c049430abe9a2eb84b10154144b31c29c"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/input-group.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f4befbf9bf8ebd755b267c4db2b396be296adb95acca5c3fba54f6495bdedebd"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/input-otp.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "b4891335e70920518cfbdef2aeb399f61477fbc4b3ffe3b8a2938f19074164cc"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/input.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "03ac1648171bd5ad90dbc03e9ebff9a9cc77708bcc53bdac914b80eeebfe3032"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/item.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4a84cda22d692ee176f5128517a4003a63d11f907df445e7586ef034c88e8772"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/kbd.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4348a7a06a715e9e9673602cbb9ed89a6a4c6cbdd457d4c03db0f23a139d19eb"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/label.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fbc0c7db4221227941271a004bf71db5067aee9d8668f3351d91113cd5934c8c"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/menubar.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "26dbbf36e4ffd87aab74e61dd1e3613f0c640988479679d53bacd8dbd15cc891"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/navigation-menu.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "222020e1ac703ce01700d6e8822c6263932bc71c481d724b8ef53ccaae8ad63f"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/pagination.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "dd65d2e59226a3f384014b596ae701aef50f130cb3061f4657e81c588587b8da"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/popover.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "dc574442536873c8aa88733c348503c4599ad6ed0fc9898fd25406d94e095cca"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/progress.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "74223bcccf7ca2ed026d197476abbe3d48fbc531c40f4252445f56954a270c75"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/radio-group.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8155d32dea5d4ddea2048b6d12f83fe4805d9bc87c97b994dbb0d040981334f2"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/resizable.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "8e73dfb8b582944364d73b64ed03378016f20f7251f15f880dcf0fb140e1ad41"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/scroll-area.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "73f5dedda781e5285092ea269f747378dbad8d95631eab638e15b3c31595dc59"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/select.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c64c9c1574c91f1eff922f3557e7609ba6c1d5e39959dbdecf8d386d7ae41990"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/separator.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2b129347f918742bf006099f7f56a9be373250de2ecc3ad201297563e3d1f807"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/sheet.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ef2ae35ccab1252c4eee56e67e9f1b2499b5bbfb3ae39037d8d4be39915c272f"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/sidebar.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "de7566e708ba8bf34cb4a78fc018c784315c9d7a16d70e66255f8c72caf9d1db"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/skeleton.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d78130b2e311a750e7bb524e66e3af4c04e2ab02b04fd68539c1afd0bbb47152"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/slider.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "ecac74b8f3a044ba7a9e4eb0bdbfdf48be92483a32d2c414c5078c9f38e1f369"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/sonner.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "de5a5d9ae404545fcb0f21123530ffcf89d24a47812c70b3ca1376591e28dbdd"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/spinner.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "4458ea392b32f439cd4c64b9593846f339370fa1295c04f9003f05c1f3386689"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/switch.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "f81bc9b5ce2d6a92b6b2f1f3376c0489f30f7073081a1d9d6c56553880f44c58"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/table.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "dd29f5ef260af67ed09c84505495e3fddbad14009e3b3ce689d0c354ffaf55d3"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/tabs.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "320609101fbaa6cccda0b899154cb510fa322926cfdbaf07e33b79c00c83fcd6"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/textarea.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "63fb699771afe60c5073ed50e1a042d7d7f21eefd12d15bcb750cf3230985011"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/toast.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "04d4ef720079342e2f4380c22683f1544bd8e93a581fb55e447458f04a6127d5"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/toaster.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "d34c7cd51482ddd5703a13378d9ac69b3459a304581e42f56ac2c696e53163ac"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/toggle-group.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "6d7aca86245edf5d0a8f6f3ed73bd19316f4865425891eabccd6f3e37e59519e"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/toggle.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "5800d2099224ef90892e8c1d972d2a0964391c33cd43d7f5c6abf5cd42e023e1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/components/ui/tooltip.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e3c6ea9d4ecd62881af33564e25be013d35a8a7fa78475a6dcc98a06c7f894eb"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/hooks/use-mobile.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "82bff42ff087bd5dc90a5d17609cc428b8688de92d1333073a839af5ad3c9cbd"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/hooks/use-toast.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "12cce940e597e1d597f7063131acd19658d25e924904308bf719bde17b67e351"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/action-suggestions.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "2032681ce1e5ce996d9e0f5af7dfc891cc0cfb733772fe35c2bdcce64f5f3e65"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/campaign-presentation.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e3b8c55aac7644bae893a8394143613f8b91a0b2f72207a386b39b2e88f28437"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/character-catalog-defaults.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "7a602a387eb31ca73ce0d00b123cbe6adb830d6fa3f76016aa0a2c72c6ede548"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/character-catalog-normalizer.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "185ad81cecc65e7280a8945509873ec6058bcbdebcf1b8c9764480eeedb9d68b"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/character-preview-stats.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "1872083b1d12e30063dce429396d82a21ded84ec3f857f8caa97f2e1c4662499"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/combat-history.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "c3d2ae6286feed7455d5db110a8d8bb5c3919ff8e244ece740f39c0eb84f539f"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/lib/utils.ts",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "afc0e1dc0e142d6b81f688d91087f81a4b2db4240cf70f55b6e5e4dcc199ebf1"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/main.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "e7e03b61f962dc1787ea029d4941424475455366b5a4f079c8fcb4f5df4d076c"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/pages/game-browser.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "fcaa16e582337e67c5925ed39fc7415991a59881b2cf05763331a567547c38cb"
+      },
+      {
+        "path": "artifacts/ai-dnd-experience/src/pages/not-found.tsx",
+        "kind": "file",
+        "mode": "0o100644",
+        "sha256": "6aaea7a7125024440020566f3a14fde4f65149b1fd21f68c6a437b193e88c642"
+      }
+    ],
+    "scope": "HEAD + uncommitted P1 corrections; NOT a clean committed-HEAD certificate"
+  },
+  "records": [
+    {
+      "path": "20261005T112706Z-af0856119c924243ae1f3c6e7e58ab6d/run.json",
+      "kind": "final_gate",
+      "started_at": "2026-10-05T11:27:06.788079+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": null,
+      "source_changed_during_run": false,
+      "result": "NO-GO"
+    },
+    {
+      "path": "20261005T112706Z-086f4bb7a4b94e9e93699548df5eef80/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:27:06.888959+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 161,
+        "per_test_outcomes": {
+          "pass": 161
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113149Z-3d55fa4cc484493ba885248c49c0a36c/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:31:49.857473+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": {
+        "tests_run": 1,
+        "per_test_outcomes": {
+          "failure": 1
+        },
+        "failures": 1,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113257Z-7229bc9146884349b35cc023e7ead5fb/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:32:57.408025+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": {
+        "tests_run": 298,
+        "per_test_outcomes": {
+          "pass": 297,
+          "error": 1
+        },
+        "failures": 0,
+        "errors": 1,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113442Z-54e098dd25ee47eab242e1657c3aecc6/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:34:42.267118+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 1,
+        "per_test_outcomes": {
+          "pass": 1
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113526Z-063cf8c705544497b50f000737710fd7/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:35:26.655881+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 298,
+        "per_test_outcomes": {
+          "pass": 298
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113621Z-04c34bf028d34368b97b3b3e004e3a0d/run.json",
+      "kind": "final_gate",
+      "started_at": "2026-10-05T11:36:21.522897+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": null,
+      "source_changed_during_run": false,
+      "result": "NO-GO"
+    },
+    {
+      "path": "20261005T113621Z-7540c990f3894954bc21435e90a2cd2a/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:36:21.834313+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 161,
+        "per_test_outcomes": {
+          "pass": 161
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T113953Z-b3fbc9941d2a49b6874bc885a8a8354d/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:39:53.022943+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": {
+        "tests_run": 1,
+        "per_test_outcomes": {
+          "failure": 1
+        },
+        "failures": 1,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T114032Z-45349c38fc6541ee86c488b8d0484de7/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:40:32.039005+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 299,
+        "per_test_outcomes": {
+          "pass": 299
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T114227Z-dacaaa376e2b415b80bbd1b2a1d02148/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:42:27.676613+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 299,
+        "per_test_outcomes": {
+          "pass": 299
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    },
+    {
+      "path": "20261005T114327Z-dc5ec887b5c04951a5920c23b3292353/run.json",
+      "kind": "final_gate",
+      "started_at": "2026-10-05T11:43:27.499303+00:00",
+      "status": "completed",
+      "exit_status": 1,
+      "aggregate": null,
+      "source_changed_during_run": false,
+      "result": "NO-GO"
+    },
+    {
+      "path": "20261005T114327Z-ef9aafb139744802bcfad503dc7cd995/run.json",
+      "kind": "suite_run",
+      "started_at": "2026-10-05T11:43:27.590200+00:00",
+      "status": "completed",
+      "exit_status": 0,
+      "aggregate": {
+        "tests_run": 161,
+        "per_test_outcomes": {
+          "pass": 161
+        },
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "expected_failures": 0,
+        "unexpected_successes": 0
+      },
+      "source_changed_during_run": false,
+      "result": null
+    }
+  ],
+  "http_attempts": [
+    {
+      "path": "closeout/http-first",
+      "reported_status": "FAIL",
+      "accepted": false,
+      "limitation": "Setup rejected before gameplay/model"
+    },
+    {
+      "path": "closeout/http-natural",
+      "reported_status": "FAIL",
+      "accepted": false,
+      "limitation": "Setup rejected before gameplay/model"
+    },
+    {
+      "path": "closeout/http-native-qwen",
+      "reported_status": "FAIL",
+      "accepted": false,
+      "limitation": "See retained failure; never retroactively certified"
+    },
+    {
+      "path": "closeout/http-fixed",
+      "reported_status": "FAIL",
+      "accepted": false,
+      "limitation": "See retained failure; never retroactively certified"
+    },
+    {
+      "path": "closeout/http-final",
+      "reported_status": "PASS",
+      "accepted": false,
+      "limitation": "HTTP-200/replay-only trading checks were insufficient: both sell operations were rejected. Original reported PASS is retained, NOT accepted."
+    },
+    {
+      "path": "closeout/http-accepted",
+      "reported_status": "FAIL",
+      "accepted": false,
+      "limitation": "See retained failure; never retroactively certified"
+    },
+    {
+      "path": "closeout/http-validated",
+      "reported_status": "PASS",
+      "accepted": true,
+      "limitation": "Canonical movement, explicit consent, actual payments and receipts checked"
+    }
+  ],
+  "actual_model_telemetry": [
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113412_330_dbda58a8.log",
+      "session_id": "03adfc30-2745-4757-87e2-2079d3a389dc",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113412_330_dbda58a8.log",
+      "session_id": "03adfc30-2745-4757-87e2-2079d3a389dc",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113412_330_dbda58a8.log",
+      "session_id": "03adfc30-2745-4757-87e2-2079d3a389dc",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113412_330_dbda58a8.log",
+      "session_id": "03adfc30-2745-4757-87e2-2079d3a389dc",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113412_330_dbda58a8.log",
+      "session_id": "03adfc30-2745-4757-87e2-2079d3a389dc",
+      "http_status": 500,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "16c1b664-db8c-424a-bd72-97f1824f2bd9",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_113617_120_eaff61b6.log",
+      "session_id": "ece2ba6c-0c55-485b-828e-dc4d4e8b81a1",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 2,
+      "chat_starts_since_previous_turn_access": 2
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 409,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b",
+      "http_status": 200,
+      "completion_model_calls": null,
+      "chat_starts_since_previous_turn_access": 0
+    },
+    {
+      "log": "artifactsai-dnd-web_AI-DND_FastAPI_20261005_114345_715_7ce4aebb.log",
+      "session_id": "8334d66e-82d1-4c4e-bcd9-fee6462b0ab8",
+      "http_status": 200,
+      "completion_model_calls": 0,
+      "chat_starts_since_previous_turn_access": 0
+    }
+  ],
+  "repository_gate": {
+    "path": "20261005T114327Z-dc5ec887b5c04951a5920c23b3292353/run.json",
+    "result": "NO-GO",
+    "blocking_checks": [
+      {
+        "name": "Working tree",
+        "status": "FAIL",
+        "required": true,
+        "detail": "Dirty: 0 staged, 4 unstaged, 22 untracked; see repository_state.entries"
+      },
+      {
+        "name": "Infrastructure scope",
+        "status": "FAIL",
+        "required": true,
+        "detail": {
+          "protected_changes": [
+            "ai-dnd/api/campaign_journal.py",
+            "ai-dnd/api/character_creation.py",
+            "ai-dnd/api/dnd_2024_rules.py",
+            "ai-dnd/api/serializers.py",
+            "ai-dnd/equipment_economy.py",
+            "ai-dnd/equipment_native.py",
+            "ai-dnd/game.py",
+            "ai-dnd/interaction_adventure.py",
+            "ai-dnd/weapon_catalog.py",
+            "artifacts/ai-dnd-experience/src/components/character-creation-screen.tsx",
+            "artifacts/ai-dnd-experience/src/lib/character-catalog-defaults.ts"
+          ],
+          "baseline": "062c5804ef734a3ab8655847905c0e4e1d0c62ec",
+          "scope": "Only infrastructure work is approved for this package"
+        }
+      },
+      {
+        "name": "Working tree after execution",
+        "status": "FAIL",
+        "required": true,
+        "detail": {
+          "source_entries": [
+            {
+              "index": " ",
+              "worktree": "M",
+              "path": "ai-dnd/api/tests/test_equipment_native.py"
+            },
+            {
+              "index": " ",
+              "worktree": "M",
+              "path": "ai-dnd/equipment_economy.py"
+            },
+            {
+              "index": " ",
+              "worktree": "M",
+              "path": "ai-dnd/interaction_adventure.py"
+            },
+            {
+              "index": " ",
+              "worktree": "M",
+              "path": "ai-dnd/weapon_catalog.py"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113149Z-3d55fa4cc484493ba885248c49c0a36c/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113149Z-3d55fa4cc484493ba885248c49c0a36c/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113257Z-7229bc9146884349b35cc023e7ead5fb/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113257Z-7229bc9146884349b35cc023e7ead5fb/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113442Z-54e098dd25ee47eab242e1657c3aecc6/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113442Z-54e098dd25ee47eab242e1657c3aecc6/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113526Z-063cf8c705544497b50f000737710fd7/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113526Z-063cf8c705544497b50f000737710fd7/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113953Z-b3fbc9941d2a49b6874bc885a8a8354d/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T113953Z-b3fbc9941d2a49b6874bc885a8a8354d/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T114032Z-45349c38fc6541ee86c488b8d0484de7/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T114032Z-45349c38fc6541ee86c488b8d0484de7/run.json"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T114227Z-dacaaa376e2b415b80bbd1b2a1d02148/output.log"
+            },
+            {
+              "index": "?",
+              "worktree": "?",
+              "path": "ai-dnd/docs/evidence/development-runs/package2-closeout-20261005/20261005T114227Z-dacaaa376e2b415b80bbd1b2a1d02148/run.json"
+            }
+          ],
+          "ownership_errors": []
+        }
+      }
+    ]
+  },
+  "server_identity": {
+    "method": "managed 8008 workflow restarted after each runtime correction",
+    "evidence": "retained FastAPI startup PID, /proc cwd/cmdline and proxied access logs",
+    "remote_published_server": "NOT CERTIFIED",
+    "current_process": {
+      "pid": 5469,
+      "cwd": "/home/runner/workspace/ai-dnd",
+      "cmdline": "python -m uvicorn api.main:app --host 0.0.0.0 --port 8008 ",
+      "stat": "5469 (python) S 31 5469 5469 34819 5469 4194560 17959 865 0 0 258 38 1 0 20 0 2 0 231208 312410112 17232 18446744073709551615 94371229351936 94371229352281 140728698160976 0 0 0 0 20451328 16386 0 0 0 17 1 0 0 0 0 0 94371229363544 94371229364240 94371739561984 140728698169132 140728698169190 140728698169190 140728698191793 0\n"
+    }
+  },
+  "limitations": [
+    "Only disposable campaigns created by this pass were read and deleted.",
+    "Raw synthetic player inputs/narration are separate narration-review files.",
+    "Boundary fixtures prove accessibility/defeat consumers, not fresh combat/container producers.",
+    "Repository policy and clean-tree requirements were not relaxed.",
+    "No commit/push/merge/force-push/rebase/amend."
+  ]
+}

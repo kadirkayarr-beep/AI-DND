@@ -1,0 +1,32 @@
+{
+  "head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "kind": "real development HTTP / real configured Qwen",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/campaign-start-options",
+      "expected": 200,
+      "start": 1791199790.567416,
+      "status": 200,
+      "end": 1791199790.6219945,
+      "response_sha256": "42c5c27ee74f3fb635ff9ad16c819a97b1400c02573b9696b5c91383ee21cc8d"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791199790.6224062,
+      "status": 422,
+      "end": 1791199790.649536,
+      "response_sha256": "7b7bde686c4c4953703f1075131492bc55fddf247ca1e0887dda522e6433941b"
+    }
+  ],
+  "status": "FAIL",
+  "campaigns_created": [],
+  "cleanup": [],
+  "error": {
+    "type": "AssertionError",
+    "detail": "('/campaigns', 422, {'detail': {'code': 'invalid_character', 'message': \"Selected skills must include the background skills: ['Insight', 'Religion'].\"}})",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 102, in <module>\n    c = create(selection)\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 64, in create\n    result = request(\"POST\", \"/campaigns\", {\n        \"name\": \"Disposable Package2 exact-HEAD closeout\",\n    ...<10 lines>...\n                      \"background_equipment_option\": \"A\"},\n    })\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 46, in request\n    assert status == expect, (path, status, result)\n           ^^^^^^^^^^^^^^^^\nAssertionError: ('/campaigns', 422, {'detail': {'code': 'invalid_character', 'message': \"Selected skills must include the background skills: ['Insight', 'Religion'].\"}})\n"
+  }
+}

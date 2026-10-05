@@ -1,0 +1,698 @@
+{
+  "head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "kind": "real development HTTP / real configured Qwen",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/campaign-start-options",
+      "expected": 200,
+      "start": 1791200547.4378493,
+      "status": 200,
+      "end": 1791200547.5093277,
+      "response_sha256": "42c5c27ee74f3fb635ff9ad16c819a97b1400c02573b9696b5c91383ee21cc8d"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791200547.50978,
+      "status": 200,
+      "end": 1791200547.5537646,
+      "response_sha256": "6b173314d3ae459b3464938a24c30df102a3d606d404842a7dab807790205f11"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200547.554516,
+      "status": 200,
+      "end": 1791200548.804959,
+      "response_sha256": "bc713651c9e3047969fcecc4ac8effcf607ec7881d2f2bd76fda9a46ff49ae2c"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200548.8093767,
+      "status": 200,
+      "end": 1791200549.3728075,
+      "response_sha256": "4815ff57ef03c94040eff0cdc41fc8f3c539014454e8a84d5be800a45ad266da"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200549.3746037,
+      "status": 200,
+      "end": 1791200549.9452696,
+      "response_sha256": "064ce249b27eaa85d3021878722a6e47284a07e30208c4b007ad295d2d0e3463"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200549.9471934,
+      "status": 200,
+      "end": 1791200555.3750384,
+      "response_sha256": "2281e6ccb4e1a7de78ee1bae2ebb9d0d652b3bbe2209c95707132f1c149207bf"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200555.378426,
+      "status": 200,
+      "end": 1791200560.6641755,
+      "response_sha256": "e7c8e872d99eb0a9607856486907cf9952eaf5941a99d47219dbc168058dd514"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200560.6687677,
+      "status": 200,
+      "end": 1791200560.6975405,
+      "response_sha256": "e7c8e872d99eb0a9607856486907cf9952eaf5941a99d47219dbc168058dd514"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 409,
+      "start": 1791200560.698703,
+      "status": 409,
+      "end": 1791200560.7196977,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200560.7209597,
+      "status": 200,
+      "end": 1791200561.2586775,
+      "response_sha256": "42a40b1757255e8dff9cae56de3b37a0de014869cb6e33b327231f2da14d0083"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200561.2619574,
+      "status": 200,
+      "end": 1791200561.7976155,
+      "response_sha256": "d853571d8d70a72cb8caddc6d45c55d29fcc6d5fd36c2f2caf3075caa1124a59"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200561.798964,
+      "status": 200,
+      "end": 1791200561.8252022,
+      "response_sha256": "d853571d8d70a72cb8caddc6d45c55d29fcc6d5fd36c2f2caf3075caa1124a59"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 409,
+      "start": 1791200561.826497,
+      "status": 409,
+      "end": 1791200561.8475072,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200561.849069,
+      "status": 200,
+      "end": 1791200562.374462,
+      "response_sha256": "f772469d1fb1f948c35a69c7e85a2e6caf1b62c57cd8d7c43e8889ebe944f9d7"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200562.3767734,
+      "status": 200,
+      "end": 1791200562.4045959,
+      "response_sha256": "f772469d1fb1f948c35a69c7e85a2e6caf1b62c57cd8d7c43e8889ebe944f9d7"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 409,
+      "start": 1791200562.406804,
+      "status": 409,
+      "end": 1791200562.452924,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200562.4548411,
+      "status": 200,
+      "end": 1791200562.978883,
+      "response_sha256": "abd4c086f337609cd2876419a483cc23e4ed3e0faaa2d7ed591d91408c103f17"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200562.9806578,
+      "status": 200,
+      "end": 1791200563.017873,
+      "response_sha256": "abd4c086f337609cd2876419a483cc23e4ed3e0faaa2d7ed591d91408c103f17"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 409,
+      "start": 1791200563.019662,
+      "status": 409,
+      "end": 1791200563.045638,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200563.0478685,
+      "status": 200,
+      "end": 1791200563.6481364,
+      "response_sha256": "4f1e10d9bcb17176ded3accf5286d980445fa76629482e7c6f3471f1e714b68e"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200563.6507034,
+      "status": 200,
+      "end": 1791200564.189998,
+      "response_sha256": "754fe26fb410196cce725ab0d360c8fee248cdbdea61b5baf67ccd115ffbec50"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200564.1944935,
+      "status": 200,
+      "end": 1791200564.7395868,
+      "response_sha256": "bd3fa20a22ff3ef99b63afdb3d723e8994dea32faeec90dff70a93df15abe97a"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200564.7733212,
+      "status": 200,
+      "end": 1791200565.364155,
+      "response_sha256": "9120832881832f1dfa0fc72cc3bf8f57675f2982f5d60d914b99bafd14ca8776"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200565.3664002,
+      "status": 200,
+      "end": 1791200565.4081004,
+      "response_sha256": "9120832881832f1dfa0fc72cc3bf8f57675f2982f5d60d914b99bafd14ca8776"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 409,
+      "start": 1791200565.409605,
+      "status": 409,
+      "end": 1791200565.4340198,
+      "response_sha256": "0ad0184a3f17d7d5f622394dc82ea163525ae8d903b4a4ab16ea0841c6d04a4f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200565.4365106,
+      "status": 200,
+      "end": 1791200565.9673142,
+      "response_sha256": "e9ec6466e3b442be284cf5f4674dffc7e3cd17c4a3f0341383a40265faa68077"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns/a97dc279-781a-4edc-a1a3-3ec45e7004d2/resume",
+      "expected": 200,
+      "start": 1791200565.9694822,
+      "status": 200,
+      "end": 1791200566.0027716,
+      "response_sha256": "a446b841bdacc53700e558ad39d9e57b651dd7ff60d8e9ccdfd46e1019977a04"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/2db38a50-bbc9-4a08-a6e0-4e8b36d09d8b/turn",
+      "expected": 200,
+      "start": 1791200566.003491,
+      "status": 200,
+      "end": 1791200566.0257258,
+      "response_sha256": "9120832881832f1dfa0fc72cc3bf8f57675f2982f5d60d914b99bafd14ca8776"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791200566.0272572,
+      "status": 200,
+      "end": 1791200566.0633616,
+      "response_sha256": "5df55524c7f2eb27b28cedbe2b231fdfd205bcfb5c73b2897cead9e817598afb"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/8334d66e-82d1-4c4e-bcd9-fee6462b0ab8/turn",
+      "expected": 200,
+      "start": 1791200566.0656188,
+      "status": 200,
+      "end": 1791200566.6094809,
+      "response_sha256": "0ceedcad6b27732a052c4ed3d1adce5319b64c000b93b851967d3e904ad2f1a6"
+    },
+    {
+      "method": "DELETE",
+      "path": "/campaigns/a97dc279-781a-4edc-a1a3-3ec45e7004d2",
+      "expected": 200,
+      "start": 1791200566.6122236,
+      "status": 200,
+      "end": 1791200566.6453028,
+      "response_sha256": "7bab4789ab011e3a09bcac68dc9578babd595632446bf80feaaeed567853eb69"
+    },
+    {
+      "method": "DELETE",
+      "path": "/campaigns/0d458772-dfe4-4a0a-b689-656c9b25df8c",
+      "expected": 200,
+      "start": 1791200566.6459599,
+      "status": 200,
+      "end": 1791200566.671884,
+      "response_sha256": "8577da06c92dbbb796a0c9728354b438c1fce0327ba0deb6471cdfcad4abedfc"
+    }
+  ],
+  "status": "PASS",
+  "campaigns_created": [
+    "a97dc279-781a-4edc-a1a3-3ec45e7004d2",
+    "0d458772-dfe4-4a0a-b689-656c9b25df8c"
+  ],
+  "cleanup": [
+    {
+      "campaign_id": "a97dc279-781a-4edc-a1a3-3ec45e7004d2",
+      "status": "PASS"
+    },
+    {
+      "campaign_id": "0d458772-dfe4-4a0a-b689-656c9b25df8c",
+      "status": "PASS"
+    }
+  ],
+  "native_before": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç",
+        "weapon_id": "longsword"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      }
+    ],
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "equipment": {
+      "main_hand": "longsword",
+      "off_hand": null
+    },
+    "item_rewards": null,
+    "claimed_item_rewards": null,
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          },
+          {
+            "item_id": "item_000012",
+            "name": "Club",
+            "weapon_id": "club"
+          }
+        ],
+        "equipment": {
+          "main_hand": "item_000012",
+          "off_hand": null
+        },
+        "item_release_policy": {
+          "item_000012": {
+            "operation": "receive",
+            "recipient": "player"
+          }
+        }
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "interaction_adventure_v1": null
+  },
+  "natural_request": {
+    "message": "Elindeki Club'ı bana ver.",
+    "target_id": "npc_001",
+    "action_id": "c1039630-0db5-48b8-8e66-d8ba9426c9f8"
+  },
+  "native_after": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç",
+        "weapon_id": "longsword"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      },
+      {
+        "item_id": "item_000012",
+        "name": "Club",
+        "weapon_id": "club"
+      }
+    ],
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "equipment": {
+      "main_hand": "longsword",
+      "off_hand": null
+    },
+    "item_rewards": null,
+    "claimed_item_rewards": null,
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          }
+        ],
+        "equipment": {
+          "main_hand": null,
+          "off_hand": null
+        },
+        "item_release_policy": {},
+        "item_consents": {}
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "interaction_adventure_v1": {
+      "version": 1,
+      "threads": [],
+      "commitments": [],
+      "perspectives": {
+        "npc_001": [
+          {
+            "entry_id": "perspective:0e0350c8c55f4c7786031058e7b7a183",
+            "kind": "player_claim",
+            "text": "Elindeki Dagger adlı eşyayı ücretsiz bana vermeni istiyorum.",
+            "source_id": "interaction:c35c8028bbfa4ce19925f4cbb6a54f5f",
+            "secret": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "event_id": "interaction:7ca622c9d1904cafaee5697e6dfd6687",
+          "kind": "negotiation",
+          "turn": 3,
+          "at": 0,
+          "location_id": "fr:city:neverwinter",
+          "thread_id": null,
+          "npc_id": "npc_001",
+          "listeners": [
+            "npc_001"
+          ],
+          "private": false,
+          "player_known": true,
+          "summary": "Aranızda bir teklif konuşuldu; değiş tokuş yapılmadı."
+        },
+        {
+          "event_id": "interaction:c35c8028bbfa4ce19925f4cbb6a54f5f",
+          "kind": "statement_heard",
+          "turn": 3,
+          "at": 0,
+          "location_id": "fr:city:neverwinter",
+          "thread_id": null,
+          "npc_id": "npc_001",
+          "listeners": [
+            "npc_001"
+          ],
+          "private": false,
+          "player_known": true,
+          "summary": "Söylediklerin konuşmada duyuldu."
+        },
+        {
+          "event_id": "interaction:872050d28cf840aabdae4e90966fe06a",
+          "kind": "item_consent",
+          "turn": 4,
+          "at": 0,
+          "location_id": "fr:city:neverwinter",
+          "thread_id": null,
+          "npc_id": "npc_001",
+          "listeners": [
+            "npc_001"
+          ],
+          "private": false,
+          "player_known": true,
+          "summary": "item_000012: receive → player"
+        }
+      ],
+      "plan": null,
+      "novelty": [],
+      "last_generation_turn": -100,
+      "last_beat_turn": -100
+    }
+  },
+  "transactions": [
+    {
+      "action_id": "755489de-edfd-447e-ae1e-8d0c12b8b9d0",
+      "message": "/item sell item_000012 shop_001",
+      "before": {
+        "player": 800,
+        "npc_001": 1000
+      },
+      "after": {
+        "player": 805,
+        "npc_001": 995
+      }
+    },
+    {
+      "action_id": "5a01fb3d-4bf9-4c78-9767-f82f7ba5b3cd",
+      "message": "/item buy item_000011 shop_001",
+      "before": {
+        "player": 805,
+        "npc_001": 995
+      },
+      "after": {
+        "player": 605,
+        "npc_001": 1195
+      }
+    },
+    {
+      "action_id": "f315ca9f-510f-4126-8861-05de4242c40d",
+      "message": "/item sell item_000011 shop_001",
+      "before": {
+        "player": 605,
+        "npc_001": 1195
+      },
+      "after": {
+        "player": 705,
+        "npc_001": 1095
+      }
+    },
+    {
+      "action_id": "1e5a4f4b-a114-479f-957b-ae31addd3441",
+      "message": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+      "before": {
+        "player": 705,
+        "npc_001": 1095
+      },
+      "after": {
+        "player": 805,
+        "npc_001": 995
+      }
+    }
+  ],
+  "final_wallet": {
+    "player": 805,
+    "npc_001": 995
+  },
+  "conserved_wallet_total": 1800,
+  "item_id": "item_000012"
+}

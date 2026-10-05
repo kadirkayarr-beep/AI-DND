@@ -45,7 +45,7 @@ _ROWS = [
     ("Greatsword", "martial", "melee", (2, 6), "slashing", "heavy two-handed", "graze", 6, 50, {}),
     ("Halberd", "martial", "melee", (1, 10), "slashing", "heavy reach two-handed", "cleave", 6, 20, {}),
     ("Lance", "martial", "melee", (1, 10), "piercing", "heavy reach two-handed", "topple", 6, 10, {}),
-    ("Longsword", "martial", "melee", (1, 8), "slashing", "versatile", "sap", 3, 15, {"versatile": 10, "aliases": ["Kılıç", "kılıcımla", "kilic", "kilici", "kilicimla", "kılıcı"]}),
+    ("Longsword", "martial", "melee", (1, 8), "slashing", "versatile", "sap", 3, 15, {"versatile": 10, "aliases": ["Kılıç", "Uzun Kılıç", "kılıcımla", "kilic", "kilici", "kilicimla", "kılıcı"]}),
     ("Maul", "martial", "melee", (2, 6), "bludgeoning", "heavy two-handed", "topple", 10, 10, {}),
     ("Morningstar", "martial", "melee", (1, 8), "piercing", "", "sap", 4, 15, {}),
     ("Pike", "martial", "melee", (1, 10), "piercing", "heavy reach two-handed", "push", 18, 5, {}),

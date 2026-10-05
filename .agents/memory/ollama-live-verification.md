@@ -34,3 +34,17 @@ and schema adjustments alone did not establish successful live plan handling.
 **How to apply:** Report fixture coverage and native model coverage separately.
 Keep failed source-span/dependency validation fail-closed; do not weaken checks,
 substitute a fabricated plan or call a safe fallback a successful interpretation.
+
+Check every economy operation's canonical movement and payment independently;
+HTTP 200 plus unchanged replay can also describe an authoritative rejection.
+
+**Why:** A live verifier initially reported passing merchant trading while both
+sales had actually been rejected. Receipt correctness did not prove the first
+operation succeeded. A normal custom character also exposed a hand-label
+compatibility problem that the default-character flow had not revealed.
+
+**How to apply:** Require same-instance source/destination ownership changes and
+the expected wallet delta for each sale/purchase, alongside replay assertions.
+Include the normal character-creation path in live acceptance. Preserve an
+incorrect original verifier result, explicitly disqualify it, and retain the
+new corrected run rather than silently rewriting the old report.

@@ -1,0 +1,25 @@
+test_natural_request_full_turn_contract (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_natural_request_full_turn_contract) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Engine turn failed (error_type=KeyError)
+FAIL
+
+======================================================================
+FAIL: test_natural_request_full_turn_contract (api.tests.test_equipment_native.NativeEquipmentHttpTests.test_natural_request_full_turn_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/runner/workspace/ai-dnd/api/tests/test_equipment_native.py", line 263, in test_natural_request_full_turn_contract
+    self.assertEqual(response.status_code, 200, response.text)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 500 != 200 : {"detail":{"code":"engine_error","message":"The game turn could not be completed."}}
+
+----------------------------------------------------------------------
+Ran 1 test in 0.157s
+
+FAILED (failures=1)

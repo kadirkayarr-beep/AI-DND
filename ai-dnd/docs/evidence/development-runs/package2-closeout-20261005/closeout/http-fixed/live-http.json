@@ -1,0 +1,413 @@
+{
+  "head": "775b963a2cadff8f390104e539ad751e2769620b",
+  "kind": "real development HTTP / real configured Qwen",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/campaign-start-options",
+      "expected": 200,
+      "start": 1791200014.1415262,
+      "status": 200,
+      "end": 1791200014.2929192,
+      "response_sha256": "42c5c27ee74f3fb635ff9ad16c819a97b1400c02573b9696b5c91383ee21cc8d"
+    },
+    {
+      "method": "POST",
+      "path": "/campaigns",
+      "expected": 200,
+      "start": 1791200014.2948947,
+      "status": 200,
+      "end": 1791200014.349166,
+      "response_sha256": "b8013261736728bf6234f209c35509ebd2365ef97f1640c1135986d653960dba"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn",
+      "expected": 200,
+      "start": 1791200014.3499427,
+      "status": 200,
+      "end": 1791200015.762099,
+      "response_sha256": "6de0034aa391bf2241641bc1b2dd6e6ca0bb94c2e99b21f443d947777d85cc97"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn",
+      "expected": 200,
+      "start": 1791200015.7683897,
+      "status": 200,
+      "end": 1791200016.3019586,
+      "response_sha256": "7ec40ff85507a97a112f841fbc784a1514c2b9407f18986a5b6617c4696ee49f"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn",
+      "expected": 200,
+      "start": 1791200016.3033848,
+      "status": 200,
+      "end": 1791200016.8453295,
+      "response_sha256": "cafa04eaf2acfd8cf0f21abfce2854e38e004e79acd56d3b32ed701087b421a1"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn",
+      "expected": 200,
+      "start": 1791200016.846695,
+      "status": 200,
+      "end": 1791200021.9058893,
+      "response_sha256": "440ab247777b19174a07bc229b45e332e28c4ccf79e25f8fd926920083653209"
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn",
+      "expected": 200,
+      "start": 1791200021.911301,
+      "status": 500,
+      "end": 1791200028.9649472,
+      "response_sha256": "5fb71ee45037e66a4165827b7f98a58aaa6bbae02fb342be5b237efcda438275"
+    },
+    {
+      "method": "DELETE",
+      "path": "/campaigns/e63b1764-49a9-4815-81e6-5788ade94453",
+      "expected": 200,
+      "start": 1791200028.9725215,
+      "status": 200,
+      "end": 1791200028.9983604,
+      "response_sha256": "8d27840e69fa56b25638b64942cd09ff8d74c830c05f5cc9bc4ccf3e544c6a78"
+    }
+  ],
+  "status": "FAIL",
+  "campaigns_created": [
+    "e63b1764-49a9-4815-81e6-5788ade94453"
+  ],
+  "cleanup": [
+    {
+      "campaign_id": "e63b1764-49a9-4815-81e6-5788ade94453",
+      "status": "PASS"
+    }
+  ],
+  "native_before": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      }
+    ],
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "equipment": {
+      "main_hand": "longsword",
+      "off_hand": null
+    },
+    "item_rewards": null,
+    "claimed_item_rewards": null,
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          },
+          {
+            "item_id": "item_000012",
+            "name": "Club",
+            "weapon_id": "club"
+          }
+        ],
+        "equipment": {
+          "main_hand": "item_000012",
+          "off_hand": null
+        },
+        "item_release_policy": {
+          "item_000012": {
+            "operation": "receive",
+            "recipient": "player"
+          }
+        }
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "interaction_adventure_v1": null
+  },
+  "natural_request": {
+    "message": "Elindeki Club'ı bana ver.",
+    "target_id": "npc_001",
+    "action_id": "df8e4ddb-4ad4-4691-a0f9-965177b35cb0"
+  },
+  "error": {
+    "type": "AssertionError",
+    "detail": "('/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn', 500, {'detail': {'code': 'engine_error', 'message': 'Campaign lore evidence could not be verified.'}})",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 124, in <module>\n    accepted = request(\"POST\", f\"/sessions/{sid}/turn\", body)\n  File \"/home/runner/workspace/.local/closeout-http.py\", line 46, in request\n    assert status == expect, (path, status, result)\n           ^^^^^^^^^^^^^^^^\nAssertionError: ('/sessions/03adfc30-2745-4757-87e2-2079d3a389dc/turn', 500, {'detail': {'code': 'engine_error', 'message': 'Campaign lore evidence could not be verified.'}})\n"
+  },
+  "failure_state": {
+    "inventory": [
+      {
+        "item_id": "item_000001",
+        "name": "Zincir Zırh"
+      },
+      {
+        "item_id": "item_000002",
+        "name": "Uzun Kılıç"
+      },
+      {
+        "item_id": "item_000003",
+        "name": "Kalkan"
+      },
+      {
+        "item_id": "item_000004",
+        "name": "Zindan Çantası"
+      },
+      {
+        "item_id": "item_000005",
+        "name": "10 Altın"
+      },
+      {
+        "item_id": "item_000006",
+        "name": "Calligrapher's Supplies"
+      },
+      {
+        "item_id": "item_000007",
+        "name": "Dua Kitabı"
+      },
+      {
+        "item_id": "item_000008",
+        "name": "Kutsal Sembol"
+      },
+      {
+        "item_id": "item_000009",
+        "name": "10 Parşömen"
+      },
+      {
+        "item_id": "item_000010",
+        "name": "Cübbe"
+      }
+    ],
+    "currency": {
+      "player": 800,
+      "npc_001": 1000
+    },
+    "equipment": {
+      "main_hand": "longsword",
+      "off_hand": null
+    },
+    "item_rewards": null,
+    "claimed_item_rewards": null,
+    "npcs": [
+      {
+        "id": "npc_001",
+        "name": "Equipment Merchant",
+        "role": "Shopkeeper",
+        "location": "fr:city:neverwinter",
+        "personality": "",
+        "appearance": "",
+        "relationship": "neutral",
+        "knowledge": [],
+        "memory": [],
+        "backstory": "",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "tags": [
+          "campaign_local",
+          "shopkeeper",
+          "shop:shop_001"
+        ],
+        "personal_profile": {
+          "occupation": "Bir fırında yardımcı olarak çalışıyorum.",
+          "current_activity": "İşlerimi bitirip biraz dinleniyorum",
+          "mood": "İyiyim; sabah erken kalktım, hepsi bu.",
+          "recent_activity": "Güne fırını açmaya yardım ederek başladım.",
+          "origin": "Bu şehrin dışındaki küçük bir yerleşimden geldim.",
+          "reason_for_being_here": "İşim ve tanıdıklarım burada.",
+          "personal_detail": "Sokağın köşesindeki çeşme öğleden sonra kalabalıklaşır.",
+          "immediate_goal": "Kalan işlerimi tamamlamak.",
+          "schema_version": 1
+        },
+        "max_hp": 10,
+        "current_hp": 10,
+        "armor_class": 10,
+        "combat_status": "active",
+        "shop_id": "shop_001",
+        "inventory": [
+          {
+            "item_id": "item_000011",
+            "name": "Dagger",
+            "weapon_id": "dagger"
+          },
+          {
+            "item_id": "item_000012",
+            "name": "Club",
+            "weapon_id": "club"
+          }
+        ],
+        "equipment": {
+          "main_hand": "item_000012",
+          "off_hand": null
+        },
+        "item_release_policy": {
+          "item_000012": {
+            "operation": "receive",
+            "recipient": "player"
+          }
+        }
+      }
+    ],
+    "shops": [
+      {
+        "id": "shop_001",
+        "name": "Equipment Counter",
+        "description": "",
+        "location": "fr:city:neverwinter",
+        "tags": [
+          "campaign_local",
+          "shop"
+        ],
+        "shopkeeper_id": "npc_001",
+        "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+        "economy_origin": "native_equipment_counter_v1",
+        "item_offers_cp": {
+          "item_000011": 200
+        },
+        "buys_equipment": true
+      }
+    ],
+    "interaction_adventure_v1": {
+      "version": 1,
+      "threads": [],
+      "commitments": [],
+      "perspectives": {
+        "npc_001": [
+          {
+            "entry_id": "perspective:3ea73d44f93a475fa93a7e87c9612966",
+            "kind": "player_claim",
+            "text": "Elindeki Dagger adlı eşyayı ücretsiz bana vermeni istiyorum.",
+            "source_id": "interaction:5ac407f4396d405cbd66be2a9864a9fc",
+            "secret": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "event_id": "interaction:1031dfd739ee4a85a111b91950f150b8",
+          "kind": "negotiation",
+          "turn": 3,
+          "at": 0,
+          "location_id": "fr:city:neverwinter",
+          "thread_id": null,
+          "npc_id": "npc_001",
+          "listeners": [
+            "npc_001"
+          ],
+          "private": false,
+          "player_known": true,
+          "summary": "Aranızda bir teklif konuşuldu; değiş tokuş yapılmadı."
+        },
+        {
+          "event_id": "interaction:5ac407f4396d405cbd66be2a9864a9fc",
+          "kind": "statement_heard",
+          "turn": 3,
+          "at": 0,
+          "location_id": "fr:city:neverwinter",
+          "thread_id": null,
+          "npc_id": "npc_001",
+          "listeners": [
+            "npc_001"
+          ],
+          "private": false,
+          "player_known": true,
+          "summary": "Söylediklerin konuşmada duyuldu."
+        }
+      ],
+      "plan": null,
+      "novelty": [],
+      "last_generation_turn": -100,
+      "last_beat_turn": -100
+    }
+  }
+}

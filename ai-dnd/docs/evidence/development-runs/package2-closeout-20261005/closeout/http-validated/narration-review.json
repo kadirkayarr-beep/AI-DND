@@ -1,0 +1,107 @@
+[
+  {
+    "action_id": "d7c8e76e-3212-4f1b-9d52-7e77ba069fa5",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "30b9ade8-45cf-47b1-9500-217f287f4095",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "1240da60-f9e3-49dd-86f7-09c7f3942d9d",
+    "input": "/item request item_000011 npc_001",
+    "narration": "Eşya işlemi reddedildi: npc_consent_required. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "6e0f63d0-d889-440d-8ca7-dc105f18a17e",
+    "input": "Elindeki Dagger adlı eşyayı ücretsiz bana vermeni istiyorum.",
+    "narration": "Bu konuda güvenilir bir doğrulamam yok; kesin yanıt belirsiz."
+  },
+  {
+    "action_id": "c1039630-0db5-48b8-8e66-d8ba9426c9f8",
+    "input": "Elindeki Club'ı bana ver.",
+    "narration": "Club [item_000012] açık rızayla devredildi."
+  },
+  {
+    "action_id": "c1039630-0db5-48b8-8e66-d8ba9426c9f8",
+    "input": "Elindeki Club'ı bana ver.",
+    "narration": "Club [item_000012] açık rızayla devredildi."
+  },
+  {
+    "action_id": "fb56fbbf-ab01-4057-8e21-baded22da541",
+    "input": "/item request item_000012 npc_001",
+    "narration": "Eşya işlemi reddedildi: item_ambiguous_or_missing. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "755489de-edfd-447e-ae1e-8d0c12b8b9d0",
+    "input": "/item sell item_000012 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "755489de-edfd-447e-ae1e-8d0c12b8b9d0",
+    "input": "/item sell item_000012 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "5a01fb3d-4bf9-4c78-9767-f82f7ba5b3cd",
+    "input": "/item buy item_000011 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "5a01fb3d-4bf9-4c78-9767-f82f7ba5b3cd",
+    "input": "/item buy item_000011 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "f315ca9f-510f-4126-8861-05de4242c40d",
+    "input": "/item sell item_000011 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "f315ca9f-510f-4126-8861-05de4242c40d",
+    "input": "/item sell item_000011 shop_001",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "30e88f3e-1319-4d8f-8e76-785f17648515",
+    "input": "/item work npc_001",
+    "narration": "İş kaydı: thread:6d62a0d35edb442985deecfad6c10174. NPC ile konuş; tamamlandıktan sonra /item reward thread:6d62a0d35edb442985deecfad6c10174. Ayrılmış ödül: 100 CP."
+  },
+  {
+    "action_id": "78c4649c-3278-4545-a05d-f323a947e11a",
+    "input": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+    "narration": "Eşya işlemi reddedildi: quest_not_completed. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "8cd575c5-4c9f-4c5f-a956-c674a04b5ab2",
+    "input": "/item talk npc_001 Merhaba",
+    "narration": "Equipment Merchant sözlerini duydu."
+  },
+  {
+    "action_id": "1e5a4f4b-a114-479f-957b-ae31addd3441",
+    "input": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "1e5a4f4b-a114-479f-957b-ae31addd3441",
+    "input": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "215a07f4-b01b-4da6-8a82-efc363a009bd",
+    "input": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+    "narration": "Eşya işlemi reddedildi: reward_already_claimed. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "1e5a4f4b-a114-479f-957b-ae31addd3441",
+    "input": "/item reward thread:6d62a0d35edb442985deecfad6c10174",
+    "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+  },
+  {
+    "action_id": "e8260ecc-60ae-4445-b9e3-d47d2f03f231",
+    "input": "/item receive item_000012 npc_001",
+    "narration": "Eşya işlemi reddedildi: npc_unknown. Dünya durumu değişmedi."
+  }
+]

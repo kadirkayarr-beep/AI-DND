@@ -176,6 +176,9 @@ def proposal_guidance():
         "quote oyuncu mesajından birebir alıntı olmalı. thread_id ve evidence_id yalnızca "
         "gönderilen context içinden; belirsizse null. Başka NPC'nin bilgisini tahmin etme. "
         "İtem talebinde requested_item yalnızca oyuncunun istediği eşyanın referansıdır. "
+        "Oyuncu NPC'den açıkça bir eşya istiyorsa (ör. 'Club'ı bana ver'), operation=request "
+        "ve requested_item mesajdaki eşya adı olmalı; bu bir information işlemi değildir. "
+        "Bu yorum NPC rızası veya başarılı aktarım değildir; bunları yalnız Python doğrular. "
         "Mevcut bir macera izine devam ediyorsa thread_id seç; yeni hedefte goal seç. "
         "Çok adımlı planın steps alanı yalnızca oyuncunun aynen söylediği adımlardır; bunları "
         "gerçekleştirme. Plan işleminde steps boş olamaz. İlk adım depends_on=null; sonraki "
@@ -724,9 +727,18 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             import equipment_economy
             import shlex
             transfer = equipment_economy.execute(
-                session, f'/item request {shlex.quote(data["requested_item"])} {npc["id"]}')
+                session, f'/item request {shlex.quote(data["requested_item"])} {npc["id"]}',
+                advance_turn=False,
+            )
             if transfer["action_result"]["success"]:
-                return transfer
+                # resolve() returns an action result, not the command turn envelope.
+                # Keep the existing turn/narration/persistence owners in control.
+                return _result(
+                    operation, "resolved", transfer["narration"],
+                    npc_id=npc["id"], npc_consent=True,
+                    item_validation={"owned": True, "transfer_possible": True, "reason": None},
+                    state_changes=transfer["action_result"]["state_changes"],
+                )
         text = (f'{npc["name"]} elindekini bırakmıyor. “Önce ne istediğimizi açıkça konuşalım.”'
                 if npc else "Teklifini kime yönelttiğini açıkça belirtmen gerekiyor.")
         result = _result(operation, "pending", text, requested_item=data["requested_item"],

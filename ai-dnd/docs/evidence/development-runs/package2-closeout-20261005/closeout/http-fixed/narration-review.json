@@ -1,0 +1,22 @@
+[
+  {
+    "action_id": "2b28a95e-39cc-41bd-acc9-350f2fe59a8e",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "a57fa46f-d1e4-4384-94fd-885005c225f2",
+    "input": "/item market",
+    "narration": "İşlem noktası: shop_001; NPC: npc_001. /item list"
+  },
+  {
+    "action_id": "60a44968-5678-4947-aa01-63c06e2d788a",
+    "input": "/item request item_000011 npc_001",
+    "narration": "Eşya işlemi reddedildi: npc_consent_required. Dünya durumu değişmedi."
+  },
+  {
+    "action_id": "baa63e33-395d-42b8-bafe-bec48ce430b9",
+    "input": "Elindeki Dagger adlı eşyayı ücretsiz bana vermeni istiyorum.",
+    "narration": "Eşya satıcısı elindekini bırakmıyor. \"Önce ne istediğimizi açıkça konuşalım.\""
+  }
+]

@@ -381,7 +381,7 @@ def _apply(world, operation, args):
     return "Eşya işlemi Python tarafından atomik olarak tamamlandı."
 
 
-def execute(session, text):
+def execute(session, text, *, advance_turn=True):
     """Return None for unrelated input; model output never enters this owner."""
     if not text.strip().startswith("/item"):
         return None
@@ -404,7 +404,7 @@ def execute(session, text):
         validate_world(candidate)
         world.clear()
         world.update(candidate)
-        if tokens[1] != "list":
+        if advance_turn and tokens[1] != "list":
             world["flags"]["turn_index"] = world["flags"].get("turn_index", 0) + 1
         success = True
     except (EquipmentError, ValueError, TypeError, KeyError) as exc:

@@ -1,0 +1,455 @@
+/home/runner/workspace/.pythonlibs/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_compound_plan_failed_save_rolls_back_and_other_session_is_unchanged (api.tests.test_interaction_adventure.InteractionApiContracts.test_compound_plan_failed_save_rolls_back_and_other_session_is_unchanged) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=RuntimeError)
+ok
+test_generation_replay_never_creates_another_thread_or_consumes_rng (api.tests.test_interaction_adventure.InteractionApiContracts.test_generation_replay_never_creates_another_thread_or_consumes_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_goal_promise_receipt_replay_conflict_restart_and_campaign_isolation (api.tests.test_interaction_adventure.InteractionApiContracts.test_goal_promise_receipt_replay_conflict_restart_and_campaign_isolation) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_invalid_candidates_and_meta_narration_never_retry_model (api.tests.test_interaction_adventure.InteractionApiContracts.test_invalid_candidates_and_meta_narration_never_retry_model) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_multi_step_wait_plan_does_not_execute_time_owner_before_confirmation (api.tests.test_interaction_adventure.InteractionApiContracts.test_multi_step_wait_plan_does_not_execute_time_owner_before_confirmation) ... Executing <Task pending name='Task-24' coro=<InteractionApiContracts.test_multi_step_wait_plan_does_not_execute_time_owner_before_confirmation() running at /home/runner/workspace/ai-dnd/api/tests/test_interaction_adventure.py:575> cb=[_run_until_complete_cb() at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py:181, <1 more>, WorkerThread.stop()] created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.146 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_narration_cannot_complete_thread_or_become_canonical_npc_memory (api.tests.test_interaction_adventure.InteractionApiContracts.test_narration_cannot_complete_thread_or_become_canonical_npc_memory) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_optative_plan_http_preserves_world_rng_replay_and_resume (api.tests.test_interaction_adventure.InteractionApiContracts.test_optative_plan_http_preserves_world_rng_replay_and_resume) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_save_failure_rolls_back_new_goals_events_rng_and_receipt (api.tests.test_interaction_adventure.InteractionApiContracts.test_save_failure_rolls_back_new_goals_events_rng_and_receipt) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=RuntimeError)
+ok
+test_addressee_filter_excludes_hidden_truth_unrelated_beliefs_and_secrets (api.tests.test_interaction_adventure.InteractionContracts.test_addressee_filter_excludes_hidden_truth_unrelated_beliefs_and_secrets) ... ok
+test_alternate_route_progresses_after_missed_route_without_auto_success (api.tests.test_interaction_adventure.InteractionContracts.test_alternate_route_progresses_after_missed_route_without_auto_success) ... ok
+test_belief_lie_and_ignorance_never_rewrite_truth (api.tests.test_interaction_adventure.InteractionContracts.test_belief_lie_and_ignorance_never_rewrite_truth) ... ok
+test_callback_is_local_persisted_selective_and_cooldown_bound (api.tests.test_interaction_adventure.InteractionContracts.test_callback_is_local_persisted_selective_and_cooldown_bound) ... ok
+test_compound_source_spans_and_conditions_not_keyword_hacks (api.tests.test_interaction_adventure.InteractionContracts.test_compound_source_spans_and_conditions_not_keyword_hacks) ... ok
+test_compound_spell_plan_does_not_cast_or_bypass_combat_owner (api.tests.test_interaction_adventure.InteractionContracts.test_compound_spell_plan_does_not_cast_or_bypass_combat_owner) ... ok
+test_cyclic_or_unstated_plan_steps_are_rejected (api.tests.test_interaction_adventure.InteractionContracts.test_cyclic_or_unstated_plan_steps_are_rejected) ... ok
+test_generation_selects_one_same_call_candidate_and_respects_novelty (api.tests.test_interaction_adventure.InteractionContracts.test_generation_selects_one_same_call_candidate_and_respects_novelty) ... ok
+test_high_impact_and_lore_actor_generation_are_rejected (api.tests.test_interaction_adventure.InteractionContracts.test_high_impact_and_lore_actor_generation_are_rejected) ... ok
+test_model_completion_state_and_ungrounded_intent_fail_closed (api.tests.test_interaction_adventure.InteractionContracts.test_model_completion_state_and_ungrounded_intent_fail_closed) ... ok
+test_nonowned_and_equipment_defaults_cannot_grant_ownership (api.tests.test_interaction_adventure.InteractionContracts.test_nonowned_and_equipment_defaults_cannot_grant_ownership) ... ok
+test_optional_only_objectives_do_not_succeed_automatically (api.tests.test_interaction_adventure.InteractionContracts.test_optional_only_objectives_do_not_succeed_automatically) ... ok
+test_owned_item_counteroffer_rejects_gold_without_inventory_transaction (api.tests.test_interaction_adventure.InteractionContracts.test_owned_item_counteroffer_rejects_gold_without_inventory_transaction) ... ok
+test_personal_goal_is_intent_not_corruption_truth (api.tests.test_interaction_adventure.InteractionContracts.test_personal_goal_is_intent_not_corruption_truth) ... ok
+test_plan_is_bounded_and_returns_control_without_executing_steps (api.tests.test_interaction_adventure.InteractionContracts.test_plan_is_bounded_and_returns_control_without_executing_steps) ... ok
+test_plan_rejections_have_distinct_reasons_and_never_commit (api.tests.test_interaction_adventure.InteractionContracts.test_plan_rejections_have_distinct_reasons_and_never_commit) ... ok
+test_present_malformed_save_extension_rejects_and_absent_is_read_only (api.tests.test_interaction_adventure.InteractionContracts.test_present_malformed_save_extension_rejects_and_absent_is_read_only) ... ok
+test_private_and_public_speech_have_explicit_nontelepathic_listeners (api.tests.test_interaction_adventure.InteractionContracts.test_private_and_public_speech_have_explicit_nontelepathic_listeners) ... ok
+test_real_model_contract_requires_interaction_and_exact_quote_fields (api.tests.test_interaction_adventure.InteractionContracts.test_real_model_contract_requires_interaction_and_exact_quote_fields) ... ok
+test_recording_a_single_step_plan_does_not_count_as_executing_it (api.tests.test_interaction_adventure.InteractionContracts.test_recording_a_single_step_plan_does_not_count_as_executing_it) ... ok
+test_reframing_requires_verified_evidence_and_keeps_alternative_routes (api.tests.test_interaction_adventure.InteractionContracts.test_reframing_requires_verified_evidence_and_keeps_alternative_routes) ... ok
+test_separate_sessions_do_not_share_goals_beliefs_or_commitments (api.tests.test_interaction_adventure.InteractionContracts.test_separate_sessions_do_not_share_goals_beliefs_or_commitments) ... ok
+test_single_search_noun_lists_and_quoted_actions_are_not_plans (api.tests.test_interaction_adventure.InteractionContracts.test_single_search_noun_lists_and_quoted_actions_are_not_plans) ... ok
+test_social_proposal_cannot_set_roll_consent_or_impossible_outcome (api.tests.test_interaction_adventure.InteractionContracts.test_social_proposal_cannot_set_roll_consent_or_impossible_outcome) ... ok
+test_time_deadline_occurs_once_and_restart_reads_do_not_advance_clock (api.tests.test_interaction_adventure.InteractionContracts.test_time_deadline_occurs_once_and_restart_reads_do_not_advance_clock) ... ok
+test_unmentioned_side_cannot_be_chosen_by_model (api.tests.test_interaction_adventure.InteractionContracts.test_unmentioned_side_cannot_be_chosen_by_model) ... ok
+test_voluntary_betrayal_changes_local_allegiance_and_breaks_bound_promise (api.tests.test_interaction_adventure.InteractionContracts.test_voluntary_betrayal_changes_local_allegiance_and_breaks_bound_promise) ... ok
+test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_cloud_jaunt_without_bounded_binding_does_not_change_world_or_rng) ... ok
+test_compound_failure_restores_cloud_jaunt_anchor_and_use (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_compound_failure_restores_cloud_jaunt_anchor_and_use) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_exhausted_cloud_jaunt_does_not_invalidate_geometry (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_exhausted_cloud_jaunt_does_not_invalidate_geometry) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_species_endpoint_outside_combat_also_invalidates_geometry (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_species_endpoint_outside_combat_also_invalidates_geometry) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_structured_cloud_jaunt_invalidates_geometry_and_preserves_budgets) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources (api.tests.test_bounded_encounter.CloudJauntRegressionTests.test_unavailable_cloud_jaunt_preserves_known_geometry_and_resources) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_action_id_conflict_is_not_a_second_turn (api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_action_id_conflict_is_not_a_second_turn) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_normal_http_target_attack_and_resource_result (api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_normal_http_target_attack_and_resource_result) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation (api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_receipt_replay_after_restart_has_no_second_rng_or_state_mutation) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_save_resume_after_process_restart_retains_all_canonical_state (api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_save_resume_after_process_restart_retains_all_canonical_state) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unrelated_free_text_still_requires_existing_model_service (api.tests.test_bounded_encounter.HttpPersistenceAcceptanceTests.test_unrelated_free_text_still_requires_existing_model_service) ... ok
+test_budget_only_move_invalidates_endpoint_instead_of_inventing_one (api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_budget_only_move_invalidates_endpoint_instead_of_inventing_one) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_canonical_blinded_condition_does_not_gain_visibility (api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_canonical_blinded_condition_does_not_gain_visibility) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unknown_npc_node_does_not_reset_to_start (api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unknown_npc_node_does_not_reset_to_start) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_unlocated_player_movement_cannot_keep_stale_geometry (api.tests.test_bounded_encounter.OwnerUncertaintyTests.test_unlocated_player_movement_cannot_keep_stale_geometry) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_definition_is_not_campaign_canon_before_entry (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_definition_is_not_campaign_canon_before_entry) ... ok
+test_directional_pair_and_perception_come_from_nodes (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_directional_pair_and_perception_come_from_nodes) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_enter_does_not_force_combat (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_enter_does_not_force_combat) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_repeat_entry_does_not_heal_or_respawn (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_repeat_entry_does_not_heal_or_respawn) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_route_updates_position_and_existing_action_budget (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_route_updates_position_and_existing_action_budget) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_separate_campaigns_do_not_share_scenario_state (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_separate_campaigns_do_not_share_scenario_state) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_source_verified_commoner_attaches_by_explicit_id (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_source_verified_commoner_attaches_by_explicit_id) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_turkish_uppercase_and_ascii_commands_are_native (api.tests.test_bounded_encounter.ProductionOwnerIntegrationTests.test_turkish_uppercase_and_ascii_commands_are_native) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_failed_compound_reaction_restores_geometry_resources_and_rng (api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_failed_compound_reaction_restores_geometry_resources_and_rng) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_http_readied_move_invalidates_geometry_and_survives_resume_replay (api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_http_readied_move_invalidates_geometry_and_survives_resume_replay) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources (api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_invalid_reaction_does_not_invalidate_geometry_or_spend_resources) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_newly_unavailable_readied_movement_keeps_known_geometry (api.tests.test_bounded_encounter.ReadiedMovementRegressionTests.test_newly_unavailable_readied_movement_keeps_known_geometry) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=3 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=4 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=5 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+__main__.FunctionTest (test_draw_weapon)
+Drawing a weapon should update state. ... PASS: test_draw_weapon
+ok
+__main__.FunctionTest (test_enter_through_door)
+Entering through a door should update door state. ... PASS: test_enter_through_door
+ok
+__main__.FunctionTest (test_exit_and_return_combat_refusal)
+Bare commands cannot evade the existing normal-travel combat restriction. ... ok
+__main__.FunctionTest (test_exit_location)
+No recorded local exit means explicit refusal, even with a pending travel goal. ... PASS: test_exit_location
+ok
+__main__.FunctionTest (test_exit_location_invalid_destination)
+An unregistered local exit must not be fabricated or consume travel time. ... ok
+__main__.FunctionTest (test_exit_location_known_destination)
+Exit uses the registered local exit/parent, never an unrelated pending goal. ... ok
+__main__.FunctionTest (test_failed_investigation)
+Failed investigation should use structured action_result. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 1
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_investigation
+ok
+__main__.FunctionTest (test_failed_stealth_narrator_contradiction)
+Qwen should not be able to narrate success when Python says failure. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Stealth
+Difficulty: medium
+DC: 15
+D20: 1
+Ability Modifier: +2
+Proficiency: +0
+Total Bonus: +2
+Total: 3
+Result: BAŞARISIZ
+===================================
+PASS: test_failed_stealth_narrator_contradiction
+ok
+__main__.FunctionTest (test_false_memory_claim)
+Player claims about NPC speech should be denied if not in memory. ... PASS: test_false_memory_claim
+ok
+__main__.FunctionTest (test_force_door_requires_check)
+Forcing a door should require skill check. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_force_door_requires_check
+ok
+__main__.FunctionTest (test_ground_item_different_location)
+Ground items should NOT be accessible from different location. ... PASS: test_ground_item_different_location
+ok
+__main__.FunctionTest (test_ground_item_same_location)
+Ground items should be location-specific. ... PASS: test_ground_item_same_location
+ok
+__main__.FunctionTest (test_location_name_vs_character_name)
+Location name and character name questions should be handled differently. ... PASS: test_location_name_vs_character_name
+ok
+__main__.FunctionTest (test_locked_door_requires_check)
+Locked door should require skill check. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Athletics
+Difficulty: medium
+DC: 15
+D20: 15
+Ability Modifier: +3
+Proficiency: +2
+Total Bonus: +5
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_locked_door_requires_check
+ok
+__main__.FunctionTest (test_malformed_intent_json)
+Malformed JSON from Qwen should fallback gracefully. ... PASS: test_malformed_intent_json
+ok
+__main__.FunctionTest (test_named_location_return)
+Named return requires a verified route and charges its server-owned time. ... PASS: test_named_location_return
+ok
+__main__.FunctionTest (test_ollama_unavailable)
+When Ollama is unavailable, Python fallback should work. ... ⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. (Connection refused)
+PASS: test_ollama_unavailable
+ok
+__main__.FunctionTest (test_ordinary_environment_look)
+Ordinary look should not trigger skill check. ... PASS: test_ordinary_environment_look
+ok
+__main__.FunctionTest (test_player_said_memory)
+Player statements should be recorded separately from NPC statements. ... PASS: test_player_said_memory
+ok
+__main__.FunctionTest (test_return_travel)
+No recorded journey or pending destination means a return needs clarification. ... PASS: test_return_travel
+ok
+__main__.FunctionTest (test_return_travel_known_destination)
+An explicitly pending return target still requires the server-owned route. ... ok
+__main__.FunctionTest (test_return_travel_retraces_progress)
+Interrupted, stopped and staged journeys retrace only actual elapsed progress. ... ok
+__main__.FunctionTest (test_return_travel_route_refusals)
+Neither a pending goal nor movement language authorizes unknown/blocked routes. ... ok
+__main__.FunctionTest (test_sheathe_weapon)
+Sheathing a weapon should update state. ... PASS: test_sheathe_weapon
+ok
+__main__.FunctionTest (test_successful_investigation)
+Successful investigation should use structured action_result. ... 
+===================================
+🎲 D&D SKILL CHECK
+===================================
+Skill: Investigation
+Difficulty: medium
+DC: 15
+D20: 20
+Ability Modifier: +0
+Proficiency: +0
+Total Bonus: +0
+Total: 20
+Result: BAŞARILI
+===================================
+PASS: test_successful_investigation
+ok
+__main__.FunctionTest (test_terminal_skill_command)
+Verify /skill stealth 15 terminal command executes without NameError and uses active session character. ... PASS: test_terminal_skill_command
+ok
+__main__.FunctionTest (test_unlocked_door_normal_open)
+Unlocked door should open without skill check. ... PASS: test_unlocked_door_normal_open
+ok
+__main__.FunctionTest (test_unsupported_attack)
+Legacy name: an invalid local target must be rejected without side effects. ... PASS: test_unsupported_attack
+ok
+__main__.FunctionTest (test_who_is_here)
+'Who is here?' should list NPCs in current location. ... PASS: test_who_is_here
+ok
+test_rest_replay_and_failed_save_restores_time_and_rng (api.tests.test_campaign_time.ClockApiTests.test_rest_replay_and_failed_save_restores_time_and_rng) ... ok
+test_wait_atomic_replay_conflict_and_restart (api.tests.test_campaign_time.ClockApiTests.test_wait_atomic_replay_conflict_and_restart) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+INFO: Lore retrieval turn=2 selected_fact_count=0 selected_fact_ids=[]
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_calendar_rollovers_and_no_wall_clock (api.tests.test_campaign_time.ClockTests.test_calendar_rollovers_and_no_wall_clock) ... ok
+test_encounter_inside_window_and_hidden_projections (api.tests.test_campaign_time.ClockTests.test_encounter_inside_window_and_hidden_projections) ... ok
+test_first_scene_anchor_and_canonical_start (api.tests.test_campaign_time.ClockTests.test_first_scene_anchor_and_canonical_start) ... ok
+test_frontend_cannot_supply_time_and_narration_cannot_invent_duration (api.tests.test_campaign_time.ClockTests.test_frontend_cannot_supply_time_and_narration_cannot_invent_duration) ... ok
+test_round_once_partial_end_and_normal_rollback_rng (api.tests.test_campaign_time.ClockTests.test_round_once_partial_end_and_normal_rollback_rng) ... ok
+test_save_resume_isolation_and_corrupt_time_rejection (api.tests.test_campaign_time.ClockTests.test_save_resume_isolation_and_corrupt_time_rejection) ... ok
+test_task_check_uses_existing_core_and_public_result (api.tests.test_campaign_time.ClockTests.test_task_check_uses_existing_core_and_public_result) ... ok
+test_travel_dice_no_event_and_decisions (api.tests.test_campaign_time.ClockTests.test_travel_dice_no_event_and_decisions) ... ok
+test_wait_task_budget_and_sleep_rest (api.tests.test_campaign_time.ClockTests.test_wait_task_budget_and_sleep_rest) ... ok
+test_window_long_action_missed_aftermath_and_idempotent_effect (api.tests.test_campaign_time.ClockTests.test_window_long_action_missed_aftermath_and_idempotent_effect) ... ok
+test_cross_session_combat_context_is_rejected (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_cross_session_combat_context_is_rejected) ... ok
+test_invalid_stale_and_malformed_requests_do_not_mutate (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_invalid_stale_and_malformed_requests_do_not_mutate) ... Executing <Task pending name='Task-539' coro=<CombatLifecycleApiTests.asyncSetUp() running at /home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py:151> cb=[_run_until_complete_cb() at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py:181] created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.274 seconds
+ok
+test_model_combat_proposal_cannot_create_a_result_or_advance_combat (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_model_combat_proposal_cannot_create_a_result_or_advance_combat) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Engine turn failed (error_type=CombatRequestError)
+ok
+test_persistence_failure_rolls_back_result_history_rng_and_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_persistence_failure_rolls_back_result_history_rng_and_time) ... Executing <Task pending name='Task-557' coro=<CombatLifecycleApiTests.asyncSetUp() running at /home/runner/workspace/ai-dnd/api/tests/test_combat_lifecycle.py:151> cb=[_run_until_complete_cb() at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/base_events.py:181] created at /nix/store/qzc04a3npl70cyyy6flnnrb2ig3kayxm-python3-3.13.11/lib/python3.13/asyncio/runners.py:100> took 0.110 seconds
+INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+ERROR: Campaign autosave failed (error_type=CampaignStorageError)
+ok
+test_player_attack_starts_authoritative_combat_with_npc_first (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_player_attack_starts_authoritative_combat_with_npc_first) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_valid_miss_is_canonical_and_replay_survives_resume (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_valid_miss_is_canonical_and_replay_survives_resume) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_verified_hit_end_preserves_history_without_extra_time (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_verified_hit_end_preserves_history_without_extra_time) ... INFO: Lore retrieval turn=1 selected_fact_count=0 selected_fact_ids=[]
+INFO: Ollama chat request started (model=qwen3:8b)
+INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)
+ok
+test_wrong_actor_and_no_weapon_do_not_roll (api.tests.test_combat_lifecycle.CombatLifecycleApiTests.test_wrong_actor_and_no_weapon_do_not_roll) ... ok
+test_active_identity_is_required_not_repaired (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_active_identity_is_required_not_repaired) ... ok
+test_authoritative_npc_relocation_cannot_execute_a_stale_turn (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_authoritative_npc_relocation_cannot_execute_a_stale_turn) ... ok
+test_closed_identity_is_retained_and_close_is_idempotent (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_closed_identity_is_retained_and_close_is_idempotent) ... ok
+test_current_actor_and_participant_identity_are_validated (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_current_actor_and_participant_identity_are_validated) ... ok
+test_direct_mechanic_rejects_nonparticipant_and_wrong_actor (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_direct_mechanic_rejects_nonparticipant_and_wrong_actor) ... ok
+test_existing_pronoun_target_resolution_is_not_blocked_or_mutating (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_existing_pronoun_target_resolution_is_not_blocked_or_mutating) ... ok
+test_hostility_threat_and_model_proposal_are_not_combat_triggers (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_hostility_threat_and_model_proposal_are_not_combat_triggers) ... ok
+test_round_boundary_and_partial_end_use_only_existing_time (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_round_boundary_and_partial_end_use_only_existing_time) ... ok
+test_travel_cannot_teleport_out_of_active_combat (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_travel_cannot_teleport_out_of_active_combat) ... ok
+test_zero_hp_uses_existing_death_state_and_keeps_combat (api.tests.test_combat_lifecycle.CombatLifecycleTests.test_zero_hp_uses_existing_death_state_and_keeps_combat) ... ok
+test_legacy_mock_is_fresh_and_restores_both_bindings (api.tests.test_model_isolation.ModelIsolationTests.test_legacy_mock_is_fresh_and_restores_both_bindings) ... ok
+test_legacy_test_does_not_overwrite_active_api_adapter (api.tests.test_model_isolation.ModelIsolationTests.test_legacy_test_does_not_overwrite_active_api_adapter) ... PASS: test_malformed_intent_json
+ok
+test_nested_scopes_restore_exact_callbacks_after_exception (api.tests.test_model_isolation.ModelIsolationTests.test_nested_scopes_restore_exact_callbacks_after_exception) ... ok
+test_permanent_install_keeps_existing_production_binding (api.tests.test_model_isolation.ModelIsolationTests.test_permanent_install_keeps_existing_production_binding) ... INFO: Ollama chat request started (model=qwen3:8b)
+ok
+test_setup_failure_still_restores_model_callbacks (api.tests.test_model_isolation.ModelIsolationTests.test_setup_failure_still_restores_model_callbacks) ... ok
+test_03_no_turn_exceeds_2_model_calls (test_narrative_rebalance.TestNarrativeRebalance.test_03_no_turn_exceeds_2_model_calls) ... ok
+test_04_narration_validation_failure_does_not_retry_model (test_narrative_rebalance.TestNarrativeRebalance.test_04_narration_validation_failure_does_not_retry_model) ... ok
+test_discovery_and_repeated_class_selection_are_deduplicated (api.tests.test_regression_evidence.EvidenceRunnerTests.test_discovery_and_repeated_class_selection_are_deduplicated) ... ok
+test_duplicate_function_module_selection_executes_once (api.tests.test_regression_evidence.EvidenceRunnerTests.test_duplicate_function_module_selection_executes_once) ... ok
+test_failed_subtests_retain_parent_and_individual_details (api.tests.test_regression_evidence.EvidenceRunnerTests.test_failed_subtests_retain_parent_and_individual_details) ... ok
+test_failures_errors_skips_expected_and_unexpected_are_distinct (api.tests.test_regression_evidence.EvidenceRunnerTests.test_failures_errors_skips_expected_and_unexpected_are_distinct) ... ok
+test_import_error_and_empty_selection_fail_closed (api.tests.test_regression_evidence.EvidenceRunnerTests.test_import_error_and_empty_selection_fail_closed) ... ok
+test_interruption_retains_started_test_and_nonzero_status (api.tests.test_regression_evidence.EvidenceRunnerTests.test_interruption_retains_started_test_and_nonzero_status) ... ok
+test_setup_class_error_does_not_claim_test_methods_executed (api.tests.test_regression_evidence.EvidenceRunnerTests.test_setup_class_error_does_not_claim_test_methods_executed) ... ok
+test_source_hash_changes_with_untracked_content_and_deletion (api.tests.test_regression_evidence.EvidenceRunnerTests.test_source_hash_changes_with_untracked_content_and_deletion) ... ok
+test_archives_must_not_exclude_verifier_sources (api.tests.test_development_tooling.DevelopmentToolingTests.test_archives_must_not_exclude_verifier_sources) ... ok
+test_ci_exact_sha_detachment_is_explicit_and_mismatch_blocks (api.tests.test_development_tooling.DevelopmentToolingTests.test_ci_exact_sha_detachment_is_explicit_and_mismatch_blocks) ... ok
+test_clean_repo_health_success_head_and_not_run (api.tests.test_development_tooling.DevelopmentToolingTests.test_clean_repo_health_success_head_and_not_run) ... ok
+test_config_rejects_missing_commands_invalid_types_and_paths (api.tests.test_development_tooling.DevelopmentToolingTests.test_config_rejects_missing_commands_invalid_types_and_paths) ... ok
+test_detached_head_is_blocking (api.tests.test_development_tooling.DevelopmentToolingTests.test_detached_head_is_blocking) ... ok
+test_dirty_repo_staged_unstaged_untracked_detection (api.tests.test_development_tooling.DevelopmentToolingTests.test_dirty_repo_staged_unstaged_untracked_detection) ... ok
+test_failed_required_command_and_timeout (api.tests.test_development_tooling.DevelopmentToolingTests.test_failed_required_command_and_timeout) ... 
+$ /home/runner/workspace/.pythonlibs/bin/python -c 'raise SystemExit(7)'
+
+$ /home/runner/workspace/.pythonlibs/bin/python -c 'import time;time.sleep(5)'
+ok
+test_foreign_or_tampered_receipt_provenance_fails_closed (api.tests.test_development_tooling.DevelopmentToolingTests.test_foreign_or_tampered_receipt_provenance_fails_closed) ... ok
+test_full_clean_sequential_health_final_gate_reuses_real_runner_and_has_go (api.tests.test_development_tooling.DevelopmentToolingTests.test_full_clean_sequential_health_final_gate_reuses_real_runner_and_has_go) ... ok
+test_historical_evidence_change_during_execution_blocks_without_repair (api.tests.test_development_tooling.DevelopmentToolingTests.test_historical_evidence_change_during_execution_blocks_without_repair) ... ok
+test_incomplete_evidence_and_extra_user_files_are_not_exempt (api.tests.test_development_tooling.DevelopmentToolingTests.test_incomplete_evidence_and_extra_user_files_are_not_exempt) ... ok
+test_malformed_missing_configuration_fails_and_is_retained (api.tests.test_development_tooling.DevelopmentToolingTests.test_malformed_missing_configuration_fails_and_is_retained) ... ok
+test_missing_owned_history_and_receipt_write_failure_block (api.tests.test_development_tooling.DevelopmentToolingTests.test_missing_owned_history_and_receipt_write_failure_block) ... ok
+test_missing_required_infrastructure_is_failure (api.tests.test_development_tooling.DevelopmentToolingTests.test_missing_required_infrastructure_is_failure) ... ok
+test_modified_owned_log_or_record_blocks_and_is_not_overwritten (api.tests.test_development_tooling.DevelopmentToolingTests.test_modified_owned_log_or_record_blocks_and_is_not_overwritten) ... ok
+test_production_scope_is_not_semantic_authority_proof (api.tests.test_development_tooling.DevelopmentToolingTests.test_production_scope_is_not_semantic_authority_proof) ... ok
+test_real_dirty_tree_after_health_still_blocks_final_gate (api.tests.test_development_tooling.DevelopmentToolingTests.test_real_dirty_tree_after_health_still_blocks_final_gate) ... ok
+test_required_not_run_unverified_never_pass (api.tests.test_development_tooling.DevelopmentToolingTests.test_required_not_run_unverified_never_pass) ... ok
+test_retained_skips_and_source_changes_cannot_certify_regression (api.tests.test_development_tooling.DevelopmentToolingTests.test_retained_skips_and_source_changes_cannot_certify_regression) ... ok
+test_source_change_during_execution_blocks_gate (api.tests.test_development_tooling.DevelopmentToolingTests.test_source_change_during_execution_blocks_gate) ... ok
+test_staged_owned_evidence_is_a_real_user_change (api.tests.test_development_tooling.DevelopmentToolingTests.test_staged_owned_evidence_is_a_real_user_change) ... ok
+test_static_final_gate_never_claims_go (api.tests.test_development_tooling.DevelopmentToolingTests.test_static_final_gate_never_claims_go) ... ok
+test_unique_identity_historical_records_unchanged_and_stable_fingerprint (api.tests.test_development_tooling.DevelopmentToolingTests.test_unique_identity_historical_records_unchanged_and_stable_fingerprint) ... ok
+test_unreceipted_and_copied_evidence_are_not_exempt (api.tests.test_development_tooling.DevelopmentToolingTests.test_unreceipted_and_copied_evidence_are_not_exempt) ... ok
+test_zero_exit_without_retained_regression_evidence_is_not_pass (api.tests.test_development_tooling.DevelopmentToolingTests.test_zero_exit_without_retained_regression_evidence_is_not_pass) ... ok
+
+----------------------------------------------------------------------
+Ran 161 tests in 160.522s
+
+OK

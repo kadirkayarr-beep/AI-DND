@@ -59,7 +59,7 @@ class NativeEquipmentTests(unittest.TestCase):
         result = interaction_adventure.resolve(self.session, text, {
             "operation": "request", "quote": text, "requested_item": identity,
         }, npc)
-        self.assertTrue(result["action_result"]["success"], result)
+        self.assertTrue(result["success"], result)
         self.assertTrue(any(i["item_id"] == identity for i in self.session.world_state["inventory"]))
 
     def test_price_offer_does_not_imply_gift_consent(self):
@@ -69,6 +69,20 @@ class NativeEquipmentTests(unittest.TestCase):
         rejected = self.command(f'/item request {identity} {npc["id"]}')
         self.assertFalse(rejected["action_result"]["success"])
         self.assertEqual(before, self.session.world_state)
+
+    def test_translated_owned_starter_weapon_does_not_block_unrelated_sale(self):
+        self.session.world_state["inventory"] = ["Uzun Kılıç"]
+        self.session.world_state["equipment"] = {"main_hand": "longsword", "off_hand": None}
+        shop, npc = self.market()
+        identity = npc["equipment"]["main_hand"]
+        self.command(f'/item request {identity} {npc["id"]}')
+        result = self.command(f'/item sell {identity} {shop["id"]}')
+        self.assertTrue(result["action_result"]["success"], result)
+        world = self.session.world_state
+        sword = next(i for i in world["inventory"] if i["name"] == "Uzun Kılıç")
+        self.assertEqual(sword["weapon_id"], "longsword")
+        self.assertEqual(world["equipment"]["main_hand"], sword["item_id"])
+        self.assertFalse(any(i["item_id"] == identity for i in world["inventory"]))
 
     def test_native_work_dialogue_completion_and_funded_once_reward(self):
         _, npc = self.market()
@@ -247,6 +261,39 @@ class NativeEquipmentHttpTests(contracts.EquipmentHttpTests):
         other = await self.create_campaign()
         denied = await self.post(other, {**command, "action_id": str(uuid4())})
         self.assertIn("reddedildi", denied.json()["narration"])
+
+    async def test_natural_request_full_turn_contract(self):
+        campaign = await self.create_campaign()
+        record, _, npc = await self.native_market(campaign)
+        identity = npc["equipment"]["main_hand"]
+        text = "Elindeki Club adlı eşyayı bana ver."
+        command = {"message": text, "target_id": npc["id"], "action_id": str(uuid4())}
+        turn_before = record.game_session.world_state["flags"]["turn_index"]
+        proposal = {"interaction": {"operation": "request", "quote": text,
+                                    "requested_item": identity}}
+        # This is interpretation-contract coverage, not real Qwen evidence.
+        # A safe deterministic narration fallback must not undo the validated transfer.
+        with (
+            patch("game.parse_player_intent", return_value=proposal),
+            patch("game.ask_dungeon_master", return_value={
+                "valid_response": False,
+                "narration": "Equipment Merchant sana Club adlı eşyayı verdi.",
+                "world_updates": {}, "lore_claims": [],
+            }),
+        ):
+            response = await self.post(campaign, command)
+        self.assertEqual(response.status_code, 200, response.text)
+        world = record.game_session.world_state
+        self.assertEqual(world["flags"]["turn_index"], turn_before + 1)
+        self.assertEqual(sum(i.get("item_id") == identity for i in world["inventory"]), 1)
+        source = next(n for n in world["npcs"] if n["id"] == npc["id"])
+        self.assertIsNone(source["equipment"]["main_hand"])
+        self.assertFalse(any(i.get("item_id") == identity for i in source["inventory"]))
+        self.assertNotIn(identity, source.get("item_consents", {}))
+        self.assertNotIn(identity, source.get("item_release_policy", {}))
+        committed = self.snapshot(record)
+        self.assertEqual((await self.post(campaign, command)).json(), response.json())
+        self.assertEqual(committed, self.snapshot(record))
 
     async def test_native_shop_buy_sell_and_reward_through_http(self):
         campaign = await self.create_campaign()
