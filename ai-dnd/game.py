@@ -2630,7 +2630,20 @@ def _combat_record_for_actor(participant_id, initiative=None, actions_used=()):
 
 def _migrate_legacy_combat_state(legacy):
     """Map a known two-participant V1/V2 encounter, rejecting ambiguous active data."""
-    if not isinstance(legacy, dict) or legacy.get("active") is not True:
+    if not isinstance(legacy, dict):
+        return _combat_defaults()
+    # Native V1/V2 writers omitted this field. Accept only the explicit actor-ID
+    # list extension; never infer modern resources or spending from the cursor.
+    actions_used = legacy.get("actions_used", [])
+    if (
+        not isinstance(actions_used, list)
+        or any(not isinstance(actor, str) or not actor for actor in actions_used)
+        or len(set(actions_used)) != len(actions_used)
+    ):
+        raise ValueError("Legacy combat actions_used markers are invalid.")
+    if legacy.get("active") is not True:
+        if actions_used:
+            raise ValueError("Inactive legacy combat cannot contain actions_used markers.")
         return _combat_defaults()
     if legacy.get("schema_version") not in (None, 1, 2):
         raise ValueError("Unsupported legacy combat save version.")
@@ -2678,6 +2691,8 @@ def _migrate_legacy_combat_state(legacy):
         raise ValueError(
             "Active legacy combat is missing a valid participant identity or turn boundary."
         )
+    if not set(actions_used).issubset(set(order)):
+        raise ValueError("Legacy combat actions_used contains a nonparticipant.")
 
     world_state = _session().world_state
     npc = next(
@@ -2700,7 +2715,7 @@ def _migrate_legacy_combat_state(legacy):
         "participants": list(
             legacy_participants if legacy_participants is not None else order
         ),
-        "actions_used": [],
+        "actions_used": list(actions_used),
         "target_id": target_id,
         "end_reason": None,
     })
