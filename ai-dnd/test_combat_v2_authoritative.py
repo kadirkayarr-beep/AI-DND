@@ -384,6 +384,74 @@ class CombatV2(unittest.TestCase):
                 self.assertNotIn('Bilincini kaybedersin', narration)
         return narration
 
+    def add_narration_enemy(self):
+        self.session.character['dexterity_mod'] = 0
+        self.npc['hostile'] = True
+        archer = dict(self.npc, id='npc_alpha', name='Archer',
+                      damage_dice=1, damage_modifier=0, attack_bonus=0)
+        self.w['npcs'].append(archer)
+        self.w['monster_perception'][archer['id']] = {'player': {'visible': True}}
+        return archer
+
+    def assert_multi_enemy_narration(self, result, expected_sentences, final_hp):
+        self.assert_snapshot(result)
+        self.assertEqual(result['combat']['player_current_hp'], final_hp)
+        self.assertEqual(result['combat']['player_combat_status'], 'active')
+        self.assertEqual(result['combat']['round'], 2)
+        self.assertEqual(result['combat']['current_actor_id'], 'player')
+        self.assertEqual([a['actor'] for a in result['enemy_actions']],
+                         ['npc_alpha', 'npc_test'])
+        self.assertEqual(result['enemy_action'], result['enemy_actions'][0])
+        before = copy.deepcopy((self.w, self.session.character, result))
+        rng_before = self.session.rng.getstate()
+        narration = game.finalize_narration(
+            'Rakiplerin ıskalar; sapasağlamsın.', 'saldırıyorum',
+            self.npc, result, session=self.session,
+        )
+        self.assertEqual((self.w, self.session.character, result), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
+        positions = []
+        for sentence in expected_sentences:
+            self.assertEqual(narration.count(sentence), 1, narration)
+            positions.append(narration.index(sentence))
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn('Ölürsün.', narration)
+        self.assertNotIn('Bilincini kaybedersin.', narration)
+        return narration
+
+    def test_W_multiple_enemy_hits_narrated_in_resolution_order(self):
+        self.add_narration_enemy()
+        with self.rolls(
+            (20, 15), (20, 5), (20, 5), (20, 1),
+            (20, 15), (6, 4),
+            (20, 20), (6, 1), (6, 2), (6, 3), (6, 4),
+        ):
+            result = self.attack()
+        self.assertEqual([a['outcome'] for a in result['enemy_actions']],
+                         ['hit', 'critical_hit'])
+        self.assertEqual([a['damage'] for a in result['enemy_actions']], [4, 13])
+        self.assertEqual([(a['target_hp_before'], a['target_hp_after'])
+                          for a in result['enemy_actions']], [(30, 26), (26, 13)])
+        self.assert_multi_enemy_narration(result, [
+            "Archer adlı rakibinin karşı saldırısı sana isabet eder; 4 hasar alırsın.",
+            "Sentinel adlı rakibinin kritik karşı saldırısı sana isabet eder; 13 hasar alırsın.",
+        ], 13)
+
+    def test_W_initial_enemy_miss_does_not_hide_later_damage(self):
+        self.add_narration_enemy()
+        with self.rolls(
+            (20, 15), (20, 5), (20, 5), (20, 1),
+            (20, 1), (20, 15), (6, 4), (6, 5),
+        ):
+            result = self.attack()
+        self.assertEqual([a['outcome'] for a in result['enemy_actions']], ['miss', 'hit'])
+        self.assertEqual([a['damage'] for a in result['enemy_actions']], [0, 12])
+        self.assertEqual(result['enemy_actions'][1]['target_hp_after'], 18)
+        self.assert_multi_enemy_narration(result, [
+            "Archer adlı rakibinin karşı saldırısı seni ıskalar.",
+            "Sentinel adlı rakibinin karşı saldırısı sana isabet eder; 12 hasar alırsın.",
+        ], 18)
+
     def test_W_fatal_enemy_hit_player_death_narration(self):
         self.session.character.update(species='Orc', race='Orc',
                                       current_hp=3, max_hp=19)

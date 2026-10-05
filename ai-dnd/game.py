@@ -4428,23 +4428,31 @@ def _combat_narration(result):
         text += f" {target} ölür."
     elif result.get("target_status") == "unconscious":
         text += f" {target} bilincini kaybeder."
-    enemy = result.get("enemy_action", {})
-    if enemy.get("outcome") == "miss":
-        text += " Rakibinin karşı saldırısı seni ıskalar."
-    elif enemy.get("outcome") in ("hit", "critical_hit"):
-        kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
-        text += f" Rakibinin {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
-    if result.get("combat", {}).get("player_combat_status") == "dead":
-        text += " Ölürsün."
-    elif result.get("combat", {}).get("player_combat_status") == "unconscious":
-        text += " Bilincini kaybedersin."
     monster_text = {
         "dodge": " Rakibin savunmaya geçer.",
         "parley_proposed": " Rakibin konuşmayı önerir; yanıtını bekler.",
         "surrender_proposed": " Rakibin teslim olmayı önerir; yanıtını bekler.",
         "flee_declared": " Rakibin bildiği çıkışa doğru çekilir.",
     }
-    text += monster_text.get(enemy.get("outcome"), "")
+    # The singular field is a compatibility alias, not the complete exchange.
+    # Read names from resolved receipts, never from later mutable world state.
+    enemies = result.get("enemy_actions")
+    if enemies is None:
+        enemies = [result.get("enemy_action") or {}]
+    for enemy in enemies:
+        subject = "Rakibinin"
+        if len(enemies) > 1 and enemy.get("actor_name"):
+            subject = f"{enemy['actor_name']} adlı rakibinin"
+        if enemy.get("outcome") == "miss":
+            text += f" {subject} karşı saldırısı seni ıskalar."
+        elif enemy.get("outcome") in ("hit", "critical_hit"):
+            kind = "kritik " if enemy["outcome"] == "critical_hit" else ""
+            text += f" {subject} {kind}karşı saldırısı sana isabet eder; {enemy['damage']} hasar alırsın."
+        text += monster_text.get(enemy.get("outcome"), "")
+    if result.get("combat", {}).get("player_combat_status") == "dead":
+        text += " Ölürsün."
+    elif result.get("combat", {}).get("player_combat_status") == "unconscious":
+        text += " Bilincini kaybedersin."
     return text
 
 
