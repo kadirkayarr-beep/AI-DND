@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import game
+import interaction_adventure
 import living_world
 import local_dialogue
 
@@ -653,28 +654,86 @@ class PlayableLivingWorldTests(unittest.TestCase):
             self.world,
         ))
 
-    def test_v11_semantic_city_observation_and_local_discovery(self):
+    @patch("game.ollama.chat", side_effect=AssertionError("City observation is deterministic"))
+    def test_v11_semantic_city_observation_and_local_discovery(self, model_chat):
+        city_id = "city_observation_fixture"
+        self.world["locations"][city_id] = {
+            "id": city_id,
+            "name": "Gözlem Test Kenti",
+            "type": "city",
+            "connections": [],
+        }
+        self.world["location"] = city_id
+        # See docs/interaction-quest-adventure-v1.md, "Compound-plan correction":
+        # two complete comma-separated clauses are a plan, not instant actions.
+        # A single observation clause exercises the deterministic explore owner.
         observation = self.session.plan_living_world_turn(
-            "Şehirde dolanıyorum, etrafımda neler var gözlemliyorum."
+            "Şehirde dolanırken etrafımda neler var gözlemliyorum."
         )
+        self.assertIsNotNone(observation["direct_result"], observation)
         self.assertEqual(observation["direct_result"]["action"], "explore")
+        self.assertEqual(observation["direct_result"]["status"], "observed")
+        self.assertTrue(observation["direct_result"]["success"])
+        self.assertIn(
+            "Gözlem Test Kenti",
+            observation["direct_result"]["direct_response"],
+        )
+        scene = self.world["scene_state"]["scenes"][city_id]
+        self.assertEqual(scene["kind"], "city")
+        self.assertTrue(scene["materialized"])
+        scene_before_discovery = copy.deepcopy(scene)
 
         venue = self.session.plan_living_world_turn(
             "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?"
         )
+        self.assertIsNotNone(venue["direct_result"], venue)
         self.assertEqual(venue["direct_result"]["action"], "local_search")
         self.assertEqual(venue["direct_result"]["status"], "found")
-        self.assertEqual(
-            self.world["locations"][venue["direct_result"]["target_id"]]["scene_kind"],
-            "tavern",
-        )
+        self.assertTrue(venue["direct_result"]["success"])
+        self.assertTrue(venue["direct_result"]["direct_response"].strip())
+        tavern = self.world["locations"][venue["direct_result"]["target_id"]]
+        self.assertEqual(tavern["scene_kind"], "tavern")
+        self.assertEqual(tavern["parent_location_id"], city_id)
+        self.assertEqual(tavern["exit_location_id"], city_id)
 
         merchant = self.session.plan_living_world_turn(
             "Buralarda bir tücaar var mı?"
         )
+        self.assertIsNotNone(merchant["direct_result"], merchant)
         self.assertEqual(merchant["direct_result"]["action"], "local_search")
         self.assertEqual(merchant["direct_result"]["status"], "found")
+        self.assertTrue(merchant["direct_result"]["success"])
+        self.assertTrue(merchant["direct_result"]["direct_response"].strip())
         self.assertEqual(len(self.world["shops"]), 1)
+        shop = self.world["shops"][0]
+        self.assertEqual(shop["id"], merchant["direct_result"]["shop_id"])
+        self.assertEqual(shop["location"], city_id)
+        self.assertEqual(shop["shopkeeper_id"], merchant["direct_result"]["target_id"])
+        shopkeeper = next(
+            npc for npc in self.world["npcs"] if npc["id"] == shop["shopkeeper_id"]
+        )
+        self.assertEqual(shopkeeper["location"], city_id)
+        self.assertEqual(self.world["location"], city_id)
+        self.assertEqual(scene, scene_before_discovery)
+        model_chat.assert_not_called()
+
+    def test_compound_city_observation_defers_scene_execution_to_plan_owner(self):
+        text = "Şehirde dolanıyorum, etrafımda neler var gözlemliyorum."
+        self.assertEqual(living_world.classify_scene_action(text), "look")
+        self.assertEqual(interaction_adventure.hint(text), "plan")
+        proposal = interaction_adventure.compound_plan(text)
+        self.assertEqual(
+            [step["quote"] for step in proposal["steps"]],
+            ["Şehirde dolanıyorum", "etrafımda neler var gözlemliyorum."],
+        )
+        before = self.session.serialize_game_state()
+        rng_before = self.session.rng.getstate()
+        with patch("game.ollama.chat", side_effect=AssertionError("No model needed")):
+            observation = self.session.plan_living_world_turn(text)
+        self.assertIsNone(observation["direct_result"])
+        self.assertEqual(observation["state_changes"], [])
+        self.assertEqual(self.session.serialize_game_state(), before)
+        self.assertEqual(self.session.rng.getstate(), rng_before)
 
     def test_v11_personal_profile_answers_remain_procedural_and_stable(self):
         npc = {
