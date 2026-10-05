@@ -836,11 +836,23 @@ def _execute(session, command, action_id=None, session_id=None):
     if session.world_state["combat"]["active"]:
         session._sync_combat_participant_records(session.world_state["combat"])
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
+    narration_parts = []
+    for step in results:
+        if step["kind"] == "magic":
+            narration_parts.append(spell_scope.narration(step["result"]))
+        elif step["kind"] == "end_turn":
+            narration_parts.append(session._combat_narration({
+                "outcome": "end_turn",
+                "enemy_actions": step["enemy_actions"],
+                "combat": {
+                    "player_combat_status": session.world_state["player_combat_status"],
+                    "player_current_hp": session.character["current_hp"],
+                    "player_max_hp": session.character["max_hp"],
+                },
+            }))
     return {
         "messages": session.messages,
-        "narration": " ".join(
-            spell_scope.narration(step["result"]) for step in results if step["kind"] == "magic"
-        ) if any(step["kind"] == "magic" for step in results) else "Python doğrulamasıyla hamle çözüldü.",
+        "narration": " ".join(narration_parts) or "Python doğrulamasıyla hamle çözüldü.",
         "action_result": {"action": "action_economy", "status": "resolved", "success": True,
                           "combat_id": combat_id, "economy_steps": results},
         "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},

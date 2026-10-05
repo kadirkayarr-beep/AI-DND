@@ -4422,6 +4422,8 @@ def _combat_narration(result):
     elif outcome in ("hit", "critical_hit"):
         kind = "kritik bir darbe" if outcome == "critical_hit" else "bir darbe"
         text = f"{target}, {kind} alır: {result.get('damage', 0)} hasar."
+    elif outcome == "end_turn":
+        text = "Turunu bitirirsin."
     else:
         return "Bu saldırı gerçekleşmez."
     if result.get("target_status") == "dead":
@@ -4453,6 +4455,9 @@ def _combat_narration(result):
         text += " Ölürsün."
     elif result.get("combat", {}).get("player_combat_status") == "unconscious":
         text += " Bilincini kaybedersin."
+    elif outcome == "end_turn" and result.get("combat", {}).get("player_combat_status") == "active":
+        combat = result["combat"]
+        text += f" Bilincin açık; {combat['player_current_hp']}/{combat['player_max_hp']} canın kaldı."
     return text
 
 

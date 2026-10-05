@@ -7,7 +7,7 @@ When multiple tasks edit the same test module, validate the integrated file afte
 
 **Why:** Parallel changes to overlapping sections produced a syntactically invalid integrated test module despite earlier successful local execution.
 
-**How to apply:** Before completion, check the current repository state and rerun the relevant test module after integration, especially when another task changes the same test file.
+**How to apply:** Before completion, check the current repository state and rerun the relevant test module after integration, especially when another task changes the same test file. Include transitively imported fixture modules in source-definition preflight: a focused suite can depend on campaign API tests through shared spell fixtures even when its own files remain valid. Completion may include newly integrated changes outside the task's diff.
 
 Treat shared fixture modules as part of this validation boundary, even when the
 assigned regression lives in a different file. A successful local run can be
