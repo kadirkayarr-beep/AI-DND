@@ -1738,6 +1738,8 @@ def _validate_save_payload(payload):
         campaign_time.validate_clock(saved_world["campaign_time"])
     scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
     timed_gameplay.validate_state(saved_world)
+    import authored_dungeon
+    authored_dungeon.validate_state(saved_world)
 
     required_player = {
         "name", "race", "class", "strength", "dexterity", "constitution",
@@ -5357,6 +5359,8 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
 def commit_location_change(location_id, turn_index=None):
     """Commit a location transition after Python has resolved its destination."""
     world_state = _session().world_state
+    import authored_dungeon
+    authored_dungeon.require_transition(world_state, location_id)
     if location_id not in world_state.get("locations", {}):
         return False
     previous_location = world_state.get("location")
@@ -10834,6 +10838,11 @@ def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
     action_id=None, session_id=None, combat_action=None,
 ):
+    import authored_dungeon
+    if combat_action is None:
+        dungeon_result = authored_dungeon.resolve_command(_session(), player_input)
+        if dungeon_result is not None:
+            return dungeon_result
     planning = (combat_action is None
                 and not _session().world_state.get("combat", {}).get("active")
                 and interaction_adventure.compound_plan(player_input) is not None)
