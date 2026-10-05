@@ -43,7 +43,11 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 )],
             )
 
-    async def check_reopened_receipt(self, mutate=None, legacy=None, conflict=None):
+    async def check_reopened_receipt(
+        self, mutate=None, legacy=None, conflict=None, *, legacy_projection=None,
+    ):
+        if legacy_projection is not None:
+            legacy = "valid"
         created = await self.create_campaign()
         campaign_id = created["campaign_id"]
         record = self.manager.get(created["session_id"])
@@ -71,6 +75,11 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
         else:
             if legacy == "empty":
                 damaged = {"action_id": command["action_id"], "legacy_ambient_result": {}}
+            elif legacy == "valid":
+                damaged = {
+                    "action_id": command["action_id"],
+                    "legacy_ambient_result": copy.deepcopy(legacy_projection),
+                }
             elif legacy == "damaged":
                 damaged = {
                     "action_id": command["action_id"],
@@ -136,6 +145,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
             if legacy is not None:
                 self.assertNotIn("ambient_event_response", reserved["response"])
                 self.assertIn("legacy_ambient_result", reserved["response"])
+            if legacy == "valid":
+                self.assertEqual(reserved["response"], damaged)
             with patch.object(restored.game_session, "resolve_ambient_event_action",
                               side_effect=AssertionError("Replay executed mechanics")) as mechanics, \
                  patch.object(fresh, "save_campaign_locked",
@@ -173,6 +184,12 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 expected.update(status="ALREADY_APPLIED", reason_code="event_already_resolved")
                 if legacy == "empty":
                     expected.update(transition_id=None, canonical_event_id=None)
+                elif legacy == "valid":
+                    expected.update(
+                        transition_id=legacy_projection.get("transition_id"),
+                        canonical_event_id=legacy_projection.get("canonical_event_id"),
+                    )
+                AmbientEventCommandResult.model_validate(retry.json(), strict=True)
                 self.assertEqual(retry.json()["result"], expected)
                 self.assertEqual(retry.json()["session_id"], sid)
             for spy in (mechanics, locked_save, autosave, save):
@@ -370,6 +387,33 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_empty_legacy_projection_does_not_require_modern_response_fields(self):
         await self.check_reopened_receipt(legacy="empty")
+
+    async def test_valid_legacy_identity_boundaries_preserve_replay_and_conflicts_after_resume(self):
+        cases = (
+            ("null_transition", {"transition_id": None, "canonical_event_id": "legacy-event"}),
+            ("null_event", {"transition_id": "legacy-transition", "canonical_event_id": None}),
+            ("both_null", {"transition_id": None, "canonical_event_id": None}),
+            ("omitted_transition", {"canonical_event_id": "legacy-event"}),
+            ("omitted_event", {"transition_id": "legacy-transition"}),
+            ("transition_limit", {
+                "transition_id": "t" * 160, "canonical_event_id": "legacy-event",
+            }),
+            ("event_limit", {
+                "transition_id": "legacy-transition", "canonical_event_id": "e" * 36,
+            }),
+            ("both_limits", {
+                "transition_id": "t" * 160, "canonical_event_id": "e" * 36,
+            }),
+        )
+        for boundary, projection in cases:
+            # Valid historical projections need neither modern reply fields nor
+            # UUID-shaped event identities. Omission and null both project null,
+            # but the stored reservation must retain its exact original shape.
+            for conflict in (None, "action", "event"):
+                with self.subTest(boundary=boundary, conflict=conflict):
+                    await self.check_reopened_receipt(
+                        legacy_projection=projection, conflict=conflict,
+                    )
 
     async def test_conflicts_precede_corrupt_modern_reply_validation_after_resume(self):
         def missing_response(response):
