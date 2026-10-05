@@ -43,6 +43,7 @@ from api.schemas import (
     DeathSaveResult,
     DeathStateProjection,
     HealthResponse,
+    QuestOutcome,
     SessionResponse,
     SpeciesTraitActionRequest,
     SpeciesTraitActionResult,
@@ -230,6 +231,32 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_turn_quest_outcome_item_references_match_runtime_model(self):
+        runtime = TurnResponse.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]["quest_outcomes"]
+        published = _property("GameTurnResult", "quest_outcomes")
+        self.assertEqual(_schema_types(runtime), {"array"})
+        self.assertEqual(_schema_types(published), _schema_types(runtime))
+        self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+        runtime_items = _mapping(
+            runtime.get("items"), "TurnResponse.quest_outcomes.items"
+        )
+        published_items = _mapping(
+            published.get("items"), "GameTurnResult.quest_outcomes.items"
+        )
+        expected = _schema_references(runtime_items)
+        self.assertEqual(
+            expected, {f"#/components/schemas/{QuestOutcome.__name__}"},
+            "Runtime quest_outcomes items must reference QuestOutcome",
+        )
+        self.assertEqual(
+            _schema_references(published_items), expected,
+            "GameTurnResult.quest_outcomes.items reference target",
+        )
+        self.assertEqual(_schema_types(published_items), _schema_types(runtime_items))
+        self.assertEqual(_is_nullable(published_items), _is_nullable(runtime_items))
+
     def test_turn_result_references_match_runtime_models(self):
         runtime_properties = TurnResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -1568,6 +1595,46 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
+
+    def test_turn_quest_outcome_wrong_item_references_fail_in_both_formats(self):
+        original = _property("GameTurnResult", "quest_outcomes")
+        for wrong_model in ("GameSession", "CombatTurnResult", "QuestObjective"):
+            for flow_style in (False, True):
+                with self.subTest(replacement=wrong_model, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    field = spec["components"]["schemas"]["GameTurnResult"][
+                        "properties"
+                    ]["quest_outcomes"]
+                    field["items"]["$ref"] = f"#/components/schemas/{wrong_model}"
+                    self.assertEqual(_schema_types(field), _schema_types(original))
+                    self.assertEqual(_is_nullable(field), _is_nullable(original))
+                    self.assertEqual(
+                        _schema_types(field["items"]), _schema_types(original["items"])
+                    )
+                    self.assertEqual(
+                        _is_nullable(field["items"]), _is_nullable(original["items"])
+                    )
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    parsed = _load_spec(text)
+                    self.assertEqual(parsed, spec)
+                    # Only the item target changed; restoring it restores all
+                    # field inventories, types, nullability and route bindings.
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"]["GameTurnResult"][
+                        "properties"
+                    ]["quest_outcomes"]["items"]["$ref"] = original["items"]["$ref"]
+                    self.assertEqual(restored, SPEC)
+                    result = self._parity_result(parsed)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    failed_test, failure = result.failures[0]
+                    self.assertIn(
+                        "test_turn_quest_outcome_item_references_match_runtime_model",
+                        failed_test.id(),
+                    )
+                    self.assertIn(
+                        "GameTurnResult.quest_outcomes.items reference target", failure,
+                    )
 
     def test_turn_result_reference_mutations_fail_in_both_formats(self):
         for field_name in TURN_REFERENCE_FIELDS:
