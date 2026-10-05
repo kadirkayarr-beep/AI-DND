@@ -390,6 +390,12 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                               death_owner.call_count, time_owner.call_count), calls)
 
     async def test_failed_fatal_turn_persistence_restores_engine_and_rng(self):
+        await self._assert_failed_fatal_turn_retry(reopen_before_retry=False)
+
+    async def test_failed_fatal_turn_retries_after_campaign_reopen(self):
+        await self._assert_failed_fatal_turn_retry(reopen_before_retry=True)
+
+    async def _assert_failed_fatal_turn_retry(self, *, reopen_before_retry):
         import uuid
         from api.lore_authority.models import CampaignLoreState
 
@@ -517,9 +523,58 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.store.get_turn_action(campaign_id, request["action_id"]))
         self.assertNotIn(request["action_id"], record.turn_action_receipts)
 
+        session_id = a["session_id"]
+        if reopen_before_retry:
+            # Replace both the manager and HTTP app, so no in-memory recovery
+            # from the failed request can supply the retried turn's state.
+            import httpx
+            from api.main import create_app
+
+            original_record, original_session = record, s
+            self.store = CampaignStore(self.store.path)
+            self.manager = SessionManager(campaign_store=self.store)
+            self.app = create_app(session_manager=self.manager, ollama_adapter=None)
+            await self.http.aclose()
+            self.http = httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=self.app),
+                base_url="http://testserver",
+            )
+            resumed = await self.http.post(
+                f"/api/game/campaigns/{a['campaign_id']}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = self.manager.get(session_id)
+            s = record.game_session
+            self.assertIsNot(record, original_record)
+            self.assertIsNot(s, original_session)
+            restored_before = snapshot(record)
+            for field in (
+                "engine", "rng", "journal", "narrative_memory",
+                "lore_authority", "world_metadata", "combat_history",
+                "stored_receipt",
+            ):
+                self.assertEqual(restored_before[field], before[field], field)
+            # Resume may refresh metadata and rebuild transient model messages;
+            # durable gameplay, history, and earlier receipts must not change.
+            for field in ("payload", "history", "combat_history"):
+                self.assertEqual(
+                    getattr(restored_before["stored_campaign"], field),
+                    getattr(before["stored_campaign"], field),
+                    field,
+                )
+            self.assertEqual(s.ensure_death_state()["combat_checkpoint"], checkpoint)
+            self.assertEqual(s.character["current_hp"], 0)
+            self.assertEqual(s.ensure_death_state()["failures"], 1)
+            self.assertIsNone(s.ensure_death_state()["last_resolution"])
+            self.assertIsNone(self.store.get_turn_action(a["campaign_id"], request["action_id"]))
+            self.assertNotIn(request["action_id"], record.turn_action_receipts)
+            self.assertEqual(snapshot(original_record)["engine"], before["engine"])
+
+        previous_cached_receipt = copy.deepcopy(record.turn_action_receipts.get(previous_action_id))
         # Retry the identical request after removing the storage failure. The
         # real Normal-mode checkpoint owner must run once and commit its result.
-        url = f"/api/game/sessions/{a['session_id']}/turn"
+        url = f"/api/game/sessions/{session_id}/turn"
         with patch("game.roll_d20", side_effect=fatal_roll) as retry_die, patch(
             "game.resolve_enemy_attack",
             return_value={"action": "enemy_attack", "outcome": "miss"},
@@ -548,7 +603,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             for field in ("journal", "narrative_memory"):
                 self.assertEqual(getattr(record, field), checkpoint_campaign[field], field)
             self.assertEqual(record.lore_authority.to_dict(), checkpoint_campaign["lore_authority"])
-            self.assertEqual(record.turn_action_receipts[previous_action_id], before["receipts"][previous_action_id])
+            self.assertEqual(record.turn_action_receipts.get(previous_action_id), previous_cached_receipt)
             self.assertEqual(self.store.get_turn_action(a["campaign_id"], previous_action_id),
                              before["stored_receipt"])
             saved_receipt = self.store.get_turn_action(a["campaign_id"], request["action_id"])
