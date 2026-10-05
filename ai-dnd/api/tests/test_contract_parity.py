@@ -557,6 +557,23 @@ class ContractParityTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             CharacterCreateInput.model_validate({"mode": "random", "name": "Ari"})
 
+    def test_campaign_detail_summary_reference_matches_runtime_model(self):
+        runtime = CampaignDetailResponse.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]["campaign"]
+        published = _property("CampaignDetail", "campaign")
+        self.assertEqual(_schema_types(published), _schema_types(runtime))
+        self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+        expected = _schema_references(runtime)
+        self.assertEqual(
+            expected, {"#/components/schemas/CampaignSummary"},
+            "Runtime CampaignDetail.campaign must reference CampaignSummary",
+        )
+        self.assertEqual(
+            _schema_references(published), expected,
+            "CampaignDetail.campaign reference target",
+        )
+
     def test_species_action_schemas_match_runtime_models(self):
         models = {
             "SpeciesTraitActionInput": SpeciesTraitActionRequest,
@@ -1314,7 +1331,6 @@ servers: [{url: /api}]
 paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
 components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
 """
-
     def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/species-actions",
@@ -2397,6 +2413,55 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(
                             f"{schema_name}.{field_name} reference target", failure,
                         )
+
+    def test_campaign_detail_summary_wrong_references_fail_in_both_formats(self):
+        original = _property("CampaignDetail", "campaign")
+        for wrong_model in ("GameSession", "CampaignHistoryEntry"):
+            for flow_style in (False, True):
+                with self.subTest(model=wrong_model, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    self.assertIn(wrong_model, spec["components"]["schemas"])
+                    field = spec["components"]["schemas"]["CampaignDetail"][
+                        "properties"
+                    ]["campaign"]
+                    field["$ref"] = f"#/components/schemas/{wrong_model}"
+                    self.assertEqual(_schema_types(field), _schema_types(original))
+                    self.assertEqual(_is_nullable(field), _is_nullable(original))
+                    # Restoring only the reference must recover the entire
+                    # contract, including inventories and all route bindings.
+                    restored = deepcopy(spec)
+                    restored["components"]["schemas"]["CampaignDetail"][
+                        "properties"
+                    ]["campaign"]["$ref"] = original["$ref"]
+                    self.assertEqual(restored, SPEC)
+                    self.assertEqual(spec["paths"], SPEC["paths"])
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    parsed = _load_spec(text)
+                    self.assertEqual(parsed, spec)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                            "test_campaign_read_route_bindings_match_fastapi",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        ContractParityTests(
+                            "test_campaign_detail_summary_reference_matches_runtime_model"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(
+                        "CampaignDetail.campaign reference target",
+                        result.failures[0][1],
+                    )
+        self.assertEqual(_property("CampaignDetail", "campaign"), original)
 
 
 if __name__ == "__main__":
