@@ -4,6 +4,7 @@ import copy
 import json
 import tempfile
 import unittest
+from contextlib import AsyncExitStack
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -2269,6 +2270,12 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             await assert_replay(http, replay_manager, replay_store, sid)
 
     async def test_expired_interrupted_rest_decision_failed_save_reopens_retries_and_replays(self):
+        await self.assert_expired_rest_recovery_save_failure(reopen_failed_rest=False)
+
+    async def test_failed_post_combat_rest_reopens_retries_and_replays_after_another_reopen(self):
+        await self.assert_expired_rest_recovery_save_failure(reopen_failed_rest=True)
+
+    async def assert_expired_rest_recovery_save_failure(self, *, reopen_failed_rest):
         record = self.manager.get(self.sid)
         session = record.game_session
         session.character.update(
@@ -2530,7 +2537,8 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
         replay_app = v1.create_app(session_manager=replay_manager,
                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
+        async with AsyncExitStack() as clients, \
+                httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
                                      base_url="http://test") as http:
             with patch.object(events, "_occur", side_effect=AssertionError("Reload reapplied event effects")):
                 resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2614,6 +2622,53 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                              accepted_receipt)
             self.assertEqual(replay_manager.get_turn_action(reloaded_record, request["action_id"]),
                              accepted_receipt)
+
+            if reopen_failed_rest:
+                failed_owner = active
+                failed_record = reloaded_record
+                failed_manager = replay_manager
+                failed_store = replay_store
+                failed_sid = sid
+                replay_store = CampaignStore(self.store.path)
+                replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
+                retry_app = v1.create_app(
+                    session_manager=replay_manager,
+                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()),
+                )
+                http = await clients.enter_async_context(httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=retry_app), base_url="http://test",
+                ))
+                with patch.object(events, "_occur", side_effect=AssertionError("Resume repeated occurrence")), \
+                     patch.object(failed_owner, "resolve_species_trait_action",
+                                  side_effect=AssertionError("Resume used failed rest owner")):
+                    resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+                self.assertEqual(resumed.status_code, 200, resumed.text)
+                sid = resumed.json()["session_id"]
+                self.assertNotEqual(sid, failed_sid)
+                self.assertIsNot(replay_store, failed_store)
+                self.assertIsNot(replay_manager, failed_manager)
+                reloaded_record = replay_manager.get(sid)
+                self.assertIsNot(reloaded_record, failed_record)
+                active = reloaded_record.game_session
+                self.assertIsNot(active, failed_owner)
+                self.assertEqual(snapshot(reloaded_record), before_rest)
+                self.assertEqual(replay_store.get_campaign(campaign_id).history,
+                                 stored_before_rest.history)
+                assert_unfinished(active.character, active.world_state, "RESOLVED")
+                self.assertEqual(active.world_state["scheduled_events"], resolved_events)
+                self.assertEqual(active.world_state["combat"], resolved_combat)
+                self.assertEqual(active.world_state["npcs"], resolved_npcs)
+                self.assertEqual(active.world_state["flags"], resolved_flags)
+                self.assertIsNone(replay_store.get_turn_action(campaign_id, new_rest_request["action_id"]))
+                self.assertIsNone(replay_manager.get_turn_action(reloaded_record, new_rest_request["action_id"]))
+                self.assertNotIn(new_rest_request["action_id"], reloaded_record.turn_action_receipts)
+                assert_prior_receipts(replay_manager, replay_store, reloaded_record)
+                self.assertEqual(replay_manager.get_turn_action(reloaded_record, request["action_id"]),
+                                 accepted_receipt)
+                self.assertEqual(replay_store.get_turn_action(campaign_id, request["action_id"]),
+                                 accepted_receipt)
+                for key in ("character", "spellcasting", "campaign_time", "pending_event_decisions", "combat"):
+                    self.assertEqual(resumed.json()["state"][key], serialize_session_state(active)[key])
 
             # The rejected ID remains retryable, without resuming the old rest.
             with patch.object(events, "_occur", side_effect=AssertionError("New rest repeated occurrence")), \
@@ -2707,6 +2762,65 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                     reloaded_record, new_rest_request["action_id"]), recovery_receipt)
                 for key in ("character", "spellcasting", "campaign_time", "pending_event_decisions", "combat"):
                     self.assertEqual(serialize_session_state(active)[key], completed_response["state"][key])
+
+        if reopen_failed_rest:
+            recovered_owner = active
+            recovered_record = reloaded_record
+            recovered_snapshot = snapshot(recovered_record)
+            recovered_sid = sid
+            final_store = CampaignStore(self.store.path)
+            final_manager = SessionManager(session_factory=scene, campaign_store=final_store)
+            final_app = v1.create_app(
+                session_manager=final_manager,
+                ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()),
+            )
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=final_app),
+                                         base_url="http://test") as http:
+                with patch.object(events, "_occur", side_effect=AssertionError("Final resume repeated occurrence")):
+                    resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+                self.assertEqual(resumed.status_code, 200, resumed.text)
+                sid = resumed.json()["session_id"]
+                self.assertNotEqual(sid, recovered_sid)
+                final_record = final_manager.get(sid)
+                active = final_record.game_session
+                self.assertIsNot(active, recovered_owner)
+                self.assertEqual(snapshot(final_record), recovered_snapshot)
+                self.assertEqual(final_store.get_campaign(campaign_id).history, recovered_save.history)
+                assert_recovered(active.character, active.world_state)
+                assert_prior_receipts(final_manager, final_store, final_record)
+                self.assertEqual(final_manager.get_turn_action(final_record, request["action_id"]),
+                                 accepted_receipt)
+                self.assertEqual(final_store.get_turn_action(campaign_id, new_rest_request["action_id"]),
+                                 recovery_receipt)
+                self.assertEqual(final_manager.get_turn_action(final_record, new_rest_request["action_id"]),
+                                 recovery_receipt)
+                final_before = snapshot(final_record)
+                stored_before = final_store.get_campaign(campaign_id)
+                with patch.object(active, "resolve_species_trait_action",
+                                  side_effect=AssertionError("Reopened replay repeated recovery")), \
+                     patch.object(active, "advance_campaign_time",
+                                  side_effect=AssertionError("Reopened replay charged time")), \
+                     patch.object(active.rng, "randint",
+                                  side_effect=AssertionError("Reopened replay rolled dice")), \
+                     patch.object(events, "_occur",
+                                  side_effect=AssertionError("Reopened replay repeated occurrence")), \
+                     patch.object(final_manager, "autosave_turn",
+                                  side_effect=AssertionError("Reopened replay wrote history")), \
+                     patch.object(final_store, "save_campaign",
+                                  side_effect=AssertionError("Reopened replay saved campaign")):
+                    replayed = await http.post(
+                        f"/api/game/sessions/{sid}/species-actions", json=new_rest_request,
+                    )
+                self.assertEqual(replayed.status_code, 200, replayed.text)
+                self.assertEqual(replayed.json(), {**completed_response, "session_id": sid})
+                assert_recovered(active.character, active.world_state)
+                self.assertEqual(snapshot(final_record), final_before)
+                self.assertEqual(final_store.get_campaign(campaign_id), stored_before)
+                self.assertEqual(final_store.get_turn_action(campaign_id, new_rest_request["action_id"]),
+                                 recovery_receipt)
+                self.assertEqual(final_manager.get_turn_action(final_record, new_rest_request["action_id"]),
+                                 recovery_receipt)
+                assert_prior_receipts(final_manager, final_store, final_record)
 
     async def prepare_return(self):
         """Persist an outward midpoint encounter and the upcoming return stop."""
