@@ -1043,6 +1043,133 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game.serialize_game_state(), self.default_before)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
+    def test_overlapping_attacks_use_reverse_distance_but_not_reverse_visibility(self):
+        cases = (
+            (False, True, [], ["unseen_target"], [(20, 15), (20, 3)], False),
+            (True, False, ["unseen_attacker"], [], [(20, 3), (20, 15)], True),
+            (False, False, ["unseen_attacker"], ["unseen_target"], [(20, 15)], True),
+        )
+        for sees_target, seen_by_target, advantages, disadvantages, dice_b, hit_b in cases:
+            with self.subTest(attacker_sees_target=sees_target,
+                              target_sees_attacker=seen_by_target):
+                self.a = game.create_session(seed=17)
+                self.b = game.create_session(seed=17)
+                enemies = [self.npc(self.a), self.npc(self.b)]
+                self.assertEqual(enemies[0]["id"], enemies[1]["id"])
+                for session, enemy in zip((self.a, self.b), enemies):
+                    session.character.update(armor_class=10, current_hp=19)
+                    enemy.update(attack_bonus=0, damage_die=6,
+                                 damage_dice=1, damage_modifier=2)
+                    self.assertNotIn("distance_ft", enemy)
+                direct = f"{enemies[0]['id']}|player"
+                reverse = f"player|{enemies[0]['id']}"
+                pairs_a = self.a.world_state["attack_environment"]["pairs"]
+                del pairs_a[direct]
+                # A has only reverse geometry. Its directional perception
+                # flags must not be used for the NPC's attack on the player.
+                pairs_a[reverse].update(
+                    attacker_sees_target=sees_target,
+                    target_sees_attacker=seen_by_target,
+                )
+                self.b.world_state["attack_environment"]["pairs"][direct].update(
+                    attacker_sees_target=sees_target,
+                    target_sees_attacker=seen_by_target,
+                )
+                self.assertNotIn(direct, pairs_a)
+                self.assertEqual(pairs_a[reverse]["distance_ft"], 5)
+                before_a = self.a.serialize_game_state()
+                before_b = self.b.serialize_game_state()
+                rng_a, rng_b = self.a.rng.getstate(), self.b.rng.getstate()
+                rng_default = game._DEFAULT_SESSION.rng.getstate()
+                fallback_waiting = threading.Event()
+                directional_finished = threading.Event()
+                roll_d20 = self.a.roll_d20
+
+                def overlapping_roll():
+                    self.assertIs(game._session(), self.a)
+                    fallback_waiting.set()
+                    self.assertTrue(directional_finished.wait(timeout=5))
+                    self.assertIs(game._session(), self.a)
+                    return roll_d20()
+
+                def directional_attack():
+                    try:
+                        self.assertTrue(fallback_waiting.wait(timeout=5))
+                        result = game.resolve_enemy_attack(enemies[1], session=self.b)
+                        self.assertEqual(self.a.serialize_game_state(), before_a)
+                        self.assertEqual(self.a.rng.getstate(), rng_a)
+                        self.assertEqual(game._DEFAULT_SESSION.serialize_game_state(),
+                                         self.default_before)
+                        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(),
+                                         rng_default)
+                        return result
+                    finally:
+                        directional_finished.set()
+
+                expected_b = dice_b + ([(6, 2)] if hit_b else [])
+                with self.rolls(self.a, (20, 15), (6, 4)), \
+                     self.rolls(self.b, *expected_b), \
+                     self.rolls(game._DEFAULT_SESSION), \
+                     patch.object(self.a, "roll_d20", side_effect=overlapping_roll):
+                    with ThreadPoolExecutor(max_workers=2) as pool:
+                        fallback = pool.submit(game.resolve_enemy_attack, enemies[0],
+                                               session=self.a)
+                        directional = pool.submit(directional_attack)
+                        result_b = directional.result(timeout=10)
+                        result_a = fallback.result(timeout=10)
+
+                for result in (result_a, result_b):
+                    self.assertEqual(result["actor_id"], enemies[0]["id"])
+                    self.assertEqual(result["target_id"], "player")
+                    self.assertEqual(result["target_ac"], 10)
+                    self.assertEqual(result["target_hp_before"], 19)
+                    self.assertEqual(result["target_status"], "active")
+                    self.assertFalse(result["critical"])
+                self.assertTrue(result_a["success"])
+                self.assertEqual(result_a["outcome"], "hit")
+                self.assertEqual(result_a["attack_rolls"], [15])
+                self.assertEqual(result_a["attack_roll"], 15)
+                self.assertEqual(result_a["advantage_sources"], [])
+                self.assertEqual(result_a["disadvantage_sources"], [])
+                self.assertFalse(result_a["disadvantage"])
+                self.assertFalse(result_a["resolution"]["advantage"])
+                self.assertFalse(result_a["resolution"]["advantage_cancelled"])
+                self.assertEqual(result_a["damage"], 6)
+                self.assertEqual(result_a["damage_rolls"], [
+                    {"source": "weapon", "die": 6, "count": 1, "rolls": [4]},
+                ])
+                self.assertEqual(result_a["target_hp_after"], 13)
+                self.assertEqual(result_b["success"], hit_b)
+                self.assertEqual(result_b["outcome"], "hit" if hit_b else "miss")
+                self.assertEqual(result_b["attack_rolls"], [v for _, v in dice_b])
+                self.assertEqual(result_b["attack_roll"], 15 if hit_b else 3)
+                self.assertEqual(result_b["advantage_sources"], advantages)
+                self.assertEqual(result_b["disadvantage_sources"], disadvantages)
+                self.assertEqual(result_b["disadvantage"],
+                                 bool(disadvantages) and not advantages)
+                self.assertEqual(result_b["resolution"]["advantage"], bool(advantages))
+                self.assertEqual(result_b["resolution"]["advantage_cancelled"],
+                                 bool(advantages and disadvantages))
+                self.assertEqual(result_b["damage"], 4 if hit_b else 0)
+                self.assertEqual(result_b["damage_rolls"], [
+                    {"source": "weapon", "die": 6, "count": 1, "rolls": [2]},
+                ] if hit_b else [])
+                self.assertEqual(result_b["target_hp_after"], 15 if hit_b else 19)
+                # Preserve every field, including reverse visibility; only
+                # owning HP and the owning attack receipt may change.
+                before_a["player"]["current_hp"] = 13
+                before_b["player"]["current_hp"] = 15 if hit_b else 19
+                for before, result in ((before_a, result_a), (before_b, result_b)):
+                    before["world_state"].setdefault("attack_results", []).append(
+                        copy.deepcopy(result)
+                    )
+                self.assertEqual(self.a.serialize_game_state(), before_a)
+                self.assertEqual(self.b.serialize_game_state(), before_b)
+                self.assertEqual(self.a.rng.getstate(), rng_a)
+                self.assertEqual(self.b.rng.getstate(), rng_b)
+                self.assertEqual(game.serialize_game_state(), self.default_before)
+                self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
+
     def test_overlapping_attack_cannot_borrow_another_sessions_hidden_attacker(self):
         for attacker_sees_target in (True, False):
             with self.subTest(attacker_sees_target=attacker_sees_target):
