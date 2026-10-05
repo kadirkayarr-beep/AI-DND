@@ -697,6 +697,23 @@ class WeaponTests(unittest.TestCase):
         s.world_state["attack_environment"] = {"pairs": pairs}
         self.assertNotIn(f"player|{n['id']}", pairs)
         self.assertNotIn("distance_ft", n)
+        self.assert_unknown_distance_unchanged(s, n)
+
+    def assert_invalid_forward_distance_unchanged(self, forward_pair):
+        s, n = armed("Shortbow")
+        del n["distance_ft"]
+        pairs = {
+            f"player|{n['id']}": forward_pair,
+            f"{n['id']}|player": {"distance_ft": 30},
+        }
+        s.world_state["attack_environment"] = {"pairs": pairs}
+        self.assertIn(f"player|{n['id']}", pairs)
+        self.assertEqual(pairs[f"player|{n['id']}"], forward_pair)
+        self.assertEqual(pairs[f"{n['id']}|player"]["distance_ft"], 30)
+        self.assertNotIn("distance_ft", n)
+        self.assert_unknown_distance_unchanged(s, n)
+
+    def assert_unknown_distance_unchanged(self, s, n):
         self.assertNotIn("attack_results", s.world_state)
 
         def snapshot(session):
@@ -744,6 +761,22 @@ class WeaponTests(unittest.TestCase):
 
     def test_reverse_pair_missing_distance_rejected_unchanged(self):
         self.assert_invalid_reverse_distance_unchanged({})
+
+    def test_forward_pair_negative_distance_not_replaced_by_valid_reverse(self):
+        self.assert_invalid_forward_distance_unchanged({"distance_ft": -1})
+
+    def test_forward_pair_boolean_distance_not_replaced_by_valid_reverse(self):
+        for distance in (False, True):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
+
+    def test_forward_pair_nonfinite_distance_not_replaced_by_valid_reverse(self):
+        for distance in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(distance=distance):
+                self.assert_invalid_forward_distance_unchanged({"distance_ft": distance})
+
+    def test_forward_pair_missing_distance_not_replaced_by_valid_reverse(self):
+        self.assert_invalid_forward_distance_unchanged({})
 
     def test_lance_has_2024_two_handed_property_not_2014_mounted_exception(self):
         s, n = armed("Lance")
