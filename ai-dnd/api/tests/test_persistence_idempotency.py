@@ -277,6 +277,110 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             (field_path, mode, invalid_value), operation,
                         )
 
+    async def test_resumed_species_receipt_isolated_from_nested_caller_edits(self):
+        created = await self.create_campaign()
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        session.commit_location_change("tavern")
+        session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+        session.initialize_species_trait_state()
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        campaign_id = created["campaign_id"]
+        self.manager.save_campaign(campaign_id)
+        command = {"action": "long_rest", "action_id": str(uuid4())}
+        accepted = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/species-actions", json=command,
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        expected = accepted.json()
+        self.assertEqual(expected["result"]["action"], "long_rest")
+        self.assertEqual(expected["result"]["effects"]["current_hp"], 20)
+        self.assertEqual(expected["result"]["effects"]["refreshed"]["adrenaline_rush"],
+                         session.character["proficiency_bonus"])
+        self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 28800)
+        original = copy.deepcopy(self.store.get_turn_action(campaign_id, command["action_id"]))
+        self.assertEqual(original["response"], expected)
+        saved = copy.deepcopy(self.store.get_campaign(campaign_id))
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://reload") as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = fresh.get(sid)
+            self.assertIsNot(restored.game_session, session)
+            self.assertEqual(restored.game_session.serialize_game_state(),
+                             session.serialize_game_state())
+            self.assertEqual(restored.game_session.rng.getstate(), session.rng.getstate())
+            reopened = copy.deepcopy(fresh_store.get_campaign(campaign_id))
+            self.assertEqual(reopened.payload, saved.payload)
+            self.assertEqual(reopened.history, saved.history)
+            self.assertEqual(reopened.combat_history, saved.combat_history)
+            self.assertEqual(reopened.metadata["revision"], saved.metadata["revision"])
+            # Resume refreshes last_played_at; freeze state only after that write.
+            before = self.snapshot(restored)
+            auxiliary = copy.deepcopy((
+                restored.game_session.messages, restored.game_session.world_metadata,
+            ))
+            with closing(fresh_store._connect()) as connection:
+                receipt_rows = [
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+                        (campaign_id,),
+                    )
+                ]
+            with patch.object(restored.game_session, "resolve_species_trait_action",
+                              side_effect=AssertionError("Replay repeated species mechanics")) as mechanics, \
+                 patch("game.resolve_species_trait_action",
+                       side_effect=AssertionError("Replay repeated rest")) as rest, \
+                 patch.object(restored.game_session.rng, "randint",
+                              side_effect=AssertionError("Replay consumed RNG")) as rng, \
+                 patch.object(fresh, "autosave_turn",
+                              side_effect=AssertionError("Replay autosaved")) as autosave, \
+                 patch.object(fresh_store, "save_campaign",
+                              side_effect=AssertionError("Replay persisted")) as save:
+                caller_receipt = fresh.get_turn_action(restored, command["action_id"])
+                self.assertEqual(caller_receipt, original)
+                effects = caller_receipt["response"]["result"]["effects"]
+                effects["refreshed"]["adrenaline_rush"] = -1
+                effects["time_result"].clear()
+                state = caller_receipt["response"]["state"]
+                state["character"]["species_trait_state"]["adrenaline_rush_uses_remaining"] = -1
+                state["character"]["current_hp"] = 0
+                state["character"]["species_trait_state"]["caller_only"] = {"edits": ["local"]}
+                self.assertNotEqual(caller_receipt, original)
+                self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
+                self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]),
+                                 original)
+                self.assertEqual(self.snapshot(restored), before)
+                replay = await client.post(
+                    f"/api/game/sessions/{sid}/species-actions", json=command,
+                )
+            for guard in (mechanics, rest, rng, autosave, save):
+                guard.assert_not_called()
+            self.assertEqual(replay.status_code, 200, replay.text)
+            replay_expected = copy.deepcopy(expected)
+            replay_expected["session_id"] = sid
+            self.assertEqual(replay.json(), replay_expected)
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
+            self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]),
+                             original)
+            self.assertEqual(self.snapshot(restored), before)
+            self.assertEqual((
+                restored.game_session.messages, restored.game_session.world_metadata,
+            ), auxiliary)
+            self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
+            with closing(fresh_store._connect()) as connection:
+                self.assertEqual([
+                    tuple(row) for row in connection.execute(
+                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+                        (campaign_id,),
+                    )
+                ], receipt_rows)
+
     async def assert_transient_response_validation(self, operation, *, envelope_only=False):
         created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
