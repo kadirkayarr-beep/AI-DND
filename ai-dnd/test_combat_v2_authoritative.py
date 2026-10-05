@@ -1066,6 +1066,77 @@ class CombatV2(unittest.TestCase):
                             self.assertEqual(self.session.serialize_game_state(), original)
                             self.assertEqual(self.session.rng.getstate(), rng_before)
 
+    def test_V3_conflicting_base_action_ledger_rejects_load_without_mutation(self):
+        self.start()
+        original = self.session.serialize_game_state()
+        refs = (self.session.character, self.session.world_state, self.session.recent_dm_narrations)
+        rng_before = self.session.rng.getstate()
+        for actor in ('player', self.npc['id']):
+            for marked in (False, True):
+                with self.subTest(actor=actor, marked=marked):
+                    forged = copy.deepcopy(original)
+                    combat = forged['world_state']['combat']
+                    combat['actions_used'] = [actor] if marked else []
+                    for record in combat['participant_records']:
+                        record['primary_action_available'] = record['id'] not in combat['actions_used']
+                    combat['turn_resources'][actor]['base_action_spent'] = not marked
+                    with tempfile.TemporaryDirectory() as directory:
+                        path = Path(directory) / 'conflicting-action.json'
+                        path.write_text(json.dumps(forged), encoding='utf-8')
+                        with self.rolls(), self.assertRaisesRegex(ValueError, 'base action resource disagree'):
+                            self.session.load_game(path)
+                    self.assertEqual(self.session.serialize_game_state(), original)
+                    self.assertEqual(self.session.rng.getstate(), rng_before)
+                    self.assertIs(self.session.character, refs[0])
+                    self.assertIs(self.session.world_state, refs[1])
+                    self.assertIs(self.session.recent_dm_narrations, refs[2])
+
+    def test_V3_round_reset_save_reopens_before_other_actor_turn(self):
+        self.start()
+        with self.rolls():
+            self.session._mark_combat_action_used('player')
+            self.session.advance_combat_turn()
+            self.session._mark_combat_action_used(self.npc['id'])
+            self.session.advance_combat_turn()
+        combat = self.w['combat']
+        self.assertEqual(combat['round'], 2)
+        self.assertEqual(combat['current_actor_id'], 'player')
+        self.assertEqual(combat['actions_used'], [])
+        for resource in combat['turn_resources'].values():
+            self.assertFalse(resource['base_action_spent'])
+        expected = self.session.serialize_game_state()
+        resumed = game.create_session(seed=999)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'round-reset.json'
+            self.session.save_game(path)
+            resumed.load_game(path)
+        self.assertEqual(resumed.serialize_game_state(), expected)
+        with self.rolls(session=resumed):
+            resumed._mark_combat_action_used('player')
+            resumed.advance_combat_turn()
+            resumed._mark_combat_action_used(self.npc['id'])
+            resumed.advance_combat_turn()
+        self.assertEqual(resumed.world_state['combat']['round'], 3)
+
+    def test_V3_pre_resource_save_reconstructs_spending_from_markers(self):
+        self.start()
+        self.session._mark_combat_action_used('player')
+        expected = self.session.serialize_game_state()
+        older = copy.deepcopy(expected)
+        del older['world_state']['combat']['turn_resources']
+        # A pre-resource save cannot retain weapon turn counters; only the
+        # marker-derived base budget and ordinary initial resources are known.
+        for resource in expected['world_state']['combat']['turn_resources'].values():
+            resource.pop('attack_turn_counter', None)
+        resumed = game.create_session(seed=999)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'pre-resource-v3.json'
+            path.write_text(json.dumps(older), encoding='utf-8')
+            resumed.load_game(path)
+        self.assertEqual(resumed.serialize_game_state(), expected)
+        with self.rolls(session=resumed), self.assertRaises(CombatRequestError):
+            resumed._mark_combat_action_used('player')
+
     def test_V3_midround_engine_save_resumes_exact_scheduler_state(self):
         self.start()
         self.session._mark_combat_action_used('player')

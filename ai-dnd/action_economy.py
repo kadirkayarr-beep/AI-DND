@@ -125,12 +125,14 @@ def validate_saved(combat):
         return  # Known old combat schema; migrated once by ensure.
     if not isinstance(resources, dict) or set(resources) != set(combat["participants"]):
         raise ValueError("Invalid combat turn resource owners.")
-    for r in resources.values():
+    for actor, r in resources.items():
         if not isinstance(r, dict):
             raise ValueError("Invalid turn resources.")
         for name in ("base_action_spent", "bonus_action_spent", "reaction_spent"):
             if type(r.get(name)) is not bool:
                 raise ValueError("Invalid resource availability.")
+        if r["base_action_spent"] != (actor in combat["actions_used"]):
+            raise ValueError("Combat action marker and base action resource disagree.")
         for name in ("movement_available", "movement_used"):
             if type(r.get(name)) is not int or r[name] < 0:
                 raise ValueError("Invalid movement resource.")
@@ -167,6 +169,20 @@ def validate_saved(combat):
             or not isinstance(opportunity.get("id"), str)
         ):
             raise ValueError("Invalid authoritative reaction opportunity.")
+
+
+def begin_round(session):
+    """Reset round-scoped action markers and their base-action projection together.
+
+    Reactions, Ready state and other resources still expire at the actor's turn,
+    not at the round boundary.
+    """
+    combat = session.world_state["combat"]
+    resources = ensure(session)
+    combat["actions_used"] = []
+    for r in resources.values():
+        r["base_action_spent"] = False
+    session._sync_combat_participant_records(combat)
 
 
 def begin_turn(session, actor):

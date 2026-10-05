@@ -2245,6 +2245,9 @@ class SessionTests(unittest.TestCase):
                         reaction_spent=not bool(index),
                         movement_used=5 + index * 5,
                     )
+                    if index:
+                        session.world_state["combat"]["actions_used"].append("player")
+                    session._sync_combat_participant_records(session.world_state["combat"])
                     # Keep the legacy round marker unset: rejection must come
                     # from this campaign's action-economy ledger, not that marker.
                     self.assertIsNone(
@@ -2385,6 +2388,9 @@ class SessionTests(unittest.TestCase):
                         reaction_spent=not bool(index),
                         movement_used=5 + index * 5,
                     )
+                    if index:
+                        session.world_state["combat"]["actions_used"].append("player")
+                    session._sync_combat_participant_records(session.world_state["combat"])
                     # Both branches have uses; only the ledger may reject one.
                     self.assertGreater(state[use_keys[index]], 0)
                     self.assertIsNone(state["bonus_action_used_round"])

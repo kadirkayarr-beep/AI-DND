@@ -30,6 +30,122 @@ class ActionEconomyTests(unittest.TestCase):
         self.assertFalse(self.r["base_action_spent"])
         self.assertFalse(ae.projection(self.s)["actors"]["player"]["bonus_action_available"])
 
+    def test_native_action_ledger_conflicts_fail_before_spending(self):
+        for actor in ("player", self.n["id"]):
+            for marked in (False, True):
+                with self.subTest(actor=actor, marked=marked):
+                    combat = copy.deepcopy(self.s.world_state["combat"])
+                    combat["actions_used"] = [actor] if marked else []
+                    for record in combat["participant_records"]:
+                        record["primary_action_available"] = record["id"] not in combat["actions_used"]
+                    combat["turn_resources"][actor]["base_action_spent"] = not marked
+                    before = copy.deepcopy(combat)
+                    with self.assertRaisesRegex(ValueError, "base action resource disagree"):
+                        ae.validate_saved(combat)
+                    self.assertEqual(combat, before)
+                    original = self.s.world_state["combat"]
+                    try:
+                        self.s.world_state["combat"] = combat
+                        with self.assertRaisesRegex(ValueError, "base action resource disagree"):
+                            self.s.ensure_combat_state()
+                        self.assertEqual(combat, before)
+                    finally:
+                        self.s.world_state["combat"] = original
+
+    def test_spent_base_and_restricted_extra_action_survive_save_reopen(self):
+        ae.grant(self.s, "player", "fixture-extra-action", ["dash"])
+        step(self.s, {"kind": "dash"})
+        expected = self.s.serialize_game_state()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "open-turn.json"
+            self.s.save_game(path)
+            reopened = make_session("Human")
+            reopened.load_game(path)
+        self.assertEqual(reopened.serialize_game_state(), expected)
+        self.assertTrue(ae.ensure(reopened)["player"]["base_action_spent"])
+        with self.assertRaises(CombatRequestError):
+            ae.action_slot(reopened, "player", "attack")
+        step(reopened, {"kind": "dash"})
+        resource = ae.ensure(reopened)["player"]
+        self.assertTrue(resource["base_action_spent"])
+        self.assertEqual(resource["additional_actions"][0]["remaining"], 0)
+        before = reopened.serialize_game_state()
+        with self.assertRaises(CombatRequestError):
+            step(reopened, {"kind": "dash"})
+        self.assertEqual(reopened.serialize_game_state(), before)
+
+    def test_end_turn_without_spending_and_round_reopen_keep_ledgers_aligned(self):
+        with patch("game.roll_attack", return_value=1):
+            step(self.s, {"kind": "end_turn"})
+        self.assertEqual(self.s.world_state["combat"]["round"], 2)
+        step(self.s, {"kind": "dash"})
+        with patch("game.roll_attack", return_value=1):
+            step(self.s, {"kind": "end_turn"})
+        combat = self.s.world_state["combat"]
+        self.assertEqual(combat["round"], 3)
+        self.assertEqual(combat["actions_used"], [])
+        self.assertTrue(all(not r["base_action_spent"] for r in combat["turn_resources"].values()))
+        expected = self.s.serialize_game_state()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "round.json"
+            self.s.save_game(path)
+            reopened = make_session("Human")
+            reopened.load_game(path)
+        self.assertEqual(reopened.serialize_game_state(), expected)
+        step(reopened, {"kind": "dash"})
+        with self.assertRaises(CombatRequestError):
+            step(reopened, {"kind": "dash"})
+
+    def test_round_reset_preserves_reaction_and_ready_until_actors_turn(self):
+        self.s._mark_combat_action_used("player")
+        self.s.advance_combat_turn()
+        npc_resource = ae.ensure(self.s)[self.n["id"]]
+        npc_resource["reaction_spent"] = True
+        npc_resource["ready"] = {
+            "trigger": {"event": "actor_moves", "actor_id": "player"},
+            "response": {"kind": "move", "distance_ft": 5},
+        }
+        self.s._mark_combat_action_used(self.n["id"])
+        self.s.advance_combat_turn()
+        self.assertFalse(npc_resource["base_action_spent"])
+        self.assertTrue(npc_resource["reaction_spent"])
+        self.assertIsNotNone(npc_resource["ready"])
+        self.s._mark_combat_action_used("player")
+        self.s.advance_combat_turn()
+        self.assertFalse(npc_resource["reaction_spent"])
+        self.assertIsNone(npc_resource["ready"])
+
+    def test_mark_action_keeps_base_spent_when_consuming_extra_action(self):
+        ae.grant(self.s, "player", "fixture-extra-action", ["attack"])
+        self.s._mark_combat_action_used("player")
+        self.s._mark_combat_action_used("player")
+        self.assertEqual(self.s.world_state["combat"]["actions_used"], ["player"])
+        self.assertTrue(self.r["base_action_spent"])
+        self.assertEqual(self.r["additional_actions"][0]["remaining"], 0)
+        before = self.s.serialize_game_state()
+        with self.assertRaises(CombatRequestError):
+            self.s._mark_combat_action_used("player")
+        self.assertEqual(self.s.serialize_game_state(), before)
+
+    def test_mark_incapacitated_actor_spends_base_and_reopens_consistently(self):
+        self.s._mark_combat_action_used("player")
+        self.s.advance_combat_turn()
+        self.n["conditions"] = ["incapacitated"]
+        self.s._mark_combat_action_used(self.n["id"])
+        combat = self.s.world_state["combat"]
+        self.assertTrue(combat["turn_resources"][self.n["id"]]["base_action_spent"])
+        self.assertIn(self.n["id"], combat["actions_used"])
+        expected = self.s.serialize_game_state()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "incapacitated-turn.json"
+            self.s.save_game(path)
+            reopened = make_session("Human")
+            reopened.load_game(path)
+        self.assertEqual(reopened.serialize_game_state(), expected)
+        reopened.advance_combat_turn()
+        self.assertEqual(reopened.world_state["combat"]["current_actor_id"], "player")
+        self.assertEqual(reopened.world_state["combat"]["actions_used"], [])
+
     def test_readied_movement_respects_prone_cost_in_shared_ledger(self):
         self.s.character["conditions"] = ["prone"]
         self.prepare({"kind": "move", "distance_ft": 10})

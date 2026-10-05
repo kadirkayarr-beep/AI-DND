@@ -142,7 +142,13 @@ class ProductionOwnerIntegrationTests(NativeBase):
         self.assertEqual(weapon_attack.pair(self.session, npc["id"], "player")["distance_ft"], 5)
         self.assertEqual(budget["movement_used"], 55)
         self.assertEqual(budget["dash_count"], 1)
-        self.assertTrue(budget["base_action_spent"])
+        combat = self.session.world_state["combat"]
+        # An enemy-first encounter is still in round one; a player-first
+        # encounter has rolled over after the enemy Dash. Only the base Action
+        # marker resets at that boundary, not the enemy's movement evidence.
+        self.assertIn(combat["round"], (1, 2))
+        self.assertEqual(budget["base_action_spent"], combat["round"] == 1)
+        self.assertEqual(budget["base_action_spent"], npc["id"] in combat["actions_used"])
 
     def test_repeat_entry_does_not_heal_or_respawn(self):
         self.enter()
@@ -216,7 +222,11 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         self.assertEqual(attack["damage_type"], "bludgeoning")
         self.assertIn(attack["outcome"], ("hit", "miss", "critical_hit"))
         actor = self.session.world_state["bounded_encounter"]["npc_id"]
-        self.assertTrue(self.session.world_state["combat"]["turn_resources"][actor]["base_action_spent"])
+        combat = self.session.world_state["combat"]
+        self.assertEqual(combat["current_actor_id"], "player")
+        expected_spent = combat["initiative_order"].index(actor) < combat["current_turn_index"]
+        self.assertEqual(combat["turn_resources"][actor]["base_action_spent"], expected_spent)
+        self.assertEqual(actor in combat["actions_used"], expected_spent)
 
     def test_save_resume_after_process_restart_retains_all_canonical_state(self):
         self.walk_to_contact()

@@ -4371,7 +4371,7 @@ def advance_combat_turn():
         index = (start_index + step) % len(order)
         if index == 0:
             combat["round"] += 1
-            combat["actions_used"] = []
+            action_economy.begin_round(_session())
             round_changed = True
             ensure_campaign_clock()
             if "campaign_time" in _session().world_state:
