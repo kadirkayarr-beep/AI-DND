@@ -497,7 +497,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def test_persisted_species_receipt_isolated_from_autosave_input_edits(self):
         await self.assert_persisted_species_receipt_isolation(edit_input=True)
 
-    async def assert_transient_response_validation(self, operation, *, envelope_only=False):
+    async def assert_transient_response_validation(
+        self, operation, *, envelope_only=False, conflicting_request=False,
+    ):
         created = await self.http.post("/api/game/sessions")
         self.assertEqual(created.status_code, 200, created.text)
         created = created.json()
@@ -538,7 +540,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         original = copy.deepcopy(record.turn_action_receipts[command["action_id"]])
         self.assertEqual(original["response"], expected)
         self.assertEqual(original["action_id"], command["action_id"])
+        self.assertRegex(original["request_hash"], r"^[0-9a-f]{64}$")
         self.assertEqual(self.manager.get_turn_action(record, command["action_id"]), original)
+        changed_command = copy.deepcopy(command)
+        if operation == "turn":
+            changed_command["message"] = "Resolve a different spell request."
+        else:
+            changed_command["action"] = (
+                "long_rest" if operation == "short_rest" else "short_rest"
+            )
+        self.assertEqual(changed_command["action_id"], command["action_id"])
+        self.assertNotEqual(changed_command, command)
         self.assertNotEqual(session.serialize_game_state(), before_action)
         if operation == "turn":
             self.assertTrue(record.combat_history)
@@ -560,7 +572,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.snapshot(record), session.messages, session.world_metadata,
             ))
 
-        async def retry_without_effects(status):
+        async def retry_without_effects(
+            status, *, body=None, error_code="campaign_unavailable",
+        ):
             before_retry = runtime_snapshot()
             with patch.object(session, "run_player_turn",
                               side_effect=AssertionError("Replay executed a turn")) as engine, \
@@ -572,12 +586,14 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                               side_effect=AssertionError("Replay replaced a receipt")) as save, \
                  patch.object(self.store, "save_campaign",
                               side_effect=AssertionError("Transient replay persisted")) as persisted:
-                retry = await self.http.post(path, json=command)
+                retry = await self.http.post(
+                    path, json=command if body is None else body,
+                )
             self.assertEqual(retry.status_code, status, retry.text)
             if status == 200:
                 self.assertEqual(retry.json(), expected)
             else:
-                self.assertEqual(retry.json()["detail"]["code"], "campaign_unavailable")
+                self.assertEqual(retry.json()["detail"]["code"], error_code)
                 self.assertIsInstance(retry.json()["detail"]["message"], str)
                 self.assertTrue(retry.json()["detail"]["message"])
             for guard in (engine, species, dice, save, persisted):
@@ -639,6 +655,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(damaged["response"]["action_id"], command["action_id"])
                     record.turn_action_receipts[command["action_id"]] = damaged
                     await retry_without_effects(409)
+                    if conflicting_request:
+                        # A valid retained hash reserves the ID even when the
+                        # response cannot pass the route's replay schema.
+                        await retry_without_effects(
+                            409, body=changed_command, error_code="action_id_conflict",
+                        )
                     self.assertEqual(record.turn_action_receipts[command["action_id"]], damaged)
                     record.turn_action_receipts[command["action_id"]] = copy.deepcopy(original)
                     self.assertEqual(runtime_snapshot(), committed)
@@ -659,6 +681,15 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_incomplete_transient_long_rest_response_blocks_http_retry(self):
         await self.assert_transient_response_validation("long_rest")
+
+    async def test_damaged_transient_turn_response_keeps_changed_request_conflicting(self):
+        await self.assert_transient_response_validation("turn", conflicting_request=True)
+
+    async def test_damaged_transient_short_rest_response_keeps_changed_request_conflicting(self):
+        await self.assert_transient_response_validation("short_rest", conflicting_request=True)
+
+    async def test_damaged_transient_long_rest_response_keeps_changed_request_conflicting(self):
+        await self.assert_transient_response_validation("long_rest", conflicting_request=True)
 
     async def test_corrupt_short_rest_receipts_block_http_retry_after_resume(self):
         for corruption in ("hash", "json", "action_id"):
