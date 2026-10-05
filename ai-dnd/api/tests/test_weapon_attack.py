@@ -835,6 +835,131 @@ class WeaponTests(unittest.TestCase):
     def test_npc_absent_canonical_distance_rejected_without_authored_distance(self):
         self.assert_invalid_canonical_npc_distance_unchanged(None, missing=True)
 
+    def assert_npc_authored_distance_overrides_broken_canonical(self, distance, *, missing=False):
+        for reverse_only in (False, True):
+            for attack_source in ("equipped_weapon", "stat_block"):
+                with self.subTest(reverse_only=reverse_only, attack_source=attack_source):
+                    s, n = armed("Shortbow", distance=distance)
+                    if missing:
+                        del n["distance_ft"]
+                    if attack_source == "equipped_weapon":
+                        n.update(weapon_id="shortbow", inventory=["Shortbow"],
+                                 equipment={"main_hand": "shortbow", "off_hand": None},
+                                 dexterity=14, dexterity_mod=2, proficiency_bonus=2,
+                                 weapon_proficiencies=["simple"], weapon_masteries=[],
+                                 ammunition={"arrow": 20})
+                    else:
+                        self.assertNotIn("weapon_id", n)
+                        n.update(attack_bonus=4, damage_die=6, damage_dice=1,
+                                 damage_modifier=2, attack_damage_type="piercing",
+                                 ammunition={"arrow": 20})
+                    s.character["armor_class"] = 12
+                    # Stat-block attacks are melee; the bow uses normal range.
+                    authored_pair = {
+                        "distance_ft": 30 if attack_source == "equipped_weapon" else 5,
+                        "cover": "half", "attacker_sees_target": False,
+                        "target_sees_attacker": True,
+                    }
+                    forward_key, reverse_key = f"{n['id']}|player", f"player|{n['id']}"
+                    key = reverse_key if reverse_only else forward_key
+                    pairs = {key: authored_pair}
+                    s.world_state["attack_environment"] = {"pairs": pairs}
+                    geometry_before = copy.deepcopy(s.world_state["attack_environment"])
+                    canonical_before = json.dumps(
+                        {"distance_ft": n["distance_ft"]} if "distance_ft" in n else {},
+                        sort_keys=True)
+                    player_ammunition_before = copy.deepcopy(s.world_state["ammunition"])
+                    self.assertNotIn(forward_key if reverse_only else reverse_key, pairs)
+                    self.assertEqual(
+                        attack.pair(s, n["id"], "player"),
+                        {"distance_ft": authored_pair["distance_ft"]} if reverse_only
+                        else authored_pair)
+                    s.advance_combat_turn()
+                    self.assertEqual(s.world_state["combat"]["current_actor_id"], n["id"])
+                    self.assertNotIn("attack_results", s.world_state)
+
+                    def snapshot(session):
+                        # JSON compares NaN-bearing state without NaN equality pitfalls.
+                        return json.dumps((
+                            session.serialize_game_state(), session.world_state,
+                            session.character, session.messages, session.rng.getstate(),
+                        ), sort_keys=True)
+
+                    default_before = snapshot(game._DEFAULT_SESSION)
+                    attack_rolls = [10] if reverse_only else [10, 12]
+                    remaining = iter([(20, value) for value in attack_rolls] + [(6, 4)])
+
+                    def owned_randint(low, high):
+                        self.assertIs(game._session(), s)
+                        expected = next(remaining, None)
+                        self.assertIsNotNone(expected, "Unexpected attack or damage die")
+                        sides, value = expected
+                        self.assertEqual((low, high), (1, sides))
+                        return value
+
+                    # Keep both real roll owners; script only the explicit session's RNG.
+                    with patch.object(s.rng, "randint", side_effect=owned_randint) as dice, \
+                         patch.object(game._DEFAULT_SESSION.rng, "randint",
+                                      side_effect=AssertionError("Enemy used default dice")) as default_dice:
+                        result = s.resolve_enemy_attack(n)
+                        self.assertEqual(dice.call_args_list,
+                                         [call(1, 20)] * len(attack_rolls) + [call(1, 6)])
+                        self.assertIsNone(next(remaining, None), "Expected dice were not consumed")
+                        default_dice.assert_not_called()
+
+                    self.assertEqual(result["actor_id"], n["id"])
+                    self.assertEqual(result["target_id"], "player")
+                    self.assertEqual(result["weapon_id"],
+                                     "shortbow" if attack_source == "equipped_weapon"
+                                     else "stat_block_attack")
+                    self.assertEqual(result["status"], "resolved")
+                    self.assertTrue(result["success"])
+                    self.assertTrue(result["hit"])
+                    self.assertFalse(result["critical"])
+                    self.assertEqual(result["outcome"], "hit")
+                    self.assertEqual(result["attack_rolls"], attack_rolls)
+                    self.assertEqual(result["attack_bonus"], 4)
+                    self.assertEqual(result["attack_total"], 14)
+                    self.assertEqual(result["target_ac_base"], 12)
+                    self.assertEqual(result["target_ac"], 12 if reverse_only else 14)
+                    self.assertEqual(result["cover_state"], "none" if reverse_only else "half")
+                    self.assertEqual(result["advantage_sources"], [])
+                    self.assertEqual(result["disadvantage_sources"],
+                                     [] if reverse_only else ["unseen_target"])
+                    self.assertEqual(result["damage_rolls"], [
+                        {"source": "weapon", "die": 6, "count": 1, "rolls": [4]}])
+                    self.assertEqual(result["damage_type"], "piercing")
+                    self.assertEqual(result["damage"], 6)
+                    self.assertEqual(result["hp_damage"], 6)
+                    self.assertEqual(result["target_hp_before"], 100)
+                    self.assertEqual(result["target_hp_after"], 94)
+                    self.assertEqual(s.character["current_hp"], 94)
+                    self.assertEqual(n["current_hp"], 100)
+                    bow = attack_source == "equipped_weapon"
+                    self.assertEqual(result["ammunition_consumed"],
+                                     {"type": "arrow", "quantity": 1} if bow else None)
+                    self.assertEqual(n["ammunition"], {"arrow": 19 if bow else 20})
+                    self.assertEqual(s.world_state["ammunition"], player_ammunition_before)
+                    self.assertEqual(s.world_state["attack_results"], [result])
+                    self.assertIsNot(s.world_state["attack_results"][0], result)
+                    self.assertEqual(s.world_state["attack_environment"], geometry_before)
+                    self.assertEqual(json.dumps(
+                        {"distance_ft": n["distance_ft"]} if "distance_ft" in n else {},
+                        sort_keys=True), canonical_before)
+                    self.assertEqual(snapshot(game._DEFAULT_SESSION), default_before)
+
+    def test_npc_valid_authored_distance_overrides_invalid_canonical_distance(self):
+        invalid_distances = (
+            None, False, True, -1, float("nan"), float("inf"), float("-inf"),
+            "30", "30.0", [], [30], {}, {"distance_ft": 30},
+        )
+        for distance in invalid_distances:
+            with self.subTest(distance=distance):
+                self.assert_npc_authored_distance_overrides_broken_canonical(distance)
+
+    def test_npc_valid_authored_distance_overrides_absent_canonical_distance(self):
+        self.assert_npc_authored_distance_overrides_broken_canonical(None, missing=True)
+
     def test_forward_pair_missing_distance_uses_valid_npc_distance(self):
         s, n = armed("Shortbow", distance=30)
         # Unlike supplied-invalid-distance cases, an absent key permits fallback.
