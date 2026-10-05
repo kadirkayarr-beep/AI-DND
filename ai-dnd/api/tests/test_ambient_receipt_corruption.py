@@ -35,7 +35,7 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 )],
             )
 
-    async def check_reopened_receipt(self, mutate=None, legacy=None):
+    async def check_reopened_receipt(self, mutate=None, legacy=None, conflict=None):
         created = await self.create_campaign()
         campaign_id = created["campaign_id"]
         record = self.manager.get(created["session_id"])
@@ -103,6 +103,23 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 restored.game_session.messages, restored.game_session.world_metadata,
             ))
             rows = self.raw_rows(fresh_store, campaign_id)
+            retry_command = copy.deepcopy(command)
+            retry_endpoint = endpoint
+            retry_event_id = event_id
+            if conflict == "action":
+                retry_command["action"] = "observe"
+            elif conflict == "event":
+                retry_event_id = str(uuid4())
+                self.assertNotEqual(retry_event_id, event_id)
+                retry_endpoint = f"ambient-events/{retry_event_id}/actions"
+            elif conflict is not None:
+                self.fail(f"Unknown conflict case: {conflict}")
+            reserved = fresh_store.get_turn_action(campaign_id, command["action_id"])
+            self.assertIsNotNone(reserved)
+            self.assertEqual(reserved["request_hash"], receipt["request_hash"])
+            if legacy is not None:
+                self.assertNotIn("ambient_event_response", reserved["response"])
+                self.assertIn("legacy_ambient_result", reserved["response"])
             with patch.object(restored.game_session, "resolve_ambient_event_action",
                               side_effect=AssertionError("Replay executed mechanics")) as mechanics, \
                  patch.object(fresh, "save_campaign_locked",
@@ -112,9 +129,24 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                  patch.object(fresh_store, "save_campaign",
                               side_effect=AssertionError("Replay saved campaign")) as save:
                 retry = await client.post(
-                    f"/api/game/sessions/{sid}/{endpoint}", json=command,
+                    f"/api/game/sessions/{sid}/{retry_endpoint}", json=retry_command,
                 )
-            if mutate is not None:
+            if conflict is not None:
+                self.assertEqual(retry.status_code, 200, retry.text)
+                response = retry.json()
+                AmbientEventCommandResult.model_validate(response, strict=True)
+                self.assertEqual(response["session_id"], sid)
+                self.assertEqual(response["result"], {
+                    "event_instance_id": retry_event_id,
+                    "action_id": command["action_id"],
+                    "status": "REJECTED",
+                    "reason_code": "action_id_conflict",
+                    "transition_id": None,
+                    "canonical_event_id": None,
+                })
+                self.assertNotIn("ambient_event_response", response)
+                self.assertNotIn("legacy_ambient_result", response)
+            elif mutate is not None:
                 self.assertEqual(retry.status_code, 409, retry.text)
                 self.assertEqual(retry.json()["detail"]["code"], "campaign_unavailable")
                 self.assertIsInstance(retry.json()["detail"]["message"], str)
@@ -215,3 +247,33 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_empty_legacy_projection_does_not_require_modern_response_fields(self):
         await self.check_reopened_receipt(legacy="empty")
+
+    async def test_conflicts_precede_corrupt_modern_reply_validation_after_resume(self):
+        def missing_response(response):
+            del response["ambient_event_response"]
+
+        def missing_session_id(response):
+            del response["ambient_event_response"]["session_id"]
+
+        def invalid_result(response):
+            response["ambient_event_response"]["result"] = "broken"
+
+        def wrong_action_identity(response):
+            response["ambient_event_response"]["result"]["action_id"] = str(uuid4())
+
+        def wrong_event_identity(response):
+            response["ambient_event_response"]["result"]["event_instance_id"] = str(uuid4())
+
+        for mutate in (
+            missing_response, missing_session_id, invalid_result,
+            wrong_action_identity, wrong_event_identity,
+        ):
+            for conflict in ("action", "event"):
+                with self.subTest(corruption=mutate.__name__, conflict=conflict):
+                    await self.check_reopened_receipt(mutate, conflict=conflict)
+
+    async def test_conflicts_precede_partial_legacy_projection_after_resume(self):
+        for legacy in ("imported", "empty"):
+            for conflict in ("action", "event"):
+                with self.subTest(legacy=legacy, conflict=conflict):
+                    await self.check_reopened_receipt(legacy=legacy, conflict=conflict)
