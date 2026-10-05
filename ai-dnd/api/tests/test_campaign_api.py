@@ -2161,6 +2161,213 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
             self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
 
+    async def test_reopened_verified_city_ruler_answer_preserves_lore_and_history(self):
+        # Reuse the installed, reviewed pack from the lore-engine regression;
+        # no test-authored ruler claim or production canon change is needed.
+        city_id = "fr:city:neverwinter"
+        ruler_fact_id = "fr:fact:dagult_neverember_current_lord"
+        created_response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(created_response.status_code, 200, created_response.text)
+        created = created_response.json()
+        campaign_id = created["campaign_id"]
+        original_record = self.manager.get(created["session_id"])
+        original_session = original_record.game_session
+        world = original_session.world_state
+        local_npcs = [
+            {
+                "id": "npc_verified_ruler_local",
+                "name": "Melis",
+                "role": "Kent sakini",
+                "location": city_id,
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            },
+            {
+                "id": "npc_verified_ruler_other",
+                "name": "Darian",
+                "role": "Yolcu",
+                "location": city_id,
+                "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+            },
+        ]
+        world["npcs"].extend(local_npcs)
+        world["flags"]["active_npc_id"] = local_npcs[0]["id"]
+        world["flags"]["active_npc_until_turn"] = world["flags"]["turn_index"] + 6
+        saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
+        self.assertEqual(saved.status_code, 200, saved.text)
+        committed = self.store.get_campaign(campaign_id)
+        saved_world = committed.payload["engine_save"]["world_state"]
+        saved_lore = committed.payload["lore_authority"]
+        self.assertEqual(saved_world["location"], city_id)
+        self.assertEqual(saved_world["npcs"], world["npcs"])
+        self.assertEqual(saved_lore, original_record.lore_authority.to_dict())
+        self.assertEqual(saved_lore["binding_status"], "BOUND")
+        self.assertEqual(saved_lore["current_location_entity_id"], city_id)
+        self.assertNotIn("lore_authority", committed.payload["engine_save"])
+        requests = [
+            {
+                "message": "Bu şehrin hükümdarı kim?",
+                "target_id": local_npcs[0]["id"],
+                "action_id": str(uuid.uuid4()),
+            },
+            {
+                "message": "Bu şehrin hükümdarı kim?",
+                "action_id": str(uuid.uuid4()),
+            },
+        ]
+        self.assertNotEqual(requests[0]["action_id"], requests[1]["action_id"])
+        receipts = {}
+        narrations = []
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            # Unexpected model calls fail offline rather than inventing lore.
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = reopened_manager.get(session_id)
+            session = record.game_session
+            self.assertIsNot(session, original_session)
+            self.assertEqual(session.serialize_game_state(), committed.payload["engine_save"])
+            self.assertEqual(record.lore_authority.to_dict(), saved_lore)
+            self.assertEqual(resumed.json()["history"], committed.history)
+            real_turn = session.run_player_turn
+            results = []
+            contexts = []
+
+            @wraps(real_turn)
+            def capture_question_turn(*args, **kwargs):
+                contexts.append(copy.deepcopy(session.lore_authority_context))
+                result = real_turn(*args, **kwargs)
+                results.append(copy.deepcopy(result))
+                return result
+
+            with patch.object(session, "run_player_turn", new=capture_question_turn):
+                for index, body in enumerate(requests):
+                    with self.subTest(target_id=body.get("target_id")):
+                        self.assertEqual(
+                            session.world_state["flags"]["active_npc_id"],
+                            local_npcs[0]["id"],
+                        )
+                        self.assertGreaterEqual(
+                            session.world_state["flags"]["active_npc_until_turn"],
+                            session.world_state["flags"]["turn_index"],
+                        )
+                        self.assertIsNone(
+                            reopened_store.get_turn_action(campaign_id, body["action_id"])
+                        )
+                        before = reopened_store.get_campaign(campaign_id)
+                        response = await http.post(
+                            f"/api/game/sessions/{session_id}/turn", json=body
+                        )
+                        self.assertEqual(response.status_code, 200, response.text)
+                        turn = response.json()
+                        self.assertEqual(turn["action_id"], body["action_id"])
+                        self.assertEqual(len(results), index + 1)  # Not receipt replay.
+                        self.assertIn(
+                            ruler_fact_id, contexts[-1]["diagnostics"]["selected_fact_ids"]
+                        )
+                        action = results[-1]["action_result"]
+                        self.assertEqual(action["action"], "dialogue")
+                        self.assertEqual(action["status"], "answered_from_loaded_lore")
+                        self.assertTrue(action["success"])
+                        self.assertEqual(action["state_changes"], [])
+                        self.assertNotIn("npc_id", action)
+                        self.assertEqual(
+                            results[-1]["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+                            0,
+                        )
+                        narration = results[-1]["narration"]
+                        self.assertEqual(
+                            narration, "Neverwinter kentinin güncel Lordu Dagult Neverember."
+                        )
+                        self.assertNotIn("güvenilir bir doğrulamam yok", narration)
+                        for npc in local_npcs:
+                            self.assertNotIn(npc["name"], narration)
+                        self.assertEqual(turn["narration"], narration)
+                        narrations.append(narration)
+
+                        persisted = reopened_store.get_campaign(campaign_id)
+                        self.assertEqual(
+                            persisted.payload["engine_save"], session.serialize_game_state()
+                        )
+                        self.assertEqual(persisted.payload["journal"], record.journal)
+                        self.assertEqual(
+                            persisted.payload["lore_authority"], record.lore_authority.to_dict()
+                        )
+                        for key in (
+                            "binding_status", "setting_profile", "world_id", "epoch_id",
+                            "region_id", "current_location_entity_id",
+                        ):
+                            self.assertEqual(persisted.payload["lore_authority"][key], saved_lore[key])
+                        persisted_world = persisted.payload["engine_save"]["world_state"]
+                        for key in (
+                            "location", "locations", "npcs", "shops", "features",
+                            "doors", "containers", "quests", "quest_offers", "inventory",
+                        ):
+                            self.assertEqual(persisted_world.get(key), saved_world.get(key), key)
+                        self.assertEqual(
+                            persisted_world["flags"]["turn_index"],
+                            saved_world["flags"]["turn_index"] + index + 1,
+                        )
+                        self.assertEqual(persisted.history[:-1], before.history)
+                        self.assertEqual(len(persisted.history), len(before.history) + 1)
+                        self.assertEqual(persisted.history[-1]["player_message"], body["message"])
+                        self.assertEqual(persisted.history[-1]["narration"], narration)
+                        receipt = reopened_store.get_turn_action(campaign_id, body["action_id"])
+                        self.assertEqual(receipt["response"], turn)
+                        receipts[body["action_id"]] = copy.deepcopy(receipt)
+
+        # A second fresh HTTP resume must restore both accepted answers and
+        # their lore binding without issuing either action again.
+        final_store = CampaignStore(self.store.path)
+        final_manager = SessionManager(campaign_store=final_store)
+        final_app = create_app(
+            session_manager=final_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=final_app),
+            base_url="http://testserver",
+        ) as http:
+            reloaded = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+        self.assertEqual(reloaded.status_code, 200, reloaded.text)
+        final_record = final_manager.get(reloaded.json()["session_id"])
+        self.assertIsNot(final_record.game_session, session)
+        self.assertEqual(
+            final_record.game_session.serialize_game_state(), persisted.payload["engine_save"]
+        )
+        self.assertEqual(final_record.lore_authority.to_dict(), persisted.payload["lore_authority"])
+        self.assertEqual(final_record.journal, persisted.payload["journal"])
+        self.assertEqual(reloaded.json()["history"], persisted.history)
+        self.assertEqual(final_store.get_campaign(campaign_id).history, persisted.history)
+        self.assertEqual(
+            [entry["player_message"] for entry in reloaded.json()["history"][-2:]],
+            [body["message"] for body in requests],
+        )
+        self.assertEqual(
+            [entry["narration"] for entry in reloaded.json()["history"][-2:]], narrations
+        )
+        for action_id, receipt in receipts.items():
+            self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
+            self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
+
     async def test_selected_npc_identity_query_is_deterministic(self):
         created_response = await self.http.post(
             "/api/game/campaigns",
