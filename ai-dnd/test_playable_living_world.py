@@ -105,6 +105,73 @@ class PlayableLivingWorldTests(unittest.TestCase):
                     self.assertNotIn("npc", result)
                     self.assertEqual(self.world, before)
 
+    def test_pronoun_dialogue_selects_conversation_at_deadline(self):
+        for active in (True, False):
+            for selected_index in (0, 1):
+                for player_input in (
+                    "Onunla konuşuyorum.",
+                    "Ondan sohbet etmesini istiyorum.",
+                ):
+                    with self.subTest(
+                        active_npc_present=active, selected_index=selected_index,
+                        player_input=player_input,
+                    ):
+                        npcs = self._set_npc_conversation_deadline(12, active=active)
+                        selected_id = npcs[selected_index]["id"]
+                        flags = self.world["flags"]
+                        flags["active_npc_id"] = selected_id if active else None
+                        flags["last_npc_id"] = selected_id
+
+                        result = self.session.resolve_npc_reference(player_input)
+
+                        self.assertEqual(result["status"], "found")
+                        self.assertEqual(result["npc"]["id"], selected_id)
+                        self.assertEqual(flags["active_npc_id"], selected_id)
+                        self.assertEqual(flags["last_npc_id"], selected_id)
+                        self.assertEqual(flags["active_npc_until_turn"], 18)
+
+    def test_pronoun_dialogue_is_ambiguous_after_conversation_expiry(self):
+        for active in (True, False):
+            for player_input in (
+                "Onunla konuşuyorum.",
+                "Ondan sohbet etmesini istiyorum.",
+            ):
+                with self.subTest(active_npc_present=active, player_input=player_input):
+                    npcs = self._set_npc_conversation_deadline(13, active=active)
+                    before = copy.deepcopy(self.world)
+
+                    result = self.session.resolve_npc_reference(player_input)
+
+                    self.assertEqual(result["status"], "ambiguous")
+                    self.assertEqual(
+                        {npc["id"] for npc in result["npcs"]},
+                        {npc["id"] for npc in npcs},
+                    )
+                    self.assertNotIn("npc", result)
+                    self.assertEqual(self.world, before)
+
+    def test_unknown_named_dialogue_with_pronouns_rejects_conversation_fallback(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for player_input in (
+                    "Onunla konuşuyorum, Bora'yla konuşuyorum.",
+                    "Bora'yla konuşuyorum, Onunla konuşuyorum.",
+                    "Ondan sohbet etmesini istiyorum, Bora'yla konuşuyorum.",
+                    "Bora'yla konuşuyorum, Ondan sohbet etmesini istiyorum.",
+                ):
+                    with self.subTest(
+                        turn_index=turn_index, active_npc_present=active,
+                        player_input=player_input,
+                    ):
+                        self._set_npc_conversation_deadline(turn_index, active=active)
+                        before = copy.deepcopy(self.world)
+
+                        result = self.session.resolve_npc_reference(player_input)
+
+                        self.assertEqual(result["status"], "none")
+                        self.assertIsNone(result["npc"])
+                        self.assertEqual(self.world, before)
+
     def test_unknown_named_greetings_do_not_fall_back_to_conversation(self):
         for turn_index in (12, 13):
             for player_input in (
