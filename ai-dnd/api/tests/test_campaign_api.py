@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import closing
 from functools import wraps
 import json
 from pathlib import Path
@@ -2748,6 +2749,295 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             exit_body = {
                 "message": "Tavernadan dışarı çıkıyorum.",
                 "action_id": str(uuid.uuid4()),
+            }
+            turn_url = f"/api/game/sessions/{session_id}/turn"
+            real_turn = session.run_player_turn
+            exit_results = []
+            exit_worlds = []
+
+            @wraps(real_turn)
+            def capture_exit(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                exit_results.append(copy.deepcopy(result["action_result"]))
+                exit_worlds.append(copy.deepcopy(session.world_state))
+                return result
+
+            with (
+                patch.object(session, "run_player_turn", new=capture_exit),
+                patch.object(
+                    store, "save_campaign",
+                    side_effect=CampaignStorageError("database unavailable"),
+                ) as failed_save,
+            ):
+                failed = await http.post(turn_url, json=exit_body)
+            failed_save.assert_called_once()
+            self.assertEqual(failed.status_code, 503, failed.text)
+            self.assertEqual(
+                failed.json()["detail"]["code"], "campaign_storage_unavailable"
+            )
+            self.assertNotIn("database unavailable", failed.text)
+            self.assertEqual(len(exit_results), 1)
+            self.assertEqual(exit_results[0]["action"], "exit")
+            self.assertEqual(exit_results[0]["status"], "completed")
+            self.assertEqual(exit_results[0]["target_id"], city_id)
+            # Prove the engine actually exited before the save was rejected.
+            self.assertEqual(exit_worlds[0]["location"], city_id)
+            self.assertEqual(
+                exit_worlds[0]["scene_state"]["player_position"]["location_id"],
+                city_id,
+            )
+            self.assertEqual(
+                exit_worlds[0]["scene_state"]["scenes"][city_id]["visit_revision"],
+                city_visits + 1,
+            )
+            self.assertEqual(session.serialize_game_state(), before_save)
+            self.assertEqual(world["location"], tavern_id)
+            self.assertEqual(world["scene_state"]["player_position"], before_position)
+            self.assertEqual(
+                world["scene_state"]["scenes"][city_id]["visit_revision"], city_visits
+            )
+            self.assertEqual(record.journal, before_journal)
+            self.assertEqual(record.narrative_memory, before_memory)
+            self.assertEqual(record.turn_action_receipts, before_receipts)
+            self.assertNotIn(exit_body["action_id"], record.turn_action_receipts)
+            failed_campaign = store.get_campaign(campaign_id)
+            self.assertEqual(failed_campaign.payload, before_campaign.payload)
+            self.assertEqual(failed_campaign.metadata, before_campaign.metadata)
+            self.assertEqual(failed_campaign.history, before_campaign.history)
+            self.assertEqual(failed_campaign.combat_history, before_campaign.combat_history)
+            self.assertIsNone(store.get_turn_action(campaign_id, exit_body["action_id"]))
+
+            # A separate manager must still restore the tavern, not the failed exit.
+            fresh_store = CampaignStore(self.store.path)
+            fresh_manager = SessionManager(campaign_store=fresh_store)
+            fresh_app = create_app(
+                session_manager=fresh_manager,
+                ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+            )
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=fresh_app),
+                base_url="http://testserver",
+            ) as fresh_http:
+                restored = await fresh_http.post(
+                    f"/api/game/campaigns/{campaign_id}/resume"
+                )
+            self.assertEqual(restored.status_code, 200, restored.text)
+            self.assertEqual(restored.json()["state"], entered.json()["state"])
+            self.assertEqual(restored.json()["history"], resumed.json()["history"])
+            fresh_record = fresh_manager.get(restored.json()["session_id"])
+            self.assertEqual(fresh_record.game_session.serialize_game_state(), before_save)
+            self.assertEqual(fresh_record.turn_action_receipts, before_receipts)
+            self.assertIsNone(
+                fresh_store.get_turn_action(campaign_id, exit_body["action_id"])
+            )
+
+            # Reuse the failed action ID once storage is healthy.
+            with patch.object(session, "run_player_turn", new=capture_exit):
+                retry = await http.post(turn_url, json=exit_body)
+            self.assertEqual(retry.status_code, 200, retry.text)
+            self.assertEqual(len(exit_results), 2)
+            self.assertEqual(exit_results[-1]["action"], "exit")
+            self.assertEqual(exit_results[-1]["status"], "completed")
+            self.assertEqual(exit_results[-1]["target_id"], city_id)
+            self.assertEqual(retry.json()["state"]["location"], city_id)
+            self.assertEqual(world["location"], city_id)
+            self.assertEqual(
+                world["scene_state"]["player_position"]["location_id"], city_id
+            )
+            self.assertEqual(
+                world["scene_state"]["scenes"][city_id]["visit_revision"],
+                city_visits + 1,
+            )
+            self.assertEqual(
+                world["scene_state"]["scenes"][tavern_id]["visit_revision"], tavern_visits
+            )
+            committed_save = copy.deepcopy(session.serialize_game_state())
+            committed = store.get_campaign(campaign_id)
+            self.assertEqual(committed.payload["engine_save"], committed_save)
+            self.assertEqual(len(committed.history), len(before_campaign.history) + 1)
+            self.assertEqual(committed.history[:-1], before_campaign.history)
+            # Campaign receipts are store-owned, unlike transient session receipts.
+            self.assertEqual(
+                manager.get_turn_action(record, exit_body["action_id"])["response"],
+                retry.json(),
+            )
+
+            with patch.object(
+                session, "run_player_turn",
+                side_effect=AssertionError("Exit replay must not execute another turn"),
+            ):
+                replay = await http.post(turn_url, json=exit_body)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), retry.json())
+            self.assertEqual(session.serialize_game_state(), committed_save)
+            replayed = store.get_campaign(campaign_id)
+            self.assertEqual(replayed.payload, committed.payload)
+            self.assertEqual(replayed.metadata, committed.metadata)
+            self.assertEqual(replayed.history, committed.history)
+
+    async def test_stale_resumed_tavern_cannot_overwrite_saved_exit_but_can_replay(self):
+        city_id = "fr:city:neverwinter"
+        created_response = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(created_response.status_code, 200, created_response.text)
+        created = created_response.json()
+        campaign_id = created["campaign_id"]
+        initial_url = f"/api/game/sessions/{created['session_id']}/turn"
+        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
+            entered = await self.http.post(
+                initial_url,
+                json={"message": message, "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(entered.status_code, 200, entered.text)
+        tavern_id = entered.json()["state"]["location"]
+        self.assertNotEqual(tavern_id, city_id)
+
+        active_store = CampaignStore(self.store.path)
+        stale_store = CampaignStore(self.store.path)
+        active_manager = SessionManager(campaign_store=active_store)
+        stale_manager = SessionManager(campaign_store=stale_store)
+        active_app = create_app(
+            session_manager=active_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        stale_app = create_app(
+            session_manager=stale_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with (
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=active_app),
+                base_url="http://testserver",
+            ) as active_http,
+            httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=stale_app),
+                base_url="http://testserver",
+            ) as stale_http,
+        ):
+            # Both independent managers open the same saved tavern before the exit.
+            active_resume = await active_http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            stale_resume = await stale_http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            for response in (active_resume, stale_resume):
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()["state"], entered.json()["state"])
+            active_id = active_resume.json()["session_id"]
+            stale_id = stale_resume.json()["session_id"]
+            active_session = active_manager.get(active_id).game_session
+            stale_record = stale_manager.get(stale_id)
+            stale_session = stale_record.game_session
+            self.assertIsNot(active_session, stale_session)
+            self.assertIsNot(active_session.world_state, stale_session.world_state)
+            before = active_store.get_campaign(campaign_id)
+            stale_save = copy.deepcopy(stale_session.serialize_game_state())
+            stale_world = stale_session.world_state
+            stale_position = copy.deepcopy(stale_world["scene_state"]["player_position"])
+            city_visits = stale_world["scene_state"]["scenes"][city_id]["visit_revision"]
+            tavern_visits = stale_world["scene_state"]["scenes"][tavern_id]["visit_revision"]
+            self.assertEqual(stale_world["location"], tavern_id)
+            self.assertEqual(stale_position["location_id"], tavern_id)
+            self.assertEqual(stale_save, before.payload["engine_save"])
+
+            exit_body = {
+                "message": "Tavernadan dışarı çıkıyorum.",
+                "action_id": str(uuid.uuid4()),
+            }
+            accepted = await active_http.post(
+                f"/api/game/sessions/{active_id}/turn", json=exit_body
+            )
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+            self.assertEqual(accepted.json()["state"]["location"], city_id)
+            committed = active_store.get_campaign(campaign_id)
+            committed_world = committed.payload["engine_save"]["world_state"]
+            self.assertEqual(committed_world["location"], city_id)
+            self.assertEqual(
+                committed_world["scene_state"]["player_position"]["location_id"], city_id
+            )
+            self.assertEqual(
+                committed_world["scene_state"]["scenes"][city_id]["visit_revision"],
+                city_visits + 1,
+            )
+            self.assertEqual(
+                committed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
+                tavern_visits,
+            )
+            self.assertEqual(committed.metadata["revision"], before.metadata["revision"] + 1)
+            self.assertEqual(committed.history[:-1], before.history)
+            self.assertEqual(len(committed.history), len(before.history) + 1)
+            self.assertEqual(committed.history[-1]["player_message"], exit_body["message"])
+            exit_receipt = active_store.get_turn_action(campaign_id, exit_body["action_id"])
+            self.assertEqual(exit_receipt["response"], accepted.json())
+            with closing(sqlite3.connect(self.store.path)) as connection:
+                receipts_before = connection.execute(
+                    "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
+                    "ORDER BY action_id", (campaign_id,),
+                ).fetchall()
+            self.assertEqual(len(receipts_before), 3)
+
+            # Do not resume again: this manager must keep its old tavern context.
+            self.assertEqual(stale_session.serialize_game_state(), stale_save)
+            stale_body = {
+                "message": "Tavernadan dışarı çıkıyorum.",
+                "action_id": str(uuid.uuid4()),
+            }
+            stale_url = f"/api/game/sessions/{stale_id}/turn"
+            with (
+                patch.object(
+                    stale_session, "run_player_turn",
+                    side_effect=AssertionError("Stale requests must not run the engine"),
+                ) as blocked_turn,
+                patch.object(
+                    stale_store, "save_campaign",
+                    side_effect=AssertionError("Stale requests must not save"),
+                ) as blocked_save,
+            ):
+                rejected = await stale_http.post(stale_url, json=stale_body)
+                self.assertEqual(rejected.status_code, 409, rejected.text)
+                self.assertEqual(rejected.json()["detail"]["code"], "campaign_stale")
+                rejected_campaign = stale_store.get_campaign(campaign_id)
+                self.assertEqual(rejected_campaign.payload, committed.payload)
+                self.assertEqual(rejected_campaign.metadata, committed.metadata)
+                self.assertEqual(rejected_campaign.history, committed.history)
+                self.assertEqual(rejected_campaign.combat_history, committed.combat_history)
+                self.assertIsNone(stale_store.get_turn_action(campaign_id, stale_body["action_id"]))
+                self.assertEqual(
+                    stale_store.get_turn_action(campaign_id, exit_body["action_id"]),
+                    exit_receipt,
+                )
+
+                replay = await stale_http.post(stale_url, json=exit_body)
+                self.assertEqual(replay.status_code, 200, replay.text)
+                expected_replay = copy.deepcopy(accepted.json())
+                expected_replay["session_id"] = stale_id
+                self.assertEqual(replay.json(), expected_replay)
+                blocked_turn.assert_not_called()
+                blocked_save.assert_not_called()
+
+            self.assertEqual(stale_session.serialize_game_state(), stale_save)
+            self.assertEqual(stale_world["scene_state"]["player_position"], stale_position)
+            replayed_campaign = stale_store.get_campaign(campaign_id)
+            self.assertEqual(replayed_campaign.payload, committed.payload)
+            self.assertEqual(replayed_campaign.metadata, committed.metadata)
+            self.assertEqual(replayed_campaign.history, committed.history)
+            self.assertEqual(replayed_campaign.combat_history, committed.combat_history)
+            with closing(sqlite3.connect(self.store.path)) as connection:
+                receipts_after = connection.execute(
+                    "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? "
+                    "ORDER BY action_id", (campaign_id,),
+                ).fetchall()
+            self.assertEqual(receipts_after, receipts_before)
             }
             turn_url = f"/api/game/sessions/{session_id}/turn"
             real_turn = session.run_player_turn
