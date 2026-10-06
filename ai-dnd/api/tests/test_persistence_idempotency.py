@@ -2709,6 +2709,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             changed_payload=False, response_corruption="json",
         )
 
+    async def test_evicted_changed_combat_command_invalid_json_blocks_retry_until_repaired(self):
+        await self.assert_evicted_combat_receipt_after_reopen(
+            changed_payload=True, response_corruption="json",
+        )
+
     async def test_evicted_combat_action_mismatched_response_blocks_retry_after_reopen(self):
         await self.assert_evicted_combat_receipt_after_reopen(
             changed_payload=False, response_corruption="action_id",
@@ -2862,6 +2867,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 original_receipt, original_row, damaged_column, damaged_value,
                 receipt_update, expected_error, evicted_id, surviving,
                 changed_payload=changed_payload,
+                unreadable_response=response_corruption == "json",
             )
             return
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
@@ -2937,6 +2943,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self, store, manager, sid, record, command, accepted_response,
         receipt, original_row, damaged_column, damaged_value, receipt_update,
         expected_error, evicted_id, surviving, *, changed_payload=False,
+        unreadable_response=False,
     ):
         session = record.game_session
         before = self.snapshot(record)
@@ -2961,12 +2968,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         if changed_payload:
             self.assertEqual(damaged_column, "response_json")
             self.assertEqual(damaged_row["request_hash"], receipt["request_hash"])
-            # This is native contract damage, not invalid JSON or an envelope
-            # mismatch. The original action identity remains intact.
-            damaged_response = json.loads(damaged_row["response_json"])
-            self.assertEqual(damaged_response["action_id"], command["action_id"])
-            with self.assertRaises(ValueError):
-                TurnResponse.model_validate(damaged_response)
+            if unreadable_response:
+                with self.assertRaises(json.JSONDecodeError):
+                    json.loads(damaged_row["response_json"])
+            else:
+                # Native contract damage still leaves a decodable envelope
+                # with the original action identity intact.
+                damaged_response = json.loads(damaged_row["response_json"])
+                self.assertEqual(damaged_response["action_id"], command["action_id"])
+                with self.assertRaises(ValueError):
+                    TurnResponse.model_validate(damaged_response)
             self.assertEqual(changed_command["action_id"], command["action_id"])
             self.assertNotEqual(changed_command["combat_action"], command["combat_action"])
         conflicts = [
@@ -3017,14 +3028,20 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 return response
 
             if changed_payload:
-                # With no retained history fallback, the intact SQL request
-                # hash must reject a changed command before reply validation.
-                conflict = await guarded_retry(
+                # SQL decoding precedes hash comparison. Invalid JSON must
+                # fail closed as storage unavailable, not report a conflict
+                # before the store can read the receipt.
+                rejected = await guarded_retry(
                     "turn", changed_command, damaged_database,
                     before_response_validation=True,
                 )
-                self.assertEqual(conflict.status_code, 409, conflict.text)
-                self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                changed_error = (
+                    expected_error if unreadable_response else (409, "action_id_conflict")
+                )
+                self.assertEqual(rejected.status_code, changed_error[0], rejected.text)
+                self.assertEqual(rejected.json()["detail"]["code"], changed_error[1])
+                self.assertIsInstance(rejected.json()["detail"]["message"], str)
+                self.assertTrue(rejected.json()["detail"]["message"])
 
             # Malformed hashes fail for every command family. Response contract
             # damage is checked by the original native turn owner, with its hash intact.
@@ -3064,9 +3081,6 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                       for line in damaged_database),
             )
             repaired_database = database_snapshot()
-            replay = await guarded_retry("turn", command, repaired_database)
-            self.assertEqual(replay.status_code, 200, replay.text)
-            self.assertEqual(replay.json(), {**accepted_response, "session_id": sid})
             for endpoint, body in conflicts:
                 with self.subTest(repaired_hash_conflict=endpoint, body=body):
                     conflict = await guarded_retry(endpoint, body, repaired_database)
@@ -3079,6 +3093,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     else:
                         self.assertEqual(conflict.status_code, 409, conflict.text)
                         self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+            replay = await guarded_retry("turn", command, repaired_database)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), {**accepted_response, "session_id": sid})
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()

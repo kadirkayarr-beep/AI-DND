@@ -126,3 +126,15 @@ not prove that the corrected request can execute.
 **How to apply:** Exercise rejection followed by corrected acceptance under the
 same ID, and verify exactly one mechanical execution and the first durable
 receipt. Do not impose accepted-receipt payload immutability before acceptance.
+
+For evicted SQL receipts, classify a changed request as a conflict only after
+the store successfully decodes the saved response; unreadable receipt JSON
+retains the storage-unavailable failure.
+
+**Why:** The request hash cannot be checked through the receipt lookup when
+decoding that row fails, and changing the error would alter established
+unreadable-storage behavior.
+
+**How to apply:** Keep the original request hash intact, assert failed retries
+do not invoke gameplay or write state, repair only the response column, then
+verify changed-request conflict and exact original replay.
