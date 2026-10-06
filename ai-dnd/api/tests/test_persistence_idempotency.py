@@ -988,6 +988,78 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         # A final intact control rules out a broken route or blanket rejection.
         await retry_without_effects(200)
 
+    async def test_transient_selected_target_retry_replays_and_changed_selection_conflicts(self):
+        created = await self.http.post("/api/game/sessions")
+        self.assertEqual(created.status_code, 200, created.text)
+        created = created.json()
+        record, command = self.prepare_spell(created)
+        session = record.game_session
+        self.assertIsNone(record.campaign_id)
+        # Populate the independent selection field as well as the spell's target.
+        # Changing the former must not be hidden by the structured step's target.
+        command["target_id"] = command["combat_action"]["steps"][0]["target_id"]
+        original_command = copy.deepcopy(command)
+
+        def runtime_snapshot():
+            return copy.deepcopy((
+                self.snapshot(record), session.messages, session.world_metadata,
+            ))
+
+        before_turn = runtime_snapshot()
+        with patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave, \
+             patch.object(self.store, "save_campaign",
+                          side_effect=AssertionError("Unsaved turn persisted")) as persisted:
+            accepted = await self.post(created, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        autosave.assert_called_once()
+        persisted.assert_not_called()
+        expected = accepted.json()
+        self.assertTrue(expected["combat_result"]["success"])
+        self.assertEqual(expected["action_id"], command["action_id"])
+        self.assertNotEqual(session.serialize_game_state(), before_turn[0][0])
+        self.assertEqual(len(record.combat_history), 1)
+        receipt = copy.deepcopy(record.turn_action_receipts[command["action_id"]])
+        self.assertEqual(receipt["response"], expected)
+        self.assertEqual(receipt["action_id"], command["action_id"])
+        self.assertRegex(receipt["request_hash"], r"^[0-9a-f]{64}$")
+        committed = runtime_snapshot()
+
+        changed_selection = copy.deepcopy(command)
+        changed_selection["target_id"] = "different-selected-target"
+        self.assertNotEqual(changed_selection["target_id"], command["target_id"])
+        self.assertEqual(
+            {key: value for key, value in changed_selection.items() if key != "target_id"},
+            {key: value for key, value in command.items() if key != "target_id"},
+        )
+        with patch.object(session, "run_player_turn",
+                          side_effect=AssertionError("Retry executed mechanics")) as engine, \
+             patch.object(session.rng, "randint",
+                          side_effect=AssertionError("Retry consumed dice")) as dice, \
+             patch.object(self.manager, "autosave_turn",
+                          side_effect=AssertionError("Retry replaced the receipt")) as save, \
+             patch.object(self.store, "save_campaign",
+                          side_effect=AssertionError("Retry persisted")) as persisted:
+            for body, status in ((command, 200), (changed_selection, 409), (command, 200)):
+                with self.subTest(status=status, target_id=body["target_id"]):
+                    retry = await self.post(created, body)
+                    self.assertEqual(retry.status_code, status, retry.text)
+                    if status == 200:
+                        self.assertEqual(retry.json(), expected)
+                    else:
+                        self.assertEqual(retry.json()["detail"]["code"], "action_id_conflict")
+                        self.assertIsInstance(retry.json()["detail"]["message"], str)
+                        self.assertTrue(retry.json()["detail"]["message"])
+                    for guard in (engine, dice, save, persisted):
+                        guard.assert_not_called()
+                    self.assertEqual(runtime_snapshot(), committed)
+                    self.assertEqual(record.turn_action_receipts[command["action_id"]], receipt)
+                    self.assertEqual(
+                        self.manager.get_turn_action(record, command["action_id"]), receipt,
+                    )
+        self.assertEqual(command, original_command)
+        self.assertIsNone(record.campaign_id)
+
     async def test_malformed_transient_turn_receipt_blocks_http_retry(self):
         await self.assert_transient_response_validation("turn", envelope_only=True)
 
