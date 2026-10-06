@@ -45,8 +45,13 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def check_reopened_receipt(
         self, mutate=None, legacy=None, conflict=None, *, legacy_projection=None,
-        malformed_hash=None,
+        malformed_hash=None, complete_response_identities=None,
     ):
+        if complete_response_identities is not None:
+            self.assertIsNone(legacy)
+            self.assertIsNone(legacy_projection)
+            self.assertIsNone(mutate)
+            self.assertIsNone(malformed_hash)
         if legacy_projection is not None:
             legacy = "valid"
         created = await self.create_campaign()
@@ -105,6 +110,15 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                         for key in ("transition_id", "canonical_event_id")
                     },
                 }
+            if complete_response_identities is not None:
+                result = damaged["ambient_event_response"]["result"]
+                for field in ("transition_id", "canonical_event_id"):
+                    result.pop(field)
+                result.update(copy.deepcopy(complete_response_identities))
+                AmbientEventCommandResult.model_validate(
+                    damaged["ambient_event_response"], strict=True,
+                )
+                self.assertNotIn("legacy_ambient_result", damaged)
             if mutate is not None:
                 mutate(damaged)
             self.assertEqual(damaged["action_id"], command["action_id"])
@@ -167,6 +181,10 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("legacy_ambient_result", reserved["response"])
                 if legacy == "valid":
                     self.assertEqual(reserved["response"], damaged)
+                if complete_response_identities is not None:
+                    self.assertEqual(reserved["response"], damaged)
+                    self.assertIn("ambient_event_response", reserved["response"])
+                    self.assertNotIn("legacy_ambient_result", reserved["response"])
 
             async def guarded_retry(target_endpoint, body):
                 guards = (
@@ -230,6 +248,11 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     expected.update(
                         transition_id=legacy_projection.get("transition_id"),
                         canonical_event_id=legacy_projection.get("canonical_event_id"),
+                    )
+                elif complete_response_identities is not None:
+                    expected.update(
+                        transition_id=complete_response_identities.get("transition_id"),
+                        canonical_event_id=complete_response_identities.get("canonical_event_id"),
                     )
                 AmbientEventCommandResult.model_validate(retry.json(), strict=True)
                 self.assertEqual(retry.json()["result"], expected)
@@ -477,6 +500,37 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_empty_legacy_projection_does_not_require_modern_response_fields(self):
         await self.check_reopened_receipt(legacy="empty")
+
+    async def test_valid_complete_response_identity_boundaries_preserve_replay_and_conflicts_after_resume(self):
+        cases = (
+            ("empty_transition", {"transition_id": "", "canonical_event_id": "saved-event"}),
+            ("empty_event", {"transition_id": "saved-transition", "canonical_event_id": ""}),
+            ("both_empty", {"transition_id": "", "canonical_event_id": ""}),
+            ("null_transition", {"transition_id": None, "canonical_event_id": "saved-event"}),
+            ("null_event", {"transition_id": "saved-transition", "canonical_event_id": None}),
+            ("both_null", {"transition_id": None, "canonical_event_id": None}),
+            ("omitted_transition", {"canonical_event_id": "saved-event"}),
+            ("omitted_event", {"transition_id": "saved-transition"}),
+            ("both_omitted", {}),
+            ("transition_limit", {
+                "transition_id": "t" * 160, "canonical_event_id": "saved-event",
+            }),
+            ("event_limit", {
+                "transition_id": "saved-transition", "canonical_event_id": "e" * 36,
+            }),
+            ("both_limits", {
+                "transition_id": "t" * 160, "canonical_event_id": "e" * 36,
+            }),
+        )
+        for boundary, identities in cases:
+            # Keep the complete modern reply, not a legacy projection. Optional
+            # omissions replay as null; empty and maximum-length strings survive
+            # unchanged without rewriting the persisted receipt.
+            for conflict in (None, "action", "event"):
+                with self.subTest(boundary=boundary, conflict=conflict):
+                    await self.check_reopened_receipt(
+                        complete_response_identities=identities, conflict=conflict,
+                    )
 
     async def test_valid_legacy_identity_boundaries_preserve_replay_and_conflicts_after_resume(self):
         cases = (
