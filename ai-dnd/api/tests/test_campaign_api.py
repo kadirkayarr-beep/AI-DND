@@ -6213,13 +6213,58 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(competing.status_code, 200, competing.text)
                     newer = active_store.get_campaign(campaign_id)
                     newer_rows = receipt_rows()
+                    # Changed reuse must be rejected through the winning session
+                    # before the losing save is released, in every race variant.
+                    committed_receipt = active_store.get_turn_action(
+                        campaign_id, competing_body["action_id"],
+                    )
+                    self.assertEqual(committed_receipt["response"], competing.json())
+                    changed_retry_body = {
+                        **competing_body,
+                        "message": "Çevreme bakıyorum.",
+                    }
+                    self.assertNotEqual(changed_retry_body["message"], competing_body["message"])
+                    self.assertFalse(release_save.is_set())
+                    self.assertFalse(pending.done())
+                    with (
+                        patch.object(active_session, "run_player_turn", side_effect=AssertionError(
+                            "Winning-session changed retry must not execute another search.",
+                        )) as conflict_turn,
+                        patch.object(active_store, "save_campaign", side_effect=AssertionError(
+                            "Winning-session changed retry must not save again.",
+                        )) as conflict_save,
+                    ):
+                        winner_conflict = await asyncio.wait_for(
+                            active_http.post(active_url, json=changed_retry_body), timeout=30,
+                        )
+                    self.assertEqual(winner_conflict.status_code, 409, winner_conflict.text)
+                    self.assertEqual(
+                        winner_conflict.json()["detail"]["code"], "action_id_conflict",
+                    )
+                    conflict_turn.assert_not_called()
+                    conflict_save.assert_not_called()
+                    self.assertFalse(release_save.is_set())
+                    self.assertFalse(pending.done())
+                    raced_save.assert_called_once()
+                    self.assertEqual(len(attempts), 1)
+                    self.assertEqual(len(active_results), 1)
+                    self.assertEqual(len(results), 1)
+                    for store in (active_store, recovered_store):
+                        after_conflict = store.get_campaign(campaign_id)
+                        self.assertEqual(after_conflict, newer)
+                        self.assertEqual(after_conflict.payload, newer.payload)
+                        self.assertEqual(after_conflict.history, newer.history)
+                        self.assertEqual(
+                            after_conflict.metadata["revision"], newer.metadata["revision"],
+                        )
+                        self.assertEqual(
+                            store.get_turn_action(campaign_id, competing_body["action_id"]),
+                            committed_receipt,
+                        )
+                    self.assertEqual(receipt_rows(), newer_rows)
                     if shared_action and not changed_payload:
                         # Replay the committed winner while the recovered
                         # request is still paused before its revision check.
-                        committed_receipt = active_store.get_turn_action(
-                            campaign_id, competing_body["action_id"],
-                        )
-                        self.assertEqual(committed_receipt["response"], competing.json())
                         self.assertFalse(release_save.is_set())
                         self.assertFalse(pending.done())
                         self.assertEqual(len(active_results), 1)
