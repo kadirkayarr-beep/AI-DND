@@ -435,6 +435,77 @@ class ContractParityTests(unittest.TestCase):
                             f"{label}.{constraint}",
                         )
 
+    def test_quest_outcome_schema_matches_runtime_model(self):
+        schema_name = "QuestOutcome"
+        runtime = QuestOutcome.model_json_schema()
+        published_schema = _schema(schema_name)
+        # Responses emit objective_id even when callers omit it at construction.
+        # Do not turn this response guarantee into a runtime required-field rule.
+        self.assertNotIn("objective_id", runtime.get("required", []))
+        self.assertIsNone(runtime["properties"]["objective_id"]["default"])
+        self.assertEqual(
+            _property_names(schema_name), _runtime_field_names(QuestOutcome),
+            f"{schema_name}.properties",
+        )
+        self.assertEqual(
+            set(published_schema.get("required", [])),
+            set(runtime.get("required", [])) | {"objective_id"},
+            f"{schema_name}.required",
+        )
+        self.assertEqual(
+            _schema_types(published_schema), _schema_types(runtime),
+            f"{schema_name} type",
+        )
+        self.assertEqual(
+            _is_nullable(published_schema), _is_nullable(runtime),
+            f"{schema_name} nullable",
+        )
+        self.assertEqual(
+            published_schema.get("additionalProperties"),
+            runtime.get("additionalProperties"),
+            f"{schema_name}.additionalProperties",
+        )
+        # These exact published bounds are intentional, not runtime bounds.
+        published_string_limits = {
+            "event_id": 300, "quest_id": 120,
+            "objective_id": 120, "source_event_id": 300,
+        }
+        for field_name, runtime_field in runtime["properties"].items():
+            with self.subTest(field=field_name):
+                label = f"{schema_name}.{field_name}"
+                published = _property(schema_name, field_name)
+                self.assertEqual(
+                    _schema_types(published), _schema_types(runtime_field),
+                    f"{label} type",
+                )
+                self.assertEqual(
+                    _is_nullable(published), _is_nullable(runtime_field),
+                    f"{label} nullable",
+                )
+                self.assertEqual(
+                    _schema_enum(published), _schema_enum(runtime_field),
+                    f"{label} enum",
+                )
+                # Only objective_id has a runtime default; the public response
+                # declares presence instead and intentionally has no default.
+                self.assertEqual(
+                    "default" in runtime_field, field_name == "objective_id",
+                    f"Runtime {label}.default",
+                )
+                self.assertNotIn("default", published, f"{label}.default")
+                for constraint in (
+                    "minimum", "maximum", "exclusiveMinimum",
+                    "exclusiveMaximum", "multipleOf", "minLength", "maxLength",
+                ):
+                    expected = runtime_field.get(constraint)
+                    if constraint == "maxLength" and field_name in published_string_limits:
+                        self.assertIsNone(expected, f"Runtime {label}.maxLength")
+                        expected = published_string_limits[field_name]
+                    self.assertEqual(
+                        published.get(constraint), expected,
+                        f"{label}.{constraint}",
+                    )
+
     def test_turn_quest_outcome_item_references_match_runtime_model(self):
         runtime = TurnResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -2668,6 +2739,98 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(
                             f"QuestCommandResult.{field_name} reference target", failure,
                         )
+
+    def test_quest_outcome_component_mutations_fail_in_both_formats(self):
+        original = _schema("QuestOutcome")
+        mutations = [
+            (("type",), "string", "QuestOutcome type"),
+            (("type",), ["object", "null"], "QuestOutcome type"),
+            (("additionalProperties",), True, "QuestOutcome.additionalProperties"),
+            (("properties", "unexpected"), {"type": "string"}, "QuestOutcome.properties"),
+            (("properties", "transition", "enum"),
+             ["accepted", "objective_progress", "objective_completed", "completed"],
+             "QuestOutcome.transition enum"),
+            (("properties", "transition", "enum"),
+             original["properties"]["transition"]["enum"] + ["failed"],
+             "QuestOutcome.transition enum"),
+            (("properties", "objective_id", "type"), "string", "QuestOutcome.objective_id type"),
+            (("properties", "objective_id", "type"), ["integer", "null"],
+             "QuestOutcome.objective_id type"),
+            (("properties", "objective_id", "default"), None, "QuestOutcome.objective_id.default"),
+        ]
+        for field_name, field_schema in original["properties"].items():
+            mutations.extend([
+                (("required",),
+                 [name for name in original["required"] if name != field_name],
+                 "QuestOutcome.required"),
+                (("properties", field_name), None, "QuestOutcome.properties"),
+                (("properties", field_name, "type"),
+                 "string" if field_name == "turn_index" else "integer",
+                 f"QuestOutcome.{field_name} type"),
+            ])
+            if field_name != "objective_id":
+                mutations.append((
+                    ("properties", field_name, "type"),
+                    [field_schema["type"], "null"], f"QuestOutcome.{field_name} type",
+                ))
+            if "maxLength" in field_schema:
+                for replacement in (None, field_schema["maxLength"] + 1):
+                    mutations.append((
+                        ("properties", field_name, "maxLength"),
+                        replacement, f"QuestOutcome.{field_name}.maxLength",
+                    ))
+        for replacement in (None, -1, 1):
+            mutations.append((
+                ("properties", "turn_index", "minimum"),
+                replacement, "QuestOutcome.turn_index.minimum",
+            ))
+        mutations.extend([
+            (("properties", "transition", "enum"), None, "QuestOutcome.transition enum"),
+            (("properties", "event_id", "minLength"), 1, "QuestOutcome.event_id.minLength"),
+            (("properties", "turn_index", "default"), 0, "QuestOutcome.turn_index.default"),
+        ])
+        for path, replacement, label in mutations:
+            for flow_style in (False, True):
+                with self.subTest(path=path, replacement=replacement, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"]["QuestOutcome"]
+                    for key in path[:-1]:
+                        target = target[key]
+                    # None removes a declaration except for the explicit
+                    # default:null mutation, which must preserve the key.
+                    if replacement is None and path[-1] != "default":
+                        target.pop(path[-1])
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(yaml.safe_dump(spec, default_flow_style=flow_style))
+                    self.assertEqual(parsed, spec)
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"]["QuestOutcome"] = deepcopy(original)
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_quest_outcome_schema_matches_runtime_model"
+                        ).run(result)
+                        # Component changes do not alter collection targets or
+                        # command route bindings; their checks stay independent.
+                        unchanged = unittest.TestResult()
+                        for test_name in (
+                            "test_turn_quest_outcome_item_references_match_runtime_model",
+                            "test_quest_command_result_references_match_runtime_model",
+                            "test_quest_command_route_bindings_match_fastapi",
+                        ):
+                            ContractParityTests(test_name).run(unchanged)
+                    self.assertTrue(
+                        unchanged.wasSuccessful(), unchanged.failures + unchanged.errors,
+                    )
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Mutation was not detected: {path}")
+                    self.assertTrue(
+                        any(label in failure for _, failure in result.failures),
+                        result.failures,
+                    )
 
     def test_turn_quest_outcome_wrong_item_references_fail_in_both_formats(self):
         original = _property("GameTurnResult", "quest_outcomes")
