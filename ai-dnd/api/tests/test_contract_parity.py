@@ -1867,6 +1867,68 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             result.failures[0][1],
                         )
 
+    def test_campaign_start_extra_field_policy_drift_fails_in_both_formats(self):
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            self.assertIs(original["additionalProperties"], False)
+            self.assertIs(model.model_json_schema()["additionalProperties"], False)
+            for operation in ("remove", "allow"):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, operation=operation, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        target = spec["components"]["schemas"][schema_name]
+                        if operation == "remove":
+                            del target["additionalProperties"]
+                        else:
+                            target["additionalProperties"] = True
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name]
+                        if operation == "remove":
+                            self.assertNotIn("additionalProperties", mutated)
+                        else:
+                            self.assertIs(mutated["additionalProperties"], True)
+                        # Restoring only the extra-field policy proves scalar
+                        # fields, required lists, item refs, and routes are intact.
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name][
+                            "additionalProperties"
+                        ] = original["additionalProperties"]
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_campaign_start_item_references_match_runtime_models",
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(
+                            f"{schema_name}.additionalProperties",
+                            result.failures[0][1],
+                        )
+
     def test_campaign_start_required_field_drift_fails_in_both_formats(self):
         for model in (
             CampaignStartOptionsResponse,
