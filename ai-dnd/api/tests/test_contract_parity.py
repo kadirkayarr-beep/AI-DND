@@ -222,6 +222,16 @@ QUEST_OBJECTIVE_LIST_MODELS = (
     (QuestOffer, QuestObjectiveOffer, "QuestObjectiveOffer"),
 )
 
+# Published objective strings intentionally omit the runtime minLength=1.
+# Keep exceptions field-specific rather than ignoring all string constraints.
+QUEST_OBJECTIVE_MIN_LENGTH_EXCEPTIONS = {
+    ("QuestObjective", "objective_id"),
+    ("QuestObjective", "description"),
+    ("QuestObjectiveOffer", "objective_id"),
+    ("QuestObjectiveOffer", "description"),
+    ("QuestObjectiveOffer", "target"),
+}
+
 CAMPAIGN_START_ARRAY_FIELDS = (
     (CampaignStartOptionsResponse, "settings", CampaignStartSettingOption),
     (CampaignStartSettingOption, "regions", CampaignStartRegionOption),
@@ -350,6 +360,63 @@ class ContractParityTests(unittest.TestCase):
                 self.assertEqual(
                     _is_nullable(published_items), _is_nullable(runtime_items)
                 )
+
+    def test_quest_objective_schemas_match_runtime_models(self):
+        # Reuse the explicit QuestObjectiveState -> QuestObjective alias; these
+        # checks inspect the referenced components, not just the list bindings.
+        for _, model, schema_name in QUEST_OBJECTIVE_LIST_MODELS:
+            runtime = model.model_json_schema()
+            with self.subTest(schema=schema_name):
+                self.assertEqual(
+                    _property_names(schema_name), _runtime_field_names(model),
+                    f"{schema_name}.properties",
+                )
+                self.assertEqual(
+                    set(_schema(schema_name).get("required", [])),
+                    set(runtime.get("required", [])),
+                    f"{schema_name}.required",
+                )
+                self.assertEqual(
+                    _schema_types(_schema(schema_name)), _schema_types(runtime),
+                    f"{schema_name} type",
+                )
+                self.assertEqual(
+                    _schema(schema_name).get("additionalProperties"),
+                    runtime.get("additionalProperties"),
+                    f"{schema_name}.additionalProperties",
+                )
+            for field_name, runtime_field in runtime["properties"].items():
+                with self.subTest(schema=schema_name, field=field_name):
+                    label = f"{schema_name}.{field_name}"
+                    published = _property(schema_name, field_name)
+                    self.assertEqual(
+                        _schema_types(published), _schema_types(runtime_field),
+                        f"{label} type",
+                    )
+                    self.assertEqual(
+                        _is_nullable(published), _is_nullable(runtime_field),
+                        f"{label} nullable",
+                    )
+                    self.assertEqual(
+                        _schema_enum(published), _schema_enum(runtime_field),
+                        f"{label} enum",
+                    )
+                    for constraint in (
+                        "minimum", "maximum", "exclusiveMinimum",
+                        "exclusiveMaximum", "multipleOf", "minLength", "maxLength",
+                    ):
+                        expected = runtime_field.get(constraint)
+                        if (
+                            constraint == "minLength"
+                            and (schema_name, field_name)
+                            in QUEST_OBJECTIVE_MIN_LENGTH_EXCEPTIONS
+                        ):
+                            self.assertEqual(expected, 1, f"Runtime {label}.minLength")
+                            expected = None
+                        self.assertEqual(
+                            published.get(constraint), expected,
+                            f"{label}.{constraint}",
+                        )
 
     def test_turn_quest_outcome_item_references_match_runtime_model(self):
         runtime = TurnResponse.model_json_schema(
@@ -2014,6 +2081,91 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
+
+    def test_quest_objective_field_mutations_fail_in_both_formats(self):
+        mutations = []
+        for _, model, schema_name in QUEST_OBJECTIVE_LIST_MODELS:
+            runtime = model.model_json_schema()
+            required = _schema(schema_name)["required"]
+            mutations.extend([
+                (schema_name, ("required",), None, f"{schema_name}.required"),
+                (schema_name, ("properties", "unexpected"), {"type": "boolean"},
+                 f"{schema_name}.properties"),
+                (schema_name, ("additionalProperties",), True,
+                 f"{schema_name}.additionalProperties"),
+            ])
+            for field_name, runtime_field in runtime["properties"].items():
+                label = f"{schema_name}.{field_name}"
+                field_path = ("properties", field_name)
+                mutations.extend([
+                    (schema_name, ("required",),
+                     [name for name in required if name != field_name],
+                     f"{schema_name}.required"),
+                    (schema_name, field_path, None, f"{schema_name}.properties"),
+                    (schema_name, field_path + ("type",), "boolean", f"{label} type"),
+                    (schema_name, field_path + ("type",),
+                     [runtime_field["type"], "null"], f"{label} type"),
+                ])
+                if runtime_field["type"] == "integer":
+                    mutations.append((
+                        schema_name, field_path + ("type",), "number", f"{label} type",
+                    ))
+                enum = runtime_field.get("enum")
+                if enum is not None:
+                    for replacement in (None, enum[:-1], enum + ["unexpected"]):
+                        mutations.append((
+                            schema_name, field_path + ("enum",),
+                            replacement, f"{label} enum",
+                        ))
+                for constraint in ("minimum", "maximum", "maxLength"):
+                    if constraint in runtime_field:
+                        for replacement in (None, runtime_field[constraint] + 1):
+                            mutations.append((
+                                schema_name, field_path + (constraint,),
+                                replacement, f"{label}.{constraint}",
+                            ))
+                if (schema_name, field_name) in QUEST_OBJECTIVE_MIN_LENGTH_EXCEPTIONS:
+                    mutations.append((
+                        schema_name, field_path + ("minLength",), 1,
+                        f"{label}.minLength",
+                    ))
+
+        for schema_name, path, replacement, diagnostic in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    schema=schema_name, path=path, replacement=replacement,
+                    compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = replacement
+                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    parsed = _load_spec(text)
+                    self.assertEqual(parsed, spec)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        # Item-reference coverage cannot detect component drift.
+                        unchanged = unittest.TestResult()
+                        ContractParityTests(
+                            "test_quest_objective_item_references_match_runtime_models"
+                        ).run(unchanged)
+                        self.assertTrue(
+                            unchanged.wasSuccessful(), unchanged.failures + unchanged.errors
+                        )
+                        ContractParityTests(
+                            "test_quest_objective_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Undetected drift: {diagnostic}")
+                    self.assertIn(
+                        diagnostic, "\n".join(failure for _, failure in result.failures)
+                    )
 
     def test_quest_objective_wrong_item_references_fail_in_both_formats(self):
         for model, _, published_item_name in QUEST_OBJECTIVE_LIST_MODELS:
