@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import unittest
 from copy import deepcopy
 from pathlib import Path
@@ -824,6 +825,34 @@ class ContractParityTests(unittest.TestCase):
                         published_successes[status]["content"]["application/json"]["schema"],
                         runtime_successes[status]["content"]["application/json"]["schema"],
                     )
+
+    def test_turn_action_id_pattern_matches_uuid4_validator(self):
+        # Pydantic publishes generic UUID format; the custom field validator
+        # supplies the version restriction that must remain in our contract.
+        pattern = _property("GameTurnInput", "action_id").get("pattern")
+        self.assertEqual(
+            pattern,
+            "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            "GameTurnInput.action_id.pattern",
+        )
+        for variant in "89ab":
+            action_id = f"12345678-9abc-4def-{variant}123-456789abcdef"
+            with self.subTest(accepted=action_id):
+                validated = TurnRequest(message="wait", action_id=action_id)
+                self.assertEqual(str(validated.action_id), action_id)
+                self.assertIsNotNone(re.fullmatch(pattern, action_id))
+        for version in "01235678":
+            action_id = f"12345678-9abc-{version}def-8123-456789abcdef"
+            with self.subTest(rejected=action_id):
+                with self.assertRaisesRegex(ValidationError, "Action ID must be a UUIDv4"):
+                    TurnRequest(message="wait", action_id=action_id)
+                self.assertIsNone(re.fullmatch(pattern, action_id))
+        for variant in "07cf":
+            action_id = f"12345678-9abc-4def-{variant}123-456789abcdef"
+            with self.subTest(rejected_variant=action_id):
+                with self.assertRaisesRegex(ValidationError, "Action ID must be a UUIDv4"):
+                    TurnRequest(message="wait", action_id=action_id)
+                self.assertIsNone(re.fullmatch(pattern, action_id))
 
     def test_health_and_request_schemas_match_runtime_models(self):
         runtime_health = HealthResponse.model_json_schema(mode="serialization")
@@ -4997,6 +5026,63 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         result.failures[0][1],
                     )
         self.assertEqual(_property("CampaignDetail", "campaign"), original)
+
+    def test_turn_action_id_pattern_drift_fails_in_both_formats(self):
+        original = _property("GameTurnInput", "action_id")
+        mutations = (
+            None,
+            ".*",
+            "^[0-9a-f-]+$",
+            # Generic UUID shape no longer restricts the version nibble.
+            original["pattern"].replace("4[0-9a-f]{3}", "[0-9a-f]{4}"),
+            # Retain version 4 but accept non-RFC UUID variants.
+            original["pattern"].replace("[89ab]", "[0-9a-f]"),
+            original["pattern"].removeprefix("^").removesuffix("$"),
+        )
+        for replacement in mutations:
+            for flow_style in (False, True):
+                with self.subTest(replacement=replacement, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"]["GameTurnInput"][
+                        "properties"
+                    ]["action_id"]
+                    if replacement is None:
+                        del target["pattern"]
+                    else:
+                        target["pattern"] = replacement
+                    parsed = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(parsed, spec)
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"]["GameTurnInput"][
+                        "properties"
+                    ]["action_id"] = deepcopy(original)
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        unchanged = unittest.TestResult()
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_turn_route_bindings_match_fastapi",
+                            "test_health_and_request_schemas_match_runtime_models",
+                        ):
+                            ContractParityTests(test_name).run(unchanged)
+                        self.assertTrue(
+                            unchanged.wasSuccessful(),
+                            unchanged.failures + unchanged.errors,
+                        )
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_turn_action_id_pattern_matches_uuid4_validator"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(
+                        "GameTurnInput.action_id.pattern", result.failures[0][1],
+                    )
+        self.assertEqual(_property("GameTurnInput", "action_id"), original)
 
     def test_turn_input_constraint_drift_fails_in_both_formats(self):
         schema_name = "GameTurnInput"
