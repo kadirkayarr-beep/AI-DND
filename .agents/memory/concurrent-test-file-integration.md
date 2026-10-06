@@ -3,6 +3,16 @@ name: Concurrent test-file integration
 description: Validation boundary when parallel tasks edit the same Python test suite.
 ---
 
+Treat pre-existing working-tree edits as a separate change set before completing
+a narrowly scoped task.
+
+**Why:** Completion can commit all outstanding edits, including unrelated changes
+that were present before the task began, and review the combined diff.
+
+**How to apply:** Record the initial dirty paths. If unrelated edits are captured,
+preserve them separately and obtain permission before moving them out of the
+active task branch; never discard them or silently fix unrelated gameplay.
+
 Validate the final integrated test sources and their shared fixture dependencies, not only the task's locally edited module.
 
 **Why:** Concurrent merges at the completion boundary can introduce duplicated or orphaned fragments into transitively imported fixtures after a local suite passes, invalidating that earlier evidence.

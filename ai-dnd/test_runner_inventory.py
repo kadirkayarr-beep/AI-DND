@@ -594,6 +594,100 @@ class RunnerProcessTests(unittest.TestCase):
                         self.assertEqual((root / "release_later.py.sentinel").read_text(),
                                          "started")
 
+    def test_empty_api_suite_and_assertion_failure_keep_later_script_running(self):
+        # Reverse alphabetical order makes a sorted failure summary incorrect.
+        api_gates = ("api/tests/test_initiative.py",
+                     "api/tests/test_death_bounded.py")
+        later = "release_later.py"
+        suites = {
+            "TESTS": (*api_gates, later),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        for argv in ((), ("--suite", "release")):
+            with self.subTest(argv=argv), \
+                 tempfile.TemporaryDirectory() as directory, \
+                 patch.object(self, "SUITES", suites):
+                root = Path(directory) / "runner"
+                root.mkdir()
+                self.copy_runner(root)
+                package = root / "api" / "tests"
+                package.mkdir(parents=True)
+                (package.parent / "__init__.py").touch()
+                (package / "__init__.py").touch()
+                first, second = api_gates
+                (root / first).write_text(
+                    "import unittest\nfrom pathlib import Path\n"
+                    f"Path({first + '.sentinel'!r}).write_text('imported')\n"
+                    "class HiddenTests(unittest.TestCase):\n"
+                    "    def test_boundary(self):\n"
+                    "        Path('hidden_assertion.sentinel').write_text('ran')\n"
+                    "def load_tests(loader, tests, pattern):\n"
+                    "    Path('loading_hook.sentinel').write_text('ran')\n"
+                    "    with Path('order.txt').open('a') as log:\n"
+                    f"        log.write({first + chr(10)!r})\n"
+                    "    return unittest.TestSuite()\n",
+                    encoding="utf-8",
+                )
+                (root / second).write_text(
+                    "import unittest\nfrom pathlib import Path\n"
+                    f"Path({second + '.sentinel'!r}).write_text('imported')\n"
+                    "class BoundaryTests(unittest.TestCase):\n"
+                    "    def test_boundary(self):\n"
+                    "        with Path('order.txt').open('a') as log:\n"
+                    f"            log.write({second + chr(10)!r})\n"
+                    "        self.fail('mixed empty-suite assertion executed')\n",
+                    encoding="utf-8",
+                )
+                self.write_gate(root, later, "def test_ok(): pass\n")
+
+                # Source-only preflight accepts intact definitions without
+                # importing gates or invoking load_tests or assertions.
+                self.assertEqual(run_tests.check_test_definitions(
+                    root / gate for gate in suites["TESTS"]), [])
+                self.assertFalse((root / "order.txt").exists())
+                for name in suites["TESTS"]:
+                    self.assertFalse((root / (name + ".sentinel")).exists())
+                self.assertFalse((root / "loading_hook.sentinel").exists())
+                self.assertFalse((root / "hidden_assertion.sentinel").exists())
+
+                result = self.launch_runner(root, argv, cwd=Path(directory))
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, 1, output)
+                self.assertIn("Ran 0 tests", result.stderr)
+                self.assertIn(
+                    f"UNITTEST GATE FAILED: {first[:-3].replace('/', '.')} "
+                    "ran no tests", result.stderr,
+                )
+                self.assertIn("Ran 1 test", result.stderr)
+                self.assertIn(
+                    "AssertionError: mixed empty-suite assertion executed",
+                    result.stderr,
+                )
+                self.assertEqual(
+                    (root / "order.txt").read_text(encoding="utf-8").splitlines(),
+                    list(suites["TESTS"]),
+                )
+                self.assertEqual(
+                    (root / "loading_hook.sentinel").read_text(encoding="utf-8"),
+                    "ran",
+                )
+                self.assertFalse((root / "hidden_assertion.sentinel").exists())
+                for name in api_gates:
+                    self.assertEqual(
+                        (root / (name + ".sentinel")).read_text(encoding="utf-8"),
+                        "imported",
+                    )
+                self.assertEqual(
+                    (root / (later + ".sentinel")).read_text(encoding="utf-8"),
+                    "started",
+                )
+                self.assertEqual(
+                    result.stdout.splitlines()[-1],
+                    f"RELEASE DETERMINISTIC GATES FAILED: {', '.join(api_gates)}",
+                )
+                self.assertNotIn("PREFLIGHT FAILED", output)
+                self.assertNotIn("PASSED", output)
+
     def test_api_loader_errors_block_release_but_not_prototype_selection(self):
         failures = {
             "import": (
