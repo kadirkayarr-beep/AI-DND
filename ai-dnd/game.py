@@ -11121,9 +11121,11 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         packet["narration"] = resolved_turn.fallback_response
         packet["fallback_reason_code"] = "MODEL_WORLD_PROPOSAL_REJECTED"
     if not narration_only:
+        # Rejected narrator proposals must never become canonical world state.
+        # Only updates verified by the action resolver may enter this path.
         raw_updates = (
-            packet.get("world_updates", {})
-            if isinstance(packet.get("world_updates"), dict)
+            resolved_turn.action_result.get("verified_world_updates", {})
+            if isinstance(resolved_turn.action_result.get("verified_world_updates"), dict)
             else {}
         )
         if resolved_turn.allow_new_shops:

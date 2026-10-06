@@ -1712,6 +1712,21 @@ class ContractParityTests(unittest.TestCase):
                         f"{schema_name}.{field_name}.{constraint}",
                     )
 
+    def test_campaign_history_required_fields_match_runtime_models(self):
+        for schema_name, model in (
+            ("CampaignDetail", CampaignDetailResponse),
+            ("CampaignSession", CampaignSessionResponse),
+        ):
+            runtime_required = set(model.model_json_schema().get("required", []))
+            published_required = set(_schema(schema_name).get("required", []))
+            for field_name in ("history", "combat_history"):
+                with self.subTest(schema=schema_name, field=field_name):
+                    self.assertEqual(
+                        field_name in published_required,
+                        field_name in runtime_required,
+                        f"{schema_name}.{field_name}.required",
+                    )
+
     def test_campaign_history_item_references_match_runtime_models(self):
         for schema_name, model in (
             ("CampaignDetail", CampaignDetailResponse),
@@ -4162,6 +4177,58 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         f"CombatHistoryEntry.{'.'.join(path).removeprefix('properties.')}",
                         failure,
                     )
+
+    def test_campaign_history_optional_fields_fail_in_both_formats(self):
+        for schema_name in ("CampaignDetail", "CampaignSession"):
+            original = _schema(schema_name)
+            for field_name in ("history", "combat_history"):
+                self.assertIn(field_name, original["required"])
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        spec["components"]["schemas"][schema_name]["required"].remove(
+                            field_name
+                        )
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name]
+                        self.assertEqual(
+                            mutated["properties"], original["properties"]
+                        )
+                        self.assertEqual(
+                            set(mutated["required"]),
+                            set(original["required"]) - {field_name},
+                        )
+                        # Restoring only required proves that properties, item
+                        # targets, entry constraints and route bindings survived.
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["required"] = (
+                            deepcopy(original["required"])
+                        )
+                        self.assertEqual(restored, SPEC)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_campaign_history_required_fields_match_runtime_models",
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                "test_campaign_history_item_references_match_runtime_models",
+                            ):
+                                ContractParityTests(test_name).run(result)
+                        self.assertEqual(result.testsRun, 3)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        failed_test, failure = result.failures[0]
+                        self.assertIn(
+                            "test_campaign_history_required_fields_match_runtime_models",
+                            failed_test.id(),
+                        )
+                        self.assertIn(
+                            f"{schema_name}.{field_name}.required", failure
+                        )
 
     def test_campaign_history_wrong_item_references_fail_in_both_formats(self):
         for schema_name in ("CampaignDetail", "CampaignSession"):
