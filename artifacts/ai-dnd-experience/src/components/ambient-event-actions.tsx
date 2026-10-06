@@ -71,10 +71,10 @@ export function findPersistedAmbientEventResult(
 }
 
 const statusLabels: Record<AmbientEventResult['status'], string> = {
-  APPLIED: 'Uygulandı',
-  REJECTED: 'Reddedildi',
-  NO_EFFECT: 'Etkisi olmadı',
-  ALREADY_APPLIED: 'Zaten uygulandı',
+  APPLIED: 'Karşılaşma ilerledi.',
+  REJECTED: 'Şu anda buna müdahale edemiyorsun.',
+  NO_EFFECT: 'Bir süre gözlemliyorsun; belirgin bir değişiklik olmuyor.',
+  ALREADY_APPLIED: 'Bu karşılaşma zaten gelişti.',
 };
 
 export function AmbientEventActionPanel({
@@ -97,6 +97,9 @@ export function AmbientEventActionPanel({
   onRetry: () => void;
 }) {
   const active = isActiveBlueAmbientEvent(event, referents);
+  const eventReferent = referents.find(
+    (referent) => referent.event_instance_id === event?.instance_id,
+  );
   const resultForEvent = result?.event_instance_id === event?.instance_id ? result : null;
   const retryForEvent = retryRequest?.eventInstanceId === event?.instance_id
     ? retryRequest
@@ -111,11 +114,11 @@ export function AmbientEventActionPanel({
   }
 
   return (
-    <section className="ambient-event-panel" aria-label="Mavi çevresel olay" data-testid="panel-ambient-event">
+    <section className="ambient-event-panel" aria-label="Yakındaki dikkat çekici hareket" data-testid="panel-ambient-event">
       <div className="ambient-event-heading">
         <div>
-          <span className="ambient-event-kicker">ÇEVRESEL OLAY</span>
-          <strong>Mavi olay</strong>
+          <span className="ambient-event-kicker">DİKKATİNİ ÇEKEN</span>
+          <strong>{eventReferent?.description ?? 'Yakındaki hareketlilik'}</strong>
         </div>
         {active && !retryForEvent && (
           <div className="ambient-event-actions">
@@ -167,10 +170,6 @@ export function AmbientEventActionPanel({
           data-status={resultForEvent.status}
         >
           <strong>{statusLabels[resultForEvent.status]}</strong>
-          <code data-testid="ambient-event-status-code">{resultForEvent.status}</code>
-          {resultForEvent.reason_code && (
-            <code data-testid="ambient-event-reason-code">{resultForEvent.reason_code}</code>
-          )}
         </div>
       )}
     </section>

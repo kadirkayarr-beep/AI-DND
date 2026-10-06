@@ -14,6 +14,8 @@ import interaction_adventure
 import living_world
 import local_dialogue
 import scheduled_events
+from api.serializers import serialize_session_state, serialize_combat_result
+from api.campaign_journal import empty_campaign_journal, update_campaign_journal
 
 
 class PlayableLivingWorldTests(unittest.TestCase):
@@ -613,6 +615,433 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertIsNone(negative["direct_result"])
         self.assertEqual(len(self.world["shops"]), 1)
 
+    def test_addressed_npc_tavern_question_does_not_create_a_world_search_result(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Muhafız",
+            "location": self.root_location,
+        })
+        before_locations = copy.deepcopy(self.world["locations"])
+
+        plan = self.session.plan_living_world_turn(
+            "buralarda bir taverna varmı diye muhafıza soruyorum"
+        )
+
+        self.assertIsNone(plan["direct_result"])
+        self.assertEqual(plan["npc_target_id"], npc["id"])
+        self.assertEqual(self.world["locations"], before_locations)
+
+    def test_addressed_npc_tavern_question_is_bounded_dialogue_without_model_or_discovery(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Muhafız",
+            "location": self.root_location,
+        })
+        before_locations = copy.deepcopy(self.world["locations"])
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Local NPC venue answer must be deterministic")):
+            result = self.session.run_player_turn(
+                "buralarda bir taverna varmı diye muhafıza soruyorum"
+            )
+
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+        )
+        self.assertEqual(result["action_result"]["action"], "dialogue")
+        self.assertEqual(result["action_result"]["npc_id"], npc["id"])
+        self.assertNotIn("Cael", result["narration"])
+        self.assertIn("muhafız", result["narration"].casefold())
+        self.assertNotIn("buluyorsun", result["narration"])
+        self.assertEqual(self.world["locations"], before_locations)
+
+    def test_new_npc_name_is_hidden_until_identity_is_learned(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Muhafız",
+            "location": self.root_location,
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+
+        projected = living_world.public_scene_projection(self.world, 0)
+        self.assertFalse(npc.get("name_known_to_player", True))
+        self.assertNotEqual(projected["npcs"][0]["name"], "Cael")
+        self.assertNotIn("Cael", json.dumps(projected, ensure_ascii=False))
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Identity lookup must be deterministic")):
+            result = self.session.run_player_turn("Muhafıza adını soruyorum.")
+
+        self.assertTrue(npc["name_known_to_player"])
+        self.assertIn("Cael", result["narration"])
+        projected_after = living_world.public_scene_projection(self.world, 1)
+        self.assertEqual(projected_after["npcs"][0]["name"], "Cael")
+
+    def test_legacy_npcs_without_epistemic_fields_remain_known(self):
+        legacy = {"id": "legacy", "name": "OldName", "role": "Traveler"}
+        self.assertTrue(living_world.npc_name_known_to_player(legacy))
+        self.assertTrue(living_world.npc_role_known_to_player(legacy))
+        self.assertEqual(living_world.public_npc_name(legacy), "OldName")
+        self.assertEqual(living_world.public_npc_role(legacy), "Traveler")
+
+    def test_obvious_role_can_be_visible_without_revealing_name(self):
+        guard = self.session.create_npc_from_ai({
+            "name": "Cael", "role": "Muhafız", "location": self.root_location,
+        })
+        traveler = self.session.create_npc_from_ai({
+            "name": "Liora", "role": "Yolcu", "location": self.root_location,
+        })
+        self.assertFalse(guard["name_known_to_player"])
+        self.assertTrue(guard["role_known_to_player"])
+        self.assertEqual(living_world.public_npc_name(guard), "Bir muhafız")
+        self.assertFalse(traveler["name_known_to_player"])
+        self.assertFalse(traveler["role_known_to_player"])
+        self.assertNotIn("Liora", living_world.public_npc_name(traveler))
+        self.assertIsNone(living_world.public_npc_role(traveler))
+
+    def test_npc_identity_knowledge_is_session_isolated(self):
+        peer = game.create_session(seed=1731)
+        peer.world_state["location"] = self.root_location
+        first = self.session.create_npc_from_ai({
+            "name": "Cael", "role": "Muhafız", "location": self.root_location,
+        })
+        second = peer.create_npc_from_ai({
+            "name": "Cael", "role": "Muhafız", "location": self.root_location,
+        })
+        first["name_known_to_player"] = True
+        self.assertTrue(first["name_known_to_player"])
+        self.assertFalse(second["name_known_to_player"])
+        self.assertEqual(living_world.public_npc_name(first), "Cael")
+        self.assertNotEqual(living_world.public_npc_name(second), "Cael")
+
+    def test_hidden_identity_is_absent_from_public_state_and_model_context(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora",
+            "role": "Yolcu",
+            "location": self.root_location,
+            "appearance": "Mavi pelerinli, kapı yanında bekleyen.",
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+
+        public_state = serialize_session_state(self.session)
+        world_context = game.build_world_context(npc, session=self.session)
+        prompt_context = json.loads(
+            self.session._living_world_prompt_context(npc_target=npc)
+        )
+        interaction_context = interaction_adventure.context(self.world, npc)
+        for projection in (public_state, world_context, prompt_context, interaction_context):
+            encoded = json.dumps(projection, ensure_ascii=False)
+            self.assertNotIn("Liora", encoded)
+            self.assertNotIn("Yolcu", encoded)
+
+        self.assertEqual(public_state["npcs"][0]["role"], "")
+        self.assertNotEqual(public_state["npcs"][0]["name"], "Liora")
+
+    def test_hidden_identity_stays_out_of_full_model_prompts_and_fallbacks(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora", "role": "Yolcu", "location": self.root_location,
+        })
+        with patch("game.ollama.chat", return_value={"message": {"content": "{}"}}) as model:
+            self.session.parse_player_intent("Dikkatle bakıyorum.")
+            game.ask_dungeon_master([], "Bugün nasıl gidiyor?", npc_target=npc,
+                                    return_details=True, session=self.session)
+        self.assertEqual(model.call_count, 2)
+        for call in model.call_args_list:
+            prompt = json.dumps(call.kwargs["messages"], ensure_ascii=False)
+            self.assertNotIn("Liora", prompt)
+            self.assertNotIn("Yolcu", prompt)
+        for text in ("Merhaba", "Adımı biliyor musun?", "Burası nasıl bir yer?"):
+            with self.subTest(text=text):
+                fallback = self.session._fallback_narration(text, npc_target=npc)
+                self.assertNotIn("Liora", fallback)
+                self.assertNotIn("Yolcu", fallback)
+        direct = self.session._direct_npc_smalltalk_response("Burası nasıl bir yer?", npc)
+        self.assertNotIn("Yolcu", direct)
+        self.assertFalse(npc["name_known_to_player"])
+
+    def test_rejected_hidden_identity_narration_does_not_retry_or_reveal(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora", "role": "Yolcu", "location": self.root_location,
+        })
+        with patch("game.ollama.chat", side_effect=AssertionError("No retry")):
+            decision = self.session._narration_safety_decision(
+                "Liora sana selam verir.", "Merhaba", npc_target=npc)
+            self.assertTrue(decision["unsafe"])
+            self.assertEqual(decision["reason_code"], "HIDDEN_NPC_IDENTITY_DISCLOSURE")
+            narration = game.finalize_narration(
+                "Liora sana selam verir.", "Merhaba", npc_target=npc, session=self.session)
+        self.assertNotIn("Liora", narration)
+        self.assertFalse(npc["name_known_to_player"])
+
+    def test_nested_combat_receipt_hides_actor_id_identity_without_mutation(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora", "role": "Yolcu", "location": self.root_location,
+        })
+        from api.serializers import _sanitize_combat_names
+        receipt = {"economy_steps": [{"enemy_actions": [
+            {"actor_id": npc["id"], "actor_name": "Liora", "target_id": "player"}
+        ]}]}
+        projected = _sanitize_combat_names(copy.deepcopy(receipt), self.world)
+        self.assertNotIn("Liora", json.dumps(projected))
+        self.assertIn("Liora", json.dumps(receipt))
+        self.assertEqual(npc["name"], "Liora")
+
+    def test_personal_question_does_not_reveal_unlearned_npc_name(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora", "role": "Yolcu", "location": self.root_location,
+        })
+        with patch("game.ollama.chat", side_effect=AssertionError("Personal answer is deterministic")):
+            result = self.session.run_player_turn("Bugün nasılsın?", target_id=npc["id"])
+        self.assertNotIn("Liora", result["narration"])
+        self.assertFalse(npc["name_known_to_player"])
+        self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0)
+
+    def test_hidden_canonical_name_cannot_target_npc_until_learned(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Muhafız",
+            "location": self.root_location,
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+
+        self.assertEqual(
+            self.session.resolve_npc_reference("Cael ile konuşuyorum")["status"],
+            "none",
+        )
+        by_role = self.session.resolve_npc_reference("Muhafız ile konuşuyorum")
+        self.assertEqual(by_role["status"], "found")
+        self.assertEqual(by_role["npc"]["id"], npc["id"])
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Identity lookup must be deterministic")):
+            result = self.session.run_player_turn("Muhafıza adını soruyorum.")
+        self.assertIn("Cael", result["narration"])
+        self.assertEqual(
+            self.session.resolve_npc_reference("Cael ile konuşuyorum")["status"],
+            "found",
+        )
+
+    def test_learned_npc_identity_survives_save_load(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Muhafız",
+            "location": self.root_location,
+        })
+        living_world.ensure_scene_record(self.world, self.root_location, 0)["materialized"] = True
+        with patch("game.ollama.chat", side_effect=AssertionError("Identity lookup must be deterministic")):
+            self.session.run_player_turn("Muhafıza adını soruyorum.")
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "identity.json"
+            self.session.save_game(path)
+            reopened = game.create_session(seed=1730)
+            reopened.load_game(path)
+
+        restored = next(
+            item for item in reopened.world_state["npcs"]
+            if item.get("id") == npc["id"]
+        )
+        self.assertTrue(restored["name_known_to_player"])
+        self.assertTrue(restored["role_known_to_player"])
+        public_state = serialize_session_state(reopened)
+        self.assertIn("Cael", json.dumps(public_state, ensure_ascii=False))
+
+    def test_campaign_journal_does_not_promote_unknown_identity(self):
+        before = self.session.serialize_game_state()
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora",
+            "role": "Yolcu",
+            "location": self.root_location,
+        })
+        unknown = self.session.serialize_game_state()
+        journal = update_campaign_journal(
+            empty_campaign_journal(),
+            before,
+            unknown,
+            {"action": "query", "query_type": "presence", "success": True},
+            None,
+            presence_location_id=self.root_location,
+        )
+        self.assertEqual(len(journal["known_npcs"]), 1)
+        self.assertNotEqual(journal["known_npcs"][0]["name"], "Liora")
+        self.assertNotEqual(journal["known_npcs"][0].get("role"), "Yolcu")
+
+        before_learning = self.session.serialize_game_state()
+        npc["name_known_to_player"] = True
+        npc["role_known_to_player"] = True
+        after_learning = self.session.serialize_game_state()
+        journal = update_campaign_journal(
+            journal,
+            before_learning,
+            after_learning,
+            {
+                "action": "query",
+                "query_type": "npc_identity",
+                "npc_id": npc["id"],
+                "success": True,
+            },
+            None,
+        )
+        self.assertEqual(len(journal["known_npcs"]), 1)
+        self.assertEqual(journal["known_npcs"][0]["name"], "Liora")
+        self.assertEqual(journal["known_npcs"][0]["role"], "Yolcu")
+
+    def test_hidden_identity_is_sanitized_in_combat_api_projection(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Liora",
+            "role": "Yolcu",
+            "location": self.root_location,
+        })
+        npc["distance_ft"] = 5
+        with (
+            patch("game.roll_initiative_player", return_value=20),
+            patch("game.roll_initiative_npc", return_value=1),
+            patch("game.roll_attack", return_value=10),
+            patch("game.roll_damage", return_value=2),
+        ):
+            result = self.session.execute_intent(
+                {"intent": "attack"},
+                "ona sald\u0131r\u0131yorum",
+                npc_target=npc,
+                target_id=npc["id"],
+            )
+
+        public_result = serialize_combat_result(result, self.session)
+        public_state = serialize_session_state(self.session)
+        narration = self.session._combat_narration(result)
+        self.assertNotIn("Liora", narration)
+        self.assertNotIn("Liora", json.dumps(public_result, ensure_ascii=False))
+        self.assertNotIn("Liora", json.dumps(public_state["combat"], ensure_ascii=False))
+        self.assertNotEqual(public_result.get("target_name"), "Liora")
+        npc_record = next(
+            record for record in public_state["combat"]["participant_records"]
+            if record["id"] == npc["id"]
+        )
+        self.assertNotEqual(npc_record["name"], "Liora")
+
+    def test_guessed_hidden_name_cannot_select_attack_target(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Cael",
+            "role": "Yolcu",
+            "location": self.root_location,
+        })
+        npc["distance_ft"] = 5
+        living_world.ensure_scene_record(self.world, self.root_location, 0)["materialized"] = True
+        before_hp = npc["current_hp"]
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Explicit attack must not need a model")):
+            result = self.session.run_player_turn("Cael'e sald\u0131r\u0131yorum")
+
+        action = result["action_result"]
+        self.assertEqual(action["action"], "attack")
+        self.assertFalse(action["success"])
+        self.assertEqual(action["status"], "clarification")
+        self.assertEqual(action["outcome"], "missing_target")
+        self.assertEqual(npc["current_hp"], before_hp)
+        self.assertFalse(self.world["combat"]["active"])
+        self.assertNotIn("Cael", result["narration"])
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+        )
+
+    def test_explicit_conversation_start_is_stable_and_model_free(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": self.root_location,
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+        npc["name_known_to_player"] = True
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Conversation start must not need a model")):
+            first = self.session.run_player_turn("Marek ile konuşmak istiyorum.")
+            second = self.session.run_player_turn("Marek ile konuşmak istiyorum.")
+
+        for result in (first, second):
+            self.assertEqual(result["action_result"]["action"], "dialogue")
+            self.assertEqual(result["action_result"]["status"], "conversation_started")
+            self.assertEqual(result["action_result"]["npc_id"], npc["id"])
+            self.assertIn("Seni dinliyorum", result["narration"])
+            self.assertEqual(
+                result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+            )
+        self.assertEqual(self.world["flags"]["active_npc_id"], npc["id"])
+
+    def test_local_place_question_to_orin_uses_current_scene_not_verification_fallback(self):
+        self.world["location"] = "tavern"
+        npc = self.session.create_npc_from_ai({
+            "name": "Orin",
+            "role": "Barmen",
+            "location": "tavern",
+        })
+        scene = living_world.ensure_scene_record(self.world, "tavern", 0)
+        scene["materialized"] = True
+
+        with patch("game.ollama.chat", side_effect=AssertionError("Bounded local scene answer must not need a model")):
+            result = self.session.run_player_turn(
+                "buralarde yeniyim nasıl bir yer burası diye barmene soruyorum"
+            )
+
+        self.assertEqual(result["action_result"]["action"], "dialogue")
+        self.assertEqual(result["action_result"]["npc_id"], npc["id"])
+        self.assertIn("Burası Taverna", result["narration"])
+        self.assertNotIn("kendi gözlerimle görmedim", result["narration"])
+        self.assertNotIn("doğrulanmış", result["narration"])
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+        )
+
+    def test_approach_bartender_phrase_routes_to_existing_scene_action(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Orin",
+            "role": "Barmen",
+            "location": self.root_location,
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+
+        plan = self.session.plan_living_world_turn(
+            "Barmen ile konuşmaya için yakınına gidiyorum"
+        )
+
+        self.assertEqual(plan["direct_result"]["action"], "approach")
+        self.assertEqual(plan["direct_result"]["status"], "completed")
+        self.assertEqual(plan["direct_result"]["target_id"], npc["id"])
+        self.assertEqual(plan["npc_target_id"], npc["id"])
+        self.assertEqual(npc["distance_ft"], 5)
+
+    def test_explicit_attack_after_approach_uses_existing_combat_owner(self):
+        npc = self.session.create_npc_from_ai({
+            "name": "Orin",
+            "role": "Barmen",
+            "location": self.root_location,
+        })
+        scene = living_world.ensure_scene_record(self.world, self.root_location, 0)
+        scene["materialized"] = True
+        self.session.plan_living_world_turn(
+            "Barmen ile konu\u015fmaya i\u00e7in yak\u0131n\u0131na gidiyorum"
+        )
+
+        with (
+            patch("game.ollama.chat", side_effect=AssertionError("Explicit attack must not need a model")),
+            patch("game.roll_initiative_player", return_value=20),
+            patch("game.roll_initiative_npc", return_value=1),
+            patch("game.roll_attack", return_value=10),
+            patch("game.roll_damage", return_value=2),
+        ):
+            result = self.session.run_player_turn("barmene sald\u0131r\u0131yorum")
+
+        self.assertEqual(result["action_result"]["action"], "attack")
+        self.assertEqual(result["action_result"]["target_id"], npc["id"])
+        self.assertTrue(result["action_result"]["combat_started"])
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 0
+        )
+        self.assertNotIn("do\u011frulanm\u0131\u015f", result["narration"])
+        self.assertNotIn("kabul etmedi", result["narration"])
+
     def test_tavern_search_enter_exit_and_return_use_local_parent(self):
         search = self.session.plan_living_world_turn(
             "Yakınlarda bir taverna arıyorum."
@@ -791,7 +1220,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
             [item["id"] for item in context["visible_npcs"]],
             [npc["id"]],
         )
-        self.assertEqual(context["visible_npcs"][0]["name"], npc["name"])
+        self.assertNotEqual(context["visible_npcs"][0]["name"], npc["name"])
+        self.assertNotIn(npc["name"], json.dumps(context, ensure_ascii=False))
         self.assertNotIn(
             ref["id"],
             {item["id"] for item in context["background_referents"]},
@@ -803,7 +1233,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
 
         presence = self.session._scene_presence_text(self.root_location)
 
-        self.assertIn(npc["name"], presence)
+        self.assertNotIn(npc["name"], presence)
         self.assertNotIn(ref["description"], presence)
 
     def test_narration_projection_presented_referent_remains_visible(self):
@@ -818,7 +1248,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
             "lifecycle": "presented",
             "description": ref["description"],
         }])
-        self.assertIn(npc["name"], presence)
+        self.assertNotIn(npc["name"], presence)
         self.assertIn(ref["description"], presence)
         self.assertIn(ref["description"], look)
         self.assertEqual(ref["lifecycle"], "presented")

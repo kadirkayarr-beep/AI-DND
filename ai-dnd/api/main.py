@@ -1060,7 +1060,7 @@ def create_app(
                     action_result,
                     session,
                 )
-                combat_result = serialize_combat_result(action_result)
+                combat_result = serialize_combat_result(action_result, session)
                 combat_history_entry = serialize_combat_history_entry(
                     combat_result,
                     session,

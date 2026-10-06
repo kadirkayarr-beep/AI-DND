@@ -228,20 +228,26 @@ function PeoplePanel({ state }: { state: GameState }) {
   const scenePeople = currentSceneContext(state).people;
   const sceneIds = new Set(scenePeople.map((npc) => npc.id));
   const otherPeople = currentSceneContext(state).scene ? [] : state.npcs.filter((npc) => npc.location === state.location && !sceneIds.has(npc.id));
-  const referents = currentSceneContext(state).scene?.referents ?? [];
+  const referents = (currentSceneContext(state).scene?.referents ?? []).filter(
+    (referent) => !(
+      referent.lifecycle === 'promoted'
+      && referent.promoted_npc_id
+      && sceneIds.has(referent.promoted_npc_id)
+    ),
+  );
   return <section className="state-panel" data-testid="panel-npcs">
     <div className="flex items-end justify-between"><div><Kicker><Users size={12} className="mr-1 inline" /> Karşılaşılanlar</Kicker><h2>Kişiler</h2></div><span className="character-badge">{String(scenePeople.length + otherPeople.length).padStart(2, '0')}</span></div>
     <div className="mt-4">
       <Kicker>Yakınında</Kicker>
       {scenePeople.length ? scenePeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`scene-npc-${npc.id}`}>
-        <div className="data-row-head"><span>{npc.name}</span><span className="status-pill">{npc.role}</span></div>
+        <div className="data-row-head"><span>{npc.name}</span>{npc.role && <span className="status-pill">{npc.role}</span>}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>) : <div className="empty-line mt-2">Şu an yakında tanıdık biri görünmüyor.</div>}
     </div>
     {referents.length > 0 && <div className="mt-4">
       <Kicker>Arka plandaki hareketlilik</Kicker>
       {referents.map((referent) => <div className="data-row mt-2" key={referent.id} data-testid={`scene-referent-${referent.id}`}>
-        <div className="data-row-head"><span>{referent.kind ?? 'Bir kişi'}</span><span className="status-pill">{referent.lifecycle === 'promoted' ? 'tanıştın' : 'uzakta'}</span></div>
+        <div className="data-row-head"><span>Dikkatini çeken</span><span className="status-pill">{referent.lifecycle === 'promoted' ? 'fark ettin' : 'uzakta'}</span></div>
         <div className="data-row-desc">{referent.description}</div>
       </div>)}
     </div>}
@@ -249,7 +255,7 @@ function PeoplePanel({ state }: { state: GameState }) {
       <Kicker>Diğer karşılaştıkların</Kicker>
       {otherPeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`npc-${npc.id}`}>
         <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status === 'active' ? 'Ayakta' : npc.combat_status === 'unconscious' ? 'Bilinçsiz' : npc.combat_status === 'defeated' ? 'Etkisiz' : npc.combat_status}</span>}</div>
-        <div className="data-row-meta">{npc.role} · {state.locations[npc.location]?.name ?? npc.location}</div>
+        <div className="data-row-meta">{npc.role ? `${npc.role} · ` : ''}{state.locations[npc.location]?.name ?? npc.location}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>)}
     </div>}
@@ -1296,7 +1302,7 @@ export default function GameBrowser() {
           clearPendingTurnAction(actionScope, actionId);
           void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
         }
-        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle işlenemedi', detail: friendlyError(error, 'Dünya bu hamleyi kabul etmedi.') });
+        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
       },
     });
   };

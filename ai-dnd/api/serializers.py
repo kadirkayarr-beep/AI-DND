@@ -173,7 +173,40 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     ]
 
 
-def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
+
+
+def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
+    if identity == "player":
+        return fallback
+    if not isinstance(identity, str) or not isinstance(world_state, Mapping):
+        return fallback
+    npc = next((
+        item for item in world_state.get("npcs", [])
+        if isinstance(item, Mapping) and item.get("id") == identity
+    ), None)
+    return living_world.public_npc_name(npc) if npc is not None else fallback
+
+
+def _sanitize_combat_names(projected: dict[str, Any], world_state: Any) -> dict[str, Any]:
+    if not isinstance(projected, dict):
+        return projected
+    for key, value in projected.items():
+        if isinstance(value, dict):
+            _sanitize_combat_names(value, world_state)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _sanitize_combat_names(item, world_state)
+    actor_id = projected.get("actor_id") or projected.get("actor")
+    target_id = projected.get("target_id") or projected.get("target")
+    if "actor_name" in projected:
+        projected["actor_name"] = _public_combat_name(actor_id, projected.get("actor_name"), world_state)
+    if "target_name" in projected:
+        projected["target_name"] = _public_combat_name(target_id, projected.get("target_name"), world_state)
+    return projected
+
+
+def serialize_combat_result(action_result: Any, session: Any = None) -> dict[str, Any] | None:
     """Expose only Python-owned combat outcome fields to the browser."""
     if not isinstance(action_result, Mapping) or action_result.get("action") not in {
         "attack",
@@ -187,17 +220,21 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     }:
         return None  # Rejection/clarification is not a canonical combat result.
 
-    projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)
+    world_state = getattr(session, "world_state", None)
+    projected = _sanitize_combat_names(
+        _project_fields(action_result, _COMBAT_TURN_FIELDS), world_state
+    )
     enemy_action = action_result.get("enemy_action")
     if isinstance(enemy_action, Mapping):
-        projected["enemy_action"] = _project_fields(
-            enemy_action,
-            _COMBAT_ATTACK_FIELDS,
+        projected["enemy_action"] = _sanitize_combat_names(
+            _project_fields(enemy_action, _COMBAT_ATTACK_FIELDS), world_state
         )
     enemy_actions = action_result.get("enemy_actions")
     if isinstance(enemy_actions, list):
         projected["enemy_actions"] = [
-            _project_fields(item, _COMBAT_ATTACK_FIELDS)
+            _sanitize_combat_names(
+                _project_fields(item, _COMBAT_ATTACK_FIELDS), world_state
+            )
             for item in enemy_actions
             if isinstance(item, Mapping)
         ]
@@ -210,7 +247,7 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     return validated.model_dump(exclude_unset=True)
 
 
-def serialize_combat_state(value: Any) -> dict[str, Any]:
+def serialize_combat_state(value: Any, world_state: Any = None) -> dict[str, Any]:
     """Expose only the public scheduler fields and canonical combatant status."""
     combat = value if isinstance(value, Mapping) else {}
     current_actor_id = combat.get("current_actor_id")
@@ -233,7 +270,12 @@ def serialize_combat_state(value: Any) -> dict[str, Any]:
         ),
         "participant_records": [
             {
-                **_project_fields(
+                **(lambda item: {
+                    **item,
+                    "name": _public_combat_name(
+                        record.get("id"), item.get("name"), world_state
+                    ),
+                })(_project_fields(
                     record,
                     (
                         "id",
@@ -245,7 +287,7 @@ def serialize_combat_state(value: Any) -> dict[str, Any]:
                         "status",
                         "primary_action_available",
                     ),
-                ),
+                )),
                 "is_current_actor": record.get("id") == current_actor_id,
             }
             for record in (records if isinstance(records, list) else [])
@@ -447,12 +489,17 @@ def serialize_session_state(
 
     raw_locations = world.get("locations", {})
     known_location_ids = exploration.known_locations(world)
+    visible_npcs = [
+        projected
+        for npc in exploration.player_entities(world, scheduled_events.visible_npcs(world))
+        if (projected := living_world.public_npc_projection(npc)) is not None
+    ]
     visible_world = {
         **world,
         "features": exploration.player_entities(world, world.get("features", [])),
         "shops": exploration.player_entities(world, world.get("shops", [])),
         "doors": exploration.visible_doors(world),
-        "npcs": exploration.player_entities(world, scheduled_events.visible_npcs(world)),
+        "npcs": visible_npcs,
     }
     locations = {
         str(location_id): _project_fields(record, _LOCATION_FIELDS)
@@ -603,11 +650,11 @@ def serialize_session_state(
             if world.get("spellcasting_v1") is not None else None
         ),
         "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
-        "shops": _project_list(exploration.player_entities(world, world.get("shops", [])), _SHOP_FIELDS),
+        "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))], _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
         "combat": {
-            **serialize_combat_state(world.get("combat", {})),
+            **serialize_combat_state(world.get("combat", {}), world),
             "action_economy": game.action_economy.projection(session)
             if isinstance(session, game.GameSession) and world.get("combat", {}).get("active") else None,
         },

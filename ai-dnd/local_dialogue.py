@@ -11,6 +11,8 @@ import re
 import unicodedata
 from typing import Any
 
+import living_world
+
 
 VERIFIED_SETTING_FACT = "VERIFIED_SETTING_FACT"
 CAMPAIGN_FACT = "CAMPAIGN_FACT"
@@ -358,7 +360,7 @@ def personal_answer(npc: Any, player_input: Any) -> tuple[str, str] | None:
     profile = ensure_personal_profile(npc)
     if not profile:
         return None
-    name = npc["name"]
+    name = living_world.public_npc_name(npc)
     answers = {
         "occupation": profile["occupation"],
         "current_activity": profile["current_activity"],

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import shlex
 from decimal import Decimal
 
@@ -486,14 +487,29 @@ def _apply(world, operation, args):
     return "Eşya işlemi Python tarafından atomik olarak tamamlandı."
 
 
+def _natural_inventory_query(text):
+    """Recognize only first-person inventory inspection; never expose another actor's inventory."""
+    if not isinstance(text, str):
+        return False
+    lowered = text.casefold().strip()
+    if not re.search(r"\benvanter(?:im|imde|imi|ime|imin)\b", lowered):
+        return False
+    return bool(re.search(
+        r"\b(?:ne|neler|var|gözden\s+geçir\w*|gozden\s+gecir\w*|"
+        r"bak\w*|göster\w*|goster\w*|listele\w*|kontrol\s+et\w*)\b",
+        lowered,
+    ))
+
+
 def execute(session, text, *, advance_turn=True):
     """Return None for unrelated input; model output never enters this owner."""
-    if not text.strip().startswith("/item"):
+    natural_list = _natural_inventory_query(text)
+    if not natural_list and not text.strip().startswith("/item"):
         return None
     before = copy.deepcopy(session.world_state)
     success, reason = False, None
     try:
-        tokens = shlex.split(text)
+        tokens = ["/item", "list"] if natural_list else shlex.split(text)
         if len(tokens) < 2 or tokens[0] != "/item":
             fail("invalid_item_command")
         world = session.world_state
@@ -507,6 +523,12 @@ def execute(session, text, *, advance_turn=True):
         candidate = copy.deepcopy(world)
         narration = _apply(candidate, tokens[1], tokens[2:])
         validate_world(candidate)
+        if natural_list:
+            item_names = labels(candidate["inventory"])
+            narration = (
+                f"Envanterinde: {', '.join(item_names)}."
+                if item_names else "Envanterin boş."
+            )
         world.clear()
         world.update(candidate)
         if advance_turn and tokens[1] != "list":
@@ -518,7 +540,11 @@ def execute(session, text, *, advance_turn=True):
     return {
         "messages": session.messages, "narration": narration, "model_calls": 0,
         "action_result": {
-            "action": "dialogue" if success and tokens[1] == "talk" else "equipment_transaction",
+            "action": (
+                "inventory" if success and natural_list
+                else "dialogue" if success and tokens[1] == "talk"
+                else "equipment_transaction"
+            ),
             "npc_id": (
                 tokens[3] if success and tokens[1] in {"request", "receive", "give"}
                 else tokens[2] if success and tokens[1] == "talk"

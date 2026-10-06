@@ -271,6 +271,20 @@ def _turn_index(world: Any) -> int:
     return value if type(value) is int and value >= 0 else 0
 
 
+def _player_visible_npc_name(npc: dict[str, Any]) -> str:
+    if npc.get("name_known_to_player", True) is True:
+        value = str(npc.get("name", "")).strip()
+        if value:
+            return value[:MAX_TOPIC]
+    return "Yakındaki kişi"
+
+
+def _player_visible_npc_role(npc: dict[str, Any]) -> str:
+    if npc.get("role_known_to_player", True) is True:
+        return str(npc.get("role", ""))[:MAX_TOPIC]
+    return ""
+
+
 def _canonical_npcs(world: Any) -> dict[str, dict[str, Any]]:
     npcs = world.get("npcs", []) if isinstance(world, dict) else []
     return {
@@ -379,8 +393,8 @@ def update_narrative_memory(
         npc = npcs[npc_id]
         base["entity_memory"]["npcs"][npc_id] = {
             "id": npc_id,
-            "name": str(npc.get("name", npc_id))[:MAX_TOPIC],
-            "role": str(npc.get("role", ""))[:MAX_TOPIC],
+            "name": _player_visible_npc_name(npc),
+            "role": _player_visible_npc_role(npc),
             "location_id": str(npc.get("location", ""))[:MAX_TOPIC],
             "authority": "canonical_reference",
         }

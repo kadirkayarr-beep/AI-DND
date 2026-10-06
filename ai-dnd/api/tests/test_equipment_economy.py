@@ -33,6 +33,35 @@ class EquipmentEconomyTests(unittest.TestCase):
         return (next(i for i in self.w["inventory"] if i["name"] == "Kılıç")["item_id"],
                 self.w["npcs"][0]["inventory"][0]["item_id"])
 
+    def test_natural_inventory_query_preempts_npc_resolution(self):
+        self.w["npcs"].extend([
+            {"id": "cael", "name": "Cael", "role": "Muhafız", "location": self.w["location"]},
+            {"id": "liora", "name": "Liora", "role": "Yolcu", "location": self.w["location"]},
+        ])
+        turn_before = self.w["flags"].get("turn_index", 0)
+        with (
+            patch("game.resolve_npc_reference", side_effect=AssertionError("NPC resolver must not run")),
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")),
+        ):
+            result = self.s.run_player_turn("Envanterimde neler var?")
+        self.assertEqual(result["model_calls"], 0)
+        self.assertEqual(result["action_result"]["action"], "inventory")
+        self.assertTrue(result["action_result"]["success"])
+        self.assertIn("Envanterinde:", result["narration"])
+        self.assertIn("Kılıç", result["narration"])
+        self.assertNotIn("Hangisini", result["narration"])
+        self.assertEqual(self.w["flags"].get("turn_index", 0), turn_before)
+
+    def test_inventory_quick_action_phrase_uses_same_owner(self):
+        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+            result = self.s.run_player_turn("Envanterimi gözden geçir")
+        self.assertEqual(result["model_calls"], 0)
+        self.assertEqual(result["action_result"]["action"], "inventory")
+        self.assertTrue(result["action_result"]["success"])
+
+    def test_natural_inventory_query_never_claims_another_actor(self):
+        self.assertIsNone(economy.execute(self.s, "Mira'nın envanterinde ne var?"))
+
     def unchanged_rejection(self, command, reason):
         before, rng = copy.deepcopy(self.w), self.s.rng.getstate()
         result = self.run_item(command)

@@ -229,7 +229,7 @@ class RunnerInventoryTests(unittest.TestCase):
                      redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
                     self.assertEqual(run_tests.main(), 1)
                     execute.assert_not_called()
-                self.assertIn(failed_gate, stderr.getvalue())
+                self.assertIn(failed_gate, stderr.getvalue().replace("\\", "/"))
                 self.assertIn("duplicate method Checks.test_boundary", stderr.getvalue())
 
     def test_listing_is_source_only_and_not_a_pass_claim(self):

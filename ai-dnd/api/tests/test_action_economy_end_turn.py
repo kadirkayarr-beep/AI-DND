@@ -18,7 +18,7 @@ def opponents(session):
         npc = session.create_npc_from_ai(
             {"name": name, "role": "Guard", "location": "tavern"}
         )
-        npc.update(current_hp=100, max_hp=100, hostile=True, distance_ft=5,
+        npc.update(name_known_to_player=True, current_hp=100, max_hp=100, hostile=True, distance_ft=5,
                    attack_damage_type="bludgeoning", initiative_modifier=0)
         npcs.append(npc)
         session.world_state.setdefault("monster_perception", {})[npc["id"]] = {
