@@ -4071,8 +4071,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
 
     async def assert_independent_duplicate_command(
-        self, operation, winner, *, distinct_action_ids=False,
+        self, operation, winner, *, distinct_action_ids=False, competing_reactions=False,
     ):
+        operations = ("react", "decline_reaction") if competing_reactions else (operation, operation)
+        if competing_reactions:
+            self.assertEqual(operation, "react")
+            self.assertFalse(distinct_action_ids)
+        operation = operations[winner]
         reaction = operation in ("react", "decline_reaction")
         combat_turn = operation == "combat" or reaction
 
@@ -4203,7 +4208,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         assert_continuation(
                             self, {"action_result": body["combat_result"],
                                    "narration": body["narration"]},
-                            records[index].game_session, npcs, operation,
+                            records[index].game_session, npcs, operations[index],
                             [action["outcome"] for action in actions],
                             [action["damage"] for action in actions],
                         )
@@ -4230,9 +4235,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             return save
 
         async def send(client, sid, index):
+            body = {**copy.deepcopy(command), "action_id": action_ids[index]}
+            if competing_reactions:
+                body["combat_action"]["steps"][0]["kind"] = operations[index]
             return await client.post(
                 f"/api/game/sessions/{sid}/{endpoint}",
-                json={**copy.deepcopy(command), "action_id": action_ids[index]},
+                json=body,
             )
 
         app = create_app(
@@ -4289,13 +4297,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 if operation == "combat":
                     self.assertEqual(damage.call_count, 2)
                 elif reaction:
-                    self.assertEqual(damage.call_count, 2 if operation == "react" else 0)
+                    self.assertEqual(
+                        damage.call_count, 1 if competing_reactions else
+                        (2 if operation == "react" else 0),
+                    )
             accepted, rejected = responses[winner], responses[loser]
             self.assertEqual(accepted.status_code, 200, accepted.text)
             self.assertEqual(rejected.status_code, 500 if operation == "ambient" else 409,
                              rejected.text)
             self.assertEqual(rejected.json()["detail"]["code"],
-                             "event_persistence_error" if operation == "ambient" else "campaign_stale")
+                             "action_id_conflict" if competing_reactions else
+                             ("event_persistence_error" if operation == "ambient" else "campaign_stale"))
             self.assertEqual(save_calls, [1, 1])
             self.assertEqual(set(errors), {loser})
             self.assertIsInstance(errors[loser], CampaignStaleError)
@@ -4424,21 +4436,34 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 losing_step = attempted_receipts[loser]["response"]["combat_result"]["economy_steps"][0]
                 # Speculative attack/history event IDs are independently minted;
                 # only the winner's identities become durable.
-                self.assertEqual(
-                    [(action["actor_id"], action["outcome"], action["damage"]) for action in actions],
-                    [(action["actor_id"], action["outcome"], action["damage"])
-                     for action in losing_step["enemy_actions"]],
-                )
+                if not competing_reactions:
+                    self.assertEqual(
+                        [(action["actor_id"], action["outcome"], action["damage"]) for action in actions],
+                        [(action["actor_id"], action["outcome"], action["damage"])
+                         for action in losing_step["enemy_actions"]],
+                    )
+                else:
+                    self.assertEqual(losing_step["kind"], operations[loser])
+                    self.assertNotEqual(
+                        attempted_receipts[winner]["request_hash"],
+                        attempted_receipts[loser]["request_hash"],
+                    )
+                    reacting_step = step if operation == "react" else losing_step
+                    declining_step = losing_step if operation == "react" else step
+                    self.assertGreater(reacting_step["response"]["damage"], 0)
+                    self.assertNotIn("response", declining_step)
                 if operation == "react":
                     self.assertGreater(step["response"]["damage"], 0)
                     self.assertEqual(step["response"]["target_id"], npcs[0]["id"])
                     self.assertEqual(step["response"]["attack_origin"], "reaction")
-                    self.assertEqual(step["response"]["damage"], losing_step["response"]["damage"])
+                    if not competing_reactions:
+                        self.assertEqual(step["response"]["damage"], losing_step["response"]["damage"])
                 else:
                     self.assertNotIn("response", step)
                 self.assertGreater(sum(action["damage"] for action in actions), 0)
-                self.assertEqual(response["narration"],
-                                 attempted_receipts[loser]["response"]["narration"])
+                if not competing_reactions:
+                    self.assertEqual(response["narration"],
+                                     attempted_receipts[loser]["response"]["narration"])
                 self.assertEqual(receipt["request_hash"], attempted_receipts[winner]["request_hash"])
                 self.assertEqual(receipt["response"], attempted_receipts[winner]["response"])
                 self.assertEqual(len(stored.history), len(saved_before.history) + 1)
@@ -4558,7 +4583,18 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         side_effect=AssertionError("Replay resumed enemy attacks"),
                     )))
                 for _ in range(2):
-                    replay = await send(clients[loser], sid, loser)
+                    if competing_reactions:
+                        conflict = await send(clients[loser], sid, loser)
+                        self.assertEqual(conflict.status_code, 409, conflict.text)
+                        self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                        self.assertEqual(self.snapshot(restored), reopened)
+                        self.assertEqual(saved_rows(), rows)
+                        self.assertEqual(
+                            (restored.game_session.messages, restored.game_session.world_metadata),
+                            auxiliary,
+                        )
+                        self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                    replay = await send(clients[loser], sid, winner if competing_reactions else loser)
                     self.assertEqual(replay.status_code, 200, replay.text)
                     self.assertEqual(replay.json(), expected)
                     self.assertEqual(self.snapshot(restored), reopened)
@@ -4588,6 +4624,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         for winner in (0, 1):
             with self.subTest(winner=winner):
                 await self.assert_independent_duplicate_command("decline_reaction", winner)
+
+    async def test_independent_competing_reactions_conflict_and_only_winner_replays_after_resume(self):
+        for winner in (0, 1):
+            with self.subTest(winning_command=("react", "decline_reaction")[winner]):
+                await self.assert_independent_duplicate_command(
+                    "react", winner, competing_reactions=True,
+                )
 
     async def test_independent_duplicate_ambient_interact_rolls_back_and_replays(self):
         for winner in (0, 1):
