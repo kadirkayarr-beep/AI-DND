@@ -4458,6 +4458,59 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(f"path='{path}'", result.failures[0][0].id())
                         self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
 
+    def test_campaign_creation_and_save_default_error_responses_pass_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            for flow_style in (False, True):
+                with self.subTest(path=path, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    responses = spec["paths"][path]["post"]["responses"]
+                    self.assertIn("200", responses)
+                    self.assertNotIn("default", responses)
+                    self.assertIn("ApiError", spec["components"]["responses"])
+                    responses["default"] = {
+                        "$ref": "#/components/responses/ApiError",
+                    }
+                    loaded = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(loaded, spec)
+                    self.assertEqual(loaded["components"], SPEC["components"])
+                    self.assertEqual(_route_inventory(loaded), _route_inventory(SPEC))
+                    self.assertEqual(
+                        loaded["paths"][path]["post"]["responses"]["200"],
+                        SPEC["paths"][path]["post"]["responses"]["200"],
+                    )
+                    self.assertEqual(
+                        loaded["paths"][path]["post"]["responses"]["default"],
+                        {"$ref": "#/components/responses/ApiError"},
+                    )
+                    # Removing only the added fallback proves request bodies,
+                    # untouched aliases and all other declarations are preserved.
+                    restored = deepcopy(loaded)
+                    del restored["paths"][path]["post"]["responses"]["default"]
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=loaded):
+                        # The general status inventory deliberately fixes the
+                        # canonical creation status set, so do not run it here.
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                            "test_campaign_creation_and_save_route_bindings_match_fastapi",
+                        ):
+                            result = unittest.TestResult()
+                            ContractParityTests(test_name).run(result)
+                            self.assertEqual(result.testsRun, 1)
+                            self.assertTrue(
+                                result.wasSuccessful(),
+                                result.failures + result.errors,
+                            )
+
     def test_campaign_creation_and_save_missing_success_with_default_error_fails_in_both_formats(self):
         for path in (
             "/game/campaigns",
