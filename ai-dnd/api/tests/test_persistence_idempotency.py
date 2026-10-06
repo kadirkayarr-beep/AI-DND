@@ -1645,6 +1645,135 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]), original)
             await assert_replay(client, fresh, fresh_store, restored, sid)
 
+    async def test_persisted_ambient_receipt_isolated_from_reader_output_edits(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        record = self.manager.get(created["session_id"])
+        event_id = self.install_test_ambient_event(record.game_session)
+        self.manager.save_campaign(campaign_id)
+        command = {"action": "interact", "action_id": str(uuid4())}
+        endpoint = f"ambient-events/{event_id}/actions"
+        accepted = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/{endpoint}", json=command,
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
+        original = copy.deepcopy(self.store.get_turn_action(campaign_id, command["action_id"]))
+        self.assertEqual(original["response"]["ambient_event_response"], accepted.json())
+        committed = self.snapshot(record)
+        expected = copy.deepcopy(accepted.json())
+        expected["result"].update(
+            status="ALREADY_APPLIED", reason_code="event_already_resolved",
+        )
+
+        def saved_rows(store):
+            with closing(store._connect()) as connection:
+                return {
+                    table: [tuple(row) for row in connection.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_turn_actions",
+                                  "campaign_history", "campaign_combat_history")
+                }
+
+        async def assert_reader_isolation(client, manager, store, active_record, sid, phase):
+            # Resume may refresh campaign timestamps. Capture complete runtime
+            # and SQL baselines here, after resume and before any caller edits.
+            before = self.snapshot(active_record)
+            auxiliary = copy.deepcopy((
+                active_record.game_session.messages,
+                active_record.game_session.world_metadata,
+            ))
+            rows = saved_rows(store)
+            replay_expected = copy.deepcopy(expected)
+            replay_expected["session_id"] = sid
+
+            def assert_unchanged():
+                self.assertEqual(
+                    manager.get_turn_action(active_record, command["action_id"]), original,
+                )
+                self.assertEqual(store.get_turn_action(campaign_id, command["action_id"]), original)
+                self.assertEqual(self.snapshot(active_record), before)
+                self.assertEqual((
+                    active_record.game_session.messages,
+                    active_record.game_session.world_metadata,
+                ), auxiliary)
+                self.assertEqual(saved_rows(store), rows)
+
+            readers = {
+                "manager": lambda: manager.get_turn_action(active_record, command["action_id"]),
+                "store": lambda: store.get_turn_action(campaign_id, command["action_id"]),
+            }
+            for reader_name, read in readers.items():
+                with self.subTest(phase=phase, reader=reader_name):
+                    with patch.object(
+                        active_record.game_session, "resolve_ambient_event_action",
+                        side_effect=AssertionError("Reader edit/replay repeated ambient mechanics"),
+                    ) as mechanics, \
+                         patch.object(active_record.game_session.rng, "randint",
+                                      side_effect=AssertionError("Reader edit/replay consumed RNG")) as dice, \
+                         patch.object(manager, "autosave_turn",
+                                      side_effect=AssertionError("Reader edit/replay autosaved")) as autosave, \
+                         patch.object(manager, "save_campaign_locked",
+                                      side_effect=AssertionError("Reader edit/replay saved")) as locked_save, \
+                         patch.object(store, "save_campaign",
+                                      side_effect=AssertionError("Reader edit/replay wrote SQL")) as save:
+                        retrieved = read()
+                        self.assertEqual(retrieved, original)
+                        # Only returned nested response data is changed. Do not
+                        # touch save inputs, receipt identity or the envelope.
+                        response = retrieved["response"]["ambient_event_response"]
+                        self.assertTrue(response["result"]["transition_id"])
+                        self.assertTrue(response["result"]["canonical_event_id"])
+                        response["result"]["transition_id"] = "reader-only-transition"
+                        response["result"]["canonical_event_id"] = str(uuid4())
+                        response["state"]["character"]["current_hp"] = -999
+                        self.assertTrue(response["state"]["npcs"])
+                        response["state"]["npcs"][0]["name"] = "Reader-only NPC"
+                        self.assertNotEqual(retrieved, original)
+                        assert_unchanged()
+                        response["state"]["npcs"].clear()
+                        self.assertNotEqual(
+                            response["state"]["npcs"],
+                            original["response"]["ambient_event_response"]["state"]["npcs"],
+                        )
+                        unchanged_envelope = copy.deepcopy(retrieved)
+                        unchanged_envelope["response"]["ambient_event_response"] = copy.deepcopy(
+                            original["response"]["ambient_event_response"]
+                        )
+                        self.assertEqual(unchanged_envelope, original)
+                        assert_unchanged()
+                        replay = await client.post(
+                            f"/api/game/sessions/{sid}/{endpoint}", json=command,
+                        )
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(replay.json(), replay_expected)
+                    for guard in (mechanics, dice, autosave, locked_save, save):
+                        guard.assert_not_called()
+                    assert_unchanged()
+
+        await assert_reader_isolation(
+            self.http, self.manager, self.store, record, created["session_id"], "before_resume",
+        )
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://reload") as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = fresh.get(sid)
+            self.assertNotEqual(sid, created["session_id"])
+            self.assertIsNot(restored.game_session, record.game_session)
+            self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+            self.assertEqual(fresh_store.get_campaign(campaign_id).payload, committed[-1].payload)
+            self.assertEqual(resumed.json()["history"], committed[-1].history)
+            await assert_reader_isolation(
+                client, fresh, fresh_store, restored, sid, "after_resume",
+            )
+
     async def test_saved_ambient_event_action_rejects_rests_after_reopen(self):
         for rest_action in ("short_rest", "long_rest"):
             with self.subTest(rest_action=rest_action):
