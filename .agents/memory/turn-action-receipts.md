@@ -61,15 +61,15 @@ timestamp boundary.
 resume separately, then capture the store immediately before replay and verify
 replay itself does not write.
 
-Distinguish retry after failed persistence from replay of a committed receipt.
-The former must reproduce gameplay and restore RNG, but need not reuse generated
-identities for history entries that never committed.
+Distinguish retry or competing speculative execution from replay of a committed
+receipt. Uncommitted attempts must reproduce gameplay and restore RNG on failure,
+but need not reuse generated identities for attack resolutions or history entries.
 
 **Why:** Requiring full response equality with an uncommitted attempt incorrectly
 treats newly generated history identities as a gameplay rollback failure.
 
 **How to apply:** Compare mechanical outcomes and narration across failed-save
-retry; require exact accepted-response equality only once a receipt has committed
+retry or independent duplicate attempts; require exact accepted-response equality only once a receipt has committed
 (apart from the current session ID after reopening).
 
 Persistence-race rendezvous should capture runtime-only state, without incidental

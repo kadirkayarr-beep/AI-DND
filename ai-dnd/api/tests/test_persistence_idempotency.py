@@ -3913,6 +3913,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def assert_independent_duplicate_command(
         self, operation, winner, *, distinct_action_ids=False,
     ):
+        reaction = operation in ("react", "decline_reaction")
+        combat_turn = operation == "combat" or reaction
+
         def runtime_snapshot(record):
             return copy.deepcopy((
                 record.game_session.serialize_game_state(),
@@ -3933,6 +3936,21 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 combat_turn_index=combat["current_turn_index"],
             )
             target_id = command["combat_action"]["steps"][0]["target_id"]
+        elif reaction:
+            session.commit_location_change("tavern")
+            npcs, opportunity_id = interrupted(session)
+            # Both reopened engines get the same real RNG stream. Do not replace
+            # reaction resolution, scheduler attacks, damage or dice in the race.
+            session.rng.seed(3)
+            combat = session.world_state["combat"]
+            command = {
+                "message": "Hamle.",
+                "combat_action": {"steps": [{
+                    "kind": operation, "opportunity_id": opportunity_id,
+                }]},
+                "combat_id": combat["combat_id"], "combat_round": combat["round"],
+                "combat_turn_index": combat["current_turn_index"],
+            }
         else:
             session.commit_location_change("tavern")
             session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
@@ -3945,7 +3963,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(operation, "ambient")
             self.assertNotEqual(action_ids[0], action_ids[1])
         action_id = action_ids[winner]
-        if operation == "combat":
+        if combat_turn:
             endpoint = "turn"
             command["action_id"] = action_id
         elif operation == "ambient":
@@ -3981,6 +3999,14 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         token = (campaign_id, saved_before.metadata["revision"])
         for record in records:
             self.assertEqual(record.game_session._campaign_persistence_version, token)
+            if reaction:
+                resources = record.game_session.world_state["combat"]["turn_resources"]["player"]
+                self.assertEqual(resources["opportunity"]["id"], opportunity_id)
+                self.assertIsNotNone(resources["ready"])
+                self.assertFalse(resources["reaction_spent"])
+                self.assertEqual(record.game_session.character["current_hp"], 100)
+                self.assertEqual(record.game_session.world_state["combat"]["current_actor_id"],
+                                 npcs[0]["id"])
 
         def saved_rows():
             with closing(self.store._connect()) as connection:
@@ -3999,6 +4025,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         committed_event = threading.Event()
         original_saves = [store.save_campaign for store in stores]
         speculative, errors, committed = {}, {}, {}
+        attempted_receipts = {}
         save_calls = [0, 0]
 
         def ordered_save(index):
@@ -4006,8 +4033,24 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     save_calls[index] += 1
                     speculative[index] = runtime_snapshot(records[index])
+                    attempted_receipts[index] = copy.deepcopy(kwargs["turn_action_receipt"])
                     self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_ids[index])
                     self.assertEqual(records[index].game_session._campaign_persistence_version, token)
+                    if reaction:
+                        body = attempted_receipts[index]["response"]
+                        step = body["combat_result"]["economy_steps"][0]
+                        actions = step["enemy_actions"]
+                        assert_continuation(
+                            self, {"action_result": body["combat_result"],
+                                   "narration": body["narration"]},
+                            records[index].game_session, npcs, operation,
+                            [action["outcome"] for action in actions],
+                            [action["damage"] for action in actions],
+                        )
+                        self.assertEqual(len(actions), 2)
+                        self.assertNotEqual(speculative[index][1], before[index][1])
+                        self.assertIsNotNone(kwargs["turn_entry"])
+                        self.assertIsNotNone(kwargs["combat_history_entry"])
                     barrier.wait(timeout=10)
                     if index == loser and not committed_event.wait(timeout=10):
                         raise AssertionError("Duplicate winner did not commit")
@@ -4032,13 +4075,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 json={**copy.deepcopy(command), "action_id": action_ids[index]},
             )
 
-        app = create_app(session_manager=second_manager, ollama_adapter=None)
+        app = create_app(
+            session_manager=second_manager,
+            ollama_adapter=self.app.state.ollama_adapter if reaction else None,
+        )
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://duplicate",
         ) as second_client:
             clients = (self.http, second_client)
             with ExitStack() as stack:
-                if operation == "combat":
+                if combat_turn:
                     # Observe real damage and real dice, without replacing the
                     # turn owner (whose callable signature controls API dispatch).
                     damage = stack.enter_context(patch(
@@ -4076,9 +4122,14 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     if not requests.done():
                         await asyncio.shield(requests)
                 for spy in mechanics:
-                    self.assertEqual(spy.call_count, 3 if operation == "combat" else 1)
+                    if reaction:
+                        self.assertGreaterEqual(spy.call_count, 2)
+                    else:
+                        self.assertEqual(spy.call_count, 3 if operation == "combat" else 1)
                 if operation == "combat":
                     self.assertEqual(damage.call_count, 2)
+                elif reaction:
+                    self.assertEqual(damage.call_count, 2 if operation == "react" else 0)
             accepted, rejected = responses[winner], responses[loser]
             self.assertEqual(accepted.status_code, 200, accepted.text)
             self.assertEqual(rejected.status_code, 500 if operation == "ambient" else 409,
@@ -4105,6 +4156,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(
                         state["world_state"]["spellcasting_v1"]["slots"]["1"],
                         before[index][0]["world_state"]["spellcasting_v1"]["slots"]["1"] - 1,
+                    )
+                    self.assertNotEqual(speculative[index][1], before[index][1])
+                elif reaction:
+                    self.assertEqual(
+                        state["world_state"]["combat"]["round"],
+                        before[index][0]["world_state"]["combat"]["round"] + 1,
+                    )
+                    self.assertEqual(state["world_state"]["combat"]["current_actor_id"], "player")
+                    self.assertIsNone(
+                        state["world_state"]["combat"]["turn_resources"]["player"]["opportunity"],
                     )
                     self.assertNotEqual(speculative[index][1], before[index][1])
                 elif operation == "ambient":
@@ -4140,7 +4201,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 auxiliary_before[loser],
             )
             self.assertEqual(records[loser].game_session._campaign_persistence_version, token)
-            if operation == "combat":
+            if reaction:
+                self.assertNotIn(action_id, records[loser].turn_action_receipts)
+            if combat_turn:
                 # autosave_turn publishes staged memory and combat history only
                 # after save_campaign returns; the gate observes engine commit,
                 # not the final managed-session bookkeeping.
@@ -4153,7 +4216,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(committed_rows["campaign_turn_actions"]), 1)
             stored = self.store.get_campaign(campaign_id)
             self.assertEqual(stored.metadata["revision"], token[1] + 1)
-            if operation != "combat":
+            if not combat_turn:
                 self.assertEqual(stored.combat_history, saved_before.combat_history)
             receipt = self.store.get_turn_action(campaign_id, action_id)
             if distinct_action_ids:
@@ -4191,6 +4254,60 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(winning_state["spellcasting_v1"]["slots"]["1"], 1)
                 self.assertEqual(managers[winner].get_turn_action(records[winner], action_id),
                                  receipt)
+            elif reaction:
+                response = accepted.json()
+                TurnResponse.model_validate(response)
+                step = response["combat_result"]["economy_steps"][0]
+                actions = step["enemy_actions"]
+                self.assertEqual(len(response["combat_result"]["economy_steps"]), 1)
+                self.assertEqual(step["kind"], operation)
+                losing_step = attempted_receipts[loser]["response"]["combat_result"]["economy_steps"][0]
+                # Speculative attack/history event IDs are independently minted;
+                # only the winner's identities become durable.
+                self.assertEqual(
+                    [(action["actor_id"], action["outcome"], action["damage"]) for action in actions],
+                    [(action["actor_id"], action["outcome"], action["damage"])
+                     for action in losing_step["enemy_actions"]],
+                )
+                if operation == "react":
+                    self.assertGreater(step["response"]["damage"], 0)
+                    self.assertEqual(step["response"]["target_id"], npcs[0]["id"])
+                    self.assertEqual(step["response"]["attack_origin"], "reaction")
+                    self.assertEqual(step["response"]["damage"], losing_step["response"]["damage"])
+                else:
+                    self.assertNotIn("response", step)
+                self.assertGreater(sum(action["damage"] for action in actions), 0)
+                self.assertEqual(response["narration"],
+                                 attempted_receipts[loser]["response"]["narration"])
+                self.assertEqual(receipt["request_hash"], attempted_receipts[winner]["request_hash"])
+                self.assertEqual(receipt["response"], attempted_receipts[winner]["response"])
+                self.assertEqual(len(stored.history), len(saved_before.history) + 1)
+                self.assertEqual(stored.history[-1]["player_message"], command["message"])
+                self.assertEqual(stored.history[-1]["narration"], response["narration"])
+                self.assertEqual(len(stored.combat_history), len(saved_before.combat_history) + 1)
+                self.assertEqual(stored.combat_history, records[winner].combat_history)
+                self.assertEqual(stored.combat_history[-1]["event_id"],
+                                 response["combat_history_entry"]["event_id"])
+                self.assertNotEqual(
+                    response["combat_history_entry"]["event_id"],
+                    attempted_receipts[loser]["response"]["combat_history_entry"]["event_id"],
+                )
+                winning_state = committed["runtime"][0]
+                self.assertEqual(stored.payload["engine_save"], winning_state)
+                self.assertEqual(winning_state["player"]["current_hp"],
+                                 100 - sum(action["damage"] for action in actions))
+                target_before = next(npc for npc in before[winner][0]["world_state"]["npcs"]
+                                     if npc["id"] == npcs[0]["id"])
+                target_after = next(npc for npc in winning_state["world_state"]["npcs"]
+                                    if npc["id"] == npcs[0]["id"])
+                reaction_damage = step["response"]["damage"] if operation == "react" else 0
+                self.assertEqual(target_before["current_hp"] - target_after["current_hp"],
+                                 reaction_damage)
+                self.assertEqual(managers[winner].get_turn_action(records[winner], action_id), receipt)
+                self.assertEqual(len(committed_rows["campaign_history"]),
+                                 len(saved_before.history) + 1)
+                self.assertEqual(len(committed_rows["campaign_combat_history"]),
+                                 len(saved_before.combat_history) + 1)
             elif operation == "ambient":
                 self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
                 self.assertEqual(stored.history, saved_before.history)
@@ -4267,6 +4384,19 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         (stores[loser], "save_campaign"),
                     )
                 ]
+                if reaction:
+                    guards.extend(
+                        stack.enter_context(patch(
+                            method, side_effect=AssertionError(f"Replay called {method}"),
+                        ))
+                        for method in ("action_economy.react", "game.roll_attack",
+                                       "game.roll_d20", "game.roll_damage",
+                                       "game.apply_npc_damage")
+                    )
+                    guards.append(stack.enter_context(patch.object(
+                        restored.game_session, "_resolve_enemy_turns_until_player",
+                        side_effect=AssertionError("Replay resumed enemy attacks"),
+                    )))
                 for _ in range(2):
                     replay = await send(clients[loser], sid, loser)
                     self.assertEqual(replay.status_code, 200, replay.text)
@@ -4288,6 +4418,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         for winner in (0, 1):
             with self.subTest(winner=winner):
                 await self.assert_independent_duplicate_command("combat", winner)
+
+    async def test_independent_duplicate_react_rolls_back_and_replays_after_resume(self):
+        for winner in (0, 1):
+            with self.subTest(winner=winner):
+                await self.assert_independent_duplicate_command("react", winner)
+
+    async def test_independent_duplicate_decline_reaction_rolls_back_and_replays_after_resume(self):
+        for winner in (0, 1):
+            with self.subTest(winner=winner):
+                await self.assert_independent_duplicate_command("decline_reaction", winner)
 
     async def test_independent_duplicate_ambient_interact_rolls_back_and_replays(self):
         for winner in (0, 1):
