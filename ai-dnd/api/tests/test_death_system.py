@@ -236,6 +236,80 @@ class DeathSystemTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self._assert_completed_recovery_round_trip(mode)
 
+    def test_stable_recovery_finishes_oversized_wait_without_more_timers(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                session = make_session()
+                campaign_time.initialize(session.world_state)
+                session.ensure_death_state()["mode"] = mode
+                session.advance_campaign_time(137, "wait")
+                session._apply_player_damage(20, took_damage=True)
+                with patch.object(session.rng, "randint", return_value=2) as die:
+                    session.stabilize_player()
+                die.assert_called_once_with(1, 4)
+                death = session.ensure_death_state()
+                deadline = death["recovery"]["at"]
+                started_at = session.world_state["campaign_time"]["elapsed_seconds"]
+                self.assertEqual(death["recovery"], {"hours": 2, "at": 137 + 7200})
+                self.assertTrue(death["stable"])
+                self.assertIsNone(death["noncombat_next_save_at"])
+                self.assertEqual(session.character["current_hp"], 0)
+                self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+                self.assertFalse(session.world_state["combat"]["active"])
+                # Continue within one call beyond waking, many six-second save
+                # boundaries, and the maximum four-hour recovery window.
+                duration = deadline - started_at + 14401
+                rng_state = session.rng.getstate()
+                original_heal = game.heal_player
+
+                def heal_at_recovery_deadline(amount):
+                    self.assertEqual(
+                        session.world_state["campaign_time"]["elapsed_seconds"], deadline
+                    )
+                    return original_heal(amount)
+
+                with (
+                    patch.object(session.rng, "randint",
+                                 side_effect=AssertionError("Recovery consumed dice")) as die,
+                    patch("game.roll_d20",
+                          side_effect=AssertionError("Recovery rolled a death save")) as roll,
+                    patch("game._resolve_player_death_turn",
+                          side_effect=AssertionError("Recovery scheduled a death save")) as resolve,
+                    patch("game.stabilize_player",
+                          side_effect=AssertionError("Recovery scheduled another deadline")) as stabilize,
+                    patch("game.heal_player", side_effect=heal_at_recovery_deadline) as heal,
+                ):
+                    progress = session.advance_campaign_time(duration, "wait")
+
+                heal.assert_called_once_with(1)
+                die.assert_not_called()
+                roll.assert_not_called()
+                resolve.assert_not_called()
+                stabilize.assert_not_called()
+                self.assertEqual(session.rng.getstate(), rng_state)
+                self.assertEqual(progress["requested_seconds"], duration)
+                self.assertEqual(progress["elapsed_seconds"], duration)
+                self.assertEqual(progress["remaining_seconds"], 0)
+                self.assertFalse(progress["interrupted"])
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"], started_at + duration
+                )
+                self.assertEqual(
+                    progress["death_results"], [{"action": "stable_recovery", "current_hp": 1}]
+                )
+                self.assertEqual(session.character["current_hp"], 1)
+                self.assertEqual(session.world_state["player_combat_status"], "active")
+                self.assertFalse(session.world_state["combat"]["active"])
+                after = session.ensure_death_state()
+                self.assertEqual(after["mode"], mode)
+                self.assertEqual((after["successes"], after["failures"]), (0, 0))
+                self.assertFalse(after["stable"])
+                self.assertFalse(after["dead"])
+                self.assertFalse(after["terminal"])
+                self.assertIsNone(after["recovery"])
+                self.assertIsNone(after["noncombat_next_save_at"])
+                self.assertIsNone(after["noncombat_episode_id"])
+
     def _assert_completed_recovery_round_trip(self, mode):
         session = make_session()
         peer = make_session(seed=29)
