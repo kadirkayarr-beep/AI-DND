@@ -1,6 +1,6 @@
 """HTTP replay must reject damaged event replies without replaying gameplay."""
 import copy
-from contextlib import closing
+from contextlib import closing, ExitStack
 import json
 import unittest
 from unittest.mock import patch
@@ -45,6 +45,7 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def check_reopened_receipt(
         self, mutate=None, legacy=None, conflict=None, *, legacy_projection=None,
+        malformed_hash=None,
     ):
         if legacy_projection is not None:
             legacy = "valid"
@@ -65,7 +66,23 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
         receipt = self.store.get_turn_action(campaign_id, command["action_id"])
         self.assertEqual(receipt["response"]["ambient_event_response"], accepted.json())
         damaged = copy.deepcopy(receipt["response"])
-        if legacy == "imported":
+        if malformed_hash is not None:
+            self.assertIsNone(legacy)
+            self.assertIsNone(mutate)
+            with self.store._transaction() as db:
+                updated = db.execute(
+                    "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?",
+                    (malformed_hash, campaign_id, command["action_id"]),
+                )
+                self.assertEqual(updated.rowcount, 1)
+            with closing(self.store._connect()) as db:
+                damaged_row = db.execute(
+                    "SELECT request_hash, response_json FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, command["action_id"]),
+                ).fetchone()
+            self.assertEqual(damaged_row["request_hash"], malformed_hash)
+            self.assertEqual(json.loads(damaged_row["response_json"]), receipt["response"])
+        elif legacy == "imported":
             # Startup reserves old journal identities without inventing a reply.
             with self.store._transaction() as db:
                 db.execute(
@@ -99,7 +116,7 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
         fresh_store = CampaignStore(self.store.path)
-        if legacy != "imported":
+        if legacy != "imported" and malformed_hash is None:
             loaded = fresh_store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(loaded["request_hash"], receipt["request_hash"])
             self.assertEqual(loaded["response"], damaged)
@@ -128,6 +145,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 restored.game_session.messages, restored.game_session.world_metadata,
             ))
             rows = self.raw_rows(fresh_store, campaign_id)
+            with closing(fresh_store._connect()) as db:
+                database = tuple(db.iterdump())
             retry_command = copy.deepcopy(command)
             retry_endpoint = endpoint
             retry_event_id = event_id
@@ -139,26 +158,49 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 retry_endpoint = f"ambient-events/{retry_event_id}/actions"
             elif conflict is not None:
                 self.fail(f"Unknown conflict case: {conflict}")
-            reserved = fresh_store.get_turn_action(campaign_id, command["action_id"])
-            self.assertIsNotNone(reserved)
-            self.assertEqual(reserved["request_hash"], receipt["request_hash"])
-            if legacy is not None:
-                self.assertNotIn("ambient_event_response", reserved["response"])
-                self.assertIn("legacy_ambient_result", reserved["response"])
-            if legacy == "valid":
-                self.assertEqual(reserved["response"], damaged)
-            with patch.object(restored.game_session, "resolve_ambient_event_action",
-                              side_effect=AssertionError("Replay executed mechanics")) as mechanics, \
-                 patch.object(fresh, "save_campaign_locked",
-                              side_effect=AssertionError("Replay attempted persistence")) as locked_save, \
-                 patch.object(fresh, "autosave_turn",
-                              side_effect=AssertionError("Replay attempted autosave")) as autosave, \
-                 patch.object(fresh_store, "save_campaign",
-                              side_effect=AssertionError("Replay saved campaign")) as save:
-                retry = await client.post(
-                    f"/api/game/sessions/{sid}/{retry_endpoint}", json=retry_command,
+            if malformed_hash is None:
+                reserved = fresh_store.get_turn_action(campaign_id, command["action_id"])
+                self.assertIsNotNone(reserved)
+                self.assertEqual(reserved["request_hash"], receipt["request_hash"])
+                if legacy is not None:
+                    self.assertNotIn("ambient_event_response", reserved["response"])
+                    self.assertIn("legacy_ambient_result", reserved["response"])
+                if legacy == "valid":
+                    self.assertEqual(reserved["response"], damaged)
+
+            async def guarded_retry(target_endpoint, body):
+                guards = (
+                    (restored.game_session, "resolve_ambient_event_action"),
+                    (restored.game_session.rng, "randint"),
+                    (restored.game_session.rng, "random"),
+                    (restored.game_session.rng, "getrandbits"),
+                    (fresh, "save_campaign_locked"),
+                    (fresh, "autosave_turn"),
+                    (fresh_store, "save_campaign"),
+                    (fresh_store, "_transaction"),
                 )
-            if conflict is not None:
+                with ExitStack() as stack:
+                    spies = [
+                        stack.enter_context(patch.object(
+                            target, method,
+                            side_effect=AssertionError(f"Receipt retry invoked {method}"),
+                        ))
+                        for target, method in guards
+                    ]
+                    reply = await client.post(
+                        f"/api/game/sessions/{sid}/{target_endpoint}", json=body,
+                    )
+                for spy in spies:
+                    spy.assert_not_called()
+                return reply
+
+            retry = await guarded_retry(retry_endpoint, retry_command)
+            if malformed_hash is not None:
+                self.assertEqual(retry.status_code, 409, retry.text)
+                self.assertEqual(retry.json()["detail"]["code"], "campaign_unavailable")
+                self.assertIsInstance(retry.json()["detail"]["message"], str)
+                self.assertTrue(retry.json()["detail"]["message"])
+            elif conflict is not None:
                 self.assertEqual(retry.status_code, 200, retry.text)
                 response = retry.json()
                 AmbientEventCommandResult.model_validate(response, strict=True)
@@ -192,14 +234,62 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 AmbientEventCommandResult.model_validate(retry.json(), strict=True)
                 self.assertEqual(retry.json()["result"], expected)
                 self.assertEqual(retry.json()["session_id"], sid)
-            for spy in (mechanics, locked_save, autosave, save):
-                spy.assert_not_called()
             self.assertEqual(self.snapshot(restored), before)
             self.assertEqual((
                 restored.game_session.messages, restored.game_session.world_metadata,
             ), auxiliary)
             self.assertEqual(self.raw_rows(fresh_store, campaign_id), rows)
             self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
+            with closing(fresh_store._connect()) as db:
+                self.assertEqual(tuple(db.iterdump()), database)
+
+            if malformed_hash is not None:
+                with fresh_store._transaction() as db:
+                    updated = db.execute(
+                        "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?",
+                        (receipt["request_hash"], campaign_id, command["action_id"]),
+                    )
+                    self.assertEqual(updated.rowcount, 1)
+                self.assertEqual(
+                    fresh_store.get_turn_action(campaign_id, command["action_id"]), receipt,
+                )
+                repaired_rows = self.raw_rows(fresh_store, campaign_id)
+                with closing(fresh_store._connect()) as db:
+                    repaired_database = tuple(db.iterdump())
+                replay = await guarded_retry(endpoint, command)
+                self.assertEqual(replay.status_code, 200, replay.text)
+                AmbientEventCommandResult.model_validate(replay.json(), strict=True)
+                expected = copy.deepcopy(accepted.json()["result"])
+                expected.update(status="ALREADY_APPLIED", reason_code="event_already_resolved")
+                self.assertEqual(replay.json()["result"], expected)
+                self.assertEqual(replay.json()["session_id"], sid)
+                if conflict is not None:
+                    valid_conflict = await guarded_retry(retry_endpoint, retry_command)
+                    self.assertEqual(valid_conflict.status_code, 200, valid_conflict.text)
+                    self.assertEqual(valid_conflict.json()["result"]["status"], "REJECTED")
+                    self.assertEqual(
+                        valid_conflict.json()["result"]["reason_code"], "action_id_conflict",
+                    )
+                self.assertEqual(self.snapshot(restored), before)
+                self.assertEqual((
+                    restored.game_session.messages, restored.game_session.world_metadata,
+                ), auxiliary)
+                self.assertEqual(self.raw_rows(fresh_store, campaign_id), repaired_rows)
+                with closing(fresh_store._connect()) as db:
+                    self.assertEqual(tuple(db.iterdump()), repaired_database)
+
+    async def test_corrupt_saved_event_hash_precedes_conflicts_after_resume(self):
+        for label, malformed in (
+            ("short", "a" * 63),
+            ("overlong", "a" * 65),
+            ("nonhex", "g" * 64),
+            ("uppercase", "A" * 64),
+        ):
+            for conflict in (None, "action", "event"):
+                with self.subTest(hash=label, conflict=conflict):
+                    await self.check_reopened_receipt(
+                        malformed_hash=malformed, conflict=conflict,
+                    )
 
     async def test_incomplete_saved_event_replies_fail_safely_after_resume(self):
         paths = (

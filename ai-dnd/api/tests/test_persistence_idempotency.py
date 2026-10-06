@@ -1,7 +1,7 @@
 """Persistence boundaries missing from the existing subsystem/CTM suites."""
 import copy
 import asyncio
-from contextlib import closing
+from contextlib import closing, ExitStack
 from datetime import datetime, timedelta
 from functools import wraps
 import threading
@@ -68,7 +68,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def assert_corrupt_saved_receipt_blocks_retry(
         self, corruption, operation="turn", *, conflicting_action=None,
-        conflicting_message=None,
+        conflicting_message=None, malformed_hash="g" * 64,
     ):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
@@ -132,9 +132,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(committed.history), 1)
 
         if corruption == "hash":
-            # Correct length, but not hexadecimal: not an ordinary request mismatch.
+            # Hash shape corruption is not an ordinary request mismatch.
             sql = "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?"
-            value = "g" * 64
+            value = malformed_hash
             expected_status, expected_code = 409, "campaign_unavailable"
         elif corruption == "json":
             sql = "UPDATE campaign_turn_actions SET response_json = ? WHERE campaign_id = ? AND action_id = ?"
@@ -166,23 +166,33 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         retry_command = copy.deepcopy(command)
         if conflicting_message is not None:
             self.assertEqual(operation, "turn")
-            self.assertIsInstance(corruption, tuple)
+            self.assertTrue(corruption == "hash" or isinstance(corruption, tuple))
             retry_command["message"] = conflicting_message
             self.assertNotEqual(retry_command["message"], command["message"])
             self.assertEqual(retry_command["action_id"], command["action_id"])
-            expected_status, expected_code = 409, "action_id_conflict"
+            if corruption != "hash":
+                expected_status, expected_code = 409, "action_id_conflict"
         if conflicting_action is not None:
             self.assertIn(operation, ("short_rest", "long_rest"))
-            self.assertIsInstance(corruption, tuple)
+            self.assertTrue(corruption == "hash" or isinstance(corruption, tuple))
             retry_command["action"] = conflicting_action
             self.assertNotEqual(retry_command["action"], command["action"])
             self.assertEqual(retry_command["action_id"], command["action_id"])
-            expected_status, expected_code = 409, "action_id_conflict"
+            if corruption != "hash":
+                expected_status, expected_code = 409, "action_id_conflict"
         with self.store._transaction() as connection:
             updated = connection.execute(sql, (value, campaign_id, command["action_id"]))
             self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
-        if conflicting_action is not None or conflicting_message is not None:
+        if corruption == "hash":
+            with closing(self.store._connect()) as connection:
+                damaged_row = connection.execute(
+                    "SELECT request_hash, response_json FROM campaign_turn_actions WHERE campaign_id = ? AND action_id = ?",
+                    (campaign_id, command["action_id"]),
+                ).fetchone()
+            self.assertEqual(damaged_row["request_hash"], malformed_hash)
+            self.assertEqual(json.loads(damaged_row["response_json"]), accepted.json())
+        elif conflicting_action is not None or conflicting_message is not None:
             damaged_receipt = self.store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(damaged_receipt["request_hash"], receipt["request_hash"])
             self.assertEqual(damaged_receipt["response"], response)
@@ -230,25 +240,40 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         (campaign_id,),
                     )
                 ]
-            with patch("game.run_player_turn",
-                       side_effect=AssertionError("Corrupt receipt executed the engine")) as engine, \
-                 patch("game.resolve_species_trait_action",
-                       side_effect=AssertionError("Corrupt receipt repeated rest")) as rest, \
-                 patch.object(fresh, "autosave_turn",
-                              side_effect=AssertionError("Corrupt receipt autosaved")) as autosave, \
-                 patch.object(fresh_store, "save_campaign",
-                              side_effect=AssertionError("Corrupt receipt saved")) as save:
-                retry = await client.post(
-                    f"/api/game/sessions/{sid}/{endpoint}", json=retry_command,
+                before_database = tuple(connection.iterdump())
+
+            async def guarded_retry(body):
+                guards = (
+                    (game, "run_player_turn"),
+                    (game, "resolve_species_trait_action"),
+                    (restored.game_session.rng, "randint"),
+                    (restored.game_session.rng, "random"),
+                    (restored.game_session.rng, "getrandbits"),
+                    (fresh, "autosave_turn"),
+                    (fresh, "save_campaign_locked"),
+                    (fresh_store, "save_campaign"),
+                    (fresh_store, "_transaction"),
                 )
+                with ExitStack() as stack:
+                    spies = [
+                        stack.enter_context(patch.object(
+                            target, method,
+                            side_effect=AssertionError(f"Receipt retry invoked {method}"),
+                        ))
+                        for target, method in guards
+                    ]
+                    reply = await client.post(
+                        f"/api/game/sessions/{sid}/{endpoint}", json=body,
+                    )
+                for spy in spies:
+                    spy.assert_not_called()
+                return reply
+
+            retry = await guarded_retry(retry_command)
             self.assertEqual(retry.status_code, expected_status, retry.text)
             self.assertEqual(retry.json()["detail"]["code"], expected_code)
             self.assertIsInstance(retry.json()["detail"]["message"], str)
             self.assertTrue(retry.json()["detail"]["message"])
-            engine.assert_not_called()
-            rest.assert_not_called()
-            autosave.assert_not_called()
-            save.assert_not_called()
             self.assertEqual(self.snapshot(restored), before_runtime)
             self.assertEqual(restored.game_session.character["species_trait_state"],
                              before_species_resources)
@@ -269,9 +294,60 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         (campaign_id,),
                     )
                 ], before_receipts)
+                self.assertEqual(tuple(connection.iterdump()), before_database)
+
+            if corruption == "hash":
+                # Only the test repairs the hash; the saved response remains intact.
+                with fresh_store._transaction() as connection:
+                    updated = connection.execute(
+                        sql, (receipt["request_hash"], campaign_id, command["action_id"]),
+                    )
+                    self.assertEqual(updated.rowcount, 1)
+                self.assertEqual(
+                    fresh_store.get_turn_action(campaign_id, command["action_id"]), receipt,
+                )
+                with closing(fresh_store._connect()) as connection:
+                    repaired_database = tuple(connection.iterdump())
+                replay = await guarded_retry(command)
+                expected = copy.deepcopy(accepted.json())
+                expected["session_id"] = sid
+                self.assertEqual(replay.status_code, 200, replay.text)
+                self.assertEqual(replay.json(), expected)
+                self.assertEqual(self.snapshot(restored), before_runtime)
+                self.assertEqual((
+                    restored.game_session.messages, restored.game_session.world_metadata,
+                ), before_auxiliary)
+                with closing(fresh_store._connect()) as connection:
+                    self.assertEqual(tuple(connection.iterdump()), repaired_database)
+                if conflicting_action is not None or conflicting_message is not None:
+                    conflict = await guarded_retry(retry_command)
+                    self.assertEqual(conflict.status_code, 409, conflict.text)
+                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                    self.assertEqual(self.snapshot(restored), before_runtime)
+                    with closing(fresh_store._connect()) as connection:
+                        self.assertEqual(tuple(connection.iterdump()), repaired_database)
 
     async def test_corrupt_saved_receipt_hash_blocks_http_retry_after_resume(self):
-        await self.assert_corrupt_saved_receipt_blocks_retry("hash")
+        for operation in ("turn", "short_rest", "long_rest"):
+            for label, malformed in (
+                ("short", "a" * 63),
+                ("overlong", "a" * 65),
+                ("nonhex", "g" * 64),
+                ("uppercase", "A" * 64),
+            ):
+                for changed in (False, True):
+                    with self.subTest(operation=operation, hash=label, changed=changed):
+                        kwargs = {}
+                        if changed:
+                            if operation == "turn":
+                                kwargs["conflicting_message"] = "Resolve a different selected spell."
+                            else:
+                                kwargs["conflicting_action"] = (
+                                    "long_rest" if operation == "short_rest" else "short_rest"
+                                )
+                        await self.assert_corrupt_saved_receipt_blocks_retry(
+                            "hash", operation, malformed_hash=malformed, **kwargs,
+                        )
 
     async def test_corrupt_saved_receipt_json_blocks_http_retry_after_resume(self):
         await self.assert_corrupt_saved_receipt_blocks_retry("json")
