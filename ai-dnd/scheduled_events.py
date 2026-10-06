@@ -188,6 +188,8 @@ def pending_events(world):
 
 
 def public_pending(world):
+    if world.get("player_combat_status") == "unconscious":
+        return []
     return [{
         "summary": e["player_known_summary"], "forced": e["behavior"] == "FORCED",
         "in_combat": e.get("decision_status") == "IN_COMBAT",
@@ -245,6 +247,12 @@ def process_events(world, old, now, *, observation=None, resolution=None,
     """
     events = world.get("scheduled_events", [])
     validate_events(events, world)
+    unconscious = world.get("player_combat_status") == "unconscious"
+    if unconscious:
+        # World events still progress, but an unconscious player cannot observe
+        # them or stop gameplay to make a decision (including an existing one).
+        observation = None
+        allow_interrupt = False
     known = []
     limit = now
     cursor = old
@@ -322,7 +330,7 @@ def process_events(world, old, now, *, observation=None, resolution=None,
         ):
             _observe(event, limit, known, decision=active and _decision_required(event))
     if resolution is not None:
-        resolution.update(stop_at=limit, interrupted=bool(
+        resolution.update(stop_at=limit, interrupted=not unconscious and bool(
             [e for e in pending_events(world) if e.get("decision_status") == "PENDING"]
         ), diagnostics=copy.deepcopy(world.get("scheduled_event_diagnostics", [])))
     return known

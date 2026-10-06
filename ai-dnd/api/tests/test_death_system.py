@@ -17,6 +17,7 @@ if str(AI_DND_DIR) not in sys.path:
 import game
 import campaign_time
 import scheduled_events
+import timed_gameplay
 from api.serializers import serialize_session_state
 from api.tests.test_campaign_time import scene
 from api.tests.test_campaign_time_edges import event
@@ -313,6 +314,128 @@ class DeathSystemTests(unittest.TestCase):
                 self.assertIsNone(after["noncombat_next_save_at"])
                 self.assertIsNone(after["noncombat_episode_id"])
 
+    def test_unconscious_decision_event_progresses_without_interrupting_recovery(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                session = scene()
+                session.character.update(max_hp=20, current_hp=20)
+                session.ensure_death_state()["mode"] = mode
+                session._apply_player_damage(20, took_damage=True)
+                with patch.object(session.rng, "randint", return_value=2):
+                    session.stabilize_player()
+                item = event(
+                    session, "sleeping-decision", 60, 120,
+                    behavior="INTERRUPTIVE", requires_decision=True,
+                    summary="A traveller wants a decision.",
+                    aftermath="The traveller has left.",
+                    effects=[{"kind": "flag", "key": "scheduled:sleeping", "value": True}],
+                )
+                original_heal = game.heal_player
+
+                def heal_at_deadline(amount):
+                    self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 7200)
+                    self.assertEqual(session.character["current_hp"], 0)
+                    self.assertEqual(item["status"], "OCCURRED")
+                    self.assertEqual(item["canonical_result"]["resolved_at"], 120)
+                    self.assertEqual(item["encounter_status"], "MISSED")
+                    self.assertEqual(item["decision_status"], "NONE")
+                    self.assertFalse(item["player_observed"])
+                    self.assertEqual(scheduled_events.public_events(session.world_state), [])
+                    self.assertEqual(scheduled_events.public_pending(session.world_state), [])
+                    return original_heal(amount)
+
+                rng_state = session.rng.getstate()
+                with (
+                    patch.object(session.rng, "randint",
+                                 side_effect=AssertionError("Recovery consumed dice")),
+                    patch("game._resolve_player_death_turn",
+                          side_effect=AssertionError("Stable recovery rolled a death save")),
+                    patch("game.heal_player", side_effect=heal_at_deadline) as heal,
+                ):
+                    progress = session.advance_campaign_time(
+                        18000, "wait", observation={"kind": "look", "location_id": "tavern"}
+                    )
+                    repeated = session.advance_campaign_time(0, "wait")
+                heal.assert_called_once_with(1)
+                self.assertEqual(session.rng.getstate(), rng_state)
+                self.assertEqual(progress["elapsed_seconds"], 18000)
+                self.assertEqual(progress["remaining_seconds"], 0)
+                self.assertFalse(progress["interrupted"])
+                self.assertEqual(progress["death_results"],
+                                 [{"action": "stable_recovery", "current_hp": 1}])
+                self.assertEqual(repeated["death_results"], [])
+                self.assertEqual(session.character["current_hp"], 1)
+                self.assertEqual(session.world_state["player_combat_status"], "active")
+                self.assertIsNone(session.ensure_death_state()["recovery"])
+                self.assertTrue(session.world_state["flags"]["scheduled:sleeping"])
+                self.assertEqual(item["decision_status"], "NONE")
+                # Waking may reveal aftermath, but never retroactively demand
+                # a decision for the window that closed during unconsciousness.
+                self.assertTrue(item["player_observed"])
+                self.assertEqual(item["player_known_summary"], "The traveller has left.")
+                self.assertEqual(len(progress["player_known_events"]), 1)
+
+    def test_unconscious_scheduler_ignores_observation_and_preserves_pending_decisions(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for pending in (False, True):
+                with self.subTest(mode=mode, pending=pending):
+                    session = scene()
+                    session.character.update(max_hp=20, current_hp=20)
+                    session.ensure_death_state()["mode"] = mode
+                    item = event(
+                        session, "existing-decision", 0, 120,
+                        behavior="INTERRUPTIVE", requires_decision=True,
+                        summary="A traveller wants a decision.",
+                    )
+                    if pending:
+                        session.advance_campaign_time(0, "wait")
+                        self.assertEqual(item["decision_status"], "PENDING")
+                        conscious_decisions = scheduled_events.public_pending(session.world_state)
+                        self.assertEqual(len(conscious_decisions), 1)
+                    session._apply_player_damage(20, took_damage=True)
+                    before = copy.deepcopy(item)
+                    self.assertEqual(scheduled_events.public_pending(session.world_state), [])
+                    self.assertEqual(serialize_session_state(session)["pending_event_decisions"], [])
+                    self.assertEqual(game.build_world_context(session=session)["pending_event_decisions"], [])
+                    with patch.object(
+                        session, "require_player_can_act",
+                        side_effect=AssertionError("Unconscious input routed into an encounter decision"),
+                    ):
+                        for text in ("konusmayi seciyorum", "devam", "hayir", "kararim: bekle"):
+                            self.assertIsNone(timed_gameplay.resolve_pending(session, text))
+                    self.assertEqual(item, before)
+                    resolution = {}
+                    known = scheduled_events.process_events(
+                        session.world_state, 0, 90, allow_interrupt=True,
+                        observation={"kind": "look", "location_id": "tavern"},
+                        resolution=resolution,
+                    )
+                    self.assertEqual(known, [])
+                    self.assertEqual(resolution["stop_at"], 90)
+                    self.assertFalse(resolution["interrupted"])
+                    self.assertEqual(item["decision_status"], "PENDING" if pending else "NONE")
+                    self.assertEqual(item["player_observed"], pending)
+                    self.assertEqual(item["canonical_result"], before["canonical_result"])
+                    # A pre-existing decision survives unconsciousness and can
+                    # stop time again once the player is conscious.
+                    if pending:
+                        session.heal_player(1)
+                        self.assertEqual(scheduled_events.public_pending(session.world_state),
+                                         conscious_decisions)
+                        self.assertEqual(serialize_session_state(session)["pending_event_decisions"],
+                                         conscious_decisions)
+                        self.assertEqual(game.build_world_context(session=session)["pending_event_decisions"],
+                                         conscious_decisions)
+                        awake = session.advance_campaign_time(60, "wait")
+                        self.assertTrue(awake["interrupted"])
+                        self.assertEqual(awake["elapsed_seconds"], 0)
+                        selected = timed_gameplay.resolve_pending(session, "konusmayi seciyorum")
+                        self.assertEqual(selected["action"], "event_decision")
+                        self.assertTrue(selected["success"])
+                        self.assertEqual(item["decision_status"], "RESOLVED")
+                        self.assertEqual(item["canonical_result"], before["canonical_result"])
+                        self.assertEqual(serialize_session_state(session)["pending_event_decisions"], [])
+
     def test_stable_recovery_hands_oversized_wait_to_conscious_event_interruption(self):
         for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
             with self.subTest(mode=mode):
@@ -332,6 +455,7 @@ class DeathSystemTests(unittest.TestCase):
                 observation = {"kind": "look", "location_id": "tavern"}
                 unseen = event(
                     session, "while-unconscious", started_at + 60, started_at + 120,
+                    behavior="INTERRUPTIVE", requires_decision=True,
                     summary="A traveller passes while the adventurer sleeps.",
                     aftermath_visible=False,
                 )

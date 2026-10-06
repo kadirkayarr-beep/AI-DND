@@ -652,6 +652,8 @@ def resolve_task(session, text, budget):
 def resolve_pending(session, normalized):
     """Player chooses; events only identify reality and a canonical combat target."""
     world = session.world_state
+    if world.get("player_combat_status") == "unconscious":
+        return None
     pending = [e for e in pending_events(world) if e.get("decision_status") == "PENDING"]
     if not pending:
         return None

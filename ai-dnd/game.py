@@ -5406,7 +5406,8 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
             midnight = campaign_time.DAY - (world["campaign_time"]["start_second"] + now) % campaign_time.DAY
             step = min(step, midnight)
         result = campaign_time.advance(
-            world, step, reason, source, observation=None if zero else observation
+            world, step, reason, source,
+            observation=None if zero or world.get("player_combat_status") == "unconscious" else observation,
         )
         elapsed += result["elapsed_seconds"]
         remaining -= result["elapsed_seconds"]
