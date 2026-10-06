@@ -5156,6 +5156,83 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertIn("status='200'", error.id())
                     self.assertIn("KeyError: '200'", traceback)
 
+    def test_campaign_summary_and_detail_unexpected_properties_fail_in_both_formats(self):
+        field_name = "unexpected"
+        declaration = {"type": "string"}
+        for schema_name, model in (
+            ("CampaignSummary", CampaignSummary),
+            ("CampaignDetail", CampaignDetailResponse),
+        ):
+            original = deepcopy(_schema(schema_name))
+            self.assertEqual(set(original["properties"]), _runtime_field_names(model))
+            self.assertNotIn(field_name, original["properties"])
+            self.assertNotIn(field_name, original["required"])
+            for flow_style in (False, True):
+                with self.subTest(schema=schema_name, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    spec["components"]["schemas"][schema_name]["properties"][
+                        field_name
+                    ] = deepcopy(declaration)
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    mutated = parsed["components"]["schemas"][schema_name]
+                    self.assertEqual(
+                        mutated["properties"],
+                        {**original["properties"], field_name: declaration},
+                    )
+                    self.assertEqual(mutated["required"], original["required"])
+                    self.assertNotIn(field_name, mutated["required"])
+                    self.assertEqual(
+                        mutated["additionalProperties"], original["additionalProperties"],
+                    )
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    # Removing just the optional declaration restores every
+                    # original property, required list, policy and route.
+                    restored = deepcopy(parsed)
+                    del restored["components"]["schemas"][schema_name]["properties"][
+                        field_name
+                    ]
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        for test_name in (
+                            "test_campaign_summary_scalar_fields_match_runtime_model",
+                            "test_campaign_detail_summary_reference_matches_runtime_model",
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_health_route_bindings_match_fastapi",
+                            "test_character_setup_route_bindings_match_fastapi",
+                            "test_campaign_read_route_bindings_match_fastapi",
+                            "test_session_creation_and_campaign_resume_route_bindings_match_fastapi",
+                            "test_campaign_creation_and_save_route_bindings_match_fastapi",
+                            "test_turn_route_bindings_match_fastapi",
+                            "test_species_action_route_bindings_match_fastapi",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertEqual(unchanged.testsRun, 1)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_campaign_and_session_schema_fields_match_fastapi_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    comparison, failure = result.failures[0]
+                    self.assertIn(f"schema='{schema_name}'", comparison.id())
+                    self.assertNotIn("field=", comparison.id())
+                    self.assertIn(
+                        "self.assertEqual(_property_names(schema_name), _runtime_field_names(model))",
+                        failure,
+                    )
+                    self.assertIn("Items in the first set but not the second:", failure)
+                    self.assertIn(repr(field_name), failure)
+            self.assertEqual(_schema(schema_name), original)
+
     def test_campaign_detail_summary_wrong_references_fail_in_both_formats(self):
         original = _property("CampaignDetail", "campaign")
         for wrong_model in ("GameSession", "CampaignHistoryEntry"):
