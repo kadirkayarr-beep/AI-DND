@@ -41,3 +41,4 @@
 - [Merchant discovery test boundaries](merchant-discovery-tests.md) — city materialization can add unrelated NPCs; resume can update campaign metadata without changing gameplay.
 - [Authored adventure authority](authored-adventure-authority.md) — owner approved a Python local catalog; source-approved possibilities remain distinct from established campaign history.
 - [Defaulted response requirements](defaulted-response-requirements.md) — response presence guarantees differ from Pydantic construction requirements for defaulted health fields.
+- [Git guard errors](git-guard-errors.md) — read-only Git inspections can hit the tool's index-lock guard; this is not proof of repository corruption.

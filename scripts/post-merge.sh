@@ -1,4 +1,6 @@
 #!/bin/bash
-set -e
-pnpm install --frozen-lockfile
-pnpm --filter db push
+set -euo pipefail
+
+CI=true pnpm install --frozen-lockfile
+# AI-DND owns SQLite campaign migrations. Do not push the unused, empty
+# PostgreSQL template schema automatically during unrelated task merges.
