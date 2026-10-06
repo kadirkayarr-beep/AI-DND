@@ -1412,6 +1412,19 @@ def create_app(
                     restore_command()
                 except Exception:
                     pass
+                if isinstance(error, CampaignStaleError):
+                    # The winning receipt may only become visible at save time.
+                    # Classify changed commands after rolling back speculative
+                    # mechanics; identical requests retain stale-save recovery.
+                    try:
+                        previous = manager.get_turn_action(record, action_id)
+                    except CampaignError as receipt_error:
+                        raise campaign_http_exception(receipt_error) from None
+                    if previous is not None and previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different action.",
+                        }) from None
                 raise campaign_http_exception(error) from None
             except Exception:
                 try:
