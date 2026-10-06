@@ -1796,6 +1796,23 @@ class ContractParityTests(unittest.TestCase):
                     f"{schema_name}.{field_name} reference target",
                 )
 
+    def test_schema_required_declarations_are_lists_of_unique_strings(self):
+        # Validate structure separately: set-based parity intentionally ignores
+        # ordering, but also hides duplicate names and accepts mapping keys.
+        for schema_name in SPEC["components"]["schemas"]:
+            with self.subTest(schema=schema_name):
+                required = _schema(schema_name).get("required", [])
+                label = f"{schema_name}.required"
+                self.assertIsInstance(required, list, f"{label} must be a list")
+                self.assertTrue(
+                    all(isinstance(name, str) for name in required),
+                    f"{label} must contain only strings",
+                )
+                self.assertEqual(
+                    len(required), len(set(required)),
+                    f"{label} must contain unique strings",
+                )
+
     def test_quest_command_result_shape_matches_runtime_model(self):
         schema_name = "QuestCommandResult"
         runtime = QuestCommandResult.model_json_schema(
@@ -3027,6 +3044,88 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(
                             f"{schema_name}.objectives.items reference target", failure
                         )
+
+    def test_required_declaration_structure_drift_fails_in_both_formats(self):
+        schema_name = "QuestCommandResult"
+        original = deepcopy(_schema(schema_name)["required"])
+        structure_test = "test_schema_required_declarations_are_lists_of_unique_strings"
+        shape_test = "test_quest_command_result_shape_matches_runtime_model"
+        mutations = (
+            ("duplicate", original + [original[0]], "must contain unique strings", True),
+            ("mapping", dict.fromkeys(original), "must be a list", True),
+            ("scalar", original[0], "must be a list", False),
+            ("null", None, "must be a list", False),
+            ("integer", original + [1], "must contain only strings", False),
+            ("boolean", original + [True], "must contain only strings", False),
+            ("null item", original + [None], "must contain only strings", False),
+            ("mapping item", original + [{}], "must contain only strings", False),
+            ("list item", original + [[]], "must contain only strings", False),
+        )
+        for mutation, replacement, diagnostic, same_membership in mutations:
+            for flow_style in (False, True):
+                with self.subTest(mutation=mutation, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    spec["components"]["schemas"][schema_name]["required"] = (
+                        deepcopy(replacement)
+                    )
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    # Restoring only required proves properties, references,
+                    # routes, and all other declarations remain unchanged.
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"][schema_name]["required"] = (
+                        deepcopy(original)
+                    )
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=restored):
+                        baseline = unittest.TestResult()
+                        ContractParityTests(structure_test).run(baseline)
+                        ContractParityTests(shape_test).run(baseline)
+                    self.assertEqual(baseline.testsRun, 2)
+                    self.assertTrue(
+                        baseline.wasSuccessful(), baseline.failures + baseline.errors,
+                    )
+                    with patch.dict(globals(), SPEC=parsed):
+                        result = unittest.TestResult()
+                        ContractParityTests(structure_test).run(result)
+                        if same_membership:
+                            # These are the regressions that normalization
+                            # previously hid; membership parity still passes.
+                            inventory = unittest.TestResult()
+                            ContractParityTests(shape_test).run(inventory)
+                            self.assertTrue(
+                                inventory.wasSuccessful(),
+                                inventory.failures + inventory.errors,
+                            )
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(
+                        f"{schema_name}.required {diagnostic}", result.failures[0][1],
+                    )
+        self.assertEqual(_schema(schema_name)["required"], original)
+
+    def test_unique_required_lists_accept_reordering_in_both_formats(self):
+        for flow_style in (False, True):
+            with self.subTest(compact=flow_style):
+                spec = deepcopy(SPEC)
+                spec["components"]["schemas"]["QuestCommandResult"]["required"].reverse()
+                parsed = _load_spec(
+                    yaml.safe_dump(spec, default_flow_style=flow_style)
+                )
+                self.assertEqual(parsed, spec)
+                result = unittest.TestResult()
+                with patch.dict(globals(), SPEC=parsed):
+                    ContractParityTests(
+                        "test_schema_required_declarations_are_lists_of_unique_strings"
+                    ).run(result)
+                    ContractParityTests(
+                        "test_quest_command_result_shape_matches_runtime_model"
+                    ).run(result)
+                self.assertEqual(result.testsRun, 2)
+                self.assertTrue(result.wasSuccessful(), result.failures + result.errors)
 
     def test_quest_command_result_shape_mutations_fail_in_both_formats(self):
         schema_name = "QuestCommandResult"
