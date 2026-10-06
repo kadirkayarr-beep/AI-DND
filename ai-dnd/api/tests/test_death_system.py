@@ -835,8 +835,27 @@ class DeathSystemTests(unittest.TestCase):
                             mode, roll, outcome, failures, healing_amounts=(amount,)
                         )
 
+    def test_rejected_max_hp_preserves_pending_noncombat_saves_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for roll, outcome, failures in ((4, "failure", 1), (1, "natural_1", 2)):
+                for maximum in (-1, 1.0, 1.5, "1", None, True, False):
+                    with self.subTest(mode=mode, outcome=outcome, maximum=maximum):
+                        self._assert_pending_failed_noncombat_reopening(
+                            mode, roll, outcome, failures, rejected_maximum=(maximum,)
+                        )
+
+    def test_positive_max_hp_change_preserves_pending_noncombat_saves_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for roll, outcome, failures in ((4, "failure", 1), (1, "natural_1", 2)):
+                for maximum in (1, 35):
+                    with self.subTest(mode=mode, outcome=outcome, maximum=maximum):
+                        self._assert_pending_failed_noncombat_reopening(
+                            mode, roll, outcome, failures, positive_maximum=maximum
+                        )
+
     def _assert_pending_failed_noncombat_reopening(
-        self, mode, roll, outcome, failures, *, healing_amounts=()
+        self, mode, roll, outcome, failures, *, healing_amounts=(),
+        rejected_maximum=(), positive_maximum=None
     ):
         source = make_session()
         peer = make_session(seed=29)
@@ -944,6 +963,68 @@ class DeathSystemTests(unittest.TestCase):
                         self.assertEqual(owner.messages, owner_history)
                         assert_preserved()
 
+            def assert_maximum_preserves_pending(owner):
+                before = copy.deepcopy(owner.serialize_game_state())
+                expected = copy.deepcopy(before)
+                owner_rng = owner.rng.getstate()
+                owner_history = copy.deepcopy(owner.messages)
+                with (
+                    patch.object(
+                        owner.rng, "randint",
+                        side_effect=AssertionError("HP maximum consumed RNG"),
+                    ) as die,
+                    patch("game.roll_d20",
+                          side_effect=AssertionError("HP maximum rolled a death save")),
+                    patch("game.heal_player",
+                          side_effect=AssertionError("HP maximum healed")),
+                ):
+                    for maximum in rejected_maximum:
+                        with self.assertRaisesRegex(ValueError, "^HP maximum is invalid\\.$"):
+                            owner.set_player_max_hp(maximum)
+                        self.assertEqual(owner.serialize_game_state(), before)
+                        assert_preserved()
+                    if positive_maximum is not None:
+                        expected["player"]["max_hp"] = positive_maximum
+                        self.assertIsNone(owner.set_player_max_hp(positive_maximum))
+                        self.assertEqual(owner.serialize_game_state(), expected)
+                        # Only this owner's maximum may change. Keep comparing
+                        # its full state against that explicitly checked delta.
+                        if owner is source:
+                            snapshots[0] = expected
+                    die.assert_not_called()
+                self.assertEqual(owner.serialize_game_state(), expected)
+                self.assertEqual(owner.ensure_death_state(), death)
+                self.assertEqual(owner.character["current_hp"], 0)
+                self.assertEqual(owner.world_state["player_combat_status"], "unconscious")
+                self.assertFalse(owner.world_state["combat"]["active"])
+                self.assertEqual(owner.rng.getstate(), owner_rng)
+                self.assertEqual(owner.messages, owner_history)
+                assert_preserved()
+
+            # Maximum changes must leave both the persisted source and its
+            # reopened copy unconscious, with the same pending episode.
+            if rejected_maximum or positive_maximum is not None:
+                assert_maximum_preserves_pending(source)
+                maximum_path = Path(directory) / "after-maximum-change.json"
+                with (
+                    patch.object(source.rng, "randint",
+                                 side_effect=AssertionError("HP maximum save consumed RNG")),
+                    patch("game.roll_d20",
+                          side_effect=AssertionError("HP maximum save rolled")),
+                ):
+                    self.assertEqual(source.save_game(maximum_path), maximum_path)
+                committed = source.serialize_game_state()
+                saved_files[maximum_path] = maximum_path.read_bytes()
+                expected_saved = json.loads(saved_files[pending_path])
+                if positive_maximum is not None:
+                    expected_saved["player"]["max_hp"] = positive_maximum
+                else:
+                    self.assertEqual(saved_files[maximum_path], saved_files[pending_path])
+                self.assertEqual(json.loads(saved_files[maximum_path]), expected_saved)
+                self.assertEqual(committed, expected_saved)
+                assert_preserved()
+                pending_path = maximum_path
+
             # The persisted source and its reopened copy must both reject
             # ineffective healing without cancelling or restarting this episode.
             assert_ineffective_healing(source)
@@ -995,6 +1076,8 @@ class DeathSystemTests(unittest.TestCase):
                 )
 
             assert_ineffective_healing(reopened)
+            if rejected_maximum or positive_maximum is not None:
+                assert_maximum_preserves_pending(reopened)
             reference = random.Random()
             reference.setstate(load_rng)
             expected_roll = reference.randint(1, 20)
