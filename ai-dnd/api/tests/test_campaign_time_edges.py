@@ -978,6 +978,190 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), receipt)
                 assert_prior_receipt(manager, store, active_record)
 
+    async def test_completed_orc_short_rest_receipt_sql_failure_reopens_retries_and_replays(self):
+        campaign_id = self.created["campaign_id"]
+        record = self.manager.get(self.sid)
+        session = record.game_session
+        session.character.update(
+            species="Orc", race="Orc", level=1, proficiency_bonus=2,
+            current_hp=7, max_hp=19,
+        )
+        game.initialize_species_trait_state(session=session)
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        session.character["species_trait_state"]["relentless_endurance_available"] = False
+        depleted_traits = copy.deepcopy(session.character["species_trait_state"])
+        recovered_traits = {**depleted_traits, "adrenaline_rush_uses_remaining": 2}
+
+        # Seed genuine history and a receipt before rejecting only the new rest.
+        prior_request = {"message": "5 dakika bekliyorum.", "action_id": str(uuid4())}
+        prior = await self.http.post(f"/api/game/sessions/{self.sid}/turn", json=prior_request)
+        self.assertEqual(prior.status_code, 200, prior.text)
+        prior_receipt = copy.deepcopy(self.store.get_turn_action(campaign_id, prior_request["action_id"]))
+        self.assertEqual(prior_receipt["response"], prior.json())
+        baseline = copy.deepcopy(session.serialize_game_state())
+        baseline_rng = session.rng.getstate()
+        saved_history = copy.deepcopy(self.store.get_campaign(campaign_id).history)
+        self.assertTrue(saved_history)
+        self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 300)
+        request = {"action": "short_rest", "action_id": str(uuid4())}
+
+        def snapshot(active_record):
+            active = active_record.game_session
+            return copy.deepcopy((
+                active.serialize_game_state(), active.rng.getstate(), active.messages,
+                active_record.journal, active_record.narrative_memory,
+                active_record.combat_history, active_record.turn_action_receipts,
+            ))
+
+        def database_snapshot(store):
+            with closing(store._connect()) as db:
+                return tuple(db.iterdump())
+
+        def assert_recovered(character, world):
+            self.assertEqual(character["species"], "Orc")
+            self.assertEqual(character["current_hp"], 7)
+            self.assertEqual(character["species_trait_state"], recovered_traits)
+            self.assertEqual(world["campaign_time"]["elapsed_seconds"], 3900)
+            self.assertEqual(events.pending_events(world), [])
+
+        def assert_response(response):
+            self.assertEqual(response["action_id"], request["action_id"])
+            self.assertEqual(response["result"]["action"], "short_rest")
+            effects = response["result"]["effects"]
+            self.assertEqual(effects["adrenaline_rush_uses_refreshed"], 2)
+            self.assertFalse(effects["time_result"]["interrupted"])
+            self.assertEqual(effects["time_result"]["elapsed_seconds"], 3600)
+            self.assertEqual(response["state"]["character"]["species_trait_state"], recovered_traits)
+            self.assertEqual(response["state"]["character"]["current_hp"], 7)
+            self.assertEqual(response["state"]["pending_event_decisions"], [])
+
+        def assert_prior_receipt(manager, store, active_record):
+            self.assertEqual(manager.get_turn_action(active_record, prior_request["action_id"]), prior_receipt)
+            self.assertEqual(store.get_turn_action(campaign_id, prior_request["action_id"]), prior_receipt)
+
+        # The real transaction writes campaign/history before this late abort.
+        with closing(self.store._connect()) as db:
+            db.execute("""CREATE TRIGGER reject_completed_short_rest_receipt
+                          BEFORE INSERT ON campaign_turn_actions
+                          BEGIN SELECT RAISE(ABORT, 'injected completed rest receipt failure'); END""")
+
+        async def assert_failed(http, manager, store, sid):
+            active_record = manager.get(sid)
+            active = active_record.game_session
+            self.assertEqual(active.serialize_game_state(), baseline)
+            self.assertEqual(active.rng.getstate(), baseline_rng)
+            before = snapshot(active_record)
+            stored = store.get_campaign(campaign_id)
+            database_before = database_snapshot(store)
+            real_save = store.save_campaign
+
+            def observe_save(*args, **kwargs):
+                # Prove recovery actually happened before SQLite rejected it.
+                assert_recovered(active.character, active.world_state)
+                candidate = kwargs["turn_action_receipt"]
+                self.assertEqual(candidate["action_id"], request["action_id"])
+                assert_response(candidate["response"])
+                return real_save(*args, **kwargs)
+
+            with patch.object(active, "resolve_species_trait_action",
+                              wraps=active.resolve_species_trait_action) as resolve, \
+                 patch.object(store, "save_campaign", side_effect=observe_save) as save:
+                failed = await http.post(f"/api/game/sessions/{sid}/species-actions", json=request)
+            self.assertEqual(failed.status_code, 503, failed.text)
+            self.assertEqual(resolve.call_count, 1)
+            self.assertEqual(save.call_count, 1)
+            self.assertEqual(snapshot(active_record), before)
+            self.assertEqual(active.serialize_game_state(), baseline)
+            self.assertEqual(active.character["species_trait_state"], depleted_traits)
+            self.assertEqual(active.world_state["campaign_time"]["elapsed_seconds"], 300)
+            self.assertEqual(active.rng.getstate(), baseline_rng)
+            self.assertEqual(store.get_campaign(campaign_id), stored)
+            self.assertEqual(stored.payload["engine_save"], baseline)
+            self.assertEqual(stored.history, saved_history)
+            self.assertEqual(database_snapshot(store), database_before)
+            assert_prior_receipt(manager, store, active_record)
+            self.assertNotIn(request["action_id"], active_record.turn_action_receipts)
+            self.assertIsNone(manager.get_turn_action(active_record, request["action_id"]))
+            self.assertIsNone(store.get_turn_action(campaign_id, request["action_id"]))
+
+        await assert_failed(self.http, self.manager, self.store, self.sid)
+        previous_session = session
+        response = receipt = committed = None
+        async with AsyncExitStack() as clients:
+            # Reproduce the abort with fresh owners, retry from disk, and reopen.
+            for attempt in range(3):
+                store = CampaignStore(self.store.path)
+                manager = SessionManager(session_factory=scene, campaign_store=store)
+                app = v1.create_app(session_manager=manager,
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                http = await clients.enter_async_context(httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app), base_url="http://test",
+                ))
+                resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
+                self.assertEqual(resumed.status_code, 200, resumed.text)
+                sid = resumed.json()["session_id"]
+                active_record = manager.get(sid)
+                active = active_record.game_session
+                self.assertIsNot(active, previous_session)
+                previous_session = active
+                assert_prior_receipt(manager, store, active_record)
+                if attempt == 0:
+                    await assert_failed(http, manager, store, sid)
+                    with closing(store._connect()) as db:
+                        db.execute("DROP TRIGGER reject_completed_short_rest_receipt")
+                    continue
+
+                if attempt == 1:
+                    self.assertEqual(active.serialize_game_state(), baseline)
+                    self.assertEqual(active.rng.getstate(), baseline_rng)
+                    with patch.object(active, "resolve_species_trait_action",
+                                      wraps=active.resolve_species_trait_action) as resolve, \
+                         patch.object(store, "save_campaign", wraps=store.save_campaign) as save:
+                        retried = await http.post(f"/api/game/sessions/{sid}/species-actions", json=request)
+                    self.assertEqual(retried.status_code, 200, retried.text)
+                    self.assertEqual(resolve.call_count, 1)
+                    self.assertEqual(save.call_count, 1)
+                    response = retried.json()
+                    assert_response(response)
+                    committed = store.get_campaign(campaign_id)
+                    self.assertEqual(committed.history[:-1], saved_history)
+                    self.assertEqual(len(committed.history), len(saved_history) + 1)
+                    self.assertEqual(committed.payload["engine_save"], active.serialize_game_state())
+                    receipt = copy.deepcopy(store.get_turn_action(campaign_id, request["action_id"]))
+                    self.assertEqual(receipt["response"], response)
+                else:
+                    self.assertEqual(active.serialize_game_state(), committed.payload["engine_save"])
+                    self.assertEqual(store.get_campaign(campaign_id).history, committed.history)
+
+                assert_recovered(active.character, active.world_state)
+                assert_recovered(committed.payload["engine_save"]["player"],
+                                 committed.payload["engine_save"]["world_state"])
+                self.assertEqual(active.rng.getstate(), baseline_rng)
+                before_replay = snapshot(active_record)
+                stored_before_replay = store.get_campaign(campaign_id)
+                database_before_replay = database_snapshot(store)
+                expected = copy.deepcopy(response)
+                expected["session_id"] = sid
+                with patch.object(active, "resolve_species_trait_action",
+                                  side_effect=AssertionError("Replay repeated recovery")), \
+                     patch.object(active, "advance_campaign_time",
+                                  side_effect=AssertionError("Replay advanced time")), \
+                     patch.object(events, "_occur",
+                                  side_effect=AssertionError("Replay applied event effects")), \
+                     patch.object(manager, "autosave_turn",
+                                  side_effect=AssertionError("Replay saved another turn")), \
+                     patch.object(store, "save_campaign",
+                                  side_effect=AssertionError("Replay wrote the campaign")):
+                    replay = await http.post(f"/api/game/sessions/{sid}/species-actions", json=request)
+                self.assertEqual(replay.status_code, 200, replay.text)
+                self.assertEqual(replay.json(), expected)
+                self.assertEqual(snapshot(active_record), before_replay)
+                self.assertEqual(store.get_campaign(campaign_id), stored_before_replay)
+                self.assertEqual(database_snapshot(store), database_before_replay)
+                self.assertEqual(store.get_turn_action(campaign_id, request["action_id"]), receipt)
+                self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), receipt)
+                assert_prior_receipt(manager, store, active_record)
+
     async def test_interrupted_long_rest_failed_autosave_rolls_back_then_retries_and_reopens(self):
         record = self.manager.get(self.sid)
         session = record.game_session
