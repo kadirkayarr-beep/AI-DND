@@ -6702,6 +6702,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reopened_declined_merchant_search_does_not_rediscover_or_duplicate(self):
         city_id = "fr:city:neverwinter"
+        # Ambient scene selection is seeded by campaign UUID, not session RNG.
+        # A random BLUE referent can match "tüccar" and legitimately promote a
+        # separate traveler. This fixture tests merchant rediscovery, not that
+        # independent promotion. Keep the real scene/engine owners and a known
+        # non-overlapping ambient seed; campaign/session/action UUIDs stay real.
+        original_context = living_world.set_ambient_context
+
+        def fixture_context(world, metadata, character, campaign_id):
+            return original_context(
+                world, metadata, character,
+                "10000000-0000-4000-8000-000000000001",
+            )
+
+        self.enterContext(patch.object(living_world, "set_ambient_context",
+                                      new=fixture_context))
         response = await self.http.post(
             "/api/game/campaigns",
             json={

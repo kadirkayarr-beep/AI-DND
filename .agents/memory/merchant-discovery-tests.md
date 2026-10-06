@@ -18,8 +18,21 @@ referent NPC. That legitimate, variable scene outcome is not merchant rediscover
 **How to apply:** Use a real observation turn before merchant discovery; retain
 the strict no-new-shop/NPC-identity and persisted replay assertions afterward.
 
-Offline negative-search HTTP regressions should fixture only the model boundary, not replace the engine turn or require that no model call occurs.
+Offline negative-search HTTP regressions must not replace the engine turn or require that no model call occurs.
 
 **Why:** Deterministic merchant discovery can succeed without a model, while a declined search with the saved merchant still active can legitimately reach intent parsing and narration. A client that rejects every model call tests unavailability instead of the accepted non-search action.
 
 **How to apply:** Supply non-mutating model packets for the negative input, observe the signature-preserved real turn, and assert the non-search outcome, saved narration/history, and unchanged shop/NPC identities.
+
+Strict unchanged-NPC negative-search fixtures must also scope their independent
+ambient selector context; seeding session RNG alone does not control it.
+
+**Why:** The apparent wide-versus-narrow merchant failure was reproduced as
+campaign-UUID-dependent BLUE referent promotion into a separate traveler, not
+merchant duplication or demonstrated model-binding leakage. First-visit
+materialization alone did not prevent the alias overlap on the later input.
+
+**How to apply:** Keep real scene/turn owners and merchant/replay assertions,
+use an explicit non-overlapping ambient seed for this narrow fixture, and verify
+the selector and model callbacks are restored after repeated runs. Do not
+suppress production ambient behavior or treat every additional NPC as a merchant.

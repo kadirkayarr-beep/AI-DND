@@ -840,6 +840,10 @@ def public_expedition(session, *, snapshot=None):
             actions.append({"label": "İzi yeniden aramayı sürdür", "message": "/travel reacquire"})
         import exploration
         for gate in exploration.visible_doors(world):
+            # Legacy doors may have no addressable identity. Keep their saved
+            # facts, but never fabricate an unlock command (or a new identity).
+            if not isinstance(gate.get("id"), str) or not gate["id"].strip():
+                continue
             if gate.get("location") == world["location"] and not gate.get("hidden", False):
                 if gate.get("locked"):
                     actions.append({"label": gate["name"] + " · kilidi aç",

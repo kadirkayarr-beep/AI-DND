@@ -45,6 +45,7 @@ from api.ollama_adapter import (
     RequiredModelUnavailableError,
     canonical_world_metadata_context,
 )
+from api.lore_authority.campaign_state import CANONICAL_LOCATION_TYPES
 from api.narrative_director import (
     install_narrative_context_adapter,
     narrative_turn_context,
@@ -177,7 +178,7 @@ def _lore_context_for_turn(
     current_location = registry.entity(current_location_id)
     if (
         current_location is None
-        or current_location.entity_type.value != "CANONICAL_LOCATION"
+        or current_location.entity_type not in CANONICAL_LOCATION_TYPES
     ):
         current_location_id = state.current_location_entity_id
     present_npc_ids = {
@@ -782,9 +783,7 @@ def create_app(
                 isinstance(active_adapter, bounded_encounter.MechanicalTurnContext)
                 and active_adapter.adapter is not None
             )
-            metadata_snapshot = dict(
-                getattr(session, "world_metadata", {})
-            )
+            metadata_snapshot = copy.deepcopy(getattr(session, "world_metadata", None))
             journal_snapshot = copy.deepcopy(record.journal)
             narrative_memory_snapshot = copy.deepcopy(
                 record.narrative_memory
@@ -794,6 +793,16 @@ def create_app(
                 "lore_authority",
                 CampaignLoreState.legacy_unbound(),
             )
+
+            def restore_turn_snapshot() -> None:
+                # Checkpoint restoration can replace these separately-owned
+                # values before an engine/model failure rejects the turn.
+                _restore_session(session, snapshot)
+                session.world_metadata = copy.deepcopy(metadata_snapshot)
+                record.journal = copy.deepcopy(journal_snapshot)
+                record.narrative_memory = copy.deepcopy(narrative_memory_snapshot)
+                record.lore_authority = lore_authority_snapshot
+
             narrative_player_message = redact_sensitive_values(
                 request.message
             )
@@ -871,7 +880,7 @@ def create_app(
                                 result = run_turn(request.message, **run_kwargs)
             except Exception as error:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_turn_snapshot()
                 except Exception as restore_error:
                     _logger.critical(
                         "Session rollback failed (error_type=%s)",
@@ -902,7 +911,7 @@ def create_app(
 
             if model_failures:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_turn_snapshot()
                 except Exception as error:
                     _logger.critical(
                         "Session rollback failed after model error (error_type=%s)",
@@ -922,7 +931,7 @@ def create_app(
 
             if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
                 try:
-                    _restore_session(session, snapshot)
+                    restore_turn_snapshot()
                 except Exception as error:
                     _logger.critical(
                         "Session rollback failed after model-call limit (error_type=%s)",
@@ -940,7 +949,7 @@ def create_app(
             narration = result.get("narration") if isinstance(result, dict) else None
             if not isinstance(narration, str) or not narration.strip():
                 try:
-                    _restore_session(session, snapshot)
+                    restore_turn_snapshot()
                 except Exception as error:
                     _logger.critical(
                         "Session rollback failed after invalid engine result (error_type=%s)",

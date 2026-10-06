@@ -14,6 +14,13 @@ from .models import (
     VisibilityScope,
 )
 
+# The same reviewed location types govern binding and turn-context selection.
+CANONICAL_LOCATION_TYPES = frozenset({
+    EntityType.CITY, EntityType.TOWN, EntityType.VILLAGE,
+    EntityType.DISTRICT, EntityType.LANDMARK, EntityType.INN_TAVERN,
+    EntityType.TEMPLE,
+})
+
 if TYPE_CHECKING:
     from .registry import LoreRegistry
 
@@ -62,15 +69,7 @@ def bind_campaign(
         EntityType.KINGDOM_NATION,
     }:
         raise ValueError("The selected region is not a verified registry region.")
-    if location is None or location.entity_type not in {
-        EntityType.CITY,
-        EntityType.TOWN,
-        EntityType.VILLAGE,
-        EntityType.DISTRICT,
-        EntityType.LANDMARK,
-        EntityType.INN_TAVERN,
-        EntityType.TEMPLE,
-    }:
+    if location is None or location.entity_type not in CANONICAL_LOCATION_TYPES:
         raise ValueError("The selected starting location is not a verified registry location.")
     if region_id not in registry.geography_ancestors({starting_location_id}):
         raise ValueError("The starting location has no sourced link to the selected region.")
