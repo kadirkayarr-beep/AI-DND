@@ -1,4 +1,4 @@
-"""Offline HTTP races between independently loaded species command sessions."""
+"""Offline HTTP species command races and late persistence rollback."""
 
 import asyncio
 import copy
@@ -6,7 +6,7 @@ from contextlib import closing, ExitStack
 from functools import wraps
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 from uuid import uuid4
 
 import httpx
@@ -48,6 +48,150 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
                 for table in ("campaigns", "campaign_history",
                               "campaign_combat_history", "campaign_turn_actions")
             }
+
+    async def test_healing_hands_receipt_sql_failure_rolls_back_then_retries_and_replays(self):
+        created = await self.create_campaign()
+        campaign_id, sid = created["campaign_id"], created["session_id"]
+        record = self.manager.get(sid)
+        session = record.game_session
+        session.character.update(
+            species="Aasimar", race="Aasimar", level=3,
+            proficiency_bonus=2, current_hp=1, max_hp=40,
+        )
+        session.initialize_species_trait_state()
+        session.rng.seed(812)
+        self.manager.save_campaign(campaign_id)
+        command = {"action": "healing_hands", "action_id": str(uuid4())}
+        url = f"/api/game/sessions/{sid}/species-actions"
+        baseline = self.runtime(record)
+        baseline_rows = self.rows(campaign_id)
+        saved_before = self.store.get_campaign(campaign_id)
+        self.assertEqual(session.character["species_trait_state"]
+                         ["healing_hands_uses_remaining"], 1)
+        attempts = []
+        real_save = self.store.save_campaign
+
+        @wraps(real_save)
+        def observe_save(*args, **kwargs):
+            # Observe the real handler after healing/dice but before SQLite
+            # rejects the receipt, late in the state/history transaction.
+            attempts.append((self.runtime(record),
+                             copy.deepcopy(kwargs["turn_action_receipt"])))
+            return real_save(*args, **kwargs)
+
+        with closing(self.store._connect()) as db:
+            db.execute("""CREATE TRIGGER reject_healing_receipt
+                          BEFORE INSERT ON campaign_turn_actions
+                          BEGIN SELECT RAISE(ABORT, 'injected healing receipt failure'); END""")
+        try:
+            with (
+                patch.object(self.store, "save_campaign", side_effect=observe_save) as save,
+                patch.object(session, "resolve_species_trait_action",
+                             wraps=session.resolve_species_trait_action) as ability,
+                patch.object(session.rng, "randint", wraps=session.rng.randint) as dice,
+            ):
+                failed = await self.http.post(url, json=command)
+            self.assertEqual(failed.status_code, 503, failed.text)
+            self.assertEqual(failed.json()["detail"]["code"], "campaign_storage_unavailable")
+            save.assert_called_once()
+            ability.assert_called_once()
+            self.assertEqual(dice.call_args_list, [call(1, 4)] * 2)
+            self.assertEqual(len(attempts), 1)
+            speculative, failed_receipt = attempts[0]
+            self.assertGreater(speculative["engine"]["player"]["current_hp"], 1)
+            self.assertEqual(speculative["engine"]["player"]["species_trait_state"]
+                             ["healing_hands_uses_remaining"], 0)
+            self.assertNotEqual(speculative["rng"], baseline["rng"])
+            self.assertEqual(failed_receipt["action_id"], command["action_id"])
+            self.assertEqual(failed_receipt["response"]["result"]["action"], "healing_hands")
+            self.assertEqual(self.runtime(record), baseline)
+            self.assertEqual(self.rows(campaign_id), baseline_rows)
+            self.assertEqual(self.store.get_campaign(campaign_id), saved_before)
+            self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        finally:
+            with closing(self.store._connect()) as db:
+                db.execute("DROP TRIGGER reject_healing_receipt")
+
+        with (
+            patch.object(self.store, "save_campaign", wraps=real_save) as save,
+            patch.object(session, "resolve_species_trait_action",
+                         wraps=session.resolve_species_trait_action) as ability,
+            patch.object(session.rng, "randint", wraps=session.rng.randint) as dice,
+        ):
+            accepted = await self.http.post(url, json=command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        save.assert_called_once()
+        ability.assert_called_once()
+        self.assertEqual(dice.call_args_list, [call(1, 4)] * 2)
+        # An uncommitted attempt may have new history IDs on retry, but the
+        # restored RNG must produce exactly the same healing mechanics.
+        self.assertEqual(accepted.json()["result"], failed_receipt["response"]["result"])
+        self.assertEqual(self.runtime(record)["engine"], speculative["engine"])
+        self.assertEqual(session.rng.getstate(), speculative["rng"])
+        committed = self.store.get_campaign(campaign_id)
+        receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(receipt["response"], accepted.json())
+        self.assertEqual(committed.metadata["revision"], saved_before.metadata["revision"] + 1)
+        self.assertEqual(committed.history[:-1], saved_before.history)
+        self.assertEqual(len(committed.history), len(saved_before.history) + 1)
+        self.assertEqual(committed.history[-1]["player_message"], "healing_hands")
+        self.assertEqual(committed.history[-1]["narration"], accepted.json()["result"]["message"])
+        self.assertEqual(committed.payload["engine_save"], session.serialize_game_state())
+        committed_rows = self.rows(campaign_id)
+        self.assertEqual(committed_rows["campaign_combat_history"],
+                         baseline_rows["campaign_combat_history"])
+        self.assertEqual(len(committed_rows["campaign_turn_actions"]),
+                         len(baseline_rows["campaign_turn_actions"]) + 1)
+
+        async def assert_replay(client, manager, store, replay_sid):
+            replay_record = manager.get(replay_sid)
+            before = self.runtime(replay_record)
+            before_rows = self.rows(campaign_id)
+            with ExitStack() as stack:
+                guards = [
+                    stack.enter_context(patch.object(
+                        owner, name, side_effect=AssertionError(f"Replay called {name}"),
+                    ))
+                    for owner, name in (
+                        (replay_record.game_session, "resolve_species_trait_action"),
+                        (replay_record.game_session.rng, "randint"),
+                        (replay_record.game_session.rng, "getrandbits"),
+                        (manager, "autosave_turn"), (manager, "save_campaign_locked"),
+                        (manager, "resume_campaign"), (store, "save_campaign"),
+                        (store, "_transaction"),
+                    )
+                ]
+                replay = await client.post(
+                    f"/api/game/sessions/{replay_sid}/species-actions", json=command,
+                )
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), {**accepted.json(), "session_id": replay_sid})
+            for guard in guards:
+                guard.assert_not_called()
+            self.assertEqual(self.runtime(replay_record), before)
+            self.assertEqual(self.rows(campaign_id), before_rows)
+            self.assertEqual(store.get_turn_action(campaign_id, command["action_id"]), receipt)
+
+        await assert_replay(self.http, self.manager, self.store, sid)
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager)),
+            base_url="http://healing-reopen",
+        ) as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            resumed_sid = resumed.json()["session_id"]
+            reopened = reopened_store.get_campaign(campaign_id)
+            self.assertEqual(reopened.payload, committed.payload)
+            self.assertEqual(reopened.history, committed.history)
+            self.assertEqual(reopened.combat_history, committed.combat_history)
+            self.assertEqual(reopened_manager.get(resumed_sid).game_session.serialize_game_state(),
+                             committed.payload["engine_save"])
+            self.assertEqual(reopened_store.get_turn_action(campaign_id, command["action_id"]),
+                             receipt)
+            # Resume can refresh metadata; assert replay against post-resume rows.
+            await assert_replay(client, reopened_manager, reopened_store, resumed_sid)
 
     async def assert_species_race(self, case, *, compat=False):
         created = await self.create_campaign()
