@@ -974,6 +974,29 @@ class ContractParityTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             CharacterCreateInput.model_validate({"mode": "random", "name": "Ari"})
 
+    def test_campaign_summary_scalar_fields_match_runtime_model(self):
+        schema_name = "CampaignSummary"
+        published = _schema(schema_name)
+        runtime = CampaignSummary.model_json_schema()
+        self.assertEqual(
+            set(published.get("required", [])),
+            set(runtime.get("required", [])),
+            f"{schema_name}.required",
+        )
+        for field_name, runtime_field in runtime["properties"].items():
+            with self.subTest(field=field_name):
+                published_field = _property(schema_name, field_name)
+                self.assertEqual(
+                    _schema_types(published_field) - {"null"},
+                    _schema_types(runtime_field) - {"null"},
+                    f"{schema_name}.{field_name}.type",
+                )
+                self.assertEqual(
+                    _is_nullable(published_field),
+                    _is_nullable(runtime_field),
+                    f"{schema_name}.{field_name}.nullable",
+                )
+
     def test_campaign_detail_summary_reference_matches_runtime_model(self):
         runtime = CampaignDetailResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -4640,3 +4663,86 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else f"{schema_name}.{path[1]}.type"
                     )
                     self.assertIn(expected_label, result.failures[0][1])
+
+    def test_campaign_summary_scalar_drift_fails_in_both_formats(self):
+        schema_name = "CampaignSummary"
+        original = deepcopy(_schema(schema_name))
+        mutations = [
+            (("required",), None, "required"),
+            (("required",), [], "required"),
+            (("required",), [*original["required"], "unexpected"], "required"),
+        ]
+        mutations.extend(
+            (("required",), [
+                field for field in original["required"] if field != removed
+            ], "required")
+            for removed in original["required"]
+        )
+        for field_name, field in original["properties"].items():
+            for replacement in (None, "string" if field["type"] == "integer" else "integer"):
+                mutations.append((
+                    ("properties", field_name, "type"), replacement, f"{field_name}.type",
+                ))
+            mutations.append((
+                ("properties", field_name, "type"),
+                [field["type"], "null"], f"{field_name}.nullable",
+            ))
+            nullable_field = deepcopy(field)
+            del nullable_field["type"]
+            nullable_field["anyOf"] = [
+                {"type": field["type"]}, {"type": "null"},
+            ]
+            mutations.append((
+                ("properties", field_name), nullable_field, f"{field_name}.nullable",
+            ))
+        for path, replacement, diagnostic in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    self.assertEqual(
+                        set(parsed["components"]["schemas"][schema_name]["properties"]),
+                        set(original["properties"]),
+                    )
+                    # Restoring only the changed declaration recovers all
+                    # inventories, route bindings and unrelated contract details.
+                    restored = deepcopy(parsed)
+                    target = restored["components"]["schemas"][schema_name]
+                    source = original
+                    for key in path[:-1]:
+                        target = target[key]
+                        source = source[key]
+                    target[path[-1]] = deepcopy(source[path[-1]])
+                    self.assertEqual(restored, SPEC)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        for test_name in (
+                            "test_campaign_summary_scalar_fields_match_runtime_model",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                            "test_campaign_detail_summary_reference_matches_runtime_model",
+                            "test_campaign_read_route_bindings_match_fastapi",
+                        ):
+                            ContractParityTests(test_name).run(result)
+                    self.assertEqual(result.testsRun, 4)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    failed_test, failure = result.failures[0]
+                    self.assertIn(
+                        "test_campaign_summary_scalar_fields_match_runtime_model",
+                        failed_test.id(),
+                    )
+                    self.assertIn(f"{schema_name}.{diagnostic}", failure)
+        self.assertEqual(_schema(schema_name), original)
