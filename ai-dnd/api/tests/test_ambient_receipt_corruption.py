@@ -420,6 +420,47 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
 
+    async def test_unexpected_complete_response_fields_fail_safely_and_preserve_conflicts_after_resume(self):
+        for path in (
+            ("ambient_event_response",),
+            ("ambient_event_response", "result"),
+        ):
+            for conflict in (None, "action", "event"):
+                with self.subTest(path=path, conflict=conflict):
+                    def add_unexpected_field(response):
+                        original = copy.deepcopy(response)
+                        self.assertIn("ambient_event_response", response)
+                        self.assertNotIn("legacy_ambient_result", response)
+                        AmbientEventCommandResult.model_validate(
+                            response["ambient_event_response"], strict=True,
+                        )
+                        parent = response
+                        for field in path:
+                            parent = parent[field]
+                        parent["unexpected_detail"] = {"source": "corrupt_receipt"}
+                        # Keep the complete accepted reply intact except for
+                        # one extra field, outside the intentionally open state.
+                        # The helper writes it directly via SQL before reopening.
+                        with self.assertRaises(ValidationError) as invalid:
+                            AmbientEventCommandResult.model_validate(
+                                response["ambient_event_response"], strict=True,
+                            )
+                        self.assertEqual(
+                            [(error["loc"], error["type"])
+                             for error in invalid.exception.errors()],
+                            [(path[1:] + ("unexpected_detail",), "extra_forbidden")],
+                        )
+                        unchanged = copy.deepcopy(response)
+                        parent = unchanged
+                        for field in path:
+                            parent = parent[field]
+                        del parent["unexpected_detail"]
+                        self.assertEqual(unchanged, original)
+
+                    await self.check_reopened_receipt(
+                        add_unexpected_field, conflict=conflict,
+                    )
+
     async def test_overlength_complete_response_reason_codes_fail_safely_and_preserve_conflicts_after_resume(self):
         for length in (65, 128):
             for conflict in (None, "action", "event"):
