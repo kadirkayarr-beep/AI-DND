@@ -717,9 +717,30 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 field, modes=("IRONMAN",), retry_corrected_context=True,
             )
 
+    async def test_normal_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("NORMAL",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
+    async def test_permadeath_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("PERMADEATH",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
+    async def test_ironman_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("IRONMAN",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
     async def _assert_first_fatal_death_save_rejects_stale_context(
         self, stale_field, *, modes=("NORMAL", "PERMADEATH", "IRONMAN"),
-        retry_corrected_context=False,
+        retry_corrected_context=False, reopen_before_retry=False,
     ):
         import uuid
 
@@ -827,20 +848,77 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                         {key for key in request if request[key] != corrected[key]},
                         {stale_field},
                     )
-                    await self._assert_corrected_fatal_death_save_executes_once(
-                        a, record, corrected, mode, checkpoint,
-                    )
+                    if reopen_before_retry:
+                        await self._assert_rejected_fatal_death_save_reopens(
+                            a, record, corrected, mode, checkpoint, before,
+                        )
+                    else:
+                        await self._assert_corrected_fatal_death_save_executes_once(
+                            a, record, corrected, mode, checkpoint,
+                        )
+
+    async def _assert_rejected_fatal_death_save_reopens(
+        self, campaign, original_record, request, mode, checkpoint, before,
+    ):
+        import httpx
+
+        store = CampaignStore(self.store.path)
+        # Before resume can update metadata, independently read the exact save.
+        self.assertEqual(store.get_campaign(campaign["campaign_id"]),
+                         before["stored_campaign"])
+        self.assertIsNone(store.get_turn_action(
+            campaign["campaign_id"], request["action_id"],
+        ))
+        manager = SessionManager(campaign_store=store)
+        app = campaign_fixtures.create_app(
+            session_manager=manager, ollama_adapter=None,
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign['campaign_id']}/resume",
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            self.assertNotEqual(session_id, campaign["session_id"])
+            record = manager.get(session_id)
+            s = record.game_session
+            self.assertIsNot(record, original_record)
+            self.assertIsNot(s, original_record.game_session)
+            self.assertEqual(s.serialize_game_state(), before["engine"])
+            self.assertEqual(s.rng.getstate(), before["rng"])
+            self.assertEqual(record.journal, before["journal"])
+            self.assertEqual(record.narrative_memory, before["narrative_memory"])
+            self.assertEqual(record.lore_authority.to_dict(), before["lore_authority"])
+            self.assertEqual(record.combat_history, before["combat_history"])
+            self.assertEqual(record.turn_action_receipts, before["receipts"])
+            # Resume may refresh timestamps, but not saved gameplay or history.
+            stored = store.get_campaign(campaign["campaign_id"])
+            for field in ("payload", "history", "combat_history"):
+                self.assertEqual(getattr(stored, field),
+                                 getattr(before["stored_campaign"], field), field)
+            self.assertNotIn(request["action_id"], record.turn_action_receipts)
+            self.assertIsNone(store.get_turn_action(
+                campaign["campaign_id"], request["action_id"],
+            ))
+            await self._assert_corrected_fatal_death_save_executes_once(
+                {**campaign, "session_id": session_id},
+                record, request, mode, checkpoint, store=store, http=http,
+            )
 
     async def _assert_corrected_fatal_death_save_executes_once(
-        self, campaign, record, request, mode, checkpoint,
+        self, campaign, record, request, mode, checkpoint, *, store=None, http=None,
     ):
         import random
 
+        store = self.store if store is None else store
+        http = self.http if http is None else http
         s = record.game_session
         expected_rng = random.Random()
         expected_rng.setstate(s.rng.getstate())
         expected_roll = expected_rng.randint(2, 9)
-        before = self.store.get_campaign(campaign["campaign_id"])
+        before = store.get_campaign(campaign["campaign_id"])
         # Keep the engine's explicit API parameters visible to signature-based
         # dispatch while counting calls through the real implementation.
         real_turn = s.run_player_turn
@@ -858,9 +936,9 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "game._resolve_enemy_turns_until_player",
             side_effect=AssertionError("Fatal save must stop the enemy scheduler"),
         ) as scheduler, patch.object(
-            self.store, "save_campaign", wraps=self.store.save_campaign,
+            store, "save_campaign", wraps=store.save_campaign,
         ) as save:
-            accepted = await self.http.post(
+            accepted = await http.post(
                 f"/api/game/sessions/{campaign['session_id']}/turn", json=request,
             )
             self.assertEqual(accepted.status_code, 200, accepted.text)
@@ -909,16 +987,16 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("post-checkpoint reward", s.world_state["inventory"])
             self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 18)
 
-        committed = self.store.get_campaign(campaign["campaign_id"])
+        committed = store.get_campaign(campaign["campaign_id"])
         self.assertEqual(committed.payload["engine_save"], s.serialize_game_state())
         self.assertEqual(len(committed.history), len(before.history) + 1)
         self.assertEqual(len(committed.combat_history), len(before.combat_history) + 1)
-        receipt = self.store.get_turn_action(campaign["campaign_id"], request["action_id"])
+        receipt = store.get_turn_action(campaign["campaign_id"], request["action_id"])
         self.assertIsNotNone(receipt)
         self.assertEqual(receipt["response"], response)
         # A new store owner confirms the first accepted receipt is durable.
         self.assertEqual(
-            CampaignStore(self.store.path).get_turn_action(
+            CampaignStore(store.path).get_turn_action(
                 campaign["campaign_id"], request["action_id"],
             ),
             receipt,
