@@ -5253,6 +5253,105 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             shared_action=False, post_save_receipt_error=CampaignCorruptError,
         )
 
+    async def test_first_merchant_save_race_timeout_drains_worker_before_teardown(self):
+        worker_entered = threading.Event()
+        release_worker = threading.Event()
+        worker_finished = threading.Event()
+        real_save = CampaignStore.save_campaign
+        real_wait_for = asyncio.wait_for
+        real_exit = httpx.AsyncClient.__aexit__
+        turn_saves = []
+        request_tasks = []
+        exited_clients = []
+        timed_out = False
+
+        def delayed_save(store, *args, **kwargs):
+            if kwargs.get("turn_action_receipt") is not None:
+                turn_saves.append(store)
+                # The instance-level pause runs before this class-level spy.
+                # Identify the loser by its save patch, not thread arrival order.
+                if callable(getattr(store.save_campaign, "side_effect", None)):
+                    worker_entered.set()
+                    if not release_worker.wait(timeout=5):
+                        raise AssertionError("Timeout injection did not release the worker.")
+                    try:
+                        self.assertIs(CampaignStore.save_campaign, delayed_save)
+                        self.assertTrue(callable(getattr(store.save_campaign, "side_effect", None)))
+                        self.assertTrue(self.store.path.exists())
+                        return real_save(store, *args, **kwargs)
+                    finally:
+                        worker_finished.set()
+            return real_save(store, *args, **kwargs)
+
+        async def injected_wait_for(awaitable, timeout):
+            nonlocal timed_out
+            if timeout == 30:
+                if len(request_tasks) == 2:
+                    self.assertTrue(await asyncio.to_thread(worker_entered.wait, 5))
+                    self.assertFalse(worker_finished.is_set())
+                    # Emulate wait_for's timeout cancellation. Only the shield
+                    # may be cancelled; the ASGI task and its save must survive.
+                    awaitable.cancel()
+                    timed_out = True
+                    asyncio.get_running_loop().call_soon(release_worker.set)
+                    raise TimeoutError("injected merchant request timeout")
+            return await real_wait_for(awaitable, timeout)
+
+        real_request_wait = self._wait_for_merchant_race_request
+
+        async def observed_request_wait(task):
+            request_tasks.append(task)
+            return await real_request_wait(task)
+
+        async def checked_exit(client, *args):
+            if timed_out:
+                self.assertFalse(client.is_closed)
+                self.assertTrue(worker_finished.is_set())
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                exited_clients.append(client)
+            return await real_exit(client, *args)
+
+        try:
+            with (
+                patch.object(CampaignStore, "save_campaign", new=delayed_save),
+                patch.object(asyncio, "wait_for", new=injected_wait_for),
+                patch.object(self, "_wait_for_merchant_race_request", new=observed_request_wait),
+                patch.object(httpx.AsyncClient, "__aexit__", new=checked_exit),
+            ):
+                with self.assertRaisesRegex(TimeoutError, "injected merchant request timeout"):
+                    await self._assert_first_merchant_search_save_race(shared_action=False)
+                self.assertTrue(timed_out)
+                self.assertTrue(worker_finished.is_set())
+                self.assertEqual(len(turn_saves), 2)
+                self.assertEqual(len(request_tasks), 2)
+                self.assertEqual(len(exited_clients), 2)
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                # Read the real SQLite fixture after cleanup, while patches are
+                # still installed: the worker must not outlive this scope.
+                with closing(sqlite3.connect(self.store.path)) as connection:
+                    self.assertEqual(connection.execute(
+                        "SELECT COUNT(*) FROM campaign_turn_actions",
+                    ).fetchone()[0], 1)
+        finally:
+            release_worker.set()
+
+    async def _wait_for_merchant_race_request(self, task):
+        try:
+            return await asyncio.wait_for(asyncio.shield(task), timeout=30)
+        except BaseException:
+            # ASGI cancellation cannot stop a synchronous database worker.
+            # Keep the client, patches and SQLite fixture alive until it exits.
+            # The cleanup budget exceeds the fixture's 30-second event waits.
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=35)
+            except TimeoutError as error:
+                raise AssertionError("Merchant race request did not drain during cleanup.") from error
+            except Exception:
+                # Retrieve the worker error without replacing the original
+                # timeout/assertion/cancellation that triggered cleanup.
+                pass
+            raise
+
     async def _assert_first_merchant_search_save_race(
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
         post_save_receipt_error=None,
@@ -5430,8 +5529,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.to_thread(save_reached.wait, 30),
                         "First discovery never reached persistence.",
                     )
-                    winner = await asyncio.wait_for(
-                        winner_http.post(winner_url, json=winner_body), timeout=30,
+                    winner = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(winner_http.post(winner_url, json=winner_body)),
                     )
                     self.assertEqual(winner.status_code, 200, winner.text)
                     committed = winner_store.get_campaign(campaign_id)
@@ -5456,8 +5555,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 "Winning-session replay must not save again.",
                             )) as blocked_save,
                         ):
-                            winner_replay = await asyncio.wait_for(
-                                winner_http.post(winner_url, json=winner_body), timeout=30,
+                            winner_replay = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(winner_http.post(winner_url, json=winner_body)),
                             )
                         self.assertEqual(winner_replay.status_code, 200, winner_replay.text)
                         self.assertEqual(winner_replay.json(), winner.json())
@@ -5483,7 +5582,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(receipt_rows(), committed_rows)
                 finally:
                     release_save.set()
-                    loser = await asyncio.wait_for(pending, timeout=30)
+                    loser = await self._wait_for_merchant_race_request(pending)
 
             raced_save.assert_called_once()
             if post_save_receipt_error is not None:
