@@ -3123,6 +3123,210 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(record), committed)
         self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
 
+    async def test_spell_attack_deferred_commit_failure_rolls_back_then_retries_and_replays_after_resume(self):
+        created = await self.create_campaign()
+        campaign_id, sid = created["campaign_id"], created["session_id"]
+        record, command = self.prepare_spell(created)
+        session = record.game_session
+        enemy_id = command["combat_action"]["steps"][0]["target_id"]
+        enemy_before = copy.deepcopy(next(
+            npc for npc in session.world_state["npcs"] if npc["id"] == enemy_id
+        ))
+        slots_before = copy.deepcopy(session.world_state["spellcasting_v1"]["slots"])
+        before = self.snapshot(record)
+        before_auxiliary = copy.deepcopy((session.messages, session.world_metadata))
+
+        def saved_rows(store):
+            with closing(store._connect()) as db:
+                return {
+                    table: [tuple(row) for row in db.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_history",
+                                  "campaign_combat_history", "campaign_turn_actions")
+                }
+
+        before_rows = saved_rows(self.store)
+        revision = before[-1].metadata["revision"]
+        speculative = {}
+        original_save = self.store.save_campaign
+        original_connect = self.store._connect
+
+        class DeferredCommitConnection:
+            """Reject this native transaction at commit using a deferred FK."""
+
+            def __init__(self):
+                self.native = original_connect()
+                self.native.execute(
+                    "CREATE TEMP TABLE commit_parent (id INTEGER PRIMARY KEY)"
+                )
+                self.native.execute("""
+                    CREATE TEMP TABLE commit_child (
+                        parent_id INTEGER REFERENCES commit_parent(id)
+                        DEFERRABLE INITIALLY DEFERRED
+                    )
+                """)
+
+            def __getattr__(self, name):
+                return getattr(self.native, name)
+
+            def commit(self):
+                speculative["transaction_at_commit"] = self.native.in_transaction
+                speculative["pending_campaign"] = dict(self.native.execute(
+                    "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,),
+                ).fetchone())
+                speculative["pending_rows"] = {
+                    table: [tuple(row) for row in self.native.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_history",
+                                  "campaign_combat_history", "campaign_turn_actions")
+                }
+                self.native.execute("INSERT INTO commit_child (parent_id) VALUES (1)")
+                speculative["deferred_insert_executed"] = True
+                try:
+                    self.native.commit()
+                except sqlite3.IntegrityError as error:
+                    speculative["commit_error"] = str(error)
+                    speculative["transaction_after_rejection"] = self.native.in_transaction
+                    raise
+
+            def rollback(self):
+                self.native.rollback()
+                speculative["transaction_after_rollback"] = self.native.in_transaction
+
+        def observe_native_save(*args, **kwargs):
+            speculative["snapshot"] = self.snapshot(record)
+            speculative["turn_entry"] = copy.deepcopy(kwargs["turn_entry"])
+            speculative["combat_entry"] = copy.deepcopy(kwargs["combat_history_entry"])
+            speculative["receipt"] = copy.deepcopy(kwargs["turn_action_receipt"])
+            with patch.object(self.store, "_connect", side_effect=DeferredCommitConnection):
+                return original_save(*args, **kwargs)
+
+        with patch.object(self.store, "save_campaign", side_effect=observe_native_save) as save:
+            failed = await self.post(created, command)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(failed.json()["detail"]["code"], "campaign_storage_unavailable")
+        save.assert_called_once()
+        self.assertTrue(speculative["transaction_at_commit"])
+        self.assertTrue(speculative["deferred_insert_executed"])
+        self.assertEqual(speculative["commit_error"], "FOREIGN KEY constraint failed")
+        self.assertTrue(speculative["transaction_after_rejection"])
+        self.assertFalse(speculative["transaction_after_rollback"])
+
+        speculative_state = speculative["snapshot"][0]
+        speculative_world = speculative_state["world_state"]
+        speculative_enemy = next(
+            npc for npc in speculative_world["npcs"] if npc["id"] == enemy_id
+        )
+        self.assertLess(speculative_enemy["current_hp"], enemy_before["current_hp"])
+        self.assertEqual(
+            speculative_world["spellcasting_v1"]["slots"]["1"],
+            slots_before["1"] - 1,
+        )
+        self.assertNotEqual(speculative["snapshot"][0], before[0])
+        self.assertNotEqual(speculative["snapshot"][1], before[1])
+
+        pending = speculative["pending_rows"]
+        self.assertEqual(len(pending["campaigns"]), len(before_rows["campaigns"]))
+        pending_campaign = speculative["pending_campaign"]
+        pending_payload = json.loads(pending_campaign["payload_json"])
+        self.assertEqual(pending_campaign["revision"], revision + 1)
+        self.assertEqual(pending_payload["engine_save"], speculative_state)
+        self.assertEqual(pending_payload["journal"], speculative["snapshot"][2])
+        self.assertEqual(len(pending["campaign_history"]),
+                         len(before_rows["campaign_history"]) + 1)
+        self.assertEqual(
+            pending["campaign_history"][-1][2:4],
+            (speculative["turn_entry"]["player_message"],
+             speculative["turn_entry"]["narration"]),
+        )
+        self.assertEqual(len(pending["campaign_combat_history"]),
+                         len(before_rows["campaign_combat_history"]) + 1)
+        pending_combat = pending["campaign_combat_history"][-1]
+        self.assertEqual(pending_combat[2], speculative["combat_entry"]["event_id"])
+        self.assertEqual(pending_combat[3], speculative["combat_entry"]["turn_index"])
+        self.assertEqual(json.loads(pending_combat[4]), speculative["combat_entry"]["result"])
+        self.assertEqual(len(pending["campaign_turn_actions"]),
+                         len(before_rows["campaign_turn_actions"]) + 1)
+        pending_receipt = pending["campaign_turn_actions"][-1]
+        self.assertEqual(pending_receipt[1], command["action_id"])
+        self.assertEqual(pending_receipt[2], speculative["receipt"]["request_hash"])
+        self.assertEqual(json.loads(pending_receipt[3]), speculative["receipt"]["response"])
+
+        # Every runtime and persisted field must be restored after the rejected commit.
+        self.assertEqual(self.snapshot(record), before)
+        self.assertEqual((session.messages, session.world_metadata), before_auxiliary)
+        self.assertEqual(saved_rows(self.store), before_rows)
+        self.assertNotIn(command["action_id"], record.turn_action_receipts)
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        self.assertIsNone(self.store.get_turn_action(campaign_id, command["action_id"]))
+
+        accepted = await self.post(created, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertTrue(accepted.json()["combat_result"]["success"])
+        self.assertLess(
+            next(npc for npc in session.world_state["npcs"] if npc["id"] == enemy_id)["current_hp"],
+            enemy_before["current_hp"],
+        )
+        self.assertEqual(
+            session.world_state["spellcasting_v1"]["slots"]["1"],
+            slots_before["1"] - 1,
+        )
+        committed = self.snapshot(record)
+        committed_rows = saved_rows(self.store)
+        receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(receipt["response"], accepted.json())
+        self.assertEqual(committed[-1].metadata["revision"], revision + 1)
+        self.assertEqual(len(committed[-1].history), len(before[-1].history) + 1)
+        self.assertEqual(len(committed[-1].combat_history), len(before[-1].combat_history) + 1)
+        for table in ("campaign_history", "campaign_combat_history", "campaign_turn_actions"):
+            self.assertEqual(len(committed_rows[table]), len(before_rows[table]) + 1)
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://reload",
+        ) as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            new_sid = resumed.json()["session_id"]
+            restored = fresh.get(new_sid)
+            self.assertIsNot(restored.game_session, session)
+            self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+            self.assertEqual(resumed.json()["history"], committed[-1].history)
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), receipt)
+
+            # Resume can update metadata; take replay baselines only after it.
+            reopened = self.snapshot(restored)
+            reopened_rows = saved_rows(fresh_store)
+            reopened_auxiliary = copy.deepcopy((
+                restored.game_session.messages, restored.game_session.world_metadata,
+            ))
+            replay_command = copy.deepcopy(command)
+            with patch("game.run_player_turn",
+                       side_effect=AssertionError("replay reran spell mechanics")), \
+                 patch.object(restored.game_session.rng, "randint",
+                              side_effect=AssertionError("replay reran spell RNG")):
+                replay = await client.post(
+                    f"/api/game/sessions/{new_sid}/turn", json=replay_command,
+                )
+            expected = copy.deepcopy(accepted.json())
+            expected["session_id"] = new_sid
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), expected)
+            self.assertEqual(self.snapshot(restored), reopened)
+            self.assertEqual(
+                (restored.game_session.messages, restored.game_session.world_metadata),
+                reopened_auxiliary,
+            )
+            self.assertEqual(saved_rows(fresh_store), reopened_rows)
+            self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]),
+                             receipt)
+
     async def test_ambient_event_late_receipt_sql_failure_rolls_back_then_retries_and_replays(self):
         await self.assert_ambient_event_save_failure_retries_and_replays(at_commit=False)
 
