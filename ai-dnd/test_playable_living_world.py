@@ -13,6 +13,7 @@ import game
 import interaction_adventure
 import living_world
 import local_dialogue
+import scheduled_events
 
 
 class PlayableLivingWorldTests(unittest.TestCase):
@@ -272,6 +273,90 @@ class PlayableLivingWorldTests(unittest.TestCase):
                     self.assertNotEqual(npcs[1]["location"], self.world["location"])
                     self.assertIn(npcs[1], self.world["npcs"])
                     self.assertEqual(self.session.active_npcs(), npcs[:1])
+                    expected = copy.deepcopy(self.world)
+                    expected["flags"].update({
+                        "active_npc_id": npcs[0]["id"],
+                        "last_npc_id": npcs[0]["id"],
+                        "active_npc_until_turn": turn_index + 6,
+                    })
+
+                    result = self.session.resolve_npc_reference(
+                        "Aylin'den sohbet etmesini istiyorum.",
+                    )
+
+                    self.assertEqual(result["status"], "found")
+                    self.assertEqual(result["npc"], npcs[0])
+                    self.assertEqual(self.world, expected)
+
+    def _set_hidden_scheduled_npc_conversation(self, turn_index, *, active, name):
+        npcs = self._set_npc_conversation_deadline(turn_index, active=active)
+        npcs[1].update({"name": name, "location": "village"})
+        self.world["scheduled_events"] = []
+        event = scheduled_events.register_event(
+            self.world,
+            event_id="hidden_npc_arrival",
+            window_start=0,
+            window_end=1,
+            location_id=self.root_location,
+            visibility="hidden",
+            effects=[{
+                "kind": "npc_location",
+                "npc_id": npcs[1]["id"],
+                "location_id": self.root_location,
+            }],
+        )
+        scheduled_events.process_events(self.world, 0, 1)
+        self.assertEqual(event["status"], "OCCURRED")
+        self.assertFalse(event["player_observed"])
+        self.assertEqual(event["visibility"], "hidden")
+        self.assertEqual(event["canonical_result"]["effects_applied"], 1)
+        self.assertEqual(self.world["npcs"], npcs)
+        for npc in npcs:
+            self.assertEqual(npc["location"], self.world["location"])
+        self.assertEqual(scheduled_events.visible_npcs(self.world), npcs[:1])
+        self.assertEqual(self.session.active_npcs(), npcs[:1])
+        return npcs
+
+    def test_hidden_scheduled_named_ablative_dialogue_rejects_single_local_npc_fallback(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for name, target in (
+                    ("Bora", "Bora'dan"),
+                    ("Ece", "Ece'den"),
+                    ("Murat", "Murat'tan"),
+                    ("Mert", "Mert'ten"),
+                    ("Bora", "Bora’dan"),
+                ):
+                    named_clause = f"{target} sohbet etmesini istiyorum"
+                    for player_input in (
+                        f"{named_clause}.",
+                        f"Ondan sohbet etmesini istiyorum, {named_clause}.",
+                        f"{named_clause}, Ondan sohbet etmesini istiyorum.",
+                    ):
+                        with self.subTest(
+                            turn_index=turn_index, active_npc_present=active,
+                            player_input=player_input,
+                        ):
+                            self._set_hidden_scheduled_npc_conversation(
+                                turn_index, active=active, name=name,
+                            )
+                            before = copy.deepcopy(self.world)
+
+                            result = self.session.resolve_npc_reference(player_input)
+
+                            self.assertEqual(result["status"], "none")
+                            self.assertIsNone(result["npc"])
+                            self.assertEqual(self.world, before)
+
+    def test_explicit_visible_local_name_resolves_with_hidden_scheduled_npc(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                with self.subTest(
+                    turn_index=turn_index, active_npc_present=active,
+                ):
+                    npcs = self._set_hidden_scheduled_npc_conversation(
+                        turn_index, active=active, name="Bora",
+                    )
                     expected = copy.deepcopy(self.world)
                     expected["flags"].update({
                         "active_npc_id": npcs[0]["id"],
