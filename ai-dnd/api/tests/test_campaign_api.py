@@ -5243,13 +5243,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     post_save_receipt_error=CampaignCorruptError,
                 )
 
+    async def test_first_merchant_distinct_id_save_race_post_rollback_receipt_storage_error_is_safe(self):
+        await self._assert_first_merchant_search_save_race(
+            shared_action=False, post_save_receipt_error=CampaignStorageError,
+        )
+
+    async def test_first_merchant_distinct_id_save_race_post_rollback_receipt_corrupt_error_is_safe(self):
+        await self._assert_first_merchant_search_save_race(
+            shared_action=False, post_save_receipt_error=CampaignCorruptError,
+        )
+
     async def _assert_first_merchant_search_save_race(
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
         post_save_receipt_error=None,
     ):
         if changed_payload:
-            self.assertTrue(shared_action)
-        if post_save_receipt_error is not None:
             self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
@@ -5622,7 +5630,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(results["loser"]), 1)
             else:
                 self.assertIsNone(loser_store.get_turn_action(campaign_id, body["action_id"]))
+                self.assertIsNone(winner_store.get_turn_action(campaign_id, body["action_id"]))
                 self.assertIsNone(loser_manager.get_turn_action(loser_record, body["action_id"]))
+                if post_save_receipt_error is not None:
+                    # Distinct-ID lookup failures end with only the winner
+                    # committed. Normal stale/resume/retry has separate coverage.
+                    return
 
             retry_runtime = before_runtime
 
