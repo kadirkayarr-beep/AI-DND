@@ -5638,10 +5638,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(recovered_manager.get_turn_action(record, rejected_body["action_id"]))
             assert_identities_and_discovery(newer)
 
-            if changed_payload:
+            if shared_action:
                 # Rollback left this session one revision behind. Receipt
                 # validation must still precede stale-session recovery, both
-                # for the losing payload and for an exact replay of the winner.
+                # for a changed losing payload and an exact replay of the winner.
                 def assert_stale_retry_unchanged():
                     self.assertIs(recovered_manager.get(recovered_id), record)
                     self.assertIs(record.game_session, session)
@@ -5671,15 +5671,24 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     patch.object(recovered_store, "save_campaign", side_effect=AssertionError(
                         "Pre-resume receipt retries must not save."
                     )) as blocked_save,
+                    patch.object(recovered_manager, "resume_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not recover the session."
+                    )) as blocked_resume,
+                    patch("api.session_manager.restore_stored_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not restore saved state."
+                    )) as blocked_restore,
                 ):
-                    conflict = await asyncio.wait_for(
-                        recovered_http.post(recovered_url, json=rejected_body), timeout=30,
-                    )
-                    self.assertEqual(conflict.status_code, 409, conflict.text)
-                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
-                    blocked_turn.assert_not_called()
-                    blocked_save.assert_not_called()
-                    assert_stale_retry_unchanged()
+                    if changed_payload:
+                        conflict = await asyncio.wait_for(
+                            recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                        )
+                        self.assertEqual(conflict.status_code, 409, conflict.text)
+                        self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                        blocked_turn.assert_not_called()
+                        blocked_save.assert_not_called()
+                        blocked_resume.assert_not_called()
+                        blocked_restore.assert_not_called()
+                        assert_stale_retry_unchanged()
 
                     replay = await asyncio.wait_for(
                         recovered_http.post(recovered_url, json=competing_body), timeout=30,
@@ -5690,6 +5699,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(replay.json(), expected)
                     blocked_turn.assert_not_called()
                     blocked_save.assert_not_called()
+                    blocked_resume.assert_not_called()
+                    blocked_restore.assert_not_called()
                     assert_stale_retry_unchanged()
                 self.assertEqual(len(results), 1)
                 self.assertEqual(len(active_results), 1)
