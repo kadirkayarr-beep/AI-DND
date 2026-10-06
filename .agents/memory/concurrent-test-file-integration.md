@@ -103,3 +103,14 @@ check.
 
 **How to apply:** Keep the full suite as the baseline acceptance check, but
 isolate the target parity method when asserting an exact mutation failure count.
+
+Completion can include working-tree changes that predate the assigned work,
+so a test-only task can be blocked by unrelated gameplay regressions.
+
+**Why:** The completion snapshot included previously dirty engine changes;
+the new scoped regression passed while existing shop and travel checks failed.
+
+**How to apply:** Record the initial dirty-file inventory and distinguish scoped
+edits from inherited changes when completion reports a failure. Do not broadly
+revert other work; verify any narrow compatibility repair against its owning
+checks and disclose the scope deviation.

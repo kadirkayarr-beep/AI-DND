@@ -11122,8 +11122,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         packet["fallback_reason_code"] = "MODEL_WORLD_PROPOSAL_REJECTED"
     if not narration_only:
         raw_updates = (
-            resolved_turn.action_result.get("verified_world_updates", {})
-            if isinstance(resolved_turn.action_result.get("verified_world_updates"), dict)
+            packet.get("world_updates", {})
+            if isinstance(packet.get("world_updates"), dict)
             else {}
         )
         if resolved_turn.allow_new_shops:
