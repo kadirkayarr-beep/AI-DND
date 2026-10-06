@@ -1758,6 +1758,60 @@ class ContractParityTests(unittest.TestCase):
                     f"{schema_name}.{field_name} reference target",
                 )
 
+    def test_quest_command_result_shape_matches_runtime_model(self):
+        schema_name = "QuestCommandResult"
+        runtime = QuestCommandResult.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )
+        published = _schema(schema_name)
+        self.assertEqual(
+            _property_names(schema_name), _runtime_field_names(QuestCommandResult),
+            f"{schema_name}.properties",
+        )
+        with self.subTest(contract="required inventory"):
+            self.assertEqual(
+                set(published.get("required", [])), set(runtime.get("required", [])),
+                f"{schema_name}.required",
+            )
+        self.assertEqual(
+            published.get("additionalProperties"), runtime.get("additionalProperties"),
+            f"{schema_name}.additionalProperties",
+        )
+        self.assertEqual(
+            _schema_types(published) - {"null"}, _schema_types(runtime) - {"null"},
+            f"{schema_name}.type",
+        )
+        self.assertEqual(
+            _is_nullable(published), _is_nullable(runtime), f"{schema_name}.nullable",
+        )
+        for field_name, runtime_field in runtime["properties"].items():
+            label = f"{schema_name}.{field_name}"
+            with self.subTest(field=field_name, contract="required"):
+                self.assertEqual(
+                    field_name in published.get("required", []),
+                    field_name in runtime.get("required", []),
+                    f"{label}.required",
+                )
+            with self.subTest(field=field_name, contract="type"):
+                self.assertEqual(
+                    _schema_types(_property(schema_name, field_name)) - {"null"},
+                    _schema_types(runtime_field) - {"null"},
+                    f"{label}.type",
+                )
+            with self.subTest(field=field_name, contract="nullable"):
+                self.assertEqual(
+                    _is_nullable(_property(schema_name, field_name)),
+                    _is_nullable(runtime_field),
+                    f"{label}.nullable",
+                )
+        # The public state is deliberately narrower than dict[str, Any].
+        # Compare its outer object type/nullability above, not dictionary contents.
+        self.assertEqual(
+            _schema_references(_property(schema_name, "state")),
+            {"#/components/schemas/GameState"},
+            f"{schema_name}.state reference target",
+        )
+
     def test_quest_command_result_references_match_runtime_model(self):
         runtime_properties = QuestCommandResult.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -2784,6 +2838,67 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(
                             f"{schema_name}.objectives.items reference target", failure
                         )
+
+    def test_quest_command_result_shape_mutations_fail_in_both_formats(self):
+        schema_name = "QuestCommandResult"
+        original = _schema(schema_name)
+        mutations = [
+            (("required",), None, f"{schema_name}.required"),
+            (("properties", "unexpected"), {"type": "boolean"},
+             f"{schema_name}.properties"),
+            (("additionalProperties",), None, f"{schema_name}.additionalProperties"),
+            (("additionalProperties",), True, f"{schema_name}.additionalProperties"),
+            (("type",), "array", f"{schema_name}.type"),
+            (("type",), ["object", "null"], f"{schema_name}.nullable"),
+            (("properties", "state", "$ref"), "#/components/schemas/QuestState",
+             f"{schema_name}.state reference target"),
+        ]
+        for field_name, original_field in original["properties"].items():
+            label = f"{schema_name}.{field_name}"
+            # Preserve references and metadata when changing only nullability.
+            nullable_field = (
+                deepcopy(original_field["anyOf"][0])
+                if _is_nullable(original_field)
+                else {"anyOf": [deepcopy(original_field), {"type": "null"}]}
+            )
+            mutations.extend([
+                (("properties", field_name), None, f"{schema_name}.properties"),
+                (("required",),
+                 [name for name in original["required"] if name != field_name],
+                 f"{label}.required"),
+                (("properties", field_name), {"type": "boolean"}, f"{label}.type"),
+                (("properties", field_name), nullable_field, f"{label}.nullable"),
+            ])
+
+        for path, replacement, diagnostic in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        ContractParityTests(
+                            "test_quest_command_result_shape_matches_runtime_model"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Undetected drift: {diagnostic}")
+                    self.assertIn(
+                        diagnostic, "\n".join(failure for _, failure in result.failures)
+                    )
+        self.assertEqual(_schema(schema_name), original)
 
     def test_quest_command_wrong_response_bindings_fail_in_both_formats(self):
         for path in QUEST_COMMAND_PATHS:
