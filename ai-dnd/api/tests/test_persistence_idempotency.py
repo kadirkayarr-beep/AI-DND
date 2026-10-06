@@ -2382,8 +2382,20 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     changed_payload=True, rest_action=rest_action,
                 )
 
+    async def test_evicted_combat_action_malformed_hash_blocks_all_families_after_reopen(self):
+        for label, malformed_hash in (
+            ("short", "a" * 63),
+            ("overlong", "a" * 65),
+            ("nonhex", "g" * 64),
+            ("uppercase", "A" * 64),
+        ):
+            with self.subTest(hash=label):
+                await self.assert_evicted_combat_receipt_after_reopen(
+                    changed_payload=False, malformed_hash=malformed_hash,
+                )
+
     async def assert_evicted_combat_receipt_after_reopen(
-        self, *, changed_payload, rest_action=None,
+        self, *, changed_payload, rest_action=None, malformed_hash=None,
     ):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
@@ -2448,6 +2460,28 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                          original_receipt)
         committed = self.snapshot(record)
 
+        def receipt_row(store):
+            with closing(store._connect()) as db:
+                return dict(db.execute(
+                    """SELECT * FROM campaign_turn_actions
+                       WHERE campaign_id = ? AND action_id = ?""",
+                    (a["campaign_id"], command["action_id"]),
+                ).fetchone())
+
+        hash_update = """UPDATE campaign_turn_actions SET request_hash = ?
+                         WHERE campaign_id = ? AND action_id = ?"""
+        if malformed_hash is not None:
+            original_row = receipt_row(self.store)
+            with self.store._transaction() as db:
+                updated = db.execute(
+                    hash_update, (malformed_hash, a["campaign_id"], command["action_id"]),
+                )
+                self.assertEqual(updated.rowcount, 1)
+            self.assertEqual(
+                receipt_row(self.store), {**original_row, "request_hash": malformed_hash},
+            )
+            self.assertEqual(self.snapshot(record), committed)
+
         fresh_store = CampaignStore(self.store.path)
         fresh = SessionManager(campaign_store=fresh_store)
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
@@ -2455,6 +2489,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNot(restored.game_session, session)
         self.assertEqual(self.snapshot(restored)[:7], committed[:7])
         self.assertEqual(restored.combat_history, surviving)
+        if malformed_hash is not None:
+            await self.assert_damaged_evicted_receipt_retries(
+                fresh_store, fresh, sid, restored, command, expected_response,
+                original_receipt, original_row, malformed_hash, hash_update,
+                evicted_id, surviving,
+            )
+            return
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
 
         def history_rows():
@@ -2523,6 +2564,111 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(evicted_id, {entry["event_id"] for entry in restored.combat_history})
         self.assertEqual(fresh_store.get_turn_action(a["campaign_id"], command["action_id"]),
                          original_receipt)
+
+    async def assert_damaged_evicted_receipt_retries(
+        self, store, manager, sid, record, command, accepted_response,
+        receipt, original_row, malformed_hash, hash_update, evicted_id, surviving,
+    ):
+        session = record.game_session
+        before = self.snapshot(record)
+        before_auxiliary = copy.deepcopy((session.messages, session.world_metadata))
+
+        def database_snapshot():
+            with closing(store._connect()) as db:
+                return tuple(db.iterdump())
+
+        # Resume may mark the campaign played; retries must preserve this baseline,
+        # including all SQL history rows and the damaged receipt's raw contents.
+        damaged_database = database_snapshot()
+        with closing(store._connect()) as db:
+            damaged_row = dict(db.execute(
+                """SELECT * FROM campaign_turn_actions
+                   WHERE campaign_id = ? AND action_id = ?""",
+                (record.campaign_id, command["action_id"]),
+            ).fetchone())
+        self.assertEqual(damaged_row, {**original_row, "request_hash": malformed_hash})
+        changed_command = copy.deepcopy(command)
+        changed_command["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
+        conflicts = [
+            ("turn", changed_command),
+            *[("species-actions", {"action": action, "action_id": command["action_id"]})
+              for action in ("short_rest", "long_rest")],
+            (f"ambient-events/{uuid4()}/actions",
+             {"action": "observe", "action_id": command["action_id"]}),
+        ]
+        app = create_app(session_manager=manager, ollama_adapter=None)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://reload",
+        ) as client:
+            async def guarded_retry(endpoint, body, expected_database):
+                guards = (
+                    (session, "run_player_turn"), (game, "run_player_turn"),
+                    (session, "resolve_species_trait_action"),
+                    (game, "resolve_species_trait_action"),
+                    (session, "resolve_ambient_event_action"),
+                    (session.rng, "randint"), (session.rng, "random"),
+                    (session.rng, "getrandbits"),
+                    (manager, "autosave_turn"), (manager, "save_campaign_locked"),
+                    (store, "save_campaign"), (store, "_transaction"),
+                )
+                with ExitStack() as stack:
+                    spies = [
+                        stack.enter_context(patch.object(
+                            target, method,
+                            side_effect=AssertionError(f"Evicted receipt retry invoked {method}"),
+                        ))
+                        for target, method in guards
+                    ]
+                    response = await client.post(
+                        f"/api/game/sessions/{sid}/{endpoint}", json=body,
+                    )
+                for spy in spies:
+                    spy.assert_not_called()
+                self.assertEqual(self.snapshot(record), before)
+                self.assertEqual((session.messages, session.world_metadata), before_auxiliary)
+                self.assertEqual(database_snapshot(), expected_database)
+                self.assertEqual(record.combat_history, surviving)
+                self.assertEqual(store.get_campaign(record.campaign_id).combat_history, surviving)
+                self.assertNotIn(evicted_id, {entry["event_id"] for entry in record.combat_history})
+                return response
+
+            for endpoint, body in [("turn", command), *conflicts]:
+                with self.subTest(damaged_hash_endpoint=endpoint, body=body):
+                    rejected = await guarded_retry(endpoint, body, damaged_database)
+                    self.assertEqual(rejected.status_code, 409, rejected.text)
+                    self.assertEqual(rejected.json()["detail"]["code"], "campaign_unavailable")
+                    self.assertIsInstance(rejected.json()["detail"]["message"], str)
+                    self.assertTrue(rejected.json()["detail"]["message"])
+
+            # Repair only the hash, leaving the evicted history entry absent and
+            # the exact original response, receipt timestamp and other rows intact.
+            with store._transaction() as db:
+                updated = db.execute(
+                    hash_update, (receipt["request_hash"], record.campaign_id, command["action_id"]),
+                )
+                self.assertEqual(updated.rowcount, 1)
+            self.assertEqual(store.get_turn_action(record.campaign_id, command["action_id"]), receipt)
+            self.assertEqual(
+                database_snapshot(),
+                tuple(line.replace(malformed_hash, receipt["request_hash"])
+                      for line in damaged_database),
+            )
+            repaired_database = database_snapshot()
+            replay = await guarded_retry("turn", command, repaired_database)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), {**accepted_response, "session_id": sid})
+            for endpoint, body in conflicts:
+                with self.subTest(repaired_hash_conflict=endpoint, body=body):
+                    conflict = await guarded_retry(endpoint, body, repaired_database)
+                    if endpoint.startswith("ambient-events/"):
+                        self.assertEqual(conflict.status_code, 200, conflict.text)
+                        self.assertEqual(conflict.json()["result"]["status"], "REJECTED")
+                        self.assertEqual(
+                            conflict.json()["result"]["reason_code"], "action_id_conflict",
+                        )
+                    else:
+                        self.assertEqual(conflict.status_code, 409, conflict.text)
+                        self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
 
     async def test_late_receipt_sql_failure_rolls_back_all_writes_then_retry_commits_once(self):
         a = await self.create_campaign()
