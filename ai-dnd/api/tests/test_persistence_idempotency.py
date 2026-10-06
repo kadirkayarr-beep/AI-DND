@@ -508,6 +508,103 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         conflicting_target_id="different-selected-target",
                     )
 
+    async def test_unchanged_top_level_target_replays_saved_receipt_after_resume(self):
+        created = await self.create_campaign()
+        record, command = self.prepare_spell(created)
+        session = record.game_session
+        # The selected target is a separate TurnRequest field, not merely the
+        # target embedded in the structured spell command.
+        command["target_id"] = command["combat_action"]["steps"][0]["target_id"]
+        combat = session.world_state["combat"]
+        command.update(
+            combat_id=combat["combat_id"], combat_round=combat["round"],
+            combat_turn_index=combat["current_turn_index"],
+        )
+        original_command = copy.deepcopy(command)
+        before_turn = self.snapshot(record)
+        accepted = await self.post(created, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        expected = copy.deepcopy(accepted.json())
+        self.assertNotEqual(self.snapshot(record)[:7], before_turn[:7])
+        self.assertTrue(expected["combat_result"]["success"])
+        campaign_id = created["campaign_id"]
+        committed = self.snapshot(record)
+        original_receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(original_receipt["response"], expected)
+        self.assertEqual(len(committed[-1].history), 1)
+        self.assertEqual(len(committed[-1].combat_history), 1)
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://reload") as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = fresh.get(sid)
+            self.assertNotEqual(sid, created["session_id"])
+            self.assertIsNot(restored.game_session, session)
+            self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+            self.assertEqual(resumed.json()["history"], committed[-1].history)
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]),
+                             original_receipt)
+
+            def saved_rows():
+                with closing(fresh_store._connect()) as connection:
+                    return {
+                        table: [tuple(row) for row in connection.execute(
+                            f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                            (campaign_id,),
+                        )]
+                        for table in ("campaigns", "campaign_turn_actions",
+                                      "campaign_history", "campaign_combat_history")
+                    }
+
+            # Resume may mark the campaign played. Capture complete runtime and
+            # raw persistence baselines only after that legitimate write.
+            before_retry = self.snapshot(restored)
+            before_auxiliary = copy.deepcopy((
+                restored.game_session.messages, restored.game_session.world_metadata,
+            ))
+            before_rows = saved_rows()
+            retry_command = copy.deepcopy(command)
+            self.assertEqual(retry_command, original_command)
+            guards = (
+                (restored.game_session, "run_player_turn"),
+                (game, "run_player_turn"),
+                (restored.game_session.rng, "randint"),
+                (restored.game_session.rng, "random"),
+                (restored.game_session.rng, "getrandbits"),
+                (fresh, "autosave_turn"),
+                (fresh, "save_campaign_locked"),
+                (fresh_store, "save_campaign"),
+                (fresh_store, "_transaction"),
+            )
+            with ExitStack() as stack:
+                spies = [
+                    stack.enter_context(patch.object(
+                        target, method,
+                        side_effect=AssertionError(f"Receipt replay invoked {method}"),
+                    ))
+                    for target, method in guards
+                ]
+                replay = await client.post(
+                    f"/api/game/sessions/{sid}/turn", json=retry_command,
+                )
+            for spy in spies:
+                spy.assert_not_called()
+            expected["session_id"] = sid
+            self.assertEqual(replay.status_code, 200, replay.text)
+            self.assertEqual(replay.json(), expected)
+            self.assertEqual(self.snapshot(restored), before_retry)
+            self.assertEqual((
+                restored.game_session.messages, restored.game_session.world_metadata,
+            ), before_auxiliary)
+            self.assertEqual(saved_rows(), before_rows)
+            self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]),
+                             original_receipt)
+
     async def assert_changed_combat_context_conflicts_before_damaged_response(self, context_field):
         for field_path, invalid_value in (
             (("session_id",), 123),
