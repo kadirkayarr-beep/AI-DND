@@ -3502,7 +3502,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     def ordered_save(kind):
                         def save(*args, **kwargs):
                             save_calls[kind] += 1
-                            speculative[kind] = self.snapshot(records[kind])[:7]
+                            # Observe only speculative runtime state before the
+                            # rendezvous. snapshot() also reads the database even
+                            # when sliced, which can interfere with the save race.
+                            pending = records[kind]
+                            speculative[kind] = copy.deepcopy((
+                                pending.game_session.serialize_game_state(),
+                                pending.game_session.rng.getstate(), pending.journal,
+                                pending.narrative_memory, pending.lore_authority.to_dict(),
+                                pending.combat_history, pending.turn_action_receipts,
+                            ))
                             self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_ids[kind])
                             if distinct_ids:
                                 # Neither ID has a receipt, even after the other
@@ -3562,7 +3571,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                          rejected.text)
                         self.assertEqual(
                             rejected.json()["detail"]["code"],
-                            "campaign_stale" if loser == "rest" else "event_persistence_error",
+                            (
+                                "campaign_stale" if distinct_ids else "action_id_conflict"
+                            ) if loser == "rest" else "event_persistence_error",
                         )
 
                         # Prove both speculative effects existed before the

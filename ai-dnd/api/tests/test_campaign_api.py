@@ -6716,6 +6716,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
         created = response.json()
         campaign_id = created["campaign_id"]
+        # Materialize the city's authored scene before taking the merchant
+        # identity baseline. A first visit can legitimately create a BLUE-event
+        # referent NPC; that is not merchant rediscovery by the declined input.
+        observed = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn",
+            json={"message": "Etrafıma bakıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(observed.status_code, 200, observed.text)
+        self.assertEqual(
+            self.store.get_campaign(campaign_id).payload["engine_save"]["world_state"]["shops"],
+            [],
+        )
         discovery_body = {
             "message": "Bir tüccar arıyorum.",
             "action_id": str(uuid.uuid4()),
