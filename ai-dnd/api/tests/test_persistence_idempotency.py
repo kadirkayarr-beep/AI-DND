@@ -2619,6 +2619,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         response_corruption=(field, mode, invalid_value),
                     )
 
+    async def test_evicted_changed_combat_command_conflicts_before_damaged_response_after_reopen(self):
+        for field, invalid_value in (
+            ("session_id", 123), ("narration", []), ("state", []),
+        ):
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(field=field, mode=mode):
+                    await self.assert_evicted_combat_receipt_after_reopen(
+                        changed_payload=True,
+                        response_corruption=(field, mode, invalid_value),
+                    )
+
     async def assert_evicted_combat_receipt_after_reopen(
         self, *, changed_payload, rest_action=None, malformed_hash=None,
         response_corruption=None,
@@ -2744,6 +2755,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 fresh_store, fresh, sid, restored, command, expected_response,
                 original_receipt, original_row, damaged_column, damaged_value,
                 receipt_update, expected_error, evicted_id, surviving,
+                changed_payload=changed_payload,
             )
             return
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
@@ -2818,7 +2830,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def assert_damaged_evicted_receipt_retries(
         self, store, manager, sid, record, command, accepted_response,
         receipt, original_row, damaged_column, damaged_value, receipt_update,
-        expected_error, evicted_id, surviving,
+        expected_error, evicted_id, surviving, *, changed_payload=False,
     ):
         session = record.game_session
         before = self.snapshot(record)
@@ -2840,6 +2852,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(damaged_row, {**original_row, damaged_column: damaged_value})
         changed_command = copy.deepcopy(command)
         changed_command["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
+        if changed_payload:
+            self.assertEqual(damaged_column, "response_json")
+            self.assertEqual(damaged_row["request_hash"], receipt["request_hash"])
+            # This is native contract damage, not invalid JSON or an envelope
+            # mismatch. The original action identity remains intact.
+            damaged_response = json.loads(damaged_row["response_json"])
+            self.assertEqual(damaged_response["action_id"], command["action_id"])
+            with self.assertRaises(ValueError):
+                TurnResponse.model_validate(damaged_response)
+            self.assertEqual(changed_command["action_id"], command["action_id"])
+            self.assertNotEqual(changed_command["combat_action"], command["combat_action"])
         conflicts = [
             ("turn", changed_command),
             *[("species-actions", {"action": action, "action_id": command["action_id"]})
@@ -2851,7 +2874,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://reload",
         ) as client:
-            async def guarded_retry(endpoint, body, expected_database):
+            async def guarded_retry(
+                endpoint, body, expected_database, *, before_response_validation=False,
+            ):
                 guards = (
                     (session, "run_player_turn"), (game, "run_player_turn"),
                     (session, "resolve_species_trait_action"),
@@ -2862,6 +2887,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     (manager, "autosave_turn"), (manager, "save_campaign_locked"),
                     (store, "save_campaign"), (store, "_transaction"),
                 )
+                if before_response_validation:
+                    guards += ((TurnResponse, "model_validate"),)
                 with ExitStack() as stack:
                     spies = [
                         stack.enter_context(patch.object(
@@ -2882,6 +2909,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(store.get_campaign(record.campaign_id).combat_history, surviving)
                 self.assertNotIn(evicted_id, {entry["event_id"] for entry in record.combat_history})
                 return response
+
+            if changed_payload:
+                # With no retained history fallback, the intact SQL request
+                # hash must reject a changed command before reply validation.
+                conflict = await guarded_retry(
+                    "turn", changed_command, damaged_database,
+                    before_response_validation=True,
+                )
+                self.assertEqual(conflict.status_code, 409, conflict.text)
+                self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
 
             # Malformed hashes fail for every command family. Response contract
             # damage is checked by the original native turn owner, with its hash intact.
