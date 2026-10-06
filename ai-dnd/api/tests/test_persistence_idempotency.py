@@ -11,6 +11,8 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import game
+import action_economy
+import bounded_encounter
 import httpx
 from api.main import create_app, TurnResponse
 
@@ -4293,6 +4295,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def assert_independent_duplicate_command(
         self, operation, winner, *, distinct_action_ids=False, competing_reactions=False,
+        response_kind="attack",
     ):
         operations = ("react", "decline_reaction") if competing_reactions else (operation, operation)
         if competing_reactions:
@@ -4324,7 +4327,22 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             target_id = command["combat_action"]["steps"][0]["target_id"]
         elif reaction:
             session.commit_location_change("tavern")
-            npcs, opportunity_id = interrupted(session)
+            npcs, opportunity_id = interrupted(session, response_kind=response_kind)
+            if response_kind == "move":
+                # Give budget-only movement a known position to invalidate. The
+                # bound opponent has already attacked and has no authored pair
+                # to this node; the remaining scheduler opponents retain their
+                # existing legacy attack geometry (no native attacks added).
+                session.world_state["bounded_encounter"] = {
+                    "version": 1, "scenario_id": bounded_encounter.SCENARIO_ID,
+                    "location_id": "tavern", "npc_id": npcs[0]["id"],
+                    "statblock_id": bounded_encounter.STATBLOCK_ID,
+                }
+                session.world_state["scene_state"]["player_position"].update(
+                    location_id="tavern", bounded_node_id="courtyard_entry",
+                )
+                npcs[0]["position"] = "courtyard_entry"
+                bounded_encounter.refresh(session)
             # Both reopened engines get the same real RNG stream. Do not replace
             # reaction resolution, scheduler attacks, damage or dice in the race.
             session.rng.seed(3)
@@ -4412,7 +4430,19 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         original_saves = [store.save_campaign for store in stores]
         speculative, errors, committed = {}, {}, {}
         attempted_receipts = {}
+        movement_resolutions = {}
         save_calls = [0, 0]
+        original_react = action_economy.react
+
+        def observe_react(session, opportunity_id, actor="player"):
+            result = original_react(session, opportunity_id, actor)
+            index = next(i for i, record in enumerate(records)
+                         if record.game_session is session)
+            movement_resolutions.setdefault(index, []).append(copy.deepcopy((
+                action_economy.ensure(session)[actor],
+                session.world_state["scene_state"]["player_position"],
+            )))
+            return result
 
         def ordered_save(index):
             def save(*args, **kwargs):
@@ -4473,6 +4503,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         ) as second_client:
             clients = (self.http, second_client)
             with ExitStack() as stack:
+                if reaction and response_kind == "move":
+                    stack.enter_context(patch("action_economy.react", side_effect=observe_react))
                 if combat_turn:
                     # Observe real damage and real dice, without replacing the
                     # turn owner (whose callable signature controls API dispatch).
@@ -4520,7 +4552,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 elif reaction:
                     self.assertEqual(
                         damage.call_count, 1 if competing_reactions else
-                        (2 if operation == "react" else 0),
+                        (2 if operation == "react" and response_kind == "attack" else 0),
                     )
             accepted, rejected = responses[winner], responses[loser]
             self.assertEqual(accepted.status_code, 200, accepted.text)
@@ -4561,6 +4593,39 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         state["world_state"]["combat"]["turn_resources"]["player"]["opportunity"],
                     )
                     self.assertNotEqual(speculative[index][1], before[index][1])
+                    if response_kind == "move":
+                        resources = state["world_state"]["combat"]["turn_resources"]["player"]
+                        self.assertEqual(resources["movement_used"], 0)
+                        self.assertEqual(resources["ready_movement_grant"], 0)
+                        self.assertEqual(resources["movement_available"],
+                                         action_economy.speed(records[index].game_session, "player"))
+                        self.assertIsNone(resources["ready"])
+                        position_before = before[index][0]["world_state"]["scene_state"]["player_position"]
+                        position_after = state["world_state"]["scene_state"]["player_position"]
+                        expected_position = copy.deepcopy(position_before)
+                        if operation == "react":
+                            expected_position.pop("bounded_node_id")
+                            resolutions = movement_resolutions[index]
+                            self.assertEqual(len(resolutions), 1)
+                            ledger, moved_position = resolutions[0]
+                            prior = before[index][0]["world_state"]["combat"]["turn_resources"]["player"]
+                            self.assertEqual(ledger["movement_used"], prior["movement_used"] + 5)
+                            self.assertEqual(ledger["ready_movement_grant"],
+                                             prior["ready_movement_grant"] + 5)
+                            self.assertEqual(ledger["movement_available"],
+                                             prior["movement_available"] + 5)
+                            self.assertTrue(ledger["reaction_spent"])
+                            self.assertIsNone(ledger["ready"])
+                            self.assertIsNone(ledger["opportunity"])
+                            self.assertEqual(moved_position, expected_position)
+                        else:
+                            self.assertNotIn(index, movement_resolutions)
+                        self.assertEqual(position_after, expected_position)
+                        # No authored endpoint or NPC displacement is invented.
+                        self.assertEqual(
+                            [npc.get("position") for npc in state["world_state"]["npcs"]],
+                            [npc.get("position") for npc in before[index][0]["world_state"]["npcs"]],
+                        )
                 elif operation == "ambient":
                     self.assertEqual(len(state["world_state"]["npcs"]),
                                      len(before[index][0]["world_state"]["npcs"]) + 1)
@@ -4673,12 +4738,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     declining_step = losing_step if operation == "react" else step
                     self.assertGreater(reacting_step["response"]["damage"], 0)
                     self.assertNotIn("response", declining_step)
-                if operation == "react":
+                if operation == "react" and response_kind == "attack":
                     self.assertGreater(step["response"]["damage"], 0)
                     self.assertEqual(step["response"]["target_id"], npcs[0]["id"])
                     self.assertEqual(step["response"]["attack_origin"], "reaction")
                     if not competing_reactions:
                         self.assertEqual(step["response"]["damage"], losing_step["response"]["damage"])
+                elif operation == "react":
+                    self.assertEqual(step["response"],
+                                     {"kind": "move", "distance_ft": 5, "movement_cost_ft": 5})
+                    self.assertEqual(step["response"], losing_step["response"])
                 else:
                     self.assertNotIn("response", step)
                 self.assertGreater(sum(action["damage"] for action in actions), 0)
@@ -4706,7 +4775,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                      if npc["id"] == npcs[0]["id"])
                 target_after = next(npc for npc in winning_state["world_state"]["npcs"]
                                     if npc["id"] == npcs[0]["id"])
-                reaction_damage = step["response"]["damage"] if operation == "react" else 0
+                reaction_damage = (step["response"]["damage"]
+                                   if operation == "react" and response_kind == "attack" else 0)
                 self.assertEqual(target_before["current_hp"] - target_after["current_hp"],
                                  reaction_damage)
                 self.assertEqual(managers[winner].get_turn_action(records[winner], action_id), receipt)
@@ -4797,7 +4867,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         ))
                         for method in ("action_economy.react", "game.roll_attack",
                                        "game.roll_d20", "game.roll_damage",
-                                       "game.apply_npc_damage")
+                                       "game.apply_npc_damage", "action_economy.move",
+                                       "bounded_encounter.unlocated_move")
                     )
                     guards.append(stack.enter_context(patch.object(
                         restored.game_session, "_resolve_enemy_turns_until_player",
@@ -4852,6 +4923,14 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 await self.assert_independent_duplicate_command(
                     "react", winner, competing_reactions=True,
                 )
+
+    async def test_independent_duplicate_readied_movement_rolls_back_and_replays_after_resume(self):
+        for operation in ("react", "decline_reaction"):
+            for winner in (0, 1):
+                with self.subTest(operation=operation, winner=winner):
+                    await self.assert_independent_duplicate_command(
+                        operation, winner, response_kind="move",
+                    )
 
     async def test_independent_duplicate_ambient_interact_rolls_back_and_replays(self):
         for winner in (0, 1):
