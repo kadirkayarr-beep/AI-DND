@@ -690,6 +690,112 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "IRONMAN", reject_changed_message=True,
         )
 
+    async def test_first_fatal_death_save_rejects_stale_combat_id(self):
+        await self._assert_first_fatal_death_save_rejects_stale_context("combat_id")
+
+    async def test_first_fatal_death_save_rejects_stale_combat_round(self):
+        await self._assert_first_fatal_death_save_rejects_stale_context("combat_round")
+
+    async def test_first_fatal_death_save_rejects_stale_combat_turn_index(self):
+        await self._assert_first_fatal_death_save_rejects_stale_context("combat_turn_index")
+
+    async def _assert_first_fatal_death_save_rejects_stale_context(self, stale_field):
+        import uuid
+
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode, stale_field=stale_field):
+                created = await self.http.post(
+                    "/api/game/campaigns", json={"death_mode": mode},
+                )
+                self.assertEqual(created.status_code, 200, created.text)
+                a = created.json()
+                record = self.manager.get(a["session_id"])
+                s = record.game_session
+                campaign_time.initialize(s.world_state)
+                # Nonempty saved history makes accidental clearing observable.
+                self.manager.autosave_turn(
+                    record, "Look for the map.", "The search continues.",
+                )
+                death_fixtures.start_test_combat(s)
+                self.assertEqual(
+                    s.ensure_death_state()["combat_checkpoint"] is not None,
+                    mode == "NORMAL",
+                )
+                s.world_state["inventory"].append("post-checkpoint reward")
+                s.advance_campaign_time(18, "wait")
+                s._apply_player_damage(s.character["current_hp"], took_damage=True)
+                death = s.ensure_death_state()
+                death["failures"] = 2
+                self.assertEqual(death["mode"], mode)
+                self.assertFalse(death["dead"])
+                self.assertFalse(death["stable"])
+                self.assertEqual(s.character["current_hp"], 0)
+                self.assertEqual(s.world_state["player_combat_status"], "unconscious")
+                combat = s.ensure_combat_state()
+                self.assertTrue(combat["active"])
+                self.assertEqual(combat["current_actor_id"], "player")
+                self.manager.save_campaign(a["campaign_id"])
+                self.app.state.ollama_adapter = None
+                request = {
+                    "message": "Ölüm kurtarmasını bekliyorum.",
+                    "action_id": str(uuid.uuid4()),
+                    "combat_id": combat["combat_id"],
+                    "combat_round": combat["round"],
+                    "combat_turn_index": combat["current_turn_index"],
+                }
+                request[stale_field] = (
+                    str(uuid.uuid4()) if stale_field == "combat_id"
+                    else request[stale_field] + 1
+                )
+                self.assertNotIn(request["action_id"], record.turn_action_receipts)
+                self.assertIsNone(self.store.get_turn_action(
+                    a["campaign_id"], request["action_id"],
+                ))
+
+                def snapshot():
+                    return copy.deepcopy({
+                        "engine": s.serialize_game_state(),
+                        "rng": s.rng.getstate(),
+                        "messages": s.messages,
+                        "world_metadata": s.world_metadata,
+                        "journal": record.journal,
+                        "narrative_memory": record.narrative_memory,
+                        "lore_authority": record.lore_authority.to_dict(),
+                        "combat_history": record.combat_history,
+                        "receipts": record.turn_action_receipts,
+                        "stored_campaign": self.store.get_campaign(a["campaign_id"]),
+                    })
+
+                before = snapshot()
+                # If allowed through, this ordinary failure would be fatal and
+                # either roll back Normal mode or kill the other modes' player.
+                with patch.object(
+                    s, "run_player_turn",
+                    side_effect=AssertionError("Stale context must not run the engine"),
+                ) as engine, patch(
+                    "game.roll_d20", side_effect=lambda: s.rng.randint(2, 9),
+                ) as die, patch.object(
+                    s.rng, "randint", wraps=s.rng.randint,
+                ) as rng_roll, patch.object(
+                    self.store, "save_campaign",
+                    side_effect=AssertionError("Stale context must not save"),
+                ) as save:
+                    rejected = await self.http.post(
+                        f"/api/game/sessions/{a['session_id']}/turn", json=request,
+                    )
+                    self.assertEqual(rejected.status_code, 409, rejected.text)
+                    self.assertEqual(rejected.json(), {"detail": {
+                        "code": "stale_combat",
+                        "message": "Combat or turn context is stale.",
+                    }})
+                    for forbidden in (engine, die, rng_roll, save):
+                        forbidden.assert_not_called()
+                self.assertEqual(snapshot(), before)
+                self.assertNotIn(request["action_id"], record.turn_action_receipts)
+                self.assertIsNone(self.store.get_turn_action(
+                    a["campaign_id"], request["action_id"],
+                ))
+
     async def test_normal_fatal_death_save_closed_combat_context_replay_after_reopen(self):
         await self._assert_accepted_fatal_death_save_replay_after_reopen(
             "NORMAL", explicit_combat_context=True,
