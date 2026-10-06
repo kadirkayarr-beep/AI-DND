@@ -275,6 +275,17 @@ class ContractParityTests(unittest.TestCase):
         ):
             schema_name = model.__name__
             runtime = model.model_json_schema()
+            published_schema = _schema(schema_name)
+            with self.subTest(schema=schema_name, contract="type"):
+                self.assertEqual(
+                    _schema_types(published_schema), _schema_types(runtime),
+                    f"{schema_name} type",
+                )
+            with self.subTest(schema=schema_name, contract="nullable"):
+                self.assertEqual(
+                    _is_nullable(published_schema), _is_nullable(runtime),
+                    f"{schema_name} nullable",
+                )
             with self.subTest(schema=schema_name):
                 self.assertEqual(_property_names(schema_name), _runtime_field_names(model))
                 self.assertEqual(
@@ -1662,6 +1673,76 @@ servers: [{url: /api}]
 paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
 components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
 """
+
+    def test_campaign_start_component_type_drift_fails_in_both_formats(self):
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            runtime = model.model_json_schema()
+            self.assertEqual(_schema_types(original), {"object"})
+            self.assertEqual(_schema_types(runtime), {"object"})
+            self.assertFalse(_is_nullable(original))
+            self.assertFalse(_is_nullable(runtime))
+            for replacement in ("string", "array", ["object", "null"]):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, replacement=replacement,
+                        compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        spec["components"]["schemas"][schema_name]["type"] = replacement
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name]
+                        nullable = isinstance(replacement, list)
+                        self.assertEqual(
+                            _schema_types(mutated),
+                            {"object", "null"} if nullable else {replacement},
+                        )
+                        self.assertEqual(_is_nullable(mutated), nullable)
+                        for key in ("properties", "required", "additionalProperties"):
+                            self.assertEqual(mutated[key], original[key], key)
+                        # Restoring only the component type must recover the whole
+                        # spec, including collection types, item refs and routes.
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["type"] = (
+                            original["type"]
+                        )
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_campaign_start_item_references_match_runtime_models",
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(
+                            len(result.failures), 2 if nullable else 1,
+                            result.failures,
+                        )
+                        self.assertIn(f"{schema_name} type", result.failures[0][1])
+                        if nullable:
+                            self.assertIn(
+                                f"{schema_name} nullable", result.failures[1][1],
+                            )
 
     def test_campaign_start_scalar_type_drift_fails_in_both_formats(self):
         for model, field_names in (
