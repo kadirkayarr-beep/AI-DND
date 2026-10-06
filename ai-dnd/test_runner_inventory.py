@@ -18,7 +18,7 @@ import run_tests
 
 class RunnerInventoryTests(unittest.TestCase):
     @staticmethod
-    def completed_gate(command, *, cwd, returncode=0):
+    def completed_gate(command, *, cwd, timeout, returncode=0):
         """Simulate the child's receipt as well as its process exit status."""
         if len(command) == 5 and returncode == 0:
             Path(command[4]).write_text(command[3], encoding="utf-8")
@@ -69,6 +69,8 @@ class RunnerInventoryTests(unittest.TestCase):
                     for name in run_tests.TESTS
                 ])
                 self.assertTrue(all(call.kwargs["cwd"] == run_tests.ROOT
+                                    for call in execute.call_args_list))
+                self.assertTrue(all(call.kwargs["timeout"] == run_tests.DEFAULT_GATE_TIMEOUT
                                     for call in execute.call_args_list))
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
                             if len(call.args[0]) == 5]
@@ -245,6 +247,41 @@ class RunnerInventoryTests(unittest.TestCase):
                              list(selected))
             self.assertNotIn("PASSED", output.getvalue())
 
+    def test_timeout_must_be_positive_and_finite_before_preflight(self):
+        for value in ("0", "-1", "nan", "inf", "-inf", "not-a-number"):
+            with self.subTest(value=value), \
+                 patch.object(run_tests, "check_test_definitions") as preflight, \
+                 patch.object(run_tests.subprocess, "run") as execute, \
+                 redirect_stderr(StringIO()), self.assertRaises(SystemExit) as error:
+                run_tests.main((f"--gate-timeout={value}",))
+            self.assertEqual(error.exception.code, 2)
+            preflight.assert_not_called()
+            execute.assert_not_called()
+
+    def test_timeout_cannot_be_overridden_by_a_completion_receipt(self):
+        gates = ("api/tests/test_initiative.py", "release_later.py")
+        receipts = []
+        with patch.object(run_tests, "TESTS", gates), \
+             patch.object(run_tests, "check_test_definitions", return_value=[]), \
+             patch.object(run_tests.subprocess, "run") as execute, \
+             redirect_stdout(StringIO()) as output, redirect_stderr(StringIO()) as stderr:
+            def finish(command, **kwargs):
+                if len(command) == 5:
+                    receipts.append(Path(command[4]))
+                    self.completed_gate(command, **kwargs)
+                    raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+                return self.completed_gate(command, **kwargs)
+
+            execute.side_effect = finish
+            self.assertEqual(run_tests.main(("--gate-timeout", "0.5")), 1)
+            self.assertEqual(execute.call_count, 2)
+            self.assertTrue(all(call.kwargs["timeout"] == 0.5
+                                for call in execute.call_args_list))
+        self.assertIn(f"GATE TIMED OUT: {gates[0]} exceeded 0.5 seconds", stderr.getvalue())
+        self.assertEqual(output.getvalue().splitlines()[-1],
+                         f"RELEASE DETERMINISTIC GATES FAILED: {gates[0]}")
+        self.assertTrue(all(not path.parent.exists() for path in receipts))
+
     def test_unknown_suite_is_rejected_before_execution(self):
         with patch.object(run_tests.subprocess, "run") as execute, \
              redirect_stderr(StringIO()), self.assertRaises(SystemExit) as error:
@@ -338,6 +375,113 @@ class RunnerProcessTests(unittest.TestCase):
             cwd=root if cwd is None else cwd,
             capture_output=True, text=True, timeout=20,
         )
+
+    def test_real_api_import_and_loading_timeouts_preserve_failure_order_and_continue(self):
+        api_gates = ("api/tests/test_initiative.py",
+                     "api/tests/test_death_bounded.py")
+        failed_script, later = "release_failed.py", "release_later.py"
+        suites = {
+            "TESTS": (*api_gates, failed_script, later),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        hangs = {
+            "import": "time.sleep(60)\n",
+            "load_tests": (
+                "def load_tests(loader, tests, pattern):\n"
+                "    Path(__file__ + '.hook').write_text('started')\n"
+                "    time.sleep(60)\n"
+                "    return tests\n"
+            ),
+        }
+        for argv, kinds in (((), ("import", "load_tests")),
+                            (("--suite", "release"), ("load_tests", "import"))):
+            with self.subTest(argv=argv, kinds=kinds), \
+                 tempfile.TemporaryDirectory() as directory, \
+                 patch.object(self, "SUITES", suites):
+                root = Path(directory)
+                self.copy_runner(root)
+                package = root / "api" / "tests"
+                package.mkdir(parents=True)
+                (package.parent / "__init__.py").touch()
+                (package / "__init__.py").touch()
+                for name, kind in zip(api_gates, kinds):
+                    (root / name).write_text(
+                        "import time\nimport unittest\nfrom pathlib import Path\n"
+                        f"Path({name + '.sentinel'!r}).write_text('imported')\n"
+                        "with Path('order.txt').open('a') as log:\n"
+                        f"    log.write({name + chr(10)!r})\n"
+                        "class BoundaryTests(unittest.TestCase):\n"
+                        "    def test_boundary(self):\n"
+                        f"        Path({name + '.assertion'!r}).write_text('ran')\n"
+                        + hangs[kind], encoding="utf-8",
+                    )
+                self.write_gate(root, failed_script, "def test_ok(): pass\n", exit_code=7)
+                self.write_gate(root, later, "def test_ok(): pass\n")
+                self.assertEqual(run_tests.check_test_definitions(
+                    root / name for name in suites["TESTS"]), [])
+                self.assertFalse((root / "order.txt").exists())
+                for name in api_gates:
+                    self.assertFalse((root / (name + ".sentinel")).exists())
+                    self.assertFalse((root / (name + ".hook")).exists())
+
+                result = self.launch_runner(root, (*argv, "--gate-timeout", "1"))
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, 1, output)
+                self.assertEqual(
+                    result.stdout.splitlines()[-1],
+                    "RELEASE DETERMINISTIC GATES FAILED: "
+                    + ", ".join((*api_gates, failed_script)),
+                )
+                self.assertEqual((root / "order.txt").read_text().splitlines(),
+                                 list(suites["TESTS"]))
+                for name, kind in zip(api_gates, kinds):
+                    self.assertIn(f"GATE TIMED OUT: {name} exceeded 1 seconds",
+                                  result.stderr)
+                    self.assertEqual((root / (name + ".sentinel")).read_text(), "imported")
+                    self.assertEqual((root / (name + ".hook")).exists(), kind == "load_tests")
+                    self.assertFalse((root / (name + ".assertion")).exists())
+                self.assertEqual(result.stderr.count("GATE TIMED OUT:"), 2)
+                self.assertEqual((root / (later + ".sentinel")).read_text(), "started")
+                self.assertNotIn("PREFLIGHT FAILED", output)
+                self.assertNotIn("PASSED", output)
+
+    def test_real_script_timeout_keeps_later_gate_running_in_each_selection(self):
+        for argv, inventory in self.SELECTIONS:
+            with self.subTest(argv=argv), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.copy_runner(root)
+                first, later = self.SUITES[inventory]
+                self.write_gate(root, first, """
+                    import time
+                    def test_ok(): pass
+                    with Path('order.txt').open('a') as log:
+                        log.write(Path(__file__).name + '\\n')
+                    time.sleep(60)
+                    Path('hang.finished').write_text('finished')
+                """)
+                self.write_gate(root, later, "def test_ok(): pass\n")
+                self.assertEqual(run_tests.check_test_definitions(
+                    root / name for name in self.SUITES[inventory]), [])
+                self.assertFalse((root / "order.txt").exists())
+                self.assertFalse((root / (first + ".sentinel")).exists())
+
+                result = self.launch_runner(root, (*argv, "--gate-timeout", "1"))
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, 1, output)
+                self.assertEqual(result.stderr.strip(),
+                                 f"GATE TIMED OUT: {first} exceeded 1 seconds")
+                self.assertEqual((root / "order.txt").read_text().splitlines(), [first, later])
+                self.assertFalse((root / "hang.finished").exists())
+                for name in (first, later):
+                    self.assertEqual((root / (name + ".sentinel")).read_text(), "started")
+                label = ("RELEASE DETERMINISTIC GATES" if inventory == "TESTS"
+                         else "HISTORICAL PROTOTYPE CHECKS (NOT RELEASE GATES)")
+                self.assertEqual(result.stdout.splitlines()[-1], f"{label} FAILED: {first}")
+                for name in self.SUITES[
+                        "PROTOTYPE_TESTS" if inventory == "TESTS" else "TESTS"]:
+                    self.assertFalse((root / (name + ".sentinel")).exists())
+                self.assertNotIn("PREFLIGHT FAILED", output)
+                self.assertNotIn("PASSED", output)
 
     def test_real_unknown_suite_is_rejected_before_any_gate_starts(self):
         with tempfile.TemporaryDirectory() as directory:

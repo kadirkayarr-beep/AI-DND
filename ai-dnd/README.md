@@ -69,6 +69,20 @@ unexpected Ollama calls; model-response scenarios use explicit offline mocks.
 Every selected gate is source-preflighted before execution; failures remain
 nonzero and are listed even when later gates pass.
 
+Each child gate has a **300-second timeout**, covering API imports, `load_tests`,
+and test/script execution. Override it for either suite with a positive, finite
+number of seconds (fractions are allowed):
+
+```bash
+python ai-dnd/run_tests.py --gate-timeout 600
+```
+
+A timeout kills and waits for the direct child, reports `GATE TIMED OUT` with its
+name and limit, and marks that gate failed even if it wrote a completion receipt.
+Later gates still run; the final failure list stays in inventory order. This is
+a per-gate deadline, not a whole-suite deadline. It does not terminate descendants
+spawned by a gate. Listing and source-only preflight do not execute child gates.
+
 The retired `test_combat_v2.py` and `test_combat_v2_fixed.py` are historical
 prototype diagnostics, **not release gates**. Their obsolete fixture assumptions
 may fail against the current engine. The fixed entry point delegates to the

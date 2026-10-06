@@ -2,6 +2,7 @@
 """Run release gates by default, or explicitly selected historical prototypes."""
 
 import argparse
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -11,6 +12,7 @@ from test_definition_preflight import check_test_definitions
 
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_GATE_TIMEOUT = 300.0
 TESTS = (
     "test_definition_preflight_checks.py",
     "test_runner_inventory.py",
@@ -68,11 +70,39 @@ def run_unittest_gate(module, completion_path=None):
     return 0
 
 
+def positive_timeout(value):
+    """Reject values that disable the deadline or cannot be used as a timeout."""
+    try:
+        seconds = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("must be a positive finite number of seconds")
+    if not math.isfinite(seconds) or seconds <= 0:
+        raise argparse.ArgumentTypeError("must be a positive finite number of seconds")
+    return seconds
+
+
+def run_child_gate(command, test_name, timeout):
+    """Bound the entire child lifetime, including imports and loading hooks."""
+    try:
+        # subprocess.run kills and waits for the direct child on TimeoutExpired.
+        return subprocess.run(command, cwd=ROOT, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(f"GATE TIMED OUT: {test_name} exceeded {timeout:g} seconds",
+              file=sys.stderr, flush=True)
+        return None
+
+
 def main(argv=()):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", choices=("release", "prototype"), default="release",
                         help="prototype checks are historical diagnostics, not release gates")
     parser.add_argument("--list", action="store_true", help="list selection without running tests")
+    parser.add_argument(
+        "--gate-timeout", type=positive_timeout, default=DEFAULT_GATE_TIMEOUT,
+        metavar="SECONDS",
+        help="positive per-child time limit including import/loading/execution "
+             "(default: 300 seconds); timed-out gates fail and later gates still run",
+    )
     args = parser.parse_args(argv)
     tests = TESTS if args.suite == "release" else PROTOTYPE_TESTS
     label = ("RELEASE DETERMINISTIC GATES" if args.suite == "release"
@@ -110,7 +140,10 @@ def main(argv=()):
                     "sys.exit(run_unittest_gate(sys.argv[1], sys.argv[2]))",
                     module, str(completion_path),
                 ]
-                result = subprocess.run(command, cwd=ROOT)
+                result = run_child_gate(command, test_name, args.gate_timeout)
+                if result is None:
+                    failures.append(test_name)
+                    continue
                 completed = False
                 if result.returncode == 0:
                     try:
@@ -127,8 +160,8 @@ def main(argv=()):
                     failures.append(test_name)
         else:
             command = [sys.executable, str(ROOT / test_name)]
-            result = subprocess.run(command, cwd=ROOT)
-            if result.returncode != 0:
+            result = run_child_gate(command, test_name, args.gate_timeout)
+            if result is None or result.returncode != 0:
                 failures.append(test_name)
 
     print("\n" + "=" * 54)
