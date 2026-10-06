@@ -84,30 +84,74 @@ def positive_timeout(value):
     return seconds
 
 
+def stop_child_gate(child, test_name):
+    """Kill inherited-group work and bound the direct child's reap."""
+    # Kill even if the leader has already exited: descendants may still live.
+    try:
+        os.killpg(child.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    try:
+        child.wait(timeout=TIMEOUT_CLEANUP_LIMIT)
+    except subprocess.TimeoutExpired:
+        print(f"GATE CLEANUP FAILED: {test_name} direct child did not exit "
+              f"within {TIMEOUT_CLEANUP_LIMIT:g} seconds after SIGKILL",
+              file=sys.stderr, flush=True)
+
+
 def run_child_gate(command, test_name, timeout):
-    """Bound the entire child lifetime, including imports and loading hooks."""
+    """Bound child lifetime on timeout and catchable runner interruption."""
     if os.name != "posix":
         raise RuntimeError("Gate process-tree cleanup requires a POSIX runtime")
-    child = subprocess.Popen(command, cwd=ROOT, start_new_session=True)
+    child = None
+    pending_signal = None
+    signals = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+    previous = {number: signal.getsignal(number) for number in signals}
+
+    def ignore_interruptions():
+        for number in signals:
+            signal.signal(number, signal.SIG_IGN)
+
+    def interrupt(number, frame):
+        nonlocal pending_signal
+        # Popen can be interrupted after spawning but before returning its handle.
+        # Defer the exception until we own that handle so cleanup cannot miss it.
+        if child is None:
+            pending_signal = number
+            return
+        ignore_interruptions()
+        if number == signal.SIGINT:
+            raise KeyboardInterrupt
+        raise SystemExit(128 + number)
+
+    def stop():
+        # Repeated catchable signals must not interrupt the bounded reap.
+        ignore_interruptions()
+        stop_child_gate(child, test_name)
+
     try:
-        return subprocess.CompletedProcess(command, child.wait(timeout=timeout))
-    except subprocess.TimeoutExpired:
-        print(f"GATE TIMED OUT: {test_name} exceeded {timeout:g} seconds",
-              file=sys.stderr, flush=True)
-        # The child's PID is also its new process-group ID. Kill the whole group,
-        # even if the leader exited at the deadline; descendants can still live.
-        # SIGKILL prevents a gate/descendant ignoring SIGTERM from extending work.
+        for number in signals:
+            signal.signal(number, interrupt)
+        child = subprocess.Popen(command, cwd=ROOT, start_new_session=True)
+        if pending_signal is not None:
+            interrupt(pending_signal, None)
         try:
-            os.killpg(child.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        try:
-            child.wait(timeout=TIMEOUT_CLEANUP_LIMIT)
+            return subprocess.CompletedProcess(command, child.wait(timeout=timeout))
         except subprocess.TimeoutExpired:
-            print(f"GATE CLEANUP FAILED: {test_name} direct child did not exit "
-                  f"within {TIMEOUT_CLEANUP_LIMIT:g} seconds after SIGKILL",
+            print(f"GATE TIMED OUT: {test_name} exceeded {timeout:g} seconds",
                   file=sys.stderr, flush=True)
-        return None
+            stop()
+            return None
+    except BaseException:
+        if child is not None:
+            ignore_interruptions()
+            print(f"GATE INTERRUPTED: {test_name}; stopping its process group",
+                  file=sys.stderr, flush=True)
+            stop()
+        raise
+    finally:
+        for number, handler in previous.items():
+            signal.signal(number, handler)
 
 
 def main(argv=()):

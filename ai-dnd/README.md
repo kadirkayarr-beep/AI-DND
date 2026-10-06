@@ -92,6 +92,18 @@ guarantee. Later gates still run; the final failure list stays in inventory orde
 This is a per-gate deadline, not a whole-suite deadline. Listing and source-only
 preflight do not execute child gates.
 
+Runner interruption is verified separately from timeout behavior. During an
+active gate, Ctrl+C (`SIGINT`/`KeyboardInterrupt`), `SIGTERM`, and `SIGHUP` stop
+the active gate's entire inherited process group with `SIGKILL` and bound the
+direct-child reap to the same **5 seconds**. Repeated catchable signals cannot
+interrupt that cleanup. The runner then exits nonzero without starting later
+gates or reporting suite success, even if an API gate wrote a completion receipt
+early. Offline Linux copied-runner fixtures verify scripts in default/explicit
+release and prototype selections, plus API import, loading, and execution,
+including grandchildren ignoring termination signals. This does not cover
+uncatchable termination of the runner (`SIGKILL`), machine loss, or descendants
+that deliberately detach from the gate's group.
+
 The retired `test_combat_v2.py` and `test_combat_v2_fixed.py` are historical
 prototype diagnostics, **not release gates**. Their obsolete fixture assumptions
 may fail against the current engine. The fixed entry point delegates to the

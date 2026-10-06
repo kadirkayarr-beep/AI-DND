@@ -39,3 +39,17 @@ containers whose init does not promptly reap orphans.
 **How to apply:** Verify live process state before a later gate runs and retain
 fixture cleanup even on assertion failure. Do not claim detached descendants
 or interruption cleanup from timeout-only acceptance.
+
+Interruption acceptance must signal the outer runner alone, separately from
+deadline tests; cover signals received while obtaining the child handle as
+well as while waiting. Keep repeated catchable signals from interrupting reap.
+
+**Why:** Isolated gate groups do not receive the parent's termination signal.
+An exception raised inside process creation may arrive before the parent owns
+the handle needed for cleanup. Timeout-only fixtures cannot establish either
+interruption behavior.
+
+**How to apply:** Defer catchable signal exceptions until the spawned handle is
+available, restore caller signal handlers afterward, and retain explicit fixture
+cleanup even when testing a broken runner. SIGKILL of the parent and machine
+loss cannot be handled by in-process cleanup.
