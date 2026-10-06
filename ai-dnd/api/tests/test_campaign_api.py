@@ -6266,8 +6266,24 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             shared_action=True, changed_payload=True,
         )
 
+    async def test_recovered_merchant_search_paused_winner_receipt_storage_error_is_safe(self):
+        for shared_action, changed_payload in ((False, False), (True, False), (True, True)):
+            with self.subTest(shared_action=shared_action, changed_payload=changed_payload):
+                await self._assert_recovered_merchant_search_save_race(
+                    shared_action=shared_action, changed_payload=changed_payload,
+                    paused_receipt_error=CampaignStorageError,
+                )
+
+    async def test_recovered_merchant_search_paused_winner_receipt_corrupt_error_is_safe(self):
+        for shared_action, changed_payload in ((False, False), (True, False), (True, True)):
+            with self.subTest(shared_action=shared_action, changed_payload=changed_payload):
+                await self._assert_recovered_merchant_search_save_race(
+                    shared_action=shared_action, changed_payload=changed_payload,
+                    paused_receipt_error=CampaignCorruptError,
+                )
+
     async def _assert_recovered_merchant_search_save_race(
-        self, *, shared_action, changed_payload=False,
+        self, *, shared_action, changed_payload=False, paused_receipt_error=None,
     ):
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
@@ -6551,6 +6567,77 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(after_replay.history, newer.history)
                             self.assertEqual(
                                 after_replay.metadata["revision"], newer.metadata["revision"],
+                            )
+                            self.assertEqual(
+                                store.get_turn_action(campaign_id, competing_body["action_id"]),
+                                committed_receipt,
+                            )
+                        self.assertEqual(receipt_rows(), newer_rows)
+                    if paused_receipt_error is not None:
+                        # Fail only the winner's durable receipt read. The losing
+                        # save must remain paused, and its later rollback lookup
+                        # must use the restored, independent store.
+                        winner_record = active_manager.get(active_id)
+                        winner_engine = copy.deepcopy(active_session.serialize_game_state())
+                        winner_journal = copy.deepcopy(winner_record.journal)
+                        winner_memory = copy.deepcopy(winner_record.narrative_memory)
+                        winner_receipts = copy.deepcopy(winner_record.turn_action_receipts)
+                        winner_version = active_session._campaign_persistence_version
+                        real_lookup = active_store.get_turn_action
+                        private_detail = "private paused winner receipt lookup failure"
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        with (
+                            patch.object(
+                                active_store, "get_turn_action",
+                                side_effect=paused_receipt_error(private_detail),
+                            ) as failed_lookup,
+                            patch.object(active_session, "run_player_turn", side_effect=AssertionError(
+                                "Unreadable winner receipt must not execute another search.",
+                            )) as blocked_turn,
+                            patch.object(active_store, "save_campaign", side_effect=AssertionError(
+                                "Unreadable winner receipt must not save again.",
+                            )) as blocked_save,
+                        ):
+                            failed_retry = await asyncio.wait_for(
+                                active_http.post(active_url, json=competing_body), timeout=30,
+                            )
+                            failed_lookup.assert_called_once_with(
+                                campaign_id, competing_body["action_id"],
+                            )
+                            blocked_turn.assert_not_called()
+                            blocked_save.assert_not_called()
+                        status, code, message = (
+                            (503, "campaign_storage_unavailable",
+                             "Macera kaydı şu anda güvenli biçimde saklanamıyor.")
+                            if paused_receipt_error is CampaignStorageError
+                            else (409, "campaign_unavailable",
+                                  "Bu macera kaydı güvenli biçimde yüklenemedi.")
+                        )
+                        self.assertEqual(failed_retry.status_code, status, failed_retry.text)
+                        self.assertEqual(
+                            failed_retry.json(), {"detail": {"code": code, "message": message}},
+                        )
+                        self.assertNotIn(private_detail, failed_retry.text)
+                        self.assertEqual(active_store.get_turn_action, real_lookup)
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        raced_save.assert_called_once()
+                        self.assertEqual(len(attempts), 1)
+                        self.assertEqual(len(active_results), 1)
+                        self.assertEqual(len(results), 1)
+                        self.assertEqual(active_session.serialize_game_state(), winner_engine)
+                        self.assertEqual(winner_record.journal, winner_journal)
+                        self.assertEqual(winner_record.narrative_memory, winner_memory)
+                        self.assertEqual(winner_record.turn_action_receipts, winner_receipts)
+                        self.assertEqual(active_session._campaign_persistence_version, winner_version)
+                        for store in (active_store, recovered_store):
+                            after_failure = store.get_campaign(campaign_id)
+                            self.assertEqual(after_failure, newer)
+                            self.assertEqual(after_failure.payload, newer.payload)
+                            self.assertEqual(after_failure.history, newer.history)
+                            self.assertEqual(
+                                after_failure.metadata["revision"], newer.metadata["revision"],
                             )
                             self.assertEqual(
                                 store.get_turn_action(campaign_id, competing_body["action_id"]),
