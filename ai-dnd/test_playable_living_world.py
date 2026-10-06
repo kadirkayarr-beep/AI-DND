@@ -376,7 +376,7 @@ class PlayableLivingWorldTests(unittest.TestCase):
                     self.assertEqual(result["npc"], npcs[0])
                     self.assertEqual(self.world, expected)
 
-    def test_explicit_newly_observed_hidden_npc_name_resolves_at_and_after_deadline(self):
+    def test_explicit_newly_observed_hidden_npc_name_resolves_after_reopening_at_and_after_deadline(self):
         for turn_index in (12, 13):
             for active in (True, False):
                 for player_input in (
@@ -412,6 +412,25 @@ class PlayableLivingWorldTests(unittest.TestCase):
                         self.assertEqual(event["canonical_result"], canonical_result)
                         self.assertEqual(self.session.active_npcs(), npcs)
                         self.assertIn(npcs[1], self.session.active_npcs())
+
+                        saved_state = self.session.serialize_game_state()
+                        restored_session = game.create_session(seed=2718)
+                        with tempfile.TemporaryDirectory() as directory:
+                            save_path = Path(directory) / "observed-hidden-npc.json"
+                            self.session.save_game(save_path)
+                            restored_session.load_game(save_path)
+
+                        self.assertEqual(
+                            restored_session.serialize_game_state(), saved_state,
+                        )
+                        restored_world = restored_session.world_state
+                        self.assertIsNot(restored_world, self.world)
+                        self.assertEqual(restored_world, self.world)
+                        restored_event = restored_world["scheduled_events"][0]
+                        self.assertTrue(restored_event["player_observed"])
+                        self.assertEqual(restored_event, event)
+                        self.assertEqual(restored_session.active_npcs(), npcs)
+                        self.assertIn(npcs[1], restored_session.active_npcs())
                         expected = copy.deepcopy(self.world)
                         expected["flags"].update({
                             "active_npc_id": npcs[1]["id"],
@@ -419,11 +438,13 @@ class PlayableLivingWorldTests(unittest.TestCase):
                             "active_npc_until_turn": turn_index + 6,
                         })
 
-                        result = self.session.resolve_npc_reference(player_input)
+                        for session in (self.session, restored_session):
+                            with self.subTest(reopened=session is restored_session):
+                                result = session.resolve_npc_reference(player_input)
 
-                        self.assertEqual(result["status"], "found")
-                        self.assertEqual(result["npc"], npcs[1])
-                        self.assertEqual(self.world, expected)
+                                self.assertEqual(result["status"], "found")
+                                self.assertEqual(result["npc"], npcs[1])
+                                self.assertEqual(session.world_state, expected)
 
     def test_pronoun_only_dialogue_preserves_single_npc_fallback(self):
         for turn_index in (12, 13):
