@@ -42,3 +42,17 @@ mtime_ms = 1791223387857
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/33fe1c2b-058f-4731-aa58-05c97a3675fd/0458c050-5564-4840-b0bd-1bf8391c956e"
 storage_version_token = "1791223423187719"
 content_type = "text/html"
+
+[[outputs]]
+id = "KU0qwFD4JRqgxtjT1nd8l"
+uri = "file://.local/evidence/package3-final-20261006/final-acceptance.html"
+type = "html"
+title = "Package #3 — Final Acceptance ve Remote Closeout"
+description = "Fresh test sonuçları, kaynak/HEAD kanıtı, korunan ilk failure kayıtları ve read-only GitHub anahtarı nedeniyle durdurulan normal push. Acceptance GO; remote closeout BLOCKED."
+logical_id = "97fed402-c9fb-441b-86d4-35334a51117b"
+content_hash = "sha256:b815853a45baec3ba8d82af13e8833ddc7f455401a0db5e68b9021605e42d82b"
+size = 24045
+mtime_ms = 1791269876999
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/97fed402-c9fb-441b-86d4-35334a51117b/b4d6000b-4633-4a84-bbed-2e45ddc3a797"
+storage_version_token = "1791269886737387"
+content_type = "text/html"
