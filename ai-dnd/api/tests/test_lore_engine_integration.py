@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import game
+import campaign_time
 from api.lore_authority import (
     BindingStatus,
     CampaignLoreState,
@@ -868,6 +869,107 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 narration_model.assert_not_called()
                 self.assertEqual(session.character, before_character)
                 self.assertEqual(session.world_state, before_world)
+
+    def test_stable_unconscious_current_city_ruler_question_preserves_pending_recovery(self):
+        question = "Bu şehrin hükümdarı kim?"
+        for target_id in (None, "npc:elara"):
+            with self.subTest(target_id=target_id):
+                session = game.GameSession(seed=11)
+                session.character.update(
+                    name="Tester", current_hp=10, max_hp=10
+                )
+                session.world_state["location"] = "fr:city:neverwinter"
+                session.world_state["npcs"] = [{
+                    "id": "npc:elara",
+                    "name": "Elara",
+                    "role": "Guide",
+                    "location": "fr:city:neverwinter",
+                    "memory": [],
+                    "knowledge": [],
+                }]
+                session.lore_authority_context = (
+                    PRODUCTION_REGISTRY.retrieve_lore_context(
+                        current_location_id="fr:city:neverwinter",
+                        player_message=question,
+                        mentioned_entity_ids=set(),
+                        campaign_state=CampaignLoreState.legacy_unbound(),
+                    )
+                )
+                self.assertEqual(
+                    game._supported_lore_question_response(
+                        question,
+                        session.lore_authority_context,
+                        session.world_state,
+                    ),
+                    "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+                )
+
+                # Use the Death owner's scheduling path, not a fabricated timer.
+                campaign_time.initialize(session.world_state)
+                session.ensure_death_state()["mode"] = "PERMADEATH"
+                session.advance_campaign_time(137, "wait")
+                session._apply_player_damage(10, took_damage=True)
+                with patch.object(session.rng, "randint", return_value=2) as die:
+                    session.stabilize_player()
+                die.assert_called_once_with(1, 4)
+                session.advance_campaign_time(600, "wait")
+
+                death = session.ensure_death_state()
+                self.assertTrue(death["stable"])
+                self.assertFalse(death["dead"])
+                self.assertEqual(death["recovery"], {"hours": 2, "at": 137 + 7200})
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"], 737
+                )
+                self.assertEqual(session.character["current_hp"], 0)
+                self.assertEqual(
+                    session.world_state["player_combat_status"], "unconscious"
+                )
+                self.assertFalse(session.ensure_combat_state()["active"])
+                before_character = copy.deepcopy(session.character)
+                before_world = copy.deepcopy(session.world_state)
+                before_lore = copy.deepcopy(session.lore_authority_context)
+                before_messages = copy.deepcopy(session.messages)
+                before_rng = session.rng.getstate()
+
+                with (
+                    patch.object(
+                        game,
+                        "ask_dungeon_master",
+                        side_effect=AssertionError(
+                            "Stable unconscious actions must not call narration."
+                        ),
+                    ) as narration_model,
+                    patch.object(
+                        game,
+                        "parse_player_intent",
+                        side_effect=AssertionError(
+                            "Stable unconscious actions must not call intent parsing."
+                        ),
+                    ) as intent_model,
+                ):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        r"^Bilinçsiz karakter eylem gerçekleştiremez\.$",
+                    ):
+                        session.run_player_turn(
+                            question, target_id=target_id, scene_plan={}
+                        )
+
+                intent_model.assert_not_called()
+                narration_model.assert_not_called()
+                self.assertEqual(session.character, before_character)
+                self.assertEqual(session.lore_authority_context, before_lore)
+                self.assertEqual(session.world_state, before_world)
+                self.assertEqual(
+                    session.world_state["death_state"]["recovery"],
+                    before_world["death_state"]["recovery"],
+                )
+                self.assertEqual(
+                    session.world_state["campaign_time"], before_world["campaign_time"]
+                )
+                self.assertEqual(session.messages, before_messages)
+                self.assertEqual(session.rng.getstate(), before_rng)
 
     def test_dead_current_city_ruler_question_cannot_bypass_action_gate(self):
         question = "Bu şehrin hükümdarı kim?"
