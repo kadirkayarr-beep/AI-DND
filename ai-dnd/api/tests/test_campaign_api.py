@@ -5134,6 +5134,51 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(winner.status_code, 200, winner.text)
                     committed = winner_store.get_campaign(campaign_id)
                     committed_rows = receipt_rows()
+                    if shared_action and not changed_payload:
+                        # Replay through the winner after its commit, while the
+                        # competing first discovery is still blocked in save.
+                        committed_receipt = winner_store.get_turn_action(
+                            campaign_id, winner_body["action_id"],
+                        )
+                        self.assertEqual(committed_receipt["response"], winner.json())
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        self.assertEqual(len(results["winner"]), 1)
+                        self.assertEqual(len(results["loser"]), 1)
+                        raced_save.assert_called_once()
+                        with (
+                            patch.object(winner_session, "run_player_turn", side_effect=AssertionError(
+                                "Winning-session replay must not execute another turn.",
+                            )) as blocked_turn,
+                            patch.object(winner_store, "save_campaign", side_effect=AssertionError(
+                                "Winning-session replay must not save again.",
+                            )) as blocked_save,
+                        ):
+                            winner_replay = await asyncio.wait_for(
+                                winner_http.post(winner_url, json=winner_body), timeout=30,
+                            )
+                        self.assertEqual(winner_replay.status_code, 200, winner_replay.text)
+                        self.assertEqual(winner_replay.json(), winner.json())
+                        blocked_turn.assert_not_called()
+                        blocked_save.assert_not_called()
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        raced_save.assert_called_once()
+                        self.assertEqual(len(attempts), 1)
+                        self.assertEqual(len(results["winner"]), 1)
+                        self.assertEqual(len(results["loser"]), 1)
+                        for store in (winner_store, loser_store):
+                            after_replay = store.get_campaign(campaign_id)
+                            self.assertEqual(after_replay, committed)
+                            self.assertEqual(after_replay.history, committed.history)
+                            self.assertEqual(
+                                after_replay.metadata["revision"], committed.metadata["revision"],
+                            )
+                            self.assertEqual(
+                                store.get_turn_action(campaign_id, winner_body["action_id"]),
+                                committed_receipt,
+                            )
+                        self.assertEqual(receipt_rows(), committed_rows)
                 finally:
                     release_save.set()
                     loser = await asyncio.wait_for(pending, timeout=30)
