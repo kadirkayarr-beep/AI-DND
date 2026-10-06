@@ -48,7 +48,14 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
     async def check_reopened_receipt(
         self, mutate=None, legacy=None, conflict=None, *, legacy_projection=None,
         malformed_hash=None, complete_response_identities=None,
+        complete_response_reason_code=None,
     ):
+        if complete_response_reason_code is not None:
+            self.assertIsNone(legacy)
+            self.assertIsNone(legacy_projection)
+            self.assertIsNone(mutate)
+            self.assertIsNone(malformed_hash)
+            self.assertIsNone(complete_response_identities)
         if complete_response_identities is not None:
             self.assertIsNone(legacy)
             self.assertIsNone(legacy_projection)
@@ -121,6 +128,14 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     damaged["ambient_event_response"], strict=True,
                 )
                 self.assertNotIn("legacy_ambient_result", damaged)
+            if complete_response_reason_code is not None:
+                damaged["ambient_event_response"]["result"]["reason_code"] = (
+                    complete_response_reason_code
+                )
+                AmbientEventCommandResult.model_validate(
+                    damaged["ambient_event_response"], strict=True,
+                )
+                self.assertNotIn("legacy_ambient_result", damaged)
             if mutate is not None:
                 mutate(damaged)
             self.assertEqual(damaged["action_id"], command["action_id"])
@@ -183,7 +198,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("legacy_ambient_result", reserved["response"])
                 if legacy == "valid":
                     self.assertEqual(reserved["response"], damaged)
-                if complete_response_identities is not None:
+                if (complete_response_identities is not None
+                        or complete_response_reason_code is not None):
                     self.assertEqual(reserved["response"], damaged)
                     self.assertIn("ambient_event_response", reserved["response"])
                     self.assertNotIn("legacy_ambient_result", reserved["response"])
@@ -403,6 +419,47 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
+
+    async def test_overlength_complete_response_reason_codes_fail_safely_and_preserve_conflicts_after_resume(self):
+        for length in (65, 128):
+            for conflict in (None, "action", "event"):
+                with self.subTest(length=length, conflict=conflict):
+                    def replace_reason_code(response):
+                        original = copy.deepcopy(response)
+                        self.assertIn("ambient_event_response", response)
+                        self.assertNotIn("legacy_ambient_result", response)
+                        response["ambient_event_response"]["result"]["reason_code"] = (
+                            "r" * length
+                        )
+                        # The complete accepted reply is otherwise intact;
+                        # SQL corruption bypasses validation on normal saves.
+                        with self.assertRaises(ValidationError) as invalid:
+                            AmbientEventCommandResult.model_validate(
+                                response["ambient_event_response"], strict=True,
+                            )
+                        self.assertEqual(
+                            [(error["loc"], error["type"])
+                             for error in invalid.exception.errors()],
+                            [(("result", "reason_code"), "string_too_long")],
+                        )
+                        unchanged = copy.deepcopy(response)
+                        unchanged["ambient_event_response"]["result"]["reason_code"] = (
+                            original["ambient_event_response"]["result"]["reason_code"]
+                        )
+                        self.assertEqual(unchanged, original)
+
+                    await self.check_reopened_receipt(
+                        replace_reason_code, conflict=conflict,
+                    )
+
+    async def test_valid_complete_response_reason_code_limit_preserves_replay_and_conflicts_after_resume(self):
+        for conflict in (None, "action", "event"):
+            with self.subTest(length=64, conflict=conflict):
+                # A valid retained reason is projected to event_already_resolved
+                # on replay, without rewriting the stored 64-character value.
+                await self.check_reopened_receipt(
+                    complete_response_reason_code="r" * 64, conflict=conflict,
+                )
 
     async def test_overlength_complete_response_identities_fail_safely_and_preserve_conflicts_after_resume(self):
         for field, limit in (("transition_id", 160), ("canonical_event_id", 36)):
