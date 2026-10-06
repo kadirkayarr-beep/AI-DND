@@ -7,9 +7,7 @@ import hashlib
 import inspect
 import json
 import logging
-import tempfile
 from dataclasses import replace
-from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -111,33 +109,12 @@ _UNSET = object()
 def _capture_session(session: Any) -> dict[str, Any]:
     return {
         "save": copy.deepcopy(session.serialize_game_state()),
-        "messages": copy.deepcopy(session.messages),
-        "rng_state": session.rng.getstate(),
+        "runtime": session._capture_runtime_snapshot(),
     }
 
 
 def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
-    save_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            suffix=".json",
-            delete=False,
-        ) as handle:
-            json.dump(
-                snapshot["save"],
-                handle,
-                ensure_ascii=False,
-                allow_nan=False,
-            )
-            save_path = Path(handle.name)
-        session.load_game(save_path)
-        session.messages[:] = copy.deepcopy(snapshot["messages"])
-        session.rng.setstate(snapshot["rng_state"])
-    finally:
-        if save_path is not None:
-            save_path.unlink(missing_ok=True)
+    session._restore_runtime_snapshot(snapshot["runtime"])
 
 
 def _lore_entity_reference(registry: Any, npc: Any) -> str | None:

@@ -12507,6 +12507,33 @@ class GameSession:
             return functools.partial(helper, session=self)
         raise AttributeError(name)
 
+    def _capture_runtime_snapshot(self):
+        """Capture owned runtime state for rollback, not for save-file loading."""
+        return {
+            "character": copy.deepcopy(self.character),
+            "world_state": copy.deepcopy(self.world_state),
+            "recent_dm_narrations": copy.deepcopy(self.recent_dm_narrations),
+            "messages": copy.deepcopy(self.messages),
+            "rng_state": self.rng.getstate(),
+        }
+
+    def _restore_runtime_snapshot(self, snapshot):
+        """Restore a trusted in-process capture exactly, without save migrations.
+
+        A rejected request can start with inconsistent runtime markers. Rollback
+        must preserve those markers, not validate or repair them. External JSON
+        continues to enter exclusively through the validated load_game boundary.
+        Keep containers in place for callers holding world/character references.
+        """
+        restored = copy.deepcopy(snapshot)
+        self.rng.setstate(restored["rng_state"])
+        self.character.clear()
+        self.character.update(restored["character"])
+        self.world_state.clear()
+        self.world_state.update(restored["world_state"])
+        self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
+        self.messages[:] = restored["messages"]
+
     def resolve_ambient_event_action(
         self,
         event_instance_id: str,

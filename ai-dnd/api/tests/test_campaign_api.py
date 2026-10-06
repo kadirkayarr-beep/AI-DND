@@ -2373,10 +2373,37 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             ),
                             "Neverwinter kentinin güncel Lordu Dagult Neverember.",
                         )
+                        before_runtime = session._capture_runtime_snapshot()
+                        world_reference = session.world_state
+                        character_reference = session.character
+                        messages_reference = session.messages
+                        narrations_reference = session.recent_dm_narrations
+                        # External saves must still reject this inconsistent
+                        # state. Only an internal capture may restore it.
+                        invalid_path = Path(self.temporary_directory.name) / "invalid-death.json"
+                        invalid_path.write_text(json.dumps(before_save), encoding="utf-8")
+                        with self.assertRaises(ValueError):
+                            session.load_game(invalid_path)
+                        self.assertEqual(session._capture_runtime_snapshot(), before_runtime)
                         real_plan = session.plan_living_world_turn
 
                         @wraps(real_plan)
                         def capture_rejected_plan(*args, **kwargs):
+                            # Speculative setup can change state before the
+                            # real positive-HP death gate rejects planning.
+                            session.world_state["flags"]["speculative_setup"] = True
+                            session.world_state["npcs"][0]["memory"].append("uncommitted")
+                            session.character["current_hp"] = 9
+                            session.character["uncommitted_detail"] = {"nested": [1]}
+                            session.messages.append({"role": "user", "content": "uncommitted"})
+                            session.recent_dm_narrations.append("uncommitted")
+                            session.rng.random()
+                            session.world_metadata = {}
+                            record.journal.clear()
+                            record.narrative_memory.clear()
+                            record.lore_authority = type(record.lore_authority).legacy_unbound()
+                            session.lore_authority_context = {"uncommitted": True}
+                            self.assertNotEqual(session._capture_runtime_snapshot(), before_runtime)
                             try:
                                 return real_plan(*args, **kwargs)
                             except ValueError as error:
@@ -2405,6 +2432,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                     "Partial death markers must block narration"
                                 ),
                             ) as narration_model,
+                            patch.object(main_module._logger, "critical") as rollback_failed,
                         ):
                             response = await self.http.post(
                                 f"/api/game/sessions/{created['session_id']}/turn", json=body
@@ -2423,6 +2451,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         turn_dispatch.assert_not_called()
                         intent_model.assert_not_called()
                         narration_model.assert_not_called()
+                        rollback_failed.assert_not_called()
+                        self.assertEqual(session._capture_runtime_snapshot(), before_runtime)
+                        self.assertIs(session.world_state, world_reference)
+                        self.assertIs(session.character, character_reference)
+                        self.assertIs(session.messages, messages_reference)
+                        self.assertIs(session.recent_dm_narrations, narrations_reference)
                         self.assertEqual(session.serialize_game_state(), before_save)
                         self.assertEqual(session.messages, before_messages)
                         self.assertEqual(session.rng.getstate(), before_rng)
