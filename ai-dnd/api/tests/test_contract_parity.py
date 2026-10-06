@@ -233,6 +233,13 @@ QUEST_OBJECTIVE_MIN_LENGTH_EXCEPTIONS = {
     ("QuestObjectiveOffer", "target"),
 }
 
+# Parent quest strings have the same intentional published minLength omission.
+QUEST_PARENT_MIN_LENGTH_EXCEPTIONS = {
+    (schema_name, field_name)
+    for schema_name in ("QuestOffer", "QuestState")
+    for field_name in ("quest_id", "title", "description")
+}
+
 QUEST_COMMAND_PATHS = (
     "/game/sessions/{session_id}/quests/{quest_id}/accept",
     "/game/sessions/{session_id}/quests/{quest_id}/cancel",
@@ -377,6 +384,74 @@ class ContractParityTests(unittest.TestCase):
                 self.assertEqual(
                     _is_nullable(published_items), _is_nullable(runtime_items)
                 )
+
+    def test_quest_parent_schemas_match_runtime_models(self):
+        for model in (QuestOffer, QuestState):
+            schema_name = model.__name__
+            runtime = model.model_json_schema()
+            published_schema = _schema(schema_name)
+            with self.subTest(schema=schema_name):
+                self.assertEqual(
+                    _property_names(schema_name), _runtime_field_names(model),
+                    f"{schema_name}.properties",
+                )
+                # The response always emits the nullable giver, although the
+                # runtime constructor permits omission and defaults it to None.
+                self.assertNotIn("giver_npc_id", runtime.get("required", []))
+                self.assertIn("default", runtime["properties"]["giver_npc_id"])
+                self.assertIsNone(runtime["properties"]["giver_npc_id"]["default"])
+                self.assertEqual(
+                    set(published_schema.get("required", [])),
+                    set(runtime.get("required", [])) | {"giver_npc_id"},
+                    f"{schema_name}.required",
+                )
+                self.assertEqual(
+                    _schema_types(published_schema), _schema_types(runtime),
+                    f"{schema_name} type",
+                )
+                self.assertEqual(
+                    published_schema.get("additionalProperties"),
+                    runtime.get("additionalProperties"),
+                    f"{schema_name}.additionalProperties",
+                )
+            for field_name, runtime_field in runtime["properties"].items():
+                with self.subTest(schema=schema_name, field=field_name):
+                    label = f"{schema_name}.{field_name}"
+                    published = _property(schema_name, field_name)
+                    self.assertEqual(
+                        _schema_types(published), _schema_types(runtime_field),
+                        f"{label} type",
+                    )
+                    self.assertEqual(
+                        _is_nullable(published), _is_nullable(runtime_field),
+                        f"{label} nullable",
+                    )
+                    self.assertEqual(
+                        _schema_enum(published), _schema_enum(runtime_field),
+                        f"{label} enum",
+                    )
+                    # No published defaults: in particular, the runtime giver
+                    # default must not make the required response key optional.
+                    self.assertNotIn("default", published, f"{label} default")
+                    runtime_string = runtime_field
+                    if field_name == "giver_npc_id":
+                        runtime_string = next(
+                            branch for branch in runtime_field["anyOf"]
+                            if branch.get("type") == "string"
+                        )
+                    for constraint in ("minLength", "maxLength"):
+                        expected = runtime_string.get(constraint)
+                        if (
+                            constraint == "minLength"
+                            and (schema_name, field_name)
+                            in QUEST_PARENT_MIN_LENGTH_EXCEPTIONS
+                        ):
+                            self.assertEqual(expected, 1, f"Runtime {label}.minLength")
+                            expected = None
+                        self.assertEqual(
+                            published.get(constraint), expected,
+                            f"{label}.{constraint}",
+                        )
 
     def test_quest_objective_schemas_match_runtime_models(self):
         # Reuse the explicit QuestObjectiveState -> QuestObjective alias; these
@@ -2555,6 +2630,92 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         )
                         ContractParityTests(
                             "test_quest_objective_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertTrue(result.failures, f"Undetected drift: {diagnostic}")
+                    self.assertIn(
+                        diagnostic, "\n".join(failure for _, failure in result.failures)
+                    )
+
+    def test_quest_parent_field_drift_fails_in_both_formats(self):
+        mutations = []
+        for model in (QuestOffer, QuestState):
+            schema_name = model.__name__
+            required = _schema(schema_name)["required"]
+            mutations.extend([
+                (schema_name, ("required",), None, f"{schema_name}.required"),
+                (schema_name, ("required",), required + ["unexpected"],
+                 f"{schema_name}.required"),
+                (schema_name, ("properties", "unexpected"), {"type": "boolean"},
+                 f"{schema_name}.properties"),
+                (schema_name, ("type",), "array", f"{schema_name} type"),
+                (schema_name, ("additionalProperties",), True,
+                 f"{schema_name}.additionalProperties"),
+                (schema_name, ("additionalProperties",), None,
+                 f"{schema_name}.additionalProperties"),
+            ])
+            for field_name in model.model_fields:
+                label = f"{schema_name}.{field_name}"
+                field_path = ("properties", field_name)
+                published = _property(schema_name, field_name)
+                mutations.extend([
+                    (schema_name, ("required",),
+                     [name for name in required if name != field_name],
+                     f"{schema_name}.required"),
+                    (schema_name, field_path, None, f"{schema_name}.properties"),
+                    (schema_name, field_path + ("type",), "integer", f"{label} type"),
+                    (schema_name, field_path + ("default",), "unexpected",
+                     f"{label} default"),
+                ])
+                wrong_nullable_type = (
+                    "string" if field_name == "giver_npc_id"
+                    else [published["type"], "null"]
+                )
+                mutations.append((
+                    schema_name, field_path + ("type",), wrong_nullable_type,
+                    f"{label} type",
+                ))
+                for constraint in ("minLength", "maxLength"):
+                    original = published.get(constraint)
+                    replacements = (1,) if original is None else (None, original + 1)
+                    for replacement in replacements:
+                        mutations.append((
+                            schema_name, field_path + (constraint,), replacement,
+                            f"{label}.{constraint}",
+                        ))
+                enum = published.get("enum")
+                replacements = (
+                    [None, enum[:-1], enum + ["offered"]]
+                    if enum is not None else [["unexpected"]]
+                )
+                for replacement in replacements:
+                    mutations.append((
+                        schema_name, field_path + ("enum",), replacement,
+                        f"{label} enum",
+                    ))
+        for schema_name, path, replacement, diagnostic in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    schema=schema_name, path=path, replacement=replacement,
+                    compact=flow_style,
+                ):
+                    # Each mutation starts from the real unmodified contract.
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        target.pop(path[-1], None)
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    loaded = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style, sort_keys=False,
+                    ))
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=loaded):
+                        ContractParityTests(
+                            "test_quest_parent_schemas_match_runtime_models"
                         ).run(result)
                     self.assertEqual(result.testsRun, 1)
                     self.assertEqual(result.errors, [], result.errors)
