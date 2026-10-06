@@ -3532,7 +3532,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     # rather than reject at an initial receipt/currentness check.
                     barrier = threading.Barrier(2)
                     winner_finished = threading.Event()
-                    speculative, committed = {}, {}
+                    speculative, committed, pending_receipts = {}, {}, {}
                     save_errors, save_calls = {}, {"ambient": 0, "rest": 0}
                     original_saves = {kind: store.save_campaign for kind, store in stores.items()}
 
@@ -3550,6 +3550,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                 pending.combat_history, pending.turn_action_receipts,
                             ))
                             self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_ids[kind])
+                            pending_receipts[kind] = copy.deepcopy(kwargs["turn_action_receipt"])
                             if distinct_ids:
                                 # Neither ID has a receipt, even after the other
                                 # action commits. Only revision ownership can reject.
@@ -3603,14 +3604,23 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(accepted.status_code, 200, accepted.text)
                         self.assertEqual(save_calls, {"ambient": 1, "rest": 1})
                         self.assertEqual(set(save_errors), {loser})
+                        # The store rejects the old revision in both cases.
+                        # The rest handler then classifies the winning receipt:
+                        # a different command under the SAME ID is a conflict,
+                        # whereas an unused ID remains a stale-save rejection.
+                        # Ambient save failures retain their own error contract.
                         self.assertIsInstance(save_errors[loser], CampaignStaleError)
                         self.assertEqual(rejected.status_code, 409 if loser == "rest" else 500,
                                          rejected.text)
+                        expected_code = "event_persistence_error"
+                        if loser == "rest":
+                            expected_code = "campaign_stale" if distinct_ids else "action_id_conflict"
                         self.assertEqual(
-                            rejected.json()["detail"]["code"],
-                            (
-                                "campaign_stale" if distinct_ids else "action_id_conflict"
-                            ) if loser == "rest" else "event_persistence_error",
+                            rejected.json()["detail"]["code"], expected_code,
+                        )
+                        self.assertNotEqual(
+                            pending_receipts["ambient"]["request_hash"],
+                            pending_receipts["rest"]["request_hash"],
                         )
 
                         # Prove both speculative effects existed before the
@@ -3644,6 +3654,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         stored = self.store.get_campaign(campaign_id)
                         self.assertEqual(stored.metadata["revision"], saved_before.metadata["revision"] + 1)
                         receipt = self.store.get_turn_action(campaign_id, action_id)
+                        self.assertEqual(receipt["request_hash"], pending_receipts[winner]["request_hash"])
                         if distinct_ids:
                             self.assertIsNone(stores[loser].get_turn_action(campaign_id, action_ids[loser]))
                         self.assertEqual(receipt["response"]["action_id"], action_id)
@@ -3786,6 +3797,42 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(self.snapshot(restored), reopened)
                         self.assertEqual((restored.game_session.messages,
                                           restored.game_session.world_metadata), auxiliary)
+                        self.assertEqual(saved_rows(), rows)
+                        self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+
+                        # The shared ID still belongs to the winner, even when
+                        # replayed through the reopened losing manager. Neither
+                        # command may run mechanics or save during this replay.
+                        with ExitStack() as stack:
+                            mechanics = [
+                                stack.enter_context(patch.object(
+                                    restored.game_session, resolver,
+                                    wraps=getattr(restored.game_session, resolver),
+                                ))
+                                for resolver in (
+                                    "resolve_species_trait_action", "resolve_ambient_event_action",
+                                )
+                            ]
+                            saves = stack.enter_context(patch.object(
+                                stores[loser], "save_campaign", wraps=stores[loser].save_campaign,
+                            ))
+                            replay = await send(winner, clients[loser], sid)
+                            self.assertEqual(replay.status_code, 200, replay.text)
+                            expected = copy.deepcopy(accepted.json())
+                            expected["session_id"] = sid
+                            if winner == "ambient":
+                                expected["result"].update(
+                                    status="ALREADY_APPLIED", reason_code="event_already_resolved",
+                                )
+                            self.assertEqual(replay.json(), expected)
+                            for resolver in mechanics:
+                                resolver.assert_not_called()
+                            saves.assert_not_called()
+                        self.assertEqual(self.snapshot(restored), reopened)
+                        self.assertEqual(
+                            (restored.game_session.messages, restored.game_session.world_metadata),
+                            auxiliary,
+                        )
                         self.assertEqual(saved_rows(), rows)
                         self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
 
