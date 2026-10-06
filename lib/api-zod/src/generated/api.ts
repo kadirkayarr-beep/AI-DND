@@ -39,11 +39,31 @@ export const createGameSessionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createGameSessionResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const createGameSessionResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const createGameSessionResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const createGameSessionResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const createGameSessionResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const createGameSessionResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const createGameSessionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const createGameSessionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const createGameSessionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const createGameSessionResponseStateExpeditionExhaustionMin = 0;
+export const createGameSessionResponseStateExpeditionExhaustionMax = 6;
+
+export const createGameSessionResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const createGameSessionResponseStateSceneOneVisitRevisionMin = 0;
@@ -275,6 +295,16 @@ export const CreateGameSessionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(createGameSessionResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(createGameSessionResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -286,6 +316,32 @@ export const CreateGameSessionResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(createGameSessionResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(createGameSessionResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(createGameSessionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(createGameSessionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(createGameSessionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(createGameSessionResponseStateExpeditionExhaustionMin).max(createGameSessionResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(createGameSessionResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -652,11 +708,31 @@ export const getGameSessionStateResponseCampaignTimeOneSecondMax = 59;
 
 export const getGameSessionStateResponseCampaignTimeOneDayIndexMin = 0;
 
+
+export const getGameSessionStateResponseJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const getGameSessionStateResponseJourneyOneDistanceMilesMin = 0;
 
 
 export const getGameSessionStateResponseJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const getGameSessionStateResponseExpeditionWalkingSecondsMin = 0;
+
+export const getGameSessionStateResponseExpeditionHoursBeyondEightMin = 0;
+
+
+export const getGameSessionStateResponseExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const getGameSessionStateResponseExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const getGameSessionStateResponseExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const getGameSessionStateResponseExpeditionExhaustionMin = 0;
+export const getGameSessionStateResponseExpeditionExhaustionMax = 6;
+
+export const getGameSessionStateResponseExpeditionTrackingSecondsMin = 0;
 
 
 export const getGameSessionStateResponseSceneOneVisitRevisionMin = 0;
@@ -886,6 +962,16 @@ export const GetGameSessionStateResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(getGameSessionStateResponseJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(getGameSessionStateResponseJourneyOneDistanceMilesMin).optional(),
@@ -897,6 +983,32 @@ export const GetGameSessionStateResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(getGameSessionStateResponseExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(getGameSessionStateResponseExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(getGameSessionStateResponseExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(getGameSessionStateResponseExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(getGameSessionStateResponseExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(getGameSessionStateResponseExpeditionExhaustionMin).max(getGameSessionStateResponseExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(getGameSessionStateResponseExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -1270,11 +1382,31 @@ export const resolveSpeciesTraitActionResponseStateCampaignTimeOneSecondMax = 59
 
 export const resolveSpeciesTraitActionResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const resolveSpeciesTraitActionResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const resolveSpeciesTraitActionResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const resolveSpeciesTraitActionResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const resolveSpeciesTraitActionResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resolveSpeciesTraitActionResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resolveSpeciesTraitActionResponseStateExpeditionExhaustionMin = 0;
+export const resolveSpeciesTraitActionResponseStateExpeditionExhaustionMax = 6;
+
+export const resolveSpeciesTraitActionResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const resolveSpeciesTraitActionResponseStateSceneOneVisitRevisionMin = 0;
@@ -1509,6 +1641,16 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resolveSpeciesTraitActionResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(resolveSpeciesTraitActionResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -1520,6 +1662,32 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resolveSpeciesTraitActionResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resolveSpeciesTraitActionResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resolveSpeciesTraitActionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resolveSpeciesTraitActionResponseStateExpeditionExhaustionMin).max(resolveSpeciesTraitActionResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resolveSpeciesTraitActionResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -1900,11 +2068,31 @@ export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneSecondMa
 
 export const resolveSpeciesTraitActionCompatResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const resolveSpeciesTraitActionCompatResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const resolveSpeciesTraitActionCompatResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionExhaustionMin = 0;
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionExhaustionMax = 6;
+
+export const resolveSpeciesTraitActionCompatResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const resolveSpeciesTraitActionCompatResponseStateSceneOneVisitRevisionMin = 0;
@@ -2139,6 +2327,16 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(resolveSpeciesTraitActionCompatResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -2150,6 +2348,32 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resolveSpeciesTraitActionCompatResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateExpeditionExhaustionMin).max(resolveSpeciesTraitActionCompatResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -2571,11 +2795,31 @@ export const playGameTurnResponseStateCampaignTimeOneSecondMax = 59;
 
 export const playGameTurnResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const playGameTurnResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const playGameTurnResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const playGameTurnResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const playGameTurnResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const playGameTurnResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const playGameTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const playGameTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const playGameTurnResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const playGameTurnResponseStateExpeditionExhaustionMin = 0;
+export const playGameTurnResponseStateExpeditionExhaustionMax = 6;
+
+export const playGameTurnResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const playGameTurnResponseStateSceneOneVisitRevisionMin = 0;
@@ -2943,6 +3187,16 @@ export const PlayGameTurnResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(playGameTurnResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(playGameTurnResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -2954,6 +3208,32 @@ export const PlayGameTurnResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(playGameTurnResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(playGameTurnResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(playGameTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(playGameTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(playGameTurnResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(playGameTurnResponseStateExpeditionExhaustionMin).max(playGameTurnResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(playGameTurnResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -3724,11 +4004,31 @@ export const acceptGameQuestResponseStateCampaignTimeOneSecondMax = 59;
 
 export const acceptGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const acceptGameQuestResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const acceptGameQuestResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const acceptGameQuestResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const acceptGameQuestResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const acceptGameQuestResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const acceptGameQuestResponseStateExpeditionExhaustionMin = 0;
+export const acceptGameQuestResponseStateExpeditionExhaustionMax = 6;
+
+export const acceptGameQuestResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const acceptGameQuestResponseStateSceneOneVisitRevisionMin = 0;
@@ -3986,6 +4286,16 @@ export const AcceptGameQuestResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(acceptGameQuestResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(acceptGameQuestResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -3997,6 +4307,32 @@ export const AcceptGameQuestResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(acceptGameQuestResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(acceptGameQuestResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(acceptGameQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(acceptGameQuestResponseStateExpeditionExhaustionMin).max(acceptGameQuestResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(acceptGameQuestResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -4390,11 +4726,31 @@ export const cancelGameQuestResponseStateCampaignTimeOneSecondMax = 59;
 
 export const cancelGameQuestResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const cancelGameQuestResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const cancelGameQuestResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const cancelGameQuestResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const cancelGameQuestResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const cancelGameQuestResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const cancelGameQuestResponseStateExpeditionExhaustionMin = 0;
+export const cancelGameQuestResponseStateExpeditionExhaustionMax = 6;
+
+export const cancelGameQuestResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const cancelGameQuestResponseStateSceneOneVisitRevisionMin = 0;
@@ -4652,6 +5008,16 @@ export const CancelGameQuestResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(cancelGameQuestResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(cancelGameQuestResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -4663,6 +5029,32 @@ export const CancelGameQuestResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(cancelGameQuestResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(cancelGameQuestResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(cancelGameQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(cancelGameQuestResponseStateExpeditionExhaustionMin).max(cancelGameQuestResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(cancelGameQuestResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -5064,11 +5456,31 @@ export const resolveAmbientEventActionResponseStateCampaignTimeOneSecondMax = 59
 
 export const resolveAmbientEventActionResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const resolveAmbientEventActionResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const resolveAmbientEventActionResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const resolveAmbientEventActionResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const resolveAmbientEventActionResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resolveAmbientEventActionResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resolveAmbientEventActionResponseStateExpeditionExhaustionMin = 0;
+export const resolveAmbientEventActionResponseStateExpeditionExhaustionMax = 6;
+
+export const resolveAmbientEventActionResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const resolveAmbientEventActionResponseStateSceneOneVisitRevisionMin = 0;
@@ -5307,6 +5719,16 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resolveAmbientEventActionResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(resolveAmbientEventActionResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -5318,6 +5740,32 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resolveAmbientEventActionResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resolveAmbientEventActionResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resolveAmbientEventActionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resolveAmbientEventActionResponseStateExpeditionExhaustionMin).max(resolveAmbientEventActionResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resolveAmbientEventActionResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -5839,11 +6287,31 @@ export const createCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const createCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const createCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const createCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const createCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const createCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const createCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const createCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const createCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const createCampaignResponseStateExpeditionExhaustionMin = 0;
+export const createCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const createCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const createCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -6134,6 +6602,16 @@ export const CreateCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(createCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(createCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -6145,6 +6623,32 @@ export const CreateCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(createCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(createCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(createCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(createCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(createCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(createCampaignResponseStateExpeditionExhaustionMin).max(createCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(createCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -6717,11 +7221,31 @@ export const getCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const getCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const getCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const getCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const getCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const getCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const getCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const getCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const getCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const getCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const getCampaignResponseStateExpeditionExhaustionMin = 0;
+export const getCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const getCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const getCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -7022,6 +7546,16 @@ export const GetCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(getCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(getCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -7033,6 +7567,32 @@ export const GetCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(getCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(getCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(getCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(getCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(getCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(getCampaignResponseStateExpeditionExhaustionMin).max(getCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(getCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -7592,11 +8152,31 @@ export const resumeCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resumeCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const resumeCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const resumeCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const resumeCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const resumeCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resumeCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resumeCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resumeCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resumeCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resumeCampaignResponseStateExpeditionExhaustionMin = 0;
+export const resumeCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const resumeCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const resumeCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -7887,6 +8467,16 @@ export const ResumeCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resumeCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(resumeCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -7898,6 +8488,32 @@ export const ResumeCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resumeCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resumeCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resumeCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resumeCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resumeCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resumeCampaignResponseStateExpeditionExhaustionMin).max(resumeCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resumeCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -8559,11 +9175,31 @@ export const createLegacySessionResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createLegacySessionResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const createLegacySessionResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const createLegacySessionResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const createLegacySessionResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const createLegacySessionResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const createLegacySessionResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const createLegacySessionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const createLegacySessionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const createLegacySessionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const createLegacySessionResponseStateExpeditionExhaustionMin = 0;
+export const createLegacySessionResponseStateExpeditionExhaustionMax = 6;
+
+export const createLegacySessionResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const createLegacySessionResponseStateSceneOneVisitRevisionMin = 0;
@@ -8795,6 +9431,16 @@ export const CreateLegacySessionResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(createLegacySessionResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(createLegacySessionResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -8806,6 +9452,32 @@ export const CreateLegacySessionResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(createLegacySessionResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(createLegacySessionResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(createLegacySessionResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(createLegacySessionResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(createLegacySessionResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(createLegacySessionResponseStateExpeditionExhaustionMin).max(createLegacySessionResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(createLegacySessionResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -9173,11 +9845,31 @@ export const getLegacySessionStateResponseCampaignTimeOneSecondMax = 59;
 
 export const getLegacySessionStateResponseCampaignTimeOneDayIndexMin = 0;
 
+
+export const getLegacySessionStateResponseJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const getLegacySessionStateResponseJourneyOneDistanceMilesMin = 0;
 
 
 export const getLegacySessionStateResponseJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const getLegacySessionStateResponseExpeditionWalkingSecondsMin = 0;
+
+export const getLegacySessionStateResponseExpeditionHoursBeyondEightMin = 0;
+
+
+export const getLegacySessionStateResponseExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const getLegacySessionStateResponseExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const getLegacySessionStateResponseExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const getLegacySessionStateResponseExpeditionExhaustionMin = 0;
+export const getLegacySessionStateResponseExpeditionExhaustionMax = 6;
+
+export const getLegacySessionStateResponseExpeditionTrackingSecondsMin = 0;
 
 
 export const getLegacySessionStateResponseSceneOneVisitRevisionMin = 0;
@@ -9407,6 +10099,16 @@ export const GetLegacySessionStateResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(getLegacySessionStateResponseJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(getLegacySessionStateResponseJourneyOneDistanceMilesMin).optional(),
@@ -9418,6 +10120,32 @@ export const GetLegacySessionStateResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(getLegacySessionStateResponseExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(getLegacySessionStateResponseExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(getLegacySessionStateResponseExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(getLegacySessionStateResponseExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(getLegacySessionStateResponseExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(getLegacySessionStateResponseExpeditionExhaustionMin).max(getLegacySessionStateResponseExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(getLegacySessionStateResponseExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -9834,11 +10562,31 @@ export const playLegacyTurnResponseStateCampaignTimeOneSecondMax = 59;
 
 export const playLegacyTurnResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const playLegacyTurnResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const playLegacyTurnResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const playLegacyTurnResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const playLegacyTurnResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const playLegacyTurnResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const playLegacyTurnResponseStateExpeditionExhaustionMin = 0;
+export const playLegacyTurnResponseStateExpeditionExhaustionMax = 6;
+
+export const playLegacyTurnResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const playLegacyTurnResponseStateSceneOneVisitRevisionMin = 0;
@@ -10206,6 +10954,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(playLegacyTurnResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(playLegacyTurnResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -10217,6 +10975,32 @@ export const PlayLegacyTurnResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(playLegacyTurnResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(playLegacyTurnResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(playLegacyTurnResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(playLegacyTurnResponseStateExpeditionExhaustionMin).max(playLegacyTurnResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(playLegacyTurnResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -11066,11 +11850,31 @@ export const createLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const createLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const createLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const createLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const createLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const createLegacyCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const createLegacyCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const createLegacyCampaignResponseStateExpeditionExhaustionMin = 0;
+export const createLegacyCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const createLegacyCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const createLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -11361,6 +12165,16 @@ export const CreateLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(createLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(createLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -11372,6 +12186,32 @@ export const CreateLegacyCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(createLegacyCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(createLegacyCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(createLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(createLegacyCampaignResponseStateExpeditionExhaustionMin).max(createLegacyCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(createLegacyCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -11946,11 +12786,31 @@ export const getLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const getLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const getLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const getLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const getLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const getLegacyCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const getLegacyCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const getLegacyCampaignResponseStateExpeditionExhaustionMin = 0;
+export const getLegacyCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const getLegacyCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const getLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -12251,6 +13111,16 @@ export const GetLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(getLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(getLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -12262,6 +13132,32 @@ export const GetLegacyCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(getLegacyCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(getLegacyCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(getLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(getLegacyCampaignResponseStateExpeditionExhaustionMin).max(getLegacyCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(getLegacyCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),
@@ -12822,11 +13718,31 @@ export const resumeLegacyCampaignResponseStateCampaignTimeOneSecondMax = 59;
 
 export const resumeLegacyCampaignResponseStateCampaignTimeOneDayIndexMin = 0;
 
+
+export const resumeLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
 export const resumeLegacyCampaignResponseStateJourneyOneDistanceMilesMin = 0;
 
 
 export const resumeLegacyCampaignResponseStateJourneyOneRemainingSecondsMin = 0;
 
+
+
+export const resumeLegacyCampaignResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resumeLegacyCampaignResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resumeLegacyCampaignResponseStateExpeditionExhaustionMin = 0;
+export const resumeLegacyCampaignResponseStateExpeditionExhaustionMax = 6;
+
+export const resumeLegacyCampaignResponseStateExpeditionTrackingSecondsMin = 0;
 
 
 export const resumeLegacyCampaignResponseStateSceneOneVisitRevisionMin = 0;
@@ -13117,6 +14033,16 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "can_fight": zod.boolean()
 })),
   "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resumeLegacyCampaignResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
   "origin": zod.string().optional(),
   "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
   "distance_miles": zod.number().min(resumeLegacyCampaignResponseStateJourneyOneDistanceMilesMin).optional(),
@@ -13128,6 +14054,32 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "stage_count": zod.number().int().min(1),
   "encounter": zod.string().nullable()
 }),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resumeLegacyCampaignResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resumeLegacyCampaignResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resumeLegacyCampaignResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resumeLegacyCampaignResponseStateExpeditionExhaustionMin).max(resumeLegacyCampaignResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resumeLegacyCampaignResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
   "location": zod.string(),
   "scene": zod.union([zod.object({
   "id": zod.string(),

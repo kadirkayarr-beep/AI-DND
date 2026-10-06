@@ -1541,6 +1541,7 @@ components:
           anyOf:
             - $ref: "#/components/schemas/GameJourney"
             - type: "null"
+        expedition: {$ref: "#/components/schemas/GameExpedition"}
         location:
           type: string
         scene:
@@ -1653,6 +1654,7 @@ components:
       additionalProperties: false
       required: [destination, status, stage, stage_count, encounter]
       properties:
+        current_stage: {$ref: "#/components/schemas/GameJourneyStage"}
         origin: {type: string}
         pace: {type: string, enum: [fast, normal, slow]}
         distance_miles: {type: number, minimum: 0}
@@ -1663,6 +1665,61 @@ components:
         stage: {type: integer, minimum: 1}
         stage_count: {type: integer, minimum: 1}
         encounter: {type: ["string", "null"]}
+    GameJourneyStage:
+      type: object
+      additionalProperties: false
+      required: [start, end, terrain, weather, distance_miles, duration_seconds, spent_seconds, challenge]
+      properties:
+        start: {type: ["string", "null"]}
+        end: {type: ["string", "null"]}
+        terrain: {type: string}
+        weather: {type: string}
+        distance_miles: {type: ["number", "null"]}
+        duration_seconds: {type: integer, minimum: 1}
+        spent_seconds: {type: integer, minimum: 0}
+        challenge: {type: ["string", "null"]}
+    GameExpedition:
+      type: object
+      additionalProperties: false
+      required: [walking_seconds, hours_beyond_eight, exhaustion, supplies_enabled, tracking_status, tracking_seconds, tracking_required_seconds, actions]
+      properties:
+        walking_seconds: {type: integer, minimum: 0}
+        hours_beyond_eight: {type: integer, minimum: 0}
+        extended_travel_saves:
+          type: array
+          description: Python-resolved extended-travel CON saves for the current calendar day; never client rolls.
+          items: {$ref: "#/components/schemas/GameTravelSave"}
+        exhaustion: {type: integer, minimum: 0, maximum: 6}
+        supplies_enabled: {type: boolean}
+        tracking_status: {type: ["string", "null"]}
+        tracking_seconds: {type: integer, minimum: 0}
+        tracking_required_seconds: {type: integer, minimum: 1}
+        actions:
+          type: array
+          items: {$ref: "#/components/schemas/ExplorationAction"}
+    GameTravelSave:
+      type: object
+      additionalProperties: false
+      required: [dc, raw_rolls, selected_roll, total, total_modifier, modifier_breakdown, outcome]
+      properties:
+        dc: {type: integer, minimum: 1}
+        raw_rolls:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: {type: integer, minimum: 1, maximum: 20}
+        selected_roll: {type: integer, minimum: 1, maximum: 20}
+        total: {type: integer}
+        total_modifier: {type: integer}
+        outcome: {type: string, enum: [SUCCESS, FAILURE]}
+        modifier_breakdown:
+          type: object
+          additionalProperties: false
+          required: [ability_modifier, proficiency_modifier, circumstantial_modifier]
+          properties:
+            ability_modifier: {type: integer}
+            proficiency_modifier: {type: integer}
+            circumstantial_modifier: {type: integer}
     ExplorationState:
       type: object
       additionalProperties: false

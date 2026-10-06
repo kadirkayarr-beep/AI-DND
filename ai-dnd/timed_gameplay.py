@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import math
+import copy
 
 import campaign_time as clock
 import living_world
@@ -112,6 +113,31 @@ def validate_route(route, origin, destination, locations):
 def validate_state(world):
     if not isinstance(world.get("flags", {}), dict):
         raise ValueError("Travel flags are invalid.")
+    effort = world.get("travel_effort")
+    if effort is not None and (
+        not isinstance(effort, dict) or set(effort) != {"day", "walking_seconds", "checks"}
+        or type(effort["day"]) is not int or effort["day"] < 0
+        or type(effort["walking_seconds"]) is not int or not 0 <= effort["walking_seconds"] <= clock.DAY
+        or not isinstance(effort["checks"], list)
+        or len(effort["checks"]) != max(0, effort["walking_seconds"] // 3600 - 8)
+        or any(not isinstance(c, dict) or c.get("ability") != "constitution"
+               or c.get("dc") != 11 + index or c.get("outcome") not in {"SUCCESS", "FAILURE"}
+               for index, c in enumerate(effort["checks"]))
+    ):
+        raise ValueError("Daily travel effort is invalid.")
+    tracking = world.get("tracking")
+    if tracking is not None and (
+        not isinstance(tracking, dict)
+        or set(tracking) != {"trail_id", "location_id", "status", "confined", "dc", "spent_seconds", "attempts"}
+        or not isinstance(tracking["trail_id"], str) or not tracking["trail_id"]
+        or tracking["location_id"] not in world.get("locations", {})
+        or tracking["status"] not in {"LOST", "REACQUIRED"}
+        or type(tracking["confined"]) is not bool or tracking["dc"] not in {10, 15, 20, 25, 30}
+        or type(tracking["spent_seconds"]) is not int
+        or not 0 <= tracking["spent_seconds"] < (600 if tracking["confined"] else 3600)
+        or type(tracking["attempts"]) is not int or not 0 <= tracking["attempts"] <= 2
+    ):
+        raise ValueError("Tracking state is invalid.")
     pace = world.get("flags", {}).get("travel_pace", "normal")
     if not isinstance(pace, str) or pace not in PACE_MILES_PER_DAY:
         raise ValueError("Travel pace is invalid.")
@@ -146,8 +172,10 @@ def validate_state(world):
             "origin", "destination", "stages", "stage_index", "stage_spent_seconds",
             "stage_checked", "status", "encounter", "recent_patterns"
         }
-        if not isinstance(journey, dict) or not required <= set(journey) <= required | {"returning", "pace", "distance_miles", "duration_seconds", "route_id", "pace_rules", "stage_metadata"}:
+        if not isinstance(journey, dict) or not required <= set(journey) <= required | {"returning", "pace", "distance_miles", "duration_seconds", "route_id", "pace_rules", "stage_metadata", "navigation_outcome"}:
             raise ValueError("Journey fields are invalid.")
+        if journey.get("navigation_outcome", "not_required") not in {"not_required", "verified", "lost"}:
+            raise ValueError("Journey navigation outcome is invalid.")
         stages = journey["stages"]
         if not isinstance(stages, list) or not 1 <= len(stages) <= 48 or any(type(s) is not int or not 1 <= s <= clock.DAY for s in stages):
             raise ValueError("Journey stages are invalid.")
@@ -231,11 +259,100 @@ def travel_dice(rng, recent):
 
 
 def _advance(session, seconds, reason, observation=None):
-    return clock.advance(
+    if reason == "travel_stage":
+        return advance_walking(session, seconds, observation)
+    before_elapsed = session.world_state["campaign_time"]["elapsed_seconds"]
+    result = clock.advance(
         session.world_state, seconds, reason,
         f"turn:{session.world_state.get('flags', {}).get('turn_index', 0)}",
         observation=observation,
     )
+    import equipment_economy
+    equipment_economy.process_supply_days(session, before_elapsed)
+    return result
+
+
+def advance_walking(session, seconds, observation=None):
+    """Split at clock/day/hour boundaries; only elapsed movement counts."""
+    import weapon_attack
+    from api.core_resolution import resolve_saving_throw
+    world = session.world_state
+    before = clock.public_time(world)
+    elapsed, known, saves, death_results = 0, [], [], []
+    interrupted = False
+    while elapsed < seconds:
+        time = world["campaign_time"]
+        absolute = time["start_second"] + time["elapsed_seconds"]
+        day = absolute // clock.DAY
+        effort = world.get("travel_effort")
+        if effort is None or effort["day"] != day:
+            effort = world["travel_effort"] = {"day": day, "walking_seconds": 0, "checks": []}
+        amount = min(seconds - elapsed, clock.DAY - absolute % clock.DAY,
+                     3600 - effort["walking_seconds"] % 3600)
+        advance = clock.advance(world, amount, "travel_stage",
+                               f"turn:{world.get('flags', {}).get('turn_index', 0)}",
+                               observation=observation)
+        actual = advance["elapsed_seconds"]
+        effort["walking_seconds"] += actual
+        elapsed += actual
+        known.extend(advance["player_known_events"])
+        hour = effort["walking_seconds"] // 3600
+        if hour > 8 and len(effort["checks"]) < hour - 8:
+            player = session.character
+            check = resolve_saving_throw(
+                roll_fn=lambda: session.rng.randint(1, 20), ability="constitution",
+                dc=10 + hour - 8,
+                ability_modifier=weapon_attack.saving_bonus(player, "constitution")[0],
+                circumstantial_modifier=weapon_attack.saving_bonus(player, "constitution")[1])
+            effort["checks"].append(check)
+            saves.append(check)
+            if check["outcome"] != "SUCCESS":
+                fatal = weapon_attack.exhaustion(player) == 5
+                deaths = []
+                weapon_attack.add_exhaustion(session, "extended_travel", deaths=deaths)
+                if fatal:
+                    interrupted = True
+                    death_results.extend(deaths)
+        if absolute % clock.DAY + actual == clock.DAY:
+            import equipment_economy
+            supply_result = equipment_economy.consume_daily_supplies(session, day=day + 1)
+            if supply_result.get("condition_death"):
+                interrupted = True
+                death_results.extend(supply_result["death_results"])
+        interrupted = bool(interrupted or advance.get("interrupted") or weapon_attack.exhaustion(session.character) >= 6)
+        if interrupted or not actual:
+            break
+    return {"before": before, "after": clock.public_time(world),
+            "requested_seconds": seconds, "elapsed_seconds": elapsed,
+            "player_known_events": known, "interrupted": interrupted,
+            "extended_travel_saves": saves, "death_results": death_results}
+
+
+def reacquire_tracking(session):
+    """An already-known authored trail, not navigation to a destination."""
+    world = session.world_state
+    trail = world.get("tracking")
+    if not trail or trail["location_id"] != world["location"]:
+        return _result("tracking", "Burada takip ettiğin bilinen bir iz yok.", success=False)
+    if trail["status"] == "REACQUIRED" or trail["attempts"] >= 2:
+        return _result("tracking", "Bu izin mevcut takip denemesi tamamlandı.")
+    required = 600 if trail["confined"] else 3600
+    advance = _advance(session, required - trail["spent_seconds"], "tracking")
+    trail["spent_seconds"] += advance["elapsed_seconds"]
+    if trail["spent_seconds"] < required:
+        return _result("tracking", "İzi yeniden araman kesildi; kalan inceleme sürdürülebilir.", advance)
+    player = session.character
+    check = session.perform_skill_check(
+        "Survival", trail["dc"], player["modifiers"], player["proficient_skills"],
+        player["proficiency_bonus"], expertise_skills=player.get("expertise_skills", []))
+    trail["attempts"] += 1
+    trail["spent_seconds"] = 0
+    if check["resolution"]["outcome"] == "SUCCESS":
+        trail["status"] = "REACQUIRED"
+    return _result("skill_check", "İzi yeniden buldun." if trail["status"] == "REACQUIRED"
+                   else "İzi henüz bulamadın.", advance,
+                   outcome="success" if check["resolution"]["outcome"] == "SUCCESS" else "failure",
+                   **check)
 
 
 def _result(action, text, advancement=None, **extra):
@@ -357,9 +474,11 @@ def start_travel(session, destination):
         "origin": world["location"], "destination": destination, "stages": stages,
         "stage_index": 0, "stage_spent_seconds": 0, "stage_checked": False,
         "status": "TRAVELLING", "encounter": None, "recent_patterns": list(recent),
+        "navigation_outcome": "lost" if lost else "verified" if navigation is not None else "not_required",
     }
     route = world["locations"][world["location"]].get("travel_routes", {}).get(destination)
     if isinstance(route, dict):
+        chosen_pace = effective_pace(world, route, chosen_pace, session)
         world["journey"].update(
             pace=chosen_pace,
             distance_miles=route["distance_miles"], duration_seconds=sum(stages), route_id=route["id"],
@@ -670,4 +789,73 @@ def public_journey(world):
         result.update(origin=journey["origin"], pace=journey["pace"],
                       distance_miles=journey["distance_miles"], duration_seconds=journey["duration_seconds"],
                       remaining_seconds=journey["duration_seconds"] - spent)
+    metadata = journey.get("stage_metadata", [])
+    if metadata:
+        import exploration
+        known = exploration.known_locations(world)
+        stage = metadata[journey["stage_index"]]
+        result["current_stage"] = {
+            "start": stage["start"] if stage["start"] in known else None,
+            "end": stage["end"] if stage["end"] in known else None,
+            "terrain": stage["terrain"], "weather": stage["weather"],
+            "distance_miles": stage["distance_miles"],
+            "duration_seconds": stage["duration_seconds"],
+            "spent_seconds": journey["stage_spent_seconds"],
+            "challenge": "encounter" if journey["encounter"] else
+                         "navigation_" + journey["navigation_outcome"]
+                         if journey.get("navigation_outcome", "not_required") != "not_required" else None,
+        }
     return result
+
+
+def public_expedition(session, *, snapshot=None):
+    world = snapshot["world_state"] if snapshot is not None else session.world_state
+    character = session.character if hasattr(session, "character") else snapshot["player"]
+    from types import SimpleNamespace
+    condition_context = SimpleNamespace(world_state=world)
+    import weapon_attack
+    effort = world.get("travel_effort", {})
+    time = world.get("campaign_time")
+    if time and effort.get("day") != (time["start_second"] + time["elapsed_seconds"]) // clock.DAY:
+        effort = {}
+    tracking = world.get("tracking") or {}
+    actions = []
+    capable = not world.get("combat", {}).get("active") and not weapon_attack.conditions(
+        condition_context, "player", character) & {"dead", "unconscious", "incapacitated"}
+    journey = world.get("journey") or {}
+    ongoing = journey.get("status", "ARRIVED") != "ARRIVED"
+    enabled = world.get("supplies_policy", {}).get("enabled", False)
+    if capable and not ongoing and not world.get("active_task"):
+        actions.append({"label": "Erzak takibi: " + ("kapat" if enabled else "aç"),
+                        "message": "/travel supplies " + ("disabled" if enabled else "enabled")})
+        if enabled:
+            actions.append({"label": "Bilinen kaynaklardan erzak ara", "message": "/travel forage"})
+        for feature in world.get("features", []):
+            if (feature.get("location") == world["location"] and not feature.get("hidden", False)
+                    and isinstance(feature.get("trail_policy"), dict)):
+                actions.append({"label": feature.get("name", "Bilinen izi takip et"),
+                                "message": "/travel track " + feature["id"]})
+        if (tracking.get("location_id") == world["location"]
+                and tracking.get("status") == "LOST" and tracking.get("attempts", 0) < 2):
+            actions.append({"label": "İzi yeniden aramayı sürdür", "message": "/travel reacquire"})
+        import exploration
+        for gate in exploration.visible_doors(world):
+            if gate.get("location") == world["location"] and not gate.get("hidden", False):
+                if gate.get("locked"):
+                    actions.append({"label": gate["name"] + " · kilidi aç",
+                                    "message": "/explore door " + gate["id"] + " unlock"})
+    local_tracking = tracking if tracking.get("location_id") == world["location"] else {}
+    return {"walking_seconds": effort.get("walking_seconds", 0),
+            "hours_beyond_eight": len(effort.get("checks", [])),
+             "extended_travel_saves": [
+                 {key: copy.deepcopy(check[key]) for key in (
+                     "dc", "raw_rolls", "selected_roll", "total", "total_modifier",
+                     "modifier_breakdown", "outcome")}
+                 for check in effort.get("checks", [])
+             ],
+            "exhaustion": weapon_attack.exhaustion(character),
+            "supplies_enabled": enabled,
+            "tracking_status": local_tracking.get("status"),
+            "tracking_seconds": local_tracking.get("spent_seconds", 0),
+            "tracking_required_seconds": 600 if local_tracking.get("confined") else 3600,
+            "actions": actions}

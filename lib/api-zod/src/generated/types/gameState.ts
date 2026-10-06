@@ -13,6 +13,7 @@ import type { ExplorationState } from './explorationState';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
 import type { GameDoor } from './gameDoor';
+import type { GameExpedition } from './gameExpedition';
 import type { GameFeature } from './gameFeature';
 import type { GameJourney } from './gameJourney';
 import type { GameNpc } from './gameNpc';
@@ -36,6 +37,7 @@ export interface GameState {
   known_scheduled_events: KnownScheduledEvent[];
   pending_event_decisions: PendingEventDecision[];
   journey: GameJourney | null;
+  expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
   world: GameWorldMetadata;

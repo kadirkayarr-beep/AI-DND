@@ -355,7 +355,16 @@ def serialize_skill_check_result(
         if proficient
         else 0
     )
-    total_modifier = ability_modifier + proficiency_modifier
+    tool = action_result.get("tool")
+    if tool is not None:
+        import equipment_economy
+        if (tool != "Thieves' Tools" or skill != "Sleight of Hand"
+                or not any(equipment_economy.label(i) == tool for i in session.world_state["inventory"])):
+            raise SkillCheckResultSerializationError("Invalid tool check.")
+        if tool in character.get("proficient_tools", []) and not proficient:
+            expected_proficiency_modifier = character_proficiency_bonus
+    import weapon_attack
+    total_modifier = ability_modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(character)
     if (
         d20 < 1
         or d20 > 20
@@ -577,6 +586,7 @@ def serialize_session_state(
         "known_scheduled_events": scheduled_events.public_events(world),
         "pending_event_decisions": scheduled_events.public_pending(world),
         "journey": timed_gameplay.public_journey(world),
+        "expedition": timed_gameplay.public_expedition(session, snapshot=snapshot),
         "scene": living_world.public_scene_projection(
             visible_world, flags.get("turn_index", 0)
         ),

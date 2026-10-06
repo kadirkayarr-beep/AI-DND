@@ -1,130 +1,132 @@
-# Package 3 closeout — NO-GO
+# Package 3 closeout — GO
 
-## Completion contract v1.0
+Acceptance completed on 2026-10-06. This supersedes the earlier NO-GO report;
+earlier failed or lost runs are not counted as passing evidence.
 
-This records the current user-requested contract, not a claim that the package
-is complete. Preserve the existing implementation and owners. Python owns
-mechanics and canonical state; the lore authority owns Forgotten Realms facts.
-Qwen may parse ambiguous intent or narrate eligible verified outcomes, with at
-most two calls and one deterministic fallback, never a narration retry.
-Player-facing payloads must contain only player-known reality.
+## Completion contract
 
-Required scope includes PHB2024 pace tables (400/300/200 ft/min,
-4/3/2 mi/hour, 30/24/18 mi/day), terrain/good-road caps, slowed travel,
-extended-travel CON saves and Exhaustion, bounded stages/navigation/tracking,
-Perception notice versus Investigation reasoning, passive/local discovery,
-persistent challenge-specific retries, authored/standard lock and tool
-policies, source/lifecycle policies, no automatic rests, and optional supplies
-that are safely disabled for legacy campaigns. No parallel mechanical owner,
-rewrite, decomposition, new mission, task queue, or publish is authorized.
+Preserve the existing implementation and owners. Python owns mechanics and
+canonical state; lore authority owns Forgotten Realms facts. Qwen may interpret
+ambiguous intent or narrate verified outcomes, with at most two calls and one
+deterministic fallback, never a narration retry. Model world proposals do not
+establish canon. Public payloads contain only player-known reality.
 
-GO requires complete scope and fresh acceptance evidence. Only GO authorizes a
-normal commit/push, fresh remote fetch, HEAD == origin/main and a clean tracked
-tree. Current decision is **NO-GO**. No manual commit, fetch, push, or publish
-was performed.
+No rewrite, parallel mechanical owner, geography/catalog replacement, new
+mission, task queue, merge/rebase/reset/force push or publish was performed.
+Only full GO authorizes normal commit/push and fresh remote parity verification.
 
-## Preserved and implemented
+## Completed scope
 
-- Existing catalog geography, IDs, strict saved-definition checks and
-  travel/time/check/damage/combat/save owners remain in place.
-- Player projection filters undiscovered catalog locations, inaccessible local
-  entities, hidden interactables and nonlocal doors. Scene referents receive
-  the same server-filtered view. An exit's destination is nullable until known;
-  descriptions do not name the room behind a still-closed door.
-- Discovery knowledge persists. Arrival/opening records adjacent known reality;
-  passive notice is local, roll-free and not triggered by state GET requests.
-- Active searching uses Perception. A second paid careful pass can resolve the
-  authored local search after a failed first roll without infinite rerolls.
-  Investigation operates on an already-discovered local clue and records its
-  reasoning separately. Known conclusions do not consume another roll/time.
-- New distance journeys use the PHB hourly table, terrain caps, a one-step
-  good-road adjustment and the existing speed owner for slowed solo travel.
-  Pace modifiers no longer leak into STOPPED, INTERRUPTED, ARRIVED or combat
-  checks. Legacy saved journeys retain their previous duration convention.
-- Stage metadata is persisted internally without invented intermediate nodes.
-- Eligible dungeon/environment narration receives a small verified packet,
-  not the hidden catalog. Rejection falls back once without world proposals.
-  The adapter rejects a third chat call before sending it to the network.
-- Local rule/provenance metadata was added outside the frozen saved geography.
+- Preserved catalog geography, IDs, saved-definition compatibility, existing
+  travel/time/check/damage/combat/rest/death owners and atomic rollback/replay.
+- Retained PHB2024 pace tables: 400/300/200 ft/min, 4/3/2 mi/hour,
+  30/24/18 mi/day, terrain/good-road caps and slowed travel. Legacy saved
+  journeys retain their established duration convention.
+- Actual walking accumulates by calendar day. Hour 9 uses CON DC11; hour 10
+  uses DC12. Failed saves add canonical Exhaustion, with penalties, speed,
+  lethal level-six boundaries and explicit long-rest recovery. Waiting does
+  not count as walking or perform a rest. Fatal movement stops immediately.
+- Bounded tracking/reacquire uses 600 seconds in confined areas and 3600
+  seconds outdoors. Partial progress, bounded attempts and saved results
+  survive reopening; missing/hidden trails grant no action.
+- Standard locks use quality DC10/15/20 and simple/complex durations 6/60
+  seconds, owned thieves' tools and existing proficiency/check rules.
+  Missing prerequisites do not mutate time/RNG. Authored local lock policy
+  remains distinct and compatible.
+- Stages and expedition state are projected into the generated API clients
+  and Turkish primary frontend. Known-only destinations, durations,
+  progress, obstacles, decisions and actions remain server-owned.
+- Public extended-travel save history includes native DC, dice, selected
+  roll, modifiers, total and outcome. It renders after reload without local
+  rolls or reconstruction. Current-day projection hides stale prior-day
+  walking counters without mutating the retained internal ledger.
+- Optional supplies remain explicitly disabled for legacy campaigns.
+  Enabled mode consumes canonical inventory units, records daily receipts,
+  forages only authored known ground resources and applies owned missing-
+  resource conditions. Replays do not consume twice. Lethal supplies stop
+  rest at midnight without healing/revival.
+- General narration cannot commit model-proposed locations, NPCs, shops,
+  features or events. Existing lore/named-entity/smalltalk safety and resolved
+  fallbacks remain intact; the narrow exploration narration template is not
+  imposed on every general action.
+- Preserved Perception discovery versus known-clue Investigation, passive
+  local notice, challenge-specific retries, hidden/nonlocal filtering,
+  lifecycle boundaries, session isolation and no automatic rests.
 
-## Mandatory acceptance still open
+## Final frozen-source evidence
 
-These are unfinished parts of this request, **not follow-up tasks**:
+Source manifest: `.local/evidence/package3-completion/source-complete.json`.
+It fingerprints 879 tracked/nonignored source files. SHA256:
 
-1. Extended-travel accounting, CON save thresholds, and full Exhaustion
-   integration through canonical condition/save/rest/death owners.
-2. Tracking/reacquire with the confined 10-minute and outdoors one-hour rules.
-3. Standard DMG lock quality/complexity defaults and canonical thieves'
-   tools/proficiency policy; existing local authored lock behavior is retained.
-4. Complete player-facing richer-stage projection/rendering. Current stage
-   metadata is internal; the existing progress view is not full acceptance.
-5. Removal/containment of the legacy general turn path's validated model world
-   proposals. The new scoped narration branch does not certify all older
-   narration paths against the stricter package boundary.
-6. Explicit optional-supplies policy and enabled-mode resource behavior.
-7. A clean fresh aggregate regression/release run after all remaining scope
-   is complete. Passing selected checks does not certify the whole package.
+`44d1262fb88b49398c682c4110505f0c48d7cb078aeb92761ccc6b693d5e1b8a`
 
-There was no credential/environment blocker preventing the work performed.
-These incomplete mechanics are the reason for NO-GO; do not describe the
-package as finished or production-ready.
+No fingerprinted source changed during final acceptance. Logs below are
+durable local development evidence, not certification of historical runs.
 
-## Fresh evidence from this work
-
-Logs are local development evidence, not historical certification:
-
-| Check | Actual result | Log |
+| Check | Actual final result | Log under `.local/evidence/package3-completion/` |
 |---|---|---|
-| `python -m unittest api.tests.test_exploration_package api.tests.test_exploration_closeout -q` | 36 passed, 18.938s | `/tmp/package3-focused-final.txt` |
-| Added local Investigation refusal/known-clue check | Passed on targeted recheck | `/tmp/package3-rechecks.txt` |
-| `pnpm --filter @workspace/ai-dnd-experience test` | 61 passed | `/tmp/package3-frontend-final.txt` |
-| Experience `tsc --noEmit` | Passed | shell exit 0 |
-| Experience production build | Passed, 10.42s; existing chunk-size warning | `/tmp/package3-build-final.txt` |
-| API unittest discovery | 1264 run, 1 failure + 1 error, 384.228s | `/tmp/package3-api-regressions.txt` |
-| API failure/error rechecks | Both passed independently | `/tmp/package3-evidence-recheck.txt`, `/tmp/package3-rechecks.txt` |
-| `python run_tests.py` release gates | Failed the persistence gate | `/tmp/package3-release.txt` |
-| Corrected persistence validation gate | 6 passed, 0.098s | `/tmp/package3-persistence-fixed.txt` |
+| Focused package/closeout/new boundaries | 57 passed, 25.446s | `focused-complete.log` |
+| Full API unittest discovery | 1285 passed, 403.157s | `api-complete.log` |
+| Release deterministic gates | All 22 passed | `release-complete.log` |
+| Primary frontend | 63 passed | `frontend-complete.log` |
+| Shared-library codegen/typecheck | Passed | `codegen-checks.log` |
+| Primary frontend typecheck | Passed | `typecheck-complete.log` |
+| Production build | Passed, 10.14s | `build-complete.log` |
+| Actual HTTP/authenticated Qwen/replay | Passed | `http-qwen-complete.log` |
+| Targeted browser correction/reload | Passed | `browser-fixed.json` |
 
-The API-discovery failure correctly detected source edits during its own
-evidence subprocess; the error was a 10-second SIGKILL fixture timeout under
-concurrent checks. Neither is waived: targeted rechecks passed, but the original
-aggregate run remains failed. Persistence exposed invalid list-valued flags
-raising AttributeError; validation now rejects that input with ValueError before
-mutation, and its six-case gate passed. No fresh aggregate PASS is claimed.
+The shell build initially omitted the artifact's required PORT/BASE_PATH.
+Supplying the existing service configuration fixed the invocation without
+changing source. The existing >500kB chunk warning remains non-blocking.
+SIGKILL evidence still requires the actual signal and full-tree fingerprints;
+its subprocess startup budget includes hashing time rather than waiving proof.
 
-Real authenticated Qwen evidence: a disposable separate SQLite campaign using
-actual qwen3:8b HTTP inference traversed entry → hall. Look, search, clue
-Investigation, disarm and door operations each used zero chats; the resolved
-room transition used one; identical replay returned exactly the saved response
-with zero chats. HP remained 12. Evidence: `/tmp/package3-live-qwen.txt`.
-The adapter's fake-client boundary test additionally proved chat #3 cannot
-reach the client. Rejected narration was tested to fall back once without
-canonical mutation.
+## Real HTTP/Qwen and browser acceptance
 
-One real browser pass succeeded using the separately named disposable campaign
-and seed 11, prepared through actual navigation/travel owners without changing
-production odds or adding a public test backdoor. It checked the entire ordinary
-resume payload before discovery, Perception/Investigation cards, wire disarm,
-unlock/open, hall traversal, lever/rubble neutralization, vault traversal,
-marker discovery and save/reload/resume. Final location: Eski Mahzen, turn 22,
-HP 12, time 1 Mirtul 1501 DR 17:21:18; no duplicated time or damage.
-390px mobile had no horizontal overflow; nested vertical panel scrolling remains.
-Prior-room obstacle persistence was supported by saved history/traversal,
-not a claim that the final-room projection displayed those obstacles.
+A disposable isolated SQLite campaign used a real socket HTTP server and the
+existing authenticated qwen3:8b adapter, without parser/model mocks. Look,
+search, Investigation, disarm, unlock and open used zero chats. The
+entry-to-hall resolved transition contacted Qwen exactly once; its rejected
+narration used the deterministic verified fallback. Identical replay and
+replay after reopening returned the exact saved response with zero chats and
+no additional canonical public-state mutation.
 
-Browser screenshots: `lpjbha` entry before search, `kjwtzb` hall,
-`dfttmr` reopened vault, `oc5yyc` mobile restored clue view.
-The disposable browser campaign remains clearly labeled for inspection.
+One comprehensive browser pass used only the explicitly named disposable
+fixtures with persisted RNG seed 11; production odds were not changed:
 
-## Git evidence
+- Complete fixture: known trail DC10 took 600s; standard good/simple lock
+  DC15 took 6s and retained tools; supplies toggle and known-resource forage
+  worked. The 6-mile/two-hour journey crossed hours 9 and 10 without resting.
+  Native saved results were DC11 SUCCESS (17 + 2 = 19) and DC12 FAILURE
+  (7 + 2 = 9), ending with Exhaustion 1, HP12, 10h walking and 11 inventory
+  entries. Reload/resume retained time 11:10:06 and all results/resources.
+- Dungeon fixture: initial payload did not reveal wire/hall/vault/lever/
+  rubble/marker. Perception, Investigation, disarm, unlock/open, hall
+  traversal, lever/rubble neutralization, vault traversal and marker discovery
+  worked. Reload retained Eski Mahzen, turn22, HP12 and 17:21:18, without
+  repeated time/damage. Prior-room outcomes remained in history, not falsely
+  exposed as current-room obstacles. Quest journal remained empty.
 
-At start and the final inspected state:
+The first browser pass correctly found that saves were internal but missing
+from public state/UI. That gap was fixed and only the affected saved-result
+flow was rechecked by the same tester. Both native saved rows now survive
+resume; the entire API/release matrix was rerun on the corrected source.
 
-- Branch: `main`.
-- Local HEAD: `9d8b751be3fde16ef3ac3ccb4871bd951069bf00`.
-- Cached origin/main: `5983853dbb6ae7d4852f4a3f8e070c3fe1e440f1`.
-- Cached comparison: 249 ahead, 0 behind. This is not a fresh remote check.
-- Start was clean; end has this work's uncommitted changes.
-- `git diff --check` passed before the closeout documentation was added.
+390px mobile had no horizontal overflow, named controls remained accessible,
+and reduced-motion preference was active. The root Replit banner-script 502
+is known preview noise; game API requests succeeded. Screenshots: `53ku4o`,
+`k77mid` (walkthrough), `j3jyoq`, `d4ccqx` (corrected saved checks),
+`mk06hr` (details guidance). The fixture campaigns remain disposable and
+clearly labeled.
 
-No GO-only remote synchronization or publishing action was taken.
+## Git closeout
+
+GO was reached on `main`, before the authorized normal commit/push.
+Pre-commit HEAD was `05647e582754c6483145da39fd891b4a0dc9b418`.
+Cached origin/main was `5983853dbb6ae7d4852f4a3f8e070c3fe1e440f1`;
+that cached value is not a fresh remote comparison.
+
+The final synchronization evidence is recorded after this report's commit in
+`.local/evidence/package3-completion/git-final.log`: normal commit/push,
+fresh fetch, exact HEAD/origin-main equality, ahead/behind 0/0 and clean tracked
+tree are required. No destructive synchronization or publishing is authorized.

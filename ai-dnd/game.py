@@ -803,6 +803,7 @@ def perform_skill_check(
         dc=dc,
         ability_modifier=modifier,
         proficiency_modifier=proficiency_modifier,
+        circumstantial_modifier=-2 * weapon_attack.exhaustion(_session().character),
         proficient=is_proficient,
         expertise=has_expertise,
         advantage=advantage,
@@ -824,7 +825,7 @@ def perform_skill_check(
         "proficient": is_proficient,
         "expertise": has_expertise,
         "proficiency_bonus": proficiency_modifier,
-        "total_bonus": modifier + proficiency_modifier,
+        "total_bonus": modifier + proficiency_modifier - 2 * weapon_attack.exhaustion(_session().character),
         "total": total,
         "dc": dc,
         "result": result,
@@ -1566,6 +1567,9 @@ def _player_state_for_save():
             _session().character.get("species_trait_state")
         ),
         "speed_ft": _session().character.get("speed_ft", 30),
+        "exhaustion": weapon_attack.exhaustion(_session().character),
+        "proficient_tools": list(_session().character.get("proficient_tools", [])),
+        "saving_throw_mods": copy.deepcopy(_session().character.get("saving_throw_mods", {})),
         "class": _session().character["class"],
         "strength": _session().character["strength"],
         "dexterity": _session().character["dexterity"],
@@ -1740,6 +1744,13 @@ def _validate_save_payload(payload):
         campaign_time.validate_clock(saved_world["campaign_time"])
     scheduled_events.validate_events(saved_world.get("scheduled_events", []), saved_world)
     timed_gameplay.validate_state(saved_world)
+    weapon_attack.exhaustion(player)
+    if (not isinstance(player.get("proficient_tools", []), list)
+            or any(not isinstance(t, str) for t in player.get("proficient_tools", []))
+            or not isinstance(player.get("saving_throw_mods", {}), dict)
+            or any(k not in {"strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"}
+                   or type(v) is not int for k, v in player.get("saving_throw_mods", {}).items())):
+        raise ValueError("Kayıt araç veya kurtarma yeterliliği geçersiz.")
     import authored_dungeon
     authored_dungeon.validate_state(saved_world)
     import exploration
@@ -2055,6 +2066,9 @@ def load_game(path):
         for field in ("name", "race", "class"):
             character[field] = str(player[field])
         character["species"] = str(player.get("species", player["race"]))
+        character["exhaustion"] = player.get("exhaustion", 0)
+        character["proficient_tools"] = list(player.get("proficient_tools", []))
+        character["saving_throw_mods"] = copy.deepcopy(player.get("saving_throw_mods", {}))
         character["giant_ancestry"] = player.get("giant_ancestry")
         character["speed_ft"] = int(
             player.get(
@@ -3508,6 +3522,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         if ensure_combat_state()["active"]:
             raise ValueError("Çatışma sırasında dinlenemezsin.")
         rest_time = advance_campaign_time(elapsed_seconds if elapsed_seconds is not None else minimum, action)
+        if rest_time.get("condition_death"):
+            return {"action": action, "message": "Dinlenme, mevcut ölüm politikasınca kesildi.",
+                    "refreshed": {}, "time_advance": rest_time}
         if rest_time.get("interrupted"):
             return {
                 "action": action, "message": "Dinlenme tamamlanmadı; önce karşılaşma için karar vermelisin.",
@@ -3743,6 +3760,9 @@ def resolve_species_trait_action(action, form=None, ancestry=None, armed=None, e
         if elapsed_seconds is not None and (type(elapsed_seconds) is not int or elapsed_seconds < 8 * 3600):
             raise ValueError("Uzun dinlenme en az sekiz saat sürer.")
         old_state = state
+        if (not _session().world_state.get("supplies_policy", {}).get("enabled", False)
+                or not _session().world_state.get("supplies_accounting", {}).get("missing")):
+            character["exhaustion"] = max(0, weapon_attack.exhaustion(character) - 1)
         refreshed = {
             "healing_hands": max(0, (1 if species == "Aasimar" else 0) - old_state["healing_hands_uses_remaining"]),
             "celestial_revelation": max(0, (1 if species == "Aasimar" else 0) - old_state["celestial_revelation_uses_remaining"]),
@@ -5381,12 +5401,24 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
         deadline = (death["recovery"]["at"] if zero and death["stable"] and death["recovery"]
                     else death["noncombat_next_save_at"] if noncombat else None)
         step = remaining if deadline is None else min(remaining, max(0, deadline - now))
+        supplies = world.get("supplies_policy", {}).get("enabled", False)
+        if supplies:
+            midnight = campaign_time.DAY - (world["campaign_time"]["start_second"] + now) % campaign_time.DAY
+            step = min(step, midnight)
         result = campaign_time.advance(
             world, step, reason, source, observation=None if zero else observation
         )
         elapsed += result["elapsed_seconds"]
         remaining -= result["elapsed_seconds"]
         known.extend(result["player_known_events"])
+        if supplies:
+            import equipment_economy
+            condition_death = equipment_economy.process_supply_days(_session(), now)
+            if condition_death:
+                death_results.extend(condition_death["death_results"])
+                return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
+                            remaining_seconds=remaining, player_known_events=known,
+                            death_results=death_results, condition_death=True, interrupted=True)
         now = world["campaign_time"]["elapsed_seconds"]
         if deadline is not None and now >= deadline:
             if death["stable"]:
@@ -8476,7 +8508,7 @@ def ask_dungeon_master(
             "Türkçe RPG anlatımı. Aşağıdaki doğrulanmış metni AYNEN koru. "
             "Ardına en fazla bir kısa atmosfer cümlesi ekle; yeni olay, kişi, "
             "keşif, eşya, ödül veya mekanik sonuç ekleme. world_updates ve lore_claims boş olsun.\n"
-            + json.dumps({"resolved": resolved, "weather": action_result["weather"]}, ensure_ascii=False)
+            + json.dumps({"resolved": resolved, "weather": action_result.get("weather", "unknown")}, ensure_ascii=False)
         )
         try:
             raw = ollama.chat(
@@ -8497,8 +8529,19 @@ def ask_dungeon_master(
                 if (world_state.get(catalog.KEY) or {}).get("trap_states", {}).get(identity) == "hidden"
                 for value in (identity, definition["name"])
             ]
+            weather_suffixes = {
+                "clear": "Gökyüzü açık.", "rain": "Yağmur yağıyor.",
+                "fog": "Çevrede sis var.", "snow": "Kar yağıyor.",
+                "storm": "Fırtına sürüyor.", "unknown": "",
+            }
+            ambient_only = set()
+            scene = world_state.get("locations", {}).get(world_state.get("location"), {})
+            if action_result.get("action") in {"narrative", "narrative_action"} and scene.get("type") == "city":
+                ambient_only.add("Şehrin sokaklarından gelen sesler sürüyor.")
             valid = (
-                narration.startswith(resolved) and len(extra) <= 240
+                (narration in ambient_only or (
+                    narration.startswith(resolved) and len(extra) <= 240
+                    and extra in {"", weather_suffixes.get(action_result.get("weather", "unknown"), "")}))
                 and not packet.get("lore_claims")
                 and not any((packet.get("world_updates") or {}).values())
                 and not any(value.casefold() in narration.casefold() for value in hidden)
@@ -11066,17 +11109,21 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         allow_new_locations=resolved_turn.allow_new_locations,
         return_details=True,
         allow_new_shops=resolved_turn.allow_new_shops,
-        narration_only=narration_only,
+        narration_only=True,
         lore_context=lore_context,
         scene_plan=resolved_turn.scene_plan,
     )
     packet = packet if isinstance(packet, dict) else {}
 
     proposal_snapshot = _world_snapshot()
-    if not narration_only and packet.get("valid_response"):
+    if packet.get("valid_response") and any((packet.get("world_updates") or {}).values()):
+        packet["valid_response"] = False
+        packet["narration"] = resolved_turn.fallback_response
+        packet["fallback_reason_code"] = "MODEL_WORLD_PROPOSAL_REJECTED"
+    if not narration_only:
         raw_updates = (
-            packet.get("world_updates", {})
-            if isinstance(packet.get("world_updates"), dict)
+            resolved_turn.action_result.get("verified_world_updates", {})
+            if isinstance(resolved_turn.action_result.get("verified_world_updates"), dict)
             else {}
         )
         if resolved_turn.allow_new_shops:

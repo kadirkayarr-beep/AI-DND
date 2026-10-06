@@ -67,6 +67,7 @@ def speed(session, actor):
         if (data.get("species_trait_state") or {}).get("large_form_turns_remaining", 0) > 0:
             value += 10
     value -= int(data.get("speed_penalty_ft", 0))
+    value -= 5 * weapon_attack.exhaustion(data)
     value -= weapon_attack.slow_penalty(session, actor)
     return max(0, value)
 

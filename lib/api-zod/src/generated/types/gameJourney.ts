@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GameJourneyPace } from './gameJourneyPace';
+import type { GameJourneyStage } from './gameJourneyStage';
 import type { GameJourneyStatus } from './gameJourneyStatus';
 
 export interface GameJourney {
+  current_stage?: GameJourneyStage;
   origin?: string;
   pace?: GameJourneyPace;
   /** @minimum 0 */

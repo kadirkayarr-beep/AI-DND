@@ -6,6 +6,7 @@
 - [Shared API routes across artifacts](shared-api-routes.md) — verify sibling service reachability before adding duplicate routes or a second engine process.
 - [Quest ledger authority](quest-journal-authority.md) — Python owns quest transitions; keep production definitions empty until owner-approved content exists.
 - [Narrative continuity authority](narrative-continuity-authority.md) — only selected, NPC-ID-bound player disclosures may support narrow deterministic recall; generated narration stays non-canonical.
+- [Narration world authority](narration-world-boundary.md) — model proposals never establish canon; preserve general narrative safety rather than imposing exploration templates everywhere.
 - [Server-authoritative skill results](server-authoritative-skill-results.md) — render validated engine results only; never create or restore client-side roll cards.
 - [Species trait mechanics](species-trait-mechanics.md) — keep abilities server-owned and test timed effects and lethal-damage boundaries through complete turn transitions.
 - [Death-save turn scheduling](death-save-scheduling.md) — keep unconscious player slots in initiative so death saves and stable boundaries resolve before another enemy cycle.

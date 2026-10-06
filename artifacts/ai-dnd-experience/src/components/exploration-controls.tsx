@@ -27,12 +27,37 @@ function formatMiles(miles: number) {
 
 export function ExplorationControls({ state, disabled, onCommand }: { state: GameState; disabled: boolean; onCommand: (message: string) => void }) {
   const exploration = state.exploration;
+  const expedition = state.expedition;
+  const currentStage = state.journey?.current_stage;
+  const expeditionPanel = expedition && (
+    <div className="mt-4" data-testid="panel-expedition">
+      <div className="dnd-kicker">Yolculuk ve dayanıklılık</div>
+      <div className="data-row-meta">Bugünkü yürüyüş: {formatDuration(expedition.walking_seconds)} · Ek saat: {expedition.hours_beyond_eight} · Tükenmişlik: {expedition.exhaustion}/6</div>
+      <div className="data-row-meta">Erzak takibi: {expedition.supplies_enabled ? 'Açık' : 'Kapalı — tüketim yok'}</div>
+      {(expedition.extended_travel_saves ?? []).map((save, index) => (
+        <div className="mt-2 border-l border-[#866942] pl-3 text-sm" key={index} data-testid={`extended-travel-save-${index}`}>
+          <div>Uzun yürüyüş · CON kurtarışı · DC {save.dc} · {save.outcome === 'SUCCESS' ? 'Başarılı' : 'Başarısız'}</div>
+          <div className="data-row-meta">d20: {save.raw_rolls.join(', ')} · Seçilen: {save.selected_roll} · Değiştirici: {save.total_modifier} · Toplam: {save.total}</div>
+          <div className="data-row-meta">Yetenek: {save.modifier_breakdown.ability_modifier} · Yeterlilik: {save.modifier_breakdown.proficiency_modifier} · Durumsal: {save.modifier_breakdown.circumstantial_modifier}</div>
+        </div>
+      ))}
+      {expedition.tracking_status && <div className="data-row-meta">İz: {expedition.tracking_status === 'REACQUIRED' ? 'Yeniden bulundu' : 'Kaybedildi'} · {formatDuration(expedition.tracking_seconds)} / {formatDuration(expedition.tracking_required_seconds)}</div>}
+      {currentStage && <div className="data-row mt-2" data-testid="panel-journey-stage">
+        <div className="data-row-head">Etap {state.journey?.stage}/{state.journey?.stage_count} · {state.journey?.pace === 'fast' ? 'Hızlı' : state.journey?.pace === 'slow' ? 'Temkinli' : 'Normal'}</div>
+        <div className="data-row-meta">{currentStage.start ? state.locations[currentStage.start]?.name ?? 'Bilinen başlangıç' : 'Yol üzerindesin'} → {currentStage.end ? state.locations[currentStage.end]?.name ?? 'Bilinen hedef' : 'Henüz bilinmeyen bölüm'}</div>
+        <div className="data-row-meta">{currentStage.terrain === 'authored_footpath' ? 'Patika' : currentStage.terrain} · {WEATHER[currentStage.weather] ?? 'Hava bilinmiyor'} · {currentStage.distance_miles === null ? 'Mesafe bilinmiyor' : formatMiles(currentStage.distance_miles)}</div>
+        <div className="data-row-meta">{formatDuration(currentStage.spent_seconds)} / {formatDuration(currentStage.duration_seconds)} · {currentStage.challenge === 'encounter' ? 'Görünen karşılaşma: karar bekleniyor' : currentStage.challenge === 'navigation_lost' ? 'Yön kaybı: bilinen alternatif patikadasın' : currentStage.challenge === 'navigation_verified' ? 'Yön bulma doğrulandı' : 'Görünen engel yok'}</div>
+      </div>}
+      <div className="action-suggestion-list mt-3">{expedition.actions.map((a) => <button type="button" className="action-suggestion" key={a.message} disabled={disabled} onClick={() => onCommand(a.message)}>{a.label}</button>)}</div>
+    </div>
+  );
 
   if (!exploration) {
     return (
       <section className="state-panel" data-testid="panel-exploration-optin" aria-labelledby="exploration-optin-title">
         <div className="dnd-kicker"><Compass size={12} className="mr-1 inline" /> Yeni bir olasılık</div>
         <h2 id="exploration-optin-title">Taş Patika Macerası</h2>
+        {expeditionPanel}
         <p className="subtle-text mt-3">İstersen yeni bir keşif macerasına çıkabilirsin. Bu, şimdiye dek yaşadıklarının bir parçası değil; yalnızca önünde duran bir yol.</p>
         <div className="action-suggestion-list mt-3">
           <button type="button" className="action-suggestion" disabled={disabled} onClick={() => onCommand('/explore begin')} data-testid="button-explore-begin">Taş Patika Macerası</button>
@@ -49,6 +74,7 @@ export function ExplorationControls({ state, disabled, onCommand }: { state: Gam
     <section className="state-panel" data-testid="panel-exploration" aria-labelledby="exploration-title">
       <div className="dnd-kicker"><Compass size={12} className="mr-1 inline" /> Keşif</div>
       <h2 id="exploration-title">Yol ve çevre</h2>
+      {expeditionPanel}
       <div className="data-row mt-3">
         <div className="data-row-head"><span>Hava</span><span className="status-pill" data-testid="text-exploration-weather">{WEATHER[exploration.weather] ?? 'Belirsiz'}</span></div>
         <div className="data-row-head mt-2"><span className="flex items-center gap-2"><Footprints size={14} /> Yürüyüş temposu</span><span className="status-pill" data-testid="text-exploration-pace">{paceLabel}</span></div>

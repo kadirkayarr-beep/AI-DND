@@ -374,16 +374,16 @@ class TestNarrativeRebalance(unittest.TestCase):
         ]
         with patch.object(self.session.rng, "randint") as dice:
             result = self.session.run_player_turn("Eski kütüphaneye gidiyorum")
-        self.assertEqual(result["action_result"]["status"], "unverified")
+        self.assertEqual(result["action_result"]["status"], "failed")
         self.assertFalse(result["action_result"]["success"])
         self.assertEqual(self.session.world_state["location"], initial_location)
-        self.assertEqual(len(self.session.world_state["locations"]), 2)
+        self.assertEqual(len(self.session.world_state["locations"]), 1)
         self.assertNotIn("journey", self.session.world_state)
         self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"], 0)
         dice.assert_not_called()
         self.assertEqual(chat.call_count, 2)
 
-    # 18. legitimate unknown procedural travel destination creates matching location
+    # 18. even a matching model proposal cannot establish an unknown destination.
     @patch("game.ollama.chat")
     def test_18_legitimate_unknown_procedural_travel_destination_creates_matching_location(self, mock_chat):
         # Both ends are authored local procedural fiction: the Time owner
@@ -399,13 +399,12 @@ class TestNarrativeRebalance(unittest.TestCase):
         with patch.object(self.session.rng, "randint", return_value=6) as dice:
             result = self.session.run_player_turn("Kuzeydeki terkedilmiş madene gidiyorum")
         locs_after = len(self.session.world_state.get("locations", {}))
-        self.assertEqual(locs_after, locs_before + 1)
-        self.assertEqual(result["action_result"]["status"], "completed")
-        dice.assert_called_once_with(1, 6)
-        self.assertEqual(result["action_result"]["time_result"]["elapsed_seconds"], 300)
-        location = self.session.world_state["locations"][self.session.world_state["location"]]
-        self.assertEqual(location["name"], "Kuzeydeki Terkedilmiş Maden")
-        self.assertEqual(self.session.world_state["journey"]["status"], "ARRIVED")
+        self.assertEqual(locs_after, locs_before)
+        self.assertEqual(result["action_result"]["status"], "failed")
+        self.assertFalse(result["action_result"]["success"])
+        dice.assert_not_called()
+        self.assertEqual(self.session.world_state["location"], "l_tavern")
+        self.assertNotIn("journey", self.session.world_state)
 
     # 19. unrelated model-proposed location is rejected
     @patch("game.ollama.chat")
@@ -463,8 +462,12 @@ class TestNarrativeRebalance(unittest.TestCase):
     def test_23_successful_committed_travel_produces_correct_canonical_location(self, mock_chat):
         self.session.world_state["locations"]["l_tavern"]["reality_layer"] = "PROCEDURAL_LOCAL_FICTION"
         initial_loc = self.session.world_state.get("location")
+        # This definition is an owner-approved fixture, not a narrator proposal.
+        self.session.world_state["locations"]["owned_library"] = {
+            "id": "owned_library", "name": "Eski Kütüphane", "type": "library",
+            "description": "Terk edilmiş eski kütüphane.", "reality_layer": "PROCEDURAL_LOCAL_FICTION"}
         intent_payload = '{"intent": "travel", "action": "travel", "target": {"type": "location", "reference": "Eski Kütüphane"}, "completion": "completed", "confidence": 0.9}'
-        narration_payload = '{"valid_response": true, "narration": "Eski Kütüphane kapısına vardın.", "lore_claims": [], "world_updates": {"create_locations": [{"name": "Eski Kütüphane", "type": "library", "description": "Terk edilmiş eski kütüphane."}]}}'
+        narration_payload = '{"valid_response": true, "narration": "Eski Kütüphane kapısına vardın.", "lore_claims": [], "world_updates": {}}'
         mock_chat.side_effect = [
             self.mock_ollama_response(intent_payload),
             self.mock_ollama_response(narration_payload)
@@ -1052,14 +1055,14 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
             result = self.session._narrate_resolved_turn(
                 resolved, "Sessiz Avlu'ya gidiyorum.", None, None
             )
-        self.assertEqual(action["status"], "completed")
-        dice.assert_called_once_with(1, 6)
-        self.assertEqual(action["time_result"]["elapsed_seconds"], 300)
-        self.assertEqual(action["new_location"], self.world["location"])
+        self.assertEqual(action["status"], "failed")
+        dice.assert_not_called()
+        self.assertNotIn("time_result", action)
+        self.assertEqual(self.world["location"], "tavern")
         self.assertEqual(result["narration"], self.session._fallback_for_action_result(
             "Sessiz Avlu'ya gidiyorum.", action
         ))
-        self.assertEqual(self.session.last_narration_safety["reason_code"], "UNREGISTERED_NAMED_ENTITY")
+        self.assertNotIn("Sessiz Avlu", [v.get("name") for v in self.world["locations"].values()])
         self.assertEqual(result["_engine_event_evidence"]["telemetry"]["total_model_calls"], 1)
         chat.assert_called_once()
 

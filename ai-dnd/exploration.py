@@ -203,6 +203,9 @@ def notice_passively(session):
     bonus = player["modifiers"]["wisdom"]
     if "Perception" in player["proficient_skills"]:
         bonus += player["proficiency_bonus"] * (2 if "Perception" in player.get("expertise_skills", ()) else 1)
+    bonus -= 2 * weapon_attack.exhaustion(player)
+    if catalog.LOCATIONS[world["location"]].get("visibility") == "lightly_obscured":
+        bonus -= 5
     return complete_search(world, world["location"], 10 + bonus >= catalog.SEARCH_POLICIES[world["location"]]["dc"], world["location"])
 
 
@@ -258,14 +261,19 @@ def _timed_reply(session, message, result):
                   result.get("action", "exploration"), **{k: v for k, v in result.items() if k != "action"})
 
 
-def _check(session, skill, dc, *, disadvantage=False):
+def _check(session, skill, dc, *, disadvantage=False, tool=None):
     player = session.character
+    proficient = list(player["proficient_skills"])
+    tool_proficient = tool in player.get("proficient_tools", []) if tool else False
+    both = tool_proficient and skill in proficient
+    if tool_proficient and skill not in proficient:
+        proficient.append(skill)
     check = session.perform_skill_check(
-        skill, dc, player["modifiers"], player["proficient_skills"],
+        skill, dc, player["modifiers"], proficient,
         player["proficiency_bonus"], expertise_skills=player.get("expertise_skills", ()),
-        disadvantage=disadvantage,
+        disadvantage=disadvantage, advantage=both,
     )
-    return dict(check, action="skill_check", outcome="success" if check["resolution"]["outcome"] == "SUCCESS" else "failure",
+    return dict(check, tool=tool, action="skill_check", outcome="success" if check["resolution"]["outcome"] == "SUCCESS" else "failure",
                 success=check["resolution"]["outcome"] == "SUCCESS")
 
 
@@ -347,6 +355,9 @@ def _door_action(session, message, identity, operation):
     _busy(session)
     candidates = {e.get("door_id") for e in catalog.EXITS.values()
                   if e["from"] == world["location"] and visible_exit(world, e)}
+    candidates.update(d["id"] for d in world.get("doors", [])
+                      if d.get("id") not in catalog.DOORS and d.get("location") == world["location"]
+                      and not d.get("hidden", False))
     gate = door(world, identity)
     if identity not in candidates or not gate or operation not in {"open", "close", "unlock", "break"}:
         fail("exploration_door_unknown", "Burada bu kapıya erişemiyorsun.")
@@ -357,12 +368,26 @@ def _door_action(session, message, identity, operation):
     if (operation == "open" and gate["open"] or operation == "close" and not gate["open"]
             or operation == "unlock" and not gate["locked"] or operation == "break" and gate["broken"]):
         return _reply(session, message, "Kapının durumu zaten istediğin gibi.", "door_unchanged")
-    lock = catalog.LOCKS[identity]
+    lock = catalog.LOCKS.get(identity)
+    if lock is None:
+        policy = gate.get("lock_policy", {"quality": "good", "complexity": "simple"})
+        if (not isinstance(policy, dict) or set(policy) != {"quality", "complexity"}
+                or policy["quality"] not in {"inferior", "good", "superior"}
+                or policy["complexity"] not in {"simple", "complex"}):
+            fail("lock_policy_invalid", "Kilit politikası geçersiz.")
+        lock = {"unlock_dc": {"inferior": 10, "good": 15, "superior": 20}[policy["quality"]],
+                "break_dc": 15, "attempt_seconds": 6 if policy["complexity"] == "simple" else 60,
+                "handle_seconds": 6}
+        if operation == "unlock":
+            import equipment_economy
+            if not any(equipment_economy.label(i) == "Thieves' Tools" for i in world["inventory"]):
+                fail("thieves_tools_required", "Bu kilit için Hırsız Aletleri gerekiyor.")
     advancement = _time(session, lock["attempt_seconds"] if operation in {"unlock", "break"} else lock["handle_seconds"])
     if advancement.get("interrupted"):
         return _reply(session, message, "Kapıyla uğraşırken bir karşılaşma seni durdurdu.", "exploration_interrupted", time_result=advancement)
     check = _check(session, "Sleight of Hand" if operation == "unlock" else "Athletics",
-                   lock[operation + "_dc"]) if operation in {"unlock", "break"} else {}
+                   lock[operation + "_dc"], tool="Thieves' Tools" if identity not in catalog.LOCKS
+                   and operation == "unlock" else None) if operation in {"unlock", "break"} else {}
     if check.get("success", True):
         if operation == "unlock":
             gate["locked"] = False
@@ -438,6 +463,35 @@ def resolve_command(session, message):
             fail("travel_pace_invalid", "Hızlı, normal veya yavaş tempoyu seç.")
         world["flags"]["travel_pace"] = parts[2]
         return _reply(session, message, {"fast": "Hızlı", "normal": "Normal", "slow": "Yavaş"}[parts[2]] + " tempoyu seçtin.", "travel_pace")
+    if len(parts) == 3 and parts[:2] == ["/travel", "supplies"]:
+        _busy(session)
+        if parts[2] not in {"enabled", "disabled"}:
+            fail("supplies_policy_invalid", "Erzak politikasını açık veya kapalı seç.")
+        world["supplies_policy"] = {"enabled": parts[2] == "enabled"}
+        return _reply(session, message, "Erzak politikası kaydedildi.", "supplies_policy")
+    if parts == ["/travel", "forage"]:
+        _busy(session)
+        import equipment_economy
+        return _timed_reply(session, message, dict(equipment_economy.forage(session), action="foraging"))
+    if len(parts) == 3 and parts[:2] == ["/travel", "track"]:
+        _busy(session)
+        feature = next((f for f in world.get("features", []) if f.get("id") == parts[2]
+                        and f.get("location") == world["location"] and not f.get("hidden", False)
+                        and isinstance(f.get("trail_policy"), dict)), None)
+        if feature is None:
+            fail("tracking_trail_unknown", "Burada bilinen bir takip izi yok.")
+        policy = feature["trail_policy"]
+        if set(policy) != {"confined", "dc"} or type(policy["confined"]) is not bool or policy["dc"] not in {10, 15, 20, 25, 30}:
+            fail("tracking_policy_invalid", "İzin takip politikası geçersiz.")
+        if (world.get("tracking") or {}).get("trail_id") != parts[2]:
+            world["tracking"] = {"trail_id": parts[2], "location_id": world["location"],
+                                 "status": "LOST", "spent_seconds": 0, "attempts": 0, **policy}
+        return _timed_reply(session, message, timed_gameplay.reacquire_tracking(session))
+    if parts == ["/travel", "reacquire"]:
+        _busy(session, task=True)
+        return _timed_reply(session, message, timed_gameplay.reacquire_tracking(session))
+    if len(parts) == 4 and parts[:2] == ["/explore", "door"] and parts[2] not in catalog.DOORS:
+        return _door_action(session, message, parts[2], parts[3])
     if not active(world):
         fail("exploration_not_started", "Önce taş patikanın macerasını seç.")
     validate_state(world)

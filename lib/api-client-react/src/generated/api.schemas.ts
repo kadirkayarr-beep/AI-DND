@@ -204,6 +204,23 @@ export interface PendingEventDecision {
   can_fight: boolean;
 }
 
+export interface GameJourneyStage {
+  /** @nullable */
+  start: string | null;
+  /** @nullable */
+  end: string | null;
+  terrain: string;
+  weather: string;
+  /** @nullable */
+  distance_miles: number | null;
+  /** @minimum 1 */
+  duration_seconds: number;
+  /** @minimum 0 */
+  spent_seconds: number;
+  /** @nullable */
+  challenge: string | null;
+}
+
 export type GameJourneyPace = typeof GameJourneyPace[keyof typeof GameJourneyPace];
 
 
@@ -224,6 +241,7 @@ export const GameJourneyStatus = {
 } as const;
 
 export interface GameJourney {
+  current_stage?: GameJourneyStage;
   origin?: string;
   pace?: GameJourneyPace;
   /** @minimum 0 */
@@ -240,6 +258,63 @@ export interface GameJourney {
   stage_count: number;
   /** @nullable */
   encounter: string | null;
+}
+
+export type GameTravelSaveOutcome = typeof GameTravelSaveOutcome[keyof typeof GameTravelSaveOutcome];
+
+
+export const GameTravelSaveOutcome = {
+  SUCCESS: 'SUCCESS',
+  FAILURE: 'FAILURE',
+} as const;
+
+export type GameTravelSaveModifierBreakdown = {
+  ability_modifier: number;
+  proficiency_modifier: number;
+  circumstantial_modifier: number;
+};
+
+export interface GameTravelSave {
+  /** @minimum 1 */
+  dc: number;
+  /**
+     * @minItems 1
+     * @maxItems 2
+     * @items.minimum 1
+     * @items.maximum 20
+     */
+  raw_rolls: number[];
+  /**
+     * @minimum 1
+     * @maximum 20
+     */
+  selected_roll: number;
+  total: number;
+  total_modifier: number;
+  outcome: GameTravelSaveOutcome;
+  modifier_breakdown: GameTravelSaveModifierBreakdown;
+}
+
+export interface GameExpedition {
+  /** @minimum 0 */
+  walking_seconds: number;
+  /** @minimum 0 */
+  hours_beyond_eight: number;
+  /** Python-resolved extended-travel CON saves for the current calendar day; never client rolls. */
+  extended_travel_saves?: GameTravelSave[];
+  /**
+     * @minimum 0
+     * @maximum 6
+     */
+  exhaustion: number;
+  supplies_enabled: boolean;
+  /** @nullable */
+  tracking_status: string | null;
+  /** @minimum 0 */
+  tracking_seconds: number;
+  /** @minimum 1 */
+  tracking_required_seconds: number;
+  actions: ExplorationAction[];
 }
 
 export type GameSceneAmbientEventEventType = typeof GameSceneAmbientEventEventType[keyof typeof GameSceneAmbientEventEventType];
@@ -1181,6 +1256,7 @@ export interface GameState {
   known_scheduled_events: KnownScheduledEvent[];
   pending_event_decisions: PendingEventDecision[];
   journey: GameJourney | null;
+  expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
   world: GameWorldMetadata;

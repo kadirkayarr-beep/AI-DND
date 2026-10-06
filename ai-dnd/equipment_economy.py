@@ -42,6 +42,18 @@ def containers(world):
 
 def validate_world(world):
     """Accept legacy strings but never duplicate canonical instance identities."""
+    policy = world.get("supplies_policy", {"enabled": False})
+    if not isinstance(policy, dict) or set(policy) != {"enabled"} or type(policy["enabled"]) is not bool:
+        fail("invalid_supplies_policy")
+    accounting = world.get("supplies_accounting")
+    if accounting is not None and (
+        not isinstance(accounting, dict) or set(accounting) != {"last_day", "missing"}
+        or type(accounting["last_day"]) is not int or accounting["last_day"] < 0
+        or not isinstance(accounting["missing"], list)
+        or any(x not in {"food", "water"} for x in accounting["missing"])
+        or len(set(accounting["missing"])) != len(accounting["missing"])
+    ):
+        fail("invalid_supplies_accounting")
     ids = set()
     for _, items in containers(world):
         if not isinstance(items, list):
@@ -112,6 +124,99 @@ def one(items, identity):
     if len(found) != 1:
         fail("item_not_owned")
     return found[0]
+
+
+def supply_kind(item):
+    """Only explicit canonical units; never infer a filled container."""
+    if isinstance(item, dict) and item.get("resource_type") in {"food", "water"}:
+        return item["resource_type"]
+    return {"Rations (1 day)": "food", "Water (1 gallon)": "water"}.get(label(item))
+
+
+def consume_daily_supplies(session, *, day=None):
+    world = session.world_state
+    if not world.get("supplies_policy", {}).get("enabled", False):
+        return {}
+    if day is not None and day <= world.get("supplies_accounting", {}).get("last_day", -1):
+        return {}
+    materialize(world)
+    inventory = world["inventory"]
+    consumed, missing = [], []
+    for kind in ("food", "water"):
+        item = next((i for i in inventory if supply_kind(i) == kind), None)
+        if item:
+            inventory.remove(item)
+            consumed.append(item["item_id"])
+        else:
+            missing.append(kind)
+    # A whole missing daily unit is an environmental deprivation, not damage
+    # fabricated by narration. The existing condition owner owns its effect.
+    import weapon_attack
+    from api.core_resolution import resolve_saving_throw
+    for kind in missing:
+        if kind == "water":
+            levels = 2 if weapon_attack.exhaustion(session.character) else 1
+            for _ in range(levels):
+                fatal = weapon_attack.exhaustion(session.character) == 5
+                deaths = []
+                weapon_attack.add_exhaustion(session, "dehydration", deaths=deaths)
+                if fatal:
+                    return {"consumed": consumed, "missing": missing, "condition_death": True,
+                            "death_results": deaths}
+        else:
+            player = session.character
+            check = resolve_saving_throw(
+                roll_fn=lambda: session.rng.randint(1, 20),
+                ability="constitution", dc=10,
+                ability_modifier=weapon_attack.saving_bonus(player, "constitution")[0],
+                circumstantial_modifier=weapon_attack.saving_bonus(player, "constitution")[1])
+            if check["outcome"] != "SUCCESS":
+                fatal = weapon_attack.exhaustion(session.character) == 5
+                deaths = []
+                weapon_attack.add_exhaustion(session, "malnutrition", deaths=deaths)
+                if fatal:
+                    return {"consumed": consumed, "missing": missing, "condition_death": True,
+                            "death_results": deaths}
+    if day is not None:
+        world["supplies_accounting"] = {"last_day": day, "missing": missing}
+    return {"consumed": consumed, "missing": missing}
+
+
+def process_supply_days(session, before_elapsed):
+    time = session.world_state.get("campaign_time")
+    if time is None or not session.world_state.get("supplies_policy", {}).get("enabled", False):
+        return
+    import campaign_time
+    before_day = (time["start_second"] + before_elapsed) // campaign_time.DAY
+    after_day = (time["start_second"] + time["elapsed_seconds"]) // campaign_time.DAY
+    for day in range(before_day + 1, after_day + 1):
+        result = consume_daily_supplies(session, day=day)
+        if result.get("condition_death"):
+            return result
+    return {}
+
+
+def forage(session):
+    """Find and transfer existing authored resources; never mint loot."""
+    world = session.world_state
+    if not world.get("supplies_policy", {}).get("enabled", False):
+        return {"success": False, "direct_response": "Erzak takibi kapalı; kaynak üretilmedi."}
+    materialize(world)
+    ground = world.get("ground_items_by_location", {}).get(world["location"], [])
+    candidates = [item for item in ground if supply_kind(item)]
+    if not candidates:
+        return {"success": False, "direct_response": "Burada doğrulanmış yiyecek veya su kaynağı yok."}
+    advancement = session.advance_campaign_time(3600, "foraging")
+    if advancement.get("interrupted"):
+        return {"success": False, "time_result": advancement, "direct_response": "Erzak araman kesildi."}
+    player = session.character
+    check = session.perform_skill_check("Survival", 15, player["modifiers"],
+                                       player["proficient_skills"], player["proficiency_bonus"])
+    if check["resolution"]["outcome"] == "SUCCESS":
+        for item in candidates:
+            move(world, item, ground, world["inventory"], "ground")
+    return {"success": check["resolution"]["outcome"] == "SUCCESS",
+            "time_result": advancement, "direct_response": "Erzak arama girişimini tamamladın.", **check}
 
 
 def npc_at(world, identity):

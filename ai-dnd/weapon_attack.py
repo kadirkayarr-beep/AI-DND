@@ -34,6 +34,31 @@ def integer(value, name, minimum=None):
     return value
 
 
+def exhaustion(data):
+    """PHB2024 condition level; missing legacy fields mean no exhaustion."""
+    level = data.get("exhaustion", 0)
+    if type(level) is not int or not 0 <= level <= 6:
+        fail("invalid_exhaustion", "Tükenmişlik seviyesi geçersiz.")
+    return level
+
+
+def saving_bonus(data, ability):
+    modifier = data.get("modifiers", {}).get(ability, data.get(ability + "_mod", 0))
+    total = data.get("saving_throw_mods", {}).get(ability, data.get(ability + "_save_bonus", modifier))
+    return modifier, total - modifier - 2 * exhaustion(data)
+
+
+def add_exhaustion(session, cause, *, deaths=None):
+    if exhaustion(session.character) == 6:
+        return 6
+    session.character["exhaustion"] = min(6, exhaustion(session.character) + 1)
+    if session.character["exhaustion"] == 6:
+        resolution = session._finalize_player_death(cause)
+        if deaths is not None:
+            deaths.append({"death_resolution": resolution})
+    return session.character["exhaustion"]
+
+
 def actor_data(session, identity):
     if identity == "player":
         return session.character
@@ -474,7 +499,7 @@ def prepare(session, actor, target, weapon_id=None, choice=None, *, origin="acti
     return {"actor_id": actor, "target_id": target, "weapon": weapon, "choice": choice,
             "origin": origin, "mode": mode, "ability": ability, "ability_modifier": ability_mod,
             "proficient": proficient, "proficiency_bonus": pb,
-            "attack_bonus": bonus, "attack_modifiers": attack_modifiers,
+            "attack_bonus": bonus - 2 * exhaustion(attacker), "attack_modifiers": attack_modifiers,
             "damage_adjustment": damage_adjustment, "damage_modifiers": damage_modifiers,
             "advantage_sources": sorted(set(advantage)), "disadvantage_sources": sorted(set(disadvantage)),
             "target_ac_base": integer(defender.get("armor_class"), "target AC", 0),
@@ -542,8 +567,12 @@ def save(session, target, abilities, dc, chosen=None, *, effect_context=None):
         total = integer(defender.get(ability + "_save_bonus", modifier), "saving throw bonus")
         dodging = (ability == "dexterity" and economy.ensure(session).get(target, {}).get("dodging")
                    and economy.can_act(session, target) and economy.speed(session, target) > 0)
+        if target == "player":
+            modifier, adjustment = saving_bonus(defender, ability)
+        else:
+            adjustment = total - modifier - 2 * exhaustion(defender)
         result = resolve_saving_throw(roll_fn=session.roll_d20, ability=ability, dc=dc,
-                                    ability_modifier=modifier, circumstantial_modifier=total - modifier,
+                                    ability_modifier=modifier, circumstantial_modifier=adjustment,
                                     advantage=bool(dodging))
     block = defender.get("monster_stat_block") or {}
     if (target != "player" and result["outcome"] == "FAILURE" and effect_context

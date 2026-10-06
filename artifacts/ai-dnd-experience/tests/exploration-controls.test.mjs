@@ -61,3 +61,34 @@ test('renders supplied commands as readable intentions without claiming success'
   assert.equal(label('Burası neresi?'), 'Burası neresi?');
   assert.doesNotMatch(label('/explore trap private-id disarm'), /private-id|\/explore/);
 });
+
+test('renders canonical extended travel saves without rolling or recomputing results', () => {
+  const html = render({ exploration, journey: null, expedition: {
+    walking_seconds: 36000, hours_beyond_eight: 2, exhaustion: 1, supplies_enabled: false,
+    tracking_status: null, actions: [], extended_travel_saves: [
+      { dc: 11, raw_rolls: [15], selected_roll: 15, total_modifier: 1, total: 16,
+        outcome: 'SUCCESS', modifier_breakdown: { ability_modifier: 1, proficiency_modifier: 0, circumstantial_modifier: 0 } },
+      { dc: 12, raw_rolls: [4], selected_roll: 4, total_modifier: 1, total: 5,
+        outcome: 'FAILURE', modifier_breakdown: { ability_modifier: 1, proficiency_modifier: 0, circumstantial_modifier: 0 } },
+    ],
+  } });
+  for (const text of ['CON kurtarışı', 'DC 11', 'DC 12', 'Başarılı', 'Başarısız', 'Seçilen:', 'Toplam:']) {
+    assert.ok(html.includes(text), text);
+  }
+  assert.match(html, /extended-travel-save-1/);
+  assert.doesNotMatch(html, /Yeniden zar at/);
+});
+test('stage and expedition panels render only supplied public state and decisions', () => {
+  const state = { exploration, locations: {}, journey: { status: 'STOPPED', stage: 2, stage_count: 3, pace: 'slow',
+    current_stage: { start: null, end: null, terrain: 'authored_footpath', weather: 'unknown',
+      distance_miles: 1, duration_seconds: 1800, spent_seconds: 600, challenge: null }},
+    expedition: { walking_seconds: 32400, hours_beyond_eight: 1, exhaustion: 2,
+      supplies_enabled: false, tracking_status: 'LOST', tracking_seconds: 300,
+      tracking_required_seconds: 600, actions: [{ label: 'İzi yeniden ara', message: '/travel reacquire' }] }};
+  const html = render(state);
+  assert.match(html, /panel-journey-stage/);
+  assert.match(html, /Henüz bilinmeyen bölüm/);
+  assert.match(html, /tüketim yok/);
+  assert.match(html, /İzi yeniden ara/);
+  assert.doesNotMatch(html, /hidden_destination|private_challenge/);
+});

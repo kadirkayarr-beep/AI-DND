@@ -267,7 +267,7 @@ function DetailsPanel({ state }: { state: GameState }) {
     <Rule />
     <div className="mt-4"><Kicker>Çevredeki özellikler</Kicker><div className="mt-3">{features.length ? features.map((feature) => <div className="border-l border-[#866942] pl-3" key={feature.id} data-testid={`feature-${feature.id}`}>
       <div className="font-serif text-[17px] text-[#d1c2a6]">{feature.name}</div><div className="subtle-text mt-1">{feature.description}</div>
-    </div>) : <div className="empty-line">Burada belirgin bir çevre ayrıntısı görünmüyor.</div>}</div></div>
+    </div>) : <div className="empty-line">{state.exploration ? 'Bilinen keşif bulguları ve geçitler keşif panelinde gösterilir.' : 'Burada belirgin bir çevre ayrıntısı görünmüyor.'}</div>}</div></div>
   </section>;
 }
 

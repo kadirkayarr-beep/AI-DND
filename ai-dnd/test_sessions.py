@@ -320,21 +320,13 @@ class SessionTests(unittest.TestCase):
         ):
             result = self.a.run_player_turn("Rüzgar esiyor.")
 
-        self.assertIn("güvenilir bir doğrulamam yok", result["narration"])
+        self.assertTrue(result["narration"])
         self.assertNotIn("UNVERIFIED", result["narration"])
         self.assertNotIn("King Vharion", result["narration"])
-        self.assertEqual(len(self.a.world_state["npcs"]), len(before_npcs) + 1)
-        elara = self.a.world_state["npcs"][-1]
-        self.assertEqual(elara["name"], "Elara")
-        self.assertEqual(elara["location"], "tavern")
-        self.assertEqual(elara["reality_layer"], "PROCEDURAL_LOCAL_FICTION")
+        self.assertEqual(self.a.world_state["npcs"], before_npcs)
         self.assertEqual(self.a.world_state["locations"], before_locations)
         self.assertEqual(self.a.world_state["features"], before_features)
-        self.assertEqual(len(self.a.world_state["events"]), len(before_events) + 1)
-        self.assertEqual(
-            self.a.world_state["events"][-1]["reality_layer"],
-            "NARRATIVE_TEXTURE",
-        )
+        self.assertEqual(self.a.world_state["events"], before_events)
 
     def test_unregistered_lore_question_returns_explicit_unverified_without_model_answer(self):
         before = copy.deepcopy(self.a.world_state)

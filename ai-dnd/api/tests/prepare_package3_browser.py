@@ -21,7 +21,7 @@ def seed_for_walkthrough():
     raise RuntimeError("No fixture seed found.")
 
 
-def prepare(store=None):
+def prepare(store=None, *, complete=False):
     manager = SessionManager(campaign_store=store or CampaignStore())
     with TestClient(create_app(session_manager=manager, ollama_adapter=None)) as client:
         setting = client.get("/api/campaign-start-options").json()["settings"][0]
@@ -54,6 +54,29 @@ def prepare(store=None):
             raise RuntimeError("Bounded journey did not arrive.")
 
         call("/explore begin")
+        if complete:
+            world = session.world_state
+            world["campaign_time"]["start_second"] = 0
+            world["campaign_time"]["elapsed_seconds"] = 8 * 3600
+            world["travel_effort"] = {"day": 0, "walking_seconds": 8 * 3600, "checks": []}
+            world["features"].append({
+                "id": "package3_fixture_trail", "name": "Bilinen test ayak izleri",
+                "description": "Açıkça adlandırılmış disposable test izi.",
+                "location": world["location"], "trail_policy": {"confined": True, "dc": 10}})
+            world["doors"].append({
+                "id": "package3_fixture_lock", "name": "Standart test kilidi",
+                "description": "Disposable standard-policy test kapısı.",
+                "location": world["location"], "locked": True, "open": False, "broken": False,
+                "lock_policy": {"quality": "good", "complexity": "simple"}})
+            world["inventory"].extend(["Thieves' Tools"] + ["Rations (1 day)", "Water (1 gallon)"] * 3)
+            world.setdefault("ground_items_by_location", {})[world["location"]] = ["Rations (1 day)", "Water (1 gallon)"]
+            session.rng.seed(11)
+            call("/explore look")
+            return {"campaign_id": campaign["campaign_id"], "session_id": sid,
+                    "name": "Package 3 deterministic browser — disposable",
+                    "fixture_seed": 11, "location": world["location"],
+                    "phase": "extended_travel_tracking_tools_supplies",
+                    "production_odds_changed": False}
         travel(catalog.CAMP)
         for _ in range(16):
             travel(catalog.ENTRY)
@@ -72,4 +95,5 @@ def prepare(store=None):
 
 
 if __name__ == "__main__":
-    print(json.dumps(prepare(), ensure_ascii=False))
+    import sys
+    print(json.dumps(prepare(complete="--complete" in sys.argv), ensure_ascii=False))

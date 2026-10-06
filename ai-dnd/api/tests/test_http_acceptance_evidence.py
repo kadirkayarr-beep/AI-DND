@@ -231,7 +231,9 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
                    archive_root=Path(sys.argv[2])))
 """
         command = [sys.executable, "-c", code, str(SCRIPT), str(self.archive), str(signum)]
-        process = subprocess.run(command, capture_output=True, text=True, timeout=10)
+        # Include fresh interpreter startup and both full-tree source fingerprints.
+        # The assertion still requires an actual signal, never a timeout/PASS repair.
+        process = subprocess.run(command, capture_output=True, text=True, timeout=60)
         record = self.records()[0]
         self.assertEqual(record["command"]["argv"], command)
         self.assertEqual(record["campaign_id"], "offline-signal-fixture")
