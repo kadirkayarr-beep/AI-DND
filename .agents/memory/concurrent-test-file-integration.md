@@ -7,11 +7,15 @@ Treat pre-existing working-tree edits as a separate change set before completing
 a narrowly scoped task.
 
 **Why:** Completion can commit all outstanding edits, including unrelated changes
-that were present before the task began, and review the combined diff.
+that were present before the task began, and review the combined diff. Review
+can also include changes committed by concurrent tasks, even when the initial
+working tree was clean.
 
 **How to apply:** Record the initial dirty paths. If unrelated edits are captured,
 preserve them separately and obtain permission before moving them out of the
 active task branch; never discard them or silently fix unrelated gameplay.
+Compare commit ownership when a review reports changes absent from the scoped
+task diff rather than assuming all reviewed changes belong to the current task.
 
 The merge continuation check can mistake decorative runs of equals signs in
 comments or printed separators for unresolved conflict markers.
@@ -113,14 +117,3 @@ check.
 
 **How to apply:** Keep the full suite as the baseline acceptance check, but
 isolate the target parity method when asserting an exact mutation failure count.
-
-Completion can include working-tree changes that predate the assigned work,
-so a test-only task can be blocked by unrelated gameplay regressions.
-
-**Why:** The completion snapshot included previously dirty engine changes;
-the new scoped regression passed while existing shop and travel checks failed.
-
-**How to apply:** Record the initial dirty-file inventory and distinguish scoped
-edits from inherited changes when completion reports a failure. Do not broadly
-revert other work; verify any narrow compatibility repair against its owning
-checks and disclose the scope deviation.

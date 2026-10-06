@@ -690,8 +690,23 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "IRONMAN", reject_changed_message=True,
         )
 
+    async def test_normal_fatal_death_save_closed_combat_context_replay_after_reopen(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "NORMAL", explicit_combat_context=True,
+        )
+
+    async def test_permadeath_fatal_death_save_closed_combat_context_replay_after_reopen(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "PERMADEATH", explicit_combat_context=True,
+        )
+
+    async def test_ironman_fatal_death_save_closed_combat_context_replay_after_reopen(self):
+        await self._assert_accepted_fatal_death_save_replay_after_reopen(
+            "IRONMAN", explicit_combat_context=True,
+        )
+
     async def _assert_accepted_fatal_death_save_replay_after_reopen(
-        self, mode, *, reject_changed_message=False,
+        self, mode, *, reject_changed_message=False, explicit_combat_context=False,
     ):
         import random
         import uuid
@@ -722,6 +737,15 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "message": "Ölüm kurtarmasını bekliyorum.",
             "action_id": str(uuid.uuid4()),
         }
+        if explicit_combat_context:
+            combat = s.ensure_combat_state()
+            self.assertTrue(combat["active"])
+            self.assertIsNotNone(combat["combat_id"])
+            request.update(
+                combat_id=combat["combat_id"],
+                combat_round=combat["round"],
+                combat_turn_index=combat["current_turn_index"],
+            )
         # Resolve the fatal save itself, not a later enemy's lethal damage.
         with patch(
             "game.roll_d20", side_effect=lambda: s.rng.randint(2, 9),
@@ -895,6 +919,60 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 reopened_store.get_turn_action(a["campaign_id"], request["action_id"]),
                 receipt,
             )
+
+            if explicit_combat_context:
+                # The accepted request refers to a combat that fatal resolution
+                # closed. Each context field still belongs to its request hash:
+                # changing just that field is a conflict, not a stale-context
+                # error (or Ironman's terminal-player rejection).
+                changed_context = {
+                    "combat_id": str(uuid.uuid4()),
+                    "combat_round": request["combat_round"] + 1,
+                    "combat_turn_index": request["combat_turn_index"] + 1,
+                }
+                for field, value in changed_context.items():
+                    with self.subTest(mode=mode, context_field=field):
+                        changed_request = {**request, field: value}
+                        self.assertEqual(
+                            {key for key in request
+                             if request[key] != changed_request[key]},
+                            {field},
+                        )
+                        with patch.object(
+                            restored, "run_player_turn",
+                            side_effect=AssertionError("Context conflict must not run the engine"),
+                        ) as engine, patch(
+                            "game.roll_d20",
+                            side_effect=AssertionError("Context conflict must not reroll"),
+                        ) as reroll, patch.object(
+                            restored.rng, "randint",
+                            side_effect=AssertionError("Context conflict must not roll any dice"),
+                        ) as rng_roll, patch.object(
+                            reopened_store, "save_campaign",
+                            side_effect=AssertionError("Context conflict must not write the campaign"),
+                        ) as save:
+                            rejected = await http.post(
+                                f"/api/game/sessions/{session_id}/turn",
+                                json=changed_request,
+                            )
+                            self.assertEqual(rejected.status_code, 409, rejected.text)
+                            self.assertEqual(rejected.json(), {"detail": {
+                                "code": "action_id_conflict",
+                                "message": "This action ID was already used for a different turn.",
+                            }})
+                            for forbidden in (engine, reroll, rng_roll, save):
+                                forbidden.assert_not_called()
+                        assert_mode_outcome(restored)
+                        self.assertEqual(restored.serialize_game_state(), committed_state)
+                        self.assertEqual(restored.rng.getstate(), committed_rng)
+                        self.assertEqual(reopened_store.get_campaign(a["campaign_id"]),
+                                         stored_before_replay)
+                        self.assertEqual(
+                            reopened_store.get_turn_action(
+                                a["campaign_id"], request["action_id"],
+                            ),
+                            receipt,
+                        )
 
     async def test_natural_twenty_revival_on_http_replay_after_reopen(self):
         import uuid
