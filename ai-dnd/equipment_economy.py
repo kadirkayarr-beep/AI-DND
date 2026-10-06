@@ -90,6 +90,43 @@ def validate_world(world):
         fail("invalid_reward_receipts")
 
 
+def sync_equipment_identities(world):
+    """Rewrite unique catalog/name hand aliases to owned item_id after migration.
+
+    Does not equip empty hands from inventory. Ambiguous aliases stay unchanged
+    so later owners can reject unresolved identity instead of guessing.
+    """
+    owners = [("player", world)]
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str):
+            owners.append((npc["id"], npc))
+    for actor, owner in owners:
+        hands = owner.get("equipment")
+        if hands is None:
+            continue
+        if not isinstance(hands, dict) or set(hands) != {"main_hand", "off_hand"}:
+            fail("invalid_equipment")
+        items = world["inventory"] if actor == "player" else owner.get("inventory", [])
+        if not isinstance(items, list):
+            continue
+        for hand, held in list(hands.items()):
+            if held is None:
+                continue
+            if any(isinstance(item, dict) and item.get("item_id") == held for item in items):
+                continue
+            weapon = lookup(held)
+            matches = [
+                item for item in items
+                if isinstance(item, dict)
+                and (
+                    item.get("name") == held
+                    or (weapon is not None and item.get("weapon_id") == weapon["weapon_id"])
+                )
+            ]
+            if len(matches) == 1:
+                hands[hand] = matches[0]["item_id"]
+
+
 def materialize(world):
     """Lazy compatible migration; called only inside the atomic transaction."""
     validate_world(world)
@@ -117,6 +154,7 @@ def materialize(world):
             items[index] = record
             reserved.add(identity)
     world["item_sequence"] = sequence
+    sync_equipment_identities(world)
     validate_world(world)
 
 

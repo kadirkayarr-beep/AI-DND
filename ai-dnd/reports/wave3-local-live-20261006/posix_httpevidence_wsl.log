@@ -1,0 +1,7 @@
+test_sigterm_has_end_time_and_actual_exit_status (api.tests.test_http_acceptance_evidence.HttpEvidenceTests.test_sigterm_has_end_time_and_actual_exit_status) ... ok
+test_hard_kill_leaves_identifiable_incomplete_record_never_pass (api.tests.test_http_acceptance_evidence.HttpEvidenceTests.test_hard_kill_leaves_identifiable_incomplete_record_never_pass) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.543s
+
+OK

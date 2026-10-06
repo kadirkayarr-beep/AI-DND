@@ -78,6 +78,25 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.assertNotEqual(swords[0]["item_id"], swords[1]["item_id"])
         self.assertEqual(len(set(i["item_id"] for i in self.w["inventory"])), 3)
 
+    def test_materialize_rewrites_unique_starting_hand_alias_to_item_id(self):
+        self.assertEqual(self.w["equipment"]["main_hand"], "longsword")
+        economy.materialize(self.w)
+        sword_id = next(i["item_id"] for i in self.w["inventory"] if i["name"] == "Kılıç")
+        self.assertEqual(self.w["equipment"]["main_hand"], sword_id)
+
+    def test_materialize_does_not_auto_equip_empty_hands_from_inventory(self):
+        self.w["equipment"] = {"main_hand": None, "off_hand": None}
+        economy.materialize(self.w)
+        self.assertIsNone(self.w["equipment"]["main_hand"])
+        self.assertIsNone(self.w["equipment"]["off_hand"])
+        self.assertTrue(any(i.get("name") == "Kılıç" for i in self.w["inventory"]))
+
+    def test_materialize_leaves_ambiguous_catalog_hand_alias_unresolved(self):
+        self.w["inventory"].append("Kılıç")
+        economy.materialize(self.w)
+        self.assertEqual(self.w["equipment"]["main_hand"], "longsword")
+        self.assertEqual(sum(1 for i in self.w["inventory"] if i.get("name") == "Kılıç"), 2)
+
     def test_identity_drop_take_and_equipment_cleanup(self):
         sword, _ = self.prepare()
         clock = copy.deepcopy(self.w.get("campaign_time"))

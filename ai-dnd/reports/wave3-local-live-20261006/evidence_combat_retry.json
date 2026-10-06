@@ -1,0 +1,98 @@
+{
+  "budget_used": 2,
+  "budget_remaining": 5,
+  "turns": [
+    {
+      "label": "reapproach",
+      "message": "Marek'e yaklaşıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 200,
+      "calls": 0,
+      "budget": 1,
+      "before_conv": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_conv": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "combat": false,
+      "narration": "Marek seni fark edip sana dönüyor.",
+      "detail": null,
+      "combat_result": null,
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002]"
+      ]
+    },
+    {
+      "label": "equip_sword",
+      "message": "Kılıcımı kuşanıyorum.",
+      "mode": "do",
+      "target": null,
+      "http": 200,
+      "calls": 2,
+      "budget": 2,
+      "before_conv": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_conv": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "combat": false,
+      "narration": "Bu konuda güvenilir bir doğrulamam yok; kesin yanıt belirsiz.",
+      "detail": null,
+      "combat_result": null,
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002]"
+      ]
+    },
+    {
+      "label": "attack_plain",
+      "message": "Ona saldırıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 400,
+      "calls": 0,
+      "budget": 2,
+      "before_conv": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_conv": null,
+      "combat": false,
+      "narration": null,
+      "detail": {
+        "code": "weapon_not_held",
+        "message": "Requested weapon is not held."
+      },
+      "combat_result": null,
+      "inventory": null
+    }
+  ]
+}

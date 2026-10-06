@@ -1,0 +1,171 @@
+{
+  "session_id": "86266855-1ff3-4f90-afcc-90b75062c42b",
+  "budget_used_start": 1,
+  "turns": [
+    {
+      "label": "do_end_conversation",
+      "message": "Konuşmayı bitiriyorum.",
+      "interaction_mode": "do",
+      "target_id": null,
+      "action_id": "69b3fd72-5330-4783-aabb-647b41e8d65b",
+      "http_status": 200,
+      "elapsed_s": 0.33,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before_conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "after_combat": false,
+      "narration": "Marek ile konuşmayı bitiriyorsun.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_ona_after_real_end",
+      "message": "Ona el sallarım.",
+      "interaction_mode": "do",
+      "target_id": null,
+      "action_id": "8c600168-9026-41f2-ad7e-5f2cbbcab1c6",
+      "http_status": 200,
+      "elapsed_s": 0.324,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before_conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "after_conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "after_combat": false,
+      "narration": "Bu tanıma uyan birden fazla kişi var: Marek, Bir muhafız. Hangisini kastettiğini belirt.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_approach_marek",
+      "message": "Marek'e yaklaşıyorum.",
+      "interaction_mode": "do",
+      "target_id": "npc_001",
+      "action_id": "d7639411-a307-4015-a406-a8978ccea544",
+      "http_status": 200,
+      "elapsed_s": 0.328,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before_conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "after_conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_combat": false,
+      "narration": "Marek seni fark edip sana dönüyor.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_attack_after_approach",
+      "message": "Ona kılıcımla saldırıyorum.",
+      "interaction_mode": "do",
+      "target_id": "npc_001",
+      "action_id": "9b0122ab-dbbb-4ab5-8495-0d12bdd5697f",
+      "http_status": 400,
+      "elapsed_s": 0.01,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [],
+      "before_conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "after_conversation": null,
+      "after_combat": false,
+      "narration": null,
+      "detail": {
+        "code": "weapon_not_held",
+        "message": "Requested weapon is not held."
+      },
+      "combat_result": null
+    }
+  ],
+  "scenarios": {
+    "end_conversation_do": {
+      "status": "PASS",
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "narration": "Marek ile konuşmayı bitiriyorsun.",
+      "model_calls": 0,
+      "note": "Wave3 contract clears interlocutor via DO/default, not SAY."
+    },
+    "ambiguous_ona_after_end": {
+      "status": "PASS",
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "narration": "Bu tanıma uyan birden fazla kişi var: Marek, Bir muhafız. Hangisini kastettiğini belirt.",
+      "model_calls": 0,
+      "bound_interlocutor": null
+    },
+    "combat_from_conversation_after_approach": {
+      "status": "FAIL",
+      "approach_http": 200,
+      "approach_narration": "Marek seni fark edip sana dönüyor.",
+      "approach_conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "attack_http": 400,
+      "attack_detail": {
+        "code": "weapon_not_held",
+        "message": "Requested weapon is not held."
+      },
+      "attack_combat": false,
+      "attack_conversation": null,
+      "attack_combat_result": null,
+      "attack_narration": null,
+      "attack_model_calls": 0
+    }
+  },
+  "budget_used": 1,
+  "budget_remaining": 6
+}
