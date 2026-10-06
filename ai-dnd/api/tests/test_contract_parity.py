@@ -1096,6 +1096,32 @@ class ContractParityTests(unittest.TestCase):
                     f"{schema_name}.{field_name}.nullable",
                 )
 
+    def test_campaign_session_scalar_fields_match_runtime_model(self):
+        schema_name = "CampaignSession"
+        runtime = CampaignSessionResponse.model_json_schema()
+        required = _schema(schema_name).get("required", [])
+        self.assertIsInstance(required, list, f"{schema_name}.required must be a list")
+        # Compare only these scalars; saved-history requirements have their
+        # own parity checks and must not determine this test's result.
+        for field_name in ("campaign_id", "session_id", "name"):
+            with self.subTest(field=field_name):
+                published_field = _property(schema_name, field_name)
+                runtime_field = runtime["properties"][field_name]
+                self.assertEqual(
+                    _schema_types(published_field) - {"null"},
+                    _schema_types(runtime_field) - {"null"},
+                    f"{schema_name}.{field_name}.type",
+                )
+                self.assertEqual(
+                    _is_nullable(published_field), _is_nullable(runtime_field),
+                    f"{schema_name}.{field_name}.nullable",
+                )
+                self.assertEqual(
+                    field_name in required,
+                    field_name in runtime.get("required", []),
+                    f"{schema_name}.{field_name}.required",
+                )
+
     def test_campaign_detail_summary_reference_matches_runtime_model(self):
         runtime = CampaignDetailResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -5384,6 +5410,80 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else f"{schema_name}.{path[1]}.type"
                     )
                     self.assertIn(expected_label, result.failures[0][1])
+
+    def test_campaign_session_scalar_drift_fails_in_both_formats(self):
+        schema_name = "CampaignSession"
+        original = deepcopy(_schema(schema_name))
+        mutations = []
+        for field_name in ("campaign_id", "session_id", "name"):
+            field = original["properties"][field_name]
+            for replacement in (None, "integer", "boolean", "object", "array"):
+                mutations.append((
+                    ("properties", field_name, "type"), replacement,
+                    f"{field_name}.type",
+                ))
+            mutations.append((
+                ("properties", field_name, "type"), ["string", "null"],
+                f"{field_name}.nullable",
+            ))
+            nullable_field = deepcopy(field)
+            del nullable_field["type"]
+            nullable_field["anyOf"] = [{"type": "string"}, {"type": "null"}]
+            mutations.append((
+                ("properties", field_name), nullable_field,
+                f"{field_name}.nullable",
+            ))
+            mutations.append((
+                ("required",),
+                [name for name in original["required"] if name != field_name],
+                f"{field_name}.required",
+            ))
+        for path, replacement, diagnostic in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    self.assertEqual(
+                        set(parsed["components"]["schemas"][schema_name]["properties"]),
+                        set(original["properties"]),
+                    )
+                    # Restoring the sole mutated declaration recovers the
+                    # complete contract, including route and field inventories.
+                    restored = deepcopy(parsed)
+                    target = restored["components"]["schemas"][schema_name]
+                    source = original
+                    for key in path[:-1]:
+                        target = target[key]
+                        source = source[key]
+                    target[path[-1]] = deepcopy(source[path[-1]])
+                    self.assertEqual(restored, SPEC)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        ContractParityTests(
+                            "test_campaign_session_scalar_fields_match_runtime_model"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    failed_test, failure = result.failures[0]
+                    self.assertIn(
+                        "test_campaign_session_scalar_fields_match_runtime_model",
+                        failed_test.id(),
+                    )
+                    self.assertIn(f"{schema_name}.{diagnostic}", failure)
 
     def test_campaign_summary_scalar_drift_fails_in_both_formats(self):
         schema_name = "CampaignSummary"
