@@ -5177,6 +5177,54 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             if shared_action:
                 self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+                # Replay must work while the loser still holds its rolled-back,
+                # merchant-free revision, without recovering the winning state.
+                replay_messages = copy.deepcopy(loser_session.messages)
+                replay_rng = loser_session.rng.getstate()
+                with (
+                    patch.object(loser_session, "run_player_turn", side_effect=AssertionError(
+                        "Pre-resume replay must not execute another turn.",
+                    )) as blocked_turn,
+                    patch.object(loser_store, "save_campaign", side_effect=AssertionError(
+                        "Pre-resume replay must not save again.",
+                    )) as blocked_save,
+                    patch.object(loser_manager, "resume_campaign", side_effect=AssertionError(
+                        "Pre-resume replay must not resume the campaign.",
+                    )) as blocked_resume,
+                    patch.object(main_module, "_restore_session", side_effect=AssertionError(
+                        "Pre-resume replay must not restore the engine.",
+                    )) as blocked_restore,
+                    patch("api.session_manager.restore_stored_campaign", side_effect=AssertionError(
+                        "Pre-resume replay must not recover the saved winner.",
+                    )) as blocked_recovery,
+                ):
+                    stale_replay = await asyncio.wait_for(
+                        loser_http.post(loser_url, json=body), timeout=30,
+                    )
+                self.assertEqual(stale_replay.status_code, 200, stale_replay.text)
+                expected = copy.deepcopy(winner.json())
+                expected["session_id"] = loser_id
+                self.assertEqual(stale_replay.json(), expected)
+                for blocked in (
+                    blocked_turn, blocked_save, blocked_resume, blocked_restore, blocked_recovery,
+                ):
+                    blocked.assert_not_called()
+                self.assertIs(loser_manager.get(loser_id), loser_record)
+                self.assertIs(loser_record.game_session, loser_session)
+                self.assertEqual(loser_session.serialize_game_state(), before_engine)
+                self.assertEqual(loser_session.messages, replay_messages)
+                self.assertEqual(loser_session.rng.getstate(), replay_rng)
+                self.assertEqual(loser_record.journal, before_journal)
+                self.assertEqual(loser_record.narrative_memory, before_memory)
+                self.assertEqual(loser_record.turn_action_receipts, before_receipts)
+                self.assertEqual(loser_session._campaign_persistence_version, before_version)
+                self.assertEqual(loser_store.get_campaign(campaign_id), committed)
+                self.assertEqual(winner_store.get_campaign(campaign_id), committed)
+                self.assertEqual(receipt_rows(), committed_rows)
+                self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+                self.assertEqual(winner_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+                self.assertEqual(len(results["winner"]), 1)
+                self.assertEqual(len(results["loser"]), 1)
             else:
                 self.assertIsNone(loser_store.get_turn_action(campaign_id, body["action_id"]))
                 self.assertIsNone(loser_manager.get_turn_action(loser_record, body["action_id"]))
