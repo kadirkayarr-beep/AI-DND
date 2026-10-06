@@ -1478,6 +1478,76 @@ class ContractParityTests(unittest.TestCase):
 
 
 class ContractYamlReaderTests(unittest.TestCase):
+    def test_campaign_start_scalar_type_drift_fails_in_both_formats(self):
+        for model, field_names in (
+            (CampaignStartLocationOption, ("entity_id", "name")),
+            (
+                CampaignStartRegionOption,
+                ("region_pack_id", "region_id", "name", "epoch_id", "coverage_status"),
+            ),
+            (CampaignStartSettingOption, ("setting_id", "name")),
+        ):
+            schema_name = model.__name__
+            for field_name in field_names:
+                original = _property(schema_name, field_name)
+                self.assertEqual(_schema_types(original), {"string"})
+                self.assertFalse(_is_nullable(original))
+                for replacement in ("integer", ["string", "null"]):
+                    for flow_style in (False, True):
+                        with self.subTest(
+                            schema=schema_name, field=field_name,
+                            replacement=replacement, compact=flow_style,
+                        ):
+                            spec = deepcopy(SPEC)
+                            spec["components"]["schemas"][schema_name]["properties"][
+                                field_name
+                            ]["type"] = replacement
+                            parsed = _load_spec(
+                                yaml.safe_dump(spec, default_flow_style=flow_style)
+                            )
+                            self.assertEqual(parsed, spec)
+                            mutated = parsed["components"]["schemas"][schema_name][
+                                "properties"
+                            ][field_name]
+                            self.assertEqual(
+                                _schema_types(mutated),
+                                {"integer"} if replacement == "integer"
+                                else {"string", "null"},
+                            )
+                            self.assertEqual(
+                                _is_nullable(mutated), replacement != "integer",
+                            )
+                            # Restoring only this scalar type proves that routes,
+                            # required lists, and nested item refs did not change.
+                            restored = deepcopy(parsed)
+                            restored["components"]["schemas"][schema_name]["properties"][
+                                field_name
+                            ]["type"] = original["type"]
+                            self.assertEqual(restored, SPEC)
+                            with patch.dict(globals(), SPEC=parsed):
+                                for test_name in (
+                                    "test_campaign_start_item_references_match_runtime_models",
+                                    "test_character_setup_route_bindings_match_fastapi",
+                                    "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                                ):
+                                    unchanged = unittest.TestResult()
+                                    ContractParityTests(test_name).run(unchanged)
+                                    self.assertTrue(
+                                        unchanged.wasSuccessful(),
+                                        unchanged.failures + unchanged.errors,
+                                    )
+                                result = unittest.TestResult()
+                                ContractParityTests(
+                                    "test_campaign_start_schemas_match_runtime_models"
+                                ).run(result)
+                            self.assertEqual(result.testsRun, 1)
+                            self.assertEqual(result.errors, [], result.errors)
+                            self.assertEqual(len(result.failures), 1, result.failures)
+                            self.assertIn(
+                                f"{schema_name}.{field_name} type",
+                                result.failures[0][1],
+                            )
+
     def test_campaign_start_wrong_item_references_fail_in_both_formats(self):
         for model, field_name, item_model in CAMPAIGN_START_ARRAY_FIELDS:
             schema_name = model.__name__
