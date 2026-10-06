@@ -2244,6 +2244,85 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             result.failures[0][1],
                         )
 
+    def test_campaign_start_missing_properties_fail_in_both_formats(self):
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            self.assertEqual(set(original["properties"]), _runtime_field_names(model))
+            for field_name in original["properties"]:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        del spec["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ]
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name]
+                        self.assertEqual(
+                            mutated["properties"],
+                            {
+                                name: declaration
+                                for name, declaration in original["properties"].items()
+                                if name != field_name
+                            },
+                        )
+                        self.assertEqual(mutated["required"], original["required"])
+                        self.assertEqual(parsed["paths"], SPEC["paths"])
+                        # Restoring just the removed property proves every other
+                        # declaration, required list and route binding is intact.
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ] = deepcopy(original["properties"][field_name])
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertEqual(unchanged.testsRun, 1)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        # The name-set comparison must fail independently of
+                        # the subsequent lookup of the missing declaration.
+                        self.assertEqual(len(result.failures), 2, result.failures)
+                        comparison, lookup = result.failures
+                        self.assertIn(f"schema='{schema_name}'", comparison[0].id())
+                        self.assertNotIn("field=", comparison[0].id())
+                        self.assertIn(
+                            "self.assertEqual(_property_names(schema_name), _runtime_field_names(model))",
+                            comparison[1],
+                        )
+                        self.assertIn(
+                            "Items in the second set but not the first:", comparison[1],
+                        )
+                        self.assertIn(repr(field_name), comparison[1])
+                        self.assertIn(f"field='{field_name}'", lookup[0].id())
+                        self.assertIn(
+                            f"OpenAPI property {schema_name}.{field_name} was not found",
+                            lookup[1],
+                        )
+
     def test_campaign_start_required_field_drift_fails_in_both_formats(self):
         for model in (
             CampaignStartOptionsResponse,
