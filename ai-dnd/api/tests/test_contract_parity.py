@@ -43,7 +43,11 @@ from api.schemas import (
     DeathSaveResult,
     DeathStateProjection,
     HealthResponse,
+    QuestObjectiveOffer,
+    QuestObjectiveState,
+    QuestOffer,
     QuestOutcome,
+    QuestState,
     SessionResponse,
     SpeciesTraitActionRequest,
     SpeciesTraitActionResult,
@@ -209,6 +213,11 @@ TURN_REFERENCE_FIELDS = (
     "skill_check_result",
 )
 
+QUEST_OBJECTIVE_LIST_MODELS = (
+    (QuestState, QuestObjectiveState, "QuestObjective"),
+    (QuestOffer, QuestObjectiveOffer, "QuestObjectiveOffer"),
+)
+
 
 def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
     """Keep nullable enum membership distinct from nullable field types."""
@@ -231,6 +240,48 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_quest_objective_item_references_match_runtime_models(self):
+        for model, item_model, published_item_name in QUEST_OBJECTIVE_LIST_MODELS:
+            with self.subTest(schema=model.__name__):
+                runtime = model.model_json_schema(
+                    ref_template="#/components/schemas/{model}"
+                )["properties"]["objectives"]
+                published = _property(model.__name__, "objectives")
+                self.assertEqual(_schema_types(runtime), {"array"})
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                runtime_items = _mapping(
+                    runtime.get("items"), f"{model.__name__}.objectives.items"
+                )
+                published_items = _mapping(
+                    published.get("items"), f"{model.__name__}.objectives.items"
+                )
+                runtime_ref = f"#/components/schemas/{item_model.__name__}"
+                self.assertEqual(
+                    _schema_references(runtime_items), {runtime_ref},
+                    f"Runtime {model.__name__}.objectives items must reference "
+                    f"{item_model.__name__}",
+                )
+                # QuestObjectiveState is intentionally published as QuestObjective;
+                # QuestObjectiveOffer retains its runtime name.
+                runtime_to_published_refs = {
+                    runtime_ref: f"#/components/schemas/{published_item_name}"
+                }
+                expected = {
+                    runtime_to_published_refs[ref]
+                    for ref in _schema_references(runtime_items)
+                }
+                self.assertEqual(
+                    _schema_references(published_items), expected,
+                    f"{model.__name__}.objectives.items reference target",
+                )
+                self.assertEqual(
+                    _schema_types(published_items), _schema_types(runtime_items)
+                )
+                self.assertEqual(
+                    _is_nullable(published_items), _is_nullable(runtime_items)
+                )
+
     def test_turn_quest_outcome_item_references_match_runtime_model(self):
         runtime = TurnResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -1716,6 +1767,67 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ).run(result)
                     self.assertTrue(result.failures, result.errors)
                     self.assertFalse(result.errors, result.errors)
+
+    def test_quest_objective_wrong_item_references_fail_in_both_formats(self):
+        for model, _, published_item_name in QUEST_OBJECTIVE_LIST_MODELS:
+            schema_name = model.__name__
+            original = _property(schema_name, "objectives")
+            wrong_models = (
+                "QuestObjectiveOffer" if published_item_name == "QuestObjective"
+                else "QuestObjective",
+                "QuestOutcome",
+                "GameSession",
+            )
+            for wrong_model in wrong_models:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, replacement=wrong_model,
+                        compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        field = spec["components"]["schemas"][schema_name][
+                            "properties"
+                        ]["objectives"]
+                        field["items"]["$ref"] = f"#/components/schemas/{wrong_model}"
+                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        parsed = _load_spec(text)
+                        self.assertEqual(parsed, spec)
+                        parsed_field = parsed["components"]["schemas"][schema_name][
+                            "properties"
+                        ]["objectives"]
+                        self.assertEqual(_schema_types(parsed_field), {"array"})
+                        self.assertEqual(
+                            _schema_types(parsed_field), _schema_types(original)
+                        )
+                        self.assertEqual(
+                            _is_nullable(parsed_field), _is_nullable(original)
+                        )
+                        self.assertEqual(
+                            _schema_types(parsed_field["items"]),
+                            _schema_types(original["items"]),
+                        )
+                        self.assertEqual(
+                            _is_nullable(parsed_field["items"]),
+                            _is_nullable(original["items"]),
+                        )
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name][
+                            "properties"
+                        ]["objectives"]["items"]["$ref"] = original["items"]["$ref"]
+                        self.assertEqual(restored, SPEC)
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=parsed):
+                            ContractParityTests(
+                                "test_quest_objective_item_references_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        failed_test, failure = result.failures[0]
+                        self.assertIn(f"schema='{schema_name}'", failed_test.id())
+                        self.assertIn(
+                            f"{schema_name}.objectives.items reference target", failure
+                        )
 
     def test_turn_quest_outcome_wrong_item_references_fail_in_both_formats(self):
         original = _property("GameTurnResult", "quest_outcomes")
