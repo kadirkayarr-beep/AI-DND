@@ -69,6 +69,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def assert_corrupt_saved_receipt_blocks_retry(
         self, corruption, operation="turn", *, conflicting_action=None,
         conflicting_message=None, conflicting_combat_step=None, malformed_hash="g" * 64,
+        conflicting_combat_context=None,
     ):
         created = await self.create_campaign()
         record = self.manager.get(created["session_id"])
@@ -99,6 +100,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             }
         else:
             self.fail(f"Unknown operation: {operation}")
+        if conflicting_combat_context is not None:
+            self.assertEqual(operation, "turn")
+            self.assertIn(
+                conflicting_combat_context,
+                ("combat_id", "combat_round", "combat_turn_index"),
+            )
+            combat = session.world_state["combat"]
+            command.update(
+                combat_id=combat["combat_id"], combat_round=combat["round"],
+                combat_turn_index=combat["current_turn_index"],
+            )
         before_operation = copy.deepcopy(session.serialize_game_state())
         path = f"/api/game/sessions/{created['session_id']}/{endpoint}"
         # Real mechanics and persistence; fix only combat dice to keep the
@@ -189,6 +201,22 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(retry_command["message"], command["message"])
             self.assertEqual(retry_command["action_id"], command["action_id"])
             expected_status, expected_code = 409, "action_id_conflict"
+        if conflicting_combat_context is not None:
+            self.assertIsInstance(corruption, tuple)
+            self.assertIsNone(conflicting_message)
+            self.assertIsNone(conflicting_combat_step)
+            self.assertIsNone(conflicting_action)
+            field = conflicting_combat_context
+            retry_command[field] = (
+                str(uuid4()) if field == "combat_id" else command[field] + 1
+            )
+            self.assertNotEqual(retry_command[field], command[field])
+            # Exactly one context field changes; the accepted action is identical.
+            self.assertEqual(
+                {key: value for key, value in retry_command.items() if key != field},
+                {key: value for key, value in command.items() if key != field},
+            )
+            expected_status, expected_code = 409, "action_id_conflict"
         with self.store._transaction() as connection:
             updated = connection.execute(sql, (value, campaign_id, command["action_id"]))
             self.assertEqual(updated.rowcount, 1)
@@ -202,7 +230,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(damaged_row["request_hash"], malformed_hash)
             self.assertEqual(json.loads(damaged_row["response_json"]), accepted.json())
         elif (conflicting_action is not None or conflicting_message is not None
-              or conflicting_combat_step is not None):
+              or conflicting_combat_step is not None
+              or conflicting_combat_context is not None):
             damaged_receipt = self.store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(damaged_receipt["request_hash"], receipt["request_hash"])
             self.assertEqual(damaged_receipt["response"], response)
@@ -264,8 +293,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     (fresh_store, "save_campaign"),
                     (fresh_store, "_transaction"),
                 )
-                if conflicting_combat_step is not None:
-                    # A changed structured command must fail at hash comparison,
+                if (conflicting_combat_step is not None
+                        or conflicting_combat_context is not None):
+                    # A changed combat request must fail at hash comparison,
                     # before even attempting to validate the damaged reply.
                     guards += ((TurnResponse, "model_validate"),)
                 with ExitStack() as stack:
@@ -412,6 +442,28 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             (field_path, mode, invalid_value),
                             conflicting_combat_step=changed_step,
                         )
+
+    async def assert_changed_combat_context_conflicts_before_damaged_response(self, context_field):
+        for field_path, invalid_value in (
+            (("session_id",), 123),
+            (("narration",), []),
+            (("state",), []),
+        ):
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(context=context_field, field=field_path, mode=mode):
+                    await self.assert_corrupt_saved_receipt_blocks_retry(
+                        (field_path, mode, invalid_value),
+                        conflicting_combat_context=context_field,
+                    )
+
+    async def test_changed_combat_id_conflicts_before_damaged_response_after_resume(self):
+        await self.assert_changed_combat_context_conflicts_before_damaged_response("combat_id")
+
+    async def test_changed_combat_round_conflicts_before_damaged_response_after_resume(self):
+        await self.assert_changed_combat_context_conflicts_before_damaged_response("combat_round")
+
+    async def test_changed_combat_turn_index_conflicts_before_damaged_response_after_resume(self):
+        await self.assert_changed_combat_context_conflicts_before_damaged_response("combat_turn_index")
 
     async def test_incomplete_species_response_blocks_http_retry_after_resume(self):
         for operation in ("short_rest", "long_rest"):
