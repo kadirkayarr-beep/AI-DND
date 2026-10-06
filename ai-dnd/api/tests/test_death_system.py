@@ -1045,7 +1045,17 @@ class DeathSystemTests(unittest.TestCase):
                         mode, roll, outcome, failures
                     )
 
-    def _assert_healed_pending_noncombat_round_trip(self, mode, roll, outcome, failures):
+    def test_new_injury_after_reopening_healed_noncombat_save_starts_fresh_episode(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for roll, outcome, failures in ((4, "failure", 1), (1, "natural_1", 2)):
+                with self.subTest(mode=mode, outcome=outcome):
+                    self._assert_healed_pending_noncombat_round_trip(
+                        mode, roll, outcome, failures, new_injury=True
+                    )
+
+    def _assert_healed_pending_noncombat_round_trip(
+        self, mode, roll, outcome, failures, *, new_injury=False
+    ):
         session = make_session()
         peer = make_session(seed=29)
         reopened = make_session(seed=83)
@@ -1121,6 +1131,9 @@ class DeathSystemTests(unittest.TestCase):
             expected.update(successes=0, failures=0, stable=False, recovery=None,
                             noncombat_episode_id=None, noncombat_next_save_at=None)
             self.assertEqual(healed, expected)
+            self.assertEqual(healed["last_death_save_result"], receipt)
+            self.assertEqual(healed["last_death_save_turn_key"],
+                             f"noncombat:{episode}:{old_deadline - 6}")
 
             def assert_healed(owner):
                 self.assertEqual(owner.character["current_hp"], 3)
@@ -1141,7 +1154,7 @@ class DeathSystemTests(unittest.TestCase):
             load_rng = reopened.rng.getstate()
             load_history = copy.deepcopy(reopened.messages)
 
-            def assert_preserved():
+            def assert_preserved(*, reopened_rng=load_rng):
                 for owner, snapshot, rng_state, history in zip(
                     protected, snapshots, rng_states, histories
                 ):
@@ -1150,7 +1163,7 @@ class DeathSystemTests(unittest.TestCase):
                     self.assertEqual(owner.messages, history)
                 self.assertEqual(random.getstate(), module_rng)
                 self.assertIs(game._session(), game._DEFAULT_SESSION)
-                self.assertEqual(reopened.rng.getstate(), load_rng)
+                self.assertEqual(reopened.rng.getstate(), reopened_rng)
                 self.assertEqual(reopened.messages, load_history)
                 for saved_path, content in saved_files.items():
                     self.assertEqual(saved_path.read_bytes(), content)
@@ -1172,9 +1185,13 @@ class DeathSystemTests(unittest.TestCase):
                 assert_healed(reopened)
                 assert_preserved()
                 now = healing_clock["elapsed_seconds"]
-                for target in (now, old_deadline - 1, old_deadline, old_deadline,
-                               old_deadline + 1, old_deadline + 6,
-                               old_deadline + 12, old_deadline + 14401):
+                targets = (
+                    (now, old_deadline - 3) if new_injury else
+                    (now, old_deadline - 1, old_deadline, old_deadline,
+                     old_deadline + 1, old_deadline + 6,
+                     old_deadline + 12, old_deadline + 14401)
+                )
+                for target in targets:
                     later = reopened.advance_campaign_time(target - now, "wait")
                     self.assertEqual(later["death_results"], [])
                     self.assertEqual(later["elapsed_seconds"], target - now)
@@ -1186,6 +1203,85 @@ class DeathSystemTests(unittest.TestCase):
                     assert_preserved()
                     die.assert_not_called()
                     heal.assert_not_called()
+
+            if new_injury:
+                # The old pending deadline is still ahead when legitimate damage
+                # drops the reopened, healed character back to zero HP.
+                with (
+                    patch("game.roll_d20", side_effect=AssertionError("New injury rolled")),
+                    patch.object(reopened.rng, "randint",
+                                 side_effect=AssertionError("New injury consumed RNG")) as die,
+                    patch("game.heal_player", side_effect=AssertionError("New injury healed")),
+                ):
+                    damage = reopened._apply_player_damage(3, took_damage=True)
+                    self.assertEqual(damage["hp_before"], 3)
+                    self.assertEqual(damage["hp_after"], 0)
+                    self.assertEqual(damage["status"], "unconscious")
+                    self.assertIsNone(damage["death_resolution"])
+                    injured = copy.deepcopy(reopened.ensure_death_state())
+                    new_episode = injured["noncombat_episode_id"]
+                    new_deadline = now + 6
+                    self.assertIsInstance(new_episode, str)
+                    self.assertTrue(new_episode)
+                    self.assertNotEqual(new_episode, episode)
+                    self.assertNotEqual(new_deadline, old_deadline)
+                    injury_expected = copy.deepcopy(expected)
+                    injury_expected.update(prone=True, noncombat_episode_id=new_episode,
+                                           noncombat_next_save_at=new_deadline)
+                    self.assertEqual(injured, injury_expected)
+                    self.assertEqual((injured["successes"], injured["failures"]), (0, 0))
+                    for target in (now, old_deadline - 1, old_deadline, old_deadline,
+                                   old_deadline + 1, new_deadline - 1):
+                        early = reopened.advance_campaign_time(target - now, "wait")
+                        self.assertEqual(early["death_results"], [])
+                        self.assertEqual(early["elapsed_seconds"], target - now)
+                        self.assertEqual(
+                            reopened.world_state["campaign_time"]["elapsed_seconds"], target
+                        )
+                        now = target
+                        self.assertEqual(reopened.ensure_death_state(), injured)
+                        self.assertEqual(reopened.character["current_hp"], 0)
+                        self.assertEqual(reopened.world_state["player_combat_status"], "unconscious")
+                        self.assertFalse(reopened.world_state["combat"]["active"])
+                        assert_preserved()
+                    die.assert_not_called()
+
+                reference = random.Random()
+                reference.setstate(load_rng)
+                expected_roll = reference.randint(1, 20)
+                self.assertTrue(10 <= expected_roll < 20)
+                with (
+                    patch.object(reopened.rng, "randint", wraps=reopened.rng.randint) as die,
+                    patch("game.heal_player", side_effect=AssertionError("New save healed")),
+                ):
+                    due = reopened.advance_campaign_time(1, "wait")
+                    self.assertEqual(len(due["death_results"]), 1)
+                    entry = due["death_results"][0]
+                    self.assertEqual(entry["action"], "death_save")
+                    new_receipt = entry["death_save"]
+                    self.assertEqual(new_receipt["roll"], expected_roll)
+                    self.assertEqual(new_receipt["outcome"], "success")
+                    self.assertNotEqual(new_receipt, receipt)
+                    after = copy.deepcopy(injured)
+                    after.update(successes=1, noncombat_next_save_at=new_deadline + 6,
+                                 last_death_save_turn_key=f"noncombat:{new_episode}:{new_deadline}",
+                                 last_death_save_result=new_receipt)
+                    self.assertEqual(reopened.ensure_death_state(), after)
+                    self.assertNotEqual(after["last_death_save_turn_key"],
+                                        healed["last_death_save_turn_key"])
+                    self.assertEqual(
+                        reopened.world_state["campaign_time"]["elapsed_seconds"], new_deadline
+                    )
+                    for duration in (0, 0, 1, 0):
+                        self.assertEqual(
+                            reopened.advance_campaign_time(duration, "wait")["death_results"], []
+                        )
+                        self.assertEqual(reopened.ensure_death_state(), after)
+                        self.assertEqual(reopened.character["current_hp"], 0)
+                        self.assertEqual(reopened.world_state["player_combat_status"], "unconscious")
+                        self.assertFalse(reopened.world_state["combat"]["active"])
+                        die.assert_called_once_with(1, 20)
+                        assert_preserved(reopened_rng=reference.getstate())
 
     def test_repeated_stabilization_preserves_saved_recovery_after_reopening(self):
         for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
