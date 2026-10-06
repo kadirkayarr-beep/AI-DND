@@ -104,3 +104,13 @@ ordinary later death saves still rolled back, concealing the absent damage path.
 
 **How to apply:** Script shared d20 values in actual resolution order and assert
 positive attack/damage evidence alongside unchanged replay call counts/state.
+
+Persistence-boundary tests that adapt an HTTP save entry point prove only the
+adapted boundary, not native endpoint dispatch.
+
+**Why:** A receipt can be tested through real autosave while its endpoint normally
+uses another save entry point; trying to save that receipt again after acceptance
+violates exactly-once ownership instead of testing alias isolation.
+
+**How to apply:** Adapt only the test's first commit when necessary, label the
+fixture explicitly, and keep native save-path evidence separate.
