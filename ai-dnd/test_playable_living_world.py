@@ -288,7 +288,9 @@ class PlayableLivingWorldTests(unittest.TestCase):
                     self.assertEqual(result["npc"], npcs[0])
                     self.assertEqual(self.world, expected)
 
-    def _set_hidden_scheduled_npc_conversation(self, turn_index, *, active, name):
+    def _set_hidden_scheduled_npc_conversation(
+        self, turn_index, *, active, name, aftermath_visible=False,
+    ):
         npcs = self._set_npc_conversation_deadline(turn_index, active=active)
         npcs[1].update({"name": name, "location": "village"})
         self.world["scheduled_events"] = []
@@ -299,6 +301,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
             window_end=1,
             location_id=self.root_location,
             visibility="hidden",
+            aftermath_visible=aftermath_visible,
+            aftermath=f"{name} burada duruyor." if aftermath_visible else "",
             effects=[{
                 "kind": "npc_location",
                 "npc_id": npcs[1]["id"],
@@ -371,6 +375,55 @@ class PlayableLivingWorldTests(unittest.TestCase):
                     self.assertEqual(result["status"], "found")
                     self.assertEqual(result["npc"], npcs[0])
                     self.assertEqual(self.world, expected)
+
+    def test_explicit_newly_observed_hidden_npc_name_resolves_at_and_after_deadline(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for player_input in (
+                    "Bora'yla konuşuyorum.",
+                    "Bora'ya selam veriyorum.",
+                    "Bora'dan sohbet etmesini istiyorum.",
+                ):
+                    with self.subTest(
+                        turn_index=turn_index, active_npc_present=active,
+                        player_input=player_input,
+                    ):
+                        npcs = self._set_hidden_scheduled_npc_conversation(
+                            turn_index, active=active, name="Bora",
+                            aftermath_visible=True,
+                        )
+                        event = self.world["scheduled_events"][0]
+                        canonical_result = copy.deepcopy(event["canonical_result"])
+
+                        observed = scheduled_events.process_events(
+                            self.world, 1, 2,
+                            observation={
+                                "kind": "look",
+                                "location_id": self.root_location,
+                            },
+                        )
+
+                        self.assertTrue(event["player_observed"])
+                        self.assertEqual(len(observed), 1)
+                        self.assertEqual(observed[0]["summary"], event["aftermath"])
+                        self.assertEqual(event["player_known_summary"], event["aftermath"])
+                        self.assertEqual(event["visibility"], "hidden")
+                        self.assertEqual(event["status"], "OCCURRED")
+                        self.assertEqual(event["canonical_result"], canonical_result)
+                        self.assertEqual(self.session.active_npcs(), npcs)
+                        self.assertIn(npcs[1], self.session.active_npcs())
+                        expected = copy.deepcopy(self.world)
+                        expected["flags"].update({
+                            "active_npc_id": npcs[1]["id"],
+                            "last_npc_id": npcs[1]["id"],
+                            "active_npc_until_turn": turn_index + 6,
+                        })
+
+                        result = self.session.resolve_npc_reference(player_input)
+
+                        self.assertEqual(result["status"], "found")
+                        self.assertEqual(result["npc"], npcs[1])
+                        self.assertEqual(self.world, expected)
 
     def test_pronoun_only_dialogue_preserves_single_npc_fallback(self):
         for turn_index in (12, 13):
