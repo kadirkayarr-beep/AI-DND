@@ -461,6 +461,23 @@ class ContractParityTests(unittest.TestCase):
         self.assertEqual(_schema_types(published_items), _schema_types(runtime_items))
         self.assertEqual(_is_nullable(published_items), _is_nullable(runtime_items))
 
+    def test_turn_input_combat_action_reference_matches_runtime_model(self):
+        runtime = TurnRequest.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]["combat_action"]
+        published = _property("GameTurnInput", "combat_action")
+        expected = _schema_references(runtime)
+        self.assertEqual(
+            expected, {"#/components/schemas/CombatActionInput"},
+            "Runtime combat_action must reference the published CombatActionInput",
+        )
+        self.assertEqual(
+            _schema_references(published), expected,
+            "GameTurnInput.combat_action reference target",
+        )
+        self.assertEqual(_schema_types(published), _schema_types(runtime))
+        self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+
     def test_turn_result_references_match_runtime_models(self):
         runtime_properties = TurnResponse.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -2674,6 +2691,65 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertIn(
                         "GameTurnResult.quest_outcomes.items reference target", failure,
                     )
+
+    def test_turn_input_wrong_combat_action_reference_fails_in_both_formats(self):
+        original = _property("GameTurnInput", "combat_action")
+        replacement = "#/components/schemas/GameSession"
+        self.assertEqual(_schema_types(_schema("GameSession")), {"object"})
+        self.assertNotIn(replacement, _schema_references(original))
+        for flow_style in (False, True):
+            with self.subTest(compact=flow_style):
+                spec = deepcopy(SPEC)
+                field = spec["components"]["schemas"]["GameTurnInput"][
+                    "properties"
+                ]["combat_action"]
+                target = next(
+                    branch for branch in field["anyOf"] if "$ref" in branch
+                )
+                original_reference = target["$ref"]
+                target["$ref"] = replacement
+                parsed = _load_spec(yaml.safe_dump(
+                    spec, default_flow_style=flow_style,
+                ))
+                self.assertEqual(parsed, spec)
+                mutated = parsed["components"]["schemas"]["GameTurnInput"][
+                    "properties"
+                ]["combat_action"]
+                self.assertEqual(_schema_types(mutated), _schema_types(original))
+                self.assertEqual(_is_nullable(mutated), _is_nullable(original))
+                self.assertEqual(parsed["paths"], SPEC["paths"])
+                # Restoring only the nested target must recover the entire
+                # document, including required fields, routes and statuses.
+                restored = deepcopy(parsed)
+                restored_field = restored["components"]["schemas"]["GameTurnInput"][
+                    "properties"
+                ]["combat_action"]
+                next(
+                    branch for branch in restored_field["anyOf"] if "$ref" in branch
+                )["$ref"] = original_reference
+                self.assertEqual(restored, SPEC)
+                with patch.dict(globals(), SPEC=parsed):
+                    unchanged = unittest.TestResult()
+                    for method in (
+                        "test_health_and_request_schemas_match_runtime_models",
+                        "test_turn_route_bindings_match_fastapi",
+                    ):
+                        ContractParityTests(method).run(unchanged)
+                    self.assertTrue(
+                        unchanged.wasSuccessful(),
+                        unchanged.failures + unchanged.errors,
+                    )
+                    result = unittest.TestResult()
+                    ContractParityTests(
+                        "test_turn_input_combat_action_reference_matches_runtime_model"
+                    ).run(result)
+                self.assertEqual(result.testsRun, 1)
+                self.assertEqual(result.errors, [], result.errors)
+                self.assertEqual(len(result.failures), 1, result.failures)
+                self.assertIn(
+                    "GameTurnInput.combat_action reference target",
+                    result.failures[0][1],
+                )
 
     def test_turn_result_reference_mutations_fail_in_both_formats(self):
         for field_name in TURN_REFERENCE_FIELDS:
