@@ -5,6 +5,7 @@ from contextlib import closing, ExitStack
 from datetime import datetime, timedelta
 from functools import wraps
 import threading
+import sqlite3
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -3001,6 +3002,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
 
     async def test_ambient_event_late_receipt_sql_failure_rolls_back_then_retries_and_replays(self):
+        await self.assert_ambient_event_save_failure_retries_and_replays(at_commit=False)
+
+    async def test_ambient_event_deferred_commit_failure_rolls_back_then_retries_and_replays(self):
+        await self.assert_ambient_event_save_failure_retries_and_replays(at_commit=True)
+
+    async def assert_ambient_event_save_failure_retries_and_replays(self, *, at_commit):
         created = await self.create_campaign()
         campaign_id, sid = created["campaign_id"], created["session_id"]
         record = self.manager.get(sid)
@@ -3035,25 +3042,73 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         before_auxiliary = auxiliary_state(record)
         before_rows = saved_rows(self.store)
         revision = before[-1].metadata["revision"]
-        with closing(self.store._connect()) as db:
+        if not at_commit:
             # This trigger can reject the receipt only AFTER the real save has
             # updated this campaign in the enclosing transaction.
-            db.execute(f"""
-                CREATE TRIGGER reject_ambient_receipt
-                BEFORE INSERT ON campaign_turn_actions
-                WHEN NEW.campaign_id = '{campaign_id}'
-                    AND NEW.action_id = '{command["action_id"]}'
-                    AND (SELECT revision FROM campaigns
-                         WHERE campaign_id = NEW.campaign_id) = {revision + 1}
-                BEGIN SELECT RAISE(ABORT, 'injected late ambient failure'); END
-            """)
+            with closing(self.store._connect()) as db:
+                db.execute(f"""
+                    CREATE TRIGGER reject_ambient_receipt
+                    BEFORE INSERT ON campaign_turn_actions
+                    WHEN NEW.campaign_id = '{campaign_id}'
+                        AND NEW.action_id = '{command["action_id"]}'
+                        AND (SELECT revision FROM campaigns
+                             WHERE campaign_id = NEW.campaign_id) = {revision + 1}
+                    BEGIN SELECT RAISE(ABORT, 'injected late ambient failure'); END
+                """)
 
         speculative = {}
         original_save = self.store.save_campaign
+        original_connect = self.store._connect
+
+        class DeferredCommitConnection:
+            """Delegate SQL unchanged; a connection-local FK rejects native commit."""
+
+            def __init__(self):
+                self.native = original_connect()
+                self.native.execute("CREATE TEMP TABLE commit_parent (id INTEGER PRIMARY KEY)")
+                self.native.execute("""
+                    CREATE TEMP TABLE commit_child (
+                        parent_id INTEGER REFERENCES commit_parent(id)
+                        DEFERRABLE INITIALLY DEFERRED
+                    )
+                """)
+
+            def __getattr__(self, name):
+                return getattr(self.native, name)
+
+            def commit(self):
+                # Capture the actual uncommitted writes, not the proposed save
+                # arguments. A statement failure cannot reach this point.
+                speculative["pending_campaign"] = dict(self.native.execute(
+                    "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,),
+                ).fetchone())
+                speculative["pending_receipt"] = dict(self.native.execute(
+                    """SELECT * FROM campaign_turn_actions
+                       WHERE campaign_id = ? AND action_id = ?""",
+                    (campaign_id, command["action_id"]),
+                ).fetchone())
+                speculative["transaction_at_commit"] = self.native.in_transaction
+                self.native.execute("INSERT INTO commit_child (parent_id) VALUES (1)")
+                speculative["deferred_insert_executed"] = True
+                try:
+                    self.native.commit()
+                except sqlite3.IntegrityError as error:
+                    speculative["commit_error"] = str(error)
+                    speculative["transaction_after_rejection"] = self.native.in_transaction
+                    raise
+
+            def rollback(self):
+                self.native.rollback()
+                speculative["transaction_after_rollback"] = self.native.in_transaction
 
         def observe_native_save(*args, **kwargs):
             speculative["snapshot"] = self.snapshot(record)
             speculative["receipt"] = copy.deepcopy(kwargs["turn_action_receipt"])
+            if at_commit:
+                # Restrict injection to this save: baseline reads, retry and
+                # reopen all use the ordinary store and schema.
+                with patch.object(self.store, "_connect", side_effect=DeferredCommitConnection):
+                    return original_save(*args, **kwargs)
             return original_save(*args, **kwargs)
 
         with patch.object(self.store, "save_campaign", side_effect=observe_native_save) as save, \
@@ -3072,6 +3127,24 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             speculative["receipt"]["response"]["ambient_event_response"]["result"]["status"],
             "APPLIED",
         )
+        if at_commit:
+            self.assertTrue(speculative["transaction_at_commit"])
+            self.assertTrue(speculative["deferred_insert_executed"])
+            self.assertEqual(speculative["commit_error"], "FOREIGN KEY constraint failed")
+            self.assertTrue(speculative["transaction_after_rejection"])
+            self.assertFalse(speculative["transaction_after_rollback"])
+            pending_campaign = speculative["pending_campaign"]
+            self.assertEqual(pending_campaign["revision"], revision + 1)
+            pending_payload = json.loads(pending_campaign["payload_json"])
+            self.assertEqual(pending_payload["engine_save"], speculative["snapshot"][0])
+            self.assertEqual(pending_payload["journal"], speculative["snapshot"][2])
+            pending_receipt = speculative["pending_receipt"]
+            self.assertEqual(pending_receipt["campaign_id"], campaign_id)
+            self.assertEqual(pending_receipt["action_id"], command["action_id"])
+            self.assertEqual(pending_receipt["request_hash"],
+                             speculative["receipt"]["request_hash"])
+            self.assertEqual(json.loads(pending_receipt["response_json"]),
+                             speculative["receipt"]["response"])
         self.assertEqual(self.snapshot(record), before)
         self.assertEqual(auxiliary_state(record), before_auxiliary)
         self.assertEqual(saved_rows(self.store), before_rows)
@@ -3079,8 +3152,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
         self.assertIsNone(self.store.get_turn_action(campaign_id, command["action_id"]))
 
-        with closing(self.store._connect()) as db:
-            db.execute("DROP TRIGGER reject_ambient_receipt")
+        if not at_commit:
+            with closing(self.store._connect()) as db:
+                db.execute("DROP TRIGGER reject_ambient_receipt")
         with patch.object(session, "resolve_ambient_event_action",
                           wraps=session.resolve_ambient_event_action) as resolve:
             accepted = await send()
