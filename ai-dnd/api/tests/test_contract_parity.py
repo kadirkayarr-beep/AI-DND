@@ -459,10 +459,25 @@ class ContractParityTests(unittest.TestCase):
                     )
 
     def test_health_and_request_schemas_match_runtime_models(self):
+        runtime_health = HealthResponse.model_json_schema(mode="serialization")
         self.assertEqual(
             _property_names("HealthResponse"),
             _runtime_field_names(HealthResponse),
         )
+        self.assertEqual(
+            set(_schema("HealthResponse").get("required", [])),
+            # Defaults make construction optional, not the fields emitted by
+            # this response model (the health route does not exclude defaults).
+            set(HealthResponse().model_dump(mode="json")),
+            "HealthResponse.required",
+        )
+        for field_name, runtime_property in runtime_health["properties"].items():
+            with self.subTest(schema="HealthResponse", field=field_name):
+                self.assertEqual(
+                    _schema_types(_property("HealthResponse", field_name)),
+                    _schema_types(runtime_property),
+                    f"HealthResponse.{field_name}.type",
+                )
         self.assertEqual(
             _enum_values("HealthResponse", "status"),
             {HealthResponse().status},
@@ -1952,6 +1967,79 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn("binding='success statuses'", failure.id())
                         self.assertIn("AssertionError", traceback)
                         self.assertIn(f"'{changed_status}'", traceback)
+
+    def test_health_component_constraint_drift_fails_in_both_formats(self):
+        schema_name = "HealthResponse"
+        original = _schema(schema_name)
+        mutations = [
+            (("required",), None),
+            (("required",), []),
+            (("required",), [*original["required"], "unexpected"]),
+        ]
+        mutations.extend(
+            (("required",), [
+                field for field in original["required"] if field != removed
+            ])
+            for removed in original["required"]
+        )
+        for field_name in original["properties"]:
+            mutations.extend(
+                (("properties", field_name, "type"), replacement)
+                for replacement in (
+                    None, "integer", "number", "boolean", "object", "array",
+                    ["string", "null"],
+                )
+            )
+        for path, replacement in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    # References, statuses, names and enums remain untouched.
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"][schema_name] = deepcopy(original)
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        self.assertEqual(
+                            _property_names(schema_name), set(original["properties"]),
+                        )
+                        for field_name in original["properties"]:
+                            self.assertEqual(
+                                _enum_values(schema_name, field_name),
+                                set(original["properties"][field_name]["enum"]),
+                            )
+                        unchanged = unittest.TestResult()
+                        ContractParityTests(
+                            "test_health_route_bindings_match_fastapi"
+                        ).run(unchanged)
+                        self.assertTrue(
+                            unchanged.wasSuccessful(),
+                            unchanged.failures + unchanged.errors,
+                        )
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_health_and_request_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    expected_label = (
+                        "HealthResponse.required" if path == ("required",)
+                        else f"HealthResponse.{path[1]}.type"
+                    )
+                    self.assertIn(expected_label, result.failures[0][1])
 
     def test_health_wrong_references_fail_in_both_formats(self):
         for path in ("/game/health", "/health"):
