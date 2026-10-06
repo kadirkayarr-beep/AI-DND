@@ -341,16 +341,38 @@ class PlayableLivingWorldTests(unittest.TestCase):
                             turn_index=turn_index, active_npc_present=active,
                             player_input=player_input,
                         ):
-                            self._set_hidden_scheduled_npc_conversation(
+                            npcs = self._set_hidden_scheduled_npc_conversation(
                                 turn_index, active=active, name=name,
                             )
-                            before = copy.deepcopy(self.world)
+                            saved_state = self.session.serialize_game_state()
+                            restored_session = game.create_session(seed=2718)
+                            with tempfile.TemporaryDirectory() as directory:
+                                save_path = Path(directory) / "unobserved-hidden-npc.json"
+                                self.session.save_game(save_path)
+                                restored_session.load_game(save_path)
 
-                            result = self.session.resolve_npc_reference(player_input)
+                            self.assertEqual(
+                                restored_session.serialize_game_state(), saved_state,
+                            )
+                            self.assertIsNot(restored_session.world_state, self.world)
+                            self.assertEqual(restored_session.world_state, self.world)
 
-                            self.assertEqual(result["status"], "none")
-                            self.assertIsNone(result["npc"])
-                            self.assertEqual(self.world, before)
+                            for session in (self.session, restored_session):
+                                with self.subTest(reopened=session is restored_session):
+                                    before = copy.deepcopy(session.world_state)
+                                    event = session.world_state["scheduled_events"][0]
+                                    self.assertEqual(event["status"], "OCCURRED")
+                                    self.assertEqual(event["visibility"], "hidden")
+                                    self.assertFalse(event["player_observed"])
+                                    self.assertEqual(event["player_known_summary"], "")
+                                    self.assertEqual(session.active_npcs(), npcs[:1])
+                                    self.assertNotIn(npcs[1], session.active_npcs())
+
+                                    result = session.resolve_npc_reference(player_input)
+
+                                    self.assertEqual(result["status"], "none")
+                                    self.assertIsNone(result["npc"])
+                                    self.assertEqual(session.world_state, before)
 
     def test_explicit_visible_local_name_resolves_with_hidden_scheduled_npc(self):
         for turn_index in (12, 13):
