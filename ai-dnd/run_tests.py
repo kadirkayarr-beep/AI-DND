@@ -18,6 +18,8 @@ TESTS = (
     "test_combat_v2.py",
     "test_combat_v2_fixed.py",
     "test_combat_v2_authoritative.py",
+    "test_spells_v1.py",
+    "test_xp_v1.py",
     "test_regression.py",
     "test_migration.py",
     "test_migration_harden.py",

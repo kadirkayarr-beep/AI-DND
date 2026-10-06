@@ -37,6 +37,10 @@ _PLAYER_FIELDS = (
     "max_hp",
     "current_hp",
     "armor_class",
+    "cantrips",
+    "spells",
+    "spell_slots_remaining",
+    "xp",
 )
 _NPC_FIELDS = (
     "id",
@@ -96,6 +100,13 @@ _COMBAT_ATTACK_FIELDS = (
 )
 _COMBAT_TURN_FIELDS = (
     *_COMBAT_ATTACK_FIELDS,
+    "spell",
+    "casting_ability",
+    "attack_or_save",
+    "save_roll",
+    "save_dc",
+    "healing",
+    "slot_spent",
     "combat_started",
     "combat_ended",
     "end_reason",
@@ -134,7 +145,10 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
 
 def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     """Expose only Python-owned combat outcome fields to the browser."""
-    if not isinstance(action_result, Mapping) or action_result.get("action") != "attack":
+    if not isinstance(action_result, Mapping) or action_result.get("action") not in {
+        "attack",
+        "cast",
+    }:
         return None
 
     projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)

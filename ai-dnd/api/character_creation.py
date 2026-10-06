@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import game
+import spells as spell_rules
 from api.dnd_2024_rules import (
     ABILITY_KEYS,
     BACKGROUND_DEFINITIONS,
@@ -493,10 +494,12 @@ def configure_character(
             "inventory": list(equipment_choices),
             "cantrips": list(cantrips),
             "spells": list(spells),
+            "spell_slots_remaining": spell_rules.initial_slots(character_class),
             "appearance": appearance,
             "personality": personality,
             "backstory": backstory,
             "level": level,
+            "xp": 0,
             "proficiency_bonus": proficiency_bonus,
             "max_hp": max_hp,
             "current_hp": current_hp,

@@ -284,7 +284,8 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             set_session_world_metadata(record.game_session)
             manager.save_campaign(campaign_id)
 
-            with sqlite3.connect(database_path) as connection:
+            connection = sqlite3.connect(database_path)
+            try:
                 row = connection.execute(
                     "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                     (campaign_id,),
@@ -295,6 +296,9 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
                     "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
                     (json.dumps(payload), campaign_id),
                 )
+                connection.commit()
+            finally:
+                connection.close()
 
             restarted = SessionManager(campaign_store=CampaignStore(database_path))
             _, resumed, _, _, state = restarted.resume_campaign(campaign_id)
@@ -303,13 +307,16 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
                 state["world"],
                 {"environment": "tavern", "time_of_day": "day", "weather": "clear"},
             )
-            with sqlite3.connect(database_path) as connection:
+            connection = sqlite3.connect(database_path)
+            try:
                 migrated_payload = json.loads(
                     connection.execute(
                         "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                         (campaign_id,),
                     ).fetchone()[0]
                 )
+            finally:
+                connection.close()
             self.assertIn("world_metadata", migrated_payload)
             self.assertEqual(
                 migrated_payload["world_metadata"],

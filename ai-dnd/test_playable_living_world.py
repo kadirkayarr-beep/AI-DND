@@ -479,6 +479,14 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["status"], "observed")
         self.assertEqual(result["target_id"], ref["id"])
         self.assertEqual(result["direct_response"], description)
+        with patch("game.ollama.chat") as chat:
+            played = self.session.run_player_turn("Ziyaretçi ne yapıyor?")
+        chat.assert_not_called()
+        self.assertEqual(played["narration"], description)
+        self.assertEqual(
+            played["_engine_event_evidence"]["telemetry"]["narration_model_calls"],
+            0,
+        )
         self.assertEqual(ref["lifecycle"], "presented")
         self.assertIsNone(ref.get("promoted_npc_id"))
         self.assertEqual(self.world["npcs"], [])

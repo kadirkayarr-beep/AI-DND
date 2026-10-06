@@ -7,12 +7,13 @@ import hashlib
 import inspect
 import json
 import logging
+import os
 import tempfile
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -59,6 +60,7 @@ from api.schemas import (
     CampaignSessionResponse,
     CampaignSummary,
     HealthResponse,
+    LevelUpResult,
     SessionResponse,
     TurnRequest,
     TurnResponse,
@@ -121,6 +123,25 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     finally:
         if save_path is not None:
             save_path.unlink(missing_ok=True)
+
+
+def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
+    """Restore the pre-turn snapshot or close the session if that restore fails."""
+    try:
+        _restore_session(session, snapshot)
+    except Exception as restore_error:
+        record.usable = False
+        _logger.critical(
+            "Session restore failed (error_type=%s); session closed",
+            type(restore_error).__name__,
+        )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "session_restore_failed",
+                "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
+            },
+        ) from None
 
 
 def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
@@ -376,12 +397,21 @@ def create_app(
 
     def get_record(session_id: str):
         try:
-            return manager.get(session_id)
+            record = manager.get(session_id)
         except UnknownSessionError:
             raise HTTPException(
                 status_code=404,
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
+        if not getattr(record, "usable", True):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "session_restore_failed",
+                    "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
+                },
+            )
+        return record
 
     def campaign_http_exception(error: CampaignError) -> HTTPException:
         if isinstance(error, CampaignNotFoundError):
@@ -426,7 +456,8 @@ def create_app(
 
     @application.get("/api/game/health", response_model=HealthResponse)
     @application.get("/api/health", response_model=HealthResponse)
-    def health() -> HealthResponse:
+    def health(response: Response) -> HealthResponse:
+        response.headers["X-AI-DND-Instance"] = str(os.getpid())
         return HealthResponse()
 
     @application.get(
@@ -725,15 +756,11 @@ def create_app(
                                     run_kwargs["target_id"] = request.target_id
                                 result = run_turn(request.message, **run_kwargs)
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                if isinstance(error, HTTPException):
+                    raise
+                _rollback_session(record, session, snapshot)
                 _logger.error(
-                    "Engine turn failed (error_type=%s)",
+                    "Engine turn failed (error_type=%s, rolled_back=true)",
                     type(error).__name__,
                 )
                 raise HTTPException(
@@ -753,13 +780,7 @@ def create_app(
             )
 
             if model_failures:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after model error (error_type=%s)",
-                        type(error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
                 _logger.warning(
                     "Ollama chat failed (error_type=%s)",
                     model_failures[0],
@@ -773,13 +794,7 @@ def create_app(
                 ) from None
 
             if len(model_calls) > 2:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after model-call limit (error_type=%s)",
-                        type(error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
                 _logger.error("Engine exceeded the per-turn model-call limit.")
                 raise HTTPException(
                     status_code=500,
@@ -791,13 +806,7 @@ def create_app(
 
             narration = result.get("narration") if isinstance(result, dict) else None
             if not isinstance(narration, str) or not narration.strip():
-                try:
-                    _restore_session(session, snapshot)
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after invalid engine result (error_type=%s)",
-                        type(error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
                 _logger.error("Engine returned an invalid turn result.")
                 raise HTTPException(
                     status_code=500,
@@ -813,6 +822,29 @@ def create_app(
                 if isinstance(result, dict)
                 else None
             )
+            if (
+                isinstance(action_result, dict)
+                and action_result.get("status") == "infrastructure_failure"
+            ):
+                code = action_result.get("infrastructure_code")
+                if code not in {
+                    "model_unavailable",
+                    "intent_json_invalid",
+                    "intent_timeout",
+                }:
+                    code = "model_unavailable"
+                _rollback_session(record, session, snapshot)
+                _logger.warning(
+                    "Intent infrastructure failure (code=%s, rolled_back=true)",
+                    code,
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "code": code,
+                        "message": "The turn was not committed because intent parsing failed.",
+                    },
+                )
             try:
                 staged_lore_authority = _stage_engine_lore_state(
                     lore_authority_snapshot,
@@ -822,15 +854,9 @@ def create_app(
                     session.world_state,
                 )
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after lore-evidence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
                 _logger.error(
                     "Engine lore evidence failed validation (error_type=%s)",
                     type(error).__name__,
@@ -859,15 +885,9 @@ def create_app(
                     ),
                 )
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after narrative-memory error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
                 _logger.error(
                     "Narrative continuity update failed (error_type=%s)",
                     type(error).__name__,
@@ -922,15 +942,9 @@ def create_app(
                 )
                 state = serialize_session_state(session, record.journal)
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after journal update error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
                 if isinstance(error, SkillCheckResultSerializationError):
                     _logger.error(
                         "Engine returned an invalid skill-check result."
@@ -975,15 +989,9 @@ def create_app(
                 )
             except CampaignError as error:
                 record.lore_authority = lore_authority_snapshot
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after persistence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
@@ -991,15 +999,9 @@ def create_app(
                 raise campaign_http_exception(error) from None
             except Exception as error:
                 record.lore_authority = lore_authority_snapshot
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after unexpected persistence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
@@ -1012,6 +1014,17 @@ def create_app(
                     },
                 ) from None
 
+            safety_code = (
+                action_result.get("infrastructure_code")
+                or action_result.get("status")
+                if isinstance(action_result, dict)
+                else "unavailable"
+            )
+            _logger.info(
+                "Turn diagnostics (model_calls=%d, safety_code=%s, rolled_back=false)",
+                len(model_calls),
+                safety_code,
+            )
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
                 MODEL_NAME,
@@ -1034,6 +1047,9 @@ def create_app(
                 narrative_frame.diagnostics.get("selected_counts", {}),
                 len(narrative_frame.diagnostics.get("ambiguities", [])),
             )
+            level_up = None
+            if isinstance(action_result, dict) and action_result.get("level_up") is not None:
+                level_up = LevelUpResult.model_validate(action_result["level_up"])
             response = TurnResponse(
                 session_id=session_id,
                 narration=narration,
@@ -1046,6 +1062,7 @@ def create_app(
                     if isinstance(action_result, dict)
                     else []
                 ),
+                level_up=level_up,
             )
             return redact_sensitive_values(response.model_dump())
 
@@ -1057,10 +1074,7 @@ def create_app(
             try:
                 result = getattr(session, f"{command}_quest")(quest_id)
             except ValueError as error:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise HTTPException(
                     status_code=404,
                     detail={"code": "quest_unavailable", "message": str(error)},
@@ -1096,16 +1110,10 @@ def create_app(
                     manager.save_campaign_locked(record)
                 return redact_sensitive_values(response.model_dump())
             except CampaignError as error:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise campaign_http_exception(error) from None
             except Exception:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise
 
     @application.post(

@@ -124,6 +124,9 @@ function CharacterSheet({ character }: { character: GameCharacter }) {
             <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
               Seviye {character.level} {character.race} {character.class}
             </p>
+            <p className="mt-1 font-mono text-xs text-[hsl(var(--muted-foreground))]" data-testid="text-xp">
+              {character.xp} XP
+            </p>
           </div>
           <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(var(--primary)/0.35)] bg-[hsl(var(--primary)/0.12)] text-[hsl(var(--primary))]">
             <Shield className="h-5 w-5" />
@@ -560,6 +563,14 @@ export default function GameBrowser() {
         setNarration(result.narration);
         setMessage('');
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        const levelUp = result.level_up;
+        if (levelUp && levelUp.new_level > levelUp.previous_level) {
+          setNotice({
+            tone: 'teal',
+            title: 'Seviye atlandı',
+            detail: `Seviye ${levelUp.previous_level} → ${levelUp.new_level}. +${levelUp.hit_points_gained} can, +${levelUp.xp_gained} deneyim.`,
+          });
+        }
       },
       onError: (error) => {
         setNotice({ tone: 'red', title: 'Hamle işlenemedi', detail: errorText(error, 'Motor bu hamleyi kabul etmedi.') });

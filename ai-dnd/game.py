@@ -1,3 +1,4 @@
+import logging
 import ollama
 import random
 import json
@@ -13,8 +14,33 @@ import types
 from quest_catalog import catalog as quest_catalog, find_quest
 import living_world
 import local_dialogue
+import spells
+import xp
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
+
+_engine_logger = logging.getLogger("ai_dnd.engine")
+
+
+def _console_print(*parts):
+    """Write a diagnostic line without crashing on a legacy console code page."""
+    text = " ".join(str(part) for part in parts)
+    stream = sys.stdout
+    encoding = getattr(stream, "encoding", None) or "utf-8"
+    try:
+        stream.write(text + "\n")
+    except UnicodeEncodeError:
+        safe = text.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        stream.write(safe + "\n")
+    try:
+        stream.flush()
+    except OSError:
+        return
+_NARRATION_TEXTURE_WORDS = frozenset({
+    "kahve", "bardak", "kadeh", "tütün", "tutun", "masa", "sandalye",
+    "mum", "duman", "şarap", "sarap", "bira", "ekmek", "ocak", "lamba",
+    "ateş", "ates", "su", "ekmek", "peynir", "çanak", "canak",
+})
 
 @dataclass
 class ResolvedTurn:
@@ -1339,29 +1365,57 @@ world_state = {
     "player_knowledge": [],
     "quests": [],
     "quest_processed_event_ids": [],
+    "xp_awarded_event_ids": [],
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
-SAVE_FORMAT_VERSION = 3
+SAVE_FORMAT_VERSION = 5
+_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, SAVE_FORMAT_VERSION)
 
 
 def _player_state_for_save():
-    return {
-        "name": _session().character["name"],
-        "race": _session().character["race"],
-        "class": _session().character["class"],
-        "strength": _session().character["strength"],
-        "dexterity": _session().character["dexterity"],
-        "constitution": _session().character["constitution"],
-        "intelligence": _session().character["intelligence"],
-        "wisdom": _session().character["wisdom"],
-        "charisma": _session().character["charisma"],
-        "proficient_skills": list(_session().character["proficient_skills"]),
-        "level": _session().character["level"],
-        "proficiency_bonus": _session().character["proficiency_bonus"],
-        "max_hp": _session().character["max_hp"],
-        "current_hp": _session().character["current_hp"],
-        "armor_class": _session().character["armor_class"],
+    character = _session().character
+    stored_xp = character.get("xp")
+    if type(stored_xp) is not int or stored_xp < 0:
+        stored_xp = 0
+    saved = {
+        "name": character["name"],
+        "race": character["race"],
+        "class": character["class"],
+        "strength": character["strength"],
+        "dexterity": character["dexterity"],
+        "constitution": character["constitution"],
+        "intelligence": character["intelligence"],
+        "wisdom": character["wisdom"],
+        "charisma": character["charisma"],
+        "proficient_skills": list(character["proficient_skills"]),
+        "level": character["level"],
+        "proficiency_bonus": character["proficiency_bonus"],
+        "max_hp": character["max_hp"],
+        "current_hp": character["current_hp"],
+        "armor_class": character["armor_class"],
+        "cantrips": _spell_name_list("cantrips"),
+        "spells": _spell_name_list("spells"),
+        "spell_slots_remaining": {"1": spells.remaining_slots(character)},
+        "xp": stored_xp,
     }
+    species = character.get("species")
+    origin_feat = character.get("origin_feat")
+    if isinstance(species, str) and species.strip():
+        saved["species"] = species
+    if isinstance(origin_feat, str) and origin_feat.strip():
+        saved["origin_feat"] = origin_feat
+    return saved
+
+
+def _spell_name_list(key):
+    values = _session().character.get(key)
+    if not isinstance(values, list):
+        return []
+    names = []
+    for item in values:
+        if isinstance(item, str) and item.strip() and item not in names:
+            names.append(item)
+    return names
 
 
 def serialize_game_state():
@@ -1494,7 +1548,7 @@ def _validate_save_payload(payload):
     if payload.get("format") != "ai-dnd-save":
         raise ValueError("Bu dosya AI-DND kayıt dosyası değil.")
     version = payload.get("version")
-    if version not in (1, 2, SAVE_FORMAT_VERSION):
+    if version not in _SUPPORTED_SAVE_VERSIONS:
         raise ValueError("Bu kayıt sürümü desteklenmiyor.")
 
     player = payload.get("player")
@@ -1526,8 +1580,12 @@ def _validate_save_payload(payload):
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
         raise ValueError("Kayıt görev alanlarını içermiyor.")
-    if version == SAVE_FORMAT_VERSION:
+    if version >= 3:
         _validate_combat_v3_payload(saved_world.get("combat"))
+    if version >= 4:
+        spells.validate_saved_spell_fields(player)
+    if version >= 5:
+        xp.validate_saved_advancement(player, saved_world)
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     for field in required_player - {"name", "race", "class", "proficient_skills"}:
@@ -1724,6 +1782,7 @@ def load_game(path):
     _validate_save_payload(payload)
 
     player = payload["player"]
+    version = payload["version"]
     saved_world = copy.deepcopy(payload["world_state"])
     saved_world.setdefault("ground_items_by_location", {})
     saved_world.setdefault("ground_items", [])
@@ -1750,6 +1809,25 @@ def load_game(path):
                       "max_hp", "current_hp", "armor_class"):
             character[field] = int(player[field])
         character["proficient_skills"] = list(player["proficient_skills"])
+        if version >= 4:
+            character["cantrips"] = list(player["cantrips"])
+            character["spells"] = list(player["spells"])
+            character["spell_slots_remaining"] = {
+                "1": int(player["spell_slots_remaining"]["1"])
+            }
+        else:
+            character["cantrips"] = []
+            character["spells"] = []
+            character["spell_slots_remaining"] = {"1": 0}
+        if version >= 5:
+            character["xp"] = int(player["xp"])
+        else:
+            character["xp"] = 0
+            world_state["xp_awarded_event_ids"] = []
+        if isinstance(player.get("species"), str):
+            character["species"] = player["species"]
+        if isinstance(player.get("origin_feat"), str):
+            character["origin_feat"] = player["origin_feat"]
         character["modifiers"] = {
             ability: get_modifier(character[ability])
             for ability in ("strength", "dexterity", "constitution",
@@ -2820,9 +2898,49 @@ def resolve_enemy_attack(target_npc):
 def end_combat(reason="combat_ended"):
     """Clear the encounter idempotently; HP and incapacitation are unchanged."""
     combat = ensure_combat_state()
+    if reason == "target_defeated":
+        summary = xp.award_defeated_combat(
+            combat, _session().world_state, _session().character
+        )
+        if summary:
+            _note_level_up(summary)
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
     return {"combat_ended": True, "reason": reason}
+
+
+def _note_level_up(summary):
+    """Merge every award in the current turn into one server result."""
+    if not isinstance(summary, dict):
+        return
+    session = _session()
+    current = getattr(session, "_xp_level_up", None)
+    if not isinstance(current, dict):
+        session._xp_level_up = {
+            "previous_level": summary["previous_level"],
+            "new_level": summary["new_level"],
+            "xp_gained": summary["xp_gained"],
+            "hit_points_gained": summary["hit_points_gained"],
+        }
+        return
+    current["new_level"] = summary["new_level"]
+    current["xp_gained"] += summary["xp_gained"]
+    current["hit_points_gained"] += summary["hit_points_gained"]
+
+
+def _publish_level_up(action_result):
+    """Copy the turn's award onto the action result. Weapon and cast turns stay unset."""
+    if not isinstance(action_result, dict):
+        return
+    summary = getattr(_session(), "_xp_level_up", None)
+    if not isinstance(summary, dict):
+        return
+    action_result["level_up"] = {
+        "previous_level": int(summary["previous_level"]),
+        "new_level": int(summary["new_level"]),
+        "xp_gained": int(summary["xp_gained"]),
+        "hit_points_gained": int(summary["hit_points_gained"]),
+    }
 
 
 def advance_combat_turn():
@@ -3732,6 +3850,9 @@ def create_location_from_proposal(proposal):
         return None
     next_number = max(1, int(world_state.get("next_location_number", 1)))
     locations = world_state.setdefault("locations", {})
+    if len(locations) >= 80:
+        world_state.setdefault("flags", {})["location_create_status"] = "limit_reached"
+        return None
     while f"location_{next_number:03d}" in locations:
         next_number += 1
     location_id = f"location_{next_number:03d}"
@@ -3781,7 +3902,7 @@ INTENT_TYPES = {
     "narrative", "travel", "dialogue", "observe", "perception", "investigation",
     "stealth", "attack", "combat", "inventory", "interact", "door", "search",
     "rest", "use_item", "unknown", "query", "explore", "persuasion", "deception",
-    "acrobatics", "survival",
+    "acrobatics", "survival", "cast",
 }
 SKILL_INTENT_TO_SKILL = {
     "persuasion": "Persuasion",
@@ -3855,6 +3976,14 @@ def _extract_json_object(raw):
     return None
 
 
+class IntentInfrastructureError(RuntimeError):
+    """Model transport or intent JSON failed. This is not an unclear sentence."""
+
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
 def parse_player_intent(player_input):
     """Ask Qwen only to label the current input; it cannot read or write state."""
     world_state = _session().world_state
@@ -3898,9 +4027,18 @@ def parse_player_intent(player_input):
             options={"temperature": 0.0, "num_predict": 120},
         )
         data = _extract_json_object(ollama_response_content(response))
-        return data if isinstance(data, dict) else {"intent": "unknown"}
-    except Exception:
-        return {"intent": "unknown"}
+        if not isinstance(data, dict):
+            raise IntentInfrastructureError("intent_json_invalid")
+        return data
+    except IntentInfrastructureError:
+        raise
+    except Exception as error:
+        message = str(error).casefold()
+        if "timeout" in message or "timed out" in message:
+            code = "intent_timeout"
+        else:
+            code = "model_unavailable"
+        raise IntentInfrastructureError(code) from None
 
 
 def _has_travel_language(player_input):
@@ -3973,7 +4111,10 @@ def normalize_intent(raw_intent, player_input):
         explore_type = None
     detected_query = _detect_query_type(player_input)
     detected_explore = _detect_explore_type(player_input)
-    if detected_query:
+    cast_phrase = spells.classify_cast_phrase(player_input)
+    if cast_phrase:
+        intent_type, query_type, explore_type = "cast", None, None
+    elif detected_query:
         intent_type, query_type, explore_type = "query", detected_query, None
     elif detected_explore:
         intent_type, explore_type, query_type = "explore", detected_explore, None
@@ -3991,14 +4132,17 @@ def normalize_intent(raw_intent, player_input):
         r"\b(?:oraya|orada|iceri|iceriye|hedefe)\b", normalized_input
     ))
     reference_mentioned = bool(reference and _entity_reference_in_text(reference, player_input))
-    if intent_type in {"query", "explore"}:
-        pass
-    elif travel_language and (travel_location or known_location):
-        intent_type = "travel"
-        target_type = "location"
-        reference = travel_location or known_location
-    elif (intent_type == "travel" or (target_type == "location" and reference_mentioned)) and travel_language:
-        intent_type = "travel"
+    if intent_type not in {"query", "explore", "cast"}:
+        # Questions and looks stay themselves. Travel wording must not rewrite them.
+        if travel_language and (travel_location or known_location):
+            intent_type = "travel"
+            target_type = "location"
+            reference = travel_location or known_location
+        elif (
+            intent_type == "travel"
+            or (target_type == "location" and reference_mentioned)
+        ) and travel_language:
+            intent_type = "travel"
     if pending_followup:
         intent_type = "travel"
         target_type = "location"
@@ -4050,6 +4194,12 @@ def validate_intent(intent, player_input):
     world_state = _session().world_state
     if not isinstance(intent, dict) or intent.get("intent") not in INTENT_TYPES:
         return {"intent": "unknown", "action": "", "target": {"type": "none", "reference": ""}, "completion": "unclear", "confidence": 0.0}
+    if spells.classify_cast_phrase(player_input):
+        valid = dict(intent)
+        valid["intent"] = "cast"
+        valid["completion"] = "unclear"
+        valid["target"] = {"type": "none", "reference": ""}
+        return valid
     target = intent.get("target", {})
     if not isinstance(target, dict):
         target = {"type": "none", "reference": ""}
@@ -4162,6 +4312,8 @@ def update_inventory_from_player(player_input):
             if "Kılıç" not in loc_items:
                 loc_items.append("Kılıç")
             return "Python durumu: Kılıç envanterden yere taşındı."
+        if "Kılıç" in loc_items:
+            return "Python durumu: Kılıç zaten yerde."
         return "Python durumu: Kılıç zaten envanterde değil; yerde olup olmadığı world_state içindedir."
 
     if picking_up:
@@ -4926,6 +5078,15 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     known_places = {str(world_state.get("location", "")).casefold()}
     for location in world_state.get("locations", {}).values():
         known_places.update(alias.casefold() for alias in _location_alias_values(location))
+    for feature in world_state.get("features", []):
+        if isinstance(feature, dict) and feature.get("name"):
+            known_places.add(str(feature["name"]).casefold())
+    for shop in world_state.get("shops", []):
+        if isinstance(shop, dict) and shop.get("name"):
+            known_places.add(str(shop["name"]).casefold())
+    for item in world_state.get("inventory", []):
+        if isinstance(item, str) and item.strip():
+            known_places.add(item.casefold())
     known_place_forms = {
         _normalize_turkish_typos(place) for place in known_places if place
     }
@@ -4954,6 +5115,14 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
                 continue
             candidate = match.group(1).casefold()
             normalized_candidate = _normalize_turkish_typos(candidate)
+            if candidate in _NARRATION_TEXTURE_WORDS or normalized_candidate in _NARRATION_TEXTURE_WORDS:
+                continue
+            if any(
+                candidate in place.split() and place in narration.casefold()
+                for place in known_places
+                if " " in place
+            ):
+                continue
             if candidate not in (
                 registered_names | registered_name_tokens | known_places
             ) and normalized_candidate not in known_place_forms:
@@ -5920,9 +6089,6 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
             for name in names
         )
     }
-    if not mentioned_ids:
-        return None
-
     sections = lore_context.get("sections", {}) if isinstance(lore_context, dict) else {}
     facts = []
     for section_name in (
@@ -5951,6 +6117,35 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
                 entity_id = entity.get("id") or entity.get("feature_id")
                 if isinstance(entity_id, str):
                     canonical_names.setdefault(entity_id, entity["name"])
+
+    if not mentioned_ids and re.search(
+        r"\b(?:sehir\w*|sehr\w*|kent\w*|this city)\b",
+        normalized_input,
+    ) and re.search(
+        r"\b(?:hukumdar\w*|yonetici\w*|kral\w*|lord\w*|ruler\w*|who|kim)\b",
+        normalized_input,
+    ):
+        location = world_state.get("location") if isinstance(world_state, dict) else None
+        lore_entity_ids = {
+            entity.get("entity_id")
+            for entity in sections.get("verified_entities", [])
+            if isinstance(entity, dict) and isinstance(entity.get("entity_id"), str)
+        } if isinstance(sections, dict) else set()
+        if isinstance(location, str) and location in lore_entity_ids:
+            mentioned_ids.add(location)
+        else:
+            subjects = {
+                fact.get("subject_id")
+                for fact in facts
+                if str(fact.get("predicate", "")).casefold() in {
+                    "current_lord_id", "current_lord",
+                }
+                and isinstance(fact.get("subject_id"), str)
+            }
+            if len(subjects) == 1:
+                mentioned_ids.add(next(iter(subjects)))
+    if not mentioned_ids:
+        return None
 
     def entity_name(entity_id):
         if isinstance(entity_id, str) and entity_id in canonical_names:
@@ -6144,7 +6339,7 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
     ))
     lord_question = bool(re.search(
         r"\b(?:rule\w*|lord\w*|leader\w*|lead\w*|role\w*|position\w*|"
-        r"hukumdar\w*|yonet\w*)\b",
+        r"hukumdar\w*|yonet\w*|kral\w*)\b",
         normalized_input,
     ))
     route_continuation_question = bool(re.search(
@@ -6221,7 +6416,7 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
             and subject_id in mentioned_ids
             and (
                 object_id in mentioned_ids
-                or re.search(r"\b(?:who|whose|kim)\b", normalized_input)
+                or re.search(r"\b(?:who|whose|kim\w*)\b", normalized_input)
             )
         ):
             if notes:
@@ -6684,8 +6879,9 @@ def ask_dungeon_master(
         )
     elif scene_type == "exploration":
         scene_guidance = (
-            " Gözlem sahnesinde geçici ışık, koku, ses, hava, isimsiz kalabalık ve beden dili "
-            "anlatılabilir; bunları kalıcı dünya olgusu veya oyuncu eylemi gibi sunma."
+            " Gözlem sahnesinde geçici ışık, koku, ses, isimsiz kalabalık ve beden dili "
+            "anlatılabilir. Yağmurun, karın, fırtınanın veya sisin başladığını, dindiğini "
+            "ya da havanın değiştiğini yazma. Oyuncuya bakış dışında yeni bir fiil ekleme."
         )
     elif scene_type == "travel":
         scene_guidance = (
@@ -6695,7 +6891,8 @@ def ask_dungeon_master(
     elif scene_type == "conversation":
         scene_guidance = (
             " NPC'nin küçük jestleri ve gündelik, kendi işiyle ilgili yanıtları geçici konuşma "
-            "bağlamıdır; bunları doğrulanmamış büyük lore'a dönüştürme."
+            "bağlamıdır; bunları doğrulanmamış büyük lore'a dönüştürme. Bağlamda olmayan "
+            "özel bir kişi adı kullanma."
         )
     update_permissions = (
         f"create_locations izinli={'evet' if allow_new_locations else 'hayır'}; "
@@ -6808,7 +7005,10 @@ def ask_dungeon_master(
             options={"temperature": 0.35, "num_predict": 700, "repeat_penalty": 1.15, "repeat_last_n": 128},
         )
     except Exception as error:
-        print(f"⚠️ Qwen'e ulaşılamadı; Python güvenli yanıtı kullanıyor. ({error})")
+        _engine_logger.warning(
+            "Narration model unavailable (error_type=%s); using the Python fallback",
+            type(error).__name__,
+        )
         narration = _fallback_for_action_result(player_input, action_result)
         if return_details:
             return {
@@ -7425,6 +7625,10 @@ def initialize_game(creation_choice=None, input_fn=input, print_fn=print):
         "strength_mod": strength_mod, "dexterity_mod": dexterity_mod,
         "constitution_mod": constitution_mod, "intelligence_mod": intelligence_mod,
         "wisdom_mod": wisdom_mod, "charisma_mod": charisma_mod, "modifiers": modifiers,
+        "cantrips": [],
+        "spells": [],
+        "spell_slots_remaining": {"1": 0},
+        "xp": 0,
     })
 
     if interactive:
@@ -7578,6 +7782,7 @@ def _world_snapshot():
         "combat": json.dumps(world_state.get("combat", {}), sort_keys=True),
         "player_current_hp": _session().character["current_hp"],
         "player_max_hp": _session().character["max_hp"],
+        "spell_slots": spells.remaining_slots(_session().character),
         "player_combat_status": world_state.get("player_combat_status"),
         "location": world_state.get("location"),
         "inventory": tuple(world_state.get("inventory", [])),
@@ -7606,6 +7811,7 @@ def _changed_state_fields(before):
         "combat": "world.combat",
         "player_current_hp": "player.current_hp",
         "player_max_hp": "player.max_hp",
+        "spell_slots": "player.spell_slots",
         "player_combat_status": "player.combat_status",
         "location": "player.location",
         "inventory": "player.inventory",
@@ -7633,20 +7839,20 @@ def _skill_result_category(result):
 
 
 def _print_skill_result(result, difficulty):
-    print()
-    print("===================================")
-    print("🎲 D&D SKILL CHECK")
-    print("===================================")
-    print("Skill:", result["skill"])
-    print("Difficulty:", difficulty)
-    print("DC:", result["dc"])
-    print("D20:", result["dice"])
-    print("Ability Modifier:", f"+{result['modifier']}" if result["modifier"] >= 0 else result["modifier"])
-    print("Proficiency:", f"+{result['proficiency_bonus']}")
-    print("Total Bonus:", f"+{result['total_bonus']}" if result["total_bonus"] >= 0 else result["total_bonus"])
-    print("Total:", result["total"])
-    print("Result:", result["result"])
-    print("===================================")
+    _console_print()
+    _console_print("===================================")
+    _console_print("D&D SKILL CHECK")
+    _console_print("===================================")
+    _console_print("Skill:", result["skill"])
+    _console_print("Difficulty:", difficulty)
+    _console_print("DC:", result["dc"])
+    _console_print("D20:", result["dice"])
+    _console_print("Ability Modifier:", f"+{result['modifier']}" if result["modifier"] >= 0 else result["modifier"])
+    _console_print("Proficiency:", f"+{result['proficiency_bonus']}")
+    _console_print("Total Bonus:", f"+{result['total_bonus']}" if result["total_bonus"] >= 0 else result["total_bonus"])
+    _console_print("Total:", result["total"])
+    _console_print("Result:", result["result"])
+    _console_print("===================================")
 
 
 def _commit_travel_action(action_result):
@@ -7682,6 +7888,318 @@ def _commit_travel_action(action_result):
     return True
 
 
+def _spell_rejection(result, before, outcome, message, spell_id=None):
+    result.update(
+        action="cast",
+        success=False,
+        status="unsupported" if outcome == "unsupported" else "resolved",
+        outcome=outcome,
+        spell=spell_id,
+        slot_spent=False,
+        direct_response=message,
+    )
+    return _finish_combat_result(result, before)
+
+
+def _apply_spell_damage(target_npc, damage):
+    ensure_npc_combat_stats(target_npc)
+    before = target_npc.get("current_hp", target_npc.get("max_hp", 10))
+    applied = max(0, damage)
+    after = before
+    if applied:
+        after = max(0, before - applied)
+        target_npc["current_hp"] = after
+        if after <= 0:
+            target_npc["combat_status"] = "unconscious"
+    return before, after
+
+
+def _complete_spell_action(result, before, started, enemy_actions, target_id):
+    if started or ensure_combat_state()["active"]:
+        _mark_combat_action_used("player")
+        combat = ensure_combat_state()
+        if _combat_end_if_decided():
+            combat = ensure_combat_state()
+            result.update(combat_ended=True, end_reason=combat.get("end_reason"))
+        else:
+            advanced, _, _ = advance_combat_turn()
+            if advanced:
+                enemy_actions.extend(_resolve_enemy_turns_until_player())
+            combat = ensure_combat_state()
+            if not combat["active"]:
+                result.update(combat_ended=True, end_reason=combat.get("end_reason"))
+        if enemy_actions:
+            result["enemy_actions"] = enemy_actions
+            result["enemy_action"] = enemy_actions[0]
+        result["current_actor_id"] = combat["current_actor_id"]
+        result["turn_owner"] = combat["current_actor_id"]
+    if target_id:
+        result["target_id"] = target_id
+    result["combat_started"] = started
+    return _finish_combat_result(result, before)
+
+
+def _resolve_player_cast(player_input, npc_target, target_id, before, result):
+    """Resolve one Spells V1 cast. Illegal casts do not spend a slot or open combat."""
+    character = _session().character
+    phrase = spells.classify_cast_phrase(player_input) or {"kind": "unknown", "spell_id": ""}
+    if phrase["kind"] == "unsupported":
+        return _spell_rejection(
+            result, before, "unsupported",
+            "Bu büyü henüz kullanılamıyor.",
+            phrase["spell_id"],
+        )
+    if phrase["kind"] != "v1":
+        return _spell_rejection(
+            result, before, "unknown_spell",
+            "Hangi büyüyü yaptığın anlaşılmadı.",
+        )
+
+    spell_id = phrase["spell_id"]
+    spell = spells.SPELLS[spell_id]
+    outcome = spells.legality(character, spell_id)
+    if outcome == "not_known":
+        return _spell_rejection(result, before, outcome, "Bu büyüyü bilmiyorsun.", spell_id)
+    if outcome == "invalid_class":
+        return _spell_rejection(result, before, outcome, "Bu sınıf bu büyüyü kullanamaz.", spell_id)
+    if outcome == "invalid_level":
+        return _spell_rejection(result, before, outcome, "Bu büyü için seviyen yetmiyor.", spell_id)
+    if outcome == "no_slot":
+        return _spell_rejection(result, before, outcome, "Bu büyü için yuvan kalmadı.", spell_id)
+
+    profile = spells.casting_profile(character)
+    if profile is None:
+        return _spell_rejection(result, before, "invalid_class", "Bu sınıf bu büyüyü kullanamaz.", spell_id)
+
+    combat = ensure_combat_state()
+    result["action"] = "cast"
+    if combat["active"] and (
+        combat["current_actor_id"] != "player"
+        or "player" in combat["actions_used"]
+    ):
+        result.update(
+            success=False,
+            status="out_of_turn",
+            outcome="out_of_turn",
+            spell=spell_id,
+            slot_spent=False,
+            current_actor_id=combat["current_actor_id"],
+            turn_owner=combat["current_actor_id"],
+            direct_response="Bu hamle için sıra sende değil.",
+        )
+        return _finish_combat_result(result, before)
+
+    target_npc = None
+    healing_self = False
+    if spell["kind"] == "healing":
+        if spells.targets_self(player_input) or target_id == "player":
+            healing_self = True
+        else:
+            target_npc = resolve_combat_target(
+                player_input,
+                None,
+                target_id=None if target_id in (None, "") else target_id,
+            )
+            if target_npc == "ambiguous":
+                return _spell_rejection(result, before, "ambiguous_target", "Hangi hedefi iyileştiriyorsun?", spell_id)
+            healing_self = not target_npc
+            if healing_self:
+                target_npc = None
+    else:
+        target_npc = resolve_combat_target(player_input, npc_target, target_id=target_id)
+        if target_npc == "ambiguous":
+            return _spell_rejection(result, before, "ambiguous_target", "Hangi hedefe büyü yapıyorsun?", spell_id)
+        if not target_npc:
+            return _spell_rejection(result, before, "no_target", "Burada bu büyünün hedefi bulunmuyor.", spell_id)
+        if combat["active"] and target_npc["id"] not in combat["participants"]:
+            return _spell_rejection(
+                result, before, "target_mismatch",
+                "Bu kişi mevcut çatışmanın katılımcısı değil.", spell_id,
+            )
+        ensure_npc_enemy_stats(target_npc)
+        if target_npc.get("combat_status") != "active" or target_npc.get("current_hp", 0) <= 0:
+            return _spell_rejection(result, before, "invalid_target", "Bu hedef büyü tutacak durumda değil.", spell_id)
+
+    started = False
+    enemy_actions = []
+    if spell["kind"] != "healing" and not combat["active"]:
+        start_result = start_combat(target_npc)
+        started = True
+        if start_result["current_actor_id"] != "player":
+            enemy_actions.extend(_resolve_enemy_turns_until_player())
+            world_state = _session().world_state
+            if (
+                character["current_hp"] <= 0
+                or world_state["player_combat_status"] == "unconscious"
+            ):
+                result.update(
+                    success=False,
+                    status="resolved",
+                    outcome="player_unconscious",
+                    spell=spell_id,
+                    slot_spent=False,
+                    combat_started=True,
+                    enemy_actions=enemy_actions,
+                    enemy_action=enemy_actions[-1] if enemy_actions else None,
+                    direct_response="Çatışma başladı; rakiplerin sırası önce geldi ve bilincini kaybettin.",
+                )
+                return _finish_combat_result(result, before)
+        combat = ensure_combat_state()
+        if combat["current_actor_id"] != "player":
+            result.update(
+                success=False,
+                status="out_of_turn",
+                outcome="out_of_turn",
+                spell=spell_id,
+                slot_spent=False,
+                combat_started=True,
+                current_actor_id=combat["current_actor_id"],
+                turn_owner=combat["current_actor_id"],
+                enemy_actions=enemy_actions or None,
+                direct_response="Bu hamle için sıra sende değil.",
+            )
+            if enemy_actions:
+                result["enemy_action"] = enemy_actions[0]
+            return _finish_combat_result(result, before)
+
+    roll = lambda sides: _session().rng.randint(1, sides)
+    result.update(
+        spell=spell_id,
+        casting_ability=profile["ability"],
+        attack_or_save=spell["kind"],
+        status="resolved",
+        slot_spent=False,
+    )
+    if spell["kind"] == "spell_attack":
+        attack_roll = roll(20)
+        bonus = profile["attack_bonus"]
+        total = attack_roll + bonus
+        armor_class = target_npc.get("armor_class", 10)
+        critical = attack_roll == 20
+        if attack_roll == 1 or (attack_roll != 20 and total < armor_class):
+            hit = False
+            damage = 0
+            outcome_name = "miss"
+        else:
+            hit = True
+            dice = spell["damage_dice"] * (2 if critical else 1)
+            damage = max(1, spells.roll_dice(roll, spell["damage_die"], dice))
+            outcome_name = "critical_hit" if critical else "hit"
+        hp_before, hp_after = _apply_spell_damage(target_npc, damage if hit else 0)
+        result.update(
+            success=hit,
+            outcome=outcome_name,
+            attack_roll=attack_roll,
+            attack_bonus=bonus,
+            attack_total=total,
+            target_ac=armor_class,
+            critical=critical,
+            damage=damage if hit else 0,
+            target_hp_before=hp_before,
+            target_hp_after=hp_after,
+            target_name=target_npc.get("name"),
+            target_status=target_npc.get("combat_status", "active"),
+            direct_response=(
+                f"{spell_id} hedefi ıskalar."
+                if not hit else
+                f"{spell_id} isabet eder: {damage} hasar."
+            ),
+        )
+    elif spell["kind"] == "saving_throw":
+        save_roll = roll(20)
+        modifier = target_npc.get(f"{spell['save_ability']}_mod", 0)
+        if type(modifier) is not int or isinstance(modifier, bool):
+            modifier = 0
+        total = save_roll + modifier
+        saved = total >= profile["save_dc"]
+        damage = 0 if saved else max(1, spells.roll_dice(roll, spell["damage_die"], spell["damage_dice"]))
+        hp_before, hp_after = _apply_spell_damage(target_npc, damage)
+        result.update(
+            success=not saved,
+            outcome="saved" if saved else "failed_save",
+            save_roll=save_roll,
+            save_dc=profile["save_dc"],
+            attack_total=total,
+            critical=False,
+            damage=damage,
+            target_hp_before=hp_before,
+            target_hp_after=hp_after,
+            target_name=target_npc.get("name"),
+            target_status=target_npc.get("combat_status", "active"),
+            direct_response=(
+                f"{spell_id} hedefin kurtulmasıyla dağılır."
+                if saved else
+                f"{spell_id} {damage} hasar verir."
+            ),
+        )
+    elif spell["kind"] == "automatic":
+        damage = spells.roll_dice(roll, spell["missile_die"], spell["missile_count"])
+        damage += spell["missile_bonus"] * spell["missile_count"]
+        damage = max(1, damage)
+        hp_before, hp_after = _apply_spell_damage(target_npc, damage)
+        result.update(
+            success=True,
+            outcome="automatic_hit",
+            critical=False,
+            damage=damage,
+            target_hp_before=hp_before,
+            target_hp_after=hp_after,
+            target_name=target_npc.get("name"),
+            target_status=target_npc.get("combat_status", "active"),
+            direct_response=f"{spell_id} isabet eder: {damage} hasar.",
+        )
+    else:
+        healing = spells.roll_dice(roll, spell["heal_die"], spell["heal_dice"]) + profile["modifier"]
+        healing = max(1, healing)
+        if healing_self:
+            hp_before = character["current_hp"]
+            hp_after = min(character["max_hp"], hp_before + healing)
+            character["current_hp"] = hp_after
+            if hp_after > 0 and _session().world_state.get("player_combat_status") == "unconscious":
+                _session().world_state["player_combat_status"] = "active"
+            target_name = character.get("name", "Sen")
+            resolved_target = "player"
+            target_status = _session().world_state.get("player_combat_status", "active")
+        else:
+            ensure_npc_combat_stats(target_npc)
+            hp_before = target_npc.get("current_hp", 0)
+            hp_after = min(target_npc.get("max_hp", hp_before), hp_before + healing)
+            target_npc["current_hp"] = hp_after
+            if hp_after > 0 and target_npc.get("combat_status") == "unconscious":
+                target_npc["combat_status"] = "active"
+            target_name = target_npc.get("name")
+            resolved_target = target_npc.get("id")
+            target_status = target_npc.get("combat_status", "active")
+        result.update(
+            success=True,
+            outcome="healed",
+            healing=healing,
+            damage=0,
+            critical=False,
+            target_hp_before=hp_before,
+            target_hp_after=hp_after,
+            target_name=target_name,
+            target_status=target_status,
+            direct_response=f"{spell_id} {healing} can yeniler.",
+        )
+        target_id = resolved_target
+
+    if spell["uses_slot"]:
+        spells.spend_slot(character)
+        result["slot_spent"] = True
+    if spell["kind"] != "healing":
+        combat = ensure_combat_state()
+        combat["target_id"] = target_npc["id"]
+        target_id = target_npc["id"]
+    return _complete_spell_action(
+        result,
+        before,
+        started,
+        enemy_actions,
+        target_npc["id"] if target_npc is not None else target_id,
+    )
+
+
 def execute_intent(intent, player_input, npc_target=None, target_id=None):
     """Central Python rule engine: validate intent effects and return a structured result."""
     world_state = _session().world_state
@@ -7696,13 +8214,14 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
     }
 
     combat_was_active = bool(ensure_combat_state()["active"])
-    if intent_type in {"attack", "combat"} and (_session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious"):
-        result.update(action="attack", success=False, outcome="player_unconscious",
-                      direct_response="Bilincin kapalı; saldırı yapamazsın.")
+    if intent_type in {"attack", "combat", "cast"} and (_session().character["current_hp"] <= 0 or world_state["player_combat_status"] == "unconscious"):
+        result.update(action="attack" if intent_type != "cast" else "cast", success=False, outcome="player_unconscious",
+                      direct_response="Bilincin kapalı; bu hamleyi yapamazsın.")
         return _finish_combat_result(result, before)
     if combat_was_active and intent_type not in {
         "attack",
         "combat",
+        "cast",
         "dialogue",
         "query",
         "unknown",
@@ -7719,6 +8238,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             ),
         )
         return _finish_combat_result(result, before)
+
+    if intent_type == "cast":
+        return _resolve_player_cast(player_input, npc_target, target_id, before, result)
 
     character_reply = known_character_answer(player_input)
     if character_reply:
@@ -8161,6 +8683,8 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
         or not isinstance(npc_target.get("id"), str)
         or not is_npc_dialogue_input(player_input)
         or is_npc_historical_claim(player_input)
+        or local_dialogue.is_world_subject_question(player_input)
+        or known_character_answer(player_input)
     ):
         return None
 
@@ -8605,7 +9129,12 @@ def plan_living_world_turn(player_input, target_id=None):
                 "direct_response": "Buradan çıkış veren belirgin bir geçit yok.",
             }
 
-    if not combat.get("active") and not direct:
+    if (
+        not combat.get("active")
+        and not direct
+        and not local_dialogue.is_world_subject_question(player_input)
+        and not living_world._is_route_distance_query(player_input)
+    ):
         ref_resolution = living_world.resolve_scene_referent(
             world_state, str(player_input), turn_index
         )
@@ -9038,6 +9567,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             )
             if post_travel_quests:
                 resolved_turn.action_result["quest_outcomes"] = post_travel_quests
+            _publish_level_up(resolved_turn.action_result)
 
     claims = packet.get("lore_claims", [])
     if not _lore_claims_are_supported(claims, lore_context) or _narration_has_unsupported_lore_claim(
@@ -9115,6 +9645,7 @@ def _is_canonical_city_id(loc_id):
 
 def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
+    _session()._xp_level_up = None
     intent_model_calls = 0
     intent_source = "deterministic"
     world_state = _session().world_state
@@ -9203,17 +9734,27 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
                 },
                 safety_handling,
             )
-        if (
+        binds_addressed_npc = (
             isinstance(action_result, dict)
             and isinstance(npc_target, dict)
             and isinstance(npc_target.get("id"), str)
-        ):
+            and action_result.get("action") not in {"character_query", "cast"}
+            and action_result.get("status") not in {
+                "answered_from_loaded_lore",
+                "answered_from_character",
+                "infrastructure_failure",
+            }
+            and not local_dialogue.is_world_subject_question(player_input)
+            and not living_world._is_route_distance_query(player_input)
+        )
+        if binds_addressed_npc:
             action_result.setdefault("npc_id", npc_target["id"])
         if isinstance(action_result, dict) and isinstance(scene_plan, dict):
             action_result["state_changes"] = list(dict.fromkeys(
                 list(action_result.get("state_changes", []))
                 + list(scene_plan.get("state_changes", []))
             ))
+        _publish_level_up(action_result)
         result = {"action_result": action_result, "narration": narration}
         result["_engine_event_evidence"] = {
             "authority": "python_engine",
@@ -9250,6 +9791,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             "explicitly_declined", "unsupported_combat_action",
             "player_unconscious", "unverified", "clarification",
             "answered_from_npc_memory", "answered_from_campaign_state",
+            "answered_from_loaded_lore", "infrastructure_failure",
         ):
             system_deterministic = True
         elif action in ("shop_economy", "shop_inquiry", "character_query"):
@@ -9411,7 +9953,12 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             )
             or env_meta in ("city", "village", "town")
         )
-        if action_result.get("action") == "explore" and not (scene_plan.get("action") == "look" and is_city_scene):
+        referent_fact = bool(action_result.get("target_id"))
+        if (
+            action_result.get("action") == "explore"
+            and not referent_fact
+            and not (scene_plan.get("action") == "look" and is_city_scene)
+        ):
             return finish_turn(action_result, fallback_text, quest_transitions)
         return finish_turn(
             action_result,
@@ -9696,6 +10243,21 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
                     safety_handling="python_scene_response",
                 )
 
+    character_reply = known_character_answer(player_input)
+    if character_reply:
+        return finish_turn(
+            {
+                "action": "character_query",
+                "status": "answered_from_character",
+                "success": True,
+                "state_changes": [],
+                "direct_response": character_reply,
+            },
+            character_reply,
+            safety_handling="python_scene_response",
+            is_final=True,
+        )
+
     smalltalk_response = _direct_npc_smalltalk_response(
         player_input, npc_target
     )
@@ -9854,12 +10416,45 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
 
     if shop_request:
         validated_intent = {"intent_type": "narrative"}
+    elif spells.classify_cast_phrase(player_input):
+        validated_intent = {
+            "intent": "cast",
+            "action": "cast",
+            "target": {"type": "none", "reference": ""},
+            "completion": "unclear",
+            "confidence": 1.0,
+        }
+        intent_source = "deterministic"
     elif npc_target and is_npc_dialogue_input(player_input):
         validated_intent = {"intent": "dialogue"}
     else:
         intent_model_calls = 1
         intent_source = "model"
-        raw_intent = parse_player_intent(player_input)
+        try:
+            raw_intent = parse_player_intent(player_input)
+        except IntentInfrastructureError as error:
+            flags["turn_index"] = max(0, turn_index - 1)
+            _engine_logger.warning(
+                "Intent infrastructure failure (code=%s)",
+                error.code,
+            )
+            action_result = {
+                "action": "unknown",
+                "status": "infrastructure_failure",
+                "success": False,
+                "state_changes": [],
+                "infrastructure_code": error.code,
+                "direct_response": (
+                    "Bu hamle tamamlanamadı; dünya durumu değişmedi."
+                ),
+            }
+            return finish_turn(
+                action_result,
+                action_result["direct_response"],
+                safety_reason_code=error.code,
+                safety_handling="python_fallback",
+                is_final=True,
+            )
         normalized_intent = normalize_intent(raw_intent, player_input)
         validated_intent = validate_intent(normalized_intent, player_input)
     if DEBUG_MODE:
@@ -10170,6 +10765,11 @@ class GameSession:
                         transitions.append(self._quest_transition(
                             "completed", quest["quest_id"], None, source_id, turn
                         ))
+                        summary = xp.award_completed_quest(
+                            world, self.character, quest["quest_id"]
+                        )
+                        if summary:
+                            _note_level_up(summary)
             if event_matched:
                 processed.append(source_id)
         return transitions

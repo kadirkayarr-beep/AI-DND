@@ -39,12 +39,23 @@ function outcomeLabel(value: string | undefined): string | undefined {
     player_unconscious: 'Oyuncu bilinçsiz',
     enemy_turn_resolved: 'Rakip sırası çözüldü',
     out_of_turn: 'Sıra sende değil',
+    saved: 'Kurtuldu',
+    failed_save: 'Kurtulamadı',
+    automatic_hit: 'Otomatik isabet',
+    healed: 'İyileşti',
+    no_slot: 'Yuva yok',
+    not_known: 'Büyü bilinmiyor',
+    invalid_class: 'Sınıf kullanamaz',
+    invalid_level: 'Seviye yetmiyor',
+    unsupported: 'Büyü kullanılamıyor',
+    unknown_spell: 'Büyü anlaşılmadı',
   };
   return labels[value] ?? value;
 }
 
 function actionLabel(value: string | undefined): string | undefined {
   if (value === 'attack') return 'Oyuncu saldırısı';
+  if (value === 'cast') return 'Büyü';
   if (value === 'enemy_attack') return 'Düşman karşı hamlesi';
   return value;
 }
@@ -59,7 +70,10 @@ function endReasonLabel(value: string | undefined): string | undefined {
 function outcomeMarkers(result: AttackResult): string[] {
   const markers: string[] = [];
   if (result.critical === true || result.outcome === 'critical_hit') markers.push('CRITICAL');
-  if (result.success === true || result.outcome === 'hit' || result.outcome === 'critical_hit') markers.push('HIT');
+  if (
+    result.outcome !== 'healed'
+    && (result.success === true || result.outcome === 'hit' || result.outcome === 'critical_hit')
+  ) markers.push('HIT');
   if (result.outcome === 'miss') markers.push('MISS');
 
   return [...new Set(markers)];
@@ -228,10 +242,32 @@ function AttackReadout({
         </div>
       )}
 
-      {hasValue(result.damage) && (
+      {result.spell && (
+        <div className="combat-action" data-testid={`${prefix}-spell`}>
+          {result.spell}
+          {result.attack_or_save ? ` · ${result.attack_or_save}` : ''}
+          {result.slot_spent === true ? ' · yuva harcandı' : result.slot_spent === false ? ' · yuva harcanmadı' : ''}
+        </div>
+      )}
+
+      {hasValue(result.save_roll) && (
+        <div className="combat-roll-grid" aria-label="Kurtarma değeri">
+          <RollMetric label="KURTARMA" value={result.save_roll ?? undefined} testId={`${prefix}-save-roll`} />
+          <RollMetric label="DC" value={result.save_dc ?? undefined} testId={`${prefix}-save-dc`} />
+        </div>
+      )}
+
+      {hasValue(result.damage) && !(result.outcome === 'healed' && result.damage === 0) && (
         <div className="combat-damage" data-testid={`${prefix}-damage`}>
           <span>HASAR</span>
           <strong>{result.damage}</strong>
+        </div>
+      )}
+
+      {hasValue(result.healing) && (
+        <div className="combat-damage" data-testid={`${prefix}-healing`}>
+          <span>İYİLEŞME</span>
+          <strong>{result.healing}</strong>
         </div>
       )}
 

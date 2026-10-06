@@ -320,6 +320,8 @@ export interface GameLocation {
   exit_location_id: string | null;
 }
 
+export type GameCharacterSpellSlotsRemaining = {[key: string]: number};
+
 export interface GameCharacter {
   name: string;
   race: string;
@@ -336,6 +338,14 @@ export interface GameCharacter {
   max_hp: number;
   current_hp: number;
   armor_class: number;
+  cantrips: string[];
+  spells: string[];
+  spell_slots_remaining: GameCharacterSpellSlotsRemaining;
+  /**
+     * Server-owned experience total. Experience past level 4 is kept and does not raise the level.
+     * @minimum 0
+     */
+  xp: number;
 }
 
 export interface GameNpc {
@@ -670,6 +680,20 @@ export interface CombatTurnResult {
   /** @nullable */
   target_status?: string | null;
   /** @nullable */
+  spell?: string | null;
+  /** @nullable */
+  casting_ability?: string | null;
+  /** @nullable */
+  attack_or_save?: string | null;
+  /** @nullable */
+  save_roll?: number | null;
+  /** @nullable */
+  save_dc?: number | null;
+  /** @nullable */
+  healing?: number | null;
+  /** @nullable */
+  slot_spent?: boolean | null;
+  /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
   combat_ended?: boolean | null;
@@ -780,6 +804,23 @@ export interface QuestOutcome {
   turn_index: number;
 }
 
+export interface LevelUpResult {
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  previous_level: number;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  new_level: number;
+  /** @minimum 1 */
+  xp_gained: number;
+  /** @minimum 0 */
+  hit_points_gained: number;
+}
+
 export interface GameTurnResult {
   session_id: string;
   narration: string;
@@ -791,6 +832,8 @@ export interface GameTurnResult {
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
   quest_outcomes: QuestOutcome[];
+  /** Server-owned experience award for this turn. Null when the turn granted no experience. */
+  level_up: LevelUpResult | null;
 }
 
 export interface QuestCommandResult {
@@ -806,6 +849,17 @@ export type CharacterCreateInputMode = typeof CharacterCreateInputMode[keyof typ
 export const CharacterCreateInputMode = {
   custom: 'custom',
   random: 'random',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CharacterCreateInputBackgroundEquipmentOption = typeof CharacterCreateInputBackgroundEquipmentOption[keyof typeof CharacterCreateInputBackgroundEquipmentOption] | null;
+
+
+export const CharacterCreateInputBackgroundEquipmentOption = {
+  A: 'A',
+  B: 'B',
 } as const;
 
 /**
@@ -861,6 +915,25 @@ export interface CharacterCreateInput {
   cantrips?: string[] | null;
   /** @nullable */
   spells?: string[] | null;
+  /** @nullable */
+  languages?: string[] | null;
+  /** @nullable */
+  background_equipment_option?: CharacterCreateInputBackgroundEquipmentOption;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  appearance?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  personality?: string | null;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  backstory?: string | null;
 }
 
 export interface CampaignStartSelection {

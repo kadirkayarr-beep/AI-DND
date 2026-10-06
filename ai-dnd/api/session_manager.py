@@ -58,6 +58,7 @@ class ManagedSession:
     lore_authority: CampaignLoreState = field(
         default_factory=CampaignLoreState.legacy_unbound
     )
+    usable: bool = True
 
 
 class SessionManager:

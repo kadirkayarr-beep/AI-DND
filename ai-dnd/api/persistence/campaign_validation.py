@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
 import uuid
@@ -10,6 +11,8 @@ from copy import deepcopy
 from typing import Any
 
 import game
+
+_validation_logger = logging.getLogger("ai_dnd.persistence")
 from pydantic import ValidationError
 
 from api.campaign_journal import (
@@ -80,7 +83,11 @@ def _validate_engine_save(engine_save: Any, error_type: type[Exception]) -> None
         # Reuse the canonical engine validator; do not create a parallel state
         # format or change the frozen game module.
         game._validate_save_payload(engine_save)
-    except Exception:
+    except Exception as error:
+        _validation_logger.warning(
+            "Engine save rejected (code=%s)",
+            type(error).__name__,
+        )
         raise error_type("Campaign engine state failed validation.") from None
 
     world = engine_save.get("world_state")
@@ -278,7 +285,7 @@ def _validated_combat_result(
     value: Any,
     error_type: type[Exception],
 ) -> dict[str, Any]:
-    if not isinstance(value, dict) or value.get("action") != "attack":
+    if not isinstance(value, dict) or value.get("action") not in {"attack", "cast"}:
         raise error_type("Campaign combat history is invalid.")
     try:
         validated = CombatTurnResult.model_validate(value, strict=True)

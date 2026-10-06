@@ -994,6 +994,10 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
                         "tier": safety.get("tier") or "unavailable",
                         "handling": safety_handling or "unavailable",
                         "reason_code": safety_reason_code,
+                        "trigger_span": (
+                            str(safety.get("trigger_span"))[:160]
+                            if safety.get("trigger_span") else None
+                        ),
                         "scope": safety_scope,
                         "scope_basis": "engine_handling",
                         "scene_type": safety.get("scene_type"),

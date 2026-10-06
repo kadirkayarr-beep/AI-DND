@@ -46,8 +46,14 @@ world/narration references. Plain `exec` dictionaries are not a character-state
 input: use `create_session()`, edit `session.character`, and call session-bound
 helpers instead.
 Loading preserves the top-level character/world/history containers; nested
-world records may be replaced. Saves remain version 1; random-generator state
-and chat messages are not included in that format.
+world records may be replaced. Engine JSON saves use format version 5.
+Versions 1 through 4 still load. Versions 1 through 3 migrate to an empty
+spell list and zero remaining slots. Versions 1 through 4 migrate to 0 XP
+and keep their existing level and hit points. Corrupt or unsupported
+versions are rejected. Terminal JSON saves do
+not include the random generator or chat messages. Campaign SQLite saves are
+a separate store: they include RNG, journal, lore, narrative memory, and
+bounded combat history.
 
 ## Verify
 

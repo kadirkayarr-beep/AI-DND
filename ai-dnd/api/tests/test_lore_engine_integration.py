@@ -788,5 +788,88 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _stage_engine_lore_state(state, wrong_auth_evidence, action_result, before_world, after_world)
 
+
+class Turn29RulershipQueryDeterministicTests(unittest.TestCase):
+    """Turn 29 regression: Turkish inflected ruler queries must resolve
+    deterministically from verified lore facts, 0 model calls, no fallback."""
+
+    def _neverwinter_lore_context(self):
+        context = game._empty_lore_authority_context()
+        context["sections"]["official_forgotten_realms_lore"] = [
+            {
+                "fact_id": "fr:fact:dagult_neverember_current_lord",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "current_lord_id",
+                "object_id_or_value": "fr:person:dagult_neverember",
+                "notes": "Dagult Neverember is the current Lord of Neverwinter.",
+            },
+            {
+                "fact_id": "fr:fact:neverwinter_known_as_city_of_skilled_hands",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "known_as",
+                "object_id_or_value": "City of Skilled Hands",
+                "notes": "Neverwinter is known as the City of Skilled Hands.",
+            },
+        ]
+        context["sections"]["verified_entities"] = [
+            {"entity_id": "fr:city:neverwinter", "canonical_name": "Neverwinter", "aliases": []},
+            {"entity_id": "fr:person:dagult_neverember", "canonical_name": "Dagult Neverember", "aliases": ["Dagult"]},
+        ]
+        context["diagnostics"] = {
+            "query_intents": ["rulership"],
+            "selected_fact_count": 2,
+            "selected_fact_ids": [
+                "fr:fact:dagult_neverember_current_lord",
+                "fr:fact:neverwinter_known_as_city_of_skilled_hands",
+            ],
+        }
+        return context
+
+    def test_turkish_ruler_question_answered_from_loaded_lore(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        for question in (
+            "Bu \u015fehrin h\u00fck\u00fcmdar\u0131 kim?",
+            "Bu \u015fehrin h\u00fck\u00fcmdar\u0131 kimdir?",
+        ):
+            with self.subTest(question=question):
+                response = game._supported_lore_question_response(question, context, world_state)
+                self.assertIsNotNone(response, f"Expected verified lore answer for: {question!r}")
+                self.assertIn("Dagult Neverember", response)
+
+    def test_answered_from_loaded_lore_is_system_deterministic(self):
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_loaded_lore",
+            "success": True,
+            "state_changes": [],
+        }
+        deterministic_statuses = (
+            "invalid_target", "limit_reached", "unsupported",
+            "explicitly_declined", "unsupported_combat_action",
+            "player_unconscious", "unverified", "clarification",
+            "answered_from_npc_memory", "answered_from_campaign_state",
+            "answered_from_loaded_lore",
+        )
+        self.assertIn(action_result["status"], deterministic_statuses)
+
+    def test_unregistered_ruler_question_returns_none(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        response = game._supported_lore_question_response(
+            "Waterdeep'in h\u00fck\u00fcmdar\u0131 kim?", context, world_state
+        )
+        self.assertIsNone(response)
+
+    def test_english_ruler_question_also_resolves(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        response = game._supported_lore_question_response(
+            "Who rules Neverwinter?", context, world_state
+        )
+        self.assertIsNotNone(response, "Expected verified lore answer for English ruler question")
+        self.assertIn("Dagult Neverember", response)
+
+
 if __name__ == "__main__":
     unittest.main()

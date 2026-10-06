@@ -94,6 +94,131 @@ def _player_state(turn: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _safe_error_code(error: BaseException) -> str:
+    """Keep the exception type and a short diagnostic code, not player prose."""
+    name = type(error).__name__
+    text = " ".join(str(error).split())
+    lowered = text.casefold()
+    if "bearer " in lowered or "token=" in lowered or "ollama_proxy" in lowered:
+        text = "sensitive detail redacted"
+    if len(text) > 240:
+        text = text[:240]
+    return f"{name}: {text}" if text else name
+
+
+def _failure_turn_label(
+    error: BaseException | None,
+    evidence_rows: list[dict[str, Any]],
+) -> str | None:
+    if isinstance(error, SmokeFailure):
+        head = str(error).split(":", 1)[0].strip()
+        if head in EXPECTED_LABELS:
+            return head
+    if len(evidence_rows) < len(EXPECTED_LABELS):
+        return EXPECTED_LABELS[len(evidence_rows)]
+    if evidence_rows:
+        label = evidence_rows[-1].get("label")
+        return label if isinstance(label, str) else None
+    return None
+
+
+def classify_validator_turn(row: dict[str, Any]) -> str:
+    """validator_not_invoked is intentional when the trace says no validator ran."""
+    if row.get("proposal_trace_status") != "validator_not_invoked":
+        return "invoked"
+    calls = row.get("proposal_validation_calls")
+    decisions = row.get("proposal_decisions")
+    if calls not in (0, None):
+        return "silent_miss"
+    if not decisions:
+        return "intentional_skip"
+    if (
+        isinstance(decisions, list)
+        and len(decisions) == 1
+        and isinstance(decisions[0], dict)
+        and decisions[0].get("kind") == "proposal_summary"
+        and decisions[0].get("status") == "validator_not_invoked"
+    ):
+        return "intentional_skip"
+    return "silent_miss"
+
+
+def collect_evidence_gaps(evidence_rows: list[dict[str, Any]]) -> list[str]:
+    gaps: list[str] = []
+    if len(evidence_rows) != len(EXPECTED_LABELS):
+        gaps.append("30-turn action sequence incomplete")
+    token_usage = [
+        row.get("token_usage")
+        for row in evidence_rows
+        if isinstance(row.get("token_usage"), dict)
+    ]
+    if len(token_usage) != len(evidence_rows) or not token_usage:
+        gaps.append("numeric token telemetry missing on one or more turns")
+    for row in evidence_rows:
+        if (
+            row.get("request_telemetry_context_seen") is not True
+            or row.get("action_result_capture_seen") is not True
+            or row.get("resolved_action") != row.get("action_result", {}).get("action")
+        ):
+            gaps.append("engine action result/resolved action missing")
+        gaps.extend(telemetry._proposal_trace_gaps(row))
+        if not isinstance(row.get("safety"), dict) or row["safety"].get("scope") == "unavailable":
+            gaps.append("safety classification incomplete")
+        if classify_validator_turn(row) == "silent_miss":
+            gaps.append("validator skip was not an intentional no-call")
+    return list(dict.fromkeys(gaps))
+
+
+def apply_smoke_summary(
+    result: dict[str, Any],
+    evidence_rows: list[dict[str, Any]],
+    ordinary_fallbacks: int,
+    failure: BaseException | None = None,
+) -> dict[str, Any]:
+    """Record the first failure and keep evidence gaps in a separate field."""
+    gaps = collect_evidence_gaps(evidence_rows)
+    token_usage = [
+        row.get("token_usage")
+        for row in evidence_rows
+        if isinstance(row.get("token_usage"), dict)
+    ]
+    if len(token_usage) == len(evidence_rows) and token_usage:
+        result["token_usage"] = {
+            "prompt_eval_count": sum(
+                int(item["prompt_eval_count"]) for item in token_usage
+            ),
+            "eval_count": sum(int(item["eval_count"]) for item in token_usage),
+            "scope": "aggregate of per-turn isolated telemetry",
+        }
+    result["evidence_incomplete"] = gaps
+    result["review_status"] = "pending_human_review"
+    result["ordinary_fallback_candidate_count"] = ordinary_fallbacks
+    result["ordinary_fallback_reason_codes"] = [
+        row.get("safety_reason")
+        for row in evidence_rows
+        if row.get("fallback_budget_counted") and isinstance(row.get("safety_reason"), str)
+    ]
+    result["validator_not_invoked"] = [
+        {
+            "turn": row.get("turn"),
+            "label": row.get("label"),
+            "classification": classify_validator_turn(row),
+        }
+        for row in evidence_rows
+        if row.get("proposal_trace_status") == "validator_not_invoked"
+    ]
+    if failure is not None:
+        result["status"] = "BLOCKED / LIVE PLAYABILITY UNVERIFIED"
+        result["error"] = _safe_error_code(failure)
+        result["error_turn_label"] = _failure_turn_label(failure, evidence_rows)
+        if gaps:
+            result["evidence_gap_summary"] = "; ".join(gaps)
+    elif gaps:
+        result["status"] = "BLOCKED / EVIDENCE_INCOMPLETE"
+        result["error"] = "; ".join(gaps)
+    return result
+
+
 def run_smoke() -> dict[str, Any]:
     evidence_rows: list[dict[str, Any]] = []
     report_parent = AI_DND_DIR / "reports" / "playable-living-world-v1-1-smokes"
@@ -120,6 +245,7 @@ def run_smoke() -> dict[str, Any]:
         handle: Any = None
         last_state: list[dict[str, Any]] = [{}]
         ordinary_fallbacks = 0
+        failure: BaseException | None = None
         campaign_id = ""
         session_id = ""
         tavern_id = ""
@@ -677,49 +803,12 @@ def run_smoke() -> dict[str, Any]:
                     error=EXPECTED_PENDING_ERROR_V11,
                 )
         except Exception as error:
-            result.update(
-                status="BLOCKED / LIVE PLAYABILITY UNVERIFIED",
-                error=f"{type(error).__name__}: details redacted",
-            )
+            failure = error
         finally:
             if process is not None:
                 telemetry._stop(process, handle)
 
-    gaps: list[str] = []
-    if len(evidence_rows) != len(EXPECTED_LABELS):
-        gaps.append("30-turn action sequence incomplete")
-    token_usage = [
-        row.get("token_usage")
-        for row in evidence_rows
-        if isinstance(row.get("token_usage"), dict)
-    ]
-    if len(token_usage) != len(evidence_rows) or not token_usage:
-        gaps.append("numeric token telemetry missing on one or more turns")
-    else:
-        result["token_usage"] = {
-            "prompt_eval_count": sum(
-                int(item["prompt_eval_count"]) for item in token_usage
-            ),
-            "eval_count": sum(int(item["eval_count"]) for item in token_usage),
-            "scope": "aggregate of per-turn isolated telemetry",
-        }
-    for row in evidence_rows:
-        if (
-            row.get("request_telemetry_context_seen") is not True
-            or row.get("action_result_capture_seen") is not True
-            or row.get("resolved_action") != row.get("action_result", {}).get("action")
-        ):
-            gaps.append("engine action result/resolved action missing")
-        gaps.extend(telemetry._proposal_trace_gaps(row))
-        if not isinstance(row.get("safety"), dict) or row["safety"].get("scope") == "unavailable":
-            gaps.append("safety classification incomplete")
-    gaps = list(dict.fromkeys(gaps))
-    result["evidence_incomplete"] = gaps
-    result["review_status"] = "pending_human_review"
-    result["ordinary_fallback_candidate_count"] = ordinary_fallbacks
-    if gaps:
-        result["status"] = "BLOCKED / EVIDENCE_INCOMPLETE"
-        result["error"] = "; ".join(gaps)
+    apply_smoke_summary(result, evidence_rows, ordinary_fallbacks, failure)
     persisted = dict(result)
     persisted["turns"] = [telemetry._persisted_turn(row) for row in evidence_rows]
     (report_root / "summary.json").write_text(

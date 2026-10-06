@@ -8,6 +8,7 @@
 import type { CombatHistoryEntry } from './combatHistoryEntry';
 import type { CombatTurnResult } from './combatTurnResult';
 import type { GameState } from './gameState';
+import type { LevelUpResult } from './levelUpResult';
 import type { QuestOutcome } from './questOutcome';
 import type { SkillCheckResult } from './skillCheckResult';
 
@@ -22,4 +23,6 @@ export interface GameTurnResult {
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
   quest_outcomes: QuestOutcome[];
+  /** Server-owned experience award for this turn. Null when the turn granted no experience. */
+  level_up: LevelUpResult | null;
 }

@@ -5,6 +5,7 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
 
 export interface GameCharacter {
   name: string;
@@ -22,4 +23,12 @@ export interface GameCharacter {
   max_hp: number;
   current_hp: number;
   armor_class: number;
+  cantrips: string[];
+  spells: string[];
+  spell_slots_remaining: GameCharacterSpellSlotsRemaining;
+  /**
+     * Server-owned experience total. Experience past level 4 is kept and does not raise the level.
+     * @minimum 0
+     */
+  xp: number;
 }

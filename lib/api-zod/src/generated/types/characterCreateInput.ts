@@ -7,6 +7,7 @@
  */
 import type { CharacterCreateInputAbilityScores } from './characterCreateInputAbilityScores';
 import type { CharacterCreateInputBackgroundAbilityBonuses } from './characterCreateInputBackgroundAbilityBonuses';
+import type { CharacterCreateInputBackgroundEquipmentOption } from './characterCreateInputBackgroundEquipmentOption';
 import type { CharacterCreateInputMode } from './characterCreateInputMode';
 
 /**
@@ -52,4 +53,23 @@ export interface CharacterCreateInput {
   cantrips?: string[] | null;
   /** @nullable */
   spells?: string[] | null;
+  /** @nullable */
+  languages?: string[] | null;
+  /** @nullable */
+  background_equipment_option?: CharacterCreateInputBackgroundEquipmentOption;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  appearance?: string | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  personality?: string | null;
+  /**
+     * @maxLength 2000
+     * @nullable
+     */
+  backstory?: string | null;
 }

@@ -62,7 +62,7 @@ const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
-type TranscriptEntry = { kind: 'player' | 'narration'; text: string; skillCheckResult?: SkillCheckResult };
+type TranscriptEntry = { kind: 'player' | 'narration'; text: string; skillCheckResult?: SkillCheckResult; failed?: boolean };
 type Drawer = 'character' | 'world' | null;
 type WorldTab = 'world' | 'npcs' | 'journal' | 'combat';
 
@@ -76,6 +76,7 @@ function friendlyError(error: unknown, fallback: string) {
   const code = statusCode(error);
   if (code === 404) return 'Bu macera kaydı bulunamadı.';
   if (code === 422) return 'Motor bu mesajı kabul etmedi. Bir iletinin 1–4000 karakter arasında olduğundan emin ol.';
+  if (code === 409) return 'Oturum kapatıldı. Kayıtlı macerayı defterden yeniden aç.';
   if (code === 503) return 'Dungeon Master’a şu anda ulaşılamıyor.';
   if (typeof navigator !== 'undefined' && !navigator.onLine) return 'Bağlantı yok. İnternet bağlantını kontrol edip tekrar dene.';
   return fallback;
@@ -194,7 +195,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <div className="character-top"><div><Kicker>Yolcu kaydı</Kicker><h2 data-testid="text-character-name">{character.name}</h2><div className="character-sub">{character.race} {character.class} · Seviye {character.level}</div></div><span className="character-badge">LVL {String(character.level).padStart(2, '0')}</span></div>
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
-      <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
+      <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div><div className="key-value" data-testid="text-xp"><Kicker>DENEYİM</Kicker><span>{character.xp}</span></div><div className="key-value" data-testid="text-spell-slots"><Kicker>1. YUVA</Kicker><span>{character.spell_slots_remaining['1'] ?? 0}</span></div></div>
       {!compact && <div className="mt-5"><Kicker>Özellikler · motor kaydı</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
       {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Motor henüz beceri kaydetmedi.</span>}</div></div>}
     </section>
@@ -462,10 +463,17 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
 
 function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry[]; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void }) {
   if (!entries.length) return <div className="empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya seçiminin ardından karşılık verecek.</div>;
-  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Sahne, kişiler ve öykü notları sağ panelde</div></div>;
+  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className={`player-entry${entry.failed ? ' failed' : ''}`} key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen</div>{entry.text}{entry.failed ? <div className="reader-note" data-testid={`transcript-failed-${index}`}>İletilemedi. Dünya durumu değişmedi.</div> : null}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Sahne, kişiler ve öykü notları sağ panelde</div></div>;
 }
 
-function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice, combatTargetId, setCombatTargetId }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null; combatTargetId: string; setCombatTargetId: (value: string) => void }) {
+const V1_SPELLS = ['Fire Bolt', 'Sacred Flame', 'Magic Missile', 'Cure Wounds'] as const;
+
+function knownV1Spells(state: GameState): string[] {
+  const known = new Set([...state.character.cantrips, ...state.character.spells]);
+  return V1_SPELLS.filter((spell) => known.has(spell));
+}
+
+function StoryColumn({ state, entries, message, setMessage, onSubmit, onCastSpell, sending, notice, scrollRef, onScroll, locationChanged, combatEndNotice, combatTargetId, setCombatTargetId }: { state: GameState; entries: TranscriptEntry[]; message: string; setMessage: (value: string) => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onCastSpell: (spell: string) => void; sending: boolean; notice: Notice | null; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void; locationChanged: boolean; combatEndNotice: string | null; combatTargetId: string; setCombatTargetId: (value: string) => void }) {
   const location = state.locations[state.location];
   const combatTargets = state.combat.participant_records.filter(
     (participant) => participant.kind === 'npc'
@@ -520,6 +528,15 @@ function StoryColumn({ state, entries, message, setMessage, onSubmit, sending, n
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
           <textarea id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
+          {knownV1Spells(state).length > 0 && (
+            <div className="command-help" data-testid="spell-cast-buttons">
+              {knownV1Spells(state).map((spell) => (
+                <button className="text-button" type="button" key={spell} disabled={sending} data-testid={`button-cast-${spell.replace(/\s+/g, '-').toLowerCase()}`} onClick={() => onCastSpell(spell)}>
+                  {spell}
+                </button>
+              ))}
+            </div>
+          )}
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Motor düşünüyor' : 'Gönder'}
@@ -817,16 +834,15 @@ export default function GameBrowser() {
     });
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = message.trim();
+  const sendMessage = (raw: string, includeCombatTarget: boolean) => {
+    const trimmed = raw.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
     playTurn.mutate({
       sessionId,
       data: {
         message: trimmed,
-        ...(combatTargetId ? { target_id: combatTargetId } : {}),
+        ...(includeCombatTarget && combatTargetId ? { target_id: combatTargetId } : {}),
       },
     }, {
       onSuccess: (result) => {
@@ -884,18 +900,44 @@ export default function GameBrowser() {
           }[outcome.transition] ?? 'görev durumu güncellendi';
           return `${quest?.title ?? 'Görev'}: ${transition}${objective ? ` — ${objective.description}` : ''}.`;
         });
-        if (outcomeMessages.length) {
+        const levelUp = result.level_up;
+        const leveled = Boolean(levelUp && levelUp.new_level > levelUp.previous_level);
+        if (leveled || outcomeMessages.length) {
           setNotice({
             tone: 'success',
-            title: 'Görev güncellendi',
-            detail: outcomeMessages.join(' '),
+            title: leveled ? 'Seviye atlandı' : 'Görev güncellendi',
+            detail: [
+              leveled && levelUp
+                ? `Seviye ${levelUp.previous_level} → ${levelUp.new_level}. +${levelUp.hit_points_gained} can, +${levelUp.xp_gained} deneyim.`
+                : '',
+              ...outcomeMessages,
+            ].filter(Boolean).join(' '),
           });
         }
         setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Oyun şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Bu hamle kabul edilmedi.') }),
+      onError: (error) => {
+        setEntries((current) => [
+          ...current,
+          { kind: 'player', text: trimmed, failed: true },
+        ]);
+        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Oyun şu an meşgul' : 'Hamle işlenemedi', detail: friendlyError(error, 'Bu hamle kabul edilmedi.') });
+      },
     });
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    sendMessage(message, true);
+  };
+
+  const castSpell = (spell: string) => {
+    if (spell === 'Cure Wounds') {
+      sendMessage('I cast Cure Wounds on myself', false);
+      return;
+    }
+    sendMessage(`I cast ${spell}`, true);
   };
 
   const sessionLabel = useMemo(() => campaignId ? `#${campaignId.slice(0, 8)}` : 'yeni macera', [campaignId]);
@@ -952,7 +994,7 @@ export default function GameBrowser() {
           ) : state ? (
             <>
               <LeftColumn state={state} />
-              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} combatTargetId={combatTargetId} setCombatTargetId={setCombatTargetId} />
+              <StoryColumn state={state} entries={entries} message={message} setMessage={setMessage} onSubmit={handleSubmit} onCastSpell={castSpell} sending={playTurn.isPending} notice={notice} scrollRef={storyScrollRef} onScroll={handleStoryScroll} locationChanged={locationChanged} combatEndNotice={combatEndNotice} combatTargetId={combatTargetId} setCombatTargetId={setCombatTargetId} />
               <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
