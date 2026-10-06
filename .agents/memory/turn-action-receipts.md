@@ -115,3 +115,14 @@ mechanics. Malformed envelopes must fail explicitly, not be repaired or replaced
 
 **How to apply:** Distinguish key absence from invalid retained values before
 request comparison, and preserve detached copies for valid receipt lookups.
+
+A stale-context rejection of a previously unused action ID must leave that ID
+usable when only the combat precondition is corrected.
+
+**Why:** The owner explicitly separates rejected-request correction from replay
+and conflicting reuse of an already accepted action. Receipt absence alone does
+not prove that the corrected request can execute.
+
+**How to apply:** Exercise rejection followed by corrected acceptance under the
+same ID, and verify exactly one mechanical execution and the first durable
+receipt. Do not impose accepted-receipt payload immutability before acceptance.

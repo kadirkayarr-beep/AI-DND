@@ -699,10 +699,31 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
     async def test_first_fatal_death_save_rejects_stale_combat_turn_index(self):
         await self._assert_first_fatal_death_save_rejects_stale_context("combat_turn_index")
 
-    async def _assert_first_fatal_death_save_rejects_stale_context(self, stale_field):
+    async def test_normal_rejected_fatal_death_save_accepts_corrected_context_same_id(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("NORMAL",), retry_corrected_context=True,
+            )
+
+    async def test_permadeath_rejected_fatal_death_save_accepts_corrected_context_same_id(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("PERMADEATH",), retry_corrected_context=True,
+            )
+
+    async def test_ironman_rejected_fatal_death_save_accepts_corrected_context_same_id(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("IRONMAN",), retry_corrected_context=True,
+            )
+
+    async def _assert_first_fatal_death_save_rejects_stale_context(
+        self, stale_field, *, modes=("NORMAL", "PERMADEATH", "IRONMAN"),
+        retry_corrected_context=False,
+    ):
         import uuid
 
-        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+        for mode in modes:
             with self.subTest(mode=mode, stale_field=stale_field):
                 created = await self.http.post(
                     "/api/game/campaigns", json={"death_mode": mode},
@@ -717,6 +738,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     record, "Look for the map.", "The search continues.",
                 )
                 death_fixtures.start_test_combat(s)
+                checkpoint = copy.deepcopy(s.ensure_death_state()["combat_checkpoint"])
                 self.assertEqual(
                     s.ensure_death_state()["combat_checkpoint"] is not None,
                     mode == "NORMAL",
@@ -743,6 +765,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     "combat_round": combat["round"],
                     "combat_turn_index": combat["current_turn_index"],
                 }
+                valid_context = request[stale_field]
                 request[stale_field] = (
                     str(uuid.uuid4()) if stale_field == "combat_id"
                     else request[stale_field] + 1
@@ -795,6 +818,111 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(self.store.get_turn_action(
                     a["campaign_id"], request["action_id"],
                 ))
+
+                if retry_corrected_context:
+                    # This ID has never been accepted. Correct only the stale
+                    # precondition; this is neither replay nor an ID conflict.
+                    corrected = {**request, stale_field: valid_context}
+                    self.assertEqual(
+                        {key for key in request if request[key] != corrected[key]},
+                        {stale_field},
+                    )
+                    await self._assert_corrected_fatal_death_save_executes_once(
+                        a, record, corrected, mode, checkpoint,
+                    )
+
+    async def _assert_corrected_fatal_death_save_executes_once(
+        self, campaign, record, request, mode, checkpoint,
+    ):
+        import random
+
+        s = record.game_session
+        expected_rng = random.Random()
+        expected_rng.setstate(s.rng.getstate())
+        expected_roll = expected_rng.randint(2, 9)
+        before = self.store.get_campaign(campaign["campaign_id"])
+        # Keep the engine's explicit API parameters visible to signature-based
+        # dispatch while counting calls through the real implementation.
+        real_turn = s.run_player_turn
+        calls = []
+
+        def counted_turn(message, *, action_id=None, session_id=None, scene_plan=None):
+            calls.append((message, action_id, session_id))
+            return real_turn(
+                message, action_id=action_id, session_id=session_id, scene_plan=scene_plan,
+            )
+
+        with patch.object(s, "run_player_turn", new=counted_turn), patch(
+            "game.roll_d20", side_effect=lambda: s.rng.randint(2, 9),
+        ) as die, patch(
+            "game._resolve_enemy_turns_until_player",
+            side_effect=AssertionError("Fatal save must stop the enemy scheduler"),
+        ) as scheduler, patch.object(
+            self.store, "save_campaign", wraps=self.store.save_campaign,
+        ) as save:
+            accepted = await self.http.post(
+                f"/api/game/sessions/{campaign['session_id']}/turn", json=request,
+            )
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+            self.assertEqual(calls, [
+                (request["message"], request["action_id"], campaign["session_id"]),
+            ])
+            die.assert_called_once_with()
+            scheduler.assert_not_called()
+            save.assert_called_once()
+
+        response = accepted.json()
+        result = response["combat_result"]
+        resolution = {
+            "mode": mode,
+            "outcome": "rolled_back" if mode == "NORMAL" else "dead",
+            "cause": "failed_death_saves",
+            "rolled_back": mode == "NORMAL",
+            "terminal": mode == "IRONMAN",
+        }
+        self.assertEqual(response["action_id"], request["action_id"])
+        self.assertEqual(result["action"], "death_save")
+        self.assertEqual(result["outcome"], resolution["outcome"])
+        self.assertEqual(result["death_save"]["roll"], expected_roll)
+        self.assertEqual(result["death_save"]["failures"], 3)
+        self.assertTrue(result["death_save"]["dead"])
+        self.assertEqual(result["death_resolution"], resolution)
+        self.assertEqual(result["death_save"]["death_resolution"], resolution)
+        self.assertTrue(result["combat_ended"])
+        self.assertEqual(result["enemy_actions"], [])
+        death = s.ensure_death_state()
+        self.assertEqual(death["last_resolution"], resolution)
+        self.assertEqual(death["dead"], mode != "NORMAL")
+        self.assertEqual(death["terminal"], mode == "IRONMAN")
+        self.assertFalse(s.ensure_combat_state()["active"])
+        self.assertEqual(s.rng.getstate(), expected_rng.getstate())
+        if mode == "NORMAL":
+            self.assertEqual(s.character["current_hp"], checkpoint["player"]["current_hp"])
+            self.assertGreater(s.character["current_hp"], 0)
+            self.assertEqual(s.world_state["player_combat_status"], "active")
+            for field in ("inventory", "campaign_time"):
+                self.assertEqual(s.world_state[field], checkpoint["world_state"][field])
+        else:
+            self.assertEqual(s.character["current_hp"], 0)
+            self.assertEqual(s.world_state["player_combat_status"], "dead")
+            self.assertEqual(death["failures"], 3)
+            self.assertIn("post-checkpoint reward", s.world_state["inventory"])
+            self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 18)
+
+        committed = self.store.get_campaign(campaign["campaign_id"])
+        self.assertEqual(committed.payload["engine_save"], s.serialize_game_state())
+        self.assertEqual(len(committed.history), len(before.history) + 1)
+        self.assertEqual(len(committed.combat_history), len(before.combat_history) + 1)
+        receipt = self.store.get_turn_action(campaign["campaign_id"], request["action_id"])
+        self.assertIsNotNone(receipt)
+        self.assertEqual(receipt["response"], response)
+        # A new store owner confirms the first accepted receipt is durable.
+        self.assertEqual(
+            CampaignStore(self.store.path).get_turn_action(
+                campaign["campaign_id"], request["action_id"],
+            ),
+            receipt,
+        )
 
     async def test_normal_fatal_death_save_closed_combat_context_replay_after_reopen(self):
         await self._assert_accepted_fatal_death_save_replay_after_reopen(
