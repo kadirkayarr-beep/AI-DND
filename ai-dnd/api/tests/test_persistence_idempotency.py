@@ -2888,6 +2888,153 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(record), committed)
         self.assertEqual(len(self.store.get_campaign(a["campaign_id"]).history), 1)
 
+    async def test_ambient_event_late_receipt_sql_failure_rolls_back_then_retries_and_replays(self):
+        created = await self.create_campaign()
+        campaign_id, sid = created["campaign_id"], created["session_id"]
+        record = self.manager.get(sid)
+        session = record.game_session
+        event_id = self.install_test_ambient_event(session)
+        self.manager.save_campaign(campaign_id)
+        command = {"action": "interact", "action_id": str(uuid4())}
+
+        def saved_rows(store):
+            with closing(store._connect()) as db:
+                return {
+                    table: [tuple(row) for row in db.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_history",
+                                  "campaign_combat_history", "campaign_turn_actions")
+                }
+
+        def auxiliary_state(current):
+            return copy.deepcopy((
+                current.game_session.messages, current.game_session.world_metadata,
+            ))
+
+        async def send(client=self.http, session_id=sid):
+            return await client.post(
+                f"/api/game/sessions/{session_id}/ambient-events/{event_id}/actions",
+                json=command,
+            )
+
+        before = self.snapshot(record)
+        before_auxiliary = auxiliary_state(record)
+        before_rows = saved_rows(self.store)
+        revision = before[-1].metadata["revision"]
+        with closing(self.store._connect()) as db:
+            # This trigger can reject the receipt only AFTER the real save has
+            # updated this campaign in the enclosing transaction.
+            db.execute(f"""
+                CREATE TRIGGER reject_ambient_receipt
+                BEFORE INSERT ON campaign_turn_actions
+                WHEN NEW.campaign_id = '{campaign_id}'
+                    AND NEW.action_id = '{command["action_id"]}'
+                    AND (SELECT revision FROM campaigns
+                         WHERE campaign_id = NEW.campaign_id) = {revision + 1}
+                BEGIN SELECT RAISE(ABORT, 'injected late ambient failure'); END
+            """)
+
+        speculative = {}
+        original_save = self.store.save_campaign
+
+        def observe_native_save(*args, **kwargs):
+            speculative["snapshot"] = self.snapshot(record)
+            speculative["receipt"] = copy.deepcopy(kwargs["turn_action_receipt"])
+            return original_save(*args, **kwargs)
+
+        with patch.object(self.store, "save_campaign", side_effect=observe_native_save) as save, \
+             patch.object(session, "resolve_ambient_event_action",
+                          wraps=session.resolve_ambient_event_action) as resolve:
+            failed = await send()
+        self.assertEqual(failed.status_code, 500, failed.text)
+        self.assertEqual(failed.json()["detail"]["code"], "event_persistence_error")
+        self.assertNotIn("injected late ambient failure", failed.text)
+        save.assert_called_once()
+        resolve.assert_called_once_with(event_id, command["action_id"], "interact")
+        self.assertNotEqual(speculative["snapshot"][0], before[0])
+        self.assertNotEqual(speculative["snapshot"][2], before[2])
+        self.assertEqual(speculative["receipt"]["action_id"], command["action_id"])
+        self.assertEqual(
+            speculative["receipt"]["response"]["ambient_event_response"]["result"]["status"],
+            "APPLIED",
+        )
+        self.assertEqual(self.snapshot(record), before)
+        self.assertEqual(auxiliary_state(record), before_auxiliary)
+        self.assertEqual(saved_rows(self.store), before_rows)
+        self.assertNotIn(command["action_id"], record.turn_action_receipts)
+        self.assertIsNone(self.manager.get_turn_action(record, command["action_id"]))
+        self.assertIsNone(self.store.get_turn_action(campaign_id, command["action_id"]))
+
+        with closing(self.store._connect()) as db:
+            db.execute("DROP TRIGGER reject_ambient_receipt")
+        with patch.object(session, "resolve_ambient_event_action",
+                          wraps=session.resolve_ambient_event_action) as resolve:
+            accepted = await send()
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
+        resolve.assert_called_once_with(event_id, command["action_id"], "interact")
+        committed = self.snapshot(record)
+        committed_rows = saved_rows(self.store)
+        receipt = self.store.get_turn_action(campaign_id, command["action_id"])
+        self.assertEqual(receipt["response"]["ambient_event_response"], accepted.json())
+        self.assertEqual(committed[-1].metadata["revision"], revision + 1)
+        self.assertNotEqual(committed[0], before[0])
+        self.assertNotEqual(committed[2], before[2])
+        # Promotion need not consume dice, but neither failure nor retry may
+        # introduce unrelated RNG changes.
+        self.assertEqual(committed[1], before[1])
+        outcomes = [event for event in record.journal["notable_events"]
+                    if event.get("event_type") == "ambient_event_outcome"
+                    and event["event_result"]["action_id"] == command["action_id"]]
+        self.assertEqual(len(outcomes), 1)
+        self.assertEqual(outcomes[0]["event_id"],
+                         accepted.json()["result"]["canonical_event_id"])
+        self.assertEqual(outcomes[0]["event_result"]["transition_id"],
+                         accepted.json()["result"]["transition_id"])
+        self.assertEqual(len(committed_rows["campaign_turn_actions"]),
+                         len(before_rows["campaign_turn_actions"]) + 1)
+        for table in ("campaign_history", "campaign_combat_history"):
+            self.assertEqual(committed_rows[table], before_rows[table])
+
+        fresh_store = CampaignStore(self.store.path)
+        fresh = SessionManager(campaign_store=fresh_store)
+        app = create_app(session_manager=fresh, ollama_adapter=None)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                    base_url="http://reload") as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            new_sid = resumed.json()["session_id"]
+            restored = fresh.get(new_sid)
+            self.assertIsNot(restored.game_session, session)
+            self.assertEqual(self.snapshot(restored)[:7], committed[:7])
+            self.assertEqual(fresh_store.get_campaign(campaign_id).payload,
+                             committed[-1].payload)
+            self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), receipt)
+            # Resume may refresh last_played_at; replay must preserve the
+            # metadata captured AFTER reopening, not the old timestamp.
+            reopened = self.snapshot(restored)
+            reopened_rows = saved_rows(fresh_store)
+            reopened_auxiliary = auxiliary_state(restored)
+            with patch.object(restored.game_session, "resolve_ambient_event_action",
+                              side_effect=AssertionError("Replay reran event mechanics")), \
+                 patch.object(fresh, "save_campaign_locked",
+                              side_effect=AssertionError("Replay saved the campaign")):
+                replay = await send(client, new_sid)
+            self.assertEqual(replay.status_code, 200, replay.text)
+            expected = copy.deepcopy(accepted.json())
+            expected["session_id"] = new_sid
+            expected["result"].update(
+                status="ALREADY_APPLIED", reason_code="event_already_resolved",
+            )
+            self.assertEqual(replay.json(), expected)
+            self.assertEqual(self.snapshot(restored), reopened)
+            self.assertEqual(auxiliary_state(restored), reopened_auxiliary)
+            self.assertEqual(saved_rows(fresh_store), reopened_rows)
+            self.assertEqual(fresh_store.get_turn_action(campaign_id, command["action_id"]),
+                             receipt)
+
     async def test_late_pruning_sql_failure_preserves_full_combat_history_on_resume_then_retry(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
