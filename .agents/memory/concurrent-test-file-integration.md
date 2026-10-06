@@ -13,6 +13,16 @@ that were present before the task began, and review the combined diff.
 preserve them separately and obtain permission before moving them out of the
 active task branch; never discard them or silently fix unrelated gameplay.
 
+The merge continuation check can mistake decorative runs of equals signs in
+comments or printed separators for unresolved conflict markers.
+
+**Why:** A fully parsed conflict-free file was rejected solely for decorative
+separators containing seven or more equals signs.
+
+**How to apply:** If continuation still reports markers after structural
+resolution, search for all marker substrings, not only line-start markers.
+Use hyphens for decorative separators without changing gameplay logic.
+
 Validate the final integrated test sources and their shared fixture dependencies, not only the task's locally edited module.
 
 **Why:** Concurrent merges at the completion boundary can introduce duplicated or orphaned fragments into transitively imported fixtures after a local suite passes, invalidating that earlier evidence.

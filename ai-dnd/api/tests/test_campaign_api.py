@@ -4968,7 +4968,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_first_merchant_search_distinct_id_race_rolls_back_and_retries_once(self):
         await self._assert_first_merchant_search_save_race(shared_action=False)
 
-    async def _assert_first_merchant_search_save_race(self, *, shared_action):
+    async def test_first_merchant_search_race_retry_save_failure_restores_winner_and_retries_once(self):
+        await self._assert_first_merchant_search_save_race(
+            shared_action=False, fail_resumed_retry=True,
+        )
+
+    async def _assert_first_merchant_search_save_race(
+        self, *, shared_action, fail_resumed_retry=False,
+    ):
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
             "/api/game/campaigns",
@@ -5222,6 +5229,109 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         receipt,
                     )
 
+                if fail_resumed_retry:
+                    recovered_engine = copy.deepcopy(loser_session.serialize_game_state())
+                    recovered_journal = copy.deepcopy(loser_record.journal)
+                    recovered_memory = copy.deepcopy(loser_record.narrative_memory)
+                    recovered_receipts = copy.deepcopy(loser_record.turn_action_receipts)
+                    recovered_version = loser_session._campaign_persistence_version
+                    failed_attempts = []
+
+                    @wraps(real_save)
+                    def observe_failed_save(*args, **kwargs):
+                        failed_attempts.append({
+                            "engine": copy.deepcopy(loser_session.serialize_game_state()),
+                            "journal": copy.deepcopy(kwargs["journal"]),
+                            "memory": copy.deepcopy(kwargs["narrative_memory"]),
+                            "receipt": copy.deepcopy(kwargs["turn_action_receipt"]),
+                            "version": loser_session._campaign_persistence_version,
+                        })
+                        return real_save(*args, **kwargs)
+
+                    # Fail inside the real save transaction at receipt insertion,
+                    # after campaign and history writes, not before the turn runs.
+                    with closing(sqlite3.connect(self.store.path)) as connection:
+                        connection.execute(
+                            "CREATE TRIGGER fail_recovered_merchant_receipt "
+                            "BEFORE INSERT ON campaign_turn_actions "
+                            f"WHEN NEW.action_id = '{body['action_id']}' "
+                            "BEGIN SELECT RAISE(ABORT, 'injected merchant save failure'); END"
+                        )
+                        connection.commit()
+                    try:
+                        with (
+                            patch.object(
+                                loser_session, "run_player_turn",
+                                new=observe_turn(loser_session, "loser"),
+                            ),
+                            patch.object(
+                                loser_store, "save_campaign", new=observe_failed_save,
+                            ),
+                        ):
+                            failed = await asyncio.wait_for(
+                                loser_http.post(loser_url, json=body), timeout=30,
+                            )
+                    finally:
+                        with closing(sqlite3.connect(self.store.path)) as connection:
+                            connection.execute("DROP TRIGGER fail_recovered_merchant_receipt")
+                            connection.commit()
+                    self.assertEqual(failed.status_code, 503, failed.text)
+                    self.assertEqual(
+                        failed.json()["detail"]["code"], "campaign_storage_unavailable",
+                    )
+                    self.assertNotIn("injected merchant save failure", failed.text)
+                    self.assertEqual(len(failed_attempts), 1)
+                    self.assertEqual(len(results["loser"]), 2)
+                    self.assertEqual(len(results["winner"]), 1)
+                    failed_result = results["loser"][-1]
+                    self.assertEqual(failed_result["action"], "local_search")
+                    self.assertEqual(failed_result["status"], "found")
+                    self.assertTrue(failed_result["success"])
+                    self.assertEqual(failed_result["shop_id"], shop["id"])
+                    self.assertEqual(failed_result["target_id"], shop["shopkeeper_id"])
+                    failed_attempt = failed_attempts[0]
+                    failed_world = failed_attempt["engine"]["world_state"]
+                    self.assertEqual(
+                        failed_world["flags"]["turn_index"],
+                        saved_world["flags"]["turn_index"] + 1,
+                    )
+                    self.assertNotEqual(failed_attempt["engine"], recovered_engine)
+                    self.assertEqual(failed_world["shops"], [shop])
+                    self.assertEqual(
+                        [npc for npc in failed_world["npcs"] if npc.get("shop_id") == shop["id"]],
+                        shopkeepers,
+                    )
+                    for collection in ("shops", "npcs"):
+                        self.assertEqual(
+                            [item["id"] for item in failed_world[collection]],
+                            [item["id"] for item in saved_world[collection]],
+                        )
+                    self.assertEqual(failed_attempt["version"], recovered_version)
+                    self.assertEqual(failed_attempt["receipt"]["action_id"], body["action_id"])
+                    self.assertEqual(
+                        failed_attempt["receipt"]["request_hash"], attempted["receipt"]["request_hash"],
+                    )
+                    self.assertEqual(
+                        failed_attempt["receipt"]["response"]["session_id"], loser_id,
+                    )
+                    # Roll back to the recovered winner, never to the original
+                    # merchant-free snapshot or the failed retry's staged state.
+                    self.assertEqual(loser_session.serialize_game_state(), recovered_engine)
+                    self.assertEqual(loser_record.journal, recovered_journal)
+                    self.assertEqual(loser_record.narrative_memory, recovered_memory)
+                    self.assertEqual(loser_record.turn_action_receipts, recovered_receipts)
+                    self.assertEqual(loser_session._campaign_persistence_version, recovered_version)
+                    self.assertEqual(loser_store.get_campaign(campaign_id), resumed_campaign)
+                    self.assertEqual(winner_store.get_campaign(campaign_id), resumed_campaign)
+                    self.assertEqual(receipt_rows(), committed_rows)
+                    self.assertIsNone(loser_store.get_turn_action(campaign_id, body["action_id"]))
+                    self.assertIsNone(loser_manager.get_turn_action(loser_record, body["action_id"]))
+                    self.assertEqual(
+                        loser_manager.get_turn_action(loser_record, winner_body["action_id"]), receipt,
+                    )
+                    assert_saved_discovery(resumed_campaign)
+
+                previous_loser_turns = len(results["loser"])
                 with (
                     patch.object(
                         loser_session, "run_player_turn",
@@ -5236,9 +5346,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(retried.json()["action_id"], body["action_id"])
                 self.assertEqual(retried.json()["session_id"], loser_id)
                 retry_save.assert_called_once()
-                self.assertEqual(len(results["loser"]), 2)
+                self.assertEqual(len(results["loser"]), previous_loser_turns + 1)
                 self.assertEqual(len(results["winner"]), 1)
-                retry_result = results["loser"][1]
+                retry_result = results["loser"][-1]
                 self.assertEqual(retry_result["action"], "local_search")
                 self.assertEqual(retry_result["status"], "found")
                 self.assertTrue(retry_result["success"])
