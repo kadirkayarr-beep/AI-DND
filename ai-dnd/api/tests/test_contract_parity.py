@@ -41,12 +41,14 @@ from api.schemas import (
     CharacterCreateInput,
     CharacterCreationOptions,
     CharacterCreationCatalogResponse,
+    CombatActionInput,
     CombatAttackResult,
     CombatHistoryEntry,
     CombatTurnResult,
     DeathResolutionResult,
     DeathSaveResult,
     DeathStateProjection,
+    EconomyStepInput,
     HealthResponse,
     QuestCommandResult,
     QuestObjectiveOffer,
@@ -54,6 +56,8 @@ from api.schemas import (
     QuestOffer,
     QuestOutcome,
     QuestState,
+    ReadyResponseInput,
+    ReadyTriggerInput,
     SessionResponse,
     SpeciesTraitActionRequest,
     SpeciesTraitActionResult,
@@ -624,6 +628,56 @@ class ContractParityTests(unittest.TestCase):
         )
         self.assertEqual(_schema_types(published), _schema_types(runtime))
         self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+
+    def test_combat_step_item_reference_matches_runtime_model(self):
+        runtime = CombatActionInput.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]["steps"]
+        published = _property("CombatActionInput", "steps")
+        self.assertEqual(_schema_types(published), _schema_types(runtime))
+        self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+        runtime_items = _mapping(runtime.get("items"), "CombatActionInput.steps.items")
+        published_items = _mapping(
+            published.get("items"), "CombatActionInput.steps.items"
+        )
+        expected = _schema_references(runtime_items)
+        self.assertEqual(
+            expected, {f"#/components/schemas/{EconomyStepInput.__name__}"},
+            "Runtime steps items must reference EconomyStepInput",
+        )
+        self.assertEqual(
+            _schema_references(published_items), expected,
+            "CombatActionInput.steps.items reference target",
+        )
+        self.assertEqual(_schema_types(published_items), _schema_types(runtime_items))
+        self.assertEqual(_is_nullable(published_items), _is_nullable(runtime_items))
+
+    def test_combat_ready_references_match_runtime_models(self):
+        runtime_properties = EconomyStepInput.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]
+        for field_name, target_model, published_target in (
+            ("trigger", ReadyTriggerInput, "ReadyTriggerInput"),
+            ("response", ReadyResponseInput, "ReadyResponseInput"),
+        ):
+            with self.subTest(field=field_name):
+                runtime = runtime_properties[field_name]
+                published = _property("EconomyStepInput", field_name)
+                runtime_ref = f"#/components/schemas/{target_model.__name__}"
+                self.assertEqual(
+                    _schema_references(runtime), {runtime_ref},
+                    f"Runtime EconomyStepInput.{field_name} reference target",
+                )
+                expected = {
+                    ref.replace(runtime_ref, f"#/components/schemas/{published_target}")
+                    for ref in _schema_references(runtime)
+                }
+                self.assertEqual(
+                    _schema_references(published), expected,
+                    f"EconomyStepInput.{field_name} reference target",
+                )
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
 
     def test_turn_result_references_match_runtime_models(self):
         runtime_properties = TurnResponse.model_json_schema(
@@ -3618,6 +3672,86 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     "GameTurnInput.combat_action reference target",
                     result.failures[0][1],
                 )
+
+    def test_nested_combat_request_wrong_references_fail_in_both_formats(self):
+        cases = (
+            ("CombatActionInput", "steps", ("items",), "ReadyResponseInput",
+             "test_combat_step_item_reference_matches_runtime_model"),
+            ("EconomyStepInput", "trigger", ("anyOf", 0), "ReadyResponseInput",
+             "test_combat_ready_references_match_runtime_models"),
+            ("EconomyStepInput", "response", ("anyOf", 0), "ReadyTriggerInput",
+             "test_combat_ready_references_match_runtime_models"),
+        )
+        for schema_name, field_name, target_path, wrong_model, parity_method in cases:
+            original = _property(schema_name, field_name)
+            original_target = original
+            for key in target_path:
+                original_target = original_target[key]
+            replacement = f"#/components/schemas/{wrong_model}"
+            self.assertEqual(_schema_types(_schema(wrong_model)), {"object"})
+            self.assertNotIn(replacement, _schema_references(original_target))
+            label = f"{schema_name}.{field_name}"
+            if field_name == "steps":
+                label += ".items"
+            for flow_style in (False, True):
+                with self.subTest(field=label, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    field = spec["components"]["schemas"][schema_name]["properties"][
+                        field_name
+                    ]
+                    target = field
+                    for key in target_path:
+                        target = target[key]
+                    target["$ref"] = replacement
+                    parsed = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(parsed, spec)
+                    mutated = parsed["components"]["schemas"][schema_name][
+                        "properties"
+                    ][field_name]
+                    self.assertEqual(_schema_types(mutated), _schema_types(original))
+                    self.assertEqual(_is_nullable(mutated), _is_nullable(original))
+                    mutated_target = mutated
+                    for key in target_path:
+                        mutated_target = mutated_target[key]
+                    self.assertEqual(
+                        _schema_types(mutated_target), _schema_types(original_target)
+                    )
+                    self.assertEqual(
+                        _is_nullable(mutated_target), _is_nullable(original_target)
+                    )
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    # Restoring just the target restores every other declaration,
+                    # including required fields, bounds, routes and statuses.
+                    restored = deepcopy(parsed)
+                    restored_target = restored["components"]["schemas"][schema_name][
+                        "properties"
+                    ][field_name]
+                    for key in target_path:
+                        restored_target = restored_target[key]
+                    restored_target["$ref"] = original_target["$ref"]
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        unchanged = unittest.TestResult()
+                        for method in (
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_turn_route_bindings_match_fastapi",
+                            "test_turn_input_combat_action_reference_matches_runtime_model",
+                        ):
+                            ContractParityTests(method).run(unchanged)
+                        self.assertTrue(
+                            unchanged.wasSuccessful(),
+                            unchanged.failures + unchanged.errors,
+                        )
+                        result = unittest.TestResult()
+                        ContractParityTests(parity_method).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    self.assertIn(
+                        f"{label} reference target", result.failures[0][1],
+                    )
 
     def test_turn_result_reference_mutations_fail_in_both_formats(self):
         for field_name in TURN_REFERENCE_FIELDS:
