@@ -145,6 +145,47 @@ _COMBAT_TURN_FIELDS = (
 )
 
 
+def _conversation_projection(world: Mapping[str, Any]) -> dict[str, Any]:
+    flags = world.get("flags", {}) if isinstance(world, Mapping) else {}
+    if not isinstance(flags, Mapping):
+        flags = {}
+    combat = world.get("combat", {}) if isinstance(world, Mapping) else {}
+    if isinstance(combat, Mapping) and combat.get("active") is True:
+        return {"active": False, "interlocutor": None}
+    active_id = flags.get("active_npc_id")
+    turn_index = flags.get("turn_index", 0)
+    active_until = flags.get("active_npc_until_turn", -1)
+    if (
+        not isinstance(active_id, str)
+        or not active_id
+        or type(turn_index) is not int
+        or type(active_until) is not int
+        or turn_index > active_until
+    ):
+        return {"active": False, "interlocutor": None}
+    current = world.get("location")
+    npc = next(
+        (
+            item for item in world.get("npcs", [])
+            if isinstance(item, Mapping)
+            and item.get("id") == active_id
+            and item.get("location") == current
+        ),
+        None,
+    )
+    projected = living_world.public_npc_projection(dict(npc)) if npc is not None else None
+    if projected is None:
+        return {"active": False, "interlocutor": None}
+    return {
+        "active": True,
+        "interlocutor": {
+            "id": projected.get("id"),
+            "name": projected.get("name"),
+            "role": projected.get("role") or None,
+        },
+    }
+
+
 class SkillCheckResultSerializationError(ValueError):
     """Raised when a canonical engine skill-check result fails validation."""
 
@@ -637,6 +678,7 @@ def serialize_session_state(
         "scene": living_world.public_scene_projection(
             visible_world, flags.get("turn_index", 0)
         ),
+        "conversation": _conversation_projection(visible_world),
         "world": world_metadata,
         "journal": copy.deepcopy(
             journal if journal is not None else empty_campaign_journal()

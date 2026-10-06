@@ -386,6 +386,14 @@ export const CreateGameSessionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createGameSessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createGameSessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createGameSessionResponseStateWorldTimeOfDayDefault),
@@ -1053,6 +1061,14 @@ export const GetGameSessionStateResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getGameSessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getGameSessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getGameSessionStateResponseWorldTimeOfDayDefault),
@@ -1732,6 +1748,14 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveSpeciesTraitActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionResponseStateWorldTimeOfDayDefault),
@@ -2418,6 +2442,14 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionCompatResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionCompatResponseStateWorldTimeOfDayDefault),
@@ -2777,6 +2809,7 @@ export const PlayGameTurnBody = zod.object({
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playGameTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
+  "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
@@ -3278,6 +3311,14 @@ export const PlayGameTurnResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(playGameTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playGameTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playGameTurnResponseStateWorldTimeOfDayDefault),
@@ -4377,6 +4418,14 @@ export const AcceptGameQuestResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(acceptGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(acceptGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(acceptGameQuestResponseStateWorldTimeOfDayDefault),
@@ -5099,6 +5148,14 @@ export const CancelGameQuestResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(cancelGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(cancelGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(cancelGameQuestResponseStateWorldTimeOfDayDefault),
@@ -5810,6 +5867,14 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveAmbientEventActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveAmbientEventActionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveAmbientEventActionResponseStateWorldTimeOfDayDefault),
@@ -6693,6 +6758,14 @@ export const CreateCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createCampaignResponseStateWorldTimeOfDayDefault),
@@ -7637,6 +7710,14 @@ export const GetCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getCampaignResponseStateWorldTimeOfDayDefault),
@@ -8558,6 +8639,14 @@ export const ResumeCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resumeCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeCampaignResponseStateWorldTimeOfDayDefault),
@@ -9522,6 +9611,14 @@ export const CreateLegacySessionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createLegacySessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacySessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacySessionResponseStateWorldTimeOfDayDefault),
@@ -10190,6 +10287,14 @@ export const GetLegacySessionStateResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getLegacySessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacySessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacySessionStateResponseWorldTimeOfDayDefault),
@@ -10544,6 +10649,7 @@ export const PlayLegacyTurnBody = zod.object({
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playLegacyTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
+  "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
@@ -11045,6 +11151,14 @@ export const PlayLegacyTurnResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(playLegacyTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playLegacyTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playLegacyTurnResponseStateWorldTimeOfDayDefault),
@@ -12256,6 +12370,14 @@ export const CreateLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -13202,6 +13324,14 @@ export const GetLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -14124,6 +14254,14 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resumeLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeLegacyCampaignResponseStateWorldTimeOfDayDefault),

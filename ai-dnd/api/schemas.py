@@ -53,6 +53,7 @@ class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     message: str = Field(min_length=1, max_length=4000)
+    interaction_mode: Literal["say", "do", "ask_dm"] | None = None
     target_id: str | None = Field(default=None, min_length=1, max_length=128)
     action_id: UUID | None = None
     combat_action: CombatActionInput | None = None

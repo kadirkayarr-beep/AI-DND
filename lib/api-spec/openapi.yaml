@@ -744,6 +744,9 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        interaction_mode:
+          type: ["string", "null"]
+          enum: [say, do, ask_dm, null]
         target_id:
           type: ["string", "null"]
           minLength: 1
@@ -1548,6 +1551,8 @@ components:
           anyOf:
             - $ref: "#/components/schemas/GameScene"
             - type: "null"
+        conversation:
+          $ref: "#/components/schemas/GameConversation"
         world:
           $ref: "#/components/schemas/GameWorldMetadata"
         journal:
@@ -1608,6 +1613,7 @@ components:
         - journey
         - location
         - scene
+        - conversation
         - world
         - journal
         - locations
@@ -1623,6 +1629,24 @@ components:
         - turn_index
         - quests
         - quest_offers
+    GameConversationNpc:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        role: {type: ["string", "null"]}
+    GameConversation:
+      type: object
+      additionalProperties: false
+      required: [active, interlocutor]
+      properties:
+        active: {type: boolean}
+        interlocutor:
+          anyOf:
+            - $ref: "#/components/schemas/GameConversationNpc"
+            - type: "null"
     CampaignTime:
       type: object
       additionalProperties: false

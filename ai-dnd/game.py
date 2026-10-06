@@ -4209,6 +4209,7 @@ def _start_combat_with_initiative(player_target_npc):
         "target_id": target_id,
         "end_reason": None,
     })
+    _clear_active_interlocutor()
     combat["participant_records"] = [
         _combat_record_for_actor(
             participant_id,
@@ -4872,10 +4873,62 @@ def merge_world_updates(updates):
     return created
 
 
-def resolve_npc_reference(player_input):
+def _normalize_interaction_mode(value):
+    if value in {"say", "do", "ask_dm"}:
+        return value
+    return None
+
+
+def _conversation_npcs():
+    import exploration
+    return exploration.player_entities(_session().world_state, active_npcs())
+
+
+def _active_interlocutor():
+    """Return the current valid Python-owned conversation target without mutating state."""
+    world_state = _session().world_state
+    if world_state.get("combat", {}).get("active"):
+        return None
+    flags = world_state.get("flags", {})
+    if not isinstance(flags, dict):
+        return None
+    active_id = flags.get("active_npc_id")
+    if not isinstance(active_id, str) or not active_id:
+        return None
+    turn_index = flags.get("turn_index", 0)
+    active_until = flags.get("active_npc_until_turn", -1)
+    if type(turn_index) is not int or type(active_until) is not int or turn_index > active_until:
+        return None
+    current = world_state.get("location")
+    return next(
+        (
+            npc for npc in _conversation_npcs()
+            if isinstance(npc, dict)
+            and npc.get("id") == active_id
+            and npc.get("location") == current
+        ),
+        None,
+    )
+
+
+def _clear_active_interlocutor():
+    flags = _session().world_state.setdefault("flags", {})
+    flags["active_npc_id"] = None
+    flags["active_npc_until_turn"] = -1
+
+
+def _is_end_conversation_request(player_input):
+    text = _normalize_turkish_typos(str(player_input))
+    return bool(re.search(
+        r"\b(?:konusmayi|sohbeti)\s+(?:bitir|bitiriyorum|sonlandir|sonlandiriyorum)\b",
+        text,
+    ))
+
+
+def resolve_npc_reference(player_input, force_dialogue=False):
     world_state = _session().world_state
     text = _normalize_turkish_typos(player_input)
-    available = active_npcs()
+    available = _conversation_npcs() if force_dialogue else active_npcs()
     matches = []
     for npc in available:
         name_match = (
@@ -4913,9 +4966,11 @@ def resolve_npc_reference(player_input):
             player_input.casefold(),
         )
     )
-    if not matches and not explicit_unresolved_reference and (is_npc_dialogue_input(player_input) or re.search(
-        r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text
-    )):
+    if not matches and not explicit_unresolved_reference and (
+        force_dialogue
+        or is_npc_dialogue_input(player_input)
+        or re.search(r"\b(?:o adam|o kadın|ona|ondan|onunla|kendisine)\b", text)
+    ):
         flags = world_state.setdefault("flags", {})
         active_id = flags.get("active_npc_id") or flags.get("last_npc_id")
         active_until = flags.get("active_npc_until_turn", -1)
@@ -10590,9 +10645,10 @@ def _promote_scene_referent(referent, location_id):
     return npc
 
 
-def plan_living_world_turn(player_input, target_id=None):
+def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     """Resolve ordinary local actions and materialize before scoped lore lookup."""
     world_state = _session().world_state
+    interaction_mode = _normalize_interaction_mode(interaction_mode)
     if (not world_state.get("combat", {}).get("active")
             and interaction_adventure.hint(player_input) == "plan"):
         # Planning is not a scene visit, merchant discovery or clock consumer.
@@ -10623,15 +10679,21 @@ def plan_living_world_turn(player_input, target_id=None):
     current = world_state.get("location")
     ensure_campaign_clock()
     action = living_world.classify_scene_action(player_input)
+    if interaction_mode == "say":
+        action = None
+    elif interaction_mode == "ask_dm" and action not in {"presence", "look"}:
+        action = None
     inspect_action = bool(
-        isinstance(player_input, str)
+        interaction_mode not in {"say", "ask_dm"}
+        and isinstance(player_input, str)
         and re.search(r"(?:incel\w*|gözden geçir\w*|inspect|examine)", player_input, re.IGNORECASE)
         and not re.search(r"(?:perception|investigation|algı kontrolü|araştırma kontrolü)", player_input, re.IGNORECASE)
     )
     if inspect_action:
         action = "inspect"
     shop_request = (
-        target_id is None
+        interaction_mode not in {"say", "ask_dm"}
+        and target_id is None
         and _explicit_campaign_shop_request(player_input)
     )
     normalized_input = _normalize_turkish_typos(str(player_input))
@@ -10650,19 +10712,27 @@ def plan_living_world_turn(player_input, target_id=None):
         for npc in active_npcs(current)
     )
     addressed_local_dialogue = bool(
-        (target_id is not None or explicit_local_npc_reference)
-        and re.search(
-            r"\b(?:sor\w*|konus\w*|soyle\w*|de\w*|seslen\w*|hitap\s+et\w*)\b",
-            normalized_input,
+        (
+            interaction_mode == "say"
+            and (target_id is not None or explicit_local_npc_reference)
+        )
+        or (
+            (target_id is not None or explicit_local_npc_reference)
+            and re.search(
+                r"\b(?:sor\w*|konus\w*|soyle\w*|de\w*|seslen\w*|hitap\s+et\w*)\b",
+                normalized_input,
+            )
         )
     )
     tavern_search = (
-        not shop_request
+        interaction_mode not in {"say", "ask_dm"}
+        and not shop_request
         and not addressed_local_dialogue
         and living_world.is_tavern_search(player_input)
     )
     merchant_search = (
-        not shop_request
+        interaction_mode not in {"say", "ask_dm"}
+        and not shop_request
         and not addressed_local_dialogue
         and living_world.is_merchant_search(player_input)
     )
@@ -10926,7 +10996,11 @@ def plan_living_world_turn(player_input, target_id=None):
                         "direct_response": "Kalabalıkta o kişiye yaklaşacak yer bulamıyorsun.",
                     }
 
-    world_subject_question = local_dialogue.is_world_subject_question(player_input)
+    world_subject_question = (
+        True if interaction_mode == "ask_dm"
+        else False if interaction_mode == "say"
+        else local_dialogue.is_world_subject_question(player_input)
+    )
     if (
         not combat.get("active")
         and not direct
@@ -10939,15 +11013,26 @@ def plan_living_world_turn(player_input, target_id=None):
         if target_id is not None:
             resolved_npc = next(
                 (
-                    npc for npc in active_npcs()
+                    npc for npc in (_conversation_npcs() if interaction_mode == "say" else active_npcs())
                     if isinstance(npc, dict) and npc.get("id") == target_id
                 ),
                 None,
             )
-        if resolved_npc is None:
-            npc_resolution = resolve_npc_reference(player_input)
+        if resolved_npc is None and interaction_mode == "say" and target_id is not None:
+            direct = {
+                "action": "dialogue", "status": "clarification", "success": False,
+                "state_changes": [],
+                "direct_response": "Kiminle konu\u015fmak istiyorsun?",
+            }
+        if resolved_npc is None and not direct:
+            npc_resolution = resolve_npc_reference(
+                player_input, **({"force_dialogue": True} if interaction_mode == "say" else {})
+            )
             if npc_resolution.get("status") == "ambiguous":
-                if _has_explicit_attack_verb(player_input):
+                if (
+                    interaction_mode not in {"say", "ask_dm"}
+                    and _has_explicit_attack_verb(player_input)
+                ):
                     direct = {
                         "action": "attack",
                         "status": "clarification",
@@ -11151,10 +11236,18 @@ def run_player_turn(
     action_id=None,
     session_id=None,
     combat_action=None,
+    interaction_mode=None,
 ):
     before = copy.deepcopy(_session().world_state)
     result = _dispatch_player_turn(
-        player_input, messages, target_id, scene_plan, action_id, session_id, combat_action
+        player_input,
+        messages,
+        target_id,
+        scene_plan,
+        action_id,
+        session_id,
+        combat_action,
+        interaction_mode,
     )
     # Direct locked-owner routes bypass finish_turn; consume their resolved clock
     # and outcomes here without altering their mechanics or call budget.
@@ -11167,8 +11260,73 @@ def run_player_turn(
 
 def _dispatch_player_turn(
     player_input, messages=None, target_id=None, scene_plan=None,
-    action_id=None, session_id=None, combat_action=None,
+    action_id=None, session_id=None, combat_action=None, interaction_mode=None,
 ):
+    interaction_mode = _normalize_interaction_mode(interaction_mode)
+    if combat_action is not None:
+        interaction_mode = "do"
+    elif interaction_mode in {"say", "ask_dm"}:
+        if _session().world_state.get("combat", {}).get("active"):
+            raise combat_lifecycle.CombatRequestError(
+                "unsupported_interaction_mode", "Use an action during active combat.", 400
+            )
+        require_player_can_act()
+        if interaction_mode == "ask_dm":
+            target_id = None
+    if (
+        combat_action is None
+        and interaction_mode not in {"say", "ask_dm"}
+        and not _session().world_state.get("combat", {}).get("active")
+        and _is_end_conversation_request(player_input)
+    ):
+        require_player_can_act()
+        active = _active_interlocutor()
+        _clear_active_interlocutor()
+        if active is None:
+            narration = "Şu anda sürdürdüğün bir konuşma yok."
+            status = "no_effect"
+        else:
+            narration = f"{living_world.public_npc_name(active)} ile konuşmayı bitiriyorsun."
+            status = "conversation_ended"
+        return {
+            "messages": _session().messages,
+            "narration": narration,
+            "model_calls": 0,
+            "action_result": {
+                "action": "dialogue",
+                "status": status,
+                "success": True,
+                "npc_id": active.get("id") if isinstance(active, dict) else None,
+                "state_changes": ["conversation"] if active is not None else [],
+            },
+        }
+    if combat_action is None and interaction_mode in {"say", "ask_dm"}:
+        if (
+            interaction_mode == "ask_dm"
+            and equipment_economy._natural_inventory_query(player_input)
+        ):
+            equipment_result = equipment_economy.execute(_session(), player_input)
+            if equipment_result is not None:
+                return equipment_result
+        if action_id is None:
+            try:
+                return _run_player_turn_internal(
+                    player_input, messages, target_id, scene_plan, interaction_mode
+                )
+            except TurnResolved as e:
+                return _narrate_resolved_turn(
+                    e.resolved_turn, player_input, messages, target_id
+                )
+        with resolution_action_scope(action_id, session_id):
+            try:
+                return _run_player_turn_internal(
+                    player_input, messages, target_id, scene_plan, interaction_mode
+                )
+            except TurnResolved as e:
+                return _narrate_resolved_turn(
+                    e.resolved_turn, player_input, messages, target_id
+                )
+
     import exploration
     if (combat_action is None and _session().character.get("current_hp", 0) > 0
             and exploration.native_request(player_input, _session())):
@@ -11217,7 +11375,7 @@ def _dispatch_player_turn(
     if action_id is None:
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan
+                player_input, messages, target_id, scene_plan, interaction_mode
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -11226,7 +11384,7 @@ def _dispatch_player_turn(
     with resolution_action_scope(action_id, session_id):
         try:
             return _run_player_turn_internal(
-                player_input, messages, target_id, scene_plan
+                player_input, messages, target_id, scene_plan, interaction_mode
             )
         except TurnResolved as e:
             return _narrate_resolved_turn(
@@ -11505,7 +11663,10 @@ def _death_resolution_from_actions(actions):
     return None
 
 
-def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
+def _run_player_turn_internal(
+    player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None
+):
+    interaction_mode = _normalize_interaction_mode(interaction_mode)
     narration_model_calls = 0
     narration_source = "deterministic_system"
     """Intent → rules → validated updates → committed state → narration."""
@@ -11543,13 +11704,21 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         and entry_combat["current_actor_id"] == "player"
     ):
         raise ValueError("Bilinçsiz karakter eylem gerçekleştiremez.")
-    world_subject_question = local_dialogue.is_world_subject_question(player_input)
+    world_subject_question = (
+        True if interaction_mode == "ask_dm"
+        else False if interaction_mode == "say"
+        else local_dialogue.is_world_subject_question(player_input)
+    )
     if messages is None:
         messages = _session().messages
     scene_plan = (
         scene_plan
         if isinstance(scene_plan, dict)
-        else plan_living_world_turn(player_input, target_id=target_id)
+        else plan_living_world_turn(
+            player_input,
+            target_id=target_id,
+            interaction_mode=interaction_mode,
+        )
     )
     injected_lore_context = getattr(_session(), "lore_authority_context", None)
     lore_context = _prepare_lore_authority_context(injected_lore_context)
@@ -11769,7 +11938,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         raise TurnResolved(result, resolved)
 
     compound = interaction_adventure.compound_plan(player_input)
-    if compound is not None and not entry_combat["active"]:
+    if (compound is not None and not entry_combat["active"]
+            and interaction_mode not in {"say", "ask_dm"}):
         # These steps are exact player spans, not model paraphrases. Recording
         # them does not require an addressee or permission to execute any step.
         intent_source = "python_compound_plan"
@@ -11780,7 +11950,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         )
 
     ensure_campaign_clock()
-    if "campaign_time" in world_state and not ensure_combat_state()["active"]:
+    if ("campaign_time" in world_state and not ensure_combat_state()["active"]
+            and interaction_mode not in {"say", "ask_dm"}):
         # A stated sequence containing "wait" is a plan, not permission to run
         # its first step before the plan has been interpreted and confirmed.
         timed_result = (
@@ -12009,7 +12180,11 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
 
     # Character-sheet questions do not require an unambiguous NPC. Keep the
     # existing combat and explicit-target validation boundaries intact.
-    character_reply = known_character_answer(player_input) if not combat["active"] else None
+    character_reply = (
+        known_character_answer(player_input)
+        if not combat["active"] and interaction_mode != "say"
+        else None
+    )
     if target_id is not None:
         if not isinstance(target_id, str) or not target_id:
             result = {
@@ -12026,7 +12201,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             npc_target = next(
                 (
                     npc
-                    for npc in active_npcs()
+                    for npc in (_conversation_npcs() if interaction_mode == "say" else active_npcs())
                     if isinstance(npc, dict) and npc.get("id") == target_id
                 ),
                 None,
@@ -12046,7 +12221,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         npc_target = (
             next(
                 (
-                    npc for npc in active_npcs()
+                    npc for npc in (_conversation_npcs() if interaction_mode == "say" else active_npcs())
                     if isinstance(npc, dict) and npc.get("id") == planned_npc_id
                 ),
                 None,
@@ -12063,10 +12238,15 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             if world_subject_question
             else {"status": "found", "npc": npc_target}
             if npc_target is not None
-            else resolve_npc_reference(player_input)
+            else resolve_npc_reference(
+                player_input, **({"force_dialogue": True} if interaction_mode == "say" else {})
+            )
         )
         if npc_resolution["status"] == "ambiguous" and not character_reply:
-            if _has_explicit_attack_verb(player_input):
+            if (
+                interaction_mode not in {"say", "ask_dm"}
+                and _has_explicit_attack_verb(player_input)
+            ):
                 action_result = execute_intent(
                     {"intent": "attack"},
                     player_input,
@@ -12082,6 +12262,13 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
                 npc_ambiguity_response(npc_resolution),
             )
         npc_target = npc_resolution.get("npc") if npc_resolution["status"] == "found" else None
+
+    if interaction_mode == "say" and npc_target is None:
+        result = {
+            "action": "dialogue", "status": "clarification", "success": False,
+            "state_changes": [],
+        }
+        return finish_turn(result, "Kiminle konuşmak istiyorsun?", is_final=True)
 
     # An active conversation is not authority over the player's location.
     # Resolve only recognized location queries here; NPC dialogue, interaction
@@ -12118,7 +12305,10 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
     # Do not let a model reinterpret it as dialogue or an NPC interaction.
     # Target resolution above and execute_intent() remain the existing combat
     # owners; this is only deterministic routing precedence.
-    if combat_lifecycle.is_attack_decision(_session(), player_input):
+    if (
+        interaction_mode not in {"say", "ask_dm"}
+        and combat_lifecycle.is_attack_decision(_session(), player_input)
+    ):
         action_result = execute_intent(
             {"intent": "attack"},
             player_input,
@@ -12131,7 +12321,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             is_final=True,
         )
 
-    interaction_hint = interaction_adventure.hint(player_input, npc_target)
+    interaction_hint = (None if interaction_mode == "ask_dm"
+                        else interaction_adventure.hint(player_input, npc_target))
     if interaction_hint and not combat["active"]:
         intent_model_calls = 1
         intent_source = "interaction_proposal"
@@ -12151,7 +12342,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             },
         )
 
-    shop_request = target_id is None and _explicit_campaign_shop_request(player_input)
+    shop_request = (interaction_mode not in {"say", "ask_dm"}
+                    and target_id is None and _explicit_campaign_shop_request(player_input))
     shop_count_before = len(world_state.get("shops", []))
     current_shop_count = sum(
         1 for shop in world_state.get("shops", [])
@@ -12173,7 +12365,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         message = "Bu bölgede yeni bir dükkân veya dükkâncı için yer kalmamış."
         return finish_turn(action_result, message)
 
-    if world_state.get("shops") and _shop_economy_request(player_input):
+    if (interaction_mode not in {"say", "ask_dm"}
+            and world_state.get("shops") and _shop_economy_request(player_input)):
         action_result = {
             "action": "shop_economy",
             "status": "unsupported",
@@ -12191,7 +12384,8 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             safety_handling="python_fallback",
         )
 
-    if _explicit_campaign_shop_negative_request(player_input):
+    if (interaction_mode not in {"say", "ask_dm"}
+            and _explicit_campaign_shop_negative_request(player_input)):
         action_result = {
             "action": "shop_setup",
             "status": "explicitly_declined",
@@ -12440,7 +12634,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
             safety_handling="python_scene_response",
         )
 
-    if is_npc_historical_claim(player_input):
+    if interaction_mode != "ask_dm" and is_npc_historical_claim(player_input):
         claimed_npc = npc_target or _resolve_campaign_npc_reference(player_input, world_state)
         supported_entry = (
             npc_memory_supporting_entry(claimed_npc, player_input)
@@ -12529,7 +12723,7 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
 
     if shop_request:
         validated_intent = {"intent_type": "narrative"}
-    elif npc_target and is_npc_dialogue_input(player_input):
+    elif npc_target and (interaction_mode == "say" or is_npc_dialogue_input(player_input)):
         intent_model_calls = 1
         intent_source = "interaction_proposal"
         raw_intent = parse_player_intent(

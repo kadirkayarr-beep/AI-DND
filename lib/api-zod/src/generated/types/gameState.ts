@@ -12,6 +12,7 @@ import type { DeathStateProjection } from './deathStateProjection';
 import type { ExplorationState } from './explorationState';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
+import type { GameConversation } from './gameConversation';
 import type { GameDoor } from './gameDoor';
 import type { GameExpedition } from './gameExpedition';
 import type { GameFeature } from './gameFeature';
@@ -40,6 +41,7 @@ export interface GameState {
   expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
+  conversation: GameConversation;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;

@@ -393,6 +393,18 @@ export interface GameScene {
   referents: GameSceneReferent[];
 }
 
+export interface GameConversationNpc {
+  id: string;
+  name: string;
+  /** @nullable */
+  role?: string | null;
+}
+
+export interface GameConversation {
+  active: boolean;
+  interlocutor: GameConversationNpc | null;
+}
+
 export type GameWorldMetadataEnvironment = typeof GameWorldMetadataEnvironment[keyof typeof GameWorldMetadataEnvironment];
 
 
@@ -1259,6 +1271,7 @@ export interface GameState {
   expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
+  conversation: GameConversation;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;
@@ -1284,6 +1297,18 @@ export interface GameSession {
   session_id: string;
   state: GameState;
 }
+
+/**
+ * @nullable
+ */
+export type GameTurnInputInteractionMode = typeof GameTurnInputInteractionMode[keyof typeof GameTurnInputInteractionMode] | null;
+
+
+export const GameTurnInputInteractionMode = {
+  say: 'say',
+  do: 'do',
+  ask_dm: 'ask_dm',
+} as const;
 
 export type EconomyStepInputKind = typeof EconomyStepInputKind[keyof typeof EconomyStepInputKind];
 
@@ -1411,6 +1436,8 @@ export interface GameTurnInput {
      * @maxLength 4000
      */
   message: string;
+  /** @nullable */
+  interaction_mode?: GameTurnInputInteractionMode;
   /**
      * @minLength 1
      * @maxLength 128

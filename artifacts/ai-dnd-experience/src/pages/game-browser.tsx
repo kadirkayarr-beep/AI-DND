@@ -73,7 +73,7 @@ import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
 import type { CombatActionInput } from '@workspace/api-client-react';
-import { getContextualActionSuggestions } from '@/lib/action-suggestions';
+import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -472,6 +472,11 @@ function StoryColumn({
   entries,
   message,
   setMessage,
+  interactionMode,
+  setInteractionMode,
+  conversationTargetId,
+  setConversationTargetId,
+  onEndConversation,
   onSubmit,
   onExplorationCommand,
   onEconomyCommand,
@@ -494,6 +499,11 @@ function StoryColumn({
   entries: TranscriptEntry[];
   message: string;
   setMessage: (value: string) => void;
+  interactionMode: InteractionMode;
+  setInteractionMode: (value: InteractionMode) => void;
+  conversationTargetId: string;
+  setConversationTargetId: (value: string) => void;
+  onEndConversation: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onExplorationCommand: (message: string) => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
@@ -525,10 +535,18 @@ function StoryColumn({
       && participant.current_hp > 0,
   );
   const actionSuggestions = getContextualActionSuggestions(state);
+  const conversationTargets = (state.scene?.npcs ?? []).filter(
+    (npc) => typeof npc.id === 'string' && typeof npc.name === 'string' && npc.name.trim().length > 0,
+  );
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const currentActor = state.combat.participant_records.find(
     (participant) => participant.id === state.combat.current_actor_id,
   );
+  const modePrompt = interactionMode === 'say'
+    ? 'Ne söylüyorsun?'
+    : interactionMode === 'ask_dm'
+      ? 'Anlatıcıya ne sormak istiyorsun?'
+      : 'Ne yapmak istiyorsun?';
   return (
     <section className="story-column workspace-story" data-testid="panel-story">
       <div className="story-heading">
@@ -586,6 +604,9 @@ function StoryColumn({
                 disabled={sending}
                 key={suggestion.id}
                 onClick={() => {
+                  setInteractionMode(suggestion.mode);
+                  setConversationTargetId(suggestion.mode === 'say' ? (suggestion.targetId ?? '') : '');
+                  if (state.combat.active && suggestion.targetId) setCombatTargetId(suggestion.targetId);
                   setMessage(suggestion.message);
                   messageInputRef.current?.focus();
                 }}
@@ -596,6 +617,63 @@ function StoryColumn({
             ))}
           </div>
         </div>
+        {state.conversation.active && state.conversation.interlocutor && (
+          <div className="data-row mb-3" role="status" data-testid="active-interlocutor">
+            <div className="flex items-center gap-2">
+              <MessageCircle size={13} aria-hidden="true" />
+              <span>Konuşuyorsun: <strong>{state.conversation.interlocutor.name}</strong></span>
+              <button
+                className="action-suggestion ml-auto"
+                type="button"
+                disabled={sending}
+                onClick={onEndConversation}
+                data-testid="button-end-conversation"
+              >
+                Konuşmayı bitir
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="action-suggestion-list mb-3" role="group" aria-label="Etkileşim biçimi" data-testid="interaction-mode-selector">
+          {([
+            ['say', 'SÖYLE'],
+            ['do', 'YAP'],
+            ['ask_dm', 'ANLATICIYA SOR'],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              className="action-suggestion"
+              type="button"
+              aria-pressed={interactionMode === mode}
+              data-testid={`button-mode-${mode}`}
+              disabled={sending || (state.combat.active && mode !== 'do')}
+              onClick={() => {
+                setInteractionMode(mode);
+                if (mode !== 'say') setConversationTargetId('');
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {interactionMode === 'say' && conversationTargets.length > 1 && (
+          <label className="command-target-label mb-3" htmlFor="conversation-target-select">
+            <span>Kiminle konuşuyorsun? <small>— isteğe bağlı</small></span>
+            <select
+              id="conversation-target-select"
+              className="command-target-select"
+              value={conversationTargetId}
+              onChange={(event) => setConversationTargetId(event.target.value)}
+              disabled={sending}
+              data-testid="select-conversation-target"
+            >
+              <option value="">Sözlerimde belirteceğim</option>
+              {conversationTargets.map((npc) => (
+                <option value={npc.id} key={npc.id}>{npc.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <form className="command-form" onSubmit={onSubmit}>
           {state.pending_event_decisions?.map((event, index) => <div className="data-row mb-3" data-testid="scheduled-event-decision" key={index}>
             <p>{event.summary}</p>
@@ -650,7 +728,7 @@ function StoryColumn({
             </label>
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
@@ -910,7 +988,9 @@ export default function GameBrowser() {
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
+  const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [activeTab, setActiveTab] = useState<WorldTab>('world');
@@ -987,10 +1067,20 @@ export default function GameBrowser() {
   useEffect(() => {
     if (!state) return;
     const active = Boolean(state.combat.active);
-    if (active) setActiveTab('combat');
+    if (active) {
+      setActiveTab('combat');
+      setInteractionMode('do');
+      setConversationTargetId('');
+    }
     else if (previousCombatActive.current === true) setActiveTab('world');
     previousCombatActive.current = active;
   }, [state?.combat.active]);
+
+  useEffect(() => {
+    setConversationTargetId((current) => (
+      state?.scene?.npcs.some((npc) => npc.id === current) ? current : ''
+    ));
+  }, [state?.scene]);
 
   useEffect(() => {
     if (!state || previousLocation.current === '') { if (state) previousLocation.current = state.location; return; }
@@ -1007,6 +1097,8 @@ export default function GameBrowser() {
     if (!sessionId || !stateQuery.isError) return;
     if (statusCode(stateQuery.error) === 404) {
       setSessionId('');
+      setConversationTargetId('');
+      setInteractionMode('do');
       setPhase('library');
       setNotice({ tone: 'warning', title: 'Oturum yeniden açılmalı', detail: 'Kayıtlı macerayı defterden seçerek güvenli biçimde sürdürebilirsin.' });
     }
@@ -1030,6 +1122,8 @@ export default function GameBrowser() {
     setEntries([]);
     setCombatEntries([]);
     setCombatEndNotice(null);
+    setConversationTargetId('');
+    setInteractionMode('do');
     setMessage('');
     setNotice(null);
     setResumingCampaignId(null);
@@ -1061,6 +1155,8 @@ export default function GameBrowser() {
         setEntries([]);
         setCombatEntries([]);
         setCombatEndNotice(null);
+        setInteractionMode('do');
+        setConversationTargetId('');
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(created.session_id);
@@ -1119,6 +1215,8 @@ export default function GameBrowser() {
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
+        setInteractionMode('do');
+        setConversationTargetId('');
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(resumed.session_id);
@@ -1205,13 +1303,20 @@ export default function GameBrowser() {
     submitAmbientEventAction(request);
   };
 
-  const submitTurn = (text: string, combatAction?: CombatActionInput) => {
+  const submitTurn = (
+    text: string,
+    combatAction?: CombatActionInput,
+    mode: InteractionMode = interactionMode,
+  ) => {
     const trimmed = text.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
-    const targetId = combatTargetId || null;
+    const metadata = getTurnInteractionMetadata(
+      state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
+    );
+    const targetId = metadata.target_id;
     const actionScope = campaignId || sessionId;
-    const signature = JSON.stringify([actionScope, trimmed, targetId, combatAction ?? null]);
+    const signature = JSON.stringify([actionScope, trimmed, metadata.interaction_mode, targetId, combatAction ?? null]);
     const actionId = pendingTurnRef.current?.signature === signature
       ? pendingTurnRef.current.actionId
       : stableTurnActionId(actionScope, signature, state?.combat.active && state.combat.combat_id ? {
@@ -1223,6 +1328,7 @@ export default function GameBrowser() {
       sessionId,
       data: {
         message: trimmed,
+        interaction_mode: metadata.interaction_mode,
         action_id: actionId,
         ...(combatAction ? { combat_action: combatAction } : {}),
         ...storedTurnContext(actionScope, actionId),
@@ -1274,6 +1380,7 @@ export default function GameBrowser() {
           setCombatEndNotice(null);
         }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
           const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
           const objective = quest?.objectives.find((item) => item.objective_id === outcome.objective_id);
@@ -1310,7 +1417,7 @@ export default function GameBrowser() {
   const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    submitTurn(message);
+    submitTurn(message, undefined, interactionMode);
   };
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} locationCatalog={campaignStartOptionsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
   if (phase === 'creation') return (
@@ -1370,9 +1477,14 @@ export default function GameBrowser() {
                 entries={entries}
                 message={message}
                 setMessage={setMessage}
+                interactionMode={interactionMode}
+                setInteractionMode={setInteractionMode}
+                conversationTargetId={conversationTargetId}
+                setConversationTargetId={setConversationTargetId}
+                onEndConversation={() => submitTurn('Konuşmayı bitiriyorum.', undefined, 'do')}
                 onSubmit={handleSubmit}
-                onExplorationCommand={submitTurn}
-                onEconomyCommand={submitTurn}
+                onExplorationCommand={(text) => submitTurn(text, undefined, 'do')}
+                onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}
                 sending={playTurn.isPending}
                 notice={notice}
                 scrollRef={storyScrollRef}

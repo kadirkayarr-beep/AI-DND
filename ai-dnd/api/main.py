@@ -675,7 +675,11 @@ def create_app(
         record = get_record(session_id)
         active_adapter = application.state.ollama_adapter
         action_id = str(request.action_id or uuid4())
+        effective_mode = "do" if request.combat_action is not None else request.interaction_mode
         hash_payload = {"message": request.message, "target_id": request.target_id}
+        # Omitted modes keep the legacy hash used by saved turn receipts.
+        if request.interaction_mode is not None:
+            hash_payload["interaction_mode"] = request.interaction_mode
         if request.combat_action is not None:
             hash_payload["combat_action"] = request.combat_action.model_dump(exclude_none=True)
         if request.combat_id is not None:
@@ -716,7 +720,10 @@ def create_app(
             if isinstance(session, game.GameSession):
                 try:
                     combat_lifecycle.validate_request(
-                        session, request.message, request.target_id, combat_id=request.combat_id,
+                        session,
+                        request.message if effective_mode in {None, "do"} else "",
+                        request.target_id if effective_mode in {None, "do"} else None,
+                        combat_id=request.combat_id,
                         combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
                     )
                 except combat_lifecycle.CombatRequestError as error:
@@ -811,15 +818,32 @@ def create_app(
                         session.character,
                         record.campaign_id,
                     )
+                effective_target_id = (
+                    None
+                    if effective_mode == "ask_dm"
+                    else request.target_id
+                )
+                plan_kwargs = {"target_id": effective_target_id}
+                if effective_mode is not None:
+                    try:
+                        plan_parameters = inspect.signature(
+                            session.plan_living_world_turn
+                        ).parameters
+                    except (TypeError, ValueError):
+                        plan_parameters = inspect.signature(
+                            game.plan_living_world_turn
+                        ).parameters
+                    if "interaction_mode" in plan_parameters:
+                        plan_kwargs["interaction_mode"] = effective_mode
                 scene_plan = session.plan_living_world_turn(
                     narrative_player_message,
-                    target_id=request.target_id,
+                    **plan_kwargs,
                 )
                 lore_context = _lore_context_for_turn(
                     record,
                     session,
                     narrative_player_message,
-                    request.target_id,
+                    effective_target_id,
                     scene_plan=scene_plan,
                 )
                 lore_diagnostics = lore_context.get("diagnostics", {})
@@ -862,12 +886,17 @@ def create_app(
                                     run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
                                 if "scene_plan" in run_parameters:
                                     run_kwargs["scene_plan"] = scene_plan
+                                if (
+                                    "interaction_mode" in run_parameters
+                                    and effective_mode is not None
+                                ):
+                                    run_kwargs["interaction_mode"] = effective_mode
                                 if "action_id" in run_parameters:
                                     run_kwargs["action_id"] = action_id
                                 if "session_id" in run_parameters:
                                     run_kwargs["session_id"] = session_id
-                                if request.target_id is not None:
-                                    run_kwargs["target_id"] = request.target_id
+                                if effective_target_id is not None:
+                                    run_kwargs["target_id"] = effective_target_id
                                 result = run_turn(request.message, **run_kwargs)
             except Exception as error:
                 try:

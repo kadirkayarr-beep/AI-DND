@@ -1,10 +1,33 @@
 import type { GameState } from '@workspace/api-client-react';
 
+export type InteractionMode = 'say' | 'do' | 'ask_dm';
+
 export type ContextualActionSuggestion = {
   id: string;
   label: string;
   message: string;
+  mode: InteractionMode;
+  targetId?: string;
 };
+
+export function getTurnInteractionMetadata(
+  state: Pick<GameState, 'scene' | 'combat'> | undefined,
+  mode: InteractionMode,
+  conversationTargetId: string,
+  combatTargetId: string,
+  hasStructuredAction = false,
+): { interaction_mode: InteractionMode; target_id: string | null } {
+  const effectiveMode = state?.combat.active || hasStructuredAction ? 'do' : mode;
+  const presentConversationTarget = state?.scene?.npcs.some(
+    (npc) => npc.id === conversationTargetId,
+  );
+  return {
+    interaction_mode: effectiveMode,
+    target_id: effectiveMode === 'say'
+      ? (presentConversationTarget ? conversationTargetId : null)
+      : state?.combat.active ? (combatTargetId || null) : null,
+  };
+}
 
 export function getContextualActionSuggestions(
   state: GameState,
@@ -14,6 +37,7 @@ export function getContextualActionSuggestions(
       id: 'observe',
       label: 'Çevreyi gözlemle',
       message: 'Çevreyi gözlemliyorum.',
+      mode: 'do',
     },
   ];
   const sceneNpcs = (state.scene?.npcs ?? []).filter(
@@ -35,6 +59,8 @@ export function getContextualActionSuggestions(
           id: `attack-${target.id}`,
           label: `Saldır: ${target.name}`,
           message: `${target.name} adlı hedefe kılıcımla saldırıyorum.`,
+          mode: 'do',
+          targetId: target.id,
         });
       }
     }
@@ -44,6 +70,8 @@ export function getContextualActionSuggestions(
         id: `talk-${npc.id}`,
         label: `${npc.name} ile konuş`,
         message: `${npc.name} ile konuşmak istiyorum.`,
+        mode: 'say',
+        targetId: npc.id,
       });
     }
   } else {
@@ -51,6 +79,7 @@ export function getContextualActionSuggestions(
       id: 'presence',
       label: 'Yakında kimler var?',
       message: 'Burada kimler var?',
+      mode: 'ask_dm',
     });
   }
 
@@ -59,6 +88,7 @@ export function getContextualActionSuggestions(
       id: 'inventory',
       label: 'Envanterimi gözden geçir',
       message: 'Envanterimde neler var?',
+      mode: 'ask_dm',
     });
   }
 
