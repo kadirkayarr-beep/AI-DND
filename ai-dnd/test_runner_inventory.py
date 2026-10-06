@@ -17,6 +17,13 @@ import run_tests
 
 
 class RunnerInventoryTests(unittest.TestCase):
+    @staticmethod
+    def completed_gate(command, *, cwd, returncode=0):
+        """Simulate the child's receipt as well as its process exit status."""
+        if len(command) == 5 and returncode == 0:
+            Path(command[4]).write_text(command[3], encoding="utf-8")
+        return subprocess.CompletedProcess(command, returncode)
+
     def test_release_keeps_existing_gates_except_retired_prototypes(self):
         # Explicit policy inventory: do not silently drop another gate.
         expected = {
@@ -45,14 +52,17 @@ class RunnerInventoryTests(unittest.TestCase):
                  patch.object(run_tests, "check_test_definitions", return_value=[]) as preflight, \
                  patch.object(run_tests.subprocess, "run") as execute, \
                  redirect_stdout(StringIO()):
-                execute.return_value.returncode = 0
+                execute.side_effect = self.completed_gate
                 self.assertEqual(run_tests.main(argv), 0)
                 self.assertEqual(list(preflight.call_args.args[0]),
                                  [run_tests.ROOT / name for name in run_tests.TESTS])
-                self.assertEqual([call.args[0] for call in execute.call_args_list], [
+                self.assertEqual([
+                    call.args[0][:-1] if name.startswith("api/tests/") else call.args[0]
+                    for name, call in zip(run_tests.TESTS, execute.call_args_list)
+                ], [
                     ([run_tests.sys.executable, "-c",
                       "import sys; from run_tests import run_unittest_gate; "
-                      "sys.exit(run_unittest_gate(sys.argv[1]))",
+                      "sys.exit(run_unittest_gate(sys.argv[1], sys.argv[2]))",
                       name.removesuffix(".py").replace("/", ".")]
                      if name.startswith("api/tests/") else
                      [run_tests.sys.executable, str(run_tests.ROOT / name)])
@@ -60,6 +70,51 @@ class RunnerInventoryTests(unittest.TestCase):
                 ])
                 self.assertTrue(all(call.kwargs["cwd"] == run_tests.ROOT
                                     for call in execute.call_args_list))
+                receipts = [Path(call.args[0][4]) for call in execute.call_args_list
+                            if len(call.args[0]) == 5]
+                self.assertEqual(len(receipts), 2)
+                self.assertEqual(len(set(receipts)), 2)
+                self.assertTrue(all(not path.parent.exists() for path in receipts))
+
+    def test_api_completion_evidence_must_be_valid_and_cannot_override_failure(self):
+        first, second = ("api/tests/test_initiative.py",
+                         "api/tests/test_death_bounded.py")
+        gates = (first, second, "release_later.py")
+        for argv in ((), ("--suite", "release")):
+            for evidence in (None, b"", b"wrong.module", b"\xff", b"valid_but_failed"):
+                with self.subTest(argv=argv, evidence=evidence), \
+                     patch.object(run_tests, "TESTS", gates), \
+                     patch.object(run_tests, "check_test_definitions", return_value=[]), \
+                     patch.object(run_tests.subprocess, "run") as execute, \
+                     redirect_stdout(StringIO()) as output, \
+                     redirect_stderr(StringIO()) as stderr:
+                    receipts = []
+
+                    def finish(command, **kwargs):
+                        if len(command) != 5:
+                            return self.completed_gate(command, **kwargs)
+                        receipts.append(Path(command[4]))
+                        self.assertFalse(receipts[-1].exists())
+                        if command[3] != first[:-3].replace("/", "."):
+                            return self.completed_gate(command, **kwargs)
+                        if evidence == b"valid_but_failed":
+                            self.completed_gate(command, **kwargs)
+                            return subprocess.CompletedProcess(command, 1)
+                        if evidence is not None:
+                            receipts[-1].write_bytes(evidence)
+                        return subprocess.CompletedProcess(command, 0)
+
+                    execute.side_effect = finish
+                    self.assertEqual(run_tests.main(argv), 1)
+                    self.assertEqual(execute.call_count, len(gates))
+                    self.assertEqual(output.getvalue().splitlines()[-1],
+                                     f"RELEASE DETERMINISTIC GATES FAILED: {first}")
+                    self.assertNotIn("PASSED", output.getvalue())
+                    if evidence != b"valid_but_failed":
+                        self.assertIn("no valid successful completion evidence",
+                                      stderr.getvalue())
+                    self.assertEqual(len(set(receipts)), 2)
+                    self.assertTrue(all(not path.parent.exists() for path in receipts))
 
     def test_prototypes_are_opt_in_and_failures_are_not_release_results(self):
         for failed in (False, True):
@@ -88,10 +143,12 @@ class RunnerInventoryTests(unittest.TestCase):
         output = StringIO()
         with patch.object(run_tests, "check_test_definitions", return_value=[]), \
              patch.object(run_tests.subprocess, "run") as execute, redirect_stdout(output):
-            execute.side_effect = [
+            results = iter([
                 subprocess.CompletedProcess([], int(name == "test_combat_v2_authoritative.py"))
                 for name in run_tests.TESTS
-            ]
+            ])
+            execute.side_effect = lambda command, **kwargs: self.completed_gate(
+                command, **kwargs, returncode=next(results).returncode)
             self.assertEqual(run_tests.main(), 1)
             self.assertEqual(execute.call_count, len(run_tests.TESTS))
         self.assertIn("RELEASE DETERMINISTIC GATES FAILED: test_combat_v2_authoritative.py",
@@ -107,10 +164,12 @@ class RunnerInventoryTests(unittest.TestCase):
                      patch.object(run_tests, "check_test_definitions", return_value=[]), \
                      patch.object(run_tests.subprocess, "run") as execute, \
                      redirect_stdout(output):
-                    execute.side_effect = [
+                    results = iter([
                         subprocess.CompletedProcess([], int(name == failed_gate))
                         for name in run_tests.TESTS
-                    ]
+                    ])
+                    execute.side_effect = lambda command, **kwargs: self.completed_gate(
+                        command, **kwargs, returncode=next(results).returncode)
                     self.assertEqual(run_tests.main(argv), 1)
                     self.assertEqual(execute.call_count, len(run_tests.TESTS))
                 self.assertIn(f"RELEASE DETERMINISTIC GATES FAILED: {failed_gate}",
@@ -126,10 +185,12 @@ class RunnerInventoryTests(unittest.TestCase):
                      patch.object(run_tests, "check_test_definitions", return_value=[]), \
                      patch.object(run_tests.subprocess, "run") as execute, \
                      redirect_stdout(output):
-                    execute.side_effect = [
+                    results = iter([
                         subprocess.CompletedProcess([], int(name == failed_gate))
                         for name in run_tests.TESTS
-                    ]
+                    ])
+                    execute.side_effect = lambda command, **kwargs: self.completed_gate(
+                        command, **kwargs, returncode=next(results).returncode)
                     self.assertEqual(run_tests.main(argv), 1)
                     self.assertEqual(execute.call_count, len(run_tests.TESTS))
                 self.assertIn(f"RELEASE DETERMINISTIC GATES FAILED: {failed_gate}",
@@ -213,7 +274,7 @@ class RunnerInventoryTests(unittest.TestCase):
             with patch.object(run_tests, "ROOT", root), \
                  patch.object(run_tests.subprocess, "run") as execute, \
                  redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
-                execute.return_value.returncode = 0
+                execute.side_effect = self.completed_gate
                 self.assertEqual(run_tests.main(), 0)
                 self.assertEqual(execute.call_count, len(run_tests.TESTS))
                 execute.reset_mock()
@@ -611,6 +672,78 @@ class RunnerProcessTests(unittest.TestCase):
                     self.assertEqual(
                         (root / (later + ".sentinel")).read_text(), "started",
                     )
+                    self.assertNotIn("PREFLIGHT FAILED", output)
+                    self.assertNotIn("PASSED", output)
+                    self.assertNotIn("Ran 1 test", output)
+
+    def test_api_abrupt_zero_exit_blocks_release_and_keeps_later_gate_running(self):
+        api_gates = ("api/tests/test_initiative.py",
+                     "api/tests/test_death_bounded.py")
+        later = "release_later.py"
+        suites = {
+            "TESTS": (*api_gates, later),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        exits = {
+            "import": "os._exit(0)\n",
+            "load_tests": (
+                "def load_tests(loader, tests, pattern):\n"
+                "    Path(__file__ + '.hook').write_text('started')\n"
+                "    os._exit(0)\n"
+            ),
+        }
+        for argv in ((), ("--suite", "release")):
+            for kinds in (("import", "load_tests"), ("load_tests", "import")):
+                with self.subTest(argv=argv, kinds=kinds), \
+                     tempfile.TemporaryDirectory() as directory, \
+                     patch.object(self, "SUITES", suites):
+                    root = Path(directory) / "runner"
+                    root.mkdir()
+                    self.copy_runner(root)
+                    package = root / "api" / "tests"
+                    package.mkdir(parents=True)
+                    (package.parent / "__init__.py").touch()
+                    (package / "__init__.py").touch()
+                    for name, kind in zip(api_gates, kinds):
+                        (root / name).write_text(
+                            "import os\nimport unittest\nfrom pathlib import Path\n"
+                            f"Path({name + '.sentinel'!r}).write_text('imported')\n"
+                            "with Path('order.txt').open('a') as log:\n"
+                            f"    log.write({name + chr(10)!r})\n"
+                            "class BoundaryTests(unittest.TestCase):\n"
+                            "    def test_boundary(self):\n"
+                            f"        Path({name + '.assertion'!r}).write_text('ran')\n"
+                            + exits[kind], encoding="utf-8",
+                        )
+                    self.write_gate(root, later, "def test_ok(): pass\n")
+                    self.assertEqual(run_tests.check_test_definitions(
+                        root / gate for gate in suites["TESTS"]), [])
+                    self.assertFalse((root / "order.txt").exists())
+                    for name in api_gates:
+                        self.assertFalse((root / (name + ".sentinel")).exists())
+                        self.assertFalse((root / (name + ".hook")).exists())
+
+                    result = self.launch_runner(root, argv, cwd=Path(directory))
+                    output = result.stdout + result.stderr
+                    self.assertEqual(result.returncode, 1, output)
+                    self.assertEqual(result.stdout.splitlines()[-1],
+                                     "RELEASE DETERMINISTIC GATES FAILED: "
+                                     + ", ".join(api_gates))
+                    self.assertEqual((root / "order.txt").read_text().splitlines(),
+                                     list(suites["TESTS"]))
+                    for name, kind in zip(api_gates, kinds):
+                        self.assertEqual((root / (name + ".sentinel")).read_text(),
+                                         "imported")
+                        self.assertFalse((root / (name + ".assertion")).exists())
+                        self.assertEqual((root / (name + ".hook")).exists(),
+                                         kind == "load_tests")
+                        self.assertIn(
+                            f"UNITTEST GATE FAILED: {name[:-3].replace('/', '.')} "
+                            "has no valid successful completion evidence",
+                            result.stderr,
+                        )
+                    self.assertEqual((root / (later + ".sentinel")).read_text(),
+                                     "started")
                     self.assertNotIn("PREFLIGHT FAILED", output)
                     self.assertNotIn("PASSED", output)
                     self.assertNotIn("Ran 1 test", output)

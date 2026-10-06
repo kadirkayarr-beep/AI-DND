@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 from test_definition_preflight import check_test_definitions
 
@@ -41,7 +42,7 @@ PROTOTYPE_TESTS = (
 )
 
 
-def run_unittest_gate(module):
+def run_unittest_gate(module, completion_path=None):
     """Require both successful assertions and evidence of executed tests."""
     import unittest
 
@@ -60,7 +61,11 @@ def run_unittest_gate(module):
     if result.testsRun == 0:
         print(f"UNITTEST GATE FAILED: {module} ran no tests", file=sys.stderr)
         return 1
-    return 0 if result.wasSuccessful() else 1
+    if not result.wasSuccessful():
+        return 1
+    if completion_path is not None:
+        Path(completion_path).write_text(module, encoding="utf-8")
+    return 0
 
 
 def main(argv=()):
@@ -94,17 +99,37 @@ def main(argv=()):
         # Keep script execution for existing gates with custom main functions.
         if Path(test_name).parent != Path("."):
             module = ".".join(Path(test_name).with_suffix("").parts)
-            command = [
-                sys.executable, "-c",
-                "import sys; from run_tests import run_unittest_gate; "
-                "sys.exit(run_unittest_gate(sys.argv[1]))",
-                module,
-            ]
+            # A zero exit code alone cannot distinguish success from os._exit(0)
+            # during import/loading/execution. Use a fresh, per-gate receipt
+            # written only after the unittest result passes the checks above.
+            with tempfile.TemporaryDirectory(prefix="unittest-gate-") as directory:
+                completion_path = Path(directory) / "completed"
+                command = [
+                    sys.executable, "-c",
+                    "import sys; from run_tests import run_unittest_gate; "
+                    "sys.exit(run_unittest_gate(sys.argv[1], sys.argv[2]))",
+                    module, str(completion_path),
+                ]
+                result = subprocess.run(command, cwd=ROOT)
+                completed = False
+                if result.returncode == 0:
+                    try:
+                        completed = completion_path.read_text(encoding="utf-8") == module
+                    except (OSError, UnicodeError):
+                        pass
+                    if not completed:
+                        print(
+                            f"UNITTEST GATE FAILED: {module} has no valid "
+                            "successful completion evidence",
+                            file=sys.stderr,
+                        )
+                if result.returncode != 0 or not completed:
+                    failures.append(test_name)
         else:
             command = [sys.executable, str(ROOT / test_name)]
-        result = subprocess.run(command, cwd=ROOT)
-        if result.returncode != 0:
-            failures.append(test_name)
+            result = subprocess.run(command, cwd=ROOT)
+            if result.returncode != 0:
+                failures.append(test_name)
 
     print("\n" + "=" * 54)
     if failures:
