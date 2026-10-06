@@ -24,6 +24,7 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+import campaign_time
 import living_world
 import local_dialogue
 import quest_catalog
@@ -2163,6 +2164,137 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         for action_id, receipt in receipts.items():
             self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
             self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
+
+    async def test_stable_unconscious_lore_question_preserves_saved_pending_recovery(self):
+        question = "Bu şehrin hükümdarı kim?"
+        city_id = "fr:city:neverwinter"
+        npc_id = "npc_stable_ruler_local"
+        for target_id in (None, npc_id):
+            with self.subTest(target_id=target_id):
+                created_response = await self.http.post(
+                    "/api/game/campaigns",
+                    json={
+                        "death_mode": "PERMADEATH",
+                        "campaign_start": {
+                            "setting_id": "forgotten_realms",
+                            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                            "region_id": "fr:region:the_north",
+                            "starting_location_id": city_id,
+                        },
+                    },
+                )
+                self.assertEqual(created_response.status_code, 200, created_response.text)
+                created = created_response.json()
+                campaign_id = created["campaign_id"]
+                record = self.manager.get(created["session_id"])
+                session = record.game_session
+                session.world_state["npcs"].append({
+                    "id": npc_id,
+                    "name": "Melis",
+                    "role": "Kent sakini",
+                    "location": city_id,
+                    "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                    "memory": [],
+                    "knowledge": [],
+                })
+                session.character.update(current_hp=20, max_hp=20)
+                # Match the Death owner's stable scheduling fixture: schedule
+                # through real damage/stabilization, then save partway to waking.
+                campaign_time.initialize(session.world_state)
+                session.advance_campaign_time(137, "wait")
+                session._apply_player_damage(20, took_damage=True)
+                with patch.object(session.rng, "randint", return_value=2) as die:
+                    session.stabilize_player()
+                die.assert_called_once_with(1, 4)
+                session.advance_campaign_time(600, "wait")
+
+                recovery = {"hours": 2, "at": 137 + 7200}
+                self.assertEqual(session.character["current_hp"], 0)
+                self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+                self.assertTrue(session.ensure_death_state()["stable"])
+                self.assertFalse(session.ensure_death_state()["dead"])
+                self.assertEqual(session.ensure_death_state()["recovery"], recovery)
+                self.assertFalse(session.ensure_combat_state()["active"])
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"], 737
+                )
+                saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
+                self.assertEqual(saved.status_code, 200, saved.text)
+                before_campaign = copy.deepcopy(self.store.get_campaign(campaign_id))
+                before_save = copy.deepcopy(session.serialize_game_state())
+                before_messages = copy.deepcopy(session.messages)
+                before_rng = session.rng.getstate()
+                before_metadata = copy.deepcopy(session.world_metadata)
+                before_journal = copy.deepcopy(record.journal)
+                before_memory = copy.deepcopy(record.narrative_memory)
+                before_lore = copy.deepcopy(record.lore_authority.to_dict())
+                before_context = copy.deepcopy(session.lore_authority_context)
+                before_receipts = copy.deepcopy(record.turn_action_receipts)
+                before_clock = copy.deepcopy(session.world_state["campaign_time"])
+                self.assertEqual(before_campaign.payload["engine_save"], before_save)
+                self.assertEqual(before_campaign.payload["lore_authority"], before_lore)
+                self.assertEqual(before_lore["binding_status"], "BOUND")
+                action_id = str(uuid.uuid4())
+                body = {"message": question, "action_id": action_id}
+                if target_id is not None:
+                    body["target_id"] = target_id
+                rejections = []
+                supported_answers = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_rejected_turn(*args, **kwargs):
+                    supported_answers.append(game._supported_lore_question_response(
+                        question, session.lore_authority_context, session.world_state
+                    ))
+                    try:
+                        return real_turn(*args, **kwargs)
+                    except ValueError as error:
+                        rejections.append(str(error))
+                        raise
+
+                with (
+                    patch.object(session, "run_player_turn", new=capture_rejected_turn),
+                    patch.object(
+                        game, "parse_player_intent",
+                        side_effect=AssertionError("Rejected lore must not parse intent"),
+                    ) as intent_model,
+                    patch.object(
+                        game, "ask_dungeon_master",
+                        side_effect=AssertionError("Rejected lore must not narrate"),
+                    ) as narration_model,
+                ):
+                    response = await self.http.post(
+                        f"/api/game/sessions/{created['session_id']}/turn", json=body
+                    )
+
+                self.assertEqual(response.status_code, 500, response.text)
+                self.assertEqual(response.json()["detail"], {
+                    "code": "engine_error",
+                    "message": "The game turn could not be completed.",
+                })
+                self.assertEqual(rejections, ["Bilinçsiz karakter eylem gerçekleştiremez."])
+                self.assertEqual(
+                    supported_answers,
+                    ["Neverwinter kentinin güncel Lordu Dagult Neverember."],
+                )
+                intent_model.assert_not_called()
+                narration_model.assert_not_called()
+                self.assertEqual(session.serialize_game_state(), before_save)
+                self.assertEqual(session.messages, before_messages)
+                self.assertEqual(session.rng.getstate(), before_rng)
+                self.assertEqual(session.world_metadata, before_metadata)
+                self.assertEqual(record.journal, before_journal)
+                self.assertEqual(record.narrative_memory, before_memory)
+                self.assertEqual(record.lore_authority.to_dict(), before_lore)
+                self.assertEqual(session.lore_authority_context, before_context)
+                self.assertEqual(session.world_state["death_state"]["recovery"], recovery)
+                self.assertEqual(session.world_state["campaign_time"], before_clock)
+                self.assertEqual(record.turn_action_receipts, before_receipts)
+                self.assertNotIn(action_id, record.turn_action_receipts)
+                self.assertIsNone(self.manager.get_turn_action(record, action_id))
+                self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
+                self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
 
     async def test_reopened_verified_city_ruler_answer_preserves_lore_and_history(self):
         # Reuse the installed, reviewed pack from the lore-engine regression;
