@@ -818,7 +818,26 @@ class DeathSystemTests(unittest.TestCase):
                         mode, roll, outcome, failures
                     )
 
-    def _assert_pending_failed_noncombat_reopening(self, mode, roll, outcome, failures):
+    def test_zero_healing_preserves_pending_noncombat_saves_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for roll, outcome, failures in ((4, "failure", 1), (1, "natural_1", 2)):
+                with self.subTest(mode=mode, outcome=outcome):
+                    self._assert_pending_failed_noncombat_reopening(
+                        mode, roll, outcome, failures, healing_amounts=(0,)
+                    )
+
+    def test_rejected_healing_preserves_pending_noncombat_saves_after_reopening(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for roll, outcome, failures in ((4, "failure", 1), (1, "natural_1", 2)):
+                for amount in (-1, 1.0, 1.5, "1", None, True, False):
+                    with self.subTest(mode=mode, outcome=outcome, amount=amount):
+                        self._assert_pending_failed_noncombat_reopening(
+                            mode, roll, outcome, failures, healing_amounts=(amount,)
+                        )
+
+    def _assert_pending_failed_noncombat_reopening(
+        self, mode, roll, outcome, failures, *, healing_amounts=()
+    ):
         source = make_session()
         peer = make_session(seed=29)
         campaign_time.initialize(source.world_state)
@@ -892,6 +911,49 @@ class DeathSystemTests(unittest.TestCase):
                     self.assertEqual(path.read_bytes(), content)
                 self.assertEqual(set(Path(directory).iterdir()), set(saved_files))
 
+            def assert_ineffective_healing(owner):
+                before = copy.deepcopy(owner.serialize_game_state())
+                owner_rng = owner.rng.getstate()
+                owner_history = copy.deepcopy(owner.messages)
+                with (
+                    patch.object(
+                        owner.rng, "randint",
+                        side_effect=AssertionError("Ineffective healing consumed RNG"),
+                    ) as die,
+                    patch("game.roll_d20",
+                          side_effect=AssertionError("Ineffective healing rolled a save")),
+                    patch("game.heal_player", wraps=game.heal_player) as heal,
+                ):
+                    for amount in healing_amounts:
+                        if type(amount) is int and amount == 0:
+                            self.assertEqual(owner.heal_player(amount), 0)
+                        else:
+                            with self.assertRaisesRegex(
+                                ValueError, "^Healing amount is invalid\\.$"
+                            ):
+                                owner.heal_player(amount)
+                        heal.assert_called_once_with(amount, session=owner)
+                        die.assert_not_called()
+                        self.assertEqual(owner.serialize_game_state(), before)
+                        self.assertEqual(owner.ensure_death_state(), death)
+                        self.assertEqual(owner.character["current_hp"], 0)
+                        self.assertEqual(owner.world_state["player_combat_status"],
+                                         "unconscious")
+                        self.assertFalse(owner.world_state["combat"]["active"])
+                        self.assertEqual(owner.rng.getstate(), owner_rng)
+                        self.assertEqual(owner.messages, owner_history)
+                        assert_preserved()
+
+            # The persisted source and its reopened copy must both reject
+            # ineffective healing without cancelling or restarting this episode.
+            assert_ineffective_healing(source)
+            if healing_amounts:
+                after_healing_path = Path(directory) / "after-ineffective-healing.json"
+                self.assertEqual(source.save_game(after_healing_path), after_healing_path)
+                saved_files[after_healing_path] = after_healing_path.read_bytes()
+                self.assertEqual(saved_files[after_healing_path], saved_files[pending_path])
+                assert_preserved()
+                pending_path = after_healing_path
             reopened = make_session(seed=11)
             reopened.messages.append({"role": "user", "content": "Reopen pending failure"})
             load_rng = reopened.rng.getstate()
@@ -932,6 +994,7 @@ class DeathSystemTests(unittest.TestCase):
                     reopened.world_state["campaign_time"]["elapsed_seconds"], deadline - 1
                 )
 
+            assert_ineffective_healing(reopened)
             reference = random.Random()
             reference.setstate(load_rng)
             expected_roll = reference.randint(1, 20)
