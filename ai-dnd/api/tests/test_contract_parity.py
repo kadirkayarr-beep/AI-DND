@@ -1805,8 +1805,15 @@ class ContractParityTests(unittest.TestCase):
         ):
             for constraint in constraints:
                 with self.subTest(field=field_name, constraint=constraint):
+                    published_value = _property(schema_name, field_name).get(constraint)
+                    if constraint == "minimum":
+                        # bool subclasses int, so False == 0 must not hide drift.
+                        self.assertNotIsInstance(
+                            published_value, bool,
+                            f"{schema_name}.{field_name}.{constraint} must be numeric, not boolean",
+                        )
                     self.assertEqual(
-                        _property(schema_name, field_name).get(constraint),
+                        published_value,
                         runtime["properties"][field_name].get(constraint),
                         f"{schema_name}.{field_name}.{constraint}",
                     )
@@ -4611,6 +4618,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
             (("properties", "turn_index", "type"), "null"),
             (("properties", "turn_index", "type"), ["integer", "null"]),
             (("properties", "turn_index", "minimum"), None),
+            (("properties", "turn_index", "minimum"), False),
             (("properties", "turn_index", "minimum"), -1),
             (("properties", "turn_index", "minimum"), 1),
         ]
@@ -4646,6 +4654,16 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertEqual(parsed, spec)
                     # Only one entry constraint changes; references, routes and
                     # schema/field inventories remain the published contract.
+                    if (
+                        path == ("properties", "turn_index", "minimum")
+                        and replacement is False
+                    ):
+                        self.assertIs(
+                            parsed["components"]["schemas"]["CombatHistoryEntry"][
+                                "properties"
+                            ]["turn_index"]["minimum"],
+                            False,
+                        )
                     restored = deepcopy(parsed)
                     target = restored["components"]["schemas"]["CombatHistoryEntry"]
                     source = original
