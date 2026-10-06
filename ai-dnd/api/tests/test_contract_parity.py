@@ -32,6 +32,10 @@ from api.schemas import (
     CampaignDetailResponse,
     CampaignHistoryEntry,
     CampaignSessionResponse,
+    CampaignStartLocationOption,
+    CampaignStartOptionsResponse,
+    CampaignStartRegionOption,
+    CampaignStartSettingOption,
     CampaignSummary,
     CharacterCreateInput,
     CharacterCreationOptions,
@@ -218,6 +222,12 @@ QUEST_OBJECTIVE_LIST_MODELS = (
     (QuestOffer, QuestObjectiveOffer, "QuestObjectiveOffer"),
 )
 
+CAMPAIGN_START_ARRAY_FIELDS = (
+    (CampaignStartOptionsResponse, "settings", CampaignStartSettingOption),
+    (CampaignStartSettingOption, "regions", CampaignStartRegionOption),
+    (CampaignStartRegionOption, "starting_locations", CampaignStartLocationOption),
+)
+
 
 def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
     """Keep nullable enum membership distinct from nullable field types."""
@@ -240,6 +250,65 @@ def _schema_enum(schema: dict[str, Any]) -> set[Any] | None:
 
 
 class ContractParityTests(unittest.TestCase):
+    def test_campaign_start_schemas_match_runtime_models(self):
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            runtime = model.model_json_schema()
+            with self.subTest(schema=schema_name):
+                self.assertEqual(_property_names(schema_name), _runtime_field_names(model))
+                self.assertEqual(
+                    set(_schema(schema_name).get("required", [])),
+                    set(runtime.get("required", [])),
+                    f"{schema_name}.required",
+                )
+                self.assertEqual(
+                    _schema(schema_name).get("additionalProperties"),
+                    runtime.get("additionalProperties"),
+                    f"{schema_name}.additionalProperties",
+                )
+            for field_name, runtime_field in runtime["properties"].items():
+                with self.subTest(schema=schema_name, field=field_name):
+                    published = _property(schema_name, field_name)
+                    self.assertEqual(
+                        _schema_types(published), _schema_types(runtime_field),
+                        f"{schema_name}.{field_name} type",
+                    )
+                    self.assertEqual(
+                        _is_nullable(published), _is_nullable(runtime_field),
+                        f"{schema_name}.{field_name} nullable",
+                    )
+
+    def test_campaign_start_item_references_match_runtime_models(self):
+        for model, field_name, item_model in CAMPAIGN_START_ARRAY_FIELDS:
+            schema_name = model.__name__
+            label = f"{schema_name}.{field_name}.items"
+            with self.subTest(schema=schema_name, field=field_name):
+                runtime = model.model_json_schema(
+                    ref_template="#/components/schemas/{model}"
+                )["properties"][field_name]
+                published = _property(schema_name, field_name)
+                self.assertEqual(_schema_types(runtime), {"array"})
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                runtime_items = _mapping(runtime.get("items"), label)
+                published_items = _mapping(published.get("items"), label)
+                expected = _schema_references(runtime_items)
+                self.assertEqual(
+                    expected, {f"#/components/schemas/{item_model.__name__}"},
+                    f"Runtime {label} must reference {item_model.__name__}",
+                )
+                self.assertEqual(
+                    _schema_references(published_items), expected,
+                    f"{label} reference target",
+                )
+                self.assertEqual(_schema_types(published_items), _schema_types(runtime_items))
+                self.assertEqual(_is_nullable(published_items), _is_nullable(runtime_items))
+
     def test_quest_objective_item_references_match_runtime_models(self):
         for model, item_model, published_item_name in QUEST_OBJECTIVE_LIST_MODELS:
             with self.subTest(schema=model.__name__):
@@ -1409,6 +1478,114 @@ class ContractParityTests(unittest.TestCase):
 
 
 class ContractYamlReaderTests(unittest.TestCase):
+    def test_campaign_start_wrong_item_references_fail_in_both_formats(self):
+        for model, field_name, item_model in CAMPAIGN_START_ARRAY_FIELDS:
+            schema_name = model.__name__
+            original = _property(schema_name, field_name)
+            # These are existing object components, not dangling references.
+            for wrong_model in (
+                CampaignStartSettingOption,
+                CampaignStartRegionOption,
+                CampaignStartLocationOption,
+            ):
+                if wrong_model is item_model:
+                    continue
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name,
+                        replacement=wrong_model.__name__, compact=flow_style,
+                    ):
+                        self.assertIn(wrong_model.__name__, SPEC["components"]["schemas"])
+                        spec = deepcopy(SPEC)
+                        spec["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ]["items"]["$ref"] = f"#/components/schemas/{wrong_model.__name__}"
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        for before, after in (
+                            (original, mutated),
+                            (original["items"], mutated["items"]),
+                        ):
+                            self.assertEqual(_schema_types(after), _schema_types(before))
+                            self.assertEqual(_is_nullable(after), _is_nullable(before))
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ]["items"]["$ref"] = original["items"]["$ref"]
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_campaign_start_schemas_match_runtime_models",
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_item_references_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(
+                            f"{schema_name}.{field_name}.items reference target",
+                            result.failures[0][1],
+                        )
+
+    def test_campaign_start_required_field_drift_fails_in_both_formats(self):
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            replacements = [None, original["required"] + ["unexpected"]]
+            replacements.extend(
+                [field for field in original["required"] if field != removed]
+                for removed in original["required"]
+            )
+            for replacement in replacements:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, required=replacement, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        target = spec["components"]["schemas"][schema_name]
+                        if replacement is None:
+                            del target["required"]
+                        else:
+                            target["required"] = replacement
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["required"] = (
+                            original["required"]
+                        )
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(f"{schema_name}.required", result.failures[0][1])
+
     BLOCK_FIXTURE = """
 servers:
   - url: /api
