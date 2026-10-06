@@ -534,6 +534,87 @@ class RunnerProcessTests(unittest.TestCase):
                     else:
                         self.assertIn("ALL 2 DETERMINISTIC GATES PASSED", result.stdout)
 
+    def test_api_zero_exit_before_tests_blocks_release_and_keeps_later_gate_running(self):
+        # Keep both failure paths in non-alphabetical inventory order.
+        api_gates = ("api/tests/test_initiative.py",
+                     "api/tests/test_death_bounded.py")
+        later = "release_later.py"
+        suites = {
+            "TESTS": (*api_gates, later),
+            "PROTOTYPE_TESTS": self.SUITES["PROTOTYPE_TESTS"],
+        }
+        exits = {
+            "import": "raise SystemExit(0)\n",
+            "load_tests": (
+                "def load_tests(loader, tests, pattern):\n"
+                "    Path(__file__ + '.hook').write_text('started')\n"
+                "    raise SystemExit(0)\n"
+            ),
+        }
+        for argv in ((), ("--suite", "release")):
+            for kinds in (("import", "load_tests"), ("load_tests", "import")):
+                with self.subTest(argv=argv, kinds=kinds), \
+                     tempfile.TemporaryDirectory() as directory, \
+                     patch.object(self, "SUITES", suites):
+                    root = Path(directory) / "runner"
+                    root.mkdir()
+                    self.copy_runner(root)
+                    package = root / "api" / "tests"
+                    package.mkdir(parents=True)
+                    (package.parent / "__init__.py").touch()
+                    (package / "__init__.py").touch()
+                    for name, kind in zip(api_gates, kinds):
+                        (root / name).write_text(
+                            "import unittest\nfrom pathlib import Path\n"
+                            f"Path({name + '.sentinel'!r}).write_text('imported')\n"
+                            "with Path('order.txt').open('a') as log:\n"
+                            f"    log.write({name + chr(10)!r})\n"
+                            "class BoundaryTests(unittest.TestCase):\n"
+                            "    def test_boundary(self):\n"
+                            f"        Path({name + '.assertion'!r}).write_text('ran')\n"
+                            + exits[kind], encoding="utf-8",
+                        )
+                    self.write_gate(root, later, "def test_ok(): pass\n")
+
+                    # Source-only preflight must not execute imports or hooks.
+                    self.assertEqual(run_tests.check_test_definitions(
+                        root / gate for gate in suites["TESTS"]), [])
+                    self.assertFalse((root / "order.txt").exists())
+                    for name in api_gates:
+                        self.assertFalse((root / (name + ".sentinel")).exists())
+                        self.assertFalse((root / (name + ".hook")).exists())
+
+                    result = self.launch_runner(root, argv, cwd=Path(directory))
+                    output = result.stdout + result.stderr
+                    self.assertEqual(result.returncode, 1, output)
+                    self.assertEqual(
+                        result.stdout.splitlines()[-1],
+                        f"RELEASE DETERMINISTIC GATES FAILED: {', '.join(api_gates)}",
+                    )
+                    self.assertEqual(
+                        (root / "order.txt").read_text().splitlines(),
+                        list(suites["TESTS"]),
+                    )
+                    for name, kind in zip(api_gates, kinds):
+                        self.assertEqual(
+                            (root / (name + ".sentinel")).read_text(), "imported",
+                        )
+                        self.assertFalse((root / (name + ".assertion")).exists())
+                        self.assertEqual(
+                            (root / (name + ".hook")).exists(), kind == "load_tests",
+                        )
+                        self.assertIn(
+                            f"UNITTEST GATE FAILED: {name[:-3].replace('/', '.')} "
+                            "exited before completing tests (SystemExit: 0)",
+                            result.stderr,
+                        )
+                    self.assertEqual(
+                        (root / (later + ".sentinel")).read_text(), "started",
+                    )
+                    self.assertNotIn("PREFLIGHT FAILED", output)
+                    self.assertNotIn("PASSED", output)
+                    self.assertNotIn("Ran 1 test", output)
+
     def test_empty_api_unittest_gate_cannot_pass_release(self):
         empty_sources = {
             # Source definitions alone do not make a unittest-discoverable test.

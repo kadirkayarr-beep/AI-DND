@@ -45,8 +45,18 @@ def run_unittest_gate(module):
     """Require both successful assertions and evidence of executed tests."""
     import unittest
 
-    suite = unittest.defaultTestLoader.loadTestsFromName(module)
-    result = unittest.TextTestRunner().run(suite)
+    try:
+        suite = unittest.defaultTestLoader.loadTestsFromName(module)
+        result = unittest.TextTestRunner().run(suite)
+    except SystemExit as exc:
+        # An import or loading hook can exit with status zero before testsRun
+        # is available. That is not evidence of a successful gate.
+        print(
+            f"UNITTEST GATE FAILED: {module} exited before completing tests "
+            f"(SystemExit: {exc.code!r})",
+            file=sys.stderr,
+        )
+        return 1
     if result.testsRun == 0:
         print(f"UNITTEST GATE FAILED: {module} ran no tests", file=sys.stderr)
         return 1
