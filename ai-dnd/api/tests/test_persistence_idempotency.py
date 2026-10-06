@@ -3666,7 +3666,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(saved_rows(), rows)
                         self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
 
-    async def assert_independent_duplicate_command(self, operation, winner):
+    async def assert_independent_duplicate_command(
+        self, operation, winner, *, distinct_action_ids=False,
+    ):
         def runtime_snapshot(record):
             return copy.deepcopy((
                 record.game_session.serialize_game_state(),
@@ -3683,7 +3685,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
         session.initialize_species_trait_state()
         session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
-        action_id = str(uuid4())
+        action_ids = [str(uuid4()), str(uuid4())]
+        if not distinct_action_ids:
+            action_ids[1] = action_ids[0]
+        else:
+            self.assertEqual(operation, "ambient")
+            self.assertNotEqual(action_ids[0], action_ids[1])
+        action_id = action_ids[winner]
         if operation == "ambient":
             event_id = self.install_test_ambient_event(session)
             endpoint = f"ambient-events/{event_id}/actions"
@@ -3742,7 +3750,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     save_calls[index] += 1
                     speculative[index] = runtime_snapshot(records[index])
-                    self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_id)
+                    self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_ids[index])
                     self.assertEqual(records[index].game_session._campaign_persistence_version, token)
                     barrier.wait(timeout=10)
                     if index == loser and not committed_event.wait(timeout=10):
@@ -3762,9 +3770,10 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         committed_event.set()
             return save
 
-        async def send(client, sid):
+        async def send(client, sid, index):
             return await client.post(
-                f"/api/game/sessions/{sid}/{endpoint}", json=copy.deepcopy(command),
+                f"/api/game/sessions/{sid}/{endpoint}",
+                json={**copy.deepcopy(command), "action_id": action_ids[index]},
             )
 
         app = create_app(session_manager=second_manager, ollama_adapter=None)
@@ -3784,7 +3793,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         store, "save_campaign", side_effect=ordered_save(index),
                     ))
                 requests = asyncio.gather(
-                    *(send(client, sid) for client, sid in zip(clients, session_ids))
+                    *(send(client, sid, index)
+                      for index, (client, sid) in enumerate(zip(clients, session_ids)))
                 )
                 try:
                     responses = await asyncio.wait_for(asyncio.shield(requests), timeout=25)
@@ -3816,6 +3826,14 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         event for event in speculative[index][2]["notable_events"]
                         if event.get("event_type") == "ambient_event_outcome"
                     ]), 1)
+                    outcome = next(
+                        event for event in speculative[index][2]["notable_events"]
+                        if event.get("event_type") == "ambient_event_outcome"
+                    )
+                    self.assertEqual(outcome["event_result"]["action_id"], action_ids[index])
+                    self.assertEqual(outcome["event_result"]["event_instance_id"], event_id)
+                    self.assertIn(outcome["event_result"]["transition_id"],
+                                  {npc["id"] for npc in state["world_state"]["npcs"]})
                 else:
                     self.assertEqual(
                         state["world_state"]["campaign_time"]["elapsed_seconds"]
@@ -3841,6 +3859,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(stored.metadata["revision"], token[1] + 1)
             self.assertEqual(stored.combat_history, saved_before.combat_history)
             receipt = self.store.get_turn_action(campaign_id, action_id)
+            if distinct_action_ids:
+                self.assertIsNone(self.store.get_turn_action(campaign_id, action_ids[loser]))
+                self.assertNotIn(action_ids[loser], records[loser].turn_action_receipts)
             self.assertEqual(
                 receipt["response"]["ambient_event_response"] if operation == "ambient"
                 else receipt["response"], accepted.json(),
@@ -3857,6 +3878,21 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                  accepted.json()["result"]["canonical_event_id"])
                 self.assertEqual(outcomes[0]["event_result"]["transition_id"],
                                  accepted.json()["result"]["transition_id"])
+                self.assertEqual(outcomes[0]["event_result"]["action_id"], action_id)
+                world = committed["runtime"][0]["world_state"]
+                scene = world["scene_state"]["scenes"][world["location"]]
+                promoted = [
+                    referent for referent in scene["referents"]
+                    if referent.get("event_instance_id") == event_id
+                    and referent.get("lifecycle") == "promoted"
+                ]
+                self.assertEqual(len(promoted), 1)
+                self.assertEqual(promoted[0]["promoted_npc_id"],
+                                 accepted.json()["result"]["transition_id"])
+                new_npcs = {npc["id"] for npc in world["npcs"]} - {
+                    npc["id"] for npc in before[winner][0]["world_state"]["npcs"]
+                }
+                self.assertEqual(new_npcs, {accepted.json()["result"]["transition_id"]})
             else:
                 self.assertEqual(len(stored.history), len(saved_before.history) + 1)
                 self.assertEqual(stored.history[-1]["player_message"], operation)
@@ -3879,7 +3915,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             expected["session_id"] = sid
             if operation == "ambient":
                 expected["result"].update(status="ALREADY_APPLIED",
-                                          reason_code="event_already_resolved")
+                                          reason_code="event_already_resolved",
+                                          action_id=action_ids[loser])
                 expected["state"] = resumed.json()["state"]
             with ExitStack() as stack:
                 guards = [
@@ -3899,12 +3936,17 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     )
                 ]
                 for _ in range(2):
-                    replay = await send(clients[loser], sid)
+                    replay = await send(clients[loser], sid, loser)
                     self.assertEqual(replay.status_code, 200, replay.text)
                     self.assertEqual(replay.json(), expected)
                     self.assertEqual(self.snapshot(restored), reopened)
                     self.assertEqual(saved_rows(), rows)
                     self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                    if distinct_action_ids:
+                        self.assertIsNone(managers[loser].get_turn_action(
+                            restored, action_ids[loser],
+                        ))
+                        self.assertNotIn(action_ids[loser], restored.turn_action_receipts)
                     self.assertEqual((restored.game_session.messages,
                                       restored.game_session.world_metadata), auxiliary)
                 for guard in guards:
@@ -3914,6 +3956,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         for winner in (0, 1):
             with self.subTest(winner=winner):
                 await self.assert_independent_duplicate_command("ambient", winner)
+
+    async def test_independent_distinct_interactions_resolve_one_ambient_event(self):
+        for winner in (0, 1):
+            with self.subTest(winner=winner):
+                await self.assert_independent_duplicate_command(
+                    "ambient", winner, distinct_action_ids=True,
+                )
 
     async def test_independent_duplicate_rests_roll_back_and_rebind_replay(self):
         for operation in ("short_rest", "long_rest"):
