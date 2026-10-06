@@ -2053,9 +2053,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         resume_clock.assert_called_once_with()
         # Resume legitimately updates this one metadata field. Force a clock
         # boundary and preserve exact equality for every other saved field.
-        committed_after_resume = copy.deepcopy(committed)
-        committed_after_resume[-1].metadata["last_played_at"] = resume_time
-        self.assertEqual(self.snapshot(record), committed_after_resume)
+        expected_after_resume = copy.deepcopy(committed)
+        expected_after_resume[-1].metadata["last_played_at"] = resume_time
+        committed_after_resume = self.snapshot(record)
+        self.assertEqual(committed_after_resume, expected_after_resume)
+        self.assertNotEqual(committed_after_resume[-1].metadata["last_played_at"],
+                            committed[-1].metadata["last_played_at"])
         self.assertIsNot(restored.game_session, session)
         self.assertEqual(restored.game_session.serialize_game_state(),
                          session.serialize_game_state())
