@@ -2282,6 +2282,161 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
                 self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
 
+    async def test_partial_death_markers_block_saved_city_ruler_question(self):
+        question = "Bu şehrin hükümdarı kim?"
+        city_id = "fr:city:neverwinter"
+        npc_id = "npc_partial_dead_ruler_local"
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for death_marker in ("player_combat_status", "death_state"):
+                for target_id in (None, npc_id):
+                    with self.subTest(
+                        mode=mode, death_marker=death_marker, target_id=target_id
+                    ):
+                        created_response = await self.http.post(
+                            "/api/game/campaigns",
+                            json={
+                                "death_mode": mode,
+                                "campaign_start": {
+                                    "setting_id": "forgotten_realms",
+                                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                                    "region_id": "fr:region:the_north",
+                                    "starting_location_id": city_id,
+                                },
+                            },
+                        )
+                        self.assertEqual(
+                            created_response.status_code, 200, created_response.text
+                        )
+                        created = created_response.json()
+                        campaign_id = created["campaign_id"]
+                        record = self.manager.get(created["session_id"])
+                        session = record.game_session
+                        session.world_state["npcs"].append({
+                            "id": npc_id,
+                            "name": "Elara",
+                            "role": "Guide",
+                            "location": city_id,
+                            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                            "memory": [],
+                            "knowledge": [],
+                        })
+                        session.character.update(current_hp=10, max_hp=10)
+                        # Prepare combat before introducing conflicting markers;
+                        # ensure_combat_state also validates death state.
+                        self.assertFalse(session.ensure_combat_state()["active"])
+                        session.world_state["player_combat_status"] = (
+                            "dead" if death_marker == "player_combat_status" else "active"
+                        )
+                        session.world_state["death_state"]["dead"] = (
+                            death_marker == "death_state"
+                        )
+                        session.world_state["death_state"]["terminal"] = False
+                        saved = await self.http.post(
+                            f"/api/game/campaigns/{campaign_id}/save"
+                        )
+                        self.assertEqual(saved.status_code, 200, saved.text)
+                        before_campaign = copy.deepcopy(self.store.get_campaign(campaign_id))
+                        before_save = copy.deepcopy(session.serialize_game_state())
+                        before_messages = copy.deepcopy(session.messages)
+                        before_rng = session.rng.getstate()
+                        before_metadata = copy.deepcopy(session.world_metadata)
+                        before_journal = copy.deepcopy(record.journal)
+                        before_memory = copy.deepcopy(record.narrative_memory)
+                        before_lore = copy.deepcopy(record.lore_authority.to_dict())
+                        before_context = copy.deepcopy(session.lore_authority_context)
+                        before_receipts = copy.deepcopy(record.turn_action_receipts)
+                        self.assertEqual(before_campaign.payload["engine_save"], before_save)
+                        self.assertEqual(before_campaign.payload["lore_authority"], before_lore)
+                        self.assertEqual(before_lore["binding_status"], "BOUND")
+                        self.assertEqual(before_save["player"]["current_hp"], 10)
+                        saved_world = before_save["world_state"]
+                        self.assertEqual(saved_world["death_state"]["mode"], mode)
+                        self.assertFalse(saved_world["death_state"]["terminal"])
+                        self.assertNotEqual(
+                            saved_world["player_combat_status"] == "dead",
+                            saved_world["death_state"]["dead"],
+                        )
+                        action_id = str(uuid.uuid4())
+                        body = {"message": question, "action_id": action_id}
+                        if target_id is not None:
+                            body["target_id"] = target_id
+                        rejections = []
+                        # This positive-HP inconsistency is rejected by the
+                        # real planning death gate, before turn dispatch. Prove
+                        # that it is otherwise a supported lore question.
+                        lore_context = main_module._lore_context_for_turn(
+                            record, session, question, target_id
+                        )
+                        self.assertEqual(
+                            game._supported_lore_question_response(
+                                question, lore_context, session.world_state
+                            ),
+                            "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+                        )
+                        real_plan = session.plan_living_world_turn
+
+                        @wraps(real_plan)
+                        def capture_rejected_plan(*args, **kwargs):
+                            try:
+                                return real_plan(*args, **kwargs)
+                            except ValueError as error:
+                                rejections.append(str(error))
+                                raise
+
+                        with (
+                            patch.object(
+                                session, "plan_living_world_turn", new=capture_rejected_plan
+                            ),
+                            patch.object(
+                                session, "run_player_turn",
+                                side_effect=AssertionError(
+                                    "Invalid death state must block turn dispatch"
+                                ),
+                            ) as turn_dispatch,
+                            patch.object(
+                                game, "parse_player_intent",
+                                side_effect=AssertionError(
+                                    "Partial death markers must block intent parsing"
+                                ),
+                            ) as intent_model,
+                            patch.object(
+                                game, "ask_dungeon_master",
+                                side_effect=AssertionError(
+                                    "Partial death markers must block narration"
+                                ),
+                            ) as narration_model,
+                        ):
+                            response = await self.http.post(
+                                f"/api/game/sessions/{created['session_id']}/turn", json=body
+                            )
+
+                        self.assertEqual(response.status_code, 500, response.text)
+                        self.assertEqual(response.json()["detail"], {
+                            "code": "engine_error",
+                            "message": "The game turn could not be completed.",
+                        })
+                        # Positive HP rejects during real death-state validation,
+                        # before the zero-HP dead-action gate or any lore answer.
+                        self.assertEqual(
+                            rejections, ["Dead player state cannot have positive hit points."]
+                        )
+                        turn_dispatch.assert_not_called()
+                        intent_model.assert_not_called()
+                        narration_model.assert_not_called()
+                        self.assertEqual(session.serialize_game_state(), before_save)
+                        self.assertEqual(session.messages, before_messages)
+                        self.assertEqual(session.rng.getstate(), before_rng)
+                        self.assertEqual(session.world_metadata, before_metadata)
+                        self.assertEqual(record.journal, before_journal)
+                        self.assertEqual(record.narrative_memory, before_memory)
+                        self.assertEqual(record.lore_authority.to_dict(), before_lore)
+                        self.assertEqual(session.lore_authority_context, before_context)
+                        self.assertEqual(record.turn_action_receipts, before_receipts)
+                        self.assertNotIn(action_id, record.turn_action_receipts)
+                        self.assertIsNone(self.manager.get_turn_action(record, action_id))
+                        self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
+                        self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
+
     async def test_stable_unconscious_lore_question_preserves_saved_pending_recovery(self):
         question = "Bu şehrin hükümdarı kim?"
         city_id = "fr:city:neverwinter"
