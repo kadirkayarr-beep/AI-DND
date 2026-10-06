@@ -2394,8 +2394,30 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     changed_payload=False, malformed_hash=malformed_hash,
                 )
 
+    async def test_evicted_combat_action_invalid_json_blocks_retry_after_reopen(self):
+        await self.assert_evicted_combat_receipt_after_reopen(
+            changed_payload=False, response_corruption="json",
+        )
+
+    async def test_evicted_combat_action_mismatched_response_blocks_retry_after_reopen(self):
+        await self.assert_evicted_combat_receipt_after_reopen(
+            changed_payload=False, response_corruption="action_id",
+        )
+
+    async def test_evicted_combat_action_incomplete_response_blocks_retry_after_reopen(self):
+        for field, invalid_value in (
+            ("session_id", 123), ("narration", []), ("state", []),
+        ):
+            for mode in ("missing", "wrong_type"):
+                with self.subTest(field=field, mode=mode):
+                    await self.assert_evicted_combat_receipt_after_reopen(
+                        changed_payload=False,
+                        response_corruption=(field, mode, invalid_value),
+                    )
+
     async def assert_evicted_combat_receipt_after_reopen(
         self, *, changed_payload, rest_action=None, malformed_hash=None,
+        response_corruption=None,
     ):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)
@@ -2468,18 +2490,42 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     (a["campaign_id"], command["action_id"]),
                 ).fetchone())
 
-        hash_update = """UPDATE campaign_turn_actions SET request_hash = ?
-                         WHERE campaign_id = ? AND action_id = ?"""
-        if malformed_hash is not None:
+        damaged_column = "request_hash"
+        damaged_value = malformed_hash
+        expected_error = (409, "campaign_unavailable")
+        if response_corruption is not None:
+            self.assertIsNone(malformed_hash)
+            damaged_column = "response_json"
+            damaged_response = copy.deepcopy(expected_response)
+            if response_corruption == "json":
+                damaged_value = '{"action_id":'
+                expected_error = (503, "campaign_storage_unavailable")
+            elif response_corruption == "action_id":
+                damaged_response["action_id"] = str(uuid4())
+                damaged_value = json.dumps(damaged_response)
+            else:
+                field, mode, invalid_value = response_corruption
+                if mode == "missing":
+                    del damaged_response[field]
+                else:
+                    damaged_response[field] = invalid_value
+                self.assertEqual(damaged_response["action_id"], command["action_id"])
+                damaged_value = json.dumps(damaged_response)
+        receipt_update = f"""UPDATE campaign_turn_actions SET {damaged_column} = ?
+                            WHERE campaign_id = ? AND action_id = ?"""
+        if damaged_value is not None:
             original_row = receipt_row(self.store)
             with self.store._transaction() as db:
                 updated = db.execute(
-                    hash_update, (malformed_hash, a["campaign_id"], command["action_id"]),
+                    receipt_update, (damaged_value, a["campaign_id"], command["action_id"]),
                 )
                 self.assertEqual(updated.rowcount, 1)
             self.assertEqual(
-                receipt_row(self.store), {**original_row, "request_hash": malformed_hash},
+                receipt_row(self.store), {**original_row, damaged_column: damaged_value},
             )
+            if response_corruption is not None:
+                self.assertEqual(receipt_row(self.store)["request_hash"],
+                                 original_receipt["request_hash"])
             self.assertEqual(self.snapshot(record), committed)
 
         fresh_store = CampaignStore(self.store.path)
@@ -2489,11 +2535,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNot(restored.game_session, session)
         self.assertEqual(self.snapshot(restored)[:7], committed[:7])
         self.assertEqual(restored.combat_history, surviving)
-        if malformed_hash is not None:
+        if damaged_value is not None:
             await self.assert_damaged_evicted_receipt_retries(
                 fresh_store, fresh, sid, restored, command, expected_response,
-                original_receipt, original_row, malformed_hash, hash_update,
-                evicted_id, surviving,
+                original_receipt, original_row, damaged_column, damaged_value,
+                receipt_update, expected_error, evicted_id, surviving,
             )
             return
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
@@ -2567,7 +2613,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def assert_damaged_evicted_receipt_retries(
         self, store, manager, sid, record, command, accepted_response,
-        receipt, original_row, malformed_hash, hash_update, evicted_id, surviving,
+        receipt, original_row, damaged_column, damaged_value, receipt_update,
+        expected_error, evicted_id, surviving,
     ):
         session = record.game_session
         before = self.snapshot(record)
@@ -2586,7 +2633,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                    WHERE campaign_id = ? AND action_id = ?""",
                 (record.campaign_id, command["action_id"]),
             ).fetchone())
-        self.assertEqual(damaged_row, {**original_row, "request_hash": malformed_hash})
+        self.assertEqual(damaged_row, {**original_row, damaged_column: damaged_value})
         changed_command = copy.deepcopy(command)
         changed_command["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
         conflicts = [
@@ -2632,25 +2679,41 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn(evicted_id, {entry["event_id"] for entry in record.combat_history})
                 return response
 
-            for endpoint, body in [("turn", command), *conflicts]:
-                with self.subTest(damaged_hash_endpoint=endpoint, body=body):
+            # Malformed hashes fail for every command family. Response contract
+            # damage is checked by the original native turn owner, with its hash intact.
+            damaged_retries = [("turn", command)]
+            if damaged_column == "request_hash":
+                damaged_retries += conflicts
+            for endpoint, body in damaged_retries:
+                with self.subTest(damaged_receipt_endpoint=endpoint, body=body):
                     rejected = await guarded_retry(endpoint, body, damaged_database)
-                    self.assertEqual(rejected.status_code, 409, rejected.text)
-                    self.assertEqual(rejected.json()["detail"]["code"], "campaign_unavailable")
+                    self.assertEqual(rejected.status_code, expected_error[0], rejected.text)
+                    self.assertEqual(rejected.json()["detail"]["code"], expected_error[1])
                     self.assertIsInstance(rejected.json()["detail"]["message"], str)
                     self.assertTrue(rejected.json()["detail"]["message"])
 
-            # Repair only the hash, leaving the evicted history entry absent and
-            # the exact original response, receipt timestamp and other rows intact.
+            # Repair only the damaged column, retaining the hash (for response
+            # damage), timestamp, absent history entry and every other SQL row.
             with store._transaction() as db:
                 updated = db.execute(
-                    hash_update, (receipt["request_hash"], record.campaign_id, command["action_id"]),
+                    receipt_update,
+                    (original_row[damaged_column], record.campaign_id, command["action_id"]),
                 )
                 self.assertEqual(updated.rowcount, 1)
+                repaired_row = dict(db.execute(
+                    """SELECT * FROM campaign_turn_actions
+                       WHERE campaign_id = ? AND action_id = ?""",
+                    (record.campaign_id, command["action_id"]),
+                ).fetchone())
+                damaged_literal, original_literal = db.execute(
+                    "SELECT quote(?), quote(?)",
+                    (damaged_value, original_row[damaged_column]),
+                ).fetchone()
+            self.assertEqual(repaired_row, original_row)
             self.assertEqual(store.get_turn_action(record.campaign_id, command["action_id"]), receipt)
             self.assertEqual(
                 database_snapshot(),
-                tuple(line.replace(malformed_hash, receipt["request_hash"])
+                tuple(line.replace(damaged_literal, original_literal)
                       for line in damaged_database),
             )
             repaired_database = database_snapshot()
