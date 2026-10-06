@@ -734,6 +734,23 @@ class ContractParityTests(unittest.TestCase):
                     _is_nullable(published), _is_nullable(runtime_property),
                     f"GameTurnInput.{field_name}.nullable",
                 )
+                constraints = {
+                    "target_id": ("minLength", "maxLength"),
+                    "combat_id": ("minLength", "maxLength"),
+                    "action_id": ("format",),
+                    "combat_round": ("minimum",),
+                    "combat_turn_index": ("minimum",),
+                }.get(field_name, ())
+                if constraints:
+                    runtime_value = next(
+                        branch for branch in runtime_property["anyOf"]
+                        if branch.get("type") != "null"
+                    )
+                    for constraint in constraints:
+                        self.assertEqual(
+                            published.get(constraint), runtime_value[constraint],
+                            f"GameTurnInput.{field_name}.{constraint}",
+                        )
         self.assertIs(_schema("GameTurnInput")["additionalProperties"], False)
         message_schema = _property("GameTurnInput", "message")
         self.assertEqual(message_schema["minLength"], 1)
@@ -3874,6 +3891,69 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         result.failures[0][1],
                     )
         self.assertEqual(_property("CampaignDetail", "campaign"), original)
+
+    def test_turn_input_constraint_drift_fails_in_both_formats(self):
+        schema_name = "GameTurnInput"
+        constraints = (
+            ("target_id", "minLength"),
+            ("target_id", "maxLength"),
+            ("combat_id", "minLength"),
+            ("combat_id", "maxLength"),
+            ("action_id", "format"),
+            ("combat_round", "minimum"),
+            ("combat_turn_index", "minimum"),
+        )
+        for field_name, constraint in constraints:
+            original = _property(schema_name, field_name)
+            expected = original[constraint]
+            replacements = (
+                (None, "date-time", "uri") if constraint == "format"
+                else (None, expected - 1, expected + 1)
+            )
+            for replacement in replacements:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        field=field_name, constraint=constraint,
+                        replacement=replacement, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        target = spec["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        if replacement is None:
+                            del target[constraint]
+                        else:
+                            target[constraint] = replacement
+                        parsed = _load_spec(yaml.safe_dump(
+                            spec, default_flow_style=flow_style,
+                        ))
+                        self.assertEqual(parsed, spec)
+                        self.assertEqual(parsed["paths"], SPEC["paths"])
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name] = deepcopy(original)
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(
+                                "test_turn_route_bindings_match_fastapi"
+                            ).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_health_and_request_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(
+                            f"{schema_name}.{field_name}.{constraint}",
+                            result.failures[0][1],
+                        )
 
     def test_turn_input_required_and_type_drift_fails_in_both_formats(self):
         schema_name = "GameTurnInput"
