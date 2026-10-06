@@ -1191,6 +1191,19 @@ def create_app(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
                 )
+                if isinstance(error, CampaignStaleError):
+                    # Another session may have committed this ID while our
+                    # real turn was running. Validate its receipt only after
+                    # rollback, preserving stale handling for other races.
+                    try:
+                        previous = manager.get_turn_action(record, action_id)
+                    except CampaignError as receipt_error:
+                        raise campaign_http_exception(receipt_error) from None
+                    if previous is not None and previous["request_hash"] != request_hash:
+                        raise HTTPException(status_code=409, detail={
+                            "code": "action_id_conflict",
+                            "message": "This action ID was already used for a different action.",
+                        }) from None
                 raise campaign_http_exception(error) from None
             except Exception as error:
                 record.lore_authority = lore_authority_snapshot

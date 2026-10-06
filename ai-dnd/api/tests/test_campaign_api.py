@@ -4965,6 +4965,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_first_merchant_search_same_id_race_rolls_back_and_replays_winner(self):
         await self._assert_first_merchant_search_save_race(shared_action=True)
 
+    async def test_first_merchant_search_same_id_changed_payload_race_rejects_loser(self):
+        await self._assert_first_merchant_search_save_race(
+            shared_action=True, changed_payload=True,
+        )
+
     async def test_first_merchant_search_distinct_id_race_rolls_back_and_retries_once(self):
         await self._assert_first_merchant_search_save_race(shared_action=False)
 
@@ -4974,8 +4979,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def _assert_first_merchant_search_save_race(
-        self, *, shared_action, fail_resumed_retry=False,
+        self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
     ):
+        if changed_payload:
+            self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
             "/api/game/campaigns",
@@ -5034,6 +5041,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotEqual(winner_id, loser_id)
             self.assertIsNot(winner_session, loser_session)
             self.assertIsNot(winner_session.world_state, loser_session.world_state)
+
+            def loser_runtime_state():
+                return {
+                    "messages": copy.deepcopy(loser_session.messages),
+                    "rng": loser_session.rng.getstate(),
+                    "metadata": copy.deepcopy(loser_session.world_metadata),
+                    "lore": copy.deepcopy(loser_record.lore_authority),
+                }
+
+            before_runtime = loser_runtime_state()
             before_campaign = loser_store.get_campaign(campaign_id)
             before_engine = copy.deepcopy(loser_session.serialize_game_state())
             before_journal = copy.deepcopy(loser_record.journal)
@@ -5051,6 +5068,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(winner_session._campaign_persistence_version, before_version)
             body = {"message": "Bir tüccar arıyorum.", "action_id": str(uuid.uuid4())}
             winner_body = copy.deepcopy(body)
+            if changed_payload:
+                winner_body["message"] = "Yakınlarda bir satıcı bulunuyor mu?"
+                self.assertNotEqual(winner_body["message"], body["message"])
+                self.assertEqual(winner_body["action_id"], body["action_id"])
             if not shared_action:
                 winner_body["action_id"] = str(uuid.uuid4())
                 self.assertNotEqual(winner_body["action_id"], body["action_id"])
@@ -5119,7 +5140,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
             raced_save.assert_called_once()
             self.assertEqual(loser.status_code, 409, loser.text)
-            self.assertEqual(loser.json()["detail"]["code"], "campaign_stale")
+            self.assertEqual(
+                loser.json()["detail"]["code"],
+                "action_id_conflict" if changed_payload else "campaign_stale",
+            )
             self.assertEqual(len(attempts), 1)
             attempted = attempts[0]
             attempted_world = attempted["engine"]["world_state"]
@@ -5156,10 +5180,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(loser_record.narrative_memory, before_memory)
             self.assertEqual(loser_record.turn_action_receipts, before_receipts)
             self.assertEqual(loser_session._campaign_persistence_version, before_version)
+            self.assertEqual(loser_runtime_state(), before_runtime)
             self.assertEqual(committed.metadata["revision"], before_version[1] + 1)
             self.assertEqual(committed.history[:-1], before_campaign.history)
             self.assertEqual(len(committed.history), len(before_campaign.history) + 1)
-            self.assertEqual(committed.history[-1]["player_message"], body["message"])
+            self.assertEqual(committed.history[-1]["player_message"], winner_body["message"])
+            self.assertEqual(committed.history[-1]["narration"], winner.json()["narration"])
             self.assertEqual(committed.payload["engine_save"], winner_session.serialize_game_state())
             self.assertEqual(committed.payload["journal"], winner_record.journal)
             self.assertEqual(committed.payload["narrative_memory"], winner_record.narrative_memory)
@@ -5170,7 +5196,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(all(row in committed_rows for row in before_rows))
             receipt = winner_store.get_turn_action(campaign_id, winner_body["action_id"])
             self.assertEqual(receipt["response"], winner.json())
-            self.assertEqual(receipt["request_hash"], attempted["receipt"]["request_hash"])
+            if changed_payload:
+                self.assertNotEqual(receipt["request_hash"], attempted["receipt"]["request_hash"])
+            else:
+                self.assertEqual(receipt["request_hash"], attempted["receipt"]["request_hash"])
             self.assertEqual(receipt["response"]["session_id"], winner_id)
             self.assertEqual(
                 loser_store.get_turn_action(campaign_id, winner_body["action_id"]), receipt,
@@ -5199,7 +5228,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )) as blocked_recovery,
                 ):
                     stale_replay = await asyncio.wait_for(
-                        loser_http.post(loser_url, json=body), timeout=30,
+                        loser_http.post(loser_url, json=winner_body), timeout=30,
                     )
                 self.assertEqual(stale_replay.status_code, 200, stale_replay.text)
                 expected = copy.deepcopy(winner.json())
@@ -5229,6 +5258,72 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(loser_store.get_turn_action(campaign_id, body["action_id"]))
                 self.assertIsNone(loser_manager.get_turn_action(loser_record, body["action_id"]))
 
+            retry_runtime = before_runtime
+
+            def assert_changed_retries_unchanged(stored, engine, journal, memory, receipts, version):
+                self.assertIs(loser_manager.get(loser_id), loser_record)
+                self.assertIs(loser_record.game_session, loser_session)
+                self.assertEqual(loser_session.serialize_game_state(), engine)
+                self.assertEqual(loser_record.journal, journal)
+                self.assertEqual(loser_record.narrative_memory, memory)
+                self.assertEqual(loser_record.turn_action_receipts, receipts)
+                self.assertEqual(loser_session._campaign_persistence_version, version)
+                self.assertEqual(loser_runtime_state(), retry_runtime)
+                self.assertEqual(loser_store.get_campaign(campaign_id), stored)
+                self.assertEqual(winner_store.get_campaign(campaign_id), stored)
+                self.assertEqual(stored.payload, committed.payload)
+                self.assertEqual(stored.history, committed.history)
+                self.assertEqual(stored.metadata["revision"], committed.metadata["revision"])
+                self.assertEqual(receipt_rows(), committed_rows)
+                self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
+                self.assertEqual(loser_manager.get_turn_action(loser_record, body["action_id"]), receipt)
+                self.assertEqual(len(results["loser"]), 1)
+                self.assertEqual(len(results["winner"]), 1)
+
+            if changed_payload:
+                # The persistence race rejects the conflicting action ID.
+                # Changed-ID retries must reject the payload before recovery,
+                # even though this rolled-back session still has no merchant.
+                self.assertLess(before_version[1], committed.metadata["revision"])
+                with (
+                    patch.object(loser_session, "run_player_turn", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not execute another first discovery.",
+                    )) as blocked_turn,
+                    patch.object(loser_store, "save_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not save.",
+                    )) as blocked_save,
+                    patch.object(loser_manager, "resume_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not recover the session.",
+                    )) as blocked_resume,
+                    patch("api.session_manager.restore_stored_campaign", side_effect=AssertionError(
+                        "Pre-resume receipt retries must not restore saved state.",
+                    )) as blocked_restore,
+                ):
+                    conflict = await asyncio.wait_for(
+                        loser_http.post(loser_url, json=body), timeout=30,
+                    )
+                    self.assertEqual(conflict.status_code, 409, conflict.text)
+                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                    for blocked in (blocked_turn, blocked_save, blocked_resume, blocked_restore):
+                        blocked.assert_not_called()
+                    assert_changed_retries_unchanged(
+                        committed, before_engine, before_journal, before_memory,
+                        before_receipts, before_version,
+                    )
+                    replay = await asyncio.wait_for(
+                        loser_http.post(loser_url, json=winner_body), timeout=30,
+                    )
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    expected = copy.deepcopy(winner.json())
+                    expected["session_id"] = loser_id
+                    self.assertEqual(replay.json(), expected)
+                    for blocked in (blocked_turn, blocked_save, blocked_resume, blocked_restore):
+                        blocked.assert_not_called()
+                    assert_changed_retries_unchanged(
+                        committed, before_engine, before_journal, before_memory,
+                        before_receipts, before_version,
+                    )
+
             refreshed = await loser_http.post(resume_url)
             self.assertEqual(refreshed.status_code, 200, refreshed.text)
             self.assertEqual(refreshed.json()["session_id"], loser_id)
@@ -5247,6 +5342,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(resumed_campaign.history, committed.history)
             self.assertEqual(resumed_campaign.metadata["revision"], committed.metadata["revision"])
             self.assertEqual(receipt_rows(), committed_rows)
+            retry_runtime = loser_runtime_state()
 
             if not shared_action:
                 # The rejected first search created real local identities, but
@@ -5480,7 +5576,22 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "The shared first-discovery receipt must not save again.",
                 )) as blocked_save,
             ):
-                replay = await asyncio.wait_for(loser_http.post(loser_url, json=body), timeout=30)
+                if changed_payload:
+                    conflict = await asyncio.wait_for(
+                        loser_http.post(loser_url, json=body), timeout=30,
+                    )
+                    self.assertEqual(conflict.status_code, 409, conflict.text)
+                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                    blocked_turn.assert_not_called()
+                    blocked_save.assert_not_called()
+                    assert_changed_retries_unchanged(
+                        resumed_campaign, committed.payload["engine_save"],
+                        committed.payload["journal"], committed.payload["narrative_memory"],
+                        replay_receipts, (campaign_id, committed.metadata["revision"]),
+                    )
+                replay = await asyncio.wait_for(
+                    loser_http.post(loser_url, json=winner_body), timeout=30,
+                )
             self.assertEqual(replay.status_code, 200, replay.text)
             expected = copy.deepcopy(winner.json())
             expected["session_id"] = loser_id
@@ -5504,6 +5615,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(loser_store.get_turn_action(campaign_id, body["action_id"]), receipt)
             self.assertEqual(len(results["winner"]), 1)
             self.assertEqual(len(results["loser"]), 1)
+            if changed_payload:
+                assert_changed_retries_unchanged(
+                    resumed_campaign, committed.payload["engine_save"],
+                    committed.payload["journal"], committed.payload["narrative_memory"],
+                    replay_receipts, (campaign_id, committed.metadata["revision"]),
+                )
 
     async def test_recovered_merchant_search_save_race_rolls_back_and_retries_once(self):
         await self._assert_recovered_merchant_search_save_race(shared_action=False)
@@ -5722,7 +5839,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     rejected = await asyncio.wait_for(pending, timeout=30)
             raced_save.assert_called_once()
             self.assertEqual(rejected.status_code, 409, rejected.text)
-            self.assertEqual(rejected.json()["detail"]["code"], "campaign_stale")
+            self.assertEqual(
+                rejected.json()["detail"]["code"],
+                "action_id_conflict" if changed_payload else "campaign_stale",
+            )
             self.assertEqual(len(results), 1)
             self.assertEqual(len(active_results), 1)
             self.assertEqual(active_results[0]["action"], "local_search")

@@ -20,6 +20,18 @@ rewinds gameplay without reclaiming old persistence ownership or rewinding RNG.
 advance it only after commit. Keep Normal checkpoint semantics separate from
 failed-persistence restoration.
 
+Changed-payload races should report an action-ID conflict even when the winning
+receipt first becomes visible during the loser's save, after its real turn ran.
+Do not turn identical-payload save races into automatic successful replay.
+
+**Why:** Resuming cannot make a changed command valid under an already reserved
+ID. Identical-payload races retain the established stale-save recovery contract,
+and changing that contract is outside a changed-command regression's scope.
+
+**How to apply:** Preserve full loser rollback before classifying the saved
+receipt; test changed-command rejection and original-command replay before and
+after explicit resume without silently refreshing the losing session.
+
 Retained structured legacy action provenance must be reserved before bounded
 journal trimming, without inventing a historical response or request.
 
