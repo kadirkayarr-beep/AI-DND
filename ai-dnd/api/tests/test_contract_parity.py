@@ -974,6 +974,22 @@ class ContractParityTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             CharacterCreateInput.model_validate({"mode": "random", "name": "Ari"})
 
+    def test_character_creation_component_types_match_runtime_models(self):
+        for model in (CharacterCreationOptions, CharacterCreationCatalogResponse):
+            schema_name = model.__name__
+            published = _schema(schema_name)
+            runtime = model.model_json_schema()
+            with self.subTest(schema=schema_name, contract="type"):
+                self.assertEqual(
+                    _schema_types(published), _schema_types(runtime),
+                    f"{schema_name}.type",
+                )
+            with self.subTest(schema=schema_name, contract="nullable"):
+                self.assertEqual(
+                    _is_nullable(published), _is_nullable(runtime),
+                    f"{schema_name}.nullable",
+                )
+
     def test_campaign_summary_scalar_fields_match_runtime_model(self):
         schema_name = "CampaignSummary"
         published = _schema(schema_name)
@@ -2038,6 +2054,79 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             self.assertIn(
                                 f"{schema_name} nullable", result.failures[1][1],
                             )
+
+    def test_character_creation_component_type_drift_fails_in_both_formats(self):
+        for model in (CharacterCreationOptions, CharacterCreationCatalogResponse):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            runtime = model.model_json_schema()
+            self.assertEqual(_schema_types(original), {"object"})
+            self.assertEqual(_schema_types(runtime), {"object"})
+            self.assertFalse(_is_nullable(original))
+            self.assertFalse(_is_nullable(runtime))
+            for replacement in (
+                "string", "array", "integer", "number", "boolean", "null",
+                ["object", "null"],
+            ):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, replacement=replacement,
+                        compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        spec["components"]["schemas"][schema_name]["type"] = replacement
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name]
+                        nullable = replacement == "null" or isinstance(replacement, list)
+                        self.assertEqual(
+                            _schema_types(mutated),
+                            set(replacement) if isinstance(replacement, list) else {replacement},
+                        )
+                        self.assertEqual(_is_nullable(mutated), nullable)
+                        # Preserve all non-type declarations, including required
+                        # fields, extra-field policy and nested property references.
+                        self.assertEqual(
+                            {key: value for key, value in mutated.items() if key != "type"},
+                            {key: value for key, value in original.items() if key != "type"},
+                        )
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["type"] = (
+                            original["type"]
+                        )
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_campaign_start_schemas_match_runtime_models",
+                                "test_campaign_start_item_references_match_runtime_models",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_character_creation_component_types_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(
+                            len(result.failures), 2 if nullable else 1,
+                            result.failures,
+                        )
+                        for index, contract in enumerate(
+                            ("type", "nullable") if nullable else ("type",)
+                        ):
+                            failed_test, failure = result.failures[index]
+                            self.assertIn(f"schema='{schema_name}'", failed_test.id())
+                            self.assertIn(f"contract='{contract}'", failed_test.id())
+                            self.assertIn(f"{schema_name}.{contract}", failure)
 
     def test_campaign_start_scalar_type_drift_fails_in_both_formats(self):
         for model, field_names in (
