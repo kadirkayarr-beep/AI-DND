@@ -1917,6 +1917,43 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             f"Undetected reference drift: {schema_name}.{field_name}",
                         )
 
+    def test_health_error_responses_pass_in_both_formats(self):
+        for path in ("/game/health", "/health"):
+            for flow_style in (False, True):
+                with self.subTest(path=path, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    responses = spec["paths"][path]["get"]["responses"]
+                    self.assertNotIn("503", responses)
+                    self.assertIn("ApiError", spec["components"]["responses"])
+                    responses["503"] = {
+                        "$ref": "#/components/responses/ApiError",
+                    }
+                    loaded = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(loaded, spec)
+                    self.assertEqual(loaded["components"], SPEC["components"])
+                    self.assertEqual(_route_inventory(loaded), _route_inventory(SPEC))
+                    # Removing only the error proves the success responses,
+                    # other alias and all remaining declarations are unchanged.
+                    restored = deepcopy(loaded)
+                    del restored["paths"][path]["get"]["responses"]["503"]
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=loaded):
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_operation_ids_are_unique_and_error_statuses_are_documented",
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_health_route_bindings_match_fastapi",
+                        ):
+                            result = unittest.TestResult()
+                            ContractParityTests(test_name).run(result)
+                            self.assertEqual(result.testsRun, 1)
+                            self.assertTrue(
+                                result.wasSuccessful(),
+                                result.failures + result.errors,
+                            )
+
     def test_health_success_status_drift_fails_in_both_formats(self):
         for path in ("/game/health", "/health"):
             for mutation in ("missing success", "extra success"):
