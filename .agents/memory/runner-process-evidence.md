@@ -25,3 +25,17 @@ gameplay, network access, or long production deadlines.
 **How to apply:** Exercise imports/loading and scripts separately; retain
 source-only preflight assertions and later-gate sentinels. Direct-child timeout
 cleanup is not proof that subprocess descendants have also stopped.
+
+Process-group timeout guarantees apply only to descendants that inherit the
+gate's group; deliberately detached processes are outside that boundary.
+Zombie descendants are not running work and must be reaped by their adopting
+parent, not by an unrelated runner.
+
+**Why:** POSIX group signals bound ordinary process-tree cleanup without
+introducing Linux subreaper state into a runner that itself nests copied runners.
+Treating zombie presence as ongoing execution creates false failures in
+containers whose init does not promptly reap orphans.
+
+**How to apply:** Verify live process state before a later gate runs and retain
+fixture cleanup even on assertion failure. Do not claim detached descendants
+or interruption cleanup from timeout-only acceptance.

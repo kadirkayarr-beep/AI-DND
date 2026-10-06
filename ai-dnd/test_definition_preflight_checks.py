@@ -414,7 +414,7 @@ class DefinitionPreflightTests(unittest.TestCase):
                 stderr = StringIO()
                 with patch.object(run_tests, "ROOT", self.root), \
                      patch.object(run_tests, "TESTS", ("first.py", "later.py")), \
-                     patch.object(run_tests.subprocess, "run") as execute, \
+                     patch.object(run_tests, "run_child_gate") as execute, \
                      redirect_stderr(stderr), redirect_stdout(StringIO()):
                     self.assertEqual(run_tests.main(), 1)
                 execute.assert_not_called()
@@ -748,7 +748,7 @@ class DefinitionPreflightTests(unittest.TestCase):
         stderr = StringIO()
         with patch.object(run_tests, "ROOT", self.root), \
              patch.object(run_tests, "TESTS", ("first.py", "later_alias.py")), \
-             patch.object(run_tests.subprocess, "run") as execute, \
+             patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stderr(stderr), redirect_stdout(StringIO()):
             self.assertEqual(run_tests.main(), 1)
         execute.assert_not_called()
@@ -799,7 +799,7 @@ class DefinitionPreflightTests(unittest.TestCase):
         """)
         with patch.object(run_tests, "ROOT", self.root), \
              patch.object(run_tests, "TESTS", names), \
-             patch.object(run_tests.subprocess, "run") as execute, \
+             patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stdout(StringIO()):
             execute.return_value.returncode = 0
             self.assertEqual(run_tests.main(), 0)
@@ -818,7 +818,7 @@ class DefinitionPreflightTests(unittest.TestCase):
         stderr = StringIO()
         with patch.object(run_tests, "ROOT", self.root), \
              patch.object(run_tests, "TESTS", ("first.py", "test_regression.py")), \
-             patch.object(run_tests.subprocess, "run") as execute, \
+             patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stderr(stderr), redirect_stdout(StringIO()):
             self.assertEqual(run_tests.main(), 1)
         execute.assert_not_called()
@@ -836,7 +836,7 @@ class DefinitionPreflightTests(unittest.TestCase):
         stderr = StringIO()
         with patch.object(run_tests, "ROOT", self.root), \
              patch.object(run_tests, "TESTS", ("first.py", "second.py")), \
-             patch.object(run_tests.subprocess, "run") as execute, \
+             patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stderr(stderr), redirect_stdout(StringIO()):
             self.assertEqual(run_tests.main(), 1)
         execute.assert_not_called()
@@ -852,7 +852,7 @@ class DefinitionPreflightTests(unittest.TestCase):
             with self.subTest(failed=failed), \
                  patch.object(run_tests, "ROOT", self.root), \
                  patch.object(run_tests, "TESTS", names), \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stdout(StringIO()):
                 execute.return_value.returncode = int(failed)
                 self.assertEqual(run_tests.main(), int(failed))
@@ -861,9 +861,10 @@ class DefinitionPreflightTests(unittest.TestCase):
                     [call.args[0] for call in execute.call_args_list],
                     [[run_tests.sys.executable, str(self.root / name)] for name in names],
                 )
-                self.assertTrue(all(
-                    call.kwargs["cwd"] == self.root for call in execute.call_args_list
-                ))
+                self.assertEqual(
+                    [call.kwargs["test_name"] for call in execute.call_args_list],
+                    list(names),
+                )
 
 
 if __name__ == "__main__":

@@ -77,11 +77,20 @@ number of seconds (fractions are allowed):
 python ai-dnd/run_tests.py --gate-timeout 600
 ```
 
-A timeout kills and waits for the direct child, reports `GATE TIMED OUT` with its
-name and limit, and marks that gate failed even if it wrote a completion receipt.
-Later gates still run; the final failure list stays in inventory order. This is
-a per-gate deadline, not a whole-suite deadline. It does not terminate descendants
-spawned by a gate. Listing and source-only preflight do not execute child gates.
+On the supported POSIX runtime, each gate starts in a separate session/process
+group. A timeout sends `SIGKILL` to that whole group (the direct child and its
+inherited-group descendants, including grandchildren), then waits up to **5
+seconds** to reap the direct child. It reports `GATE TIMED OUT` with the gate's
+name and limit and marks that gate failed even if it wrote a completion receipt.
+If the child cannot be reaped within that cleanup limit, `GATE CLEANUP FAILED`
+is also reported; cleanup never waits indefinitely. Offline copied-runner tests
+on Linux verify sleeping descendants, including ones ignoring `SIGTERM`, have
+no live work left before the later gate runs for scripts, API import/loading
+hooks, and prototype selection. Orphan zombies are left for their adopting
+parent to reap; descendants deliberately leaving the group are outside this
+guarantee. Later gates still run; the final failure list stays in inventory order.
+This is a per-gate deadline, not a whole-suite deadline. Listing and source-only
+preflight do not execute child gates.
 
 The retired `test_combat_v2.py` and `test_combat_v2_fixed.py` are historical
 prototype diagnostics, **not release gates**. Their obsolete fixture assumptions
