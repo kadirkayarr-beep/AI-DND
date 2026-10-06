@@ -1742,8 +1742,14 @@ class ContractParityTests(unittest.TestCase):
                 with self.subTest(schema=schema_name, field=field_name):
                     runtime = runtime_properties[field_name]
                     published = _property(schema_name, field_name)
-                    self.assertEqual(_schema_types(published), _schema_types(runtime))
-                    self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+                    self.assertEqual(
+                        _schema_types(published), _schema_types(runtime),
+                        f"{schema_name}.{field_name}.type",
+                    )
+                    self.assertEqual(
+                        _is_nullable(published), _is_nullable(runtime),
+                        f"{schema_name}.{field_name}.nullable",
+                    )
                     published_items = _mapping(
                         published.get("items"), f"{schema_name}.{field_name}.items"
                     )
@@ -4468,6 +4474,88 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(
                             f"{schema_name}.{field_name}.required", failure
                         )
+
+    def test_campaign_history_collection_shapes_fail_in_both_formats(self):
+        for schema_name in ("CampaignDetail", "CampaignSession"):
+            original_schema = _schema(schema_name)
+            for field_name, entry_model in (
+                ("history", CampaignHistoryEntry),
+                ("combat_history", CombatHistoryEntry),
+            ):
+                original = _property(schema_name, field_name)
+                self.assertIn(field_name, original_schema["required"])
+                self.assertEqual(_schema_types(original), {"array"})
+                self.assertFalse(_is_nullable(original))
+                for mutation in (
+                    "missing_type", "string", "object",
+                    "nullable_type_array", "nullable_any_of",
+                ):
+                    for flow_style in (False, True):
+                        with self.subTest(
+                            schema=schema_name, field=field_name,
+                            mutation=mutation, compact=flow_style,
+                        ):
+                            spec = deepcopy(SPEC)
+                            field = spec["components"]["schemas"][schema_name][
+                                "properties"
+                            ][field_name]
+                            if mutation == "missing_type":
+                                del field["type"]
+                            elif mutation == "nullable_type_array":
+                                field["type"] = ["array", "null"]
+                            elif mutation == "nullable_any_of":
+                                del field["type"]
+                                field["anyOf"] = [
+                                    {"type": "array"}, {"type": "null"},
+                                ]
+                            else:
+                                field["type"] = mutation
+                            parsed = _load_spec(
+                                yaml.safe_dump(spec, default_flow_style=flow_style)
+                            )
+                            self.assertEqual(parsed, spec)
+                            mutated_schema = parsed["components"]["schemas"][schema_name]
+                            mutated = mutated_schema["properties"][field_name]
+                            self.assertEqual(
+                                mutated_schema["required"], original_schema["required"]
+                            )
+                            self.assertEqual(mutated["items"], original["items"])
+                            self.assertEqual(
+                                _schema_references(mutated["items"]),
+                                {f"#/components/schemas/{entry_model.__name__}"},
+                            )
+                            self.assertNotEqual(
+                                _schema_types(mutated), _schema_types(original)
+                            )
+                            self.assertEqual(
+                                _is_nullable(mutated), mutation.startswith("nullable_")
+                            )
+                            # Only collection declarations changed; restoring
+                            # them preserves item targets and all other contracts.
+                            restored = deepcopy(parsed)
+                            restored_field = restored["components"]["schemas"][
+                                schema_name
+                            ]["properties"][field_name]
+                            restored_field.pop("anyOf", None)
+                            restored_field["type"] = original["type"]
+                            self.assertEqual(restored, SPEC)
+                            result = unittest.TestResult()
+                            with patch.dict(globals(), SPEC=parsed):
+                                for test_name in (
+                                    "test_campaign_history_required_fields_match_runtime_models",
+                                    "test_campaign_and_session_schema_fields_match_fastapi_models",
+                                    "test_campaign_history_item_references_match_runtime_models",
+                                ):
+                                    ContractParityTests(test_name).run(result)
+                            self.assertEqual(result.testsRun, 3)
+                            self.assertEqual(result.errors, [], result.errors)
+                            self.assertEqual(len(result.failures), 1, result.failures)
+                            failed_test, failure = result.failures[0]
+                            self.assertIn(
+                                "test_campaign_history_item_references_match_runtime_models",
+                                failed_test.id(),
+                            )
+                            self.assertIn(f"{schema_name}.{field_name}.type", failure)
 
     def test_campaign_history_wrong_item_references_fail_in_both_formats(self):
         for schema_name in ("CampaignDetail", "CampaignSession"):
