@@ -301,10 +301,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 ]
                 before_database = tuple(connection.iterdump())
 
-            async def guarded_retry(body):
+            async def guarded_retry(body, target_endpoint=endpoint):
                 guards = (
                     (game, "run_player_turn"),
                     (game, "resolve_species_trait_action"),
+                    (restored.game_session, "resolve_ambient_event_action"),
                     (restored.game_session.rng, "randint"),
                     (restored.game_session.rng, "random"),
                     (restored.game_session.rng, "getrandbits"),
@@ -328,38 +329,54 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         for target, method in guards
                     ]
                     reply = await client.post(
-                        f"/api/game/sessions/{sid}/{endpoint}", json=body,
+                        f"/api/game/sessions/{sid}/{target_endpoint}", json=body,
                     )
                 for spy in spies:
                     spy.assert_not_called()
                 return reply
 
-            retry = await guarded_retry(retry_command)
-            self.assertEqual(retry.status_code, expected_status, retry.text)
-            self.assertEqual(retry.json()["detail"]["code"], expected_code)
-            self.assertIsInstance(retry.json()["detail"]["message"], str)
-            self.assertTrue(retry.json()["detail"]["message"])
-            self.assertEqual(self.snapshot(restored), before_runtime)
-            self.assertEqual(restored.game_session.character["species_trait_state"],
-                             before_species_resources)
-            self.assertEqual((
-                restored.game_session.messages,
-                restored.game_session.world_metadata,
-            ), before_auxiliary)
-            self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
-            with closing(fresh_store._connect()) as connection:
-                self.assertEqual([
-                    tuple(row) for row in connection.execute(
-                        "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,)
-                    )
-                ], before_rows)
-                self.assertEqual([
-                    tuple(row) for row in connection.execute(
-                        "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
-                        (campaign_id,),
-                    )
-                ], before_receipts)
-                self.assertEqual(tuple(connection.iterdump()), before_database)
+            cross_family_requests = []
+            if corruption == "hash":
+                # A shared persisted owner must be validated even when the
+                # receiving command would ordinarily report a request conflict.
+                cross_family_requests = [
+                    ("species-actions", {
+                        "action": "short_rest", "action_id": command["action_id"],
+                    }) if endpoint == "turn" else ("turn", {
+                        "message": "Different request.", "action_id": command["action_id"],
+                    }),
+                    (f"ambient-events/{uuid4()}/actions", {
+                        "action": "observe", "action_id": command["action_id"],
+                    }),
+                ]
+            for target_endpoint, body in [(endpoint, retry_command), *cross_family_requests]:
+                with self.subTest(retry_endpoint=target_endpoint):
+                    retry = await guarded_retry(body, target_endpoint)
+                    self.assertEqual(retry.status_code, expected_status, retry.text)
+                    self.assertEqual(retry.json()["detail"]["code"], expected_code)
+                    self.assertIsInstance(retry.json()["detail"]["message"], str)
+                    self.assertTrue(retry.json()["detail"]["message"])
+                    self.assertEqual(self.snapshot(restored), before_runtime)
+                    self.assertEqual(restored.game_session.character["species_trait_state"],
+                                     before_species_resources)
+                    self.assertEqual((
+                        restored.game_session.messages,
+                        restored.game_session.world_metadata,
+                    ), before_auxiliary)
+                    self.assertEqual(fresh_store.get_campaign(campaign_id), reopened)
+                    with closing(fresh_store._connect()) as connection:
+                        self.assertEqual([
+                            tuple(row) for row in connection.execute(
+                                "SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                            )
+                        ], before_rows)
+                        self.assertEqual([
+                            tuple(row) for row in connection.execute(
+                                "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+                                (campaign_id,),
+                            )
+                        ], before_receipts)
+                        self.assertEqual(tuple(connection.iterdump()), before_database)
 
             if corruption == "hash":
                 # Only the test repairs the hash; the saved response remains intact.
@@ -384,13 +401,27 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 ), before_auxiliary)
                 with closing(fresh_store._connect()) as connection:
                     self.assertEqual(tuple(connection.iterdump()), repaired_database)
+                conflict_requests = list(cross_family_requests)
                 if conflicting_action is not None or conflicting_message is not None:
-                    conflict = await guarded_retry(retry_command)
-                    self.assertEqual(conflict.status_code, 409, conflict.text)
-                    self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
-                    self.assertEqual(self.snapshot(restored), before_runtime)
-                    with closing(fresh_store._connect()) as connection:
-                        self.assertEqual(tuple(connection.iterdump()), repaired_database)
+                    conflict_requests.append((endpoint, retry_command))
+                for target_endpoint, body in conflict_requests:
+                    with self.subTest(valid_hash_conflict=target_endpoint):
+                        conflict = await guarded_retry(body, target_endpoint)
+                        if target_endpoint.startswith("ambient-events/"):
+                            self.assertEqual(conflict.status_code, 200, conflict.text)
+                            self.assertEqual(conflict.json()["result"]["status"], "REJECTED")
+                            self.assertEqual(
+                                conflict.json()["result"]["reason_code"], "action_id_conflict",
+                            )
+                        else:
+                            self.assertEqual(conflict.status_code, 409, conflict.text)
+                            self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                        self.assertEqual(self.snapshot(restored), before_runtime)
+                        self.assertEqual((
+                            restored.game_session.messages, restored.game_session.world_metadata,
+                        ), before_auxiliary)
+                        with closing(fresh_store._connect()) as connection:
+                            self.assertEqual(tuple(connection.iterdump()), repaired_database)
 
     async def test_corrupt_saved_receipt_hash_blocks_http_retry_after_resume(self):
         for operation in ("turn", "short_rest", "long_rest"):

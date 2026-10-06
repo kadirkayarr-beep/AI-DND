@@ -7,6 +7,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import httpx
+import game
 
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
@@ -188,6 +189,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
             async def guarded_retry(target_endpoint, body):
                 guards = (
+                    (game, "run_player_turn"),
+                    (game, "resolve_species_trait_action"),
                     (restored.game_session, "resolve_ambient_event_action"),
                     (restored.game_session.rng, "randint"),
                     (restored.game_session.rng, "random"),
@@ -267,6 +270,30 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(tuple(db.iterdump()), database)
 
             if malformed_hash is not None:
+                cross_family_requests = [
+                    ("turn", {
+                        "message": "Different request.", "action_id": command["action_id"],
+                    }),
+                    ("species-actions", {
+                        "action": "short_rest", "action_id": command["action_id"],
+                    }),
+                ]
+                for target_endpoint, body in cross_family_requests:
+                    with self.subTest(retry_endpoint=target_endpoint):
+                        cross_retry = await guarded_retry(target_endpoint, body)
+                        self.assertEqual(cross_retry.status_code, 409, cross_retry.text)
+                        self.assertEqual(
+                            cross_retry.json()["detail"]["code"], "campaign_unavailable",
+                        )
+                        self.assertIsInstance(cross_retry.json()["detail"]["message"], str)
+                        self.assertTrue(cross_retry.json()["detail"]["message"])
+                        self.assertEqual(self.snapshot(restored), before)
+                        self.assertEqual((
+                            restored.game_session.messages, restored.game_session.world_metadata,
+                        ), auxiliary)
+                        self.assertEqual(self.raw_rows(fresh_store, campaign_id), rows)
+                        with closing(fresh_store._connect()) as db:
+                            self.assertEqual(tuple(db.iterdump()), database)
                 with fresh_store._transaction() as db:
                     updated = db.execute(
                         "UPDATE campaign_turn_actions SET request_hash = ? WHERE campaign_id = ? AND action_id = ?",
@@ -293,6 +320,20 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(
                         valid_conflict.json()["result"]["reason_code"], "action_id_conflict",
                     )
+                for target_endpoint, body in cross_family_requests:
+                    with self.subTest(valid_hash_conflict=target_endpoint):
+                        valid_conflict = await guarded_retry(target_endpoint, body)
+                        self.assertEqual(valid_conflict.status_code, 409, valid_conflict.text)
+                        self.assertEqual(
+                            valid_conflict.json()["detail"]["code"], "action_id_conflict",
+                        )
+                        self.assertEqual(self.snapshot(restored), before)
+                        self.assertEqual((
+                            restored.game_session.messages, restored.game_session.world_metadata,
+                        ), auxiliary)
+                        self.assertEqual(self.raw_rows(fresh_store, campaign_id), repaired_rows)
+                        with closing(fresh_store._connect()) as db:
+                            self.assertEqual(tuple(db.iterdump()), repaired_database)
                 self.assertEqual(self.snapshot(restored), before)
                 self.assertEqual((
                     restored.game_session.messages, restored.game_session.world_metadata,
