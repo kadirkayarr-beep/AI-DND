@@ -3943,15 +3943,32 @@ class CompatibilityTests(unittest.TestCase):
             session.recent_dm_narrations.append(
                 f"Adventure {index} narration"
             )
+            session.messages.extend([
+                {"role": "user", "content": f"Adventure {index} message"},
+                {"role": "assistant", "content": f"Adventure {index} reply"},
+            ])
+            session.roll_d20()
 
         held_references = [
-            (session.world_state, session.character, session.recent_dm_narrations)
+            (
+                session.world_state,
+                session.character,
+                session.recent_dm_narrations,
+                session.messages,
+                session.rng,
+            )
             for session in explicit_sessions
         ]
+        message_snapshots = [
+            copy.deepcopy(session.messages) for session in explicit_sessions
+        ]
+        rng_snapshots = [session.rng.getstate() for session in explicit_sessions]
         snapshots = [
             session.serialize_game_state() for session in explicit_sessions
         ]
         default_snapshot = game.serialize_game_state()
+        default_messages = copy.deepcopy(game._DEFAULT_SESSION.messages)
+        default_rng_state = game._DEFAULT_SESSION.rng.getstate()
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "default-save.json"
@@ -3967,7 +3984,13 @@ class CompatibilityTests(unittest.TestCase):
                 self.assertIs(session.world_state, references[0])
                 self.assertIs(session.character, references[1])
                 self.assertIs(session.recent_dm_narrations, references[2])
+                self.assertIs(session.messages, references[3])
+                self.assertIs(session.rng, references[4])
+                self.assertEqual(session.messages, message_snapshots.pop(0))
+                self.assertEqual(session.rng.getstate(), rng_snapshots.pop(0))
                 self.assertEqual(session.serialize_game_state(), snapshot)
+        self.assertEqual(game._DEFAULT_SESSION.messages, default_messages)
+        self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), default_rng_state)
 
     def test_successful_default_load_preserves_other_adventures_and_held_references(self):
         default = game._DEFAULT_SESSION

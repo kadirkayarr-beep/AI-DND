@@ -843,41 +843,57 @@ def create_app(
                     record.narrative_memory,
                     narrative_player_message,
                 ) as narrative_frame:
-                    with canonical_world_metadata_context(
-                        lambda: world_metadata_for_state(
-                            session.world_state,
-                            getattr(session, "world_metadata", None),
-                        )
-                    ):
-                        with active_adapter.capture_model_calls() as model_calls:
-                            with active_adapter.capture_model_failures() as model_failures:
-                                run_turn = session.run_player_turn
-                                try:
-                                    run_parameters = inspect.signature(
-                                        run_turn
-                                    ).parameters
-                                except (TypeError, ValueError):
-                                    if not isinstance(session, game.GameSession):
-                                        raise
-                                    # GameSession exposes session-bound engine
-                                    # helpers as partials. Their wrapped
-                                    # signatures omit the injected session kwarg,
-                                    # so inspect.signature(partial) cannot bind it.
-                                    run_parameters = inspect.signature(
-                                        game.run_player_turn
-                                    ).parameters
-                                run_kwargs = {}
-                                if request.combat_action is not None:
-                                    run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
-                                if "scene_plan" in run_parameters:
-                                    run_kwargs["scene_plan"] = scene_plan
-                                if "action_id" in run_parameters:
-                                    run_kwargs["action_id"] = action_id
-                                if "session_id" in run_parameters:
-                                    run_kwargs["session_id"] = session_id
-                                if request.target_id is not None:
-                                    run_kwargs["target_id"] = request.target_id
-                                result = run_turn(request.message, **run_kwargs)
+                    missing_claims = object()
+                    previous_claims = getattr(
+                        session, "_supported_player_claims", missing_claims
+                    )
+                    # This transient request context contains only player
+                    # utterances already bound to stable NPC IDs in saved
+                    # continuity. It is never part of the serialized session.
+                    session._supported_player_claims = copy.deepcopy(
+                        narrative_frame.selected_player_claims
+                    )
+                    try:
+                        with canonical_world_metadata_context(
+                            lambda: world_metadata_for_state(
+                                session.world_state,
+                                getattr(session, "world_metadata", None),
+                            )
+                        ):
+                            with active_adapter.capture_model_calls() as model_calls:
+                                with active_adapter.capture_model_failures() as model_failures:
+                                    run_turn = session.run_player_turn
+                                    try:
+                                        run_parameters = inspect.signature(
+                                            run_turn
+                                        ).parameters
+                                    except (TypeError, ValueError):
+                                        if not isinstance(session, game.GameSession):
+                                            raise
+                                        # GameSession exposes session-bound engine
+                                        # helpers as partials. Their wrapped
+                                        # signatures omit the injected session kwarg,
+                                        # so inspect.signature(partial) cannot bind it.
+                                        run_parameters = inspect.signature(
+                                            game.run_player_turn
+                                        ).parameters
+                                    run_kwargs = {}
+                                    if request.combat_action is not None:
+                                        run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
+                                    if "scene_plan" in run_parameters:
+                                        run_kwargs["scene_plan"] = scene_plan
+                                    if "action_id" in run_parameters:
+                                        run_kwargs["action_id"] = action_id
+                                    if "session_id" in run_parameters:
+                                        run_kwargs["session_id"] = session_id
+                                    if request.target_id is not None:
+                                        run_kwargs["target_id"] = request.target_id
+                                    result = run_turn(request.message, **run_kwargs)
+                    finally:
+                        if previous_claims is missing_claims:
+                            delattr(session, "_supported_player_claims")
+                        else:
+                            session._supported_player_claims = previous_claims
             except Exception as error:
                 try:
                     restore_turn_snapshot()

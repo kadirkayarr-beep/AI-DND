@@ -25,6 +25,7 @@
 - [Concurrent test-file integration](concurrent-test-file-integration.md) — recheck parse and suite after parallel task integration; earlier local success does not certify the merged file.
 - [Regression evidence authority](regression-evidence-authority.md) — new suite runs cannot certify missing historical runs; real HTTP acceptance remains separate.
 - [Development evidence cleanliness](development-evidence-cleanliness.md) — sequential checks must exempt only proven tool outputs, not genuine user or historical changes.
+- [Isolated campaign acceptance](isolated-campaign-acceptance.md) — run live HTTP/browser tests against a temporary store using canonical API actions, never owner campaign data.
 - [Completion review scope](completion-review-scope.md) — completion can include pre-existing checkout edits; preserve ownership and explain unrelated findings.
 - [Death and save policy](death-policy.md) — Policy A governs new lethal NPC damage; preserve historical unconscious canon; no mode automatically deletes saves.
 - [Spell scope boundaries](spell-scope-boundaries.md) — only approved, owner-compatible spell modes; never infer preparation, external actors or deferred mechanics.

@@ -8116,6 +8116,283 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(stale_session.serialize_game_state(), stale_save)
 
+    async def test_reopened_name_fallback_uses_only_player_claim_bound_to_same_npc(self):
+        from api.narrative_memory import build_narrative_context
+
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        original_record = self.manager.get(created["session_id"])
+        original_session = original_record.game_session
+        location_id = original_session.world_state["location"]
+        npc_a = {
+            "id": "npc_continuity_name_mira",
+            "name": "Mira",
+            "role": "Yolcu",
+            "location": location_id,
+            "memory": [],
+        }
+        npc_b = {
+            "id": "npc_continuity_name_aldren",
+            "name": "Aldren",
+            "role": "Muhafız",
+            "location": location_id,
+            "memory": [],
+        }
+        original_session.world_state["npcs"] = [npc_a, npc_b]
+        self.manager.save_campaign(campaign_id)
+
+        disclosure = {
+            "message": "Benim adım Arven.",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=disclosure
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Arven", response.json()["narration"])
+        player_claims = (
+            original_record.narrative_memory["npc_interactions"][npc_a["id"]]
+        )
+        self.assertTrue(any(
+            entry.get("source") == "player_utterance"
+            and entry.get("authority") == "narrative_continuity"
+            and "Benim adım Arven." in entry.get("text", "")
+            for entry in player_claims
+        ))
+
+        # Build a saved fixture where only the NPC's direct duplicate is
+        # absent. The player-origin claim remains bound to Mira's stable ID.
+        npc_a["memory"] = []
+        memory = original_record.narrative_memory
+        memory["recent_turns"][-1]["narration"] = "Mira: Adın Galen."
+        self.manager.save_campaign(campaign_id)
+        saved = self.store.get_campaign(campaign_id)
+        saved_world = saved.payload["engine_save"]["world_state"]
+        saved_npcs = {npc["id"]: npc for npc in saved_world["npcs"]}
+        self.assertEqual(saved_npcs[npc_a["id"]]["memory"], [])
+        saved_claims = saved.payload["narrative_memory"]["npc_interactions"]
+        self.assertTrue(any(
+            entry.get("source") == "player_utterance"
+            and entry.get("authority") == "narrative_continuity"
+            and "Benim adım Arven." in entry.get("text", "")
+            for entry in saved_claims[npc_a["id"]]
+        ))
+
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = reopened_manager.get(session_id)
+            session = record.game_session
+            self.assertIsNot(session, original_session)
+            self.assertEqual(session.world_state["npcs"][0]["memory"], [])
+
+            ask_a = {
+                "message": "Bana adımla hitap et",
+                "target_id": npc_a["id"],
+                "action_id": str(uuid.uuid4()),
+            }
+            ask_b = {
+                **ask_a,
+                "target_id": npc_b["id"],
+                "action_id": str(uuid.uuid4()),
+            }
+            packet_a, _ = build_narrative_context(
+                record.narrative_memory,
+                game.build_world_context(
+                    npc_target=session.world_state["npcs"][0], session=session
+                ),
+                ask_a["message"],
+                {"npc_id": npc_a["id"]},
+            )
+            packet_b, _ = build_narrative_context(
+                record.narrative_memory,
+                game.build_world_context(
+                    npc_target=session.world_state["npcs"][1], session=session
+                ),
+                ask_b["message"],
+                {"npc_id": npc_b["id"]},
+            )
+            self.assertNotIn(
+                "Galen", json.dumps(packet_a, ensure_ascii=False)
+            )
+            self.assertNotIn(
+                "Benim adım Arven.",
+                json.dumps(
+                    packet_b["relevant_continuity"], ensure_ascii=False
+                ),
+            )
+            self.assertEqual(
+                record.narrative_memory["recent_turns"][-1]["narration"],
+                "Mira: Adın Galen.",
+            )
+
+            for body, expected_name in ((ask_a, "Arven"), (ask_b, None)):
+                with self.subTest(target_id=body["target_id"]):
+                    before = reopened_store.get_campaign(campaign_id)
+                    turn = await http.post(
+                        f"/api/game/sessions/{session_id}/turn", json=body
+                    )
+                    self.assertEqual(turn.status_code, 200, turn.text)
+                    narration = turn.json()["narration"]
+                    if expected_name:
+                        self.assertIn(expected_name, narration)
+                        self.assertNotIn("Galen", narration)
+                    else:
+                        self.assertNotIn("Arven", narration)
+                        self.assertNotIn("Galen", narration)
+                    after = reopened_store.get_campaign(campaign_id)
+                    self.assertEqual(after.history[:-1], before.history)
+                    self.assertEqual(
+                        after.history[-1]["player_message"], body["message"]
+                    )
+                    receipt = reopened_store.get_turn_action(
+                        campaign_id, body["action_id"]
+                    )
+                    self.assertEqual(receipt["response"], turn.json())
+
+    async def test_reopened_personal_reply_conflicts_when_target_changes(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        original_session = self.manager.get(created["session_id"]).game_session
+        location_id = original_session.world_state["location"]
+        npc_a = {
+            "id": "npc_personal_receipt_mira",
+            "name": "Mira",
+            "role": "Yolcu",
+            "location": location_id,
+            "memory": [],
+        }
+        npc_b = {
+            "id": "npc_personal_receipt_aldren",
+            "name": "Aldren",
+            "role": "Muhafız",
+            "location": location_id,
+            "memory": [],
+        }
+        original_session.world_state["npcs"] = [npc_a, npc_b]
+        self.manager.save_campaign(campaign_id)
+        disclosure = {
+            "message": "Benim adım Arven.",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        disclosed = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=disclosure
+        )
+        self.assertEqual(disclosed.status_code, 200, disclosed.text)
+        self.assertIn("Arven", disclosed.json()["narration"])
+
+        body = {
+            "message": "Bana adımla hitap et",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        original_answer = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=body
+        )
+        self.assertEqual(original_answer.status_code, 200, original_answer.text)
+        self.assertIn("Arven", original_answer.json()["narration"])
+        original_receipt = self.store.get_turn_action(
+            campaign_id, body["action_id"]
+        )
+        self.assertEqual(original_receipt["response"], original_answer.json())
+
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = reopened_manager.get(session_id)
+            session = record.game_session
+            self.assertIsNot(session, original_session)
+            committed = reopened_store.get_campaign(campaign_id)
+            self.assertEqual(
+                session.serialize_game_state(), committed.payload["engine_save"]
+            )
+            self.assertEqual(resumed.json()["history"], committed.history)
+            before_replay = reopened_store.get_campaign(campaign_id)
+            runtime_before = copy.deepcopy((
+                session.serialize_game_state(),
+                session.rng.getstate(),
+                session.messages,
+                record.journal,
+                record.narrative_memory,
+                record.turn_action_receipts,
+            ))
+
+            changed = {**body, "target_id": npc_b["id"]}
+            with patch.object(
+                session, "run_player_turn",
+                side_effect=AssertionError("saved personal reply reran"),
+            ), patch.object(
+                reopened_store, "save_campaign",
+                side_effect=AssertionError("saved personal reply autosaved"),
+            ):
+                replay = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=body
+                )
+                self.assertEqual(replay.status_code, 200, replay.text)
+                self.assertEqual(
+                    replay.json(),
+                    dict(original_receipt["response"], session_id=session_id),
+                )
+                self.assertEqual(runtime_before, (
+                    session.serialize_game_state(),
+                    session.rng.getstate(),
+                    session.messages,
+                    record.journal,
+                    record.narrative_memory,
+                    record.turn_action_receipts,
+                ))
+                self.assertEqual(
+                    reopened_store.get_campaign(campaign_id), before_replay
+                )
+                conflict = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=changed
+                )
+            self.assertEqual(conflict.status_code, 409, conflict.text)
+            self.assertEqual(
+                conflict.json()["detail"]["code"], "action_id_conflict"
+            )
+            self.assertEqual(
+                reopened_store.get_campaign(campaign_id), before_replay
+            )
+            self.assertEqual(runtime_before, (
+                session.serialize_game_state(),
+                session.rng.getstate(),
+                session.messages,
+                record.journal,
+                record.narrative_memory,
+                record.turn_action_receipts,
+            ))
+            self.assertEqual(
+                reopened_store.get_turn_action(campaign_id, body["action_id"]),
+                original_receipt,
+            )
+
     async def test_reopened_personal_questions_stay_bound_to_saved_npcs(self):
         created = await self.create_campaign()
         campaign_id = created["campaign_id"]

@@ -12063,8 +12063,13 @@ def _run_player_turn_internal(player_input, messages=None, target_id=None, scene
         isinstance(npc_target, dict)
         and _is_historical_player_name_query(player_input)
     ):
-        remembered_name = _historical_player_name_from_npc_memory(
-            npc_target, player_input
+        remembered_name = (
+            _historical_player_name_from_npc_memory(npc_target, player_input)
+            or _historical_player_name_from_claims(
+                npc_target,
+                player_input,
+                getattr(_session(), "_supported_player_claims", None),
+            )
         )
         npc_name = str(npc_target.get("name") or "Kişi")
         is_hitap = bool(re.search(r"\b(?:ad[ıi]mla|ismimle)\s+hitap\b", _normalize_turkish_typos(str(player_input).casefold())))
