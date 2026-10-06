@@ -1678,7 +1678,7 @@ class ContractParityTests(unittest.TestCase):
             f"{schema_name}.additionalProperties",
         )
         for field_name, constraints in (
-            ("event_id", ("pattern",)),
+            ("event_id", ("type", "pattern")),
             ("turn_index", ("type", "minimum")),
         ):
             for constraint in constraints:
@@ -4079,6 +4079,13 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
             (("properties", "turn_index", "minimum"), -1),
             (("properties", "turn_index", "minimum"), 1),
         ]
+        mutations.extend(
+            (("properties", "event_id", "type"), replacement)
+            for replacement in (
+                None, "integer", "number", "boolean", "object", "array", "null",
+                ["string", "null"],
+            )
+        )
         mutations.extend(
             (("required",), [
                 field for field in original["required"] if field != removed
