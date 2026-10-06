@@ -6282,6 +6282,110 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     paused_receipt_error=CampaignCorruptError,
                 )
 
+    async def test_recovered_merchant_save_race_winner_timeout_drains_workers_before_teardown(self):
+        await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=True)
+
+    async def test_recovered_merchant_save_race_loser_timeout_drains_workers_before_teardown(self):
+        await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=False)
+
+    async def _assert_recovered_merchant_timeout_cleanup(self, *, timeout_winner):
+        worker_entered = threading.Event()
+        release_worker = threading.Event()
+        worker_finished = threading.Event()
+        real_save = CampaignStore.save_campaign
+        real_wait_for = asyncio.wait_for
+        real_exit = httpx.AsyncClient.__aexit__
+        real_request_wait = self._wait_for_merchant_race_request
+        turn_saves = []
+        request_tasks = []
+        exited_clients = []
+        worker_checks = []
+        timed_out = False
+
+        def delayed_save(store, *args, **kwargs):
+            if kwargs.get("turn_action_receipt") is not None:
+                turn_saves.append(store)
+                is_recovered = callable(getattr(store.save_campaign, "side_effect", None))
+                # Ignore the initial discovery. Delay either the competing
+                # winner or the recovered save after its instance barrier opens.
+                if (timeout_winner and len(turn_saves) == 2) or (
+                    not timeout_winner and is_recovered
+                ):
+                    worker_entered.set()
+                    if not release_worker.wait(timeout=5):
+                        raise AssertionError("Recovered timeout injection did not release the worker.")
+                    try:
+                        worker_checks.append((
+                            CampaignStore.save_campaign is delayed_save,
+                            callable(getattr(store.save_campaign, "side_effect", None)),
+                            self.store.path.exists(),
+                        ))
+                        return real_save(store, *args, **kwargs)
+                    finally:
+                        worker_finished.set()
+            return real_save(store, *args, **kwargs)
+
+        async def observed_request_wait(task):
+            request_tasks.append(task)
+            return await real_request_wait(task)
+
+        async def injected_wait_for(awaitable, timeout):
+            nonlocal timed_out
+            # Without a shared action, the helper waits for the winner, its
+            # changed-payload conflict, then the recovered losing request.
+            target_wait = 1 if timeout_winner else 3
+            if timeout == 30 and len(request_tasks) == target_wait and not timed_out:
+                self.assertTrue(await asyncio.to_thread(worker_entered.wait, 5))
+                self.assertFalse(worker_finished.is_set())
+                self.assertTrue(all(not client.is_closed for client in turn_clients))
+                # Cancel the timeout wrapper, never the underlying ASGI task.
+                awaitable.cancel()
+                timed_out = True
+                asyncio.get_running_loop().call_soon(release_worker.set)
+                raise TimeoutError("injected recovered merchant request timeout")
+            return await real_wait_for(awaitable, timeout)
+
+        turn_clients = []
+        real_enter = httpx.AsyncClient.__aenter__
+
+        async def observed_enter(client):
+            turn_clients.append(client)
+            return await real_enter(client)
+
+        async def checked_exit(client, *args):
+            self.assertTrue(timed_out)
+            self.assertFalse(client.is_closed)
+            self.assertTrue(worker_finished.is_set())
+            self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+            self.assertEqual(len(turn_saves), 3)
+            exited_clients.append(client)
+            return await real_exit(client, *args)
+
+        try:
+            with (
+                patch.object(CampaignStore, "save_campaign", new=delayed_save),
+                patch.object(asyncio, "wait_for", new=injected_wait_for),
+                patch.object(self, "_wait_for_merchant_race_request", new=observed_request_wait),
+                patch.object(httpx.AsyncClient, "__aenter__", new=observed_enter),
+                patch.object(httpx.AsyncClient, "__aexit__", new=checked_exit),
+            ):
+                with self.assertRaisesRegex(TimeoutError, "injected recovered merchant request timeout"):
+                    await self._assert_recovered_merchant_search_save_race(shared_action=False)
+                self.assertTrue(timed_out)
+                self.assertTrue(worker_finished.is_set())
+                self.assertEqual(worker_checks, [(True, not timeout_winner, True)])
+                self.assertEqual(len(request_tasks), 2 if timeout_winner else 3)
+                self.assertEqual(len(exited_clients), 2)
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                # Both real accepted turns remain readable before the patches
+                # and temporary SQLite fixture can be torn down.
+                with closing(sqlite3.connect(self.store.path)) as connection:
+                    self.assertEqual(connection.execute(
+                        "SELECT COUNT(*) FROM campaign_turn_actions",
+                    ).fetchone()[0], 2)
+        finally:
+            release_worker.set()
+
     async def _assert_recovered_merchant_search_save_race(
         self, *, shared_action, changed_payload=False, paused_receipt_error=None,
     ):
@@ -6477,8 +6581,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.to_thread(save_reached.wait, 30),
                         "Recovered request never reached persistence.",
                     )
-                    competing = await asyncio.wait_for(
-                        active_http.post(active_url, json=competing_body), timeout=30,
+                    competing = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(active_http.post(active_url, json=competing_body)),
                     )
                     self.assertEqual(competing.status_code, 200, competing.text)
                     newer = active_store.get_campaign(campaign_id)
@@ -6504,8 +6608,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                             "Winning-session changed retry must not save again.",
                         )) as conflict_save,
                     ):
-                        winner_conflict = await asyncio.wait_for(
-                            active_http.post(active_url, json=changed_retry_body), timeout=30,
+                        winner_conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(active_http.post(active_url, json=changed_retry_body)),
                         )
                     self.assertEqual(winner_conflict.status_code, 409, winner_conflict.text)
                     self.assertEqual(
@@ -6548,8 +6652,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 "Winning-session replay must not save again.",
                             )) as blocked_save,
                         ):
-                            winner_replay = await asyncio.wait_for(
-                                active_http.post(active_url, json=competing_body), timeout=30,
+                            winner_replay = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(active_http.post(active_url, json=competing_body)),
                             )
                         self.assertEqual(winner_replay.status_code, 200, winner_replay.text)
                         self.assertEqual(winner_replay.json(), competing.json())
@@ -6599,8 +6703,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 "Unreadable winner receipt must not save again.",
                             )) as blocked_save,
                         ):
-                            failed_retry = await asyncio.wait_for(
-                                active_http.post(active_url, json=competing_body), timeout=30,
+                            failed_retry = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(active_http.post(active_url, json=competing_body)),
                             )
                             failed_lookup.assert_called_once_with(
                                 campaign_id, competing_body["action_id"],
@@ -6646,7 +6750,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(receipt_rows(), newer_rows)
                 finally:
                     release_save.set()
-                    rejected = await asyncio.wait_for(pending, timeout=30)
+                    rejected = await self._wait_for_merchant_race_request(pending)
             raced_save.assert_called_once()
             self.assertEqual(rejected.status_code, 409, rejected.text)
             self.assertEqual(
@@ -6767,8 +6871,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )) as blocked_restore,
                 ):
                     if changed_payload:
-                        conflict = await asyncio.wait_for(
-                            recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                        conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(recovered_http.post(recovered_url, json=rejected_body)),
                         )
                         self.assertEqual(conflict.status_code, 409, conflict.text)
                         self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
@@ -6778,8 +6882,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         blocked_restore.assert_not_called()
                         assert_stale_retry_unchanged()
 
-                    replay = await asyncio.wait_for(
-                        recovered_http.post(recovered_url, json=competing_body), timeout=30,
+                    replay = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(recovered_http.post(recovered_url, json=competing_body)),
                     )
                     self.assertEqual(replay.status_code, 200, replay.text)
                     expected = copy.deepcopy(competing.json())
@@ -6841,8 +6945,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )) as blocked_save,
                 ):
                     if changed_payload:
-                        conflict = await asyncio.wait_for(
-                            recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                        conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(recovered_http.post(recovered_url, json=rejected_body)),
                         )
                         self.assertEqual(conflict.status_code, 409, conflict.text)
                         self.assertEqual(
@@ -6851,8 +6955,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         blocked_turn.assert_not_called()
                         blocked_save.assert_not_called()
                         assert_shared_receipt_unchanged()
-                    replay = await asyncio.wait_for(
-                        recovered_http.post(recovered_url, json=competing_body), timeout=30,
+                    replay = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(recovered_http.post(recovered_url, json=competing_body)),
                     )
                 self.assertEqual(replay.status_code, 200, replay.text)
                 expected = copy.deepcopy(competing.json())
