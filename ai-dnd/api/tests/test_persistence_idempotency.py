@@ -22,6 +22,7 @@ from api.tests import test_campaign_time as clocks
 from api.tests.test_action_economy_reactions import interrupted, assert_continuation
 import json
 from api.persistence.campaign_models import CampaignError, CampaignStaleError
+from api import campaign_journal
 
 
 class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
@@ -4786,6 +4787,152 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             SessionManager(campaign_store=CampaignStore(self.store.path)).resume_campaign(a["campaign_id"])
         self.assertFalse(self.manager.delete_campaign(a["campaign_id"])["deleted"])
         self.assertEqual(self.store.get_campaign(b["campaign_id"]), isolated)
+
+    async def test_promoted_event_fresh_id_retry_after_journal_retention_and_resume(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        record = self.manager.get(created["session_id"])
+        session = record.game_session
+        event_id = self.install_test_ambient_event(session)
+        original_id = str(uuid4())
+        accepted = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/ambient-events/{event_id}/actions",
+            json={"action_id": original_id, "action": "interact"},
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        result = accepted.json()["result"]
+        self.assertEqual(result["status"], "APPLIED")
+        transition_id = result["transition_id"]
+        self.assertIsNotNone(transition_id)
+        self.assertIsNotNone(result["canonical_event_id"])
+        original_receipt = self.store.get_turn_action(campaign_id, original_id)
+        self.assertIsNotNone(original_receipt)
+
+        world = session.world_state
+        scene = world["scene_state"]["scenes"][world["location"]]
+        referent = next(item for item in scene["referents"]
+                        if item.get("event_instance_id") == event_id)
+        self.assertEqual(referent["lifecycle"], "promoted")
+        self.assertEqual(referent["promoted_npc_id"], transition_id)
+        promoted = copy.deepcopy(next(npc for npc in world["npcs"]
+                                     if npc["id"] == transition_id))
+        self.assertTrue(any(
+            item["event_type"] == "ambient_event_outcome"
+            and item["event_id"] == result["canonical_event_id"]
+            for item in record.journal["notable_events"]
+        ))
+        self.assertTrue(any(
+            item["event_type"] == "npc_met" and item["related_npc_id"] == transition_id
+            for item in record.journal["notable_events"]
+        ))
+
+        # Exercise the real bounded-retention writer, not a cleared journal or
+        # a removed receipt. These later test-local entries carry no NPC canon.
+        for index in range(campaign_journal.MAX_EVENTS):
+            campaign_journal._add_event(
+                record.journal, event_type="item_gained",
+                summary=f"Retention fixture item {index}",
+                created_at=datetime.now().astimezone().isoformat(),
+                turn_index=world["flags"]["turn_index"],
+            )
+        campaign_journal.validate_campaign_journal(record.journal)
+        self.assertEqual(len(record.journal["notable_events"]), campaign_journal.MAX_EVENTS)
+        self.assertFalse(any(
+            item["event_type"] in ("ambient_event_outcome", "npc_met")
+            for item in record.journal["notable_events"]
+        ))
+        self.manager.save_campaign(campaign_id)
+        self.assertEqual(self.store.get_turn_action(campaign_id, original_id), original_receipt)
+
+        def saved_rows(store):
+            with closing(store._connect()) as db:
+                return {
+                    table: [tuple(row) for row in db.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_history",
+                                  "campaign_combat_history", "campaign_turn_actions")
+                }
+
+        async def assert_harmless_retries(client, manager, store, sid, current, action_ids):
+            before = self.snapshot(current)
+            messages = copy.deepcopy(current.game_session.messages)
+            rows = saved_rows(store)
+            current_session = current.game_session
+            with patch.object(current_session, "resolve_ambient_event_action",
+                              wraps=current_session.resolve_ambient_event_action) as resolve, \
+                 patch.object(current_session, "_promote_scene_referent",
+                              side_effect=AssertionError("Retry promoted another NPC")), \
+                 patch("api.main.append_ambient_event_outcome",
+                       side_effect=AssertionError("Retry appended an outcome")), \
+                 patch.object(manager, "save_campaign_locked",
+                              side_effect=AssertionError("Retry saved the campaign")), \
+                 patch.object(store, "save_campaign",
+                              side_effect=AssertionError("Retry wrote the campaign")):
+                for action_id in action_ids:
+                    with self.subTest(session_id=sid, action_id=action_id):
+                        self.assertNotEqual(action_id, original_id)
+                        self.assertIsNone(manager.get_turn_action(current, action_id))
+                        resolve.reset_mock()
+                        response = await client.post(
+                            f"/api/game/sessions/{sid}/ambient-events/{event_id}/actions",
+                            json={"action_id": action_id, "action": "interact"},
+                        )
+                        self.assertEqual(response.status_code, 200, response.text)
+                        self.assertEqual(response.json()["session_id"], sid)
+                        self.assertEqual(response.json()["result"], {
+                            "event_instance_id": event_id,
+                            "action_id": action_id,
+                            "status": "ALREADY_APPLIED",
+                            "reason_code": "event_already_resolved",
+                            "transition_id": transition_id,
+                            # The old receipt is retained, but this fresh request
+                            # has no journal evidence for a canonical event ID.
+                            "canonical_event_id": None,
+                        })
+                        resolve.assert_called_once_with(event_id, action_id, "interact")
+                        self.assertEqual(self.snapshot(current), before)
+                        self.assertEqual(current_session.messages, messages)
+                        self.assertEqual(saved_rows(store), rows)
+                        self.assertIsNone(manager.get_turn_action(current, action_id))
+                        self.assertIsNone(store.get_turn_action(campaign_id, action_id))
+                        self.assertEqual(
+                            [npc for npc in current_session.world_state["npcs"]
+                             if npc["id"] == transition_id],
+                            [promoted],
+                        )
+                        self.assertEqual(
+                            store.get_turn_action(campaign_id, original_id), original_receipt,
+                        )
+
+        fresh_id = str(uuid4())
+        await assert_harmless_retries(
+            self.http, self.manager, self.store, created["session_id"], record,
+            [fresh_id, fresh_id],
+        )
+        trimmed = self.snapshot(record)
+        fresh_store = CampaignStore(self.store.path)
+        fresh_manager = SessionManager(campaign_store=fresh_store)
+        fresh_app = create_app(
+            session_manager=fresh_manager, ollama_adapter=self.app.state.ollama_adapter,
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=fresh_app), base_url="http://reopened",
+        ) as client:
+            resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            restored = fresh_manager.get(sid)
+            self.assertIsNot(restored.game_session, session)
+            self.assertEqual(self.snapshot(restored)[:7], trimmed[:7])
+            self.assertEqual(fresh_store.get_campaign(campaign_id).payload, trimmed[-1].payload)
+            # Snapshot after resume: reopening may legitimately update metadata.
+            next_fresh_id = str(uuid4())
+            await assert_harmless_retries(
+                client, fresh_manager, fresh_store, sid, restored,
+                [fresh_id, next_fresh_id, next_fresh_id],
+            )
 
     async def test_event_action_id_cannot_be_reused_for_other_event_or_turn(self):
         a = await self.create_campaign()
