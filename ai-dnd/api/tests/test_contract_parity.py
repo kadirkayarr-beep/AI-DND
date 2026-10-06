@@ -89,16 +89,20 @@ HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 SPEC_TEXT = OPENAPI_PATH.read_text(encoding="utf-8")
 
 
-class _ContractLoader(yaml.SafeLoader):
-    """Reject duplicate keys instead of silently hiding contract declarations."""
-
-    def construct_mapping(self, node, deep=False):
-        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
-        if len(keys) != len(set(keys)):
-            raise AssertionError("OpenAPI contains duplicate mapping keys")
-        return super().construct_mapping(node, deep=deep)
+_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+_SAFE_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
 
 
+class _ContractLoader(_DuplicateKeyLoaderMixin, _SAFE_LOADER):
+    """Use LibYAML when installed, without relaxing safe-loader checks."""
+
+
+def _dump_spec(spec, *, default_flow_style, sort_keys=True):
+    """Serialize each independent mutation with a safe, optionally C-backed dumper."""
+    return yaml.dump(
+        spec, Dumper=_SAFE_DUMPER,
+        default_flow_style=default_flow_style, sort_keys=sort_keys,
+    )
 def _mapping(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise AssertionError(f"OpenAPI {label} must be a mapping")
@@ -2153,7 +2157,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         spec = deepcopy(SPEC)
                         spec["components"]["schemas"][schema_name]["type"] = replacement
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name]
@@ -2221,7 +2225,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         spec = deepcopy(SPEC)
                         spec["components"]["schemas"][schema_name]["type"] = replacement
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name]
@@ -2298,7 +2302,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                 field_name
                             ]["type"] = replacement
                             parsed = _load_spec(
-                                yaml.safe_dump(spec, default_flow_style=flow_style)
+                                _dump_spec(spec, default_flow_style=flow_style)
                             )
                             self.assertEqual(parsed, spec)
                             mutated = parsed["components"]["schemas"][schema_name][
@@ -2364,7 +2368,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             field_name
                         ]["type"] = replacement
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name][
@@ -2436,7 +2440,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             field_name
                         ]["items"]["$ref"] = f"#/components/schemas/{wrong_model.__name__}"
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name][
@@ -2500,7 +2504,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else:
                             target["additionalProperties"] = True
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name]
@@ -2559,7 +2563,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             field_name
                         ]
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name]
@@ -2639,7 +2643,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         field_name
                     ] = deepcopy(declaration)
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     mutated = parsed["components"]["schemas"][schema_name]
@@ -2716,7 +2720,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else:
                             target["required"] = replacement
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         restored = deepcopy(parsed)
@@ -2751,7 +2755,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
                             wrong_ref = "#/components/schemas/SpeciesTraitActionResult"
                         schema["$ref"] = wrong_ref
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             # The existing inventory and model checks cannot see this drift.
@@ -2801,7 +2805,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
         results = []
         for flow_style in (False, True):
             with self.subTest(compact=flow_style):
-                text = yaml.safe_dump(SPEC, default_flow_style=flow_style, sort_keys=False)
+                text = _dump_spec(SPEC, default_flow_style=flow_style, sort_keys=False)
                 spec = _load_spec(text)
                 self.assertEqual(spec, SPEC)
                 result = self._parity_result(spec)
@@ -2809,6 +2813,65 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                 results.append(result.testsRun)
         self.assertEqual(results[0], results[1])
         self.assertGreater(results[0], 0)
+
+    def test_safe_yaml_backends_preserve_full_contract_and_scalar_types(self):
+        backends = [(yaml.SafeLoader, yaml.SafeDumper)]
+        if hasattr(yaml, "CSafeLoader") and hasattr(yaml, "CSafeDumper"):
+            backends.append((yaml.CSafeLoader, yaml.CSafeDumper))
+        for loader, dumper in backends:
+            class ContractLoader(_DuplicateKeyLoaderMixin, loader):
+                pass
+
+            for flow_style in (False, True):
+                with self.subTest(backend=loader.__name__, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    with patch.dict(
+                        globals(), _ContractLoader=ContractLoader, _SAFE_DUMPER=dumper,
+                    ):
+                        text = _dump_spec(spec, default_flow_style=flow_style)
+                        parsed = _load_spec(text)
+                        fixture = _load_spec(self.COMPACT_FIXTURE)
+                    self.assertEqual(parsed, spec)
+                    self.assertEqual(fixture, _load_spec(self.BLOCK_FIXTURE))
+                    values = fixture["components"]["schemas"]["Example"]["properties"]
+                    self.assertIs(values["message"]["enum"][1].__class__, str)
+                    self.assertIs(values["message"]["enum"][2].__class__, int)
+                    self.assertIs(
+                        fixture["components"]["schemas"]["Example"]["additionalProperties"],
+                        False,
+                    )
+                    # Neither the dumper nor loader may share mutable contract data.
+                    parsed["components"]["schemas"].clear()
+                    self.assertEqual(spec, SPEC)
+
+    def test_safe_yaml_backends_reject_duplicates_malformed_and_unsafe_tags(self):
+        loaders = [yaml.SafeLoader]
+        if hasattr(yaml, "CSafeLoader"):
+            loaders.append(yaml.CSafeLoader)
+        for loader in loaders:
+            class ContractLoader(_DuplicateKeyLoaderMixin, loader):
+                pass
+
+            for text, diagnostic in (
+                ("{paths: {}, paths: {}}", "duplicate mapping keys"),
+                ("components:\n  schemas: {}\n  schemas: {}", "duplicate mapping keys"),
+                ("components: {schemas: [", "Malformed OpenAPI YAML"),
+                ("!!python/object/apply:builtins.dict []", "Malformed OpenAPI YAML"),
+                ("[]", "document must be a mapping"),
+                ("", "document must be a mapping"),
+            ):
+                with self.subTest(backend=loader.__name__, text=text):
+                    with patch.dict(globals(), _ContractLoader=ContractLoader):
+                        with self.assertRaisesRegex(AssertionError, diagnostic):
+                            _load_spec(text)
+        dumpers = [yaml.SafeDumper]
+        if hasattr(yaml, "CSafeDumper"):
+            dumpers.append(yaml.CSafeDumper)
+        for dumper in dumpers:
+            with self.subTest(backend=dumper.__name__):
+                with patch.dict(globals(), _SAFE_DUMPER=dumper):
+                    with self.assertRaises(yaml.representer.RepresenterError):
+                        _dump_spec({"unsafe": object()}, default_flow_style=False)
 
     def test_malformed_yaml_and_duplicate_declarations_fail_explicitly(self):
         for text in (
@@ -2885,7 +2948,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                 with self.subTest(mutation=mutate.__name__, compact=flow_style):
                     spec = deepcopy(SPEC)
                     mutate(spec)
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     result = self._parity_result(_load_spec(text))
                     self.assertFalse(result.wasSuccessful())
                     self.assertTrue(result.failures or result.errors)
@@ -2962,7 +3025,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target[path[-1]]
                     else:
                         target[path[-1]] = value
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     result = unittest.TestResult()
                     with patch.dict(globals(), SPEC=_load_spec(text)):
                         ContractParityTests(
@@ -3044,7 +3107,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target[path[-1]]
                     else:
                         target[path[-1]] = replacement
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     result = unittest.TestResult()
                     with patch.dict(globals(), SPEC=_load_spec(text)):
                         ContractParityTests(
@@ -3115,7 +3178,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target[path[-1]]
                     else:
                         target[path[-1]] = replacement
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     parsed = _load_spec(text)
                     self.assertEqual(parsed, spec)
                     result = unittest.TestResult()
@@ -3209,7 +3272,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         target.pop(path[-1], None)
                     else:
                         target[path[-1]] = deepcopy(replacement)
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style, sort_keys=False,
                     ))
                     result = unittest.TestResult()
@@ -3245,7 +3308,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             "properties"
                         ]["objectives"]
                         field["items"]["$ref"] = f"#/components/schemas/{wrong_model}"
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         parsed = _load_spec(text)
                         self.assertEqual(parsed, spec)
                         parsed_field = parsed["components"]["schemas"][schema_name][
@@ -3309,7 +3372,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         deepcopy(replacement)
                     )
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     # Restoring only required proves properties, references,
@@ -3353,7 +3416,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                 spec = deepcopy(SPEC)
                 spec["components"]["schemas"]["QuestCommandResult"]["required"].reverse()
                 parsed = _load_spec(
-                    yaml.safe_dump(spec, default_flow_style=flow_style)
+                    _dump_spec(spec, default_flow_style=flow_style)
                 )
                 self.assertEqual(parsed, spec)
                 result = unittest.TestResult()
@@ -3627,7 +3690,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         target[path[-1]] = deepcopy(replacement)
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     result = unittest.TestResult()
@@ -3660,7 +3723,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         ]["application/json"]["schema"]
                         schema["$ref"] = f"#/components/schemas/{wrong_model}"
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["paths"][path]["post"]["responses"]["200"][
@@ -3718,7 +3781,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         target = field if field_name == "quest" else field["anyOf"][0]
                         target["$ref"] = f"#/components/schemas/{wrong_model}"
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"]["QuestCommandResult"][
@@ -3821,7 +3884,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         target.pop(path[-1])
                     else:
                         target[path[-1]] = deepcopy(replacement)
-                    parsed = _load_spec(yaml.safe_dump(spec, default_flow_style=flow_style))
+                    parsed = _load_spec(_dump_spec(spec, default_flow_style=flow_style))
                     self.assertEqual(parsed, spec)
                     restored = deepcopy(parsed)
                     restored["components"]["schemas"]["QuestOutcome"] = deepcopy(original)
@@ -3869,7 +3932,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertEqual(
                         _is_nullable(field["items"]), _is_nullable(original["items"])
                     )
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     parsed = _load_spec(text)
                     self.assertEqual(parsed, spec)
                     # Only the item target changed; restoring it restores all
@@ -3907,7 +3970,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                 )
                 original_reference = target["$ref"]
                 target["$ref"] = replacement
-                parsed = _load_spec(yaml.safe_dump(
+                parsed = _load_spec(_dump_spec(
                     spec, default_flow_style=flow_style,
                 ))
                 self.assertEqual(parsed, spec)
@@ -3980,7 +4043,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     for key in target_path:
                         target = target[key]
                     target["$ref"] = replacement
-                    parsed = _load_spec(yaml.safe_dump(
+                    parsed = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(parsed, spec)
@@ -4056,7 +4119,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         target["$ref"] = replacement
                         self.assertEqual(_schema_types(field), _schema_types(original))
                         self.assertEqual(_is_nullable(field), _is_nullable(original))
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             unchanged = unittest.TestResult()
                             ContractParityTests(
@@ -4112,7 +4175,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             self.assertEqual(
                                 _is_nullable(target), _is_nullable(original["items"])
                             )
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             unchanged = unittest.TestResult()
                             ContractParityTests(
@@ -4177,7 +4240,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         # Wrong targets still have the same object/null type.
                         self.assertEqual(_schema_types(field), _schema_types(original))
                         self.assertEqual(_is_nullable(field), _is_nullable(original))
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             ContractParityTests(
@@ -4201,7 +4264,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     responses["503"] = {
                         "$ref": "#/components/responses/ApiError",
                     }
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(loaded, spec)
@@ -4238,7 +4301,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     responses["default"] = {
                         "$ref": "#/components/responses/ApiError",
                     }
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(loaded, spec)
@@ -4278,7 +4341,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             self.assertNotIn("201", responses)
                             responses["201"] = deepcopy(responses["200"])
                             changed_status = "201"
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         loaded = _load_spec(text)
                         self.assertEqual(loaded, spec)
                         self.assertEqual(loaded["components"], SPEC["components"])
@@ -4327,7 +4390,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         "$ref": "#/components/responses/ApiError",
                     }
                     del responses["200"]
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(loaded, spec)
@@ -4407,7 +4470,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target[path[-1]]
                     else:
                         target[path[-1]] = deepcopy(replacement)
-                    parsed = _load_spec(yaml.safe_dump(
+                    parsed = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     # References, statuses, names and enums remain untouched.
@@ -4457,7 +4520,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertIn(wrong_model, spec["components"]["schemas"])
                     schema["$ref"] = f"#/components/schemas/{wrong_model}"
                     self.assertEqual(spec["components"], SPEC["components"])
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     parsed = _load_spec(text)
                     self.assertEqual(parsed, spec)
                     # Restoring only the response target recovers the whole
@@ -4514,7 +4577,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         schema["$ref"] = "#/components/schemas/CampaignSummary"
                     self.assertEqual(spec["components"], SPEC["components"])
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     result = unittest.TestResult()
                     with patch.dict(globals(), SPEC=_load_spec(text)):
                         for test_name in (
@@ -4572,7 +4635,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                 else "#/components/schemas/GameSession"
                             )
                         self.assertEqual(spec["components"], SPEC["components"])
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             for test_name in (
@@ -4631,7 +4694,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             )
                         # Only this operation changes; every component stays valid.
                         self.assertEqual(spec["components"], SPEC["components"])
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             for test_name in (
@@ -4690,7 +4753,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else:
                             operation["responses"]["201"] = operation["responses"].pop("200")
                         self.assertEqual(spec["components"], SPEC["components"])
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             ContractParityTests(
@@ -4772,7 +4835,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         "$ref": "#/components/responses/ApiError",
                     }
                     del responses["200"]
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(loaded, spec)
@@ -4835,7 +4898,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
                             wrong_ref = "#/components/schemas/SpeciesTraitCommandResult"
                         schema["$ref"] = wrong_ref
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         result = unittest.TestResult()
                         with patch.dict(globals(), SPEC=_load_spec(text)):
                             # Only a binding changes; inventory, statuses and models stay valid.
@@ -4890,7 +4953,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         target[path[-1]] = replacement
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     # Restoring only the mutated entry declaration must recover
@@ -4972,7 +5035,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         target[path[-1]] = replacement
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     # Only one entry constraint changes; references, routes and
@@ -5030,7 +5093,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             field_name
                         )
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         self.assertEqual(parsed, spec)
                         mutated = parsed["components"]["schemas"][schema_name]
@@ -5104,7 +5167,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             else:
                                 field["type"] = mutation
                             parsed = _load_spec(
-                                yaml.safe_dump(spec, default_flow_style=flow_style)
+                                _dump_spec(spec, default_flow_style=flow_style)
                             )
                             self.assertEqual(parsed, spec)
                             mutated_schema = parsed["components"]["schemas"][schema_name]
@@ -5169,7 +5232,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                 "properties"
                             ][field_name]
                             field["items"]["$ref"] = f"#/components/schemas/{wrong_model}"
-                            text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                            text = _dump_spec(spec, default_flow_style=flow_style)
                             parsed = _load_spec(text)
                             self.assertEqual(parsed, spec)
                             mutated = parsed["components"]["schemas"][schema_name][
@@ -5236,7 +5299,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertEqual(_is_nullable(field), _is_nullable(original))
                         self.assertEqual(_schema_types(target), _schema_types(original_target))
                         self.assertEqual(_is_nullable(target), _is_nullable(original_target))
-                        text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                        text = _dump_spec(spec, default_flow_style=flow_style)
                         parsed = _load_spec(text)
                         self.assertEqual(parsed, spec)
                         # Restoring only the target recovers the entire original
@@ -5293,7 +5356,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     self.assertIn(replacement, spec["components"]["schemas"])
                     schema["$ref"] = f"#/components/schemas/{replacement}"
                     self.assertNotEqual(schema["$ref"], original_ref)
-                    parsed = _load_spec(yaml.safe_dump(spec, default_flow_style=flow_style))
+                    parsed = _load_spec(_dump_spec(spec, default_flow_style=flow_style))
                     self.assertEqual(parsed["components"], SPEC["components"])
                     restored = deepcopy(parsed)
                     restored["paths"][path]["get"]["responses"]["200"]["content"][
@@ -5351,7 +5414,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         else:
                             responses["201"] = responses.pop("200")
                         parsed = _load_spec(
-                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                            _dump_spec(spec, default_flow_style=flow_style)
                         )
                         restored = deepcopy(parsed)
                         restored["paths"][path]["get"]["responses"] = deepcopy(
@@ -5397,7 +5460,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         "$ref": "#/components/responses/ApiError",
                     }
                     del responses["200"]
-                    loaded = _load_spec(yaml.safe_dump(
+                    loaded = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(loaded, spec)
@@ -5551,7 +5614,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     ]["campaign"]["$ref"] = original["$ref"]
                     self.assertEqual(restored, SPEC)
                     self.assertEqual(spec["paths"], SPEC["paths"])
-                    text = yaml.safe_dump(spec, default_flow_style=flow_style)
+                    text = _dump_spec(spec, default_flow_style=flow_style)
                     parsed = _load_spec(text)
                     self.assertEqual(parsed, spec)
                     result = unittest.TestResult()
@@ -5602,7 +5665,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target["pattern"]
                     else:
                         target["pattern"] = replacement
-                    parsed = _load_spec(yaml.safe_dump(
+                    parsed = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(parsed, spec)
@@ -5668,7 +5731,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             del target[constraint]
                         else:
                             target[constraint] = replacement
-                        parsed = _load_spec(yaml.safe_dump(
+                        parsed = _load_spec(_dump_spec(
                             spec, default_flow_style=flow_style,
                         ))
                         self.assertEqual(parsed, spec)
@@ -5750,7 +5813,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         del target[path[-1]]
                     else:
                         target[path[-1]] = deepcopy(replacement)
-                    parsed = _load_spec(yaml.safe_dump(
+                    parsed = _load_spec(_dump_spec(
                         spec, default_flow_style=flow_style,
                     ))
                     self.assertEqual(parsed, spec)
@@ -5826,7 +5889,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         target[path[-1]] = deepcopy(replacement)
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     self.assertEqual(parsed["paths"], SPEC["paths"])
@@ -5904,7 +5967,7 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     else:
                         target[path[-1]] = deepcopy(replacement)
                     parsed = _load_spec(
-                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                        _dump_spec(spec, default_flow_style=flow_style)
                     )
                     self.assertEqual(parsed, spec)
                     self.assertEqual(parsed["paths"], SPEC["paths"])
@@ -5941,6 +6004,14 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     )
                     self.assertIn(f"{schema_name}.{diagnostic}", failure)
         self.assertEqual(_schema(schema_name), original)
+class _DuplicateKeyLoaderMixin:
+    """Reject duplicate keys instead of silently hiding contract declarations."""
+
+    def construct_mapping(self, node, deep=False):
+        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
+        if len(keys) != len(set(keys)):
+            raise AssertionError("OpenAPI contains duplicate mapping keys")
+        return super().construct_mapping(node, deep=deep)
 def _published_schema_objects():
     for name in SPEC["components"]["schemas"]:
         yield from _nested_schema_objects(_schema(name), name)

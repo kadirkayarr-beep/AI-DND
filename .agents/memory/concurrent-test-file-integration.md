@@ -117,3 +117,14 @@ check.
 
 **How to apply:** Keep the full suite as the baseline acceptance check, but
 isolate the target parity method when asserting an exact mutation failure count.
+
+Freeze the source used by performance baselines when tests assert traceback
+source text; do not edit that source while its baseline is running.
+
+**Why:** Python can execute an already imported test body while traceback
+formatting reads newer lines from disk. This creates diagnostic-assertion
+failures unrelated to the mutation or parser being measured.
+
+**How to apply:** Finish a baseline before editing, or compile an immutable
+source snapshot with matching traceback source lines. Keep source-sensitive
+assertions intact rather than loosening them to accommodate benchmark races.
