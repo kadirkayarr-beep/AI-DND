@@ -1625,6 +1625,87 @@ class DeathSystemTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self._assert_noncombat_natural_twenty_revival_round_trip(mode)
 
+    def test_noncombat_natural_twenty_finishes_oversized_wait_without_more_saves(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                session = make_session(seed=5)
+                campaign_time.initialize(session.world_state)
+                session.ensure_death_state()["mode"] = mode
+                session.advance_campaign_time(137, "wait")
+                session._apply_player_damage(20, took_damage=True)
+                death = session.ensure_death_state()
+                deadline = death["noncombat_next_save_at"]
+                episode = death["noncombat_episode_id"]
+                self.assertEqual(deadline, 143)
+                self.assertIsInstance(episode, str)
+                self.assertTrue(episode)
+                self.assertFalse(session.world_state["combat"]["active"])
+                self.assertEqual(session.character["current_hp"], 0)
+                death.update(successes=2, failures=2)
+                started_at = session.world_state["campaign_time"]["elapsed_seconds"]
+                # One call crosses the first save, many later six-second save
+                # boundaries, and even the maximum four-hour recovery window.
+                duration = deadline - started_at + 14401
+                reference_rng = random.Random()
+                reference_rng.setstate(session.rng.getstate())
+                self.assertEqual(reference_rng.randint(1, 20), 20)
+                original_resolve = game._resolve_player_death_turn
+                receipts = []
+
+                def resolve_at_first_deadline(**kwargs):
+                    self.assertEqual(
+                        session.world_state["campaign_time"]["elapsed_seconds"], deadline
+                    )
+                    result = original_resolve(**kwargs)
+                    receipts.append(copy.deepcopy(result))
+                    return result
+
+                turn_key = f"noncombat:{episode}:{deadline}"
+                with (
+                    patch("game._resolve_player_death_turn",
+                          side_effect=resolve_at_first_deadline) as resolve,
+                    patch("game.roll_d20", wraps=game.roll_d20) as roll,
+                    patch.object(session.rng, "randint", wraps=session.rng.randint) as die,
+                    patch("game.heal_player", wraps=game.heal_player) as heal,
+                    patch("game.stabilize_player",
+                          side_effect=AssertionError("Revival scheduled recovery")),
+                ):
+                    progress = session.advance_campaign_time(duration, "wait")
+
+                resolve.assert_called_once_with(noncombat_key=turn_key)
+                roll.assert_called_once_with()
+                die.assert_called_once_with(1, 20)
+                heal.assert_called_once_with(1)
+                self.assertEqual(session.rng.getstate(), reference_rng.getstate())
+                self.assertEqual(progress["requested_seconds"], duration)
+                self.assertEqual(progress["elapsed_seconds"], duration)
+                self.assertEqual(progress["remaining_seconds"], 0)
+                self.assertFalse(progress["interrupted"])
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"], deadline + 14401
+                )
+                self.assertEqual(progress["death_results"], [
+                    {"action": "death_save", "death_save": receipts[0]},
+                ])
+                self.assertEqual(receipts[0]["roll"], 20)
+                self.assertEqual(receipts[0]["outcome"], "revived")
+                self.assertNotIn("death_resolution", receipts[0])
+                self.assertEqual(session.character["current_hp"], 1)
+                self.assertEqual(session.world_state["player_combat_status"], "active")
+                self.assertFalse(session.world_state["combat"]["active"])
+                after = session.ensure_death_state()
+                self.assertEqual(after["mode"], mode)
+                self.assertEqual((after["successes"], after["failures"]), (0, 0))
+                self.assertTrue(after["prone"])
+                self.assertFalse(after["stable"])
+                self.assertFalse(after["dead"])
+                self.assertFalse(after["terminal"])
+                self.assertIsNone(after["noncombat_next_save_at"])
+                self.assertIsNone(after["noncombat_episode_id"])
+                self.assertIsNone(after["recovery"])
+                self.assertEqual(after["last_death_save_turn_key"], turn_key)
+                self.assertEqual(after["last_death_save_result"], receipts[0])
+
     def _assert_noncombat_natural_twenty_revival_round_trip(self, mode):
         session = make_session(seed=5)
         peer = make_session(seed=29)
