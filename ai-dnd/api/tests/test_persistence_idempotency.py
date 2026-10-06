@@ -3181,6 +3181,261 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(saved_rows(), rows)
                         self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
 
+    async def assert_independent_duplicate_command(self, operation, winner):
+        def runtime_snapshot(record):
+            return copy.deepcopy((
+                record.game_session.serialize_game_state(),
+                record.game_session.rng.getstate(), record.journal,
+                record.narrative_memory, record.lore_authority.to_dict(),
+                record.combat_history, record.turn_action_receipts,
+            ))
+
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        first = self.manager.get(created["session_id"])
+        session = first.game_session
+        session.commit_location_change("tavern")
+        session.character.update(species="Orc", race="Orc", current_hp=1, max_hp=20)
+        session.initialize_species_trait_state()
+        session.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
+        action_id = str(uuid4())
+        if operation == "ambient":
+            event_id = self.install_test_ambient_event(session)
+            endpoint = f"ambient-events/{event_id}/actions"
+            command = {"action": "interact", "action_id": action_id}
+            mechanic = "resolve_ambient_event_action"
+        else:
+            endpoint = "species-actions"
+            command = {"action": operation, "action_id": action_id}
+            mechanic = "resolve_species_trait_action"
+        self.manager.save_campaign(campaign_id)
+        second_store = CampaignStore(self.store.path)
+        second_manager = SessionManager(campaign_store=second_store)
+        second_sid, second, *_ = second_manager.resume_campaign(campaign_id)
+        records = (first, second)
+        stores = (self.store, second_store)
+        managers = (self.manager, second_manager)
+        session_ids = (created["session_id"], second_sid)
+        loser = 1 - winner
+        self.assertIsNot(first.turn_lock, second.turn_lock)
+        self.assertIsNot(first.game_session, second.game_session)
+        self.assertIsNot(managers[0], managers[1])
+        self.assertIsNot(stores[0], stores[1])
+        self.assertNotEqual(session_ids[0], session_ids[1])
+        before = [runtime_snapshot(record) for record in records]
+        self.assertEqual(before[0], before[1])
+        auxiliary_before = [
+            copy.deepcopy((record.game_session.messages, record.game_session.world_metadata))
+            for record in records
+        ]
+        saved_before = self.store.get_campaign(campaign_id)
+        token = (campaign_id, saved_before.metadata["revision"])
+        for record in records:
+            self.assertEqual(record.game_session._campaign_persistence_version, token)
+
+        def saved_rows():
+            with closing(self.store._connect()) as connection:
+                return {
+                    table: [tuple(row) for row in connection.execute(
+                        f"SELECT * FROM {table} WHERE campaign_id = ? ORDER BY rowid",
+                        (campaign_id,),
+                    )]
+                    for table in ("campaigns", "campaign_turn_actions",
+                                  "campaign_history", "campaign_combat_history")
+                }
+
+        # Rendezvous AFTER both real engines resolve, immediately before the
+        # store transaction. No manager lock or gameplay method is replaced.
+        barrier = threading.Barrier(2)
+        committed_event = threading.Event()
+        original_saves = [store.save_campaign for store in stores]
+        speculative, errors, committed = {}, {}, {}
+        save_calls = [0, 0]
+
+        def ordered_save(index):
+            def save(*args, **kwargs):
+                try:
+                    save_calls[index] += 1
+                    speculative[index] = runtime_snapshot(records[index])
+                    self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_id)
+                    self.assertEqual(records[index].game_session._campaign_persistence_version, token)
+                    barrier.wait(timeout=10)
+                    if index == loser and not committed_event.wait(timeout=10):
+                        raise AssertionError("Duplicate winner did not commit")
+                    result = original_saves[index](*args, **kwargs)
+                    if index == winner:
+                        committed["runtime"] = runtime_snapshot(records[index])
+                    return result
+                except CampaignError as error:
+                    errors[index] = error
+                    raise
+                except Exception:
+                    barrier.abort()
+                    raise
+                finally:
+                    if index == winner:
+                        committed_event.set()
+            return save
+
+        async def send(client, sid):
+            return await client.post(
+                f"/api/game/sessions/{sid}/{endpoint}", json=copy.deepcopy(command),
+            )
+
+        app = create_app(session_manager=second_manager, ollama_adapter=None)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://duplicate",
+        ) as second_client:
+            clients = (self.http, second_client)
+            with ExitStack() as stack:
+                mechanics = [
+                    stack.enter_context(patch.object(
+                        record.game_session, mechanic,
+                        wraps=getattr(record.game_session, mechanic),
+                    )) for record in records
+                ]
+                for index, store in enumerate(stores):
+                    stack.enter_context(patch.object(
+                        store, "save_campaign", side_effect=ordered_save(index),
+                    ))
+                requests = asyncio.gather(
+                    *(send(client, sid) for client, sid in zip(clients, session_ids))
+                )
+                try:
+                    responses = await asyncio.wait_for(asyncio.shield(requests), timeout=25)
+                finally:
+                    # Cancelling an ASGI request does not stop its sync worker.
+                    # Release all test-owned waits and drain both handlers while
+                    # patches, clients and the temporary database still exist.
+                    barrier.abort()
+                    committed_event.set()
+                    if not requests.done():
+                        await asyncio.shield(requests)
+                for spy in mechanics:
+                    self.assertEqual(spy.call_count, 1)
+            accepted, rejected = responses[winner], responses[loser]
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+            self.assertEqual(rejected.status_code, 500 if operation == "ambient" else 409,
+                             rejected.text)
+            self.assertEqual(rejected.json()["detail"]["code"],
+                             "event_persistence_error" if operation == "ambient" else "campaign_stale")
+            self.assertEqual(save_calls, [1, 1])
+            self.assertEqual(set(errors), {loser})
+            self.assertIsInstance(errors[loser], CampaignStaleError)
+            for index in (0, 1):
+                state = speculative[index][0]
+                if operation == "ambient":
+                    self.assertEqual(len(state["world_state"]["npcs"]),
+                                     len(before[index][0]["world_state"]["npcs"]) + 1)
+                    self.assertEqual(len([
+                        event for event in speculative[index][2]["notable_events"]
+                        if event.get("event_type") == "ambient_event_outcome"
+                    ]), 1)
+                else:
+                    self.assertEqual(
+                        state["world_state"]["campaign_time"]["elapsed_seconds"]
+                        - before[index][0]["world_state"]["campaign_time"]["elapsed_seconds"],
+                        3600 if operation == "short_rest" else 28800,
+                    )
+                    self.assertEqual(state["player"]["current_hp"],
+                                     20 if operation == "long_rest" else 1)
+                    self.assertEqual(
+                        state["player"]["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                        state["player"]["proficiency_bonus"],
+                    )
+            self.assertEqual(runtime_snapshot(records[loser]), before[loser])
+            self.assertEqual(
+                (records[loser].game_session.messages, records[loser].game_session.world_metadata),
+                auxiliary_before[loser],
+            )
+            self.assertEqual(records[loser].game_session._campaign_persistence_version, token)
+            self.assertEqual(runtime_snapshot(records[winner]), committed["runtime"])
+            committed_rows = saved_rows()
+            self.assertEqual(len(committed_rows["campaign_turn_actions"]), 1)
+            stored = self.store.get_campaign(campaign_id)
+            self.assertEqual(stored.metadata["revision"], token[1] + 1)
+            self.assertEqual(stored.combat_history, saved_before.combat_history)
+            receipt = self.store.get_turn_action(campaign_id, action_id)
+            self.assertEqual(
+                receipt["response"]["ambient_event_response"] if operation == "ambient"
+                else receipt["response"], accepted.json(),
+            )
+            if operation == "ambient":
+                self.assertEqual(accepted.json()["result"]["status"], "APPLIED")
+                self.assertEqual(stored.history, saved_before.history)
+                outcomes = [
+                    entry for entry in records[winner].journal["notable_events"]
+                    if entry.get("event_type") == "ambient_event_outcome"
+                ]
+                self.assertEqual(len(outcomes), 1)
+                self.assertEqual(outcomes[0]["event_id"],
+                                 accepted.json()["result"]["canonical_event_id"])
+                self.assertEqual(outcomes[0]["event_result"]["transition_id"],
+                                 accepted.json()["result"]["transition_id"])
+            else:
+                self.assertEqual(len(stored.history), len(saved_before.history) + 1)
+                self.assertEqual(stored.history[-1]["player_message"], operation)
+
+            # Resume the actual loser; compare SQL only after its legitimate
+            # metadata touch. The winner's session identity must not leak.
+            resumed = await clients[loser].post(f"/api/game/campaigns/{campaign_id}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            sid = resumed.json()["session_id"]
+            self.assertNotEqual(sid, session_ids[winner])
+            restored = managers[loser].get(sid)
+            self.assertEqual(runtime_snapshot(restored), committed["runtime"])
+            self.assertEqual(stores[loser].get_campaign(campaign_id).payload, stored.payload)
+            self.assertEqual(resumed.json()["history"], stored.history)
+            self.assertEqual(managers[loser].get_turn_action(restored, action_id), receipt)
+            reopened, rows = self.snapshot(restored), saved_rows()
+            auxiliary = copy.deepcopy((restored.game_session.messages,
+                                       restored.game_session.world_metadata))
+            expected = copy.deepcopy(accepted.json())
+            expected["session_id"] = sid
+            if operation == "ambient":
+                expected["result"].update(status="ALREADY_APPLIED",
+                                          reason_code="event_already_resolved")
+                expected["state"] = resumed.json()["state"]
+            with ExitStack() as stack:
+                guards = [
+                    stack.enter_context(patch.object(
+                        target, method, side_effect=AssertionError(f"Replay called {method}"),
+                    ))
+                    for target, method in (
+                        (restored.game_session, "resolve_ambient_event_action"),
+                        (restored.game_session, "resolve_species_trait_action"),
+                        (restored.game_session, "run_player_turn"),
+                        (restored.game_session.rng, "randint"),
+                        (restored.game_session.rng, "random"),
+                        (restored.game_session.rng, "getrandbits"),
+                        (managers[loser], "autosave_turn"),
+                        (managers[loser], "save_campaign_locked"),
+                        (stores[loser], "save_campaign"),
+                    )
+                ]
+                for _ in range(2):
+                    replay = await send(clients[loser], sid)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(replay.json(), expected)
+                    self.assertEqual(self.snapshot(restored), reopened)
+                    self.assertEqual(saved_rows(), rows)
+                    self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                    self.assertEqual((restored.game_session.messages,
+                                      restored.game_session.world_metadata), auxiliary)
+                for guard in guards:
+                    guard.assert_not_called()
+
+    async def test_independent_duplicate_ambient_interact_rolls_back_and_replays(self):
+        for winner in (0, 1):
+            with self.subTest(winner=winner):
+                await self.assert_independent_duplicate_command("ambient", winner)
+
+    async def test_independent_duplicate_rests_roll_back_and_rebind_replay(self):
+        for operation in ("short_rest", "long_rest"):
+            for winner in (0, 1):
+                with self.subTest(operation=operation, winner=winner):
+                    await self.assert_independent_duplicate_command(operation, winner)
+
     async def test_concurrent_duplicate_spell_executes_once_and_replays(self):
         a = await self.create_campaign()
         record, command = self.prepare_spell(a)

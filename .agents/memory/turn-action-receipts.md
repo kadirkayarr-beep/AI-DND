@@ -72,6 +72,18 @@ treats newly generated history identities as a gameplay rollback failure.
 retry; require exact accepted-response equality only once a receipt has committed
 (apart from the current session ID after reopening).
 
+Persistence-race rendezvous should capture runtime-only state, without incidental
+database reads. Release test-owned waits and drain shielded ASGI requests before
+removing patches or deleting the temporary database on timeout.
+
+**Why:** Combined offline race runs exposed intermittent hangs with database-reading
+speculative snapshots. Cancelling an async request does not stop its synchronous
+worker, so ordinary timeout cleanup can leave workers using torn-down fixtures.
+
+**How to apply:** Observe speculative mechanics without store I/O; check database
+rows after handlers finish. Keep clients and persistence fixtures alive until
+both request workers return, including failure paths.
+
 Ambient-event replay is an exception to exact accepted-response equality: its
 owner returns ALREADY_APPLIED with the committed transition and canonical event
 identities, while preserving the saved receipt unchanged.
