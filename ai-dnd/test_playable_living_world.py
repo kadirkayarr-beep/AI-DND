@@ -195,6 +195,62 @@ class PlayableLivingWorldTests(unittest.TestCase):
                             self.assertIsNone(result["npc"])
                             self.assertEqual(self.world, before)
 
+    def test_unknown_named_ablative_dialogue_rejects_single_npc_fallback(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for target in ("Bora'dan", "Ece'den", "Murat'tan", "Mert'ten", "Bora’dan"):
+                    named_clause = f"{target} sohbet etmesini istiyorum"
+                    for player_input in (
+                        f"{named_clause}.",
+                        f"Ondan sohbet etmesini istiyorum, {named_clause}.",
+                        f"{named_clause}, Ondan sohbet etmesini istiyorum.",
+                    ):
+                        with self.subTest(
+                            turn_index=turn_index, active_npc_present=active,
+                            player_input=player_input,
+                        ):
+                            npcs = self._set_npc_conversation_deadline(
+                                turn_index, active=active,
+                            )
+                            self.world["npcs"] = npcs[:1]
+                            self.assertEqual(self.session.active_npcs(), npcs[:1])
+                            before = copy.deepcopy(self.world)
+
+                            result = self.session.resolve_npc_reference(player_input)
+
+                            self.assertEqual(result["status"], "none")
+                            self.assertIsNone(result["npc"])
+                            self.assertEqual(self.world, before)
+
+    def test_pronoun_only_dialogue_preserves_single_npc_fallback(self):
+        for turn_index in (12, 13):
+            for active in (True, False):
+                for player_input in (
+                    "Onunla konuşuyorum.",
+                    "Ondan sohbet etmesini istiyorum.",
+                ):
+                    with self.subTest(
+                        turn_index=turn_index, active_npc_present=active,
+                        player_input=player_input,
+                    ):
+                        npcs = self._set_npc_conversation_deadline(
+                            turn_index, active=active,
+                        )
+                        self.world["npcs"] = npcs[:1]
+                        self.assertEqual(self.session.active_npcs(), npcs[:1])
+                        expected = copy.deepcopy(self.world)
+                        expected["flags"].update({
+                            "active_npc_id": npcs[0]["id"],
+                            "last_npc_id": npcs[0]["id"],
+                            "active_npc_until_turn": turn_index + 6,
+                        })
+
+                        result = self.session.resolve_npc_reference(player_input)
+
+                        self.assertEqual(result["status"], "found")
+                        self.assertEqual(result["npc"]["id"], npcs[0]["id"])
+                        self.assertEqual(self.world, expected)
+
     def test_unknown_named_greetings_do_not_fall_back_to_conversation(self):
         for turn_index in (12, 13):
             for player_input in (
