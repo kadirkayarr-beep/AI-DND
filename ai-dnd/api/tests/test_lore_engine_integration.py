@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import unittest
+from itertools import product
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -938,9 +939,14 @@ class LoreEngineIntegrationTests(unittest.TestCase):
 
     def test_partial_death_markers_block_current_city_ruler_question(self):
         question = "Bu şehrin hükümdarı kim?"
-        for death_marker in ("player_combat_status", "death_state"):
+        for mode, death_marker in product(
+            ("NORMAL", "PERMADEATH", "IRONMAN"),
+            ("player_combat_status", "death_state"),
+        ):
             for target_id in (None, "npc:elara"):
-                with self.subTest(death_marker=death_marker, target_id=target_id):
+                with self.subTest(
+                    mode=mode, death_marker=death_marker, target_id=target_id
+                ):
                     session = game.GameSession(seed=11)
                     session.character.update(
                         name="Tester", current_hp=10, max_hp=10
@@ -948,6 +954,8 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                     # Prepare combat before introducing the inconsistent markers:
                     # ensure_combat_state also normalizes death state.
                     self.assertFalse(session.ensure_combat_state()["active"])
+                    session.world_state["death_state"]["mode"] = mode
+                    session.world_state["death_state"]["terminal"] = False
                     session.character["current_hp"] = 0
                     session.world_state["player_combat_status"] = (
                         "dead" if death_marker == "player_combat_status" else "active"
@@ -986,6 +994,8 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                     expected_world = copy.deepcopy(before_world)
                     expected_world["player_combat_status"] = "dead"
                     expected_world["death_state"]["dead"] = True
+                    if mode == "IRONMAN":
+                        expected_world["death_state"]["terminal"] = True
                     self.assertNotEqual(before_world, expected_world)
                     self.assertFalse(before_world["combat"]["active"])
 
@@ -1018,7 +1028,8 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                     self.assertEqual(session.character, before_character)
                     self.assertEqual(session.lore_authority_context, before_lore)
                     # The exact world comparison also forbids turn advancement,
-                    # NPC changes, or any other changes beyond death normalization.
+                    # NPC changes, or changes beyond marker normalization and
+                    # Ironman's terminal restriction.
                     self.assertEqual(session.world_state, expected_world)
 
     def test_turkish_current_city_ruler_is_deterministic_and_fails_closed(self):
