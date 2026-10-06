@@ -16,7 +16,10 @@ if str(AI_DND_DIR) not in sys.path:
 
 import game
 import campaign_time
+import scheduled_events
 from api.serializers import serialize_session_state
+from api.tests.test_campaign_time import scene
+from api.tests.test_campaign_time_edges import event
 
 
 def make_session(seed=17):
@@ -309,6 +312,132 @@ class DeathSystemTests(unittest.TestCase):
                 self.assertIsNone(after["recovery"])
                 self.assertIsNone(after["noncombat_next_save_at"])
                 self.assertIsNone(after["noncombat_episode_id"])
+
+    def test_stable_recovery_hands_oversized_wait_to_conscious_event_interruption(self):
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            with self.subTest(mode=mode):
+                session = scene()
+                session.character.update(max_hp=20, current_hp=20)
+                session.ensure_death_state()["mode"] = mode
+                session.advance_campaign_time(137, "wait")
+                session._apply_player_damage(20, took_damage=True)
+                with patch.object(session.rng, "randint", return_value=2):
+                    session.stabilize_player()
+                started_at = session.world_state["campaign_time"]["elapsed_seconds"]
+                deadline = session.ensure_death_state()["recovery"]["at"]
+                self.assertEqual(deadline, started_at + 7200)
+                before = campaign_time.public_time(session.world_state)
+                encounter_at = deadline + 600
+                duration = deadline - started_at + 14401
+                observation = {"kind": "look", "location_id": "tavern"}
+                unseen = event(
+                    session, "while-unconscious", started_at + 60, started_at + 120,
+                    summary="A traveller passes while the adventurer sleeps.",
+                    aftermath_visible=False,
+                )
+                # This window stays open past recovery but closes before the stop.
+                # It must not be observed at the unconscious segment's endpoint.
+                sleeping_window = event(
+                    session, "at-recovery", deadline - 60, deadline + 60,
+                    summary="A visitor leaves just after the adventurer wakes.",
+                    aftermath_visible=False,
+                )
+                visible = event(
+                    session, "after-waking", deadline + 120, encounter_at + 120,
+                    summary="A traveller is visible after waking.",
+                    aftermath_visible=False,
+                )
+                decision = event(
+                    session, "waking-decision", encounter_at, encounter_at + 120,
+                    behavior="INTERRUPTIVE", requires_decision=True,
+                    summary="A traveller wants a decision.",
+                )
+                rng_state = session.rng.getstate()
+                original_heal = game.heal_player
+
+                def heal_at_deadline(amount):
+                    self.assertEqual(
+                        session.world_state["campaign_time"]["elapsed_seconds"], deadline
+                    )
+                    self.assertEqual(session.character["current_hp"], 0)
+                    self.assertEqual(session.world_state["player_combat_status"], "unconscious")
+                    self.assertEqual(scheduled_events.public_events(session.world_state), [])
+                    self.assertEqual(unseen["encounter_status"], "MISSED")
+                    self.assertFalse(sleeping_window["player_observed"])
+                    self.assertEqual(decision["status"], "PENDING")
+                    self.assertEqual(decision["decision_status"], "NONE")
+                    return original_heal(amount)
+
+                with (
+                    patch.object(session.rng, "randint",
+                                 side_effect=AssertionError("Recovery rerolled dice")),
+                    patch("game._resolve_player_death_turn",
+                          side_effect=AssertionError("Stable recovery rolled a death save")),
+                    patch("game.stabilize_player",
+                          side_effect=AssertionError("Recovery scheduled another deadline")),
+                    patch("game.heal_player", side_effect=heal_at_deadline) as heal,
+                    patch("campaign_time.advance", wraps=campaign_time.advance) as advance,
+                ):
+                    progress = session.advance_campaign_time(
+                        duration, "explicit_wait", observation=observation
+                    )
+                    self.assertEqual(advance.call_count, 2)
+                    unconscious, conscious = advance.call_args_list
+                    self.assertEqual(unconscious.args[1], deadline - started_at)
+                    self.assertIsNone(unconscious.kwargs["observation"])
+                    self.assertEqual(conscious.args[1], duration - (deadline - started_at))
+                    self.assertEqual(conscious.kwargs["observation"], observation)
+                    heal.assert_called_once_with(1)
+                    self.assertEqual(progress["requested_seconds"], duration)
+                    self.assertEqual(progress["elapsed_seconds"], encounter_at - started_at)
+                    self.assertEqual(
+                        progress["remaining_seconds"], duration - (encounter_at - started_at)
+                    )
+                    self.assertTrue(progress["interrupted"])
+                    self.assertEqual(progress["before"], before)
+                    self.assertEqual(progress["after"], campaign_time.public_time(session.world_state))
+                    self.assertEqual(
+                        session.world_state["campaign_time"]["elapsed_seconds"], encounter_at
+                    )
+                    self.assertEqual(
+                        progress["death_results"], [{"action": "stable_recovery", "current_hp": 1}]
+                    )
+                    self.assertEqual(
+                        progress["player_known_events"],
+                        [scheduled_events.public_event(item, encounter_at)
+                         for item in (decision, visible)],
+                    )
+                    for item in (unseen, sleeping_window):
+                        self.assertFalse(item["player_observed"])
+                        self.assertEqual(item["encounter_status"], "MISSED")
+                        self.assertEqual(item["decision_status"], "NONE")
+                        self.assertEqual(item["player_known_summary"], "")
+                    for item in (visible, decision):
+                        self.assertTrue(item["player_observed"])
+                        self.assertEqual(item["status"], "OCCURRED")
+                        self.assertEqual(item["player_known_summary"], item["summary"])
+                    self.assertEqual(decision["decision_status"], "PENDING")
+                    self.assertEqual(visible["decision_status"], "NONE")
+                    self.assertEqual(session.character["current_hp"], 1)
+                    self.assertEqual(session.world_state["player_combat_status"], "active")
+                    death = session.ensure_death_state()
+                    self.assertEqual(death["mode"], mode)
+                    self.assertFalse(death["stable"])
+                    self.assertFalse(death["dead"])
+                    self.assertFalse(death["terminal"])
+                    self.assertIsNone(death["recovery"])
+                    self.assertIsNone(death["noncombat_next_save_at"])
+                    # A retry while the decision is pending neither advances time
+                    # nor heals again, even though it requests the full remainder.
+                    retry = session.advance_campaign_time(
+                        progress["remaining_seconds"], "explicit_wait", observation=observation
+                    )
+                    self.assertTrue(retry["interrupted"])
+                    self.assertEqual(retry["elapsed_seconds"], 0)
+                    self.assertEqual(retry["remaining_seconds"], progress["remaining_seconds"])
+                    self.assertEqual(retry["death_results"], [])
+                    heal.assert_called_once_with(1)
+                self.assertEqual(session.rng.getstate(), rng_state)
 
     def _assert_completed_recovery_round_trip(self, mode):
         session = make_session()
