@@ -4068,6 +4068,69 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(f"path='{path}'", result.failures[0][0].id())
                         self.assertIn(f"binding='{binding}'", result.failures[0][0].id())
 
+    def test_campaign_creation_and_save_missing_success_with_default_error_fails_in_both_formats(self):
+        for path in (
+            "/game/campaigns",
+            "/campaigns",
+            "/game/campaigns/{campaign_id}/save",
+            "/campaigns/{campaign_id}/save",
+        ):
+            for flow_style in (False, True):
+                with self.subTest(path=path, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    responses = spec["paths"][path]["post"]["responses"]
+                    self.assertNotIn("default", responses)
+                    self.assertIn("ApiError", spec["components"]["responses"])
+                    responses["default"] = {
+                        "$ref": "#/components/responses/ApiError",
+                    }
+                    del responses["200"]
+                    loaded = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(loaded, spec)
+                    self.assertEqual(loaded["components"], SPEC["components"])
+                    self.assertEqual(_route_inventory(loaded), _route_inventory(SPEC))
+                    self.assertNotIn("200", loaded["paths"][path]["post"]["responses"])
+                    self.assertEqual(
+                        loaded["paths"][path]["post"]["responses"]["default"],
+                        {"$ref": "#/components/responses/ApiError"},
+                    )
+                    # Undo only the two response changes to prove request bodies,
+                    # other aliases and every remaining declaration stayed intact.
+                    restored = deepcopy(loaded)
+                    restored_responses = restored["paths"][path]["post"]["responses"]
+                    del restored_responses["default"]
+                    restored_responses["200"] = deepcopy(
+                        SPEC["paths"][path]["post"]["responses"]["200"]
+                    )
+                    self.assertEqual(restored, SPEC)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=loaded):
+                        for test_name in (
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            "test_health_and_request_schemas_match_runtime_models",
+                            "test_campaign_and_session_schema_fields_match_fastapi_models",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertEqual(unchanged.testsRun, 1)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        ContractParityTests(
+                            "test_campaign_creation_and_save_route_bindings_match_fastapi"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    failure, traceback = result.failures[0]
+                    self.assertIn(f"path='{path}'", failure.id())
+                    self.assertIn("binding='success statuses'", failure.id())
+                    self.assertIn("AssertionError", traceback)
+                    self.assertIn("'200'", traceback)
+
     def test_turn_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/turn",
