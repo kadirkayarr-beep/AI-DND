@@ -47,6 +47,7 @@ from api.schemas import (
     DeathSaveResult,
     DeathStateProjection,
     HealthResponse,
+    QuestCommandResult,
     QuestObjectiveOffer,
     QuestObjectiveState,
     QuestOffer,
@@ -231,6 +232,11 @@ QUEST_OBJECTIVE_MIN_LENGTH_EXCEPTIONS = {
     ("QuestObjectiveOffer", "description"),
     ("QuestObjectiveOffer", "target"),
 }
+
+QUEST_COMMAND_PATHS = (
+    "/game/sessions/{session_id}/quests/{quest_id}/accept",
+    "/game/sessions/{session_id}/quests/{quest_id}/cancel",
+)
 
 CAMPAIGN_START_ARRAY_FIELDS = (
     (CampaignStartOptionsResponse, "settings", CampaignStartSettingOption),
@@ -1561,6 +1567,59 @@ class ContractParityTests(unittest.TestCase):
                     f"{schema_name}.{field_name} reference target",
                 )
 
+    def test_quest_command_result_references_match_runtime_model(self):
+        runtime_properties = QuestCommandResult.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )["properties"]
+        for field_name, field_model in (("quest", QuestState), ("outcome", QuestOutcome)):
+            with self.subTest(schema="QuestCommandResult", field=field_name):
+                runtime = runtime_properties[field_name]
+                published = _property("QuestCommandResult", field_name)
+                expected = _schema_references(runtime)
+                self.assertEqual(
+                    expected, {f"#/components/schemas/{field_model.__name__}"},
+                    f"Runtime QuestCommandResult.{field_name} reference target",
+                )
+                self.assertEqual(
+                    _schema_references(published), expected,
+                    f"QuestCommandResult.{field_name} reference target",
+                )
+                self.assertEqual(_schema_types(published), _schema_types(runtime))
+                self.assertEqual(_is_nullable(published), _is_nullable(runtime))
+
+    def test_quest_command_route_bindings_match_fastapi(self):
+        runtime_spec = app.openapi()
+        base_path = SPEC["servers"][0]["url"].rstrip("/")
+        # Both POST routes in api.main publish QuestCommandResult directly.
+        for path in QUEST_COMMAND_PATHS:
+            published = _operation(path, "post")
+            runtime = runtime_spec["paths"][f"{base_path}{path}"]["post"]
+            published_successes = {
+                str(status): response
+                for status, response in published["responses"].items()
+                if str(status).startswith("2")
+            }
+            runtime_successes = {
+                str(status): response
+                for status, response in runtime["responses"].items()
+                if str(status).startswith("2")
+            }
+            with self.subTest(path=path, binding="success statuses"):
+                self.assertEqual(set(published_successes), set(runtime_successes))
+            for status, response in runtime_successes.items():
+                with self.subTest(path=path, binding="response", status=status):
+                    runtime_schema = response["content"]["application/json"]["schema"]
+                    self.assertEqual(
+                        runtime_schema,
+                        {"$ref": f"#/components/schemas/{QuestCommandResult.__name__}"},
+                        f"Runtime {path} successful response binding",
+                    )
+                    self.assertEqual(
+                        published_successes[status]["content"]["application/json"]["schema"],
+                        runtime_schema,
+                        f"{path} successful response binding",
+                    )
+
 
 class ContractYamlReaderTests(unittest.TestCase):
     BLOCK_FIXTURE = """
@@ -2245,6 +2304,122 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         self.assertIn(f"schema='{schema_name}'", failed_test.id())
                         self.assertIn(
                             f"{schema_name}.objectives.items reference target", failure
+                        )
+
+    def test_quest_command_wrong_response_bindings_fail_in_both_formats(self):
+        for path in QUEST_COMMAND_PATHS:
+            original = _operation(path, "post")["responses"]["200"][
+                "content"
+            ]["application/json"]["schema"]
+            for wrong_model in ("QuestState", "SpeciesTraitCommandResult"):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        path=path, replacement=wrong_model, compact=flow_style,
+                    ):
+                        self.assertIn(wrong_model, SPEC["components"]["schemas"])
+                        spec = deepcopy(SPEC)
+                        schema = spec["paths"][path]["post"]["responses"]["200"][
+                            "content"
+                        ]["application/json"]["schema"]
+                        schema["$ref"] = f"#/components/schemas/{wrong_model}"
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["paths"][path]["post"]["responses"]["200"][
+                            "content"
+                        ]["application/json"]["schema"]
+                        self.assertEqual(_schema_types(mutated), _schema_types(original))
+                        self.assertEqual(_is_nullable(mutated), _is_nullable(original))
+                        # Restoring only the reference recovers all inventories,
+                        # component definitions, statuses and operation details.
+                        restored = deepcopy(parsed)
+                        restored["paths"][path]["post"]["responses"]["200"][
+                            "content"
+                        ]["application/json"]["schema"]["$ref"] = original["$ref"]
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(
+                                "test_quest_command_result_references_match_runtime_model"
+                            ).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_quest_command_route_bindings_match_fastapi"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        failed_test, failure = result.failures[0]
+                        self.assertIn(f"path='{path}'", failed_test.id())
+                        self.assertIn("binding='response'", failed_test.id())
+                        self.assertIn(f"{path} successful response binding", failure)
+
+    def test_quest_command_wrong_result_references_fail_in_both_formats(self):
+        for field_name, wrong_models in (
+            ("quest", ("QuestOffer", "QuestOutcome")),
+            ("outcome", ("QuestState", "QuestOffer")),
+        ):
+            original = _property("QuestCommandResult", field_name)
+            original_target = (
+                original if field_name == "quest" else original["anyOf"][0]
+            )
+            for wrong_model in wrong_models:
+                for flow_style in (False, True):
+                    with self.subTest(
+                        field=field_name, replacement=wrong_model, compact=flow_style,
+                    ):
+                        self.assertIn(wrong_model, SPEC["components"]["schemas"])
+                        spec = deepcopy(SPEC)
+                        field = spec["components"]["schemas"]["QuestCommandResult"][
+                            "properties"
+                        ][field_name]
+                        target = field if field_name == "quest" else field["anyOf"][0]
+                        target["$ref"] = f"#/components/schemas/{wrong_model}"
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"]["QuestCommandResult"][
+                            "properties"
+                        ][field_name]
+                        self.assertEqual(_schema_types(mutated), _schema_types(original))
+                        self.assertEqual(_is_nullable(mutated), _is_nullable(original))
+                        # In particular, outcome's null branch stays intact.
+                        restored = deepcopy(parsed)
+                        restored_field = restored["components"]["schemas"][
+                            "QuestCommandResult"
+                        ]["properties"][field_name]
+                        restored_target = (
+                            restored_field if field_name == "quest"
+                            else restored_field["anyOf"][0]
+                        )
+                        restored_target["$ref"] = original_target["$ref"]
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(
+                                "test_quest_command_route_bindings_match_fastapi"
+                            ).run(unchanged)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_quest_command_result_references_match_runtime_model"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        failed_test, failure = result.failures[0]
+                        self.assertIn(f"field='{field_name}'", failed_test.id())
+                        self.assertIn(
+                            f"QuestCommandResult.{field_name} reference target", failure,
                         )
 
     def test_turn_quest_outcome_wrong_item_references_fail_in_both_formats(self):
