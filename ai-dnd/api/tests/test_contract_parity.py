@@ -1733,6 +1733,76 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                                 result.failures[0][1],
                             )
 
+    def test_campaign_start_collection_type_drift_fails_in_both_formats(self):
+        for model, field_name, item_model in CAMPAIGN_START_ARRAY_FIELDS:
+            schema_name = model.__name__
+            original = _property(schema_name, field_name)
+            self.assertEqual(_schema_types(original), {"array"})
+            self.assertFalse(_is_nullable(original))
+            self.assertEqual(
+                original["items"]["$ref"],
+                f"#/components/schemas/{item_model.__name__}",
+            )
+            for replacement in ("object", "string", ["array", "null"]):
+                for flow_style in (False, True):
+                    with self.subTest(
+                        schema=schema_name, field=field_name,
+                        replacement=replacement, compact=flow_style,
+                    ):
+                        spec = deepcopy(SPEC)
+                        spec["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ]["type"] = replacement
+                        parsed = _load_spec(
+                            yaml.safe_dump(spec, default_flow_style=flow_style)
+                        )
+                        self.assertEqual(parsed, spec)
+                        mutated = parsed["components"]["schemas"][schema_name][
+                            "properties"
+                        ][field_name]
+                        self.assertEqual(
+                            _schema_types(mutated),
+                            {replacement} if isinstance(replacement, str)
+                            else {"array", "null"},
+                        )
+                        self.assertEqual(
+                            _is_nullable(mutated), isinstance(replacement, list),
+                        )
+                        self.assertEqual(mutated["items"], original["items"])
+                        self.assertEqual(
+                            parsed["components"]["schemas"][schema_name]["required"],
+                            _schema(schema_name)["required"],
+                        )
+                        # Restoring only the collection type must recover the
+                        # whole spec, including routes and nested item references.
+                        restored = deepcopy(parsed)
+                        restored["components"]["schemas"][schema_name]["properties"][
+                            field_name
+                        ]["type"] = original["type"]
+                        self.assertEqual(restored, SPEC)
+                        with patch.dict(globals(), SPEC=parsed):
+                            for test_name in (
+                                "test_character_setup_route_bindings_match_fastapi",
+                                "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                            ):
+                                unchanged = unittest.TestResult()
+                                ContractParityTests(test_name).run(unchanged)
+                                self.assertTrue(
+                                    unchanged.wasSuccessful(),
+                                    unchanged.failures + unchanged.errors,
+                                )
+                            result = unittest.TestResult()
+                            ContractParityTests(
+                                "test_campaign_start_schemas_match_runtime_models"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(
+                            f"{schema_name}.{field_name} type",
+                            result.failures[0][1],
+                        )
+
     def test_campaign_start_wrong_item_references_fail_in_both_formats(self):
         for model, field_name, item_model in CAMPAIGN_START_ARRAY_FIELDS:
             schema_name = model.__name__
