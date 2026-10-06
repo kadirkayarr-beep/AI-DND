@@ -14,3 +14,9 @@ Persistence-failure tests must distinguish the deliberately injected storage err
 **Why:** The API catches both at the persistence boundary, hiding an observer's original assertion behind a generic response. A test can otherwise mistake a faulty observer for successful fault injection.
 
 **How to apply:** Require the storage-error response, not merely any failure status. If the boundary returns an unexpected generic error, inspect the observer's assertions before diagnosing rollback behavior.
+
+Inject post-save receipt-read failures by phase, not by counting all storage reads.
+
+**Why:** Saving may itself read a receipt before rejecting a stale revision. Failing that read instead exercises a different path, before the API has restored its loser snapshot.
+
+**How to apply:** Let the real stale save raise first, then fail only the API-level receipt lookup. Capture rollback state at that lookup as well as after the HTTP response.

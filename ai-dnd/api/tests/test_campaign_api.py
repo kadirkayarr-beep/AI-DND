@@ -33,7 +33,11 @@ from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.dnd_2024_rules import SPECIES_DEFINITIONS
-from api.persistence.campaign_models import CampaignStorageError
+from api.persistence.campaign_models import (
+    CampaignCorruptError,
+    CampaignStaleError,
+    CampaignStorageError,
+)
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
@@ -5110,10 +5114,29 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             shared_action=False, fail_resumed_retry=True,
         )
 
+    async def test_first_merchant_save_race_post_rollback_receipt_storage_error_is_safe(self):
+        for changed_payload in (False, True):
+            with self.subTest(changed_payload=changed_payload):
+                await self._assert_first_merchant_search_save_race(
+                    shared_action=True, changed_payload=changed_payload,
+                    post_save_receipt_error=CampaignStorageError,
+                )
+
+    async def test_first_merchant_save_race_post_rollback_receipt_corrupt_error_is_safe(self):
+        for changed_payload in (False, True):
+            with self.subTest(changed_payload=changed_payload):
+                await self._assert_first_merchant_search_save_race(
+                    shared_action=True, changed_payload=changed_payload,
+                    post_save_receipt_error=CampaignCorruptError,
+                )
+
     async def _assert_first_merchant_search_save_race(
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
+        post_save_receipt_error=None,
     ):
         if changed_payload:
+            self.assertTrue(shared_action)
+        if post_save_receipt_error is not None:
             self.assertTrue(shared_action)
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
@@ -5226,8 +5249,29 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
             save_reached = threading.Event()
             release_save = threading.Event()
+            stale_save_rejected = threading.Event()
             attempts = []
             real_save = loser_store.save_campaign
+            real_receipt_read = loser_manager.get_turn_action
+            receipt_reads = []
+            private_receipt_detail = "private post-save receipt failure"
+
+            @wraps(real_receipt_read)
+            def observe_receipt_read(*args, **kwargs):
+                after_stale_save = stale_save_rejected.is_set()
+                receipt_reads.append({
+                    "after_stale_save": after_stale_save,
+                    "engine": copy.deepcopy(loser_session.serialize_game_state()),
+                    "runtime": loser_runtime_state(),
+                    "journal": copy.deepcopy(loser_record.journal),
+                    "memory": copy.deepcopy(loser_record.narrative_memory),
+                    "receipts": copy.deepcopy(loser_record.turn_action_receipts),
+                    "version": loser_session._campaign_persistence_version,
+                    "args": args,
+                })
+                if after_stale_save and post_save_receipt_error is not None:
+                    raise post_save_receipt_error(private_receipt_detail)
+                return real_receipt_read(*args, **kwargs)
 
             @wraps(real_save)
             def pause_loser_save(*args, **kwargs):
@@ -5241,7 +5285,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 save_reached.set()
                 if not release_save.wait(timeout=30):
                     raise AssertionError("The competing first discovery did not release the save.")
-                return real_save(*args, **kwargs)
+                try:
+                    return real_save(*args, **kwargs)
+                except CampaignStaleError:
+                    stale_save_rejected.set()
+                    raise
 
             # Both requests enter against the merchant-free revision. Pause only
             # after the loser's real engine has materialized its first shop.
@@ -5253,6 +5301,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     winner_session, "run_player_turn", new=observe_turn(winner_session, "winner"),
                 ),
                 patch.object(loser_store, "save_campaign", side_effect=pause_loser_save) as raced_save,
+                patch.object(loser_manager, "get_turn_action", new=observe_receipt_read),
             ):
                 pending = asyncio.create_task(loser_http.post(loser_url, json=body))
                 try:
@@ -5316,11 +5365,38 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     loser = await asyncio.wait_for(pending, timeout=30)
 
             raced_save.assert_called_once()
-            self.assertEqual(loser.status_code, 409, loser.text)
-            self.assertEqual(
-                loser.json()["detail"]["code"],
-                "action_id_conflict" if changed_payload else "campaign_stale",
-            )
+            if post_save_receipt_error is not None:
+                status, code, message = (
+                    (503, "campaign_storage_unavailable",
+                     "Macera kaydı şu anda güvenli biçimde saklanamıyor.")
+                    if post_save_receipt_error is CampaignStorageError
+                    else (409, "campaign_unavailable",
+                          "Bu macera kaydı güvenli biçimde yüklenemedi.")
+                )
+                self.assertEqual(loser.status_code, status, loser.text)
+                self.assertEqual(loser.json(), {"detail": {"code": code, "message": message}})
+                self.assertNotIn(private_receipt_detail, loser.text)
+                self.assertTrue(stale_save_rejected.is_set())
+                self.assertEqual(
+                    [read["after_stale_save"] for read in receipt_reads], [False, True],
+                )
+                # The second lookup must see a fully restored loser, not just
+                # eventually get restored after the receipt read has failed.
+                for read in receipt_reads:
+                    self.assertIs(read["args"][0], loser_record)
+                    self.assertEqual(read["args"][1:], (body["action_id"],))
+                    self.assertEqual(read["engine"], before_engine)
+                    self.assertEqual(read["runtime"], before_runtime)
+                    self.assertEqual(read["journal"], before_journal)
+                    self.assertEqual(read["memory"], before_memory)
+                    self.assertEqual(read["receipts"], before_receipts)
+                    self.assertEqual(read["version"], before_version)
+            else:
+                self.assertEqual(loser.status_code, 409, loser.text)
+                self.assertEqual(
+                    loser.json()["detail"]["code"],
+                    "action_id_conflict" if changed_payload else "campaign_stale",
+                )
             self.assertEqual(len(attempts), 1)
             attempted = attempts[0]
             attempted_world = attempted["engine"]["world_state"]
