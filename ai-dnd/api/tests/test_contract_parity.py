@@ -682,6 +682,24 @@ class ContractParityTests(unittest.TestCase):
             _property_names("GameTurnInput"),
             _runtime_field_names(TurnRequest),
         )
+        runtime = TurnRequest.model_json_schema()
+        required = _schema("GameTurnInput").get("required", [])
+        self.assertIsInstance(required, list, "GameTurnInput.required must be a list")
+        self.assertEqual(
+            set(required), set(runtime.get("required", [])),
+            "GameTurnInput.required",
+        )
+        for field_name, runtime_property in runtime["properties"].items():
+            with self.subTest(turn_request_field=field_name):
+                published = _property("GameTurnInput", field_name)
+                self.assertEqual(
+                    _schema_types(published), _schema_types(runtime_property),
+                    f"GameTurnInput.{field_name}.type",
+                )
+                self.assertEqual(
+                    _is_nullable(published), _is_nullable(runtime_property),
+                    f"GameTurnInput.{field_name}.nullable",
+                )
         self.assertIs(_schema("GameTurnInput")["additionalProperties"], False)
         message_schema = _property("GameTurnInput", "message")
         self.assertEqual(message_schema["minLength"], 1)
@@ -1545,6 +1563,47 @@ class ContractParityTests(unittest.TestCase):
 
 
 class ContractYamlReaderTests(unittest.TestCase):
+    BLOCK_FIXTURE = """
+servers:
+  - url: /api
+paths:
+  /example:
+    get:
+      operationId: readExample
+      responses:
+        "200":
+          description: Success
+components:
+  schemas:
+    Example:
+      type: object
+      required:
+        - combat_id
+      additionalProperties: false
+      properties:
+        combat_id:
+          type:
+            - string
+            - "null"
+        result:
+          anyOf:
+            - type: object
+            - type: "null"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          enum:
+            - "hit, critical"
+            - "1"
+            - 1
+"""
+    COMPACT_FIXTURE = """
+servers: [{url: /api}]
+paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
+components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
+"""
+
     def test_campaign_start_scalar_type_drift_fails_in_both_formats(self):
         for model, field_names in (
             (CampaignStartLocationOption, ("entity_id", "name")),
@@ -1723,46 +1782,6 @@ class ContractYamlReaderTests(unittest.TestCase):
                         self.assertEqual(len(result.failures), 1, result.failures)
                         self.assertIn(f"{schema_name}.required", result.failures[0][1])
 
-    BLOCK_FIXTURE = """
-servers:
-  - url: /api
-paths:
-  /example:
-    get:
-      operationId: readExample
-      responses:
-        "200":
-          description: Success
-components:
-  schemas:
-    Example:
-      type: object
-      required:
-        - combat_id
-      additionalProperties: false
-      properties:
-        combat_id:
-          type:
-            - string
-            - "null"
-        result:
-          anyOf:
-            - type: object
-            - type: "null"
-        message:
-          type: string
-          minLength: 1
-          maxLength: 4000
-          enum:
-            - "hit, critical"
-            - "1"
-            - 1
-"""
-    COMPACT_FIXTURE = """
-servers: [{url: /api}]
-paths: {/example: {get: {operationId: readExample, responses: {"200": {description: Success}}}}}
-components: {schemas: {Example: {type: object, required: [combat_id], additionalProperties: false, properties: {combat_id: {type: [string, "null"]}, result: {anyOf: [{type: object}, {type: "null"}]}, message: {type: string, minLength: 1, maxLength: 4000, enum: ["hit, critical", "1", 1]}}}}}
-"""
     def test_species_action_wrong_route_bindings_fail_in_both_formats(self):
         for path in (
             "/game/sessions/{session_id}/species-actions",
@@ -3334,3 +3353,89 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         result.failures[0][1],
                     )
         self.assertEqual(_property("CampaignDetail", "campaign"), original)
+
+    def test_turn_input_required_and_type_drift_fails_in_both_formats(self):
+        schema_name = "GameTurnInput"
+        original = _schema(schema_name)
+        mutations = [
+            (("required",), None),
+            (("required",), []),
+            (("required",), [*original["required"], "unexpected"]),
+        ]
+        mutations.extend(
+            (("required",), [*original["required"], field_name])
+            for field_name in original["properties"]
+            if field_name not in original["required"]
+        )
+        for field_name, property_schema in original["properties"].items():
+            expected_types = _schema_types(property_schema)
+            if "anyOf" in property_schema:
+                branches = property_schema["anyOf"]
+                mutations.extend([
+                    (("properties", field_name, "anyOf"), None),
+                    (("properties", field_name, "anyOf"), [
+                        branch for branch in branches if branch.get("type") != "null"
+                    ]),
+                    (("properties", field_name, "anyOf"), [
+                        *branches, {"type": "string"},
+                    ]),
+                ])
+            else:
+                replacements = [
+                    None,
+                    *(value for value in (
+                        "string", "integer", "number", "boolean", "object", "array",
+                    ) if value not in expected_types),
+                    sorted(expected_types ^ {"null"}),
+                ]
+                mutations.extend(
+                    (("properties", field_name, "type"), replacement)
+                    for replacement in replacements
+                )
+        for path, replacement in mutations:
+            for flow_style in (False, True):
+                with self.subTest(
+                    path=path, replacement=replacement, compact=flow_style,
+                ):
+                    spec = deepcopy(SPEC)
+                    target = spec["components"]["schemas"][schema_name]
+                    for key in path[:-1]:
+                        target = target[key]
+                    if replacement is None:
+                        del target[path[-1]]
+                    else:
+                        target[path[-1]] = deepcopy(replacement)
+                    parsed = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(parsed, spec)
+                    # Only the input declaration changes: route bindings,
+                    # statuses, field names and all other components stay intact.
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    restored = deepcopy(parsed)
+                    restored["components"]["schemas"][schema_name] = deepcopy(original)
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        self.assertEqual(
+                            _property_names(schema_name), set(original["properties"]),
+                        )
+                        unchanged = unittest.TestResult()
+                        ContractParityTests(
+                            "test_turn_route_bindings_match_fastapi"
+                        ).run(unchanged)
+                        self.assertTrue(
+                            unchanged.wasSuccessful(),
+                            unchanged.failures + unchanged.errors,
+                        )
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_health_and_request_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    expected_label = (
+                        f"{schema_name}.required" if path == ("required",)
+                        else f"{schema_name}.{path[1]}.type"
+                    )
+                    self.assertIn(expected_label, result.failures[0][1])
