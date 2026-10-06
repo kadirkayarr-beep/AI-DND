@@ -72,6 +72,17 @@ treats newly generated history identities as a gameplay rollback failure.
 retry; require exact accepted-response equality only once a receipt has committed
 (apart from the current session ID after reopening).
 
+Ambient-event replay is an exception to exact accepted-response equality: its
+owner returns ALREADY_APPLIED with the committed transition and canonical event
+identities, while preserving the saved receipt unchanged.
+
+**Why:** The event API deliberately projects an already-resolved result rather
+than returning the original APPLIED status. Exact response equality would
+incorrectly reject established event semantics.
+
+**How to apply:** Assert the event replay projection and unchanged state/store;
+keep exact response equality for species-action receipts.
+
 Validate saved responses against the receiving command's contract before
 rewriting the session identity. Do not impose a single response schema on the
 shared receipt store.

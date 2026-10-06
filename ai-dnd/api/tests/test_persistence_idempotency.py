@@ -2761,6 +2761,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(fresh_store.get_turn_action(campaign_id, action_id), receipt)
 
     async def test_independent_ambient_and_rest_saves_preserve_first_commit(self):
+        await self.assert_independent_ambient_and_rest_race(distinct_ids=False)
+
+    async def test_independent_distinct_action_ids_reject_stale_save_then_retry_once(self):
+        await self.assert_independent_ambient_and_rest_race(distinct_ids=True)
+
+    async def assert_independent_ambient_and_rest_race(self, *, distinct_ids):
         for rest_action in ("short_rest", "long_rest"):
             for winner in ("ambient", "rest"):
                 with self.subTest(rest_action=rest_action, winner=winner):
@@ -2798,13 +2804,22 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         for kind, record in records.items()
                     }
                     saved_before = copy.deepcopy(self.store.get_campaign(campaign_id))
-                    action_id = str(uuid4())
+                    shared_id = str(uuid4())
+                    action_ids = {
+                        "ambient": shared_id,
+                        "rest": str(uuid4()) if distinct_ids else shared_id,
+                    }
+                    if distinct_ids:
+                        self.assertNotEqual(action_ids["ambient"], action_ids["rest"])
+                    for kind in records:
+                        self.assertIsNone(managers[kind].get_turn_action(records[kind], action_ids[kind]))
                     commands = {
                         "ambient": (f"ambient-events/{event_id}/actions",
-                                    {"action": "interact", "action_id": action_id}),
-                        "rest": ("species-actions", {"action": rest_action, "action_id": action_id}),
+                                    {"action": "interact", "action_id": action_ids["ambient"]}),
+                        "rest": ("species-actions", {"action": rest_action, "action_id": action_ids["rest"]}),
                     }
                     loser = "rest" if winner == "ambient" else "ambient"
+                    action_id = action_ids[winner]
 
                     def saved_rows():
                         with closing(self.store._connect()) as connection:
@@ -2831,7 +2846,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         def save(*args, **kwargs):
                             save_calls[kind] += 1
                             speculative[kind] = self.snapshot(records[kind])[:7]
-                            self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_id)
+                            self.assertEqual(kwargs["turn_action_receipt"]["action_id"], action_ids[kind])
+                            if distinct_ids:
+                                # Neither ID has a receipt, even after the other
+                                # action commits. Only revision ownership can reject.
+                                self.assertIsNone(stores[kind].get_turn_action(campaign_id, action_ids[kind]))
                             self.assertEqual(
                                 records[kind].game_session._campaign_persistence_version,
                                 (campaign_id, saved_before.metadata["revision"]),
@@ -2839,6 +2858,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             barrier.wait(timeout=10)
                             if kind == loser and not winner_finished.wait(timeout=10):
                                 raise AssertionError("Winning store did not commit")
+                            if distinct_ids and kind == loser:
+                                self.assertIsNone(stores[kind].get_turn_action(campaign_id, action_ids[kind]))
                             try:
                                 result = original_saves[kind](*args, **kwargs)
                                 if kind == winner:
@@ -2918,6 +2939,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         stored = self.store.get_campaign(campaign_id)
                         self.assertEqual(stored.metadata["revision"], saved_before.metadata["revision"] + 1)
                         receipt = self.store.get_turn_action(campaign_id, action_id)
+                        if distinct_ids:
+                            self.assertIsNone(stores[loser].get_turn_action(campaign_id, action_ids[loser]))
                         self.assertEqual(receipt["response"]["action_id"], action_id)
                         self.assertEqual(
                             receipt["response"]["ambient_event_response"] if winner == "ambient"
@@ -2955,6 +2978,93 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         reopened, rows = self.snapshot(restored), saved_rows()
                         auxiliary = copy.deepcopy((restored.game_session.messages,
                                                    restored.game_session.world_metadata))
+                        if distinct_ids:
+                            self.assertIsNone(managers[loser].get_turn_action(restored, action_ids[loser]))
+                            resolver = (
+                                "resolve_species_trait_action" if loser == "rest"
+                                else "resolve_ambient_event_action"
+                            )
+                            with patch.object(
+                                restored.game_session, resolver,
+                                wraps=getattr(restored.game_session, resolver),
+                            ) as mechanics, patch.object(
+                                stores[loser], "save_campaign", wraps=stores[loser].save_campaign,
+                            ) as saves:
+                                retried = await send(loser, clients[loser], sid)
+                                self.assertEqual(retried.status_code, 200, retried.text)
+                                self.assertEqual(mechanics.call_count, 1)
+                                self.assertEqual(saves.call_count, 1)
+                                if loser == "ambient":
+                                    self.assertEqual(retried.json()["result"]["status"], "APPLIED")
+                                else:
+                                    self.assertEqual(retried.json()["result"]["action"], rest_action)
+                                after_retry = self.snapshot(restored)
+                                retry_rows = saved_rows()
+                                retry_auxiliary = copy.deepcopy((
+                                    restored.game_session.messages,
+                                    restored.game_session.world_metadata,
+                                ))
+                                self.assertNotEqual(after_retry[:7], reopened[:7])
+                                self.assertEqual(len(retry_rows["campaign_turn_actions"]), 2)
+                                self.assertEqual(
+                                    after_retry[-1].metadata["revision"],
+                                    reopened[-1].metadata["revision"] + 1,
+                                )
+                                self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                                retry_receipt = stores[loser].get_turn_action(campaign_id, action_ids[loser])
+                                self.assertEqual(
+                                    retry_receipt["response"]["ambient_event_response"] if loser == "ambient"
+                                    else retry_receipt["response"], retried.json(),
+                                )
+                                # Both actions' effects survive the fresh commit.
+                                self.assertEqual(len(after_retry[-1].history), len(saved_before.history) + 1)
+                                self.assertEqual(
+                                    after_retry[-1].history[:len(stored.history)], stored.history,
+                                )
+                                self.assertEqual(after_retry[-1].history[-1]["player_message"], rest_action)
+                                self.assertEqual(after_retry[-1].combat_history, saved_before.combat_history)
+                                outcomes = [
+                                    entry for entry in restored.journal["notable_events"]
+                                    if entry.get("event_type") == "ambient_event_outcome"
+                                ]
+                                self.assertEqual(len(outcomes), 1)
+                                ambient_response = accepted if winner == "ambient" else retried
+                                self.assertEqual(outcomes[0]["event_id"],
+                                                 ambient_response.json()["result"]["canonical_event_id"])
+                                final_state = after_retry[0]
+                                self.assertEqual(
+                                    final_state["world_state"]["campaign_time"]["elapsed_seconds"]
+                                    - before[loser][0]["world_state"]["campaign_time"]["elapsed_seconds"],
+                                    3600 if rest_action == "short_rest" else 28800,
+                                )
+                                self.assertEqual(
+                                    final_state["player"]["species_trait_state"]["adrenaline_rush_uses_remaining"],
+                                    final_state["player"]["proficiency_bonus"],
+                                )
+                                self.assertEqual(final_state["player"]["current_hp"],
+                                                 20 if rest_action == "long_rest" else 1)
+                                replay = await send(loser, clients[loser], sid)
+                                self.assertEqual(replay.status_code, 200, replay.text)
+                                if loser == "ambient":
+                                    expected = copy.deepcopy(retried.json())
+                                    expected["result"].update(
+                                        status="ALREADY_APPLIED", reason_code="event_already_resolved",
+                                    )
+                                    self.assertEqual(replay.json(), expected)
+                                else:
+                                    self.assertEqual(replay.json(), retried.json())
+                                self.assertEqual(mechanics.call_count, 1)
+                                self.assertEqual(saves.call_count, 1)
+                            self.assertEqual(self.snapshot(restored), after_retry)
+                            self.assertEqual(saved_rows(), retry_rows)
+                            self.assertEqual(
+                                (restored.game_session.messages, restored.game_session.world_metadata),
+                                retry_auxiliary,
+                            )
+                            self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                            self.assertEqual(stores[loser].get_turn_action(campaign_id, action_ids[loser]),
+                                             retry_receipt)
+                            continue
                         conflict = await send(loser, clients[loser], sid)
                         if loser == "rest":
                             self.assertEqual(conflict.status_code, 409, conflict.text)
