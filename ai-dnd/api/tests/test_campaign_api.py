@@ -2169,6 +2169,119 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(final_store.get_turn_action(campaign_id, action_id), receipt)
             self.assertEqual(final_manager.get_turn_action(final_record, action_id), receipt)
 
+    async def test_dead_lore_question_cannot_change_saved_campaign(self):
+        question = "Bu şehrin hükümdarı kim?"
+        city_id = "fr:city:neverwinter"
+        npc_id = "npc_dead_ruler_local"
+        for target_id in (None, npc_id):
+            with self.subTest(target_id=target_id):
+                created_response = await self.http.post(
+                    "/api/game/campaigns",
+                    json={
+                        "death_mode": "PERMADEATH",
+                        "campaign_start": {
+                            "setting_id": "forgotten_realms",
+                            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                            "region_id": "fr:region:the_north",
+                            "starting_location_id": city_id,
+                        },
+                    },
+                )
+                self.assertEqual(created_response.status_code, 200, created_response.text)
+                created = created_response.json()
+                campaign_id = created["campaign_id"]
+                record = self.manager.get(created["session_id"])
+                session = record.game_session
+                session.world_state["npcs"].append({
+                    "id": npc_id,
+                    "name": "Elara",
+                    "role": "Guide",
+                    "location": city_id,
+                    "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                    "memory": [],
+                    "knowledge": [],
+                })
+                # Seed terminal state directly: death execution and reopening
+                # have separate coverage; this test owns rejected lore turns.
+                session.character.update(current_hp=0, max_hp=10)
+                session.world_state["player_combat_status"] = "dead"
+                session.world_state["death_state"]["dead"] = True
+                self.assertFalse(session.ensure_combat_state()["active"])
+                saved = await self.http.post(f"/api/game/campaigns/{campaign_id}/save")
+                self.assertEqual(saved.status_code, 200, saved.text)
+                before_campaign = copy.deepcopy(self.store.get_campaign(campaign_id))
+                before_save = copy.deepcopy(session.serialize_game_state())
+                before_messages = copy.deepcopy(session.messages)
+                before_rng = session.rng.getstate()
+                before_metadata = copy.deepcopy(session.world_metadata)
+                before_journal = copy.deepcopy(record.journal)
+                before_memory = copy.deepcopy(record.narrative_memory)
+                before_lore = copy.deepcopy(record.lore_authority.to_dict())
+                before_context = copy.deepcopy(session.lore_authority_context)
+                before_receipts = copy.deepcopy(record.turn_action_receipts)
+                self.assertEqual(before_campaign.payload["engine_save"], before_save)
+                self.assertEqual(before_campaign.payload["lore_authority"], before_lore)
+                self.assertEqual(before_lore["binding_status"], "BOUND")
+                action_id = str(uuid.uuid4())
+                body = {"message": question, "action_id": action_id}
+                if target_id is not None:
+                    body["target_id"] = target_id
+                rejections = []
+                supported_answers = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_rejected_turn(*args, **kwargs):
+                    supported_answers.append(game._supported_lore_question_response(
+                        question, session.lore_authority_context, session.world_state
+                    ))
+                    try:
+                        return real_turn(*args, **kwargs)
+                    except ValueError as error:
+                        rejections.append(str(error))
+                        raise
+
+                with (
+                    patch.object(session, "run_player_turn", new=capture_rejected_turn),
+                    patch.object(
+                        game, "parse_player_intent",
+                        side_effect=AssertionError("Dead lore turns must not parse intent"),
+                    ) as intent_model,
+                    patch.object(
+                        game, "ask_dungeon_master",
+                        side_effect=AssertionError("Dead lore turns must not narrate"),
+                    ) as narration_model,
+                ):
+                    response = await self.http.post(
+                        f"/api/game/sessions/{created['session_id']}/turn", json=body
+                    )
+
+                self.assertEqual(response.status_code, 500, response.text)
+                self.assertEqual(response.json()["detail"], {
+                    "code": "engine_error",
+                    "message": "The game turn could not be completed.",
+                })
+                self.assertEqual(rejections, ["Ölü karakter eylem gerçekleştiremez."])
+                self.assertEqual(
+                    supported_answers,
+                    ["Neverwinter kentinin güncel Lordu Dagult Neverember."],
+                )
+                intent_model.assert_not_called()
+                narration_model.assert_not_called()
+                self.assertEqual(session.serialize_game_state(), before_save)
+                self.assertEqual(session.messages, before_messages)
+                self.assertEqual(session.rng.getstate(), before_rng)
+                self.assertEqual(session.world_metadata, before_metadata)
+                self.assertEqual(record.journal, before_journal)
+                self.assertEqual(record.narrative_memory, before_memory)
+                self.assertEqual(record.lore_authority.to_dict(), before_lore)
+                self.assertEqual(session.lore_authority_context, before_context)
+                self.assertEqual(record.turn_action_receipts, before_receipts)
+                self.assertNotIn(action_id, record.turn_action_receipts)
+                self.assertIsNone(self.manager.get_turn_action(record, action_id))
+                self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
+                self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
+
     async def test_stable_unconscious_lore_question_preserves_saved_pending_recovery(self):
         question = "Bu şehrin hükümdarı kim?"
         city_id = "fr:city:neverwinter"
