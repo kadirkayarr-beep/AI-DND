@@ -3767,6 +3767,65 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             f"/api/game/sessions/{sid or session_ids[kind]}/{endpoint}", json=command,
                         )
 
+                    async def assert_shared_id_retry_and_replay(client, sid, record, *, reopened=False):
+                        baseline = self.snapshot(record)
+                        rows = saved_rows()
+                        auxiliary = copy.deepcopy((
+                            record.game_session.messages, record.game_session.world_metadata,
+                        ))
+                        with ExitStack() as stack:
+                            mechanics = [
+                                stack.enter_context(patch.object(
+                                    record.game_session, resolver,
+                                    wraps=getattr(record.game_session, resolver),
+                                ))
+                                for resolver in (
+                                    "resolve_species_trait_action", "resolve_ambient_event_action",
+                                )
+                            ]
+                            saves = stack.enter_context(patch.object(
+                                stores[loser], "save_campaign", wraps=stores[loser].save_campaign,
+                            ))
+                            conflict = await send(loser, client, sid)
+                            if loser == "rest":
+                                self.assertEqual(conflict.status_code, 409, conflict.text)
+                                self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
+                            else:
+                                self.assertEqual(conflict.status_code, 200, conflict.text)
+                                result = conflict.json()["result"]
+                                self.assertEqual(result["status"], "REJECTED")
+                                self.assertEqual(result["reason_code"], "action_id_conflict")
+                                self.assertEqual(result["action_id"], action_id)
+                                self.assertEqual(result["event_instance_id"], event_id)
+                                self.assertIsNone(result["transition_id"])
+                                self.assertIsNone(result["canonical_event_id"])
+                            self.assertEqual(self.snapshot(record), baseline)
+                            self.assertEqual(saved_rows(), rows)
+
+                            replay = await send(winner, client, sid)
+                            self.assertEqual(replay.status_code, 200, replay.text)
+                            expected = copy.deepcopy(accepted.json())
+                            expected["session_id"] = sid
+                            if winner == "ambient":
+                                expected["result"].update(
+                                    status="ALREADY_APPLIED", reason_code="event_already_resolved",
+                                )
+                            if reopened or winner == "rest":
+                                self.assertEqual(replay.json(), expected)
+                            else:
+                                # Ambient replay projects the caller's state,
+                                # which is still stale until explicit resume.
+                                self.assertEqual(replay.json()["result"], expected["result"])
+                            for resolver in mechanics:
+                                resolver.assert_not_called()
+                            saves.assert_not_called()
+                        self.assertEqual(self.snapshot(record), baseline)
+                        self.assertEqual((
+                            record.game_session.messages, record.game_session.world_metadata,
+                        ), auxiliary)
+                        self.assertEqual(saved_rows(), rows)
+                        self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+
                     app = create_app(session_manager=rest_manager, ollama_adapter=None)
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=app), base_url="http://independent",
@@ -3857,6 +3916,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(len(stored.history), len(saved_before.history) + 1)
                             self.assertEqual(stored.history[-1]["player_message"], rest_action)
                             self.assertEqual(records[winner].journal, before[winner][2])
+
+                        if not distinct_ids:
+                            # Receipt lookup must precede stale-context checks,
+                            # without refreshing the losing manager implicitly.
+                            await assert_shared_id_retry_and_replay(
+                                clients[loser], session_ids[loser], records[loser],
+                            )
 
                         # Refresh the actual losing manager (not a third copy).
                         # Resume may touch metadata, so take SQL baselines AFTER it.
@@ -3960,58 +4026,12 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(stores[loser].get_turn_action(campaign_id, action_ids[loser]),
                                              retry_receipt)
                             continue
-                        conflict = await send(loser, clients[loser], sid)
-                        if loser == "rest":
-                            self.assertEqual(conflict.status_code, 409, conflict.text)
-                            self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
-                        else:
-                            self.assertEqual(conflict.status_code, 200, conflict.text)
-                            result = conflict.json()["result"]
-                            self.assertEqual(result["status"], "REJECTED")
-                            self.assertEqual(result["reason_code"], "action_id_conflict")
-                            self.assertEqual(result["action_id"], action_id)
-                            self.assertEqual(result["event_instance_id"], event_id)
-                            self.assertIsNone(result["transition_id"])
-                            self.assertIsNone(result["canonical_event_id"])
+                        await assert_shared_id_retry_and_replay(
+                            clients[loser], sid, restored, reopened=True,
+                        )
                         self.assertEqual(self.snapshot(restored), reopened)
                         self.assertEqual((restored.game_session.messages,
                                           restored.game_session.world_metadata), auxiliary)
-                        self.assertEqual(saved_rows(), rows)
-                        self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
-
-                        # The shared ID still belongs to the winner, even when
-                        # replayed through the reopened losing manager. Neither
-                        # command may run mechanics or save during this replay.
-                        with ExitStack() as stack:
-                            mechanics = [
-                                stack.enter_context(patch.object(
-                                    restored.game_session, resolver,
-                                    wraps=getattr(restored.game_session, resolver),
-                                ))
-                                for resolver in (
-                                    "resolve_species_trait_action", "resolve_ambient_event_action",
-                                )
-                            ]
-                            saves = stack.enter_context(patch.object(
-                                stores[loser], "save_campaign", wraps=stores[loser].save_campaign,
-                            ))
-                            replay = await send(winner, clients[loser], sid)
-                            self.assertEqual(replay.status_code, 200, replay.text)
-                            expected = copy.deepcopy(accepted.json())
-                            expected["session_id"] = sid
-                            if winner == "ambient":
-                                expected["result"].update(
-                                    status="ALREADY_APPLIED", reason_code="event_already_resolved",
-                                )
-                            self.assertEqual(replay.json(), expected)
-                            for resolver in mechanics:
-                                resolver.assert_not_called()
-                            saves.assert_not_called()
-                        self.assertEqual(self.snapshot(restored), reopened)
-                        self.assertEqual(
-                            (restored.game_session.messages, restored.game_session.world_metadata),
-                            auxiliary,
-                        )
                         self.assertEqual(saved_rows(), rows)
                         self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
 
