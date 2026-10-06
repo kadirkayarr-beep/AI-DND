@@ -3770,9 +3770,31 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     async def assert_shared_id_retry_and_replay(client, sid, record, *, reopened=False):
                         baseline = self.snapshot(record)
                         rows = saved_rows()
+                        original_session = record.game_session
+                        persistence_version = copy.deepcopy(
+                            original_session._campaign_persistence_version,
+                        )
                         auxiliary = copy.deepcopy((
                             record.game_session.messages, record.game_session.world_metadata,
                         ))
+
+                        def assert_retry_unchanged():
+                            self.assertIs(managers[loser].get(sid), record)
+                            self.assertIs(record.game_session, original_session)
+                            self.assertEqual(
+                                original_session._campaign_persistence_version, persistence_version,
+                            )
+                            # Includes RNG, both journals and transient receipts,
+                            # as well as the persisted campaign payload/history.
+                            self.assertEqual(self.snapshot(record), baseline)
+                            self.assertEqual((
+                                original_session.messages, original_session.world_metadata,
+                            ), auxiliary)
+                            self.assertEqual(saved_rows(), rows)
+                            self.assertEqual(
+                                stores[loser].get_turn_action(campaign_id, action_id), receipt,
+                            )
+
                         with ExitStack() as stack:
                             mechanics = [
                                 stack.enter_context(patch.object(
@@ -3785,6 +3807,10 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             ]
                             saves = stack.enter_context(patch.object(
                                 stores[loser], "save_campaign", wraps=stores[loser].save_campaign,
+                            ))
+                            currentness = stack.enter_context(patch.object(
+                                managers[loser], "assert_current",
+                                wraps=managers[loser].assert_current,
                             ))
                             conflict = await send(loser, client, sid)
                             if loser == "rest":
@@ -3799,8 +3825,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                 self.assertEqual(result["event_instance_id"], event_id)
                                 self.assertIsNone(result["transition_id"])
                                 self.assertIsNone(result["canonical_event_id"])
-                            self.assertEqual(self.snapshot(record), baseline)
-                            self.assertEqual(saved_rows(), rows)
+                            for resolver in mechanics:
+                                resolver.assert_not_called()
+                            saves.assert_not_called()
+                            currentness.assert_not_called()
+                            assert_retry_unchanged()
 
                             replay = await send(winner, client, sid)
                             self.assertEqual(replay.status_code, 200, replay.text)
@@ -3819,12 +3848,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             for resolver in mechanics:
                                 resolver.assert_not_called()
                             saves.assert_not_called()
-                        self.assertEqual(self.snapshot(record), baseline)
-                        self.assertEqual((
-                            record.game_session.messages, record.game_session.world_metadata,
-                        ), auxiliary)
-                        self.assertEqual(saved_rows(), rows)
-                        self.assertEqual(stores[loser].get_turn_action(campaign_id, action_id), receipt)
+                            currentness.assert_not_called()
+                            assert_retry_unchanged()
 
                     app = create_app(session_manager=rest_manager, ollama_adapter=None)
                     async with httpx.AsyncClient(
@@ -3920,6 +3945,16 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                         if not distinct_ids:
                             # Receipt lookup must precede stale-context checks,
                             # without refreshing the losing manager implicitly.
+                            self.assertEqual(
+                                records[loser].game_session._campaign_persistence_version,
+                                (campaign_id, saved_before.metadata["revision"]),
+                            )
+                            self.assertNotEqual(
+                                records[loser].game_session._campaign_persistence_version,
+                                records[winner].game_session._campaign_persistence_version,
+                            )
+                            with self.assertRaises(CampaignStaleError):
+                                managers[loser].assert_current(records[loser])
                             await assert_shared_id_retry_and_replay(
                                 clients[loser], session_ids[loser], records[loser],
                             )
