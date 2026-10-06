@@ -132,6 +132,35 @@ def _schema(name: str) -> dict[str, Any]:
     return _mapping(schemas[name], f"schema {name}")
 
 
+def _nested_schema_objects(schema: Any, label: str):
+    """Walk schema keywords only, never examples or arbitrary metadata."""
+    schema = _mapping(schema, label)
+    yield label, schema
+    for name, child in _mapping(schema.get("properties", {}), f"{label}.properties").items():
+        yield from _nested_schema_objects(child, f"{label}.properties.{name}")
+    if "items" in schema:
+        yield from _nested_schema_objects(schema["items"], f"{label}.items")
+    # Boolean additionalProperties permits/forbids unknown keys; only its
+    # schema-valued form can declare required fields for dictionary values.
+    if isinstance(schema.get("additionalProperties"), dict):
+        yield from _nested_schema_objects(
+            schema["additionalProperties"], f"{label}.additionalProperties",
+        )
+    for keyword in ("anyOf", "allOf", "oneOf"):
+        for index, child in enumerate(schema.get(keyword, [])):
+            yield from _nested_schema_objects(child, f"{label}.{keyword}[{index}]")
+
+def _parameter_schema_objects(parameters: list[dict[str, Any]], label: str):
+    for index, parameter in enumerate(parameters):
+        if "schema" in parameter:
+            yield from _nested_schema_objects(
+                parameter["schema"], f"{label}[{index}].schema",
+            )
+        for media_type, media in parameter.get("content", {}).items():
+            if "schema" in media:
+                yield from _nested_schema_objects(
+                    media["schema"], f"{label}[{index}].content.{media_type}.schema",
+                )
 def _properties(schema_name: str) -> dict[str, Any]:
     return _mapping(_schema(schema_name).get("properties"), f"{schema_name}.properties")
 
@@ -1937,10 +1966,10 @@ class ContractParityTests(unittest.TestCase):
     def test_schema_required_declarations_are_lists_of_unique_strings(self):
         # Validate structure separately: set-based parity intentionally ignores
         # ordering, but also hides duplicate names and accepts mapping keys.
-        for schema_name in SPEC["components"]["schemas"]:
-            with self.subTest(schema=schema_name):
-                required = _schema(schema_name).get("required", [])
-                label = f"{schema_name}.required"
+        for schema_path, schema in _published_schema_objects():
+            with self.subTest(schema=schema_path):
+                required = schema.get("required", [])
+                label = f"{schema_path}.required"
                 self.assertIsInstance(required, list, f"{label} must be a list")
                 self.assertTrue(
                     all(isinstance(name, str) for name in required),
@@ -3336,6 +3365,221 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                         "test_quest_command_result_shape_matches_runtime_model"
                     ).run(result)
                 self.assertEqual(result.testsRun, 2)
+                self.assertTrue(result.wasSuccessful(), result.failures + result.errors)
+
+    def _nested_required_fixture(self):
+        spec = deepcopy(SPEC)
+        object_schema = {
+            "type": "object",
+            "properties": {"first": {"type": "string"}, "second": {"type": "string"}},
+            "required": ["first", "second"],
+        }
+        component_path = ("components", "schemas", "NestedRequiredFixture")
+        spec["components"]["schemas"]["NestedRequiredFixture"] = {
+            "type": "object",
+            "properties": {
+                "object": deepcopy(object_schema),
+                "array": {"type": "array", "items": deepcopy(object_schema)},
+                "dictionary": {
+                    "type": "object", "additionalProperties": deepcopy(object_schema),
+                },
+                "free_dictionary": {"type": "object", "additionalProperties": True},
+                "closed_dictionary": {"type": "object", "additionalProperties": False},
+                "combined": {
+                    keyword: [deepcopy(object_schema)]
+                    for keyword in ("anyOf", "allOf", "oneOf")
+                },
+                "deep": {
+                    "type": "array",
+                    "items": {"anyOf": [{
+                        "allOf": [{"oneOf": [{
+                            "type": "object",
+                            "properties": {"child": deepcopy(object_schema)},
+                        }]}],
+                    }]},
+                },
+            },
+        }
+        spec["paths"]["/nested-required-fixture"] = {
+            "parameters": [{
+                "name": "path-filter", "in": "query", "schema": deepcopy(object_schema),
+            }],
+            "post": {
+                "parameters": [{
+                    "name": "operation-filter", "in": "query",
+                    "schema": deepcopy(object_schema),
+                }, {
+                    "name": "content-filter", "in": "query",
+                    "content": {"application/json": {"schema": deepcopy(object_schema)}},
+                }],
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {"schema": deepcopy(object_schema)}},
+                },
+                "responses": {
+                    "200": {
+                        "description": "Fixture only",
+                        "content": {"application/json": {
+                            "schema": {"type": "array", "items": deepcopy(object_schema)},
+                        }},
+                    },
+                },
+            },
+        }
+        targets = [
+            (component_path + ("properties", "object"),
+             "NestedRequiredFixture.properties.object"),
+            (component_path + ("properties", "array", "items"),
+             "NestedRequiredFixture.properties.array.items"),
+            (component_path + ("properties", "dictionary", "additionalProperties"),
+             "NestedRequiredFixture.properties.dictionary.additionalProperties"),
+            (("paths", "/nested-required-fixture", "parameters", 0, "schema"),
+             "paths./nested-required-fixture.parameters[0].schema"),
+            (("paths", "/nested-required-fixture", "post", "parameters", 0, "schema"),
+             "paths./nested-required-fixture.post.parameters[0].schema"),
+            (("paths", "/nested-required-fixture", "post", "parameters", 1,
+              "content", "application/json", "schema"),
+             "paths./nested-required-fixture.post.parameters[1].content"
+             ".application/json.schema"),
+        ]
+        targets.extend(
+            (component_path + ("properties", "combined", keyword, 0),
+             f"NestedRequiredFixture.properties.combined.{keyword}[0]")
+            for keyword in ("anyOf", "allOf", "oneOf")
+        )
+        targets.extend([
+            (component_path + (
+                "properties", "deep", "items", "anyOf", 0, "allOf", 0,
+                "oneOf", 0, "properties", "child",
+            ), "NestedRequiredFixture.properties.deep.items.anyOf[0].allOf[0]"
+               ".oneOf[0].properties.child"),
+            (("paths", "/nested-required-fixture", "post", "requestBody", "content",
+              "application/json", "schema"),
+             "paths./nested-required-fixture.post.requestBody.content.application/json.schema"),
+            (("paths", "/nested-required-fixture", "post", "responses", "200", "content",
+              "application/json", "schema", "items"),
+             "paths./nested-required-fixture.post.responses.200.content.application/json"
+             ".schema.items"),
+        ])
+        return spec, targets
+
+    def test_nested_required_structure_drift_fails_in_both_formats(self):
+        baseline, targets = self._nested_required_fixture()
+        mutations = (
+            ("duplicate", ["first", "second", "first"], "must contain unique strings"),
+            ("same-key mapping", {"first": None, "second": None}, "must be a list"),
+            ("scalar", "first", "must be a list"),
+            ("null", None, "must be a list"),
+            ("integer", ["first", "second", 1], "must contain only strings"),
+            ("boolean", ["first", "second", True], "must contain only strings"),
+            ("null item", ["first", "second", None], "must contain only strings"),
+            ("mapping item", ["first", "second", {}], "must contain only strings"),
+            ("list item", ["first", "second", []], "must contain only strings"),
+        )
+        for path, label in targets:
+            for mutation, replacement, diagnostic in mutations:
+                for flow_style in (False, True):
+                    with self.subTest(path=label, mutation=mutation, compact=flow_style):
+                        spec = deepcopy(baseline)
+                        target = spec
+                        for key in path:
+                            target = target[key]
+                        target["required"] = deepcopy(replacement)
+                        parsed = _load_spec(yaml.safe_dump(
+                            spec, default_flow_style=flow_style,
+                        ))
+                        self.assertEqual(parsed, spec)
+                        restored = deepcopy(parsed)
+                        restored_target = restored
+                        for key in path:
+                            restored_target = restored_target[key]
+                        restored_target["required"] = ["first", "second"]
+                        self.assertEqual(restored, baseline)
+                        if mutation in ("duplicate", "same-key mapping"):
+                            # Both corruptions preserve membership; only the
+                            # structural check should reject them.
+                            self.assertEqual(set(replacement), {"first", "second"})
+                        result = unittest.TestResult()
+                        with patch.dict(globals(), SPEC=parsed):
+                            ContractParityTests(
+                                "test_schema_required_declarations_are_lists_of_unique_strings"
+                            ).run(result)
+                        self.assertEqual(result.testsRun, 1)
+                        self.assertEqual(result.errors, [], result.errors)
+                        self.assertEqual(len(result.failures), 1, result.failures)
+                        self.assertIn(
+                            f"{label}.required {diagnostic}", result.failures[0][1],
+                        )
+
+    def test_nested_required_omission_and_reordering_are_valid_in_both_formats(self):
+        baseline, targets = self._nested_required_fixture()
+        for mutation in ("omitted", "reordered"):
+            for flow_style in (False, True):
+                with self.subTest(mutation=mutation, compact=flow_style):
+                    spec = deepcopy(baseline)
+                    for path, _ in targets:
+                        target = spec
+                        for key in path:
+                            target = target[key]
+                        if mutation == "omitted":
+                            del target["required"]
+                        else:
+                            target["required"].reverse()
+                    parsed = _load_spec(yaml.safe_dump(
+                        spec, default_flow_style=flow_style,
+                    ))
+                    self.assertEqual(parsed, spec)
+                    result = unittest.TestResult()
+                    with patch.dict(globals(), SPEC=parsed):
+                        ContractParityTests(
+                            "test_schema_required_declarations_are_lists_of_unique_strings"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertTrue(result.wasSuccessful(), result.failures + result.errors)
+
+    def test_required_structure_ignores_examples_and_metadata_in_both_formats(self):
+        baseline, targets = self._nested_required_fixture()
+        decoy = {
+            "required": ["first", "first"],
+            "properties": {"child": {"required": {"first": None}}},
+            "items": {"required": [False]},
+            "anyOf": [{"required": None}],
+            "allOf": [{"required": [{}]}],
+            "oneOf": [{"required": [[]]}],
+        }
+        for flow_style in (False, True):
+            with self.subTest(compact=flow_style):
+                spec = deepcopy(baseline)
+                for path, _ in targets:
+                    target = spec
+                    for key in path:
+                        target = target[key]
+                    for keyword in ("example", "examples", "default", "x-metadata"):
+                        target[keyword] = deepcopy(decoy)
+                operation = spec["paths"]["/nested-required-fixture"]["post"]
+                operation["x-metadata"] = deepcopy(decoy)
+                for parameter in (
+                    *spec["paths"]["/nested-required-fixture"]["parameters"],
+                    *operation["parameters"],
+                ):
+                    parameter["example"] = deepcopy(decoy)
+                    parameter["examples"] = {"payload": {"value": deepcopy(decoy)}}
+                    parameter["required"] = False
+                operation["requestBody"]["content"]["application/json"]["example"] = (
+                    deepcopy(decoy)
+                )
+                operation["responses"]["200"]["content"]["application/json"]["examples"] = {
+                    "payload": {"value": deepcopy(decoy)},
+                }
+                spec["info"]["x-metadata"] = deepcopy(decoy)
+                parsed = _load_spec(yaml.safe_dump(spec, default_flow_style=flow_style))
+                self.assertEqual(parsed, spec)
+                result = unittest.TestResult()
+                with patch.dict(globals(), SPEC=parsed):
+                    ContractParityTests(
+                        "test_schema_required_declarations_are_lists_of_unique_strings"
+                    ).run(result)
+                self.assertEqual(result.testsRun, 1)
                 self.assertTrue(result.wasSuccessful(), result.failures + result.errors)
 
     def test_quest_command_result_shape_mutations_fail_in_both_formats(self):
@@ -5697,3 +5941,30 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     )
                     self.assertIn(f"{schema_name}.{diagnostic}", failure)
         self.assertEqual(_schema(schema_name), original)
+def _published_schema_objects():
+    for name in SPEC["components"]["schemas"]:
+        yield from _nested_schema_objects(_schema(name), name)
+    for path, item in SPEC["paths"].items():
+        yield from _parameter_schema_objects(
+            item.get("parameters", []), f"paths.{path}.parameters",
+        )
+        for method, operation in item.items():
+            if method not in HTTP_METHODS:
+                continue
+            label = f"paths.{path}.{method}"
+            yield from _parameter_schema_objects(
+                operation.get("parameters", []), f"{label}.parameters",
+            )
+            bodies = []
+            if "requestBody" in operation:
+                bodies.append((f"{label}.requestBody", operation["requestBody"]))
+            bodies.extend(
+                (f"{label}.responses.{status}", response)
+                for status, response in operation.get("responses", {}).items()
+            )
+            for body_label, body in bodies:
+                for media_type, media in body.get("content", {}).items():
+                    if "schema" in media:
+                        yield from _nested_schema_objects(
+                            media["schema"], f"{body_label}.content.{media_type}.schema",
+                        )
