@@ -1,0 +1,33 @@
+{
+  "release_gates": {
+    "status": "PASS",
+    "exit": 0,
+    "note": "ALL 22 DETERMINISTIC GATES PASSED (UTF-8 retry)",
+    "log": "full_suite_release_gates_retry.log"
+  },
+  "api_discover": {
+    "status": "FAIL",
+    "exit": 1,
+    "ran": 1406,
+    "failures": 11,
+    "skipped": 2,
+    "seconds": 1021.904,
+    "failing_tests": [
+      "test_development_tooling.DevelopmentToolingTests.test_ci_exact_sha_detachment_is_explicit_and_mismatch_blocks",
+      "test_development_tooling.DevelopmentToolingTests.test_clean_repo_health_success_head_and_not_run",
+      "test_development_tooling.DevelopmentToolingTests.test_foreign_or_tampered_receipt_provenance_fails_closed",
+      "test_development_tooling.DevelopmentToolingTests.test_full_clean_sequential_health_final_gate_reuses_real_runner_and_has_go",
+      "test_development_tooling.DevelopmentToolingTests.test_missing_owned_history_and_receipt_write_failure_block",
+      "test_development_tooling.DevelopmentToolingTests.test_modified_owned_log_or_record_blocks_and_is_not_overwritten",
+      "test_development_tooling.DevelopmentToolingTests.test_real_dirty_tree_after_health_still_blocks_final_gate",
+      "test_development_tooling.DevelopmentToolingTests.test_source_change_during_execution_blocks_gate",
+      "test_development_tooling.DevelopmentToolingTests.test_staged_owned_evidence_is_a_real_user_change",
+      "test_development_tooling.DevelopmentToolingTests.test_unique_identity_historical_records_unchanged_and_stable_fingerprint",
+      "test_development_tooling.DevelopmentToolingTests.test_unreceipted_and_copied_evidence_are_not_exempt"
+    ],
+    "log": "full_suite_api_discover_retry.log"
+  },
+  "interpretation": "Release gates green. API discover: 11 failures all in DevelopmentToolingTests — health Verification commands missing_tools=['pnpm'] (env/tooling), not weapon/narration/combat. Fix owned by Game stability plan Faz 7, not Wave3. 2 skips = Windows POSIX signal tests (PASS under WSL).",
+  "wave3_go": "WAVE3_GO.md"
+}
+
