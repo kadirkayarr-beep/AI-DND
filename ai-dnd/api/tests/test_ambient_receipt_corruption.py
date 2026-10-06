@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import httpx
 import game
+from pydantic import ValidationError
 
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
@@ -402,6 +403,38 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
+
+    async def test_overlength_complete_response_identities_fail_safely_and_preserve_conflicts_after_resume(self):
+        for field, limit in (("transition_id", 160), ("canonical_event_id", 36)):
+            for conflict in (None, "action", "event"):
+                with self.subTest(field=field, length=limit + 1, conflict=conflict):
+                    def replace_identity(response):
+                        original = copy.deepcopy(response)
+                        self.assertIn("ambient_event_response", response)
+                        self.assertNotIn("legacy_ambient_result", response)
+                        result = response["ambient_event_response"]["result"]
+                        result[field] = "x" * (limit + 1)
+                        # Keep the entire accepted reply and change only this
+                        # identity. Bypass normal save validation via the helper's
+                        # SQL corruption so rejection is exercised at replay time.
+                        with self.assertRaises(ValidationError) as invalid:
+                            AmbientEventCommandResult.model_validate(
+                                response["ambient_event_response"], strict=True,
+                            )
+                        self.assertEqual(
+                            [(error["loc"], error["type"])
+                             for error in invalid.exception.errors()],
+                            [(("result", field), "string_too_long")],
+                        )
+                        unchanged = copy.deepcopy(response)
+                        unchanged["ambient_event_response"]["result"][field] = (
+                            original["ambient_event_response"]["result"][field]
+                        )
+                        self.assertEqual(unchanged, original)
+
+                    await self.check_reopened_receipt(
+                        replace_identity, conflict=conflict,
+                    )
 
     async def test_malformed_transient_event_receipts_fail_without_repeating_outcomes(self):
         # Event application requires persistence. Obtain a genuine accepted
