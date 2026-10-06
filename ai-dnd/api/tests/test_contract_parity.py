@@ -2361,6 +2361,78 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                             lookup[1],
                         )
 
+    def test_campaign_start_unexpected_properties_fail_in_both_formats(self):
+        field_name = "unexpected"
+        declaration = {"type": "string"}
+        for model in (
+            CampaignStartOptionsResponse,
+            CampaignStartSettingOption,
+            CampaignStartRegionOption,
+            CampaignStartLocationOption,
+        ):
+            schema_name = model.__name__
+            original = _schema(schema_name)
+            self.assertEqual(set(original["properties"]), _runtime_field_names(model))
+            self.assertNotIn(field_name, original["properties"])
+            self.assertNotIn(field_name, original["required"])
+            for flow_style in (False, True):
+                with self.subTest(schema=schema_name, compact=flow_style):
+                    spec = deepcopy(SPEC)
+                    spec["components"]["schemas"][schema_name]["properties"][
+                        field_name
+                    ] = deepcopy(declaration)
+                    parsed = _load_spec(
+                        yaml.safe_dump(spec, default_flow_style=flow_style)
+                    )
+                    self.assertEqual(parsed, spec)
+                    mutated = parsed["components"]["schemas"][schema_name]
+                    self.assertEqual(
+                        mutated["properties"],
+                        {**original["properties"], field_name: declaration},
+                    )
+                    self.assertEqual(mutated["required"], original["required"])
+                    self.assertNotIn(field_name, mutated["required"])
+                    self.assertEqual(
+                        mutated["additionalProperties"], original["additionalProperties"],
+                    )
+                    self.assertEqual(parsed["paths"], SPEC["paths"])
+                    # Removing only the extra declaration proves all original
+                    # properties, required lists, policies and routes are intact.
+                    restored = deepcopy(parsed)
+                    del restored["components"]["schemas"][schema_name]["properties"][
+                        field_name
+                    ]
+                    self.assertEqual(restored, SPEC)
+                    with patch.dict(globals(), SPEC=parsed):
+                        for test_name in (
+                            "test_campaign_start_item_references_match_runtime_models",
+                            "test_character_setup_route_bindings_match_fastapi",
+                            "test_documented_routes_match_fastapi_and_preserve_both_alias_families",
+                        ):
+                            unchanged = unittest.TestResult()
+                            ContractParityTests(test_name).run(unchanged)
+                            self.assertEqual(unchanged.testsRun, 1)
+                            self.assertTrue(
+                                unchanged.wasSuccessful(),
+                                unchanged.failures + unchanged.errors,
+                            )
+                        result = unittest.TestResult()
+                        ContractParityTests(
+                            "test_campaign_start_schemas_match_runtime_models"
+                        ).run(result)
+                    self.assertEqual(result.testsRun, 1)
+                    self.assertEqual(result.errors, [], result.errors)
+                    self.assertEqual(len(result.failures), 1, result.failures)
+                    comparison, failure = result.failures[0]
+                    self.assertIn(f"schema='{schema_name}'", comparison.id())
+                    self.assertNotIn("field=", comparison.id())
+                    self.assertIn(
+                        "self.assertEqual(_property_names(schema_name), _runtime_field_names(model))",
+                        failure,
+                    )
+                    self.assertIn("Items in the first set but not the second:", failure)
+                    self.assertIn(repr(field_name), failure)
+
     def test_campaign_start_required_field_drift_fails_in_both_formats(self):
         for model in (
             CampaignStartOptionsResponse,
