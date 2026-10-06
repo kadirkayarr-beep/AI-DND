@@ -480,6 +480,9 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_legacy_identity_boundaries_preserve_replay_and_conflicts_after_resume(self):
         cases = (
+            ("empty_transition", {"transition_id": "", "canonical_event_id": "legacy-event"}),
+            ("empty_event", {"transition_id": "legacy-transition", "canonical_event_id": ""}),
+            ("both_empty", {"transition_id": "", "canonical_event_id": ""}),
             ("null_transition", {"transition_id": None, "canonical_event_id": "legacy-event"}),
             ("null_event", {"transition_id": "legacy-transition", "canonical_event_id": None}),
             ("both_null", {"transition_id": None, "canonical_event_id": None}),
@@ -498,7 +501,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
         for boundary, projection in cases:
             # Valid historical projections need neither modern reply fields nor
             # UUID-shaped event identities. Omission and null both project null,
-            # but the stored reservation must retain its exact original shape.
+            # while empty strings must stay empty. The stored reservation must
+            # retain its exact original shape.
             for conflict in (None, "action", "event"):
                 with self.subTest(boundary=boundary, conflict=conflict):
                     await self.check_reopened_receipt(
