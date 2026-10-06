@@ -1062,6 +1062,110 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(command, original_command)
         self.assertIsNone(record.campaign_id)
 
+    async def test_transient_combat_context_retry_replays_before_stale_validation(self):
+        created = await self.http.post("/api/game/sessions")
+        self.assertEqual(created.status_code, 200, created.text)
+        created = created.json()
+        record, command = self.prepare_spell(created)
+        session = record.game_session
+        self.assertIsNone(record.campaign_id)
+        # Preserve a live encounter so a real later turn advances its round.
+        session.character["armor_class"] = 100
+        combat = session.world_state["combat"]
+        command.update(
+            combat_id=combat["combat_id"], combat_round=combat["round"],
+            combat_turn_index=combat["current_turn_index"],
+        )
+        original_command = copy.deepcopy(command)
+
+        def runtime_snapshot():
+            return copy.deepcopy((
+                self.snapshot(record), session.messages, session.world_metadata,
+            ))
+
+        before = runtime_snapshot()
+        with patch.object(session, "run_player_turn",
+                          wraps=session.run_player_turn) as real_turn, \
+             patch.object(self.manager, "autosave_turn",
+                          wraps=self.manager.autosave_turn) as autosave, \
+             patch.object(self.store, "_transaction",
+                          side_effect=AssertionError("Unsaved turn accessed storage")) as storage:
+            accepted = await self.post(created, command)
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        real_turn.assert_called_once()
+        autosave.assert_called_once()
+        storage.assert_not_called()
+        expected = copy.deepcopy(accepted.json())
+        self.assertTrue(expected["combat_result"]["success"])
+        self.assertEqual(expected["action_id"], command["action_id"])
+        self.assertNotEqual(runtime_snapshot(), before)
+        self.assertEqual(len(record.combat_history), 1)
+        receipt = copy.deepcopy(record.turn_action_receipts[command["action_id"]])
+        self.assertEqual(receipt["response"], expected)
+        self.assertEqual(receipt["action_id"], command["action_id"])
+        self.assertRegex(receipt["request_hash"], r"^[0-9a-f]{64}$")
+
+        later = await self.post(created, {
+            "message": "End this combat turn.", "action_id": str(uuid4()),
+            "combat_action": {"steps": [{"kind": "end_turn"}]},
+        })
+        self.assertEqual(later.status_code, 200, later.text)
+        self.assertGreater(session.world_state["combat"]["round"], command["combat_round"])
+        self.assertEqual(len(record.combat_history), 2)
+        self.assertEqual(record.turn_action_receipts[command["action_id"]], receipt)
+        self.assertIsNone(record.campaign_id)
+        committed = runtime_snapshot()
+
+        with ExitStack() as guards:
+            blocked = [
+                guards.enter_context(patch.object(
+                    owner, name, side_effect=AssertionError(f"Retry called {name}"),
+                ))
+                for owner, name in (
+                    (session, "run_player_turn"),
+                    (session.rng, "randint"),
+                    (self.manager, "autosave_turn"),
+                    (self.store, "get_turn_action"),
+                    (self.store, "assert_current"),
+                    (self.store, "get_campaign"),
+                    (self.store, "save_campaign"),
+                    (self.store, "_transaction"),
+                )
+            ]
+            blocked.append(guards.enter_context(patch(
+                "api.main.combat_lifecycle.validate_request",
+                side_effect=AssertionError("Retry validated stale combat context"),
+            )))
+
+            async def assert_retry(body, status):
+                retry = await self.post(created, body)
+                self.assertEqual(retry.status_code, status, retry.text)
+                if status == 200:
+                    self.assertEqual(retry.json(), expected)
+                else:
+                    self.assertEqual(retry.json()["detail"]["code"], "action_id_conflict")
+                    self.assertIsInstance(retry.json()["detail"]["message"], str)
+                    self.assertTrue(retry.json()["detail"]["message"])
+                for guard in blocked:
+                    guard.assert_not_called()
+                self.assertEqual(runtime_snapshot(), committed)
+                self.assertEqual(record.turn_action_receipts[command["action_id"]], receipt)
+
+            # The accepted request is now stale, but still replays verbatim.
+            await assert_retry(command, 200)
+            for field in ("combat_id", "combat_round", "combat_turn_index"):
+                with self.subTest(context_field=field):
+                    changed = copy.deepcopy(command)
+                    changed[field] = str(uuid4()) if field == "combat_id" else command[field] + 1
+                    self.assertNotEqual(changed[field], command[field])
+                    self.assertEqual(
+                        {key: value for key, value in changed.items() if key != field},
+                        {key: value for key, value in command.items() if key != field},
+                    )
+                    await assert_retry(changed, 409)
+                    await assert_retry(command, 200)
+        self.assertEqual(command, original_command)
+
     async def test_malformed_transient_turn_receipt_blocks_http_retry(self):
         await self.assert_transient_response_validation("turn", envelope_only=True)
 
