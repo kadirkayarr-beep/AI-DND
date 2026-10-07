@@ -1644,6 +1644,12 @@ components:
           items: {$ref: "#/components/schemas/QuestOffer"}
         adventure:
           $ref: "#/components/schemas/AdventureProjection"
+        known_lore:
+          type: array
+          items: {$ref: "#/components/schemas/KnownLoreFact"}
+        known_factions:
+          type: array
+          items: {$ref: "#/components/schemas/KnownFactionStanding"}
       required:
         - campaign_time
         - known_scheduled_events
@@ -1667,6 +1673,25 @@ components:
         - turn_index
         - quests
         - quest_offers
+        - known_lore
+        - known_factions
+    KnownLoreFact:
+      type: object
+      additionalProperties: false
+      required: [fact_id, title, text]
+      properties:
+        fact_id: {type: string}
+        title: {type: string}
+        text: {type: string}
+    KnownFactionStanding:
+      type: object
+      additionalProperties: false
+      required: [faction_id, title, standing, local_presence]
+      properties:
+        faction_id: {type: string}
+        title: {type: string}
+        standing: {type: integer, minimum: -5, maximum: 5}
+        local_presence: {type: boolean}
     GameConversationNpc:
       type: object
       additionalProperties: false

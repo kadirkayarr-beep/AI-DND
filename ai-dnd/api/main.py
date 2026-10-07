@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
 import game
+import campaign_time
 import combat_lifecycle
 import scheduled_events
 import living_world
@@ -37,6 +38,8 @@ from api.lore_authority import (
     PRODUCTION_REGISTRY,
     PRODUCTION_START_CATALOG,
     apply_campaign_override,
+    apply_committed_world_canon,
+    is_setting_place,
 )
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
@@ -172,6 +175,15 @@ def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
     return None
 
 
+def _campaign_lore_year(world: Any) -> int:
+    """Use the campaign clock year, or the bound 1501 epoch when no clock exists."""
+    public = campaign_time.public_time(world) if isinstance(world, dict) else None
+    year = public.get("year") if isinstance(public, dict) else None
+    if type(year) is int:
+        return year
+    return 1501
+
+
 def _lore_context_for_turn(
     record: Any,
     session: Any,
@@ -185,6 +197,7 @@ def _lore_context_for_turn(
         return registry.retrieve_lore_context(
             campaign_state=state,
             player_message=player_message,
+            campaign_year=_campaign_lore_year(getattr(session, "world_state", None)),
         )
 
     world = session.world_state
@@ -195,11 +208,7 @@ def _lore_context_for_turn(
         else None
     )
     current_location_id = planned_location or state.current_location_entity_id
-    current_location = registry.entity(current_location_id)
-    if (
-        current_location is None
-        or current_location.entity_type.value != "CANONICAL_LOCATION"
-    ):
+    if not is_setting_place(registry.entity(current_location_id)):
         current_location_id = state.current_location_entity_id
     present_npc_ids = {
         entity_id
@@ -238,6 +247,7 @@ def _lore_context_for_turn(
         campaign_state=state,
         target_npc_id=target_npc_id,
         include_dm_secrets=False,
+        campaign_year=_campaign_lore_year(world),
     )
 
 
@@ -368,6 +378,14 @@ def _stage_engine_lore_state(
                 override,
                 evidence=action_evidence,
             )
+        updated = apply_committed_world_canon(
+            updated,
+            evidence=action_evidence,
+            before_world=before_world,
+            after_world=after_world,
+            action_result=action_result,
+            registry=PRODUCTION_REGISTRY,
+        )
     return CampaignLoreState.from_mapping(updated.to_dict())
 
 
@@ -540,7 +558,11 @@ def create_app(
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
         session_id, record = manager.create()
-        state = serialize_session_state(record.game_session, record.journal)
+        state = serialize_session_state(
+            record.game_session,
+            record.journal,
+            record.lore_authority,
+        )
         return SessionResponse(
             session_id=session_id,
             state=redact_sensitive_values(state),
@@ -592,6 +614,7 @@ def create_app(
                     "state": serialize_session_state(
                         record.game_session,
                         record.journal,
+                        record.lore_authority,
                     ),
                     "history": [],
                     "combat_history": [],
@@ -691,6 +714,7 @@ def create_app(
             state = serialize_session_state(
                 record.game_session,
                 record.journal,
+                record.lore_authority,
             )
         return redact_sensitive_values(state)
 
@@ -1146,7 +1170,11 @@ def create_app(
                         ),
                         presence_location_id=presence_location_id,
                     )
-                state = serialize_session_state(session, record.journal)
+                state = serialize_session_state(
+                    session,
+                    record.journal,
+                    staged_lore_authority,
+                )
             except Exception as error:
                 _rollback_session(record, session, snapshot)
                 session.world_metadata = metadata_snapshot
@@ -1317,7 +1345,7 @@ def create_app(
                     detail={"code": "quest_unavailable", "message": str(error)},
                 ) from None
             try:
-                state = serialize_session_state(session, record.journal)
+                state = serialize_session_state(session, record.journal, record.lore_authority)
                 public_quest = QuestState.model_validate(
                     {
                     "quest_id": result["quest"]["quest_id"],
@@ -1421,7 +1449,7 @@ def create_app(
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=SpeciesTraitActionResult.model_validate(result),
                 )
                 response_payload = redact_sensitive_values(response.model_dump(mode="json"))
@@ -1511,7 +1539,7 @@ def create_app(
             ) -> dict[str, Any]:
                 response = AmbientEventCommandResult(
                     session_id=session_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=AmbientEventResult(
                         event_instance_id=event_instance_key,
                         action_id=action_id,
@@ -1655,7 +1683,7 @@ def create_app(
                 )
                 response = AmbientEventCommandResult(
                     session_id=session_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=AmbientEventResult(
                         event_instance_id=event_instance_key,
                         action_id=action_id,

@@ -328,7 +328,11 @@ class SessionManager:
         journal = restore_stored_campaign(session, stored)
         return {
             "campaign": stored.metadata,
-            "state": serialize_session_state(session, journal),
+            "state": serialize_session_state(
+                session,
+                journal,
+                CampaignLoreState.from_mapping(stored.payload.get("lore_authority")),
+            ),
             "history": stored.history,
             "combat_history": stored.combat_history,
         }
@@ -442,7 +446,11 @@ class SessionManager:
                 )
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
-            state = serialize_session_state(record.game_session, record.journal)
+            state = serialize_session_state(
+                record.game_session,
+                record.journal,
+                record.lore_authority,
+            )
             record.combat_history = copy.deepcopy(stored.combat_history)
         return session_id, record, metadata, stored.history, state
 

@@ -6,11 +6,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable
 
 from .models import (
+    LORE_PAYLOAD_VERSION,
     MAX_CAMPAIGN_OVERRIDES,
     BindingStatus,
     CampaignCanonOverride,
     CampaignLoreState,
     EntityType,
+    FactionStanding,
     VisibilityScope,
 )
 
@@ -181,6 +183,57 @@ def grant_npc_knowledge(
         state,
         npc_known_fact_ids=tuple(sorted(existing.items())),
     )
+
+
+def apply_faction_standing(
+    state: CampaignLoreState,
+    *,
+    faction_id: str,
+    standing: int,
+    known_to_player: bool,
+    local_presence: bool,
+    evidence: EngineActionEvidence | None,
+    source_action_id: str,
+    turn_index: int,
+) -> CampaignLoreState:
+    """Change standing only from a committed engine action."""
+    if state.binding_status is not BindingStatus.BOUND:
+        raise ValueError("An unbound legacy campaign cannot change faction standing.")
+    if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
+        raise ValueError("Faction standing requires matching Python engine evidence.")
+    if any(
+        row.faction_id == faction_id and row.source_action_id == source_action_id
+        for row in state.faction_standings
+    ):
+        return state
+    row = FactionStanding(
+        faction_id=_validated_id(faction_id, "Faction ID"),
+        standing=standing,
+        known_to_player=known_to_player,
+        local_presence=local_presence,
+        source_action_id=_validated_id(source_action_id, "Faction action ID"),
+    )
+    FactionStanding_rows = _faction_rows_with(state, row)
+    from dataclasses import replace
+
+    return replace(
+        state,
+        faction_standings=FactionStanding_rows,
+        lore_payload_version=LORE_PAYLOAD_VERSION,
+    )
+
+
+def _faction_rows_with(
+    state: CampaignLoreState,
+    row: FactionStanding,
+) -> tuple[FactionStanding, ...]:
+    if not -5 <= row.standing <= 5:
+        raise ValueError("Faction standing is invalid.")
+    kept = tuple(item for item in state.faction_standings if item.faction_id != row.faction_id)
+    rows = kept + (row,)
+    if len(rows) > 64:
+        raise ValueError("Faction standing limit reached.")
+    return rows
 
 
 def _validated_id(value: str, label: str) -> str:

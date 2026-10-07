@@ -21,6 +21,8 @@ MAX_CAMPAIGN_OVERRIDES = 500
 MAX_PROCEDURAL_REFERENCES = 1_000
 MAX_NPCS_WITH_KNOWLEDGE = 500
 MAX_FACTS_PER_NPC = 500
+MAX_FACTION_ROWS = 64
+LORE_PAYLOAD_VERSION = 2
 
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$")
 
@@ -64,6 +66,7 @@ class ClaimType(str, Enum):
     PROCEDURAL_FACT = "PROCEDURAL_FACT"
     NARRATIVE_TEXTURE = "NARRATIVE_TEXTURE"
     CANONICAL_LOCAL_BELIEF = "CANONICAL_LOCAL_BELIEF"
+    ADVENTURE_POSSIBILITY = "ADVENTURE_POSSIBILITY"
 
 
 class VisibilityScope(str, Enum):
@@ -100,6 +103,32 @@ class EntityType(str, Enum):
     CANONICAL_NPC = "CANONICAL_NPC"
     HISTORICAL_EVENT = "HISTORICAL_EVENT"
     CULTURE_PEOPLE = "CULTURE_PEOPLE"
+
+
+PLACE_ENTITY_TYPES = frozenset({
+    EntityType.CONTINENT,
+    EntityType.REGION,
+    EntityType.KINGDOM_NATION,
+    EntityType.CITY,
+    EntityType.TOWN,
+    EntityType.VILLAGE,
+    EntityType.DISTRICT,
+    EntityType.LANDMARK,
+    EntityType.ROAD_ROUTE,
+    EntityType.WILDERNESS,
+    EntityType.FOREST,
+    EntityType.MOUNTAIN_RANGE,
+    EntityType.RIVER,
+    EntityType.SEA,
+    EntityType.ISLAND,
+    EntityType.INN_TAVERN,
+    EntityType.TEMPLE,
+})
+
+
+def is_setting_place(entity: "LoreEntity | None") -> bool:
+    """True when the entity can be a current setting location."""
+    return entity is not None and entity.entity_type in PLACE_ENTITY_TYPES
 
 
 class Relationship(str, Enum):
@@ -579,6 +608,26 @@ class CampaignCanonOverride:
 
 
 @dataclass(frozen=True)
+class FactionStanding:
+    """Campaign-local standing. Hidden rows are not a public fact."""
+
+    faction_id: str
+    standing: int
+    known_to_player: bool
+    local_presence: bool
+    source_action_id: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "faction_id": self.faction_id,
+            "standing": self.standing,
+            "known_to_player": self.known_to_player,
+            "local_presence": self.local_presence,
+            "source_action_id": self.source_action_id,
+        }
+
+
+@dataclass(frozen=True)
 class CampaignLoreState:
     """Small campaign-owned references; never contains static sourcebook lore."""
 
@@ -595,6 +644,8 @@ class CampaignLoreState:
     campaign_overrides: tuple[CampaignCanonOverride, ...] = ()
     procedural_entity_refs: tuple[str, ...] = ()
     lore_discoveries: tuple[str, ...] = ()
+    faction_standings: tuple[FactionStanding, ...] = ()
+    lore_payload_version: int = 1
 
     @classmethod
     def legacy_unbound(cls) -> "CampaignLoreState":
@@ -619,7 +670,12 @@ class CampaignLoreState:
                 "procedural_entity_refs",
                 "lore_discoveries",
             },
-            optional={"region_pack_id", "starting_location_entity_id"},
+            optional={
+                "region_pack_id",
+                "starting_location_entity_id",
+                "faction_standings",
+                "lore_payload_version",
+            },
             label="Campaign Lore Authority state",
         )
         status = _enum(
@@ -689,6 +745,12 @@ class CampaignLoreState:
             "Campaign lore_discoveries",
             MAX_CAMPAIGN_FACT_IDS,
         )
+        faction_standings = _faction_standings(data.get("faction_standings", []))
+        payload_version = data.get("lore_payload_version", 1)
+        if type(payload_version) is not int or payload_version not in {1, LORE_PAYLOAD_VERSION}:
+            raise ValueError("Campaign lore payload version is invalid.")
+        if faction_standings and payload_version < LORE_PAYLOAD_VERSION:
+            payload_version = LORE_PAYLOAD_VERSION
         if status is BindingStatus.BOUND and not all(
             (profile, world_id, epoch_id, region_id, location_id)
         ):
@@ -719,6 +781,8 @@ class CampaignLoreState:
             campaign_overrides=overrides,
             procedural_entity_refs=procedural_refs,
             lore_discoveries=discoveries,
+            faction_standings=faction_standings,
+            lore_payload_version=payload_version,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -738,7 +802,45 @@ class CampaignLoreState:
             "campaign_overrides": [item.to_dict() for item in self.campaign_overrides],
             "procedural_entity_refs": list(self.procedural_entity_refs),
             "lore_discoveries": list(self.lore_discoveries),
+            "faction_standings": [item.to_dict() for item in self.faction_standings],
+            "lore_payload_version": self.lore_payload_version,
         }
+
+
+def _faction_standings(value: Any) -> tuple[FactionStanding, ...]:
+    if not isinstance(value, list) or len(value) > MAX_FACTION_ROWS:
+        raise ValueError("Campaign faction_standings is invalid.")
+    rows: list[FactionStanding] = []
+    seen: set[str] = set()
+    for item in value:
+        data = _strict_mapping(
+            item,
+            required={
+                "faction_id",
+                "standing",
+                "known_to_player",
+                "local_presence",
+                "source_action_id",
+            },
+            label="Faction standing",
+        )
+        standing = data["standing"]
+        if type(standing) is not int or not -5 <= standing <= 5:
+            raise ValueError("Faction standing is invalid.")
+        if type(data["known_to_player"]) is not bool or type(data["local_presence"]) is not bool:
+            raise ValueError("Faction visibility is invalid.")
+        faction_id = _id(data["faction_id"], "Faction faction_id")
+        if faction_id in seen:
+            raise ValueError("Campaign faction_standings contains duplicate IDs.")
+        seen.add(faction_id)
+        rows.append(FactionStanding(
+            faction_id=faction_id,
+            standing=standing,
+            known_to_player=data["known_to_player"],
+            local_presence=data["local_presence"],
+            source_action_id=_id(data["source_action_id"], "Faction source_action_id"),
+        ))
+    return tuple(rows)
 
 
 def _campaign_id_list(value: Any, label: str, maximum: int) -> tuple[str, ...]:

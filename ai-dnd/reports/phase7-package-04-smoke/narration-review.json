@@ -1,0 +1,17 @@
+{
+  "status": "REVIEWED",
+  "scenario": "Phase 7 section 18",
+  "mechanical_status": "MECHANICAL_PASS_NEEDS_NARRATION_REVIEW",
+  "findings": [
+    "The first scene named the locals as a cloak descriptor and 'Bir muhafız'. The true name Marek was absent until the player asked.",
+    "The name question revealed Marek on npc_001 with no model call. Resume showed the same id and the same public name.",
+    "The lord question answered 'Dagult Neverember is the current Lord of Neverwinter' with zero model calls and recorded only fr:fact:dagult_neverember_current_lord.",
+    "After the hidden local flag occurred, the public state and the narration omitted both the hidden summary and the chalk-circle aftermath. The narration invented ordinary street color, including a young man and a cart. That sentence did not state the engine aftermath and did not add a lore fact.",
+    "Looking revealed the chalk-circle aftermath in the public scheduled-event summary. A second campaign did not receive the learned name, the lord fact, the flag, or the overrides.",
+    "The Neverwinter pack files were unchanged. Adventure-possibility prose did not create a campaign death."
+  ],
+  "leakage": "No hidden true name, hidden event summary, or unseen aftermath appeared before the engine revealed it.",
+  "continuity": "Resume kept the NPC id, known name, 1501 clock, lord fact, and observed aftermath.",
+  "narration_note": "The pre-observation narration added street fiction. It stayed inside two model calls and did not write canon.",
+  "verdict": "SCENARIO PASS — NOT A FULL PRODUCT GO BY ITSELF"
+}

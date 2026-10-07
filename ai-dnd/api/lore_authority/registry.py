@@ -32,6 +32,11 @@ MAX_CONTEXT_BYTES = 12 * 1024
 MAX_CANDIDATES = 400
 MAX_FACTS_PER_SUBJECT = 6
 MAX_OVERVIEW_FACTS_PER_SUBJECT = 4
+DEFAULT_CAMPAIGN_YEAR = 1501
+_CURRENT_EPOCH_SCOPE = "CURRENT_AT_1501_DR"
+_STATIC_SCOPE = "STATIC_SETTING_FACT"
+_HISTORICAL_SCOPE = "HISTORICAL_DATE_UNSPECIFIED"
+_YEAR_IN_TEXT = re.compile(r"(?<!\d)(\d{4})(?!\d)")
 
 _QUERY_STOP_WORDS = {
     "a", "an", "and", "are", "as", "at", "be", "but", "by", "do", "for",
@@ -556,6 +561,7 @@ class LoreRegistry:
         include_dm_secrets: bool = False,
         max_facts: int = MAX_RETRIEVED_FACTS,
         max_bytes: int = MAX_CONTEXT_BYTES,
+        campaign_year: int = DEFAULT_CAMPAIGN_YEAR,
     ) -> dict[str, Any]:
         if not 1 <= max_facts <= MAX_RETRIEVED_FACTS:
             raise ValueError("max_facts is outside the supported range.")
@@ -607,6 +613,8 @@ class LoreRegistry:
             force: bool = False,
             allow_intent_match: bool = False,
         ) -> None:
+            if not fact_is_current(fact, campaign_year):
+                return
             if not ruler_fact_in_scope(fact):
                 return
             relevance = self._fact_relevance_score(fact, query_terms)
@@ -798,6 +806,7 @@ class LoreRegistry:
             if fact_id in self._facts
             and self._facts[fact_id].subject_id in relevant_subjects
             and self._facts[fact_id].visibility is not VisibilityScope.DM_SECRET
+            and fact_is_current(self._facts[fact_id], campaign_year)
         ]
         relevant_overrides = [
             item.to_dict()
@@ -814,6 +823,24 @@ class LoreRegistry:
             for entity_id in all_context_ids
             if entity_id not in self._entities
         )[:32]
+        unknown_rows = [
+            {
+                "entity_id": entity_id,
+                "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
+            }
+            for entity_id in unknown_ids
+        ]
+        if not official and query_intents:
+            subject = current_location_id
+            if subject is None and mentioned_ids:
+                subject = sorted(mentioned_ids)[0]
+            if subject is None:
+                subject = "unspecified"
+            if not any(row["entity_id"] == subject for row in unknown_rows):
+                unknown_rows.append({
+                    "entity_id": subject,
+                    "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
+                })
         relevant_entity_ids = set(geography_ids | all_context_ids)
         for _, fact in selected:
             relevant_entity_ids.add(fact.subject_id)
@@ -848,13 +875,7 @@ class LoreRegistry:
                 "npc_known_lore": npc_known_facts,
                 "procedural_local_content": relevant_procedural,
                 "verified_entities": verified_entities,
-                "unknown_or_unloaded": [
-                    {
-                        "entity_id": entity_id,
-                        "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
-                    }
-                    for entity_id in unknown_ids
-                ],
+                "unknown_or_unloaded": unknown_rows,
             },
             "diagnostics": {
                 "registry_fact_count": self.fact_count,
@@ -864,6 +885,7 @@ class LoreRegistry:
                 ],
                 "query_intents": sorted(query_intents),
                 "current_location_entity_id": current_location_id,
+                "campaign_year": campaign_year,
                 "withheld_secret_count": withheld_secret_count,
                 "unresolved_conflicts": unresolved_conflicts,
                 "coverage_status": (
@@ -1172,10 +1194,11 @@ def _trim_packet(packet: dict[str, Any], max_bytes: int) -> None:
 
 
 def default_lore_registry() -> LoreRegistry:
-    """Return the intentionally empty production registry.
+    """Return an empty registry for fixtures that have not loaded a pack.
 
-    No authorized official source pack is present in the project. Keeping this
-    registry empty is safer than treating model recall as provenance.
+    Deprecated for new callers. Production answers use ``PRODUCTION_REGISTRY``
+    or ``registry_for_pack``. An explicit ``LoreRegistry.empty()`` is the
+    fixture form. This helper stays only so older tests keep that empty path.
     """
     return LoreRegistry.empty()
 
@@ -1187,6 +1210,40 @@ def resolve_entity(
     region_scope: str | None = None,
 ) -> EntityResolution:
     return registry.resolve_entity(name_or_id, region_scope=region_scope)
+
+
+def _year_bound(value: str | None) -> int | None:
+    if not isinstance(value, str):
+        return None
+    match = _YEAR_IN_TEXT.search(value)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+def fact_is_current(fact: LoreFact, campaign_year: int) -> bool:
+    """Whether a verified fact is current at a campaign DR year.
+
+    Unscoped facts stay eligible so existing fixtures keep working.
+    A historical scope is never a current answer. A 1501 scope matches
+    only that year. An explicit year range excludes everything outside it.
+    """
+    if type(campaign_year) is not int:
+        raise ValueError("campaign_year must be an integer DR year.")
+    start = _year_bound(fact.valid_from)
+    end = _year_bound(fact.valid_until)
+    if start is not None and campaign_year < start:
+        return False
+    if end is not None and campaign_year > end:
+        return False
+    scope = fact.temporal_scope
+    if scope is None or scope == _STATIC_SCOPE:
+        return True
+    if scope == _CURRENT_EPOCH_SCOPE:
+        return campaign_year == DEFAULT_CAMPAIGN_YEAR
+    if scope == _HISTORICAL_SCOPE:
+        return False
+    return False
 
 
 def retrieve_lore_context(

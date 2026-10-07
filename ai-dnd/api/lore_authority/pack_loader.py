@@ -18,9 +18,11 @@ from .registry import LoreRegistry
 
 
 PACK_DIRECTORY = Path(__file__).resolve().parent / "packs"
+INDEX_FILE = PACK_DIRECTORY / "pack_index.json"
 EXTRACTION_FILE = PACK_DIRECTORY / "neverwinter_the_north_v1.extraction.json"
 REVIEW_FILE = PACK_DIRECTORY / "neverwinter_the_north_v1.review.json"
 CATALOG_FILE = PACK_DIRECTORY / "installed_region_catalog.json"
+_VERIFIED_COVERAGE = frozenset({"VERIFIED", "VERIFIED_PARTIAL"})
 
 
 def _read_json(path: Path) -> Any:
@@ -30,14 +32,51 @@ def _read_json(path: Path) -> Any:
         raise RuntimeError(f"Cannot load authorized lore data: {path.name}.") from error
 
 
-def load_production_pack() -> tuple[
-    IngestionPack,
-    IngestionPack,
-    LoreRegistry,
-    CampaignStartCatalog,
-]:
-    """Return unreviewed extraction, reviewed pack, registry, and start catalog."""
-    extraction = _read_json(EXTRACTION_FILE)
+def load_pack_index() -> list[dict[str, Any]]:
+    """Reviewed pack list. A second region is another row, not another engine."""
+    payload = _read_json(INDEX_FILE)
+    packs = payload.get("packs") if isinstance(payload, dict) else None
+    if not isinstance(packs, list) or not packs:
+        raise ValueError("The lore pack index is invalid.")
+    seen: set[str] = set()
+    for entry in packs:
+        if not isinstance(entry, dict):
+            raise ValueError("A lore pack index row is invalid.")
+        pack_id = entry.get("pack_id")
+        coverage = entry.get("coverage_status")
+        if not isinstance(pack_id, str) or pack_id in seen or not isinstance(coverage, str):
+            raise ValueError("A lore pack index row is invalid.")
+        seen.add(pack_id)
+        if coverage in _VERIFIED_COVERAGE:
+            if not isinstance(entry.get("extraction"), str) or not isinstance(entry.get("review"), str):
+                raise ValueError("A verified lore pack is missing its files.")
+        elif coverage != "INCOMPLETE":
+            raise ValueError("A lore pack coverage status is invalid.")
+    return packs
+
+
+def registry_for_pack(pack_id: str) -> LoreRegistry:
+    """Load one indexed pack. An incomplete pack answers unknown."""
+    from .registry import default_lore_registry
+
+    for entry in load_pack_index():
+        if entry["pack_id"] != pack_id:
+            continue
+        if entry["coverage_status"] not in _VERIFIED_COVERAGE:
+            return default_lore_registry()
+        return _load_reviewed_files(
+            PACK_DIRECTORY / entry["extraction"],
+            PACK_DIRECTORY / entry["review"],
+        )[2]
+    raise ValueError("The requested lore pack is not indexed.")
+
+
+def _load_reviewed_files(
+    extraction_file: Path,
+    review_file: Path,
+) -> tuple[IngestionPack, IngestionPack, LoreRegistry]:
+    """Return the unreviewed pack, the reviewed pack, and its registry."""
+    extraction = _read_json(extraction_file)
     if (
         not isinstance(extraction, dict)
         or set(extraction) != {"extraction_status", "engine_review_status", "pack"}
@@ -47,7 +86,7 @@ def load_production_pack() -> tuple[
         raise ValueError("The official lore extraction is not review-gated.")
     extracted_pack = validate_ingestion_pack(extraction["pack"])
 
-    review_log = _read_json(REVIEW_FILE)
+    review_log = _read_json(review_file)
     if (
         not isinstance(review_log, dict)
         or set(review_log) != {"reviewer_id", "review_note", "items"}
@@ -100,7 +139,25 @@ def load_production_pack() -> tuple[
         if any(item.review_status is not ReviewStatus.VERIFIED_CANON for item in collection):
             raise ValueError("The reviewed lore pack contains unreviewed records.")
     registry = build_reviewed_registry(reviewed_pack)
+    return extracted_pack, reviewed_pack, registry
 
+
+def load_production_pack() -> tuple[
+    IngestionPack,
+    IngestionPack,
+    LoreRegistry,
+    CampaignStartCatalog,
+]:
+    """Return unreviewed extraction, reviewed pack, registry, and start catalog."""
+    indexed = load_pack_index()
+    verified = [entry for entry in indexed if entry["coverage_status"] in _VERIFIED_COVERAGE]
+    if not verified:
+        raise ValueError("The lore pack index has no verified pack.")
+    primary = verified[0]
+    extracted_pack, reviewed_pack, registry = _load_reviewed_files(
+        PACK_DIRECTORY / primary["extraction"],
+        PACK_DIRECTORY / primary["review"],
+    )
     catalog = CampaignStartCatalog.from_mapping(_read_json(CATALOG_FILE))
     for pack in catalog.packs:
         world = registry.entity(pack.world_id)

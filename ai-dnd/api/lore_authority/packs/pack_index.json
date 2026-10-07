@@ -1,0 +1,14 @@
+{
+  "packs": [
+    {
+      "pack_id": "fr:pack:the_north:neverwinter:v1",
+      "extraction": "neverwinter_the_north_v1.extraction.json",
+      "review": "neverwinter_the_north_v1.review.json",
+      "coverage_status": "VERIFIED_PARTIAL"
+    },
+    {
+      "pack_id": "fr:pack:incomplete:v1",
+      "coverage_status": "INCOMPLETE"
+    }
+  ]
+}

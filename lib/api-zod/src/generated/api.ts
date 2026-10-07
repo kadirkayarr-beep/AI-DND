@@ -272,6 +272,17 @@ export const CreateGameSessionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -955,6 +966,17 @@ export const GetGameSessionStateResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -1650,6 +1672,17 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -2352,6 +2385,17 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -3236,6 +3280,17 @@ export const PlayGameTurnResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -4371,6 +4426,17 @@ export const AcceptGameQuestResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -5109,6 +5175,17 @@ export const CancelGameQuestResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -5836,6 +5913,17 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -6735,6 +6823,17 @@ export const CreateCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -7702,6 +7801,17 @@ export const GetCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -8646,6 +8756,17 @@ export const ResumeCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -9633,6 +9754,17 @@ export const CreateLegacySessionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -10317,6 +10449,17 @@ export const GetLegacySessionStateResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -11196,6 +11339,17 @@ export const PlayLegacyTurnResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -12443,6 +12597,17 @@ export const CreateLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -13412,6 +13577,17 @@ export const GetLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -14357,6 +14533,17 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(-5).max(5),
+  "local_presence": zod.boolean()
+})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),

@@ -5233,7 +5233,7 @@ def build_world_context(npc_target=None):
         "npcs": [
             {key: npc.get(key) for key in (
                 "id", "name", "role", "personality", "appearance", "relationship",
-                "knowledge", "backstory", "tags", "shop_id",
+                "tags", "shop_id",
                 "current_hp", "max_hp", "armor_class", "combat_status"
             ) if npc.get(key) not in (None, "", [])}
             | {"reality_layer": npc.get("reality_layer", "UNKNOWN_OR_UNLOADED")}
@@ -7893,6 +7893,50 @@ def _scene_has_registered_craft_role(term, world_state):
     return False
 
 
+def _spoken_lore_fact_ids(lore_context, response, selected_ids):
+    """Keep only packet facts whose object is actually present in the answer."""
+    if not isinstance(response, str) or not isinstance(lore_context, dict):
+        return []
+    sections = lore_context.get("sections", {})
+    if not isinstance(sections, dict):
+        return []
+    names = {
+        entity["entity_id"]: entity["canonical_name"]
+        for entity in sections.get("verified_entities", [])
+        if isinstance(entity, dict)
+        and isinstance(entity.get("entity_id"), str)
+        and isinstance(entity.get("canonical_name"), str)
+    }
+    text = response.casefold()
+    spoken = []
+    for section_name in (
+        "official_forgotten_realms_lore",
+        "campaign_canon",
+        "player_known_lore",
+    ):
+        items = sections.get(section_name, [])
+        if not isinstance(items, list):
+            continue
+        for fact in items:
+            if not isinstance(fact, dict):
+                continue
+            fact_id = fact.get("fact_id")
+            if not isinstance(fact_id, str) or fact_id not in selected_ids or fact_id in spoken:
+                continue
+            value = fact.get("object_id_or_value")
+            token = names.get(value) if isinstance(value, str) else None
+            if not isinstance(token, str):
+                token = value if isinstance(value, str) and ":" not in value else ""
+            token = token.replace("_", " ").strip()
+            notes = fact.get("notes")
+            note_text = notes.strip() if isinstance(notes, str) else ""
+            if (len(token) >= 4 and token.casefold() in text) or (
+                len(note_text) >= 20 and note_text.casefold() in text
+            ):
+                spoken.append(fact_id)
+    return spoken
+
+
 def _supported_lore_question_response(player_input, lore_context, world_state):
     """Answer only from loaded, structured facts matched to a query intent."""
     if not isinstance(player_input, str) or not player_input.strip():
@@ -8273,7 +8317,7 @@ def _supported_lore_question_response(player_input, lore_context, world_state):
             and subject_id in mentioned_ids
             and (
                 object_id in mentioned_ids
-                or re.search(r"\b(?:who|whose|kim)\b", normalized_input)
+                or re.search(r"\b(?:who|whose|kim(?:dir)?)\b", normalized_input)
             )
         ):
             if notes:
@@ -12796,11 +12840,16 @@ def _run_player_turn_internal(
         world_state,
     )
     if supported_lore_response:
+        diagnostics = lore_context.get("diagnostics", {}) if isinstance(lore_context, dict) else {}
+        selected_ids = diagnostics.get("selected_fact_ids", []) if isinstance(diagnostics, dict) else []
         action_result = {
             "action": "dialogue",
             "status": "answered_from_loaded_lore",
             "success": True,
             "state_changes": [],
+            "discovered_fact_ids": _spoken_lore_fact_ids(
+                lore_context, supported_lore_response, selected_ids,
+            ),
         }
         return finish_turn(action_result, supported_lore_response)
 

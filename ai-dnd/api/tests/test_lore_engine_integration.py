@@ -15,6 +15,7 @@ from api.lore_authority import (
 )
 from api.main import _lore_context_for_turn, _stage_engine_lore_state
 from api.session_manager import SessionManager
+from api.tests.test_lore_authority import entity, verified_registry
 
 
 def bound_lore_state() -> CampaignLoreState:
@@ -34,6 +35,77 @@ def bound_lore_state() -> CampaignLoreState:
 
 
 class LoreEngineIntegrationTests(unittest.TestCase):
+    def test_scene_place_is_kept_and_non_place_falls_back(self):
+        registry = verified_registry(
+            entities=[
+                entity("city:test", "Test City", entity_type="CITY"),
+                entity("npc:test", "Test Person", entity_type="CANONICAL_NPC"),
+            ]
+        )
+        state = CampaignLoreState.from_mapping({
+            "binding_status": "BOUND",
+            "setting_profile": "TEST_SETTING",
+            "world_id": "world:test",
+            "epoch_id": "epoch:test",
+            "region_id": "region:test",
+            "current_location_entity_id": "city:test",
+            "player_known_fact_ids": [],
+            "npc_known_fact_ids": {},
+            "campaign_overrides": [],
+            "procedural_entity_refs": [],
+            "lore_discoveries": [],
+        })
+        record = SimpleNamespace(lore_authority=state)
+        session = SimpleNamespace(
+            world_state={"location": "room", "npcs": [], "quests": []}
+        )
+
+        city_packet = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "city:test"},
+            registry,
+        )
+        self.assertEqual(
+            city_packet["diagnostics"]["current_location_entity_id"],
+            "city:test",
+        )
+        self.assertEqual(city_packet["diagnostics"]["campaign_year"], 1501)
+
+        person_packet = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "npc:test"},
+            registry,
+        )
+        self.assertEqual(
+            person_packet["diagnostics"]["current_location_entity_id"],
+            "city:test",
+        )
+
+        world = session.world_state
+        world["canonical_start_time"] = {
+            "year": 1368,
+            "month": "Mirtul",
+            "day": 1,
+            "hour": 9,
+            "minute": 0,
+        }
+        campaign_time.initialize(world)
+        dated = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "city:test"},
+            registry,
+        )
+        self.assertEqual(dated["diagnostics"]["campaign_year"], 1368)
+
     def test_unbound_session_does_not_receive_setting_canon(self):
         _, record = SessionManager().create()
 
@@ -1262,7 +1334,8 @@ class Turn29RulershipQueryDeterministicTests(unittest.TestCase):
             {"entity_id": "fr:person:dagult_neverember", "canonical_name": "Dagult Neverember", "aliases": ["Dagult"]},
         ]
         context["diagnostics"] = {
-            "query_intents": ["rulership"],
+            "query_intents": ["current_ruler"],
+            "current_location_entity_id": "fr:city:neverwinter",
             "selected_fact_count": 2,
             "selected_fact_ids": [
                 "fr:fact:dagult_neverember_current_lord",

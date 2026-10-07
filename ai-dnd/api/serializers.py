@@ -26,6 +26,7 @@ from api.schemas import (
 )
 from api.world_metadata import world_metadata_for_state
 from api.campaign_journal import empty_campaign_journal
+from api.lore_authority import PRODUCTION_REGISTRY, read_player_knowledge
 
 
 _PLAYER_FIELDS = (
@@ -529,6 +530,7 @@ def serialize_skill_check_result(
 def serialize_session_state(
     session: Any,
     journal: dict[str, Any] | None = None,
+    lore_state: Any = None,
 ) -> dict[str, Any]:
     """Project the engine snapshot without exposing prompts or private internals."""
     import bounded_encounter
@@ -718,8 +720,21 @@ def serialize_session_state(
         "quests": quest_state,
         "quest_offers": offers,
         "adventure": interaction_adventure.public(world),
+        **_known_projection(session, world, lore_state),
         "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
+    }
+
+
+def _known_projection(session: Any, world: Any, lore_state: Any = None) -> dict[str, Any]:
+    projection = read_player_knowledge(
+        lore_state if lore_state is not None else getattr(session, "lore_authority", None),
+        world,
+        PRODUCTION_REGISTRY,
+    )
+    return {
+        "known_lore": projection["known_facts"],
+        "known_factions": projection["known_factions"],
     }
 
 

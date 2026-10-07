@@ -61,4 +61,19 @@ export interface GameState {
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;
+  known_lore: KnownLoreFact[];
+  known_factions: KnownFactionStanding[];
+}
+
+export interface KnownLoreFact {
+  fact_id: string;
+  title: string;
+  text: string;
+}
+
+export interface KnownFactionStanding {
+  faction_id: string;
+  title: string;
+  standing: number;
+  local_presence: boolean;
 }

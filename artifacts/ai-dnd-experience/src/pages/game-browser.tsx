@@ -396,6 +396,32 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         ) : <div className="empty-line mt-3" data-testid="empty-journal-events">Henüz kaydedilmiş bir olay yok.</div>}
       </section>
 
+      <section className="journal-section" data-testid="section-journal-lore">
+        <div className="journal-section-heading">
+          <div><Kicker><ScrollText size={11} className="mr-1 inline" /> Bildiklerin</Kicker><h3>Öğrendiklerin</h3></div>
+          <span className="character-badge">{String((state.known_lore ?? []).length).padStart(2, '0')}</span>
+        </div>
+        {(state.known_lore ?? []).length ? (
+          <div className="mt-3">
+            {state.known_lore.map((fact) => (
+              <div className="data-row journal-record" key={fact.fact_id} data-testid={`journal-lore-${fact.fact_id}`}>
+                <div className="data-row-head"><span>{fact.title}</span></div>
+                <div className="journal-record-note">{fact.text}</div>
+              </div>
+            ))}
+          </div>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-lore">Henüz doğrulanmış bir bilgi yok.</div>}
+        {(state.known_factions ?? []).length > 0 && (
+          <div className="mt-3">
+            {state.known_factions.map((faction) => (
+              <div className="data-row journal-record" key={faction.faction_id} data-testid={`journal-faction-${faction.faction_id}`}>
+                <div className="data-row-head"><span>{faction.title}</span></div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <QuestJournalSection
         quests={state.quests ?? []}
         offers={state.quest_offers ?? []}
