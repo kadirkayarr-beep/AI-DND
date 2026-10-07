@@ -70,3 +70,17 @@ mtime_ms = 1791366411409
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/6dd918bf-78fa-4207-b8c6-ffb72edf4a9a/836d4349-3982-4bec-aff1-fb257f15685a"
 storage_version_token = "1791366413216315"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "v6cqan3nkpfKDfciPzpYD"
+uri = "file://attached_assets/AI-DND-all-plans-detailed.txt"
+type = "text"
+title = "AI-DND — tüm erişilebilir planların ayrıntılı TXT listesi"
+description = "Tüm kayıtlı task başlıkları ve durumları sırayla; ayrıntılı plan metinleri mevcut olduğunda What & Why, Done looks like ve Relevant files bölümleriyle."
+logical_id = "3831ade8-ab61-49bd-b5c9-55907e3b1676"
+content_hash = "sha256:f4625323f8d2d30f02916f8522dfd9a0e7265576ee4965f2c93c84b17b28fb78"
+size = 260831
+mtime_ms = 1791367045173
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:24823a15-281d-4842-bb9e-db9ba0a6b63c/3831ade8-ab61-49bd-b5c9-55907e3b1676/6524aeeb-de1d-4949-945c-43c943d86d25"
+storage_version_token = "1791367047291213"
+content_type = "text/plain"
