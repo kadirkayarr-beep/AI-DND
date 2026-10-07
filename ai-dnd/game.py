@@ -16,6 +16,9 @@ import living_world
 import local_dialogue
 import spells
 import xp
+import local_exploration
+import held_weapon
+import monster_sense
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 
@@ -1156,7 +1159,7 @@ def resolve_python_world_action(player_input):
     if any(token in text for token in ("kılıç", "kılıc")) and any(token in text for token in ("yiyorum", "yemeye çalış")):
         return "Kılıcı yiyemezsin; Kılıç mevcut konumunda kalır."
     if weapon_mentioned and any(token in text for token in ("kırdım", "yok ettim", "sattım", "parçaladım")):
-        if "Kılıç" in world_state["inventory"]:
+        if held_weapon.has_sword(world_state["inventory"]):
             return "Bu eylem inventory sistemi tarafından desteklenmiyor; Kılıç envanterinde kalıyor."
         if "Kılıç" in world_state["ground_items"]:
             return "Bu eylem inventory sistemi tarafından desteklenmiyor; Kılıç yerde kalıyor."
@@ -1589,6 +1592,9 @@ def _validate_save_payload(payload):
         spells.validate_saved_spell_fields(player)
     if version >= 5:
         xp.validate_saved_advancement(player, saved_world)
+    local_exploration.validate_saved(saved_world)
+    held_weapon.validate_saved(saved_world)
+    monster_sense.validate_saved(saved_world)
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     for field in required_player - {"name", "race", "class", "proficient_skills"}:
@@ -4309,8 +4315,10 @@ def update_inventory_from_player(player_input):
     loc_items = world_state["ground_items_by_location"].get(current_loc, [])
 
     if dropping:
-        if "Kılıç" in world_state["inventory"]:
-            world_state["inventory"].remove("Kılıç")
+        sword = held_weapon.held_sword(world_state)
+        if sword is not None:
+            world_state["inventory"].remove(sword)
+            held_weapon.release_hand(world_state, sword)
             loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
             if "Kılıç" not in loc_items:
                 loc_items.append("Kılıç")
@@ -8413,8 +8421,9 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             )
             return _finish_combat_result(result, before)
 
-        weapon_name, weapon_data = find_weapon_in_inventory("Kılıç")
-        if not weapon_name:
+        weapon_name = held_weapon.attack_weapon_name(world_state)
+        weapon_data = WEAPONS.get(weapon_name) if weapon_name else None
+        if not weapon_name or weapon_data is None:
             result.update(success=False, outcome="no_weapon",
                           direct_response="Envanterinde saldırmak için kullanabileceğin bir kılıç yok.")
             return _finish_combat_result(result, before)
@@ -8440,6 +8449,15 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         if target_npc["combat_status"] != "active" or target_npc["current_hp"] <= 0:
             result.update(success=False, outcome="invalid_target", target_id=target_npc["id"],
                           direct_response="Bu hedef savaşabilecek durumda değil.")
+            return _finish_combat_result(result, before)
+        if monster_sense.blocks_melee(_session(), target_npc["id"], weapon_data):
+            pair = monster_sense.observable_pair(_session())
+            result.update(
+                success=False,
+                outcome="out_of_reach",
+                distance_ft=None if pair is None else pair["distance_ft"],
+                direct_response="Hedef yakın dövüş menzilinin dışında.",
+            )
             return _finish_combat_result(result, before)
         started = not combat["active"]
         enemy_actions = []
@@ -9646,8 +9664,44 @@ def _is_canonical_city_id(loc_id):
     )
 
 
+def _owner_module_reply(player_input):
+    """Dispatch explicit owner commands before intent or narration."""
+    session = _session()
+    world = session.world_state if isinstance(session.world_state, dict) else {}
+    combat = world.get("combat")
+    if (
+        isinstance(combat, dict)
+        and combat.get("active")
+        and combat.get("current_actor_id") not in (None, "player")
+    ):
+        return None
+    for owner in (local_exploration, monster_sense, held_weapon):
+        reply = owner.resolve_turn(session, player_input)
+        if reply is not None:
+            return reply
+    return None
+
+
 def _run_player_turn_internal(player_input, messages=None, target_id=None, scene_plan=None):
     """Intent → rules → validated updates → committed state → narration."""
+    owner_reply = _owner_module_reply(player_input)
+    if owner_reply is not None:
+        _session()._xp_level_up = None
+        return {
+            "action_result": owner_reply,
+            "narration": owner_reply.get("direct_response") or "",
+            "_engine_event_evidence": {
+                "authority": "python_engine",
+                "telemetry": {
+                    "intent_model_calls": 0,
+                    "narration_model_calls": 0,
+                    "total_model_calls": 0,
+                    "intent_source": "deterministic",
+                    "narration_source": "deterministic_system",
+                    "resolved_action_type": owner_reply.get("action", "unknown"),
+                },
+            },
+        }
     _session()._xp_level_up = None
     intent_model_calls = 0
     intent_source = "deterministic"

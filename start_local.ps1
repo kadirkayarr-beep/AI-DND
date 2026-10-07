@@ -40,6 +40,7 @@ Write-Host "Ollama OK (qwen3:8b present)."
 if (-not $env:OLLAMA_HOST) {
     $env:OLLAMA_HOST = "http://127.0.0.1:11434"
 }
+$env:AI_DND_API_ORIGIN = "http://127.0.0.1:$ApiPort"
 
 $health = "http://127.0.0.1:$ApiPort/api/game/health"
 if (-not (Test-HttpOk $health)) {
