@@ -1083,6 +1083,49 @@ class PlayableLivingWorldTests(unittest.TestCase):
             first_visit,
         )
 
+    def test_discovered_venue_entry_is_not_generic_travel(self):
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            search = self.session.run_player_turn(
+                "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?"
+            )
+        search_action = search["action_result"]
+        self.assertEqual(search_action["action"], "local_search")
+        self.assertEqual(search_action["status"], "found")
+        tavern_id = search_action["target_id"]
+        tavern = self.world["locations"][tavern_id]
+        self.assertEqual(tavern["parent_location_id"], self.root_location)
+        self.assertEqual(self.world["location"], self.root_location)
+        phrase = f"{tavern['name']} içine giriyorum."
+
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            entered = self.session.run_player_turn(phrase)
+
+        action = entered["action_result"]
+        self.assertEqual(action["action"], "enter")
+        self.assertNotEqual(action["action"], "travel")
+        self.assertEqual(action["status"], "completed")
+        self.assertEqual(action["target_id"], tavern_id)
+        self.assertEqual(self.world["location"], tavern_id)
+        self.assertEqual(
+            entered["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+
+    def test_named_destination_still_routes_through_travel(self):
+        destination = "castle"
+        self.assertIn(destination, self.world["locations"])
+        self.assertNotEqual(self.world["location"], destination)
+
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            result = self.session.run_player_turn("Kaleye gidiyorum.")
+
+        action = result["action_result"]
+        self.assertEqual(action["action"], "travel")
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+
     def test_travel_uses_last_named_location_as_destination(self):
         search = self.session.plan_living_world_turn(
             "Yakınlarda bir taverna arıyorum."
@@ -1379,6 +1422,14 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(result["status"], "observed")
         self.assertEqual(result["target_id"], ref["id"])
         self.assertEqual(result["direct_response"], description)
+        with patch("game.ollama.chat") as chat:
+            played = self.session.run_player_turn("Ziyaretçi ne yapıyor?")
+        chat.assert_not_called()
+        self.assertEqual(played["narration"], description)
+        self.assertEqual(
+            played["_engine_event_evidence"]["telemetry"]["narration_model_calls"],
+            0,
+        )
         self.assertEqual(ref["lifecycle"], "presented")
         self.assertIsNone(ref.get("promoted_npc_id"))
         self.assertEqual(self.world["npcs"], [])

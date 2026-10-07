@@ -59,6 +59,10 @@ _PLAYER_FIELDS = (
     "max_hp",
     "current_hp",
     "armor_class",
+    "cantrips",
+    "spells",
+    "spell_slots_remaining",
+    "xp",
 )
 _NPC_FIELDS = (
     "id",
@@ -136,6 +140,13 @@ _COMBAT_TURN_FIELDS = (
     "combat_status",
     "round",
     "current_turn_index",
+    "spell",
+    "casting_ability",
+    "attack_or_save",
+    "save_roll",
+    "save_dc",
+    "healing",
+    "slot_spent",
     "combat_started",
     "combat_ended",
     "end_reason",
@@ -214,8 +225,6 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     ]
 
 
-
-
 def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
     if identity == "player":
         return fallback
@@ -251,6 +260,7 @@ def serialize_combat_result(action_result: Any, session: Any = None) -> dict[str
     """Expose only Python-owned combat outcome fields to the browser."""
     if not isinstance(action_result, Mapping) or action_result.get("action") not in {
         "attack",
+        "cast",
         "death_save",
         "action_economy",
     }:

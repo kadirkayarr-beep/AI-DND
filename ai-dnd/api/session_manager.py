@@ -65,6 +65,7 @@ class ManagedSession:
     )
     turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
     revoked: bool = False
+    usable: bool = True
 
 
 class SessionManager:

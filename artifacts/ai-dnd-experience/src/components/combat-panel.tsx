@@ -49,6 +49,16 @@ function outcomeLabel(value: string | undefined): string | undefined {
     revived: 'Canlandı',
     dead: 'Öldü',
     rolled_back: 'Çatışma öncesine dönüldü',
+    saved: 'Kurtuldu',
+    failed_save: 'Kurtulamadı',
+    automatic_hit: 'Otomatik isabet',
+    healed: 'İyileşti',
+    no_slot: 'Yuva yok',
+    not_known: 'Büyü bilinmiyor',
+    invalid_class: 'Sınıf kullanamaz',
+    invalid_level: 'Seviye yetmiyor',
+    unsupported: 'Büyü kullanılamıyor',
+    unknown_spell: 'Büyü anlaşılmadı',
   };
   return labels[value] ?? value;
 }
@@ -61,6 +71,7 @@ function actionLabel(value: string | undefined): string | undefined {
   if (value === 'monster_parley_proposed') return 'Konuşmayı önerdi';
   if (value === 'monster_surrender_proposed') return 'Teslim olmayı önerdi';
   if (value === 'attack') return 'Saldırı';
+  if (value === 'cast') return 'Büyü';
   if (value === 'enemy_attack') return 'Karşı saldırı';
   if (value === 'death_save') return 'Otomatik ölüm kurtarma zarı';
   return value;
@@ -91,7 +102,10 @@ function deathStatusLabel(status: GameState['death_state']['status']): string {
 function outcomeMarkers(result: AttackResult): string[] {
   const markers: string[] = [];
   if (result.critical === true || result.outcome === 'critical_hit') markers.push('CRITICAL');
-  if (result.success === true || result.outcome === 'hit' || result.outcome === 'critical_hit') markers.push('HIT');
+  if (
+    result.outcome !== 'healed'
+    && (result.success === true || result.outcome === 'hit' || result.outcome === 'critical_hit')
+  ) markers.push('HIT');
   if (result.outcome === 'miss') markers.push('MISS');
 
   return [...new Set(markers)];
@@ -270,7 +284,22 @@ function AttackReadout({
         </div>
       )}
 
-      {hasValue(result.damage) && (
+      {result.spell && (
+        <div className="combat-action" data-testid={`${prefix}-spell`}>
+          {result.spell}
+          {result.attack_or_save ? ` · ${result.attack_or_save}` : ''}
+          {result.slot_spent === true ? ' · yuva harcandı' : result.slot_spent === false ? ' · yuva harcanmadı' : ''}
+        </div>
+      )}
+
+      {hasValue(result.save_roll) && (
+        <div className="combat-roll-grid" aria-label="Kurtarma değeri">
+          <RollMetric label="KURTARMA" value={result.save_roll ?? undefined} testId={`${prefix}-save-roll`} />
+          <RollMetric label="DC" value={result.save_dc ?? undefined} testId={`${prefix}-save-dc`} />
+        </div>
+      )}
+
+      {hasValue(result.damage) && !(result.outcome === 'healed' && result.damage === 0) && (
         <div className="combat-damage" data-testid={`${prefix}-damage`}>
           <span>HASAR</span>
           <strong>{result.damage}</strong>
@@ -285,6 +314,13 @@ function AttackReadout({
           ))}
         </ul>
       ) : null}
+
+      {hasValue(result.healing) && (
+        <div className="combat-damage" data-testid={`${prefix}-healing`}>
+          <span>İYİLEŞME</span>
+          <strong>{result.healing}</strong>
+        </div>
+      )}
 
       {hasHpWindow && (
         <div className="combat-hp-window" data-testid={`${prefix}-hp-window`}>

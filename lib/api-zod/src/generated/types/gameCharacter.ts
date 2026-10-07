@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GameCharacterGiantAncestry } from './gameCharacterGiantAncestry';
+import type { GameCharacterSpellSlotsRemaining } from './gameCharacterSpellSlotsRemaining';
 import type { SpeciesTraitState } from './speciesTraitState';
 
 export interface GameCharacter {
@@ -52,4 +53,12 @@ export interface GameCharacter {
   max_hp: number;
   current_hp: number;
   armor_class: number;
+  cantrips: string[];
+  spells: string[];
+  spell_slots_remaining: GameCharacterSpellSlotsRemaining;
+  /**
+     * Server-owned experience total. Experience past level 4 is kept and does not raise the level.
+     * @minimum 0
+     */
+  xp: number;
 }

@@ -32,6 +32,7 @@ class RunnerInventoryTests(unittest.TestCase):
             "test_startup.py", "test_sessions.py", "test_playable_living_world.py",
             "test_persistence.py", "test_combat.py", "test_combat_v2_authoritative.py",
             "api/tests/test_death_bounded.py", "api/tests/test_initiative.py",
+            "test_local_exploration.py", "test_held_weapon.py", "test_monster_sense.py",
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
             "test_actual_logic.py", "test_npc_query.py",

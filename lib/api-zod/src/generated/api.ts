@@ -165,6 +165,10 @@ export const createGameSessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createGameSessionResponseStateCharacterOriginMax = 240;
 
+export const createGameSessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createGameSessionResponseStateCharacterXpMin = 0;
+
 export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -512,7 +516,11 @@ export const CreateGameSessionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createGameSessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -841,6 +849,10 @@ export const getGameSessionStateResponseCharacterSpeciesTraitStateOnePlayerTurnC
 export const getGameSessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getGameSessionStateResponseCharacterOriginMax = 240;
+
+export const getGameSessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getGameSessionStateResponseCharacterXpMin = 0;
 
 export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
@@ -1187,7 +1199,11 @@ export const GetGameSessionStateResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getGameSessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -1523,6 +1539,10 @@ export const resolveSpeciesTraitActionResponseStateCharacterSpeciesTraitStateOne
 export const resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterOriginMax = 240;
+
+export const resolveSpeciesTraitActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterXpMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -1874,7 +1894,11 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -2217,6 +2241,10 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeciesTraitSt
 export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax = 240;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterXpMin = 0;
 
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -2568,7 +2596,11 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -2954,6 +2986,10 @@ export const playGameTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playGameTurnResponseStateCharacterOriginMax = 240;
 
+export const playGameTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const playGameTurnResponseStateCharacterXpMin = 0;
+
 export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -3150,6 +3186,13 @@ export const playGameTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
 export const playGameTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playGameTurnResponseQuestOutcomesItemTurnIndexMin = 0;
+
+export const playGameTurnResponseLevelUpOnePreviousLevelMax = 4;
+
+export const playGameTurnResponseLevelUpOneNewLevelMax = 4;
+
+
+export const playGameTurnResponseLevelUpOneHitPointsGainedMin = 0;
 
 
 
@@ -3437,7 +3480,11 @@ export const PlayGameTurnResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(playGameTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -3679,6 +3726,13 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -3866,6 +3920,13 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -4015,7 +4076,13 @@ export const PlayGameTurnResponse = zod.object({
   "objective_id": zod.string().max(playGameTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
   "source_event_id": zod.string().max(playGameTurnResponseQuestOutcomesItemSourceEventIdMax),
   "turn_index": zod.number().int().min(playGameTurnResponseQuestOutcomesItemTurnIndexMin)
-}))
+})),
+  "level_up": zod.union([zod.object({
+  "previous_level": zod.number().int().min(1).max(playGameTurnResponseLevelUpOnePreviousLevelMax),
+  "new_level": zod.number().int().min(1).max(playGameTurnResponseLevelUpOneNewLevelMax),
+  "xp_gained": zod.number().int().min(1),
+  "hit_points_gained": zod.number().int().min(playGameTurnResponseLevelUpOneHitPointsGainedMin)
+}),zod.null()]).describe('Server-owned experience award for this turn. Null when the turn granted no experience.')
 })
 
 
@@ -4170,6 +4237,10 @@ export const acceptGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurn
 export const acceptGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptGameQuestResponseStateCharacterOriginMax = 240;
+
+export const acceptGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const acceptGameQuestResponseStateCharacterXpMin = 0;
 
 export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -4544,7 +4615,11 @@ export const AcceptGameQuestResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(acceptGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -4900,6 +4975,10 @@ export const cancelGameQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurn
 export const cancelGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const cancelGameQuestResponseStateCharacterOriginMax = 240;
+
+export const cancelGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const cancelGameQuestResponseStateCharacterXpMin = 0;
 
 export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -5274,7 +5353,11 @@ export const CancelGameQuestResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(cancelGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -5639,6 +5722,10 @@ export const resolveAmbientEventActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
 
+export const resolveAmbientEventActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterXpMin = 0;
+
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -5993,7 +6080,11 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -6478,6 +6569,10 @@ export const createCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createCampaignResponseStateCharacterOriginMax = 240;
 
+export const createCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createCampaignResponseStateCharacterXpMin = 0;
+
 export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -6884,7 +6979,11 @@ export const CreateCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -7134,6 +7233,13 @@ export const CreateCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7419,6 +7525,10 @@ export const getCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnCoun
 export const getCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getCampaignResponseStateCharacterOriginMax = 240;
+
+export const getCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getCampaignResponseStateCharacterXpMin = 0;
 
 export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -7836,7 +7946,11 @@ export const GetCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -8086,6 +8200,13 @@ export const GetCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -8358,6 +8479,10 @@ export const resumeCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTurnC
 export const resumeCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeCampaignResponseStateCharacterOriginMax = 240;
+
+export const resumeCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resumeCampaignResponseStateCharacterXpMin = 0;
 
 export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -8765,7 +8890,11 @@ export const ResumeCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resumeCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -9015,6 +9144,13 @@ export const ResumeCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -9390,6 +9526,10 @@ export const createLegacySessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacySessionResponseStateCharacterOriginMax = 240;
 
+export const createLegacySessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createLegacySessionResponseStateCharacterXpMin = 0;
+
 export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -9737,7 +9877,11 @@ export const CreateLegacySessionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createLegacySessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -10067,6 +10211,10 @@ export const getLegacySessionStateResponseCharacterSpeciesTraitStateOnePlayerTur
 export const getLegacySessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getLegacySessionStateResponseCharacterOriginMax = 240;
+
+export const getLegacySessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getLegacySessionStateResponseCharacterXpMin = 0;
 
 export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
@@ -10413,7 +10561,11 @@ export const GetLegacySessionStateResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getLegacySessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -10794,6 +10946,10 @@ export const playLegacyTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playLegacyTurnResponseStateCharacterOriginMax = 240;
 
+export const playLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const playLegacyTurnResponseStateCharacterXpMin = 0;
+
 export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -10990,6 +11146,13 @@ export const playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
 export const playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playLegacyTurnResponseQuestOutcomesItemTurnIndexMin = 0;
+
+export const playLegacyTurnResponseLevelUpOnePreviousLevelMax = 4;
+
+export const playLegacyTurnResponseLevelUpOneNewLevelMax = 4;
+
+
+export const playLegacyTurnResponseLevelUpOneHitPointsGainedMin = 0;
 
 
 
@@ -11277,7 +11440,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(playLegacyTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -11519,6 +11686,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -11706,6 +11880,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -11855,7 +12036,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "objective_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
   "source_event_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax),
   "turn_index": zod.number().int().min(playLegacyTurnResponseQuestOutcomesItemTurnIndexMin)
-}))
+})),
+  "level_up": zod.union([zod.object({
+  "previous_level": zod.number().int().min(1).max(playLegacyTurnResponseLevelUpOnePreviousLevelMax),
+  "new_level": zod.number().int().min(1).max(playLegacyTurnResponseLevelUpOneNewLevelMax),
+  "xp_gained": zod.number().int().min(1),
+  "hit_points_gained": zod.number().int().min(playLegacyTurnResponseLevelUpOneHitPointsGainedMin)
+}),zod.null()]).describe('Server-owned experience award for this turn. Null when the turn granted no experience.')
 })
 
 
@@ -12089,6 +12276,10 @@ export const createLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlaye
 export const createLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
+
+export const createLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createLegacyCampaignResponseStateCharacterXpMin = 0;
 
 export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -12496,7 +12687,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -12746,6 +12941,13 @@ export const CreateLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -13033,6 +13235,10 @@ export const getLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlayerTu
 export const getLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
+
+export const getLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getLegacyCampaignResponseStateCharacterXpMin = 0;
 
 export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -13450,7 +13656,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -13700,6 +13910,13 @@ export const GetLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -13973,6 +14190,10 @@ export const resumeLegacyCampaignResponseStateCharacterSpeciesTraitStateOnePlaye
 export const resumeLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
+
+export const resumeLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterXpMin = 0;
 
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
@@ -14380,7 +14601,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -14630,6 +14855,13 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),

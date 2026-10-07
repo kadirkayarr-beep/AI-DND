@@ -46,6 +46,9 @@ _QUERY_SYNONYMS = {
     "queen": {"lord"},
     "monarch": {"lord"},
     "ruler": {"lord"},
+    "rulers": {"lord"},
+    "leader": {"lord"},
+    "leaders": {"lord"},
     "kingdom": {"realm"},
     "kraliçe": {"lord"},
     "kral": {"lord"},
@@ -53,6 +56,14 @@ _QUERY_SYNONYMS = {
     "hükümdarı": {"lord"},
     "hukumdar": {"lord"},
     "hukumdari": {"lord"},
+    "hükümdari": {"lord"},
+    "hukumdarı": {"lord"},
+    "lordu": {"lord"},
+    "yönetici": {"lord"},
+    "yonetici": {"lord"},
+    "yöneticisi": {"lord"},
+    "yoneticisi": {"lord"},
+    "lideri": {"lord"},
     "route": {"road"},
     "safety": {"safe"},
     "distance": {"miles", "kilometers", "km"},
@@ -104,6 +115,11 @@ _CURRENT_LOCATION_REFERENCE_RE = re.compile(
     re.IGNORECASE,
 )
 _CURRENT_RULER_PREDICATES = frozenset({"current_lord", "current_lord_id"})
+_RULERSHIP_QUERY_RE = re.compile(
+    r"\b(?:lord\w*|ruler\w*|rule\w*|monarch\w*|king\w*|queen\w*|leader\w*|govern\w*|"
+    r"h[üu]k[üu]mdar\w*|y[öo]netici\w*|lider\w*|kral\w*|krali[cç]e\w*)\b",
+    re.IGNORECASE,
+)
 _OVERVIEW_PREDICATE_PRIORITY = {
     "known_as": 0,
     "known_for": 1,
@@ -141,6 +157,8 @@ def _query_intents(value: str | None) -> frozenset[str]:
         and _QUESTION_SIGNAL_RE.search(text)
     ):
         intents.add("current_ruler")
+    if _RULERSHIP_QUERY_RE.search(text):
+        intents.add("rulership")
     return frozenset(intents)
 
 
@@ -927,6 +945,15 @@ class LoreRegistry:
             "distinct_relation" in intents
             and predicate == "distinct_from_region"
         ):
+            score += 2
+        if "rulership" in intents and predicate in {
+            "current_lord_id",
+            "current_lord",
+            "ruler_id",
+            "ruler",
+            "leader_id",
+            "leader",
+        }:
             score += 2
         return score
 

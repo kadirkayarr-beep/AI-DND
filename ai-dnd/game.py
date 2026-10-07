@@ -15,6 +15,9 @@ from uuid import uuid4
 from quest_catalog import catalog as quest_catalog, find_quest
 import living_world
 import local_dialogue
+import local_exploration
+import held_weapon
+import monster_sense
 import campaign_time
 import scheduled_events
 import timed_gameplay
@@ -1791,6 +1794,9 @@ def _validate_save_payload(payload):
     authored_dungeon.validate_state(saved_world)
     import exploration
     exploration.validate_state(saved_world)
+    local_exploration.validate_saved(saved_world)
+    held_weapon.validate_saved(saved_world)
+    monster_sense.validate_saved(saved_world)
 
     required_player = {
         "name", "race", "class", "strength", "dexterity", "constitution",
@@ -6062,6 +6068,20 @@ def update_inventory_from_player(player_input):
     if not (dropping or picking_up):
         return None
 
+    if dropping:
+        sword = held_weapon.held_sword(world_state)
+        equipment = world_state.get("equipment")
+        hand = equipment.get("main_hand") if isinstance(equipment, dict) else None
+        if sword is not None and hand == held_weapon._identity(sword):
+            world_state["inventory"].remove(sword)
+            held_weapon.release_hand(world_state, sword)
+            _normalize_ground_items()
+            current_loc = world_state.get("location", "tavern")
+            loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
+            if "Kılıç" not in loc_items:
+                loc_items.append("Kılıç")
+            return "Python durumu: Kılıç envanterden yere taşındı."
+
     if any(isinstance(i, dict) for _, items in equipment_economy.containers(world_state) for i in items):
         return equipment_economy.legacy_sword_move(_session(), dropping)
 
@@ -6070,8 +6090,21 @@ def update_inventory_from_player(player_input):
     loc_items = world_state["ground_items_by_location"].get(current_loc, [])
 
     if dropping:
-        if "Kılıç" in world_state["inventory"]:
-            world_state["inventory"].remove("Kılıç")
+        inventory = world_state.get("inventory")
+        if isinstance(inventory, list) and inventory.count("Kılıç") == 1:
+            inventory.remove("Kılıç")
+            equipment = world_state.get("equipment")
+            hand = equipment.get("main_hand") if isinstance(equipment, dict) else None
+            if isinstance(hand, str) and held_weapon._fold(hand) in held_weapon.SWORD_ALIASES:
+                equipment["main_hand"] = None
+            loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
+            if "Kılıç" not in loc_items:
+                loc_items.append("Kılıç")
+            return "Python durumu: Kılıç envanterden yere taşındı."
+        sword = held_weapon.held_sword(world_state)
+        if sword is not None:
+            world_state["inventory"].remove(sword)
+            held_weapon.release_hand(world_state, sword)
             loc_items = world_state["ground_items_by_location"].setdefault(current_loc, [])
             if "Kılıç" not in loc_items:
                 loc_items.append("Kılıç")
@@ -10077,6 +10110,10 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
         if weapon_id == "unarmed":
             weapon_name, weapon_data = "unarmed", None
         if not weapon_name:
+            fallback_name = held_weapon.attack_weapon_name(world_state)
+            if fallback_name:
+                weapon_name, weapon_data = find_weapon_in_inventory(fallback_name)
+        if not weapon_name:
             result.update(success=False, outcome="no_weapon",
                           direct_response="Envanterinde saldırmak için kullanabileceğin bir kılıç yok.")
             return _finish_combat_result(result, before)
@@ -10130,6 +10167,19 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
             or (not combat["active"] and target_npc["current_hp"] <= 0)):
             result.update(success=False, outcome="invalid_target", target_id=target_npc["id"],
                           direct_response="Bu hedef savaşabilecek durumda değil.")
+            return _finish_combat_result(result, before)
+        melee_weapon = weapon_data if isinstance(weapon_data, dict) else {"range_ft": 5}
+        sense_pair = monster_sense.observable_pair(_session())
+        if sense_pair is not None:
+            target_npc["distance_ft"] = sense_pair["distance_ft"]
+        if monster_sense.blocks_melee(_session(), target_npc["id"], melee_weapon):
+            pair = monster_sense.observable_pair(_session())
+            result.update(
+                success=False,
+                outcome="out_of_reach",
+                distance_ft=None if pair is None else pair["distance_ft"],
+                direct_response="Hedef yakın dövüş menzilinin dışında.",
+            )
             return _finish_combat_result(result, before)
         started = not combat["active"]
         enemy_actions = []
@@ -11263,6 +11313,14 @@ def _dispatch_player_turn(
     action_id=None, session_id=None, combat_action=None, interaction_mode=None,
 ):
     interaction_mode = _normalize_interaction_mode(interaction_mode)
+    owner_reply = _owner_module_reply(player_input, interaction_mode)
+    if owner_reply is not None:
+        return {
+            "messages": _session().messages,
+            "narration": owner_reply.get("direct_response") or "",
+            "model_calls": 0,
+            "action_result": owner_reply,
+        }
     if combat_action is not None:
         interaction_mode = "do"
     elif interaction_mode in {"say", "ask_dm"}:
@@ -11663,6 +11721,27 @@ def _death_resolution_from_actions(actions):
     return None
 
 
+def _owner_module_reply(player_input, interaction_mode):
+    """Slash-owner commands stay on their modules. SAY and ASK_DM stay speech."""
+    text = player_input.strip() if isinstance(player_input, str) else ""
+    if interaction_mode in {"say", "ask_dm"} and not text.startswith("/"):
+        return None
+    session = _session()
+    world = session.world_state if isinstance(session.world_state, dict) else {}
+    combat = world.get("combat")
+    if (
+        isinstance(combat, dict)
+        and combat.get("active")
+        and combat.get("current_actor_id") not in (None, "player")
+    ):
+        return None
+    for owner in (monster_sense, held_weapon):
+        reply = owner.resolve_turn(session, player_input)
+        if reply is not None:
+            return reply
+    return None
+
+
 def _run_player_turn_internal(
     player_input, messages=None, target_id=None, scene_plan=None, interaction_mode=None
 ):
@@ -11954,8 +12033,16 @@ def _run_player_turn_internal(
             and interaction_mode not in {"say", "ask_dm"}):
         # A stated sequence containing "wait" is a plan, not permission to run
         # its first step before the plan has been interpreted and confirmed.
+        # A discovered venue entry is already committed by the scene owner.
+        # "giriyorum" is also travel grammar; do not let that clock steal the entry.
+        entered_venue = (
+            isinstance(scene_plan, dict)
+            and isinstance(scene_plan.get("direct_result"), dict)
+            and scene_plan["direct_result"].get("action") == "enter"
+        )
         timed_result = (
-            None if interaction_adventure.hint(player_input) == "plan"
+            None
+            if interaction_adventure.hint(player_input) == "plan" or entered_venue
             else timed_gameplay.resolve_input(_session(), player_input)
         )
         if timed_result is not None:
@@ -12169,6 +12256,18 @@ def _run_player_turn_internal(
             )
             or env_meta in ("city", "village", "town")
         )
+        if (
+            action_result.get("action") == "explore"
+            and action_result.get("explore_type") == "observe"
+            and action_result.get("status") == "observed"
+            and action_result.get("direct_response")
+        ):
+            return finish_turn(
+                action_result,
+                fallback_text,
+                quest_transitions,
+                safety_handling="python_scene_response",
+            )
         if action_result.get("action") == "explore" and not (scene_plan.get("action") == "look" and is_city_scene):
             return finish_turn(action_result, fallback_text, quest_transitions)
         return finish_turn(

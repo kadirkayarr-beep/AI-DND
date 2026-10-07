@@ -223,6 +223,13 @@ class CombatTurnResult(CombatAttackResult):
     combat_status: str | None = None
     round: int | None = None
     current_turn_index: int | None = None
+    spell: str | None = None
+    casting_ability: str | None = None
+    attack_or_save: str | None = None
+    save_roll: int | None = None
+    save_dc: int | None = None
+    healing: int | None = None
+    slot_spent: bool | None = None
     combat_started: bool | None = None
     combat_ended: bool | None = None
     end_reason: str | None = None
@@ -338,6 +345,21 @@ class QuestCommandResult(BaseModel):
     outcome: QuestOutcome | None
 
 
+class LevelUpResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    previous_level: int = Field(ge=1, le=4)
+    new_level: int = Field(ge=1, le=4)
+    xp_gained: int = Field(ge=1)
+    hit_points_gained: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def levels_do_not_go_backwards(self):
+        if self.new_level < self.previous_level:
+            raise ValueError("A level-up cannot lower the character's level.")
+        return self
+
+
 class AmbientEventActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -384,6 +406,7 @@ class TurnResponse(BaseModel):
     combat_history_entry: CombatHistoryEntry | None = None
     skill_check_result: SkillCheckResult | None = None
     quest_outcomes: list[QuestOutcome] = []
+    level_up: LevelUpResult | None = None
 
 
 class SpeciesTraitActionRequest(BaseModel):

@@ -1,0 +1,14 @@
+---
+description: Authority owners — Python is truth; do not grow game.py
+alwaysApply: true
+---
+
+# AI-DND owners
+
+- Python owns HP, dice, combat, inventory, spells, XP, persistence, and committed world changes.
+- Qwen parses Turkish intent and writes narration. Model text is not world truth.
+- The browser only displays server state. It must not invent HP, XP, slots, or campaign facts.
+- Put new rules in the existing owner module (`spells.py`, `xp.py`, `weapon_attack.py`, persistence, lore registry, …). Do not add “one more feature” to `game.py`.
+- Do not split or rewrite `game.py` in drive-by work.
+- Do not reopen Wave3 conversation mechanics, stability turn/save/lore, Spells V1, or XP V1 unless the user names that work.
+- `artifacts/api-server` is not the game API. Product UI is `artifacts/ai-dnd-experience`.
