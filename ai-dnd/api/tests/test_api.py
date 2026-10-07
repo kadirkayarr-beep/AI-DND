@@ -475,6 +475,93 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([response.status_code for response in responses], [200, 200])
         self.assertEqual(errors, [])
 
+    async def test_provider_timeout_is_one_failure_and_rolls_back(self):
+        calls: list[int] = []
+
+        def timeout_once(*_args, **_kwargs):
+            calls.append(1)
+            raise httpx.ReadTimeout("timed out")
+
+        self.fake_client.chat = timeout_once
+        created = await self.create_session()
+        session = self.manager.get(created["session_id"]).game_session
+        before = serialize_session_state(session)
+
+        def engine_that_times_out(_message):
+            try:
+                game.ollama.chat(model="qwen3:8b")
+            except RuntimeError:
+                pass
+            session.character["current_hp"] = 1
+            return {"action_result": {}, "narration": "Fallback text"}
+
+        session.run_player_turn = engine_that_times_out
+        response = await self.http.post(
+            f"/api/sessions/{created['session_id']}/turn",
+            json={"message": "Bekle"},
+        )
+        self.assertEqual(calls, [1])
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["detail"]["code"], "ollama_unavailable")
+        self.assertEqual(serialize_session_state(session), before)
+        self.assertEqual(self.fake_client.list_calls, 1)
+
+    async def test_completed_narration_call_is_not_retried(self):
+        calls: list[int] = []
+
+        def complete_once(*_args, **_kwargs):
+            calls.append(1)
+            return {"message": {"content": "ok"}, "prompt_eval_count": 3, "eval_count": 1}
+
+        self.fake_client.chat = complete_once
+        created = await self.create_session()
+        session = self.manager.get(created["session_id"]).game_session
+
+        def engine_with_one_narration(_message):
+            game.ollama.chat(model="qwen3:8b")
+            return {"action_result": {"action": "explore"}, "narration": "Han sessiz."}
+
+        session.run_player_turn = engine_with_one_narration
+        response = await self.http.post(
+            f"/api/sessions/{created['session_id']}/turn",
+            json={"message": "İçeriye bakıyorum."},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(calls, [1])
+        self.assertEqual(response.json()["narration"], "Han sessiz.")
+
+    async def test_preflight_is_not_counted_as_generation(self):
+        created = await self.create_session()
+        session = self.manager.get(created["session_id"]).game_session
+        session.run_player_turn = lambda _message: {
+            "action_result": {"action": "wait"},
+            "narration": "Bekledin.",
+        }
+        response = await self.http.post(
+            f"/api/sessions/{created['session_id']}/turn",
+            json={"message": "Bekle"},
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.fake_client.list_calls, 1)
+
+
+class ProviderTimeoutConfigurationTests(unittest.TestCase):
+    def test_environment_client_receives_ninety_second_timeout(self):
+        from api.ollama_adapter import PROVIDER_TIMEOUT_SECONDS
+
+        with patch.dict(
+            os.environ,
+            {
+                "OLLAMA_HOST": "http://127.0.0.1:9",
+                "OLLAMA_PROXY_TOKEN": "probe-token",
+            },
+        ):
+            with patch("ollama.Client") as client:
+                adapter = AuthenticatedOllamaAdapter.from_environment()
+        self.assertIsNotNone(adapter)
+        self.assertEqual(PROVIDER_TIMEOUT_SECONDS, 90)
+        self.assertEqual(client.call_args.kwargs["timeout"], 90)
+
 
 if __name__ == "__main__":
     unittest.main()

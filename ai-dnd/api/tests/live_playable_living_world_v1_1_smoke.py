@@ -78,6 +78,10 @@ class SmokeFailure(RuntimeError):
     pass
 
 
+class DiagnosticStop(SmokeFailure):
+    """Bounded timeout diagnosis ended before the 30-turn sequence."""
+
+
 def _require(condition: Any, message: str) -> None:
     if not condition:
         raise SmokeFailure(message)
@@ -246,6 +250,7 @@ def run_smoke() -> dict[str, Any]:
         last_state: list[dict[str, Any]] = [{}]
         ordinary_fallbacks = 0
         failure: BaseException | None = None
+        diagnostic_stop: DiagnosticStop | None = None
         campaign_id = ""
         session_id = ""
         tavern_id = ""
@@ -264,7 +269,9 @@ def run_smoke() -> dict[str, Any]:
             if expected_index >= len(EXPECTED_LABELS) or label != EXPECTED_LABELS[expected_index]:
                 raise SmokeFailure("The V1.1 action sequence shifted.")
 
-            turn = telemetry._turn(client, base, session_id, message, target_id)
+            turn = telemetry.measured_turn(
+                client, base, session_id, message, target_id, report_root, label,
+            )
             source = telemetry._latest(audit_path)
             action_result = source.get("action_result")
             state = source.get("state")
@@ -650,6 +657,10 @@ def run_smoke() -> dict[str, Any]:
                 look = play(
                     client, "İçeriye ve çevreme bakıyorum.", EXPECTED_LABELS[18]
                 )
+                if os.environ.get("AI_DND_SMOKE_STOP_AFTER") == "tavern-look":
+                    raise DiagnosticStop(
+                        "Diagnostic stop after tavern look. The 30-turn smoke was not run."
+                    )
                 state = _player_state(evidence_rows[-1])
                 bartender = telemetry._one_npc(state, tavern_id, role="Barmen")
                 bartender_id = bartender["id"]
@@ -802,13 +813,30 @@ def run_smoke() -> dict[str, Any]:
                     restart_combat_history_equal=equal_resume_combat,
                     error=EXPECTED_PENDING_ERROR_V11,
                 )
+        except DiagnosticStop as stop:
+            diagnostic_stop = stop
         except Exception as error:
             failure = error
         finally:
+            if failure is not None:
+                telemetry.capture_isolated_failure(
+                    report_root,
+                    handle,
+                    base=base,
+                    session_id=session_id,
+                    evidence_rows=evidence_rows,
+                )
             if process is not None:
                 telemetry._stop(process, handle)
 
     apply_smoke_summary(result, evidence_rows, ordinary_fallbacks, failure)
+    if diagnostic_stop is not None and failure is None:
+        result["status"] = "DIAGNOSTIC_STOP"
+        result["error"] = _safe_error_code(diagnostic_stop)
+        result["error_turn_label"] = "tavern look"
+        result["diagnostic_limit"] = (
+            "stop after tavern look; 30-turn smoke was not run"
+        )
     persisted = dict(result)
     persisted["turns"] = [telemetry._persisted_turn(row) for row in evidence_rows]
     (report_root / "summary.json").write_text(

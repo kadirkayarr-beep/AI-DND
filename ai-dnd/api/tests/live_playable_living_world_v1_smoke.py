@@ -102,8 +102,419 @@ def _telemetry() -> list[dict[str, Any]] | None:
     return _REQUEST_TELEMETRY.get()
 
 
+_SMOKE_DIAGNOSTIC_PATH: Path | None = None
+_REPLAY_CHECKPOINT_FORMAT = "ai-dnd-smoke-replay-checkpoint"
+_REPLAY_CHECKPOINT_VERSION = 1
+
+
+class SmokeReplayError(ValueError):
+    """A replay checkpoint is missing, canonical, or not a disposable copy."""
+
+
+def _redact_diagnostic_text(value: str) -> str:
+    """Drop connection secrets from diagnostic text. Keep the error type only."""
+    lowered = value.casefold()
+    if any(marker in lowered for marker in ("bearer ", "token=", "ollama_proxy", "authorization")):
+        return "sensitive detail redacted"
+    return value
+
+
+def _redact_diagnostic_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _redact_diagnostic_text(value)
+    if isinstance(value, list):
+        return [_redact_diagnostic_value(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            str(key): _redact_diagnostic_value(item)
+            for key, item in value.items()
+        }
+    return value
+
+
+def _flush_diagnostic(event: dict[str, Any]) -> None:
+    """Append one sanitized diagnostic line before a call can hang."""
+    path = _SMOKE_DIAGNOSTIC_PATH
+    if path is None:
+        return
+    safe = _sanitize_persistent_value(_redact_diagnostic_value(event))
+    if not isinstance(safe, dict):
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(safe, ensure_ascii=False, allow_nan=False) + "\n"
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(line)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _message_request_shape(messages: Any) -> tuple[int | None, int | None]:
+    if not isinstance(messages, list):
+        return None, None
+    try:
+        encoded = json.dumps(messages, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError):
+        return None, len(messages)
+    return len(encoded), len(messages)
+
+
+def _call_role(messages: Any) -> str:
+    if not isinstance(messages, list) or not messages or not isinstance(messages[0], dict):
+        return "unavailable"
+    content = messages[0].get("content")
+    if (
+        messages[0].get("role") == "system"
+        and isinstance(content, str)
+        and content.startswith("You are a small D&D intent parser")
+    ):
+        return "intent"
+    if messages[0].get("role") == "system" and isinstance(content, str):
+        return "narration"
+    return "unavailable"
+
+
+def _schema_narration_only(schema: Any) -> bool | None:
+    if not isinstance(schema, dict):
+        return None
+    properties = schema.get("properties")
+    if not isinstance(properties, dict):
+        return None
+    world_updates = properties.get("world_updates")
+    lore_claims = properties.get("lore_claims")
+    if not isinstance(world_updates, dict) or not isinstance(lore_claims, dict):
+        return None
+    fields = world_updates.get("properties")
+    if not isinstance(fields, dict):
+        return None
+    watched = (
+        "create_locations", "create_npcs", "update_npcs",
+        "create_features", "events", "create_shops",
+    )
+    if any(name not in fields or not isinstance(fields[name], dict) for name in watched):
+        return None
+    if type(lore_claims.get("maxItems")) is not int:
+        return None
+    limited = all(fields[name].get("maxItems") == 0 for name in watched)
+    return limited and lore_claims.get("maxItems") == 0
+
+
+def _active_scene_type(game: Any) -> str | None:
+    session = game._ACTIVE_SESSION.get()
+    world = getattr(session, "world_state", None) if session is not None else None
+    if not isinstance(world, dict):
+        return None
+    try:
+        import living_world
+        kind = living_world.scene_kind(world, world.get("location"))
+    except Exception:
+        return None
+    return kind if isinstance(kind, str) else None
+
+
+def _selected_context_counts(game: Any) -> dict[str, int] | None:
+    session = game._ACTIVE_SESSION.get()
+    context = getattr(session, "lore_authority_context", None) if session is not None else None
+    if not isinstance(context, dict):
+        return None
+    sections = context.get("sections")
+    if not isinstance(sections, dict):
+        return None
+    counts: dict[str, int] = {}
+    for key, value in sections.items():
+        if not isinstance(key, str) or not isinstance(value, list):
+            return None
+        counts[key] = len(value)
+    return counts
+
+
+def build_replay_checkpoint(record: Any) -> dict[str, Any]:
+    """Capture disposable session state. This is not a shareable sanitized report."""
+    from api.persistence.campaign_validation import (
+        ensure_no_configured_secrets,
+        serialize_campaign_payload,
+    )
+
+    session = record.game_session
+    payload = serialize_campaign_payload(
+        session,
+        record.journal,
+        record.narrative_memory,
+        record.lore_authority,
+    )
+    messages = getattr(session, "messages", None)
+    if not isinstance(messages, list):
+        raise SmokeReplayError("Replay checkpoint is missing conversation messages.")
+    checkpoint = {
+        "format": _REPLAY_CHECKPOINT_FORMAT,
+        "version": _REPLAY_CHECKPOINT_VERSION,
+        "campaign_payload": payload,
+        "messages": copy.deepcopy(messages),
+        "combat_history": copy.deepcopy(getattr(record, "combat_history", [])),
+    }
+    ensure_no_configured_secrets(checkpoint)
+    return checkpoint
+
+
+def private_replay_directory(report_root: Path) -> Path:
+    """Keep raw checkpoints outside the sanitized smoke report directory."""
+    parent = report_root.parent
+    if parent.name.endswith("-smokes"):
+        private_parent = parent.parent / (
+            parent.name.removesuffix("-smokes") + "-private-replay"
+        )
+    else:
+        private_parent = parent / "private-replay"
+    return private_parent / report_root.name
+
+
+def write_replay_checkpoint(record: Any, directory: Path) -> Path:
+    checkpoint = build_replay_checkpoint(record)
+    directory.mkdir(parents=True, exist_ok=True)
+    world = record.game_session.world_state
+    flags = world.get("flags", {}) if isinstance(world, dict) else {}
+    turn_index = flags.get("turn_index") if isinstance(flags, dict) else None
+    name = f"after-turn-{turn_index}.json" if type(turn_index) is int else "after-turn-unknown.json"
+    path = directory / name
+    text = json.dumps(checkpoint, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    with path.open("w", encoding="utf-8") as handle:
+        handle.write(text)
+        handle.flush()
+        os.fsync(handle.fileno())
+    return path
+
+
+def load_replay_checkpoint_copy(path: Path) -> tuple[dict[str, Any], Path]:
+    """Load a copy. Canonical engine and campaign saves are refused."""
+    raw_text = path.read_text(encoding="utf-8")
+    raw = json.loads(raw_text)
+    if not isinstance(raw, dict) or raw.get("format") != _REPLAY_CHECKPOINT_FORMAT:
+        raise SmokeReplayError("Replay refused a canonical or unknown save.")
+    if raw.get("version") != _REPLAY_CHECKPOINT_VERSION:
+        raise SmokeReplayError("Replay checkpoint version is unsupported.")
+    handle = tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", suffix=".json", delete=False,
+    )
+    copy_path = Path(handle.name)
+    try:
+        handle.write(raw_text)
+        handle.flush()
+        os.fsync(handle.fileno())
+    finally:
+        handle.close()
+    loaded = json.loads(copy_path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise SmokeReplayError("Replay checkpoint copy is unusable.")
+    return loaded, copy_path
+
+
+def restore_replay_checkpoint(session: Any, loaded: dict[str, Any]) -> dict[str, Any]:
+    from api.persistence.campaign_validation import restore_campaign_session
+
+    payload = loaded.get("campaign_payload")
+    messages = loaded.get("messages")
+    if not isinstance(payload, dict) or not isinstance(messages, list):
+        raise SmokeReplayError("Replay checkpoint is missing session state.")
+    journal = restore_campaign_session(session, payload)
+    session.messages = copy.deepcopy(messages)
+    return {
+        "journal": journal,
+        "narrative_memory": copy.deepcopy(payload.get("narrative_memory")),
+        "lore_authority": copy.deepcopy(payload.get("lore_authority")),
+        "combat_history": copy.deepcopy(loaded.get("combat_history")),
+        "rng_state": copy.deepcopy(payload.get("rng_state")),
+        "messages": session.messages,
+    }
+
+
+def write_failure_evidence(report_root: Path, event: dict[str, Any]) -> Path:
+    """Record a failure without replacing an earlier stage record."""
+    path = report_root / "failure-evidence.json"
+    safe = _sanitize_persistent_value(_redact_diagnostic_value(event))
+    if not isinstance(safe, dict):
+        safe = {"event": "failure", "phase": "unavailable"}
+    existing: dict[str, Any] = {}
+    if path.is_file():
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            loaded = None
+        if isinstance(loaded, dict):
+            existing = loaded
+    if not existing:
+        merged = safe
+    else:
+        merged = dict(existing)
+        supplements = [
+            item for item in merged.get("supplements", [])
+            if isinstance(item, dict)
+        ]
+        same_stage = (
+            safe.get("event") == existing.get("event")
+            and safe.get("phase") == existing.get("phase")
+        )
+        if not same_stage:
+            supplements.append({
+                key: value for key, value in safe.items() if key != "rollback"
+            })
+        merged["supplements"] = supplements
+        if safe.get("rollback") == "observed" or existing.get("rollback") is None:
+            merged["rollback"] = safe.get("rollback")
+        if "rollback_comparison" in safe:
+            merged["rollback_comparison"] = safe["rollback_comparison"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(merged, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def probe_rollback_status(
+    base: str,
+    session_id: str,
+    expected_turn_index: int | None,
+) -> dict[str, Any]:
+    """Read turn identity if the isolated API answers. A hung turn stays unverified."""
+    unverified = {"rollback": "rollback doğrulanamadı"}
+    if not base or not session_id:
+        return unverified
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            response = client.get(f"{base}/api/sessions/{session_id}/state")
+    except Exception:
+        return unverified
+    if response.status_code != 200:
+        return unverified
+    try:
+        payload = response.json()
+    except Exception:
+        return unverified
+    if not isinstance(payload, dict):
+        return unverified
+    observed = payload.get("turn_index")
+    location = payload.get("location")
+    scene = payload.get("scene")
+    scene_kind = scene.get("kind") if isinstance(scene, dict) else None
+    return {
+        "rollback": "observed",
+        "rollback_comparison": {
+            "observed_turn_index": observed if type(observed) is int else None,
+            "expected_turn_index": expected_turn_index,
+            "location_id": location if isinstance(location, str) else None,
+            "scene_kind": scene_kind if isinstance(scene_kind, str) else None,
+            "turn_index_unchanged": (
+                observed == expected_turn_index
+                if type(observed) is int and type(expected_turn_index) is int
+                else None
+            ),
+        },
+    }
+
+
+def capture_isolated_failure(
+    report_root: Path,
+    handle: Any,
+    *,
+    base: str,
+    session_id: str,
+    evidence_rows: list[dict[str, Any]],
+) -> None:
+    """Save sanitized logs and a rollback probe before the isolated API stops."""
+    if handle is not None:
+        try:
+            handle.seek(0)
+            raw_log = handle.read().decode("utf-8", errors="replace")
+            (report_root / "isolated-api.log").write_text(
+                sanitize_isolated_log(raw_log),
+                encoding="utf-8",
+            )
+        except Exception:
+            write_failure_evidence(report_root, {
+                "event": "isolated_log",
+                "phase": "unavailable",
+            })
+    expected_turn_index = None
+    if evidence_rows and isinstance(evidence_rows[-1], dict):
+        diff = evidence_rows[-1].get("state_diff")
+        after = diff.get("after") if isinstance(diff, dict) else None
+        index = after.get("turn_index") if isinstance(after, dict) else None
+        if type(index) is int:
+            expected_turn_index = index
+    probe = probe_rollback_status(base, session_id, expected_turn_index)
+    write_failure_evidence(report_root, {
+        "event": "rollback_probe",
+        "phase": "finished" if probe.get("rollback") == "observed" else "unavailable",
+        **probe,
+    })
+
+
+def sanitize_isolated_log(text: str) -> str:
+    redacted = _redact_diagnostic_text(text)
+    if redacted == "sensitive detail redacted":
+        return redacted
+    return "\n".join(line for line in text.splitlines() if line.strip())
+
+
+def measured_turn(
+    client: Any,
+    base: str,
+    session_id: str,
+    message: str,
+    target_id: str | None,
+    report_root: Path,
+    label: str,
+) -> dict[str, Any]:
+    """Time the smoke HTTP turn. The 240s client timeout stays unchanged."""
+    global _SMOKE_DIAGNOSTIC_PATH
+    previous = _SMOKE_DIAGNOSTIC_PATH
+    _SMOKE_DIAGNOSTIC_PATH = report_root / "diagnostic-events.jsonl"
+    started = time.monotonic()
+    _flush_diagnostic({
+        "event": "parent_http",
+        "phase": "started",
+        "label": label,
+        "timeout_layer": "smoke_http_client",
+        "timeout_seconds": 240,
+    })
+    try:
+        result = _turn(client, base, session_id, message, target_id)
+    except Exception as error:
+        _flush_diagnostic({
+            "event": "parent_http",
+            "phase": "failed",
+            "label": label,
+            "error_type": type(error).__name__,
+            "elapsed_seconds": time.monotonic() - started,
+            "timeout_layer": "smoke_http_client" if isinstance(error, httpx.TimeoutException) else None,
+            "rollback": "rollback doğrulanamadı",
+        })
+        write_failure_evidence(report_root, {
+            "event": "parent_http",
+            "phase": "failed",
+            "label": label,
+            "error_type": type(error).__name__,
+            "elapsed_seconds": time.monotonic() - started,
+            "timeout_layer": "smoke_http_client" if isinstance(error, httpx.TimeoutException) else None,
+            "rollback": "rollback doğrulanamadı",
+        })
+        raise
+    else:
+        _flush_diagnostic({
+            "event": "parent_http",
+            "phase": "finished",
+            "label": label,
+            "elapsed_seconds": time.monotonic() - started,
+            "timeout_layer": "smoke_http_client",
+        })
+        return result
+    finally:
+        _SMOKE_DIAGNOSTIC_PATH = previous
+
+
 def _install_telemetry(game: Any) -> None:
     """Install transparent wrappers only inside the isolated API subprocess."""
+    from api.ollama_adapter import PROVIDER_TIMEOUT_SECONDS
+
     if getattr(game, "_playable_v1_telemetry_installed", False):
         return
     original_chat = game.ollama.chat
@@ -116,13 +527,67 @@ def _install_telemetry(game: Any) -> None:
 
     def chat_wrapper(*args: Any, **kwargs: Any) -> Any:
         # Exactly one original invocation; no request/response text is retained.
-        response = original_chat(*args, **kwargs)
+        messages = kwargs.get("messages")
+        if messages is None and args:
+            messages = args[1] if len(args) > 1 else args[0]
+        role = _call_role(messages)
+        request_bytes, message_count = _message_request_shape(messages)
         calls = _telemetry()
+        attempt_index = 1
+        if calls is not None:
+            attempt_index += sum(1 for row in calls if row.get("kind") == "model_attempt")
+        narration_only = _schema_narration_only(kwargs.get("format")) if role == "narration" else None
+        attempt = {
+            "event": "model_call",
+            "phase": "started",
+            "call_role": role,
+            "attempt_index": attempt_index,
+            "request_utf8_bytes": request_bytes,
+            "message_count": message_count,
+            "scene_type": _active_scene_type(game),
+            "narration_only": narration_only,
+            "selected_context_counts": _selected_context_counts(game),
+            "provider_timeout_seconds": PROVIDER_TIMEOUT_SECONDS,
+        }
+        if calls is not None:
+            calls.append({
+                "kind": "model_attempt",
+                "call_role": role,
+                "attempt_index": attempt_index,
+                "phase": "started",
+            })
+        started = time.monotonic()
+        _flush_diagnostic(attempt)
+        try:
+            response = original_chat(*args, **kwargs)
+        except Exception as error:
+            _flush_diagnostic({
+                "event": "model_call",
+                "phase": "failed",
+                "call_role": role,
+                "attempt_index": attempt_index,
+                "error_type": type(error).__name__,
+                "elapsed_seconds": time.monotonic() - started,
+                "prompt_eval_count": None,
+                "eval_count": None,
+            })
+            raise
+        prompt_eval_count = _numeric(response, "prompt_eval_count")
+        eval_count = _numeric(response, "eval_count")
+        _flush_diagnostic({
+            "event": "model_call",
+            "phase": "finished",
+            "call_role": role,
+            "attempt_index": attempt_index,
+            "elapsed_seconds": time.monotonic() - started,
+            "prompt_eval_count": prompt_eval_count,
+            "eval_count": eval_count,
+        })
         if calls is not None:
             calls.append({
                 "kind": "model",
-                "prompt_eval_count": _numeric(response, "prompt_eval_count"),
-                "eval_count": _numeric(response, "eval_count"),
+                "prompt_eval_count": prompt_eval_count,
+                "eval_count": eval_count,
             })
         return response
 
@@ -393,13 +858,31 @@ def _install_telemetry(game: Any) -> None:
         if calls is not None:
             calls.append({"kind": "turn_wrapper_seen"})
         self.last_narration_safety = None
-        result = original_run_turn(
-            message, messages=messages, target_id=target_id,
-            scene_plan=scene_plan, session=self,
-        )
+        _flush_diagnostic({"event": "engine", "phase": "started"})
+        engine_started = time.monotonic()
+        try:
+            result = original_run_turn(
+                message, messages=messages, target_id=target_id,
+                scene_plan=scene_plan, session=self,
+            )
+        except Exception as error:
+            _flush_diagnostic({
+                "event": "engine",
+                "phase": "failed",
+                "error_type": type(error).__name__,
+                "elapsed_seconds": time.monotonic() - engine_started,
+            })
+            raise
+        action = result.get("action_result") if isinstance(result, dict) else {}
+        action = action if isinstance(action, dict) else {}
+        _flush_diagnostic({
+            "event": "engine",
+            "phase": "finished",
+            "elapsed_seconds": time.monotonic() - engine_started,
+            "resolved_action": action.get("action") if isinstance(action.get("action"), str) else None,
+            "resolved_status": action.get("status") if isinstance(action.get("status"), str) else None,
+        })
         if calls is not None and isinstance(result, dict):
-            action = result.get("action_result")
-            action = action if isinstance(action, dict) else {}
             calls.append({
                 "kind": "action_result",
                 "action_result": {
@@ -709,7 +1192,42 @@ def _persisted_turn(row: dict[str, Any]) -> dict[str, Any]:
     return sanitized if isinstance(sanitized, dict) else {}
 
 
-def _serve(port: int, database: Path, evidence: Path) -> None:
+def _restore_replay_session(manager: Any, checkpoint: Path, evidence: Path) -> None:
+    """Load a disposable replay copy into the isolated API. Canonical saves are refused."""
+    from api.lore_authority.models import CampaignLoreState
+    from api.narrative_memory import empty_narrative_memory
+
+    loaded, copy_path = load_replay_checkpoint_copy(checkpoint)
+    try:
+        session_id, record = manager.create()
+        restored = restore_replay_checkpoint(record.game_session, loaded)
+        journal = restored.get("journal")
+        if isinstance(journal, dict):
+            record.journal = journal
+        memory = restored.get("narrative_memory")
+        record.narrative_memory = (
+            memory if isinstance(memory, dict) else empty_narrative_memory()
+        )
+        lore = restored.get("lore_authority")
+        if isinstance(lore, dict):
+            record.lore_authority = CampaignLoreState.from_mapping(lore)
+        combat = restored.get("combat_history")
+        record.combat_history = combat if isinstance(combat, list) else []
+        evidence.with_name("replay-session.json").write_text(
+            json.dumps({"session_id": session_id}, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    finally:
+        copy_path.unlink(missing_ok=True)
+
+
+def _serve(
+    port: int,
+    database: Path,
+    evidence: Path,
+    checkpoint: Path | None = None,
+) -> None:
+    global _SMOKE_DIAGNOSTIC_PATH
     os.environ["AI_DND_CAMPAIGN_DB"] = str(database)
     from api.main import app
     import game
@@ -722,7 +1240,39 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
     logger.setLevel(logging.INFO)
     logger.addHandler(capture)
     manager = app.state.session_manager
+    _SMOKE_DIAGNOSTIC_PATH = evidence.with_name("diagnostic-events.jsonl")
     _install_telemetry(game)
+    adapter = getattr(app.state, "ollama_adapter", None)
+    if adapter is not None and callable(getattr(adapter, "ensure_required_model", None)):
+        original_preflight = adapter.ensure_required_model
+
+        def preflight_wrapper() -> Any:
+            _flush_diagnostic({
+                "event": "preflight",
+                "phase": "started",
+                "counted_as_generation": False,
+            })
+            started_at = time.monotonic()
+            try:
+                result = original_preflight()
+            except Exception as error:
+                _flush_diagnostic({
+                    "event": "preflight",
+                    "phase": "failed",
+                    "error_type": type(error).__name__,
+                    "elapsed_seconds": time.monotonic() - started_at,
+                    "counted_as_generation": False,
+                })
+                raise
+            _flush_diagnostic({
+                "event": "preflight",
+                "phase": "finished",
+                "elapsed_seconds": time.monotonic() - started_at,
+                "counted_as_generation": False,
+            })
+            return result
+
+        adapter.ensure_required_model = preflight_wrapper
 
     def memory_snapshot_refs(world_state: dict[str, Any]) -> list[str]:
         """Return coarse per-snapshot ordinals, not persistent memory IDs."""
@@ -744,8 +1294,24 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
             telemetry_rows: list[dict[str, Any]] = []
             token = _REQUEST_TELEMETRY.set(telemetry_rows)
             validation_outputs_token = _VALIDATION_OUTPUT_CALLS.set({})
+            entered = time.monotonic()
+            if match:
+                _flush_diagnostic({
+                    "event": "api_turn",
+                    "phase": "started",
+                    "session_id": match.group(1),
+                })
             try:
                 response = await call_next(request)
+            except Exception as error:
+                if match:
+                    _flush_diagnostic({
+                        "event": "api_turn",
+                        "phase": "failed",
+                        "error_type": type(error).__name__,
+                        "elapsed_seconds": time.monotonic() - entered,
+                    })
+                raise
             finally:
                 _VALIDATION_OUTPUT_CALLS.reset(validation_outputs_token)
                 _REQUEST_TELEMETRY.reset(token)
@@ -788,9 +1354,41 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
                         headers=dict(response.headers),
                         media_type=response.media_type,
                     )
+            if match and response.status_code >= 400:
+                _flush_diagnostic({
+                    "event": "api_turn",
+                    "phase": "failed",
+                    "http_status": response.status_code,
+                    "elapsed_seconds": time.monotonic() - entered,
+                })
             if match and response.status_code < 400:
+                _flush_diagnostic({
+                    "event": "api_turn",
+                    "phase": "finished",
+                    "elapsed_seconds": time.monotonic() - entered,
+                })
                 record = manager.get(match.group(1))
                 session = record.game_session
+                try:
+                    checkpoint_path = write_replay_checkpoint(
+                        record, private_replay_directory(evidence.parent),
+                    )
+                    checkpoint_turn = checkpoint_path.stem.removeprefix("after-turn-")
+                    _flush_diagnostic({
+                        "event": "replay_checkpoint",
+                        "phase": "finished",
+                        "storage": "private_replay",
+                        "turn_index": (
+                            int(checkpoint_turn)
+                            if checkpoint_turn.isdecimal() else None
+                        ),
+                    })
+                except Exception as error:
+                    _flush_diagnostic({
+                        "event": "replay_checkpoint",
+                        "phase": "failed",
+                        "error_type": type(error).__name__,
+                    })
                 calls, model, facts = _parse_logs(capture.messages[start:])
                 safety = getattr(session, "last_narration_safety", {})
                 safety = safety if isinstance(safety, dict) else {}
@@ -1008,6 +1606,8 @@ def _serve(port: int, database: Path, evidence: Path) -> None:
             return response
 
     app.add_middleware(AuditMiddleware)
+    if checkpoint is not None:
+        _restore_replay_session(manager, checkpoint, evidence)
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning",
                 access_log=False)
 
@@ -1502,6 +2102,7 @@ def run_smoke() -> dict[str, Any]:
         base = f"http://127.0.0.1:{port}"
         process: subprocess.Popen[bytes] | None = None
         handle: Any = None
+        session_id = ""
         unplanned_fallbacks = 0
 
         def play(client: httpx.Client, sid: str, message: str,
@@ -1515,7 +2116,9 @@ def run_smoke() -> dict[str, Any]:
                      f"Action sequence shifted: expected {expected}, got {label}.")
             before = last_state[0]
             try:
-                turn = _turn(client, base, sid, message, target)
+                turn = measured_turn(
+                    client, base, sid, message, target, report_root, label,
+                )
             except SmokeFailure as error:
                 _append(turn_evidence, {
                     "turn": len(evidence_rows) + 1, "label": label,
@@ -2156,6 +2759,14 @@ def run_smoke() -> dict[str, Any]:
                 error=f"{type(error).__name__}: {error}",
             )
         finally:
+            if str(result.get("status", "")).startswith("BLOCKED"):
+                capture_isolated_failure(
+                    report_root,
+                    handle,
+                    base=base,
+                    session_id=session_id,
+                    evidence_rows=evidence_rows,
+                )
             if process is not None:
                 _stop(process, handle)
         result["evidence_lifecycle"] = (
@@ -2228,9 +2839,105 @@ def run_smoke() -> dict[str, Any]:
     return result
 
 
+def run_checkpoint_replay(
+    checkpoint: Path,
+    message: str,
+    label: str,
+    report_root: Path,
+) -> dict[str, Any]:
+    """Play one turn from a copy of a disposable checkpoint. The source file stays unchanged."""
+    source_bytes = checkpoint.read_bytes()
+    _loaded, copy_path = load_replay_checkpoint_copy(checkpoint)
+    flags = (
+        _loaded.get("campaign_payload", {})
+        .get("engine_save", {})
+        .get("world_state", {})
+        .get("flags", {})
+    )
+    expected_turn = flags.get("turn_index") if isinstance(flags, dict) else None
+    expected_turn = expected_turn if type(expected_turn) is int else None
+    report_root.mkdir(parents=True, exist_ok=False)
+    evidence = report_root / "api-audit.jsonl"
+    port = _port()
+    base = f"http://127.0.0.1:{port}"
+    environment = os.environ.copy()
+    environment["AI_DND_SMOKE_EVIDENCE_SALT"] = uuid.uuid4().hex
+    global _SMOKE_DIAGNOSTIC_PATH
+    process: subprocess.Popen[bytes] | None = None
+    handle: Any = None
+    session_id = ""
+    failure: BaseException | None = None
+    turn: dict[str, Any] | None = None
+    try:
+        with tempfile.TemporaryDirectory(prefix="ai-dnd-replay-") as directory:
+            database = Path(directory) / "campaigns.sqlite3"
+            environment["AI_DND_CAMPAIGN_DB"] = str(database)
+            try:
+                handle = tempfile.TemporaryFile(mode="w+b")
+                process = subprocess.Popen(
+                    [
+                        sys.executable, "-m",
+                        "api.tests.live_playable_living_world_v1_smoke",
+                        "--serve", str(port), str(database), str(evidence),
+                        str(copy_path),
+                    ],
+                    cwd=AI_DND_DIR, env=environment, stdout=handle,
+                    stderr=subprocess.STDOUT,
+                )
+                _ready(process, base)
+                session_file = report_root / "replay-session.json"
+                session_id = json.loads(
+                    session_file.read_text(encoding="utf-8")
+                )["session_id"]
+                with httpx.Client() as client:
+                    try:
+                        turn = measured_turn(
+                            client, base, session_id, message, None,
+                            report_root, label,
+                        )
+                    except Exception as error:
+                        failure = error
+                if failure is not None:
+                    capture_isolated_failure(
+                        report_root,
+                        handle,
+                        base=base,
+                        session_id=session_id,
+                        evidence_rows=[{
+                            "state_diff": {"after": {"turn_index": expected_turn}},
+                        }] if expected_turn is not None else [],
+                    )
+                else:
+                    previous = _SMOKE_DIAGNOSTIC_PATH
+                    _SMOKE_DIAGNOSTIC_PATH = report_root / "diagnostic-events.jsonl"
+                    try:
+                        _flush_diagnostic({
+                            "event": "rollback_probe",
+                            **probe_rollback_status(base, session_id, expected_turn),
+                        })
+                    finally:
+                        _SMOKE_DIAGNOSTIC_PATH = previous
+            finally:
+                if process is not None and handle is not None:
+                    _stop(process, handle)
+                elif handle is not None:
+                    handle.close()
+    finally:
+        copy_path.unlink(missing_ok=True)
+    if checkpoint.read_bytes() != source_bytes:
+        raise SmokeReplayError("Replay changed the source checkpoint.")
+    return {
+        "report_path": str(report_root),
+        "completed": failure is None,
+        "error_type": type(failure).__name__ if failure is not None else None,
+        "turn_returned": isinstance(turn, dict),
+    }
+
+
 def main() -> int:
     if len(sys.argv) >= 2 and sys.argv[1] == "--serve":
-        _serve(int(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]))
+        checkpoint = Path(sys.argv[5]) if len(sys.argv) >= 6 else None
+        _serve(int(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]), checkpoint)
         return 0
     if len(sys.argv) >= 2 and sys.argv[1] == "--finalize-review":
         arguments = sys.argv[2:]

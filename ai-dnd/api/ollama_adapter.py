@@ -14,6 +14,10 @@ from api.world_metadata import validate_world_metadata
 
 
 MODEL_NAME = "qwen3:8b"
+# Successful tavern narration has completed in about 25s. A hung call was
+# still inside the client at the smoke's 240s HTTP limit. 90s fails closed
+# first and leaves the turn lock.
+PROVIDER_TIMEOUT_SECONDS = 90
 _MODEL_FAILURES: ContextVar[list[str] | None] = ContextVar(
     "ai_dnd_api_model_failures", default=None
 )
@@ -112,6 +116,7 @@ class AuthenticatedOllamaAdapter:
             client = ollama.Client(
                 host=host,
                 headers={"Authorization": f"Bearer {token}"},
+                timeout=PROVIDER_TIMEOUT_SECONDS,
             )
         except Exception as error:
             _logger.error(
