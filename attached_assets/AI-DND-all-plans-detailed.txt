@@ -6,6 +6,7 @@ KAYNAK VE GÜVEN NOTU
 - #25, #60, #76, #216, #228, #300, #339, #340 ve #490: erişilebilir prompt/plan metinlerinden daha ayrıntılı yazıldı. İptal olup sonradan tekrar seçilenlerin sonraki sonucu görünür task kaydında yok.
 - #341–#466: kullanıcı isteğiyle tahmin aralığı olarak dahil edildi; task title/status kayıtları yok. Bunlar gerçek task kayıtları değil, açıkça tahmin/eksik şablonlardır.
 - #467–#491: bu oturumun güncel task görünümünde listelenen 12 açık kayıt. Önerilen maddeler yapılmış kabul edilmemiştir. Bazı dosya eşleştirmeleri başlık ve kaynak yapısından çıkarılmıştır, “tahmini” diye işaretlidir.
+- #469–#480 ve #484: şu an erişilebilir task kayıtlarında görünmüyor; bu nedenle atlandı, durum veya içerik uydurulmadı.
 - #436 daha önce seçilmiş yedi-plan promptunda kapsam dışı bırakılmış; mevcut durumunun iptal/tamamlandı olduğu çıkarılamaz.
 
 ÖZET
