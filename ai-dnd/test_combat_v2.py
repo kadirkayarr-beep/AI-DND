@@ -81,6 +81,15 @@ class CombatV2Turns(unittest.TestCase):
         self.assertEqual(result["combat"]["target_id"], self.npc["id"])
         self.assert_snapshot(result)
 
+    def test_longsword_is_the_sword_used_for_an_attack(self):
+        self.world["inventory"] = ["Uzun Kılıç"]
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
+            result = self.turn()
+        self.assertNotEqual(result.get("outcome"), "no_weapon")
+        self.assertTrue(result["combat_started"])
+        self.assertEqual(result["combat"]["target_id"], self.npc["id"])
+        self.assert_snapshot(result)
+
     def test_initiative_player_higher(self):
         with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             result = self.turn()

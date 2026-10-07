@@ -285,7 +285,10 @@ WEAPONS = {
         "ability": "strength",
         "proficient": True,
         "damage_type": "slashing",
-        "aliases": ["kılıç", "kılıcı", "kılıcımla", "kilic", "kilici", "kilicimla"]
+        "aliases": [
+            "kılıç", "kılıcı", "kılıcımla", "kilic", "kilici", "kilicimla",
+            "uzun kılıç", "uzun kilic",
+        ]
     }
 }
 
