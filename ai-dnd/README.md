@@ -2,7 +2,24 @@
 
 AI-DND is a Turkish-language terminal D&D game.
 
-## Run
+## Player path
+
+The campaign UI talks to the FastAPI adapter, not the Node `artifacts/api-server`.
+
+```powershell
+# From the repository root (Desktop\AI - DND)
+.\start_local.ps1
+```
+
+Default local ports: FastAPI `:8008`, Ollama `:11434`, experience Vite (see the script).
+Set `OLLAMA_HOST` (and `OLLAMA_PROXY_TOKEN` if the proxy requires it). Optional
+`AI_DND_CAMPAIGN_DB` points at a sqlite file. Required model: `qwen3:8b`.
+Check `GET http://127.0.0.1:11434/api/tags` and `GET http://127.0.0.1:8008/api/game/health`.
+Do not use interactive `ollama run` for this path.
+
+Product UI: `artifacts/ai-dnd-experience`. `artifacts/ai-dnd-web` is session-only.
+
+## Run (terminal)
 
 From the repository root:
 
@@ -57,9 +74,26 @@ bounded combat history.
 
 ## Verify
 
+Daily (Windows): UTF-8 is required or emoji in pipeline tests fail.
+
+```powershell
+.\dev.ps1
+.\dev.ps1 -List
+```
+
+Equivalent:
+
 ```bash
 python ai-dnd/run_tests.py
 ```
+
+Full API discover and live 30-turn smokes are **not** the daily gate:
+
+```powershell
+.\dev.ps1 -ApiDiscover
+```
+
+POSIX signal tests skip on Windows. Run them under WSL on a native Linux filesystem copy; a Windows worktree `.git` pointer is not resolvable under `/mnt/c`.
 
 The runner covers the portable deterministic gates, including both historical
 V2 commands. `test_combat_v2.py` contains 15 turn-pipeline scenarios with fresh
