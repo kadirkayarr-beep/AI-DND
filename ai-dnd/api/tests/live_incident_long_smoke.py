@@ -18,11 +18,11 @@ from pathlib import Path
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
 LINES = (
-    "Etrafımda şu an ne görüyorum, kısaca anlat.",
-    "Yakındaki biriyle kısa bir konuşma başlatıyorum.",
-    "Burada biraz bekliyorum.",
-    "Yerde ya da masada duran bir şeyi inceliyorum.",
+    "etrafa bakıyorum",
+    "bir saat dinleniyorum",
+    "Neverwinter sokaklarında yürüyorum.",
     "Hana doğru yürüyorum.",
+    "Burada biraz bekliyorum.",
 )
 
 
@@ -227,7 +227,7 @@ def main(argv=None):
         "model": MODEL_NAME,
         "turns": {"planned": counts, "executed": sum(item["executed"] for item in runs)},
         "runs": runs,
-        "note": "Initial Neverwinter ACCEPT is not full storytelling validation. This run checks call budget, quest isolation, resume, and unreviewed cities.",
+        "note": "Look, rest, and local movement lines use the existing triggers. This run checks call budget, quest isolation, resume, scene incidents, and unreviewed cities. It is not a release PASS.",
     })
 
 
