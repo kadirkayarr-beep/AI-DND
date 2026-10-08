@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import uuid
 import copy
@@ -158,6 +159,11 @@ class SessionManager:
         initialize_campaign_opening(session, campaign_id)
         session.ensure_campaign_clock()
         session.world_state["campaign_id"] = campaign_id
+        if (
+            os.environ.get("AI_DND_EMERGENCE_LIVE") == "1"
+            and getattr(lore_authority, "region_pack_id", None) == "fr:pack:the_north:neverwinter:v1"
+        ):
+            session.world_state.setdefault("flags", {})["emergence_live"] = True
         death_state = session.world_state.setdefault(
             "death_state", game._death_state_defaults()
         )

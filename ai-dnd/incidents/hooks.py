@@ -43,6 +43,8 @@ def before_narration(session, *, action_result, player_text, location_changed, p
         return _result()
     lore_state = _lore_state(session)
     profile = profiles.resolve(world, trigger["location_id"])
+    if propose is None and not profiles.generation_enabled(world):
+        return _result()
     selection = triggers.select(
         world, campaign_id=campaign_id, trigger=trigger, profile=profile, lore_state=lore_state,
     )

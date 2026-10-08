@@ -9,9 +9,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from incidents import envelope as envelope_owner
+from incidents import categories, envelope as envelope_owner
 from incidents import horizon, rng
 from incidents.models import OPEN_LIFECYCLES
+
+_WILDERNESS_TYPES = frozenset({"wilderness", "forest", "road", "route"})
+_REST_ACTIONS = frozenset({"rest", "short_rest", "long_rest"})
 
 _LOOK_AROUND = re.compile(
     r"(etraf\w*|çevre\w*|ortal\w*)\s+(ne\s+oluyor|ne\s+var|bak\w*|göz\w*|dinl\w*|incel\w*)"
@@ -32,11 +35,17 @@ def detect(world, *, action_result, player_text, location_changed):
     here = world.get("location")
     if not isinstance(here, str):
         return None
+    record = world.get("locations", {}).get(here, {})
+    loc_type = record.get("type") if isinstance(record, dict) else None
     if location_changed or (
         isinstance(action_result, dict) and action_result.get("action") == "travel"
         and action_result.get("success") is True
     ):
+        if loc_type in _WILDERNESS_TYPES or here == "forest":
+            return {"kind": "travel_segment", "location_id": here}
         return {"kind": "arrival", "location_id": here}
+    if isinstance(action_result, dict) and action_result.get("action") in _REST_ACTIONS:
+        return {"kind": "rest", "location_id": here}
     if isinstance(player_text, str) and _LOOK_AROUND.search(player_text):
         return {"kind": "look_around", "location_id": here}
     return None
@@ -67,5 +76,7 @@ def select(world, *, campaign_id, trigger, profile, lore_state=None, combat_outc
         reward_weights=tuple(profile["reward_weights"]),
     )
     if decisions["silent"]:
+        return None
+    if not categories.motif_allowed(world, decisions["category"]):
         return None
     return Selection(trigger=dict(trigger), trigger_id=trigger_id, decisions=decisions)

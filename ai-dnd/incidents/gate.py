@@ -6,7 +6,7 @@ import copy
 import re
 from dataclasses import dataclass, field
 
-from incidents import proposal as proposal_schema
+from incidents import categories, proposal as proposal_schema
 from incidents.models import REWARD_CLASSES
 
 ACCEPT = "ACCEPT"
@@ -33,6 +33,18 @@ _GEOGRAPHY = re.compile(
 )
 _COIN_AMOUNT = re.compile(r"\d[\d.,]*\s*(alt[ıi]n|gold|gp|gümüş|silver|sp|bakır|copper|cp|xp|tp)\b", re.IGNORECASE)
 _MAGIC = re.compile(r"(\+\s?\d\b|\bvorpal\b|\bbüyülü\b|\bmagic\w*\b|\benchant\w*\b|\bsihirli\b|\befsun\w*\b)", re.IGNORECASE)
+_PUBLISHED_OUTCOME = re.compile(
+    r"\b(dragon delves|published adventure|modül (zaten |tamamland)|the (module|adventure) (already|concluded))\b",
+    re.IGNORECASE,
+)
+_HISTORICAL_OVERRIDE = re.compile(
+    r"\b(netheril|shadovar).{0,48}(şimdi|current|today|1501|şu an|now (rule|rules|governs))\b",
+    re.IGNORECASE,
+)
+_PROTECTED_DEATH = re.compile(
+    r"\b(öldü|öldürüldü|ölmüş|has died|is dead|was (slain|killed|murdered)|murdered)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -116,6 +128,21 @@ def evaluate(envelope, raw_or_data):
         return _reject("mechanical_ownership")
     if any(_MAGIC.search(text) for text in texts):
         return _reject("magic_item")
+    if any(_PUBLISHED_OUTCOME.search(text) for text in texts):
+        return _reject("adventure_canon")
+    if any(_HISTORICAL_OVERRIDE.search(text) for text in texts):
+        return _reject("historical_override")
+    joined = " ".join(texts)
+    if _PROTECTED_DEATH.search(joined):
+        for name in envelope["protected_names"]:
+            if name.casefold() in joined.casefold():
+                return _reject("protected_identity")
+    if data["category"] == categories.COMBAT and not envelope.get("allowed_creature_ids"):
+        return _reject("combat_bind")
+    if data["category"] == categories.GAMBLING and data["reward_class"] != "none":
+        return _reject("premise_change")
+    if any(token not in categories.CHECK_OWNERS for token in data["check_categories"]):
+        return _reject("mechanical_ownership")
     for hidden in envelope["hidden_context"].values():
         needle = hidden.casefold().strip()
         if len(needle) >= 12 and any(needle in text.casefold() for text in _player_texts(data)):
