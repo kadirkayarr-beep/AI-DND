@@ -24,6 +24,7 @@ def read_player_knowledge(
         "known_facts": _known_facts(state, registry),
         "people": _people(world),
         "adventure_evidence": _adventure_evidence(world),
+        "adventure_possibilities": _adventure_possibilities(state, world),
         "known_factions": _known_factions(state, registry),
     }
 
@@ -100,6 +101,33 @@ def _adventure_evidence(world: Any) -> list[Any]:
     if not isinstance(evidence, list):
         return []
     return list(evidence)
+
+
+def _adventure_possibilities(state: CampaignLoreState, world: Any) -> list[dict[str, str]]:
+    """Heard rumors only. These ids are not campaign facts."""
+    heard = set(state.adventure_possibility_ids)
+    if not heard or not isinstance(world, dict):
+        return []
+    rows: list[dict[str, str]] = []
+    for quest in world.get("quests", []):
+        if not isinstance(quest, dict) or quest.get("record_kind") != "dynamic":
+            continue
+        if quest.get("status") not in {"DISCOVERED", "ACTIVE", "BLOCKED", "COMPLETED", "FAILED"}:
+            continue
+        quest_id = quest.get("quest_id")
+        if not isinstance(quest_id, str):
+            continue
+        fact_id = f"adv:possibility:{quest_id.replace('.', '-')}"
+        if fact_id not in heard:
+            continue
+        text = quest.get("description")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        rows.append({
+            "claim_type": ClaimType.ADVENTURE_POSSIBILITY.value,
+            "text": text,
+        })
+    return rows
 
 
 def _known_factions(state: CampaignLoreState, registry: LoreRegistry) -> list[dict[str, Any]]:

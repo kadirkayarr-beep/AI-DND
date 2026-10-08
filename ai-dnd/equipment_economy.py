@@ -338,6 +338,33 @@ def consent(npc, item, operation, recipient):
     del grants[item["item_id"]]
 
 
+def grant_catalog_item(world, identity):
+    """Place one existing catalog weapon in the player inventory."""
+    weapon = lookup(identity)
+    if weapon is None or weapon.get("magic_attack_bonus") or weapon.get("magic_damage_bonus"):
+        fail("reward_source_unavailable")
+    materialize(world)
+    sequence = world.get("item_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    reserved = {
+        item.get("item_id")
+        for _, items in containers(world)
+        for item in items
+        if isinstance(item, dict)
+    }
+    while True:
+        sequence += 1
+        item_id = f"item_{sequence:06d}"
+        if item_id not in reserved:
+            break
+    record = {"item_id": item_id, "name": weapon["name"], "weapon_id": weapon["weapon_id"]}
+    world["inventory"].append(record)
+    world["item_sequence"] = sequence
+    validate_world(world)
+    return record
+
+
 def pay(world, payer, recipient, amount, *, reward_id=None):
     if type(amount) is not int or amount < 0:
         fail("invalid_price")

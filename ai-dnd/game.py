@@ -13,6 +13,9 @@ import sys
 import types
 from uuid import uuid4
 from quest_catalog import catalog as quest_catalog, find_quest
+import adventure
+import adventure.director as adventure_director
+import adventure.play as adventure_play
 import living_world
 import local_dialogue
 import local_exploration
@@ -1628,6 +1631,7 @@ def _player_state_for_save():
         "max_hp": _session().character["max_hp"],
         "current_hp": _session().character["current_hp"],
         "armor_class": _session().character["armor_class"],
+        "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
 
 
@@ -1805,6 +1809,8 @@ def _validate_save_payload(payload):
     }
     if not required_player.issubset(player):
         raise ValueError("Kayıt oyuncu alanları eksik.")
+    if "xp" in player and (type(player["xp"]) is not int or player["xp"] < 0):
+        raise ValueError("Kayıt deneyim alanı geçersiz.")
 
     required_world = {
         "location", "locations", "npcs", "inventory", "doors", "features",
@@ -1926,6 +1932,9 @@ def _validate_save_payload(payload):
         raise ValueError("Görev olay kimliği yineleniyor.")
     quest_ids = set()
     for quest in quests:
+        if isinstance(quest, dict) and set(quest) != adventure.LEGACY_QUEST_FIELDS:
+            adventure.validate_dynamic_saved_quest(quest, quest_ids)
+            continue
         quest_fields = {
             "quest_id", "title", "description", "giver_npc_id", "status",
             "objectives", "created_turn", "accepted_turn", "updated_turn",
@@ -2122,6 +2131,8 @@ def load_game(path):
                       "wisdom", "charisma", "level", "proficiency_bonus",
                       "max_hp", "current_hp", "armor_class"):
             character[field] = int(player[field])
+        if "xp" in player:
+            character["xp"] = player["xp"]
         character["proficient_skills"] = list(player["proficient_skills"])
         character["expertise_skills"] = list(
             player.get("expertise_skills", [])
@@ -5596,6 +5607,7 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
                     death["noncombat_next_save_at"] = deadline + 6
         if remaining == 0 or result["interrupted"] or ensure_death_state()["dead"]:
             break
+    adventure_play.settle_session(_session())
     return dict(result, elapsed_seconds=elapsed, requested_seconds=seconds,
                 remaining_seconds=remaining, before=before, player_known_events=known,
                 death_results=death_results)
@@ -11322,6 +11334,113 @@ class TurnResolved(Exception):
         self.resolved_turn = resolved_turn
 
 
+def _hideout_check(skill, dc):
+    """Dice stay with the existing check owner. The hideout only hears success."""
+    character = _session().character
+    result = perform_skill_check(
+        skill,
+        dc,
+        character["modifiers"],
+        character.get("proficient_skills") or [],
+        character.get("proficiency_bonus") or 2,
+        expertise_skills=character.get("expertise_skills") or (),
+    )
+    return result["result"] == "BAŞARILI"
+
+
+def _adventure_scene_turn(player_input):
+    """Resolve a quest check or a known place change before the model narrates it."""
+    session = _session()
+    world = session.world_state
+    if not any(
+        isinstance(quest, dict)
+        and quest.get("record_kind") == "dynamic"
+        and quest.get("status") == "ACTIVE"
+        for quest in world.get("quests", [])
+    ):
+        return None
+    if adventure_play.inside_hideout(world):
+        return None
+    if not isinstance(player_input, str):
+        return None
+    prepared = player_input.replace("İ", "i").replace("I", "ı")
+    check = deterministic_check_for_action(prepared)
+    if isinstance(check, dict) and check.get("skill") == "Investigation":
+        return _adventure_check_reply(session, "Investigation")
+    folded = player_input.casefold()
+    if not re.search(r"\b(?:gidiyorum|git|donuyorum|dönüyorum)\b", folded):
+        return None
+    for word in ("orman", "taverna", "kale", "neverwinter"):
+        if word in folded:
+            destination = resolve_location_reference(word)
+            if (
+                isinstance(destination, str)
+                and destination != world.get("location")
+                and destination in world.get("locations", {})
+            ):
+                return _adventure_travel_reply(session, destination)
+    return None
+
+
+def _adventure_check_reply(session, skill):
+    before = copy.deepcopy(session.world_state)
+    passed = _hideout_check(skill, DIFFICULTY_DC["medium"])
+    flags = session.world_state.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    evidence = {
+        "action": "skill_check",
+        "skill": skill,
+        "success": passed,
+        "status": "resolved",
+        "action_id": f"adventure-check:{flags['turn_index']}:{skill}",
+        "state_changes": [],
+    }
+    session.evaluate_quest_events(before, evidence)
+    narration = "İncelemen yeni bir izi ortaya çıkardı." if passed else "Bu bakış yeni bir iz çıkarmadı."
+    session.messages.extend([
+        {"role": "user", "content": skill},
+        {"role": "assistant", "content": narration},
+    ])
+    return {
+        "messages": session.messages,
+        "narration": narration,
+        "model_calls": 0,
+        "action_result": {
+            "action": "adventure_check",
+            "success": passed,
+            "status": "resolved",
+            "state_changes": [],
+        },
+    }
+
+
+def _adventure_travel_reply(session, destination):
+    before = copy.deepcopy(session.world_state)
+    commit_location_change(destination)
+    flags = session.world_state.setdefault("flags", {})
+    flags["turn_index"] = flags.get("turn_index", 0) + 1
+    action_result = {
+        "action": "travel",
+        "success": True,
+        "status": "resolved",
+        "state_changes": ["location"],
+    }
+    session.evaluate_quest_events(before, action_result)
+    record = session.world_state.get("locations", {}).get(destination, {})
+    name = record.get("name") if isinstance(record, dict) and isinstance(record.get("name"), str) else destination
+    narration = f"{name} konumuna vardın."
+    session.messages.extend([
+        {"role": "user", "content": destination},
+        {"role": "assistant", "content": narration},
+    ])
+    return {
+        "messages": session.messages,
+        "narration": narration,
+        "model_calls": 0,
+        "action_result": action_result,
+    }
+
+
 def run_player_turn(
     player_input,
     messages=None,
@@ -11332,6 +11451,7 @@ def run_player_turn(
     combat_action=None,
     interaction_mode=None,
 ):
+    _session()._adventure_player_text = player_input if isinstance(player_input, str) else ""
     before = copy.deepcopy(_session().world_state)
     result = _dispatch_player_turn(
         player_input,
@@ -11343,6 +11463,18 @@ def run_player_turn(
         combat_action,
         interaction_mode,
     )
+    action_result = result.get("action_result") if isinstance(result, dict) else None
+    if (
+        isinstance(action_result, dict)
+        and action_result.get("action") in {"action_economy", "attack", "death_save"}
+        and not action_result.get("quest_outcomes")
+    ):
+        transitions = _session().evaluate_quest_events(before, action_result)
+        if transitions:
+            action_result["quest_outcomes"] = transitions
+            evidence = result.get("_engine_event_evidence")
+            if isinstance(evidence, dict):
+                evidence["quest_outcomes"] = copy.deepcopy(transitions)
     # Direct locked-owner routes bypass finish_turn; consume their resolved clock
     # and outcomes here without altering their mechanics or call budget.
     if not result.pop("_interaction_consumed", False):
@@ -11429,6 +11561,17 @@ def _dispatch_player_turn(
                     e.resolved_turn, player_input, messages, target_id
                 )
 
+    if (
+        combat_action is None
+        and interaction_mode not in {"say", "ask_dm"}
+        and not _session().world_state.get("combat", {}).get("active")
+    ):
+        hideout = adventure_play.resolve_dungeon_turn(_session(), player_input, _hideout_check)
+        if hideout is not None:
+            return hideout
+        scene = _adventure_scene_turn(player_input)
+        if scene is not None:
+            return scene
     import exploration
     if (combat_action is None and _session().character.get("current_hp", 0) > 0
             and exploration.native_request(player_input, _session())):
@@ -12458,9 +12601,15 @@ def _run_player_turn_internal(
             npc_target=npc_target,
             target_id=target_id,
         )
+        quest_transitions = _session().evaluate_quest_events(
+            quest_world_before, action_result
+        )
+        if quest_transitions:
+            action_result["quest_outcomes"] = quest_transitions
         return finish_turn(
             action_result,
             _combat_narration(action_result),
+            quest_transitions,
             is_final=True,
         )
 
@@ -12952,7 +13101,17 @@ def _run_player_turn_internal(
     if action_result.get("action") in {"attack", "death_save"}:
         # Reuse the existing mechanical renderer. Do not send a not-yet-saved
         # combat outcome to a model before the API receipt transaction succeeds.
-        return finish_turn(action_result, _combat_narration(action_result), is_final=True)
+        quest_transitions = _session().evaluate_quest_events(
+            quest_world_before, action_result
+        )
+        if quest_transitions:
+            action_result["quest_outcomes"] = quest_transitions
+        return finish_turn(
+            action_result,
+            _combat_narration(action_result),
+            quest_transitions,
+            is_final=True,
+        )
 
     proposed_entry = action_result.get("action") == "travel" and action_result.get("completion") == "completed"
     allow_new_locations = bool(action_result.get("proposal_required"))
@@ -13214,6 +13373,8 @@ class GameSession:
         self.require_player_can_act()
         existing = next((item for item in self.world_state["quests"]
                          if item.get("quest_id") == quest_id), None)
+        if existing is not None and existing.get("record_kind") == "dynamic":
+            return adventure_play.accept(self, quest_id)
         if existing is not None:
             return {"transition": None, "quest": copy.deepcopy(existing)}
         definition = next(
@@ -13233,6 +13394,8 @@ class GameSession:
         self.require_player_can_act()
         existing = next((item for item in self.world_state["quests"]
                          if item.get("quest_id") == quest_id), None)
+        if existing is not None and existing.get("record_kind") == "dynamic":
+            return adventure_play.abandon(self, quest_id)
         if existing is None:
             definition = next(
                 (item for item in self.quest_offers() if item["quest_id"] == quest_id),
@@ -13341,7 +13504,58 @@ class GameSession:
                         ))
             if event_matched:
                 processed.append(source_id)
+        transitions.extend(_dynamic_engine_transitions(
+            adventure.apply_dynamic_evidence(world, before_world, action_result),
+            world,
+        ))
+        adventure_play.after_turn(self, before_world, action_result)
         return transitions
+
+
+def _dynamic_engine_transitions(notes, world):
+    """Shape dynamic completions for the existing engine-evidence contract."""
+    turn = world.get("flags", {}).get("turn_index", 0) if isinstance(world, dict) else 0
+    if type(turn) is not int:
+        turn = 0
+    shaped = []
+    touched = []
+    for note in notes or []:
+        if not isinstance(note, dict):
+            continue
+        quest_id = note.get("quest_id")
+        objective_id = note.get("objective_id")
+        if not isinstance(quest_id, str) or not isinstance(objective_id, str):
+            continue
+        shaped.append({
+            "event_id": f"quest:objective_completed:{quest_id}:{objective_id}:{turn}",
+            "quest_id": quest_id,
+            "transition": "objective_completed",
+            "objective_id": objective_id,
+            "source_event_id": f"dynamic:{quest_id}:{objective_id}:{turn}",
+            "turn_index": turn,
+        })
+        if quest_id not in touched:
+            touched.append(quest_id)
+    quests = world.get("quests", []) if isinstance(world, dict) else []
+    for quest_id in touched:
+        quest = next(
+            (
+                item for item in quests
+                if isinstance(item, dict) and item.get("quest_id") == quest_id
+            ),
+            None,
+        )
+        if not isinstance(quest, dict) or quest.get("status") != "COMPLETED":
+            continue
+        shaped.append({
+            "event_id": f"quest:completed:{quest_id}:{turn}",
+            "quest_id": quest_id,
+            "transition": "completed",
+            "objective_id": None,
+            "source_event_id": f"dynamic:{quest_id}:completed:{turn}",
+            "turn_index": turn,
+        })
+    return shaped
 
 
 def _session():

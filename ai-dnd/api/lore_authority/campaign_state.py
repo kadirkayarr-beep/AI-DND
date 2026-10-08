@@ -8,11 +8,17 @@ from typing import TYPE_CHECKING, Iterable
 from .models import (
     LORE_PAYLOAD_VERSION,
     MAX_CAMPAIGN_OVERRIDES,
+    MAX_REFERENCE_LENGTH,
     BindingStatus,
     CampaignCanonOverride,
     CampaignLoreState,
+    ClaimType,
     EntityType,
     FactionStanding,
+    LoreFact,
+    LoreLayer,
+    ReviewStatus,
+    SourceTier,
     VisibilityScope,
 )
 
@@ -145,6 +151,61 @@ def record_player_discovery(
         state,
         player_known_fact_ids=state.player_known_fact_ids + (fact_id,),
         lore_discoveries=state.lore_discoveries + (fact_id,),
+    )
+
+
+def adventure_possibility_id(quest_id: str) -> str:
+    """Stable id for one heard rumor. Dots are not valid lore ids."""
+    if not isinstance(quest_id, str) or not quest_id.strip():
+        raise ValueError("Adventure possibility id is invalid.")
+    safe = quest_id.replace(".", "-")
+    return _validated_id(f"adv:possibility:{safe}", "Adventure possibility ID")
+
+
+def record_adventure_possibility(
+    state: CampaignLoreState,
+    quest_id: str,
+    rumor: str,
+    *,
+    evidence: EngineActionEvidence | None,
+    source_action_id: str,
+    turn_index: int,
+) -> CampaignLoreState:
+    """Record a heard rumor. It is not a campaign canon fact."""
+    if state.binding_status is not BindingStatus.BOUND:
+        raise ValueError("An unbound legacy campaign cannot hear an adventure rumor.")
+    if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
+        raise ValueError("Adventure rumor requires Python engine evidence.")
+    if not isinstance(rumor, str) or not rumor.strip():
+        raise ValueError("Adventure rumor is empty.")
+    fact_id = adventure_possibility_id(quest_id)
+    subject_id = _validated_id(f"adv:{quest_id.replace('.', '-')}", "Adventure subject ID")
+    LoreFact.from_mapping({
+        "fact_id": fact_id,
+        "subject_id": subject_id,
+        "predicate": "rumor_text",
+        "object_id_or_value": rumor.strip()[:MAX_REFERENCE_LENGTH],
+        "claim_type": ClaimType.ADVENTURE_POSSIBILITY.value,
+        "authority_tier": SourceTier.TIER_5_PROCEDURAL.value,
+        "source_id": "src:adventure-engine",
+        "source_reference": "python-engine",
+        "valid_from": None,
+        "valid_until": None,
+        "visibility": VisibilityScope.REGIONAL_KNOWLEDGE.value,
+        "region_scope": None,
+        "notes": "",
+        "reality_layer": LoreLayer.PROCEDURAL_LOCAL_FICTION.value,
+        "review_status": ReviewStatus.UNREVIEWED_EXTRACTED.value,
+    })
+    if fact_id in state.adventure_possibility_ids:
+        return state
+    if fact_id in state.player_known_fact_ids:
+        raise ValueError("Adventure rumor cannot be stored as a campaign fact.")
+    from dataclasses import replace
+
+    return replace(
+        state,
+        adventure_possibility_ids=state.adventure_possibility_ids + (fact_id,),
     )
 
 

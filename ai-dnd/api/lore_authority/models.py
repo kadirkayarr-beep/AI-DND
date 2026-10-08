@@ -645,6 +645,7 @@ class CampaignLoreState:
     procedural_entity_refs: tuple[str, ...] = ()
     lore_discoveries: tuple[str, ...] = ()
     faction_standings: tuple[FactionStanding, ...] = ()
+    adventure_possibility_ids: tuple[str, ...] = ()
     lore_payload_version: int = 1
 
     @classmethod
@@ -674,6 +675,7 @@ class CampaignLoreState:
                 "region_pack_id",
                 "starting_location_entity_id",
                 "faction_standings",
+                "adventure_possibility_ids",
                 "lore_payload_version",
             },
             label="Campaign Lore Authority state",
@@ -746,6 +748,11 @@ class CampaignLoreState:
             MAX_CAMPAIGN_FACT_IDS,
         )
         faction_standings = _faction_standings(data.get("faction_standings", []))
+        possibility_ids = _campaign_id_list(
+            data.get("adventure_possibility_ids", []),
+            "Campaign adventure_possibility_ids",
+            MAX_CAMPAIGN_FACT_IDS,
+        )
         payload_version = data.get("lore_payload_version", 1)
         if type(payload_version) is not int or payload_version not in {1, LORE_PAYLOAD_VERSION}:
             raise ValueError("Campaign lore payload version is invalid.")
@@ -782,6 +789,7 @@ class CampaignLoreState:
             procedural_entity_refs=procedural_refs,
             lore_discoveries=discoveries,
             faction_standings=faction_standings,
+            adventure_possibility_ids=possibility_ids,
             lore_payload_version=payload_version,
         )
 
@@ -803,6 +811,7 @@ class CampaignLoreState:
             "procedural_entity_refs": list(self.procedural_entity_refs),
             "lore_discoveries": list(self.lore_discoveries),
             "faction_standings": [item.to_dict() for item in self.faction_standings],
+            "adventure_possibility_ids": list(self.adventure_possibility_ids),
             "lore_payload_version": self.lore_payload_version,
         }
 
