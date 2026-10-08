@@ -148,5 +148,13 @@
       "status": "PARTIAL"
     }
   ],
-  "expansion_verdict": "NO-GO for full emergent-storytelling release. Proposal repair 5ee76ba lets Python fill omitted structure without inventing a premise. One live Neverwinter ACCEPT and the 50/100-turn budget smokes passed. The city loops did not surface an incident, so NPC continuity, rewards, and incident-to-adventure play are still unproven. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
+  "npc_continuity": {
+    "deterministic": "PASS",
+    "evidence": "test_incident_continuity: Neverwinter arrival accepted, talk affordance promotes one NPC, relationship +1 via relationships.note, save/resume keeps the id, four Harptos days later the same id is still at the city. Look does not promote. City-chatter text is not an arrival or look trigger.",
+    "live": "PASS_ONE_CASE",
+    "live_evidence": "qwen3:8b through AuthenticatedOllamaAdapter: 1 call, ACCEPT, person yolcu promoted to npc_001, talk used 0 calls, resume kept the id, relationship score 1, public name hid the personal name, no quest, hidden facts stayed out of the scene packet.",
+    "release": "NO-GO"
+  },
+  "contract_parity": "UNRESOLVED_SEPARATE. Focused incident tests are not evidence that test_contract_parity passed.",
+  "expansion_verdict": "NO-GO for live release. One deterministic continuity path and one live Neverwinter promotion passed. That does not close rewards, companions, incident-to-adventure play, or the older contract-parity failures. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
 }
