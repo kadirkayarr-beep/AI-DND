@@ -35,6 +35,15 @@ def detect(world, *, action_result, player_text, location_changed):
     here = world.get("location")
     if not isinstance(here, str):
         return None
+    from incidents.bridge import aftermath_seed
+    aftermath = aftermath_seed(action_result)
+    if aftermath is not None:
+        return {
+            "kind": "aftermath",
+            "location_id": here,
+            "source_location_id": here,
+            "source_event_id": aftermath["source_event_id"],
+        }
     record = world.get("locations", {}).get(here, {})
     loc_type = record.get("type") if isinstance(record, dict) else None
     if location_changed or (

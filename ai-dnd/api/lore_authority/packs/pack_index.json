@@ -9,6 +9,16 @@
     {
       "pack_id": "fr:pack:incomplete:v1",
       "coverage_status": "INCOMPLETE"
+    },
+    {
+      "pack_id": "fr:pack:waterdeep:v1",
+      "extraction": "waterdeep_v1.extraction.json",
+      "coverage_status": "INCOMPLETE"
+    },
+    {
+      "pack_id": "fr:pack:baldurs_gate:v1",
+      "extraction": "baldurs_gate_v1.extraction.json",
+      "coverage_status": "INCOMPLETE"
     }
   ]
 }

@@ -127,6 +127,22 @@ def _adventure_possibilities(state: CampaignLoreState, world: Any) -> list[dict[
             "claim_type": ClaimType.ADVENTURE_POSSIBILITY.value,
             "text": text,
         })
+    incidents = world.get("incidents", {})
+    if isinstance(incidents, dict):
+        from api.lore_authority.campaign_state import adventure_possibility_id
+        for incident_id, record in incidents.items():
+            if not isinstance(incident_id, str) or not isinstance(record, dict):
+                continue
+            fact_id = adventure_possibility_id(incident_id)
+            if fact_id not in heard:
+                continue
+            text = record.get("premise")
+            if not isinstance(text, str) or not text.strip():
+                continue
+            rows.append({
+                "claim_type": ClaimType.ADVENTURE_POSSIBILITY.value,
+                "text": text,
+            })
     return rows
 
 

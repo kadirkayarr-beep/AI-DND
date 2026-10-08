@@ -1,0 +1,25 @@
+{
+  "extraction_status": "REVIEW_REQUIRED",
+  "engine_review_status": "UNREVIEWED_EXTRACTED",
+  "pack": {
+    "schema_version": 1,
+    "sources": [
+      {
+        "source_id": "SOURCE_FR_HEROES_2025",
+        "title": "Forgotten Realms: Heroes of Faerun",
+        "publisher": "Owner-provided PDF",
+        "publication_year": 2025,
+        "edition_family": "D&D 5e",
+        "source_tier": "TIER_2_OFFICIAL_5E",
+        "setting": "Forgotten Realms",
+        "region_scope": null,
+        "authority_status": "unreviewed",
+        "owner_access_status": "authorized",
+        "notes": "Draft pack only. No Baldurs Gate constraints loaded. Profile stays DISABLED until owner review."
+      }
+    ],
+    "entities": [],
+    "edges": [],
+    "facts": []
+  }
+}
