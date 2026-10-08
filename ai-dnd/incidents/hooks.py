@@ -8,7 +8,7 @@ never calls a model.
 from __future__ import annotations
 
 import emergence_audit
-from incidents import arbiter, attempts, awareness, commit, generator, npcs, profiles, props, sublocations, triggers
+from incidents import arbiter, attempts, awareness, commit, generator, npcs, profiles, props, rewards, sublocations, triggers
 from incidents import envelope as envelope_owner
 
 PENDING_ATTR = "_emergence_pending"
@@ -105,3 +105,14 @@ def after_turn(session, before_world, action_result):
     npcs.apply_action(world, action_result, session=session)
     props.apply_action(world, action_result, session=session)
     sublocations.apply_action(world, action_result)
+    rewards.apply_action(world, action_result)
+    npc_id = action_result.get("npc_id")
+    delta = action_result.get("relationship_delta")
+    if isinstance(npc_id, str) and type(delta) is int:
+        import relationships
+        reason = action_result.get("relationship_reason") or f"{record_reason(action_result)}:{npc_id}"
+        relationships.note(world, npc_id, delta, reason)
+
+
+def record_reason(action_result):
+    return str(action_result.get("action") or "incident")

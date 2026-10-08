@@ -1833,6 +1833,9 @@ def _validate_save_payload(payload):
         import incidents.state
         incidents.load_incidents(saved_world)
         incidents.state.read(saved_world)
+    if "relationships" in saved_world:
+        import relationships
+        relationships.validate(saved_world["relationships"])
     if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
