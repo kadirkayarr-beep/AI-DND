@@ -94,6 +94,25 @@
       "sourcebook_ingestion": "deferred_until_E80_E81",
       "protected_refs_unchanged": true,
       "status": "PASS"
+    },
+    {
+      "gate": "G",
+      "packages": ["E35", "E36", "E37", "E38", "E80", "E81"],
+      "head": "16891887ac53fe2c3b622d23db558c25c8342c3b",
+      "commit_range": "47dfee3..1689188",
+      "focused_tests": {
+        "modules": ["test_incident_gate_g"],
+        "count": 6,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_incident_gate_a", "test_incident_gate_d", "test_lore_authority", "test_campaign_starts", "test_adventure_release", "test_campaign_lore_persistence"],
+        "result": "OK"
+      },
+      "live_generation": "BLOCKED",
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED_INCOMPLETE",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
     }
   ]
 }
