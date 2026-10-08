@@ -155,6 +155,44 @@
     "live_evidence": "qwen3:8b through AuthenticatedOllamaAdapter: 1 call, ACCEPT, person yolcu promoted to npc_001, talk used 0 calls, resume kept the id, relationship score 1, public name hid the personal name, no quest, hidden facts stayed out of the scene packet.",
     "release": "NO-GO"
   },
-  "contract_parity": "UNRESOLVED_SEPARATE. Focused incident tests are not evidence that test_contract_parity passed.",
-  "expansion_verdict": "NO-GO for live release. One deterministic continuity path and one live Neverwinter promotion passed. That does not close rewards, companions, incident-to-adventure play, or the older contract-parity failures. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
+  "contract_parity": {
+    "status": "PASS",
+    "command": "python -m unittest api.tests.test_contract_parity",
+    "head": "9af3b24e0ce29e03abeed142e87866a0e64c54e6",
+    "port_8008": "free_before_run",
+    "result": "Ran 90 tests in 650.209s OK",
+    "failures": 0,
+    "errors": 0,
+    "historical_9_failures_1_error": "Not reproduced on this isolated run. No contract YAML or serializer was changed for this run. Earlier killed or overlapping jobs are classified as environment/process interference, not as a current public-contract defect."
+  },
+  "validation_gates": {
+    "gate_1_real_triggers": {
+      "status": "PASS",
+      "head": "9af3b24e0ce29e03abeed142e87866a0e64c54e6",
+      "commits": ["385607ccc6682541e29fb2eea258a0402c514dae", "9af3b24e0ce29e03abeed142e87866a0e64c54e6"],
+      "short_live": {
+        "silence_rate": 0.55,
+        "arrival": "accepted inc.10782daacd5df64d2dab22f4 model_calls 1",
+        "look": "detected look_around, suppressed, model_calls 0",
+        "rest": "detected rest, suppressed, model_calls 0",
+        "repeat_model_calls": 0,
+        "resumed_same_incident": true,
+        "quests_unchanged": true,
+        "other_campaign_incidents": 0,
+        "hidden_facts_in_scene": false
+      },
+      "turns_50": {"executed": 50, "max_model_calls": 2, "turns_with_model": 17, "scene_incident_refs": 7, "quests_unchanged": true, "resume_checked": true},
+      "turns_100": {"executed": 100, "max_model_calls": 2, "turns_with_model": 31, "scene_incident_refs": 11, "quests_unchanged": true, "resume_checked": true}
+    },
+    "gate_2_consequences": {
+      "status": "PASS",
+      "head": "385607ccc6682541e29fb2eea258a0402c514dae",
+      "reward": "claim pays coin_small once through rewards.grant; second claim and narration do not pay; quest stays AVAILABLE; save/resume keeps the wallet",
+      "second_encounter": "known surface fact is in the narrator packet; personal name, hidden fact, and relationship reason are not; relationship string stays neutral",
+      "live_narration": {"model": "qwen3:8b", "model_calls": 1, "world_unchanged": true, "reply_mentions_private_name": false, "reply_applied": false},
+      "bridge": "bind returns None until a heard possibility and two NPCs exist; then one AVAILABLE quest, not accepted; second bind is None"
+    },
+    "gate_3_contract_parity": {"status": "PASS", "tests": 90, "failures": 0, "errors": 0}
+  },
+  "expansion_verdict": "NO-GO for live release. Trigger coverage, reward claim, safe reunion narration, the incident bridge, and an isolated contract-parity run passed. Independent lore review is still required. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
 }
