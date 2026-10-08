@@ -8,7 +8,7 @@ never calls a model.
 from __future__ import annotations
 
 import emergence_audit
-from incidents import arbiter, attempts, awareness, commit, generator, profiles, triggers
+from incidents import arbiter, attempts, awareness, commit, generator, npcs, profiles, props, sublocations, triggers
 from incidents import envelope as envelope_owner
 
 PENDING_ATTR = "_emergence_pending"
@@ -102,3 +102,6 @@ def after_turn(session, before_world, action_result):
         return
     commit.advance(world, before_location=before_world.get("location"))
     awareness.reveal_from_check(world, action_result)
+    npcs.apply_action(world, action_result, session=session)
+    props.apply_action(world, action_result, session=session)
+    sublocations.apply_action(world, action_result)

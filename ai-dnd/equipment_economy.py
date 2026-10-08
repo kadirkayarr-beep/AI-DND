@@ -365,6 +365,35 @@ def grant_catalog_item(world, identity):
     return record
 
 
+def grant_named_item(world, name):
+    """Place one non-magical named item. Catalog weapons keep their identity."""
+    if not isinstance(name, str) or not name.strip() or len(name) > 200:
+        fail("invalid_item_identity")
+    weapon = lookup(name)
+    if weapon is not None:
+        return grant_catalog_item(world, weapon["weapon_id"])
+    materialize(world)
+    sequence = world.get("item_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    reserved = {
+        item.get("item_id")
+        for _, items in containers(world)
+        for item in items
+        if isinstance(item, dict)
+    }
+    while True:
+        sequence += 1
+        item_id = f"item_{sequence:06d}"
+        if item_id not in reserved:
+            break
+    record = {"item_id": item_id, "name": name.strip()}
+    world["inventory"].append(record)
+    world["item_sequence"] = sequence
+    validate_world(world)
+    return record
+
+
 def pay(world, payer, recipient, amount, *, reward_id=None):
     if type(amount) is not int or amount < 0:
         fail("invalid_price")
