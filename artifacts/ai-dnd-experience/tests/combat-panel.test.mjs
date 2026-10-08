@@ -540,7 +540,7 @@ test('quest offers render server-owned giver, objectives, and both quest-ID comm
   assert.match(html, /Reach the forest/);
   assert.match(html, /Görevi veren: Mira/);
   assert.match(html, /Visit the forest twice/);
-  assert.match(html, /visit_location · forest · 2/);
+  assert.doesNotMatch(html, /visit_location/);
   assert.match(html, /data-testid="button-accept-quest-quest\.forest"/);
   assert.match(html, /data-testid="button-cancel-quest-quest\.forest"/);
   assert.equal((html.match(/data-quest-id="quest\.forest"/g) ?? []).length, 2);
@@ -573,9 +573,41 @@ test('accepted quest progress and cancellation use canonical returned state', ()
   });
 
   assert.match(html, /Sürüyor/);
-  assert.match(html, /1\/2/);
+  assert.match(html, /Visit the forest twice/);
+  assert.doesNotMatch(html, /1\/2/);
   assert.match(html, /data-testid="quest-command-outcome"/);
   assert.match(html, /Görev kabul edildi/);
   assert.match(html, /data-testid="button-cancel-accepted-quest-quest\.forest"/);
   assert.match(html, /Görevi iptal et/);
+});
+
+test('campaign adventures show rumor, clue, and outcome labels without internal ids', () => {
+  const html = renderQuestJournalSection({
+    quests: [],
+    offers: [],
+    knownNpcs: [],
+    onAccept() {},
+    onCancel() {},
+    acceptPending: false,
+    cancelPending: false,
+    hasError: false,
+    adventures: {
+      rumors: [
+        { label: 'Söylenti', text: 'Depoda bir ses duyulmuş.' },
+        { label: 'İpucu', text: 'Bir iz bul.' },
+      ],
+      active: [{ title: 'Kayıp kişi', summary: 'Bir muhafız kayıp.', objectives: ['Söylentiyi dinle'] }],
+      completed: [{ title: 'Kayıp kişi', summary: 'Ulaşıldı.', label: 'Doğrulandı', objectives: [] }],
+      failed: [{ title: 'Eski iz', summary: 'Süre doldu.', objectives: [] }],
+      timeline: ['Marek kayıp muhafız hakkında konuştu.'],
+      affordances: ['İz ara'],
+    },
+  });
+  assert.match(html, /Söylenti/);
+  assert.match(html, /İpucu/);
+  assert.match(html, /Depoda bir ses duyulmuş/);
+  assert.match(html, /Söylentiyi dinle/);
+  assert.match(html, /Doğrulandı/);
+  assert.match(html, /Sonuçsuz/);
+  assert.doesNotMatch(html, /MISSING_PERSON|template_version|objective_id|opportunity:/);
 });

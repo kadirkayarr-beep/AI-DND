@@ -432,6 +432,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         cancelPending={cancelQuest.isPending}
         hasError={acceptQuest.isError || cancelQuest.isError}
         commandNotice={commandNotice}
+        adventures={state.campaign_adventures}
       />
       <AdventureJournalSection adventure={state.adventure} />
     </section>
@@ -560,7 +561,15 @@ function StoryColumn({
       && participant.status === 'active'
       && participant.current_hp > 0,
   );
-  const actionSuggestions = getContextualActionSuggestions(state);
+  const actionSuggestions = [
+    ...getContextualActionSuggestions(state),
+    ...(state.campaign_adventures?.affordances ?? []).map((label) => ({
+      id: `adventure-${label}`,
+      label,
+      message: label,
+      mode: 'do' as const,
+    })),
+  ];
   const conversationTargets = (state.scene?.npcs ?? []).filter(
     (npc) => typeof npc.id === 'string' && typeof npc.name === 'string' && npc.name.trim().length > 0,
   );
@@ -630,9 +639,10 @@ function StoryColumn({
                 disabled={sending}
                 key={suggestion.id}
                 onClick={() => {
+                  const targetId = "targetId" in suggestion ? suggestion.targetId : undefined;
                   setInteractionMode(suggestion.mode);
-                  setConversationTargetId(suggestion.mode === 'say' ? (suggestion.targetId ?? '') : '');
-                  if (state.combat.active && suggestion.targetId) setCombatTargetId(suggestion.targetId);
+                  setConversationTargetId(suggestion.mode === 'say' ? (targetId ?? '') : '');
+                  if (state.combat.active && targetId) setCombatTargetId(targetId);
                   setMessage(suggestion.message);
                   messageInputRef.current?.focus();
                 }}
