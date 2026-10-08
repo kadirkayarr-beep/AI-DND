@@ -88,6 +88,9 @@ def evaluate(envelope, raw_or_data):
 
     if data["category"] not in envelope["allowed_categories"]:
         return _reject("category")
+    drawn = envelope["decisions"].get("category")
+    if drawn is not None and data["category"] != drawn:
+        return _reject("category")
     allowed_entities = set(envelope["allowed_entity_ids"])
     if any(ref not in allowed_entities for ref in data["existing_refs"]):
         return _reject("entity_ref")
