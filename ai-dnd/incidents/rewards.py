@@ -49,6 +49,9 @@ def grant(world, record, *, catalog_id=None):
         equipment_economy.pay(
             world, source, "player", coin, reward_id=record["incident_id"],
         )
+        wallets = world.get("currency", {})
+        if wallets.get(source) == 0:
+            wallets.pop(source, None)
         paid = {"kind": "coin", "amount_cp": coin}
     elif reward_class in {"trinket", "mundane_item"}:
         label = "keepsake"

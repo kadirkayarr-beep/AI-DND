@@ -5321,6 +5321,9 @@ def build_world_context(npc_target=None):
     scene_incidents = incident_projection.scene_annotation(world_state)
     if scene_incidents:
         context["scene_incidents"] = scene_incidents
+    known_history = incident_projection.known_history(world_state)
+    if known_history:
+        context["known_history"] = known_history
     door = _current_door()
     if door:
         context["door"] = {key: door.get(key) for key in ("name", "description", "locked", "open", "broken")}
@@ -12146,7 +12149,25 @@ def _run_player_turn_internal(
             "_procedural_ids_before": procedural_ids_before,
         }
 
+        def _incident_before_skipped_narration():
+            # Look, rest, and a completed move can be answered without a narrator.
+            # The incident owner still sees that authoritative action. A later
+            # narrated turn uses the existing door in _narrate_resolved_turn.
+            if not isinstance(action_result, dict):
+                return
+            emergence = incident_hooks.before_narration(
+                _session(),
+                action_result=action_result,
+                player_text=player_input,
+                location_changed=world_state.get("location") != quest_world_before.get("location"),
+            )
+            spent = emergence.get("model_calls") if isinstance(emergence, dict) else 0
+            if type(spent) is int and spent > 0:
+                nonlocal narration_model_calls
+                narration_model_calls += spent
+
         if is_final:
+            _incident_before_skipped_narration()
             result["_engine_event_evidence"].pop("_procedural_ids_before", None)
             if "telemetry" not in result["_engine_event_evidence"]:
                 result["_engine_event_evidence"]["telemetry"] = {
@@ -12186,6 +12207,7 @@ def _run_player_turn_internal(
             system_deterministic = True
 
         if system_deterministic:
+            _incident_before_skipped_narration()
             result["_engine_event_evidence"].pop("_procedural_ids_before", None)
             narration_src = "deterministic_system"
             if safety_handling in ("python_memory_response", "python_memory_fallback"):

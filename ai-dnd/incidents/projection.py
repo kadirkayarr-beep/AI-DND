@@ -47,6 +47,47 @@ def affordances(record, known):
     return labels[:4]
 
 
+def known_history(world):
+    """Player-known surface facts for people who remain here.
+
+    A closed incident can still be remembered. Hidden facts, private names,
+    and relationship reasons are not part of this packet.
+    """
+    here = world.get("location") if isinstance(world, dict) else None
+    rows = world.get("incidents") if isinstance(world, dict) else None
+    if not isinstance(rows, dict):
+        return []
+    npcs = {
+        npc.get("id"): npc for npc in world.get("npcs", [])
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str)
+    }
+    shown = []
+    for row in rows.values():
+        if not isinstance(row, dict) or row.get("location_id") != here:
+            continue
+        known = set(awareness.known_fact_ids(world, row.get("incident_id")))
+        hidden = set(row.get("hidden_fact_ids") or [])
+        facts = [
+            text for fact_id, text in (row.get("details") or {}).get("facts", {}).items()
+            if fact_id in known and fact_id not in hidden and isinstance(text, str)
+        ]
+        if not facts:
+            continue
+        people = []
+        for person in (row.get("details") or {}).get("people", {}).values():
+            if not isinstance(person, dict):
+                continue
+            npc = npcs.get(person.get("npc_id"))
+            if isinstance(npc, dict) and npc.get("name_known_to_player") is True and npc.get("name"):
+                people.append(npc["name"])
+            elif isinstance(person.get("label"), str):
+                people.append(person["label"])
+        shown.append({"people": people[:3], "facts": facts[:4]})
+        if len(shown) >= MAX_SCENE_INCIDENTS:
+            break
+    return shown
+
+
 def scene_annotation(world):
     """Return what the player may see about incidents at the current scene."""
     shown = []
