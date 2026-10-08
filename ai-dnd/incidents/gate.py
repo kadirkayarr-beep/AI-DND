@@ -92,9 +92,11 @@ def evaluate(envelope, raw_or_data):
     """
     try:
         if isinstance(raw_or_data, str):
-            data = proposal_schema.parse(raw_or_data)
+            data = proposal_schema.parse(raw_or_data, envelope)
         else:
-            data = proposal_schema.validate(copy.deepcopy(raw_or_data))
+            data = proposal_schema.validate(
+                proposal_schema.complete(copy.deepcopy(raw_or_data), envelope)
+            )
     except proposal_schema.ProposalError as error:
         return _reject(error.reason)
 

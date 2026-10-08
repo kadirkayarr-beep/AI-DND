@@ -48,7 +48,62 @@ def _mechanical_keys(value):
     return False
 
 
-def parse(raw):
+_STRUCTURAL = {
+    "existing_refs": [],
+    "hooks": [],
+    "check_categories": [],
+    "consequence_classes": [],
+    "people": [],
+    "props": [],
+    "hidden_facts": [],
+    "surface_facts": [],
+    "subscene": None,
+    "affiliation": None,
+    "expiry_hours": None,
+    "persistence_tier": 1,
+}
+
+
+def complete(data, envelope=None):
+    """Fill omitted structural keys. Does not invent premise text or shorten model text.
+
+    A supplied value is left for the Reality Gate, including values that conflict
+    with the envelope. Extra keys, over-long lists, and mechanical keys stay in
+    place so validate can hard-reject them. People, props, and subscenes the
+    model actually sent are preserved.
+    """
+    if not isinstance(data, dict):
+        return data
+    filled = dict(data)
+    decisions = envelope.get("decisions") if isinstance(envelope, dict) else None
+    if not isinstance(decisions, dict):
+        decisions = {}
+    if "category" not in filled and isinstance(decisions.get("category"), str):
+        filled["category"] = decisions["category"]
+    if "significance" not in filled:
+        filled["significance"] = decisions.get("significance") or "minor"
+    if "reward_class" not in filled:
+        filled["reward_class"] = decisions.get("reward_class") or "none"
+    for key, default in _STRUCTURAL.items():
+        if key not in filled:
+            filled[key] = json.loads(json.dumps(default))
+    people = filled.get("people")
+    if isinstance(people, list):
+        filled["people"] = [
+            dict(person, **{
+                "name": person.get("name", None),
+                "traits": person["traits"] if "traits" in person else [],
+                "backstory": person.get("backstory", None),
+            }) if isinstance(person, dict) else person
+            for person in people
+        ]
+    premise = filled.get("premise")
+    if "narrative_seed" not in data and isinstance(premise, str) and premise.strip() and len(premise) <= 300:
+        filled["narrative_seed"] = premise
+    return filled
+
+
+def parse(raw, envelope=None):
     """Parse model text once. Returns a validated dict or raises ProposalError."""
     if not isinstance(raw, str):
         raise ProposalError("malformed")
@@ -58,7 +113,9 @@ def parse(raw):
         data = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         raise ProposalError("malformed") from None
-    return validate(data)
+    if _mechanical_keys(data):
+        raise ProposalError("mechanical_ownership")
+    return validate(complete(data, envelope))
 
 
 def validate(data):

@@ -16,7 +16,7 @@ from api import ollama_adapter
 from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
-from incidents import arbiter, attempts, envelope, gate, horizon, rng, untrusted
+from incidents import arbiter, attempts, commit, envelope, gate, horizon, projection, proposal as proposal_schema, rng, untrusted
 from incidents import state as emergence_state
 from incidents.proposal import MAX_PROPOSAL_BYTES
 
@@ -211,6 +211,48 @@ class GateClassTests(unittest.TestCase):
             self.assertEqual(gate.evaluate(self.envelope, raw).outcome, gate.HARD_REJECT)
         self.assertEqual(gate.evaluate(self.envelope, "x" * (MAX_PROPOSAL_BYTES + 1)).reason, "oversize")
 
+    def test_incomplete_json_is_completed_from_envelope_without_inventing_premise(self):
+        raw = json.dumps({
+            "premise": "Mutfakta devrilmiş bir kasa var.",
+            "surface_facts": ["Elmalar yuvarlanmış."],
+            "hidden_facts": ["Kasa kasten tekmelenmiş."],
+            "people": [{"label": "telaşlı aşçı", "role": "cook", "traits": ["anxious"],
+                        "backstory": "Gece vardiyasında çalışır."}],
+            "props": [{"label": "kasa", "appearance": "Yarılmış çam kasa."}],
+            "subscene": {"label": "arka oda", "kind": "back_room", "description": "Un kokan dar oda."},
+            "hooks": ["help_cook"],
+        }, ensure_ascii=False)
+        result = gate.evaluate(self.envelope, raw)
+        self.assertIn(result.outcome, (gate.ACCEPT, gate.NORMALIZE))
+        normalized = result.normalized
+        self.assertEqual(normalized["category"], "disturbance")
+        self.assertEqual(normalized["premise"], "Mutfakta devrilmiş bir kasa var.")
+        self.assertEqual(normalized["narrative_seed"], "Mutfakta devrilmiş bir kasa var.")
+        self.assertEqual(normalized["people"][0]["traits"], ["anxious"])
+        self.assertEqual(normalized["people"][0]["backstory"], "Gece vardiyasında çalışır.")
+        self.assertEqual(normalized["props"][0]["label"], "kasa")
+        self.assertEqual(normalized["subscene"]["kind"], "back_room")
+        self.assertEqual(normalized["hooks"], ["help_cook"])
+        self.assertEqual(normalized["hidden_facts"], ["Kasa kasten tekmelenmiş."])
+        missing = json.dumps({"surface_facts": ["Bir kasa var."]})
+        self.assertEqual(gate.evaluate(self.envelope, missing).reason, "schema")
+        conflict = json.dumps({**_proposal(), "category": "royal_coup"})
+        refused = gate.evaluate(self.envelope, conflict)
+        self.assertEqual((refused.outcome, refused.reason), (gate.HARD_REJECT, "category"))
+        self.assertIsNone(refused.normalized)
+        supplied = proposal_schema.complete(
+            _proposal(reward_class="rare_find", persistence_tier=2), self.envelope,
+        )
+        self.assertEqual(supplied["reward_class"], "rare_find")
+        self.assertEqual(supplied["persistence_tier"], 2)
+        self.assertEqual(gate.evaluate(self.envelope, json.dumps(
+            {**_proposal(), "surface_facts": ["a", "b", "c", "d", "e"]}
+        )).reason, "schema")
+        self.assertEqual(gate.evaluate(self.envelope, json.dumps(
+            {**_proposal(), "surface_facts": ["x" * 201]}
+        )).reason, "schema")
+        self.assertEqual(ollama_adapter.MAX_MODEL_CALLS_PER_TURN, 2)
+
 
 class RngTests(unittest.TestCase):
     def kwargs(self):
@@ -377,6 +419,33 @@ class SqliteClaimTests(unittest.TestCase):
         with closing(CampaignStore(self.path)._connect()) as db:
             count = db.execute("SELECT COUNT(*) FROM campaign_emergence_attempts").fetchone()[0]
         self.assertEqual(count, 1)
+
+    def test_committed_incident_survives_save_and_resume_without_a_quest(self):
+        result = attempts.run(
+            attempts.SqliteAttemptStore(CampaignStore(self.path)),
+            campaign_id=self.campaign_id, envelope=self.envelope, world=self.world,
+            propose=lambda packet: json.dumps(_proposal()), model_id="qwen3:8b",
+        )
+        self.assertEqual(result.status, "ready")
+        quests_before = copy.deepcopy(self.world.get("quests", []))
+        incident_id = commit.commit(self.world, self.envelope, result.gate_result.normalized)
+        self.assertEqual(self.world.get("quests", []), quests_before)
+        shown = json.dumps(projection.scene_annotation(self.world), ensure_ascii=False)
+        self.assertIn("Apples roll across the floorboards.", shown)
+        self.assertNotIn("kicked over", shown)
+        self.assertEqual(commit.commit(self.world, self.envelope, result.gate_result.normalized), incident_id)
+        self.assertEqual(len(self.world["incidents"]), 1)
+        self.manager.save_campaign(self.campaign_id)
+        with self.manager._registry_lock:
+            session_id = self.manager._campaign_sessions.pop(self.campaign_id)
+            del self.manager._sessions[session_id]
+        _, resumed, _, _, _ = self.manager.resume_campaign(self.campaign_id)
+        loaded = resumed.game_session.world_state
+        self.assertEqual(loaded["incidents"][incident_id]["premise"], _proposal()["premise"])
+        self.assertEqual(loaded["incidents"][incident_id]["details"]["people"][
+            f"{incident_id}.n1"]["traits"], ["anxious"])
+        self.assertEqual(loaded.get("quests", []), quests_before)
+        self.assertNotIn("kicked over", json.dumps(projection.scene_annotation(loaded), ensure_ascii=False))
 
     def test_accept_finishes_inside_save_and_failed_save_keeps_replay(self):
         store = CampaignStore(self.path)
