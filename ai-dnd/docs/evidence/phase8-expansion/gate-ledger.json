@@ -113,6 +113,33 @@
       "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED_INCOMPLETE",
       "protected_refs_unchanged": true,
       "status": "PASS"
+    },
+    {
+      "gate": "wave7",
+      "packages": ["E39", "E40", "E41", "E42", "E43", "E44", "E45", "E46", "E47", "E48", "E49", "E50"],
+      "head": "3d0dcee",
+      "focused_tests": {"modules": ["test_incident_wave7", "test_adventure_phase8"], "result": "OK"},
+      "status": "PASS"
+    },
+    {
+      "gate": "I",
+      "packages": ["E51", "E52", "E53", "E54", "E55", "E56", "E57", "E58", "E83"],
+      "head": "61d60f6",
+      "focused_tests": {"modules": ["test_incident_wave8_9"], "result": "OK"},
+      "status": "PASS"
+    },
+    {
+      "gate": "J",
+      "packages": ["E59", "E60", "E61", "E62", "E63", "E64", "E65", "E66", "E67", "E84"],
+      "head": "94d3f04ed9946eee71fb5c0036ce6224927c9ec8",
+      "focused_tests": {"modules": ["test_incident_gate_j"], "result": "OK"},
+      "live_generation": "BLOCKED",
+      "live_generation_reason": "Ollama is unreachable; 50-turn and 100-turn smokes were not executed. Missing model is BLOCKED, not FAIL.",
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED",
+      "review_pending_is_pass": false,
+      "protected_refs_unchanged": true,
+      "status": "BLOCKED"
     }
-  ]
+  ],
+  "expansion_verdict": "NO-GO for live release. Implementation on phase8/emergent-storytelling-expansion is complete through E84 with focused tests OK. Live 50/100-turn smokes are BLOCKED (Ollama unreachable). Waterdeep and Baldur's Gate packs remain UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
 }
