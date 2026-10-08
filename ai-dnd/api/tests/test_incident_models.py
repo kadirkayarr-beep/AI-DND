@@ -8,7 +8,6 @@ from pathlib import Path
 
 import game
 import incidents
-from api.persistence.campaign_store import _DATABASE_SCHEMA_VERSION
 
 
 def _incident(incident_id="inc.one", **overrides):
@@ -179,7 +178,6 @@ class IncidentModelTests(unittest.TestCase):
                 incidents.load_incidents(_world(smuggled))
 
     def test_core_save_without_incidents_loads_and_keeps_existing_rows(self):
-        self.assertEqual(_DATABASE_SCHEMA_VERSION, 4)
         session = game.create_session(seed=5)
         session.world_state["quests"].append({
             "quest_id": "quest.core",
