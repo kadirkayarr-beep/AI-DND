@@ -16,6 +16,7 @@ import scheduled_events
 import timed_gameplay
 import exploration
 import interaction_adventure
+import adventure.projection as adventure_projection
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -660,6 +661,8 @@ def serialize_session_state(
         }
         for item in raw_quests
         if isinstance(item, dict)
+        and item.get("record_kind") != "dynamic"
+        and item.get("status") in {"accepted", "completed", "cancelled"}
     ]
     offers = [
         {
@@ -720,6 +723,10 @@ def serialize_session_state(
         "quests": quest_state,
         "quest_offers": offers,
         "adventure": interaction_adventure.public(world),
+        "campaign_adventures": adventure_projection.journal(
+            world,
+            lore_state if lore_state is not None else getattr(session, "campaign_lore_state", None),
+        ),
         **_known_projection(session, world, lore_state),
         "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),

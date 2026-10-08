@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdventureProjection } from './adventureProjection';
+import type { CampaignAdventureJournal } from './campaignAdventureJournal';
 import type { CampaignJournal } from './campaignJournal';
 import type { CampaignTime } from './campaignTime';
 import type { DeathStateProjection } from './deathStateProjection';
@@ -24,6 +25,8 @@ import type { GameSpellcasting } from './gameSpellcasting';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
+import type { KnownFactionStanding } from './knownFactionStanding';
+import type { KnownLoreFact } from './knownLoreFact';
 import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { PendingEventDecision } from './pendingEventDecision';
 import type { QuestOffer } from './questOffer';
@@ -61,19 +64,7 @@ export interface GameState {
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;
+  campaign_adventures: CampaignAdventureJournal;
   known_lore: KnownLoreFact[];
   known_factions: KnownFactionStanding[];
-}
-
-export interface KnownLoreFact {
-  fact_id: string;
-  title: string;
-  text: string;
-}
-
-export interface KnownFactionStanding {
-  faction_id: string;
-  title: string;
-  standing: number;
-  local_presence: boolean;
 }

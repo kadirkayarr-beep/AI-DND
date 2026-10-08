@@ -1267,6 +1267,40 @@ export interface AdventureProjection {
   recent_events: AdventureProjectionRecentEventsItem[];
 }
 
+export interface CampaignAdventureCard {
+  title?: string;
+  summary?: string;
+  label?: string;
+  text?: string;
+  objectives?: string[];
+}
+
+export interface CampaignAdventureJournal {
+  rumors: CampaignAdventureCard[];
+  active: CampaignAdventureCard[];
+  completed: CampaignAdventureCard[];
+  failed: CampaignAdventureCard[];
+  timeline: string[];
+  affordances: string[];
+}
+
+export interface KnownLoreFact {
+  fact_id: string;
+  title: string;
+  text: string;
+}
+
+export interface KnownFactionStanding {
+  faction_id: string;
+  title: string;
+  /**
+     * @minimum -5
+     * @maximum 5
+     */
+  standing: number;
+  local_presence: boolean;
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -1301,21 +1335,9 @@ export interface GameState {
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;
+  campaign_adventures: CampaignAdventureJournal;
   known_lore: KnownLoreFact[];
   known_factions: KnownFactionStanding[];
-}
-
-export interface KnownLoreFact {
-  fact_id: string;
-  title: string;
-  text: string;
-}
-
-export interface KnownFactionStanding {
-  faction_id: string;
-  title: string;
-  standing: number;
-  local_presence: boolean;
 }
 
 export interface GameSession {

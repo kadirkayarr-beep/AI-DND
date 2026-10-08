@@ -232,6 +232,9 @@ export const createGameSessionResponseStateQuestOffersItemObjectivesItemTargetMa
 
 export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const createGameSessionResponseStateKnownFactionsItemStandingMin = -5;
+export const createGameSessionResponseStateKnownFactionsItemStandingMax = 5;
+
 
 
 export const CreateGameSessionResponse = zod.object({
@@ -272,17 +275,6 @@ export const CreateGameSessionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -709,7 +701,50 @@ export const CreateGameSessionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createGameSessionResponseStateKnownFactionsItemStandingMin).max(createGameSessionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -928,6 +963,9 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemTargetMax =
 
 export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const getGameSessionStateResponseKnownFactionsItemStandingMin = -5;
+export const getGameSessionStateResponseKnownFactionsItemStandingMax = 5;
+
 
 
 export const GetGameSessionStateResponse = zod.object({
@@ -966,17 +1004,6 @@ export const GetGameSessionStateResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -1403,7 +1430,50 @@ export const GetGameSessionStateResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getGameSessionStateResponseKnownFactionsItemStandingMin).max(getGameSessionStateResponseKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -1629,6 +1699,9 @@ export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItem
 
 export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax = 5;
+
 export const resolveSpeciesTraitActionResponseResultMessageMax = 500;
 
 
@@ -1672,17 +1745,6 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -2109,7 +2171,50 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -2342,6 +2447,9 @@ export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectiv
 
 export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax = 5;
+
 export const resolveSpeciesTraitActionCompatResponseResultMessageMax = 500;
 
 
@@ -2385,17 +2493,6 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -2822,7 +2919,50 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -3097,6 +3237,9 @@ export const playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 1
 
 export const playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const playGameTurnResponseStateKnownFactionsItemStandingMin = -5;
+export const playGameTurnResponseStateKnownFactionsItemStandingMax = 5;
+
 export const playGameTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
 export const playGameTurnResponseCombatResultOneHpDamageMin = 0;
@@ -3280,17 +3423,6 @@ export const PlayGameTurnResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -3717,7 +3849,50 @@ export const PlayGameTurnResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(playGameTurnResponseStateKnownFactionsItemStandingMin).max(playGameTurnResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -4360,6 +4535,9 @@ export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax 
 
 export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const acceptGameQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const acceptGameQuestResponseStateKnownFactionsItemStandingMax = 5;
+
 export const acceptGameQuestResponseQuestQuestIdMax = 120;
 
 export const acceptGameQuestResponseQuestTitleMax = 160;
@@ -4426,17 +4604,6 @@ export const AcceptGameQuestResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -4863,7 +5030,50 @@ export const AcceptGameQuestResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(acceptGameQuestResponseStateKnownFactionsItemStandingMin).max(acceptGameQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -5109,6 +5319,9 @@ export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax 
 
 export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const cancelGameQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const cancelGameQuestResponseStateKnownFactionsItemStandingMax = 5;
+
 export const cancelGameQuestResponseQuestQuestIdMax = 120;
 
 export const cancelGameQuestResponseQuestTitleMax = 160;
@@ -5175,17 +5388,6 @@ export const CancelGameQuestResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -5612,7 +5814,50 @@ export const CancelGameQuestResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(cancelGameQuestResponseStateKnownFactionsItemStandingMin).max(cancelGameQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -5866,6 +6111,9 @@ export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItem
 
 export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax = 5;
+
 export const resolveAmbientEventActionResponseResultEventInstanceIdMax = 96;
 
 export const resolveAmbientEventActionResponseResultActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
@@ -5913,17 +6161,6 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -6350,7 +6587,50 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin).max(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
@@ -6724,6 +7004,9 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemTargetMax =
 
 export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const createCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const createCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -6823,17 +7106,6 @@ export const CreateCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -7260,7 +7532,50 @@ export const CreateCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createCampaignResponseStateKnownFactionsItemStandingMin).max(createCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -7692,6 +8007,9 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 16
 
 export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const getCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const getCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -7801,17 +8119,6 @@ export const GetCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -8238,7 +8545,50 @@ export const GetCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getCampaignResponseStateKnownFactionsItemStandingMin).max(getCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -8657,6 +9007,9 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemTargetMax =
 
 export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const resumeCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const resumeCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -8756,17 +9109,6 @@ export const ResumeCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -9193,7 +9535,50 @@ export const ResumeCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resumeCampaignResponseStateKnownFactionsItemStandingMin).max(resumeCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -9714,6 +10099,9 @@ export const createLegacySessionResponseStateQuestOffersItemObjectivesItemTarget
 
 export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const createLegacySessionResponseStateKnownFactionsItemStandingMin = -5;
+export const createLegacySessionResponseStateKnownFactionsItemStandingMax = 5;
+
 
 
 export const CreateLegacySessionResponse = zod.object({
@@ -9754,17 +10142,6 @@ export const CreateLegacySessionResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -10191,7 +10568,50 @@ export const CreateLegacySessionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createLegacySessionResponseStateKnownFactionsItemStandingMin).max(createLegacySessionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -10411,6 +10831,9 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemTargetMax
 
 export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const getLegacySessionStateResponseKnownFactionsItemStandingMin = -5;
+export const getLegacySessionStateResponseKnownFactionsItemStandingMax = 5;
+
 
 
 export const GetLegacySessionStateResponse = zod.object({
@@ -10449,17 +10872,6 @@ export const GetLegacySessionStateResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -10886,7 +11298,50 @@ export const GetLegacySessionStateResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getLegacySessionStateResponseKnownFactionsItemStandingMin).max(getLegacySessionStateResponseKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -11156,6 +11611,9 @@ export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax =
 
 export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const playLegacyTurnResponseStateKnownFactionsItemStandingMin = -5;
+export const playLegacyTurnResponseStateKnownFactionsItemStandingMax = 5;
+
 export const playLegacyTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
 export const playLegacyTurnResponseCombatResultOneHpDamageMin = 0;
@@ -11339,17 +11797,6 @@ export const PlayLegacyTurnResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -11776,7 +12223,50 @@ export const PlayLegacyTurnResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(playLegacyTurnResponseStateKnownFactionsItemStandingMin).max(playLegacyTurnResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -12498,6 +12988,9 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemTarge
 
 export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const createLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const createLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -12597,17 +13090,6 @@ export const CreateLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -13034,7 +13516,50 @@ export const CreateLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(createLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -13468,6 +13993,9 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMa
 
 export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const getLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const getLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -13577,17 +14105,6 @@ export const GetLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -14014,7 +14531,50 @@ export const GetLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(getLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -14434,6 +14994,9 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemTarge
 
 export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
 
+export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
 export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -14533,17 +15096,6 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "message": zod.string()
 }))
 }).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
-  "known_lore": zod.array(zod.object({
-  "fact_id": zod.string(),
-  "title": zod.string(),
-  "text": zod.string()
-})),
-  "known_factions": zod.array(zod.object({
-  "faction_id": zod.string(),
-  "title": zod.string(),
-  "standing": zod.number().int().min(-5).max(5),
-  "local_presence": zod.boolean()
-})),
   "campaign_time": zod.union([zod.object({
   "year": zod.number().int(),
   "month": zod.string(),
@@ -14970,7 +15522,50 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+}))
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),

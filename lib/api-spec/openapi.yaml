@@ -1559,6 +1559,41 @@ components:
               interruption: {type: string, enum: [player_confirmation]}
             required: [quote, precondition, depends_on, interruption]
       required: [plan_id, goal, status, cursor, location_id, steps]
+    CampaignAdventureCard:
+      type: object
+      additionalProperties: false
+      properties:
+        title: {type: string}
+        summary: {type: string}
+        label: {type: string}
+        text: {type: string}
+        objectives:
+          type: array
+          items: {type: string}
+      required: []
+    CampaignAdventureJournal:
+      type: object
+      additionalProperties: false
+      properties:
+        rumors:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        active:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        completed:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        failed:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        timeline:
+          type: array
+          items: {type: string}
+        affordances:
+          type: array
+          items: {type: string}
+      required: [rumors, active, completed, failed, timeline, affordances]
     GameState:
       type: object
       description: Public state projection produced by the API serializers.
@@ -1644,6 +1679,8 @@ components:
           items: {$ref: "#/components/schemas/QuestOffer"}
         adventure:
           $ref: "#/components/schemas/AdventureProjection"
+        campaign_adventures:
+          $ref: "#/components/schemas/CampaignAdventureJournal"
         known_lore:
           type: array
           items: {$ref: "#/components/schemas/KnownLoreFact"}
@@ -1673,6 +1710,7 @@ components:
         - turn_index
         - quests
         - quest_offers
+        - campaign_adventures
         - known_lore
         - known_factions
     KnownLoreFact:

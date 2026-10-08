@@ -24,6 +24,7 @@ import campaign_time
 import combat_lifecycle
 import scheduled_events
 import living_world
+import adventure.projection as adventure_projection
 from api.campaign_journal import (
     append_ambient_event_outcome,
     update_campaign_journal,
@@ -194,10 +195,14 @@ def _lore_context_for_turn(
 ) -> dict[str, Any]:
     state = getattr(record, "lore_authority", CampaignLoreState.legacy_unbound())
     if state.binding_status is not BindingStatus.BOUND:
-        return registry.retrieve_lore_context(
-            campaign_state=state,
-            player_message=player_message,
-            campaign_year=_campaign_lore_year(getattr(session, "world_state", None)),
+        return _with_player_adventure(
+            registry.retrieve_lore_context(
+                campaign_state=state,
+                player_message=player_message,
+                campaign_year=_campaign_lore_year(getattr(session, "world_state", None)),
+            ),
+            getattr(session, "world_state", None),
+            state,
         )
 
     world = session.world_state
@@ -238,17 +243,37 @@ def _lore_context_for_turn(
         and isinstance(quest_id := quest.get("quest_id"), str)
         and quest_id
     }
-    return registry.retrieve_lore_context(
-        current_location_id=current_location_id,
-        player_message=player_message,
-        mentioned_entity_ids=mentioned,
-        present_npc_ids=present_npc_ids,
-        active_quest_subject_ids=quest_subject_ids,
-        campaign_state=state,
-        target_npc_id=target_npc_id,
-        include_dm_secrets=False,
-        campaign_year=_campaign_lore_year(world),
+    return _with_player_adventure(
+        registry.retrieve_lore_context(
+            current_location_id=current_location_id,
+            player_message=player_message,
+            mentioned_entity_ids=mentioned,
+            present_npc_ids=present_npc_ids,
+            active_quest_subject_ids=quest_subject_ids,
+            campaign_state=state,
+            target_npc_id=target_npc_id,
+            include_dm_secrets=False,
+            campaign_year=_campaign_lore_year(world),
+        ),
+        world,
+        state,
     )
+
+
+def _with_player_adventure(context, world, lore_state=None):
+    """Attach the player-safe adventure slice without a new model call."""
+    if not isinstance(context, dict):
+        return context
+    packet = adventure_projection.model_packet(
+        world if isinstance(world, dict) else {},
+        lore_state,
+    )
+    candidate = dict(context)
+    candidate["player_adventure"] = packet
+    encoded = json.dumps(candidate, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > 12 * 1024:
+        return context
+    return candidate
 
 
 def _procedural_entity_refs(world_state: Any) -> set[str]:
@@ -909,6 +934,7 @@ def create_app(
                     lore_diagnostics.get("selected_fact_ids", []),
                 )
                 session.lore_authority_context = lore_context
+                session.campaign_lore_state = lore_authority_snapshot
                 with narrative_turn_context(
                     record.narrative_memory,
                     narrative_player_message,
@@ -1067,7 +1093,7 @@ def create_app(
                     record.lore_authority
                     if death_rolled_back
                     else _stage_engine_lore_state(
-                        lore_authority_snapshot,
+                        getattr(session, "campaign_lore_state", None) or lore_authority_snapshot,
                         engine_evidence,
                         action_result,
                         snapshot["save"].get("world_state", {}),
@@ -1253,6 +1279,7 @@ def create_app(
             except CampaignError as error:
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = narrative_memory_snapshot
@@ -1278,6 +1305,7 @@ def create_app(
             except Exception as error:
                 record.lore_authority = lore_authority_snapshot
                 _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = narrative_memory_snapshot
@@ -1345,14 +1373,20 @@ def create_app(
                     detail={"code": "quest_unavailable", "message": str(error)},
                 ) from None
             try:
+                lore_for_view = getattr(session, "campaign_lore_state", None) or record.lore_authority
+                if lore_for_view is not None:
+                    record.lore_authority = lore_for_view
                 state = serialize_session_state(session, record.journal, record.lore_authority)
+                quest_payload = result["quest"]
+                if quest_payload.get("record_kind") == "dynamic":
+                    quest_payload = adventure_projection.command_view(quest_payload)
                 public_quest = QuestState.model_validate(
                     {
-                    "quest_id": result["quest"]["quest_id"],
-                    "title": result["quest"]["title"],
-                    "description": result["quest"]["description"],
-                    "status": result["quest"]["status"],
-                    "giver_npc_id": result["quest"].get("giver_npc_id"),
+                    "quest_id": quest_payload["quest_id"],
+                    "title": quest_payload["title"],
+                    "description": quest_payload["description"],
+                    "status": quest_payload["status"],
+                    "giver_npc_id": quest_payload.get("giver_npc_id"),
                     "objectives": [
                         {
                             "objective_id": item["objective_id"],
@@ -1361,7 +1395,7 @@ def create_app(
                             "progress": item.get("progress", 0),
                             "required_count": item.get("required_count", 1),
                         }
-                        for item in result["quest"]["objectives"]
+                        for item in quest_payload["objectives"]
                     ],
                     }
                 )
