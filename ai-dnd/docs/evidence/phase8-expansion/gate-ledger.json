@@ -26,6 +26,24 @@
       "live_generation": "off",
       "protected_refs_unchanged": true,
       "status": "PASS"
+    },
+    {
+      "gate": "B",
+      "packages": ["E08", "E09", "E10", "E11", "E12", "E13", "E71", "E72", "E74"],
+      "head": "af4d6d3f1b43e543f71532c0fe41551eb6c0f238",
+      "commit_range": "9a1f696..af4d6d3",
+      "focused_tests": {
+        "modules": ["test_incident_gate_b", "test_incident_gate_a", "test_incident_projection"],
+        "count": 39,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_contract_parity", "test_campaign_persistence", "test_persistence_idempotency", "test_adventure_release", "test_model_isolation"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
     }
   ]
 }
