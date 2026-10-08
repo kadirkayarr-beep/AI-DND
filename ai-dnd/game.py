@@ -1826,9 +1826,11 @@ def _validate_save_payload(payload):
         raise ValueError("Kayıt envanteri geçersiz.")
     if interaction_adventure.KEY in saved_world:
         interaction_adventure.validate(saved_world[interaction_adventure.KEY], saved_world)
-    if "incidents" in saved_world:
+    if "incidents" in saved_world or "emergence_state" in saved_world:
         import incidents
+        import incidents.state
         incidents.load_incidents(saved_world)
+        incidents.state.read(saved_world)
     if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
