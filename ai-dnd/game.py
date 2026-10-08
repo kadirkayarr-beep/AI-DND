@@ -16,6 +16,8 @@ from quest_catalog import catalog as quest_catalog, find_quest
 import adventure
 import adventure.director as adventure_director
 import adventure.play as adventure_play
+import incidents.hooks as incident_hooks
+import incidents.projection as incident_projection
 import living_world
 import local_dialogue
 import local_exploration
@@ -5304,6 +5306,9 @@ def build_world_context(npc_target=None):
             if event.get("location") == world_state["location"]
         ],
     }
+    scene_incidents = incident_projection.scene_annotation(world_state)
+    if scene_incidents:
+        context["scene_incidents"] = scene_incidents
     door = _current_door()
     if door:
         context["door"] = {key: door.get(key) for key in ("name", "description", "locked", "open", "broken")}
@@ -11691,6 +11696,10 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         or resolved_turn.allow_new_shops
         or resolved_turn.allow_new_locations
     )
+    emergence = incident_hooks.before_narration(
+        _session(), action_result=resolved_turn.action_result, player_text=player_input,
+        location_changed=bool(resolved_turn.expected_location_change),
+    )
     narration_model_calls = 1
     packet = ask_dungeon_master(
         messages,
@@ -11859,7 +11868,7 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         narration_source = "deterministic_fallback"
 
     intent_calls = resolved_turn.intent_model_calls
-    total_calls = intent_calls + narration_model_calls
+    total_calls = intent_calls + narration_model_calls + emergence["model_calls"]
 
     if "_engine_event_evidence" in final_dict:
         before_set = final_dict["_engine_event_evidence"].pop("_procedural_ids_before", set())
@@ -13514,6 +13523,7 @@ class GameSession:
             world,
         ))
         adventure_play.after_turn(self, before_world, action_result)
+        incident_hooks.after_turn(self, before_world, action_result)
         return transitions
 
 

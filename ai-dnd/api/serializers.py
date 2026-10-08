@@ -17,6 +17,7 @@ import timed_gameplay
 import exploration
 import interaction_adventure
 import adventure.projection as adventure_projection
+import incidents.projection as incident_projection
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -730,6 +731,7 @@ def serialize_session_state(
         **_known_projection(session, world, lore_state),
         "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
+        "scene_incidents": incident_projection.scene_annotation(world),
     }
 
 

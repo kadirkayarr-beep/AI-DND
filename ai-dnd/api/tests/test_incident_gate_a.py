@@ -192,7 +192,11 @@ class GateClassTests(unittest.TestCase):
                 result = self.outcome(**overrides)
                 self.assertEqual((result.outcome, result.reason), (gate.HARD_REJECT, reason))
                 self.assertIsNone(result.normalized)
-        nothing = _envelope(self.world, reward="none")
+        nothing = envelope.build(
+            self.world, campaign_id=CAMPAIGN, trigger_id="trg.test.treasure",
+            trigger_kind="arrival", location_id="tavern", profile=PROFILE,
+            decisions={**_decisions("none"), "category": "treasure_find"},
+        )
         refused = gate.evaluate(nothing, _proposal(category="treasure_find", reward_class="coin_small"))
         self.assertEqual((refused.outcome, refused.reason), (gate.HARD_REJECT, "premise_change"))
         temple = self.outcome(subscene={"label": "Shrine", "kind": "back_room",

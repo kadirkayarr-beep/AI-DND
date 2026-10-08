@@ -1687,6 +1687,10 @@ components:
         known_factions:
           type: array
           items: {$ref: "#/components/schemas/KnownFactionStanding"}
+        scene_incidents:
+          description: Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.
+          type: array
+          items: {$ref: "#/components/schemas/SceneIncident"}
       required:
         - campaign_time
         - known_scheduled_events
@@ -1713,6 +1717,29 @@ components:
         - campaign_adventures
         - known_lore
         - known_factions
+    SceneIncident:
+      type: object
+      additionalProperties: false
+      required: [ref, summary, facts, people, props, place, affordances]
+      properties:
+        ref: {type: string}
+        summary: {type: string}
+        facts:
+          type: array
+          items: {type: string}
+        people:
+          type: array
+          items: {type: string}
+        props:
+          type: array
+          items: {type: string}
+        place:
+          anyOf:
+            - type: string
+            - type: "null"
+        affordances:
+          type: array
+          items: {type: string}
     KnownLoreFact:
       type: object
       additionalProperties: false

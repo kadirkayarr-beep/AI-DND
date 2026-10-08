@@ -744,7 +744,16 @@ export const CreateGameSessionResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(createGameSessionResponseStateKnownFactionsItemStandingMin).max(createGameSessionResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -1473,7 +1482,16 @@ export const GetGameSessionStateResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(getGameSessionStateResponseKnownFactionsItemStandingMin).max(getGameSessionStateResponseKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -2214,7 +2232,16 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -2962,7 +2989,16 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -3892,7 +3928,16 @@ export const PlayGameTurnResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(playGameTurnResponseStateKnownFactionsItemStandingMin).max(playGameTurnResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -5073,7 +5118,16 @@ export const AcceptGameQuestResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(acceptGameQuestResponseStateKnownFactionsItemStandingMin).max(acceptGameQuestResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -5857,7 +5911,16 @@ export const CancelGameQuestResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(cancelGameQuestResponseStateKnownFactionsItemStandingMin).max(cancelGameQuestResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -6630,7 +6693,16 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin).max(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
@@ -7575,7 +7647,16 @@ export const CreateCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(createCampaignResponseStateKnownFactionsItemStandingMin).max(createCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -8588,7 +8669,16 @@ export const GetCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(getCampaignResponseStateKnownFactionsItemStandingMin).max(getCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -9578,7 +9668,16 @@ export const ResumeCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(resumeCampaignResponseStateKnownFactionsItemStandingMin).max(resumeCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -10611,7 +10710,16 @@ export const CreateLegacySessionResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(createLegacySessionResponseStateKnownFactionsItemStandingMin).max(createLegacySessionResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -11341,7 +11449,16 @@ export const GetLegacySessionStateResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(getLegacySessionStateResponseKnownFactionsItemStandingMin).max(getLegacySessionStateResponseKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -12266,7 +12383,16 @@ export const PlayLegacyTurnResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(playLegacyTurnResponseStateKnownFactionsItemStandingMin).max(playLegacyTurnResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -13559,7 +13685,16 @@ export const CreateLegacyCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(createLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(createLegacyCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -14574,7 +14709,16 @@ export const GetLegacyCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(getLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(getLegacyCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -15565,7 +15709,16 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "title": zod.string(),
   "standing": zod.number().int().min(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax),
   "local_presence": zod.boolean()
-}))
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),

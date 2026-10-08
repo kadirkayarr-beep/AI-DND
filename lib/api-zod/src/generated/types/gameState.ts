@@ -31,6 +31,7 @@ import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { PendingEventDecision } from './pendingEventDecision';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
+import type { SceneIncident } from './sceneIncident';
 
 /**
  * Public state projection produced by the API serializers.
@@ -67,4 +68,6 @@ export interface GameState {
   campaign_adventures: CampaignAdventureJournal;
   known_lore: KnownLoreFact[];
   known_factions: KnownFactionStanding[];
+  /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
+  scene_incidents?: SceneIncident[];
 }

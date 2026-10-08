@@ -1301,6 +1301,16 @@ export interface KnownFactionStanding {
   local_presence: boolean;
 }
 
+export interface SceneIncident {
+  ref: string;
+  summary: string;
+  facts: string[];
+  people: string[];
+  props: string[];
+  place: string | null;
+  affordances: string[];
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -1338,6 +1348,8 @@ export interface GameState {
   campaign_adventures: CampaignAdventureJournal;
   known_lore: KnownLoreFact[];
   known_factions: KnownFactionStanding[];
+  /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
+  scene_incidents?: SceneIncident[];
 }
 
 export interface GameSession {

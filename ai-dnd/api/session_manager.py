@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import game
+import incidents.hooks as incident_hooks
+from incidents.attempts import SqliteAttemptStore
 
 from api.campaign_journal import (
     create_initial_campaign_journal,
@@ -186,6 +188,7 @@ class SessionManager:
     def _attach_death_checkpoint_hooks(self, record: ManagedSession) -> None:
         """Keep campaign-owned state inside Python's Normal-mode checkpoint."""
         session = record.game_session
+        session.emergence_store = SqliteAttemptStore(self._require_campaign_store())
 
         def capture() -> dict[str, Any]:
             return {
@@ -538,6 +541,7 @@ class SessionManager:
             narrative_memory=candidate_memory,
             lore_authority=record.lore_authority,
             turn_action_receipt=turn_action_receipt,
+            emergence_attempt=incident_hooks.take_pending(record.game_session),
         )
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)

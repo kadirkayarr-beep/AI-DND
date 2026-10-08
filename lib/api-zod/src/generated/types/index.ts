@@ -180,6 +180,7 @@ export * from './readyTriggerInputEvent';
 export * from './requestValidationError';
 export * from './requestValidationErrorResponse';
 export * from './requestValidationIssue';
+export * from './sceneIncident';
 export * from './skillCheckResult';
 export * from './skillCheckResultAbility';
 export * from './skillCheckResultDifficulty';
