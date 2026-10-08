@@ -235,7 +235,7 @@ RESOLUTION_KINDS = frozenset({
 OBJECTIVE_FIELDS = frozenset({
     "objective_id", "description", "type", "target", "status",
     "required_count", "progress", "visibility", "prerequisites",
-    "resolution_kinds", "graph_state",
+    "resolution_kinds", "graph_state", "optional",
 })
 
 
@@ -246,6 +246,7 @@ def normalize_objective(raw):
     item.setdefault("visibility", "known")
     item.setdefault("prerequisites", [])
     item.setdefault("resolution_kinds", [])
+    item.setdefault("optional", False)
     item.setdefault(
         "graph_state",
         "HIDDEN" if item.get("visibility") == "hidden" else "ACTIVE",
@@ -264,7 +265,10 @@ def _objectives(objectives):
         fail()
     seen = set()
     for objective in objectives:
-        if not isinstance(objective, dict) or set(objective) != OBJECTIVE_FIELDS:
+        if not isinstance(objective, dict):
+            fail()
+        objective.setdefault("optional", False)
+        if set(objective) != OBJECTIVE_FIELDS or type(objective.get("optional")) is not bool:
             fail()
         _text(objective.get("objective_id"), 120)
         if objective["objective_id"] in seen:
