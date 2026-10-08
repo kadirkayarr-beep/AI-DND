@@ -44,6 +44,56 @@
       "live_generation": "off",
       "protected_refs_unchanged": true,
       "status": "PASS"
+    },
+    {
+      "gate": "C",
+      "packages": ["E14", "E15", "E16", "E17", "E18", "E19", "E73", "E75"],
+      "head": "75ed99b",
+      "commit_range": "af4d6d3..75ed99b",
+      "focused_tests": {
+        "modules": ["test_incident_gate_c"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "E",
+      "packages": ["E20", "E21", "E22", "E23", "E24", "E25", "E26", "E76"],
+      "head": "8347a73",
+      "commit_range": "75ed99b..8347a73",
+      "focused_tests": {
+        "modules": ["test_incident_gate_e"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "D",
+      "packages": ["E27", "E28", "E29", "E30", "E31", "E32", "E33", "E34", "E79", "E82"],
+      "head": "47dfee3f6af3ed5312132fa087be824e3711b21a",
+      "commit_range": "8347a73..47dfee3",
+      "focused_tests": {
+        "modules": ["test_incident_gate_d", "test_incident_gate_a", "test_incident_gate_b", "test_incident_gate_c", "test_incident_gate_e", "test_incident_models", "test_incident_projection"],
+        "count": 69,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_adventure_release", "test_model_isolation", "test_equipment_economy", "test_lore_authority", "test_persistence_idempotency", "test_campaign_persistence", "test_campaign_lore_persistence"],
+        "count": 147,
+        "result": "OK"
+      },
+      "live_generation": "BLOCKED",
+      "live_generation_reason": "Ollama is unreachable; qwen3:8b unverified. Missing model is BLOCKED, not FAIL.",
+      "neverwinter_profile": "enabled_from_reviewed_pack_neverwinter_the_north_v1",
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED",
+      "sourcebooks_accessible": true,
+      "sourcebook_ingestion": "deferred_until_E80_E81",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
     }
   ]
 }
