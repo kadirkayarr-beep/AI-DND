@@ -133,13 +133,20 @@
       "packages": ["E59", "E60", "E61", "E62", "E63", "E64", "E65", "E66", "E67", "E84"],
       "head": "94d3f04ed9946eee71fb5c0036ce6224927c9ec8",
       "focused_tests": {"modules": ["test_incident_gate_j"], "result": "OK"},
-      "live_generation": "BLOCKED",
-      "live_generation_reason": "Ollama is unreachable; 50-turn and 100-turn smokes were not executed. Missing model is BLOCKED, not FAIL.",
+      "live_generation": "PARTIAL",
+      "live_generation_reason": "qwen3:8b answered. One Neverwinter tavern proposal was ACCEPT with one call. 50-turn and 100-turn city loops stayed within two calls, did not create quests, resumed, and did not enter Waterdeep or Baldur's Gate. Those loops produced no scene incidents, so NPC continuity is not yet proven.",
+      "proposal_repair": "5ee76bafc27fd127d19fb46ce36bf7608613ea97",
+      "long_smoke_runner": "443eca8",
+      "live_smoke": {
+        "neverwinter_accept": {"model_calls": 1, "gate": "ACCEPT", "quests": 0},
+        "turns_50": {"executed": 50, "max_model_calls": 2, "turns_with_model": 31, "scene_incidents": 0, "quests_unchanged": true},
+        "turns_100": {"executed": 100, "max_model_calls": 2, "turns_with_model": 61, "scene_incidents": 0, "quests_unchanged": true}
+      },
       "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED",
       "review_pending_is_pass": false,
       "protected_refs_unchanged": true,
-      "status": "BLOCKED"
+      "status": "PARTIAL"
     }
   ],
-  "expansion_verdict": "NO-GO for live release. Implementation on phase8/emergent-storytelling-expansion is complete through E84 with focused tests OK. Live 50/100-turn smokes are BLOCKED (Ollama unreachable). Waterdeep and Baldur's Gate packs remain UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
+  "expansion_verdict": "NO-GO for full emergent-storytelling release. Proposal repair 5ee76ba lets Python fill omitted structure without inventing a premise. One live Neverwinter ACCEPT and the 50/100-turn budget smokes passed. The city loops did not surface an incident, so NPC continuity, rewards, and incident-to-adventure play are still unproven. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
 }
