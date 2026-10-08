@@ -26,6 +26,7 @@ def before_narration(session, *, action_result, player_text, location_changed, p
     """Return ``{"status", "model_calls"}``. Status None means no attempt."""
     setattr(session, PENDING_ATTR, None)
     world = session.world_state
+    npcs.bind_address(world, action_result, player_text)
     campaign_id = world.get("campaign_id")
     store = getattr(session, "emergence_store", None)
     if not isinstance(campaign_id, str) or store is None:
@@ -104,7 +105,9 @@ def after_turn(session, before_world, action_result):
         return
     commit.advance(world, before_location=before_world.get("location"))
     awareness.reveal_from_check(world, action_result)
-    npcs.apply_action(world, action_result, session=session)
+    promoted = npcs.apply_action(world, action_result, session=session)
+    if isinstance(promoted, dict) and not isinstance(action_result.get("npc_id"), str):
+        action_result["npc_id"] = promoted.get("id")
     props.apply_action(world, action_result, session=session)
     sublocations.apply_action(world, action_result)
     rewards.apply_action(world, action_result)

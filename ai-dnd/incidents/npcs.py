@@ -7,6 +7,7 @@ via ``create_npc_from_ai``. Canon names are rejected. Promoted ids survive TTL.
 from __future__ import annotations
 
 from incidents import commit
+from incidents.models import OPEN_LIFECYCLES
 
 PROTECTED_LAYERS = frozenset({"CANONICAL_SOURCE", "OFFICIAL_SETTING_CANON"})
 PROTECTED_ENTITY_TYPES = frozenset({
@@ -120,6 +121,50 @@ def promote(world, record, person_id, *, session=None):
     if record["lifecycle"] == "PRESENT":
         commit.engage(world, record["incident_id"])
     return npc
+
+
+def bind_address(world, action_result, player_text):
+    """Attach a visible incident person when the player uses their talk affordance.
+
+    This does not promote, invent a relationship, or accept a failed action.
+    The NPC owner still decides whether the passerby becomes a row.
+    """
+    if not isinstance(action_result, dict) or action_result.get("success") is not True:
+        return None
+    if action_result.get("action") not in {"dialogue", "interaction", "talk", "narrative"}:
+        return None
+    if not isinstance(player_text, str):
+        return None
+    text = " ".join(player_text.split()).casefold()
+    here = world.get("location") if isinstance(world, dict) else None
+    rows = world.get("incidents") if isinstance(world, dict) else None
+    if not isinstance(rows, dict):
+        return None
+    for incident_id, record in rows.items():
+        if not isinstance(record, dict) or record.get("location_id") != here:
+            continue
+        if record.get("lifecycle") not in OPEN_LIFECYCLES:
+            continue
+        people = record.get("details", {}).get("people", {})
+        if not isinstance(people, dict):
+            continue
+        for person_id, person in people.items():
+            if not isinstance(person, dict) or person.get("state") not in {"passerby", "promoted"}:
+                continue
+            label = person.get("label")
+            if not isinstance(label, str) or not label.strip():
+                continue
+            if text != f"konuş: {label}".casefold():
+                continue
+            action_result["incident_id"] = incident_id
+            action_result["person_id"] = person_id
+            if action_result.get("action") == "narrative":
+                action_result["action"] = "dialogue"
+            if "relationship_delta" not in action_result:
+                action_result["relationship_delta"] = 1
+                action_result["relationship_reason"] = f"talk:{incident_id}:{person_id}"
+            return person_id
+    return None
 
 
 def apply_action(world, action_result, *, session=None):
