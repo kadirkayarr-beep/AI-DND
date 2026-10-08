@@ -1,19 +1,23 @@
 """Incident canon on world["incidents"]. Not the quest list."""
 
 from incidents.models import (
-    CONTRACT_VERSION,
     DURABLE_TIERS,
     INCIDENT_FIELDS,
     LIFECYCLES,
+    OPEN_LIFECYCLES,
+    REWARD_CLASSES,
     empty_incidents,
     load_incidents,
+    validate_incident,
 )
 
 __all__ = [
-    "CONTRACT_VERSION",
     "DURABLE_TIERS",
     "INCIDENT_FIELDS",
     "LIFECYCLES",
+    "OPEN_LIFECYCLES",
+    "REWARD_CLASSES",
     "empty_incidents",
     "load_incidents",
+    "validate_incident",
 ]

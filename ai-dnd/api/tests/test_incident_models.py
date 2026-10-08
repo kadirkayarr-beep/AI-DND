@@ -17,6 +17,7 @@ def _incident(incident_id="inc.one", **overrides):
         "category": "disturbance",
         "tier": 1,
         "lifecycle": "PRESENT",
+        "location_id": "tavern",
         "premise": "A purse lies beside the taproom bench.",
         "entity_refs": ["npc.keeper"],
         "prop_refs": ["prop.purse"],
@@ -24,7 +25,24 @@ def _incident(incident_id="inc.one", **overrides):
         "hooks": ["ask_keeper"],
         "reward_class": "none",
         "hidden_fact_ids": ["fact.owner"],
+        "details": {
+            "facts": {
+                "fact.purse": "A small leather purse lies under the bench.",
+                "fact.owner": "The purse belongs to the cook.",
+            },
+            "props": {
+                "prop.purse": {
+                    "label": "purse",
+                    "appearance": "Worn leather with a frayed drawstring.",
+                    "state": "scene",
+                    "promoted_ref": None,
+                },
+            },
+            "subscene": None,
+            "people": {},
+        },
         "trigger_id": "trigger.tavern.entry",
+        "created_clock": 0,
         "expiry_clock": 3600,
         "thread_id": None,
         "incident_schema_version": 1,
@@ -60,7 +78,7 @@ class IncidentModelTests(unittest.TestCase):
 
         many = _world(
             _incident("inc.one"),
-            _incident("inc.two", lifecycle="ENGAGED", tier=4, reward_class="mundane"),
+            _incident("inc.two", lifecycle="ENGAGED", tier=4, reward_class="mundane_item"),
         )
         loaded_many = incidents.load_incidents(many)
         self.assertEqual(set(loaded_many), {"inc.one", "inc.two"})
@@ -105,6 +123,41 @@ class IncidentModelTests(unittest.TestCase):
         for record in cases:
             with self.assertRaises(ValueError):
                 incidents.load_incidents(_world(record))
+
+    def test_details_must_match_refs(self):
+        hidden_without_text = _incident(hidden_fact_ids=["fact.missing"])
+        orphan_prop = _incident(prop_refs=[])
+        bad_subscene = _incident(subscene_ref="sub.alley")
+        taken_without_ref = copy.deepcopy(_incident())
+        taken_without_ref["details"]["props"]["prop.purse"]["state"] = "taken"
+        person = copy.deepcopy(_incident())
+        person["details"]["people"]["person.a"] = {
+            "label": "cook", "role": "cook", "name": None, "traits": [],
+            "backstory": None, "state": "promoted", "npc_id": None,
+        }
+        for record in (hidden_without_text, orphan_prop, bad_subscene, taken_without_ref, person):
+            with self.assertRaises(ValueError):
+                incidents.load_incidents(_world(record))
+
+    def test_old_tuple_loads_after_policy_moves_and_future_tuple_fails(self):
+        from unittest.mock import patch
+        from incidents import versions
+        stored = _incident()
+        with patch.object(versions, "GATE_POLICY_VERSION", 2), patch.dict(
+            versions.SUPPORTED, {(1, 1, 1, 2): versions._as_stored},
+        ):
+            self.assertEqual(versions.current()["gate_policy_version"], 2)
+            loaded = incidents.load_incidents(_world(stored))["inc.one"]
+            self.assertEqual(loaded, stored)
+            self.assertEqual(loaded["gate_policy_version"], 1)
+        for field in versions.VERSION_FIELDS:
+            future = _incident(**{field: 9})
+            with self.assertRaises(ValueError):
+                incidents.load_incidents(_world(future))
+            missing = _incident()
+            del missing[field]
+            with self.assertRaises(ValueError):
+                incidents.load_incidents(_world(missing))
 
     def test_mismatched_identity_and_noncanon_fields_fail(self):
         record = _incident()
