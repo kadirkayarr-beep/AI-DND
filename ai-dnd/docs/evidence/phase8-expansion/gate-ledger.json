@@ -1,0 +1,31 @@
+{
+  "branch": "phase8/emergent-storytelling-expansion",
+  "base": "7ba2ea5228222454b344496df8c50c1862a019f1",
+  "protected_refs": {
+    "phase8/dynamic-adventure-v1": "7ba2ea5228222454b344496df8c50c1862a019f1",
+    "phase7/package-04": "83f005b05b87a4993138a443b86dfd77dc5dcd30",
+    "integration/cursor-latest": "d9ae97a7950b3284d95b29b391209407b2691bd5",
+    "main": "f9408f814352d444b6e8211ec8c7a0f0af24219e"
+  },
+  "gates": [
+    {
+      "gate": "A",
+      "packages": ["E02", "E85", "E03", "E86", "E04", "E78", "E05", "E06", "E68", "E87", "E69", "E88", "E07", "E70", "E77"],
+      "head": "9a1f696446ce1c3d2a68c53022ffbf93145c2994",
+      "commit_range": "03ac2e5..9a1f696",
+      "focused_tests": {
+        "modules": ["test_incident_gate_a", "test_incident_models", "test_incident_projection"],
+        "count": 30,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_campaign_persistence", "test_persistence_idempotency", "test_campaign_lore_persistence", "test_adventure_release", "test_model_isolation"],
+        "count_with_focused": 128,
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    }
+  ]
+}
