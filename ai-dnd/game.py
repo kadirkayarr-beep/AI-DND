@@ -1839,6 +1839,12 @@ def _validate_save_payload(payload):
     if "relationships" in saved_world:
         import relationships
         relationships.validate(saved_world["relationships"])
+    if "companions" in saved_world:
+        import companions
+        companions.validate(saved_world["companions"])
+    if "adventure_arcs" in saved_world:
+        import adventure.arcs as adventure_arcs
+        adventure_arcs.validate(saved_world["adventure_arcs"])
     if version >= 2 and (
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):

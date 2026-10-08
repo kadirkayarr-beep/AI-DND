@@ -10,6 +10,7 @@ CAPTIVE_TARGET = f"{HIDEOUT_ID}:captive"
 TEMPLATES = (
     "MISSING_PERSON", "BOUNTY", "RECOVERY", "DELIVERY", "MONSTER_HUNT",
     "FACTION_CONFLICT", "SOCIAL_INTRIGUE", "DUNGEON_DELVE", "URBAN_INVESTIGATION",
+    "ESCORT",
 )
 
 
@@ -32,6 +33,7 @@ def instantiate(template_id, *, quest_id, turn, opportunity_key, creation_eviden
         "SOCIAL_INTRIGUE": _social_intrigue,
         "DUNGEON_DELVE": _dungeon_delve,
         "URBAN_INVESTIGATION": _urban_investigation,
+        "ESCORT": _escort,
     }
     builder = builders.get(template_id)
     if builder is None:
@@ -262,6 +264,20 @@ def _urban_investigation(**kwargs):
             _node("ask", "Tanığı dinle", "investigate", kwargs["bindings"]["source_npc_id"], ["investigation", "social"]),
             _node("alley", "Sokağı ara", "visit_location", place, ["investigation"], ("ask",), hidden=True),
             _node("clue", "Gizli izi çöz", "discover_clue", place, ["investigation"], ("alley",), hidden=True),
+        ],
+        **kwargs,
+    )
+
+
+def _escort(**kwargs):
+    place = kwargs["bindings"]["location_ids"][0]
+    return _simple(
+        "Refakat", "ESCORT", "low",
+        {"success": {"xp": 50, "gold": 20}, "partial_success": {"xp": 20, "gold": 0}, "failed": {"xp": 0, "gold": 0}},
+        [
+            _node("meet", "Refakat edilecek kişiyi bul", "investigate", kwargs["bindings"]["target_npc_id"], ["social"]),
+            _node("walk", "Varış yerine götür", "visit_location", place, ["investigation"], ("meet",), hidden=True),
+            _node("arrive", "Güvenle teslim et", "rescue_person", kwargs["bindings"]["target_npc_id"], ["rescue", "social"], ("walk",), hidden=True),
         ],
         **kwargs,
     )
