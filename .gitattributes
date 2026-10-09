@@ -12,3 +12,4 @@ ai-dnd/api/lore_authority/packs/neverwinter_the_north_v1.extraction.json -text
 ai-dnd/api/lore_authority/packs/neverwinter_the_north_v1.review.json -text
 ai-dnd/api/lore_authority/packs/installed_region_catalog.json -text
 ai-dnd/docs/AI-DND_Future_Project_Bible_v*.md -text
+ai-dnd/docs/archive/future-project-bible/*.md -text
