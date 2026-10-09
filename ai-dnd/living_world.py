@@ -91,6 +91,10 @@ _ENTER_RE = re.compile(
     r"enter|go inside|head inside)",
     re.IGNORECASE,
 )
+_LOCAL_TAVERN_DEPARTURE_RE = re.compile(
+    r"\b(?:tavernaya|meyhaneye|hana)\s+gid\w*\b",
+    re.IGNORECASE,
+)
 _TAVERN_RE = re.compile(
     r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
     re.IGNORECASE,
@@ -192,11 +196,26 @@ def role_is_visibly_obvious(role: Any) -> bool:
     }
 
 
+_PUBLIC_ROLE_TR = {
+    "shopkeeper": "dükkâncı",
+    "traveler": "yolcu",
+    "bartender": "barmen",
+    "innkeeper": "hancı",
+    "guard": "muhafız",
+    "soldier": "asker",
+    "merchant": "tüccar",
+    "blacksmith": "demirci",
+    "server": "garson",
+}
+
+
 def public_npc_role(npc: Any) -> str | None:
     if not isinstance(npc, dict) or not npc_role_known_to_player(npc):
         return None
     role = str(npc.get("role") or "").strip()
-    return role or None
+    if not role:
+        return None
+    return _PUBLIC_ROLE_TR.get(role.casefold(), role)
 
 
 def public_npc_descriptor(npc: Any) -> str:
@@ -207,13 +226,6 @@ def public_npc_descriptor(npc: Any) -> str:
     if role:
         lowered = role[:1].lower() + role[1:] if role else "kişi"
         return f"Bir {lowered}"
-    appearance = " ".join(str(npc.get("appearance") or "").split()).strip()
-    if appearance:
-        first = re.split(r"[.!?;]", appearance, maxsplit=1)[0].strip(" ,")
-        if first:
-            if len(first) > 72:
-                first = first[:69].rstrip() + "…"
-            return first if normalize_text(first).endswith("kisi") else f"{first} kişi"
     return "Yakındaki kişi"
 
 
@@ -226,6 +238,22 @@ def public_npc_name(npc: Any) -> str:
         if name:
             return name
     return public_npc_descriptor(npc)
+
+
+def public_scene_people(npcs: list) -> str:
+    """A Turkish prose list, keeping identity/appearance and state separate."""
+    labels = []
+    for npc in npcs:
+        label = public_npc_name(npc)
+        role = public_npc_role(npc)
+        if not npc_name_known_to_player(npc):
+            label = f"bir {role[:1].lower() + role[1:]}" if role else "bir kişi"
+        elif role and normalize_text(role) != normalize_text(label):
+            label = f"{label} ({role})"
+        labels.append(label)
+    if len(labels) < 2:
+        return "".join(labels)
+    return ", ".join(labels[:-1]) + " ve " + labels[-1]
 
 
 def public_npc_projection(npc: Any) -> dict[str, Any] | None:
@@ -298,6 +326,12 @@ def classify_scene_action(value: Any) -> str | None:
     if _APPROACH_RE.search(text):
         return "approach"
     if _ENTER_RE.search(text):
+        return "enter"
+    # "tavernaya gidiyorum" is local entry, not a route to the unbound template.
+    if (
+        _LOCAL_TAVERN_DEPARTURE_RE.search(normalized)
+        and not re.search(r"\b(?:gitmiyorum|istemiyorum|vazgectim)\b", normalized)
+    ):
         return "enter"
     return None
 

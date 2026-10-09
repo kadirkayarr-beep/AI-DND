@@ -682,7 +682,8 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertTrue(living_world.npc_name_known_to_player(legacy))
         self.assertTrue(living_world.npc_role_known_to_player(legacy))
         self.assertEqual(living_world.public_npc_name(legacy), "OldName")
-        self.assertEqual(living_world.public_npc_role(legacy), "Traveler")
+        self.assertEqual(living_world.public_npc_role(legacy), "yolcu")
+        self.assertEqual(legacy["role"], "Traveler")
 
     def test_obvious_role_can_be_visible_without_revealing_name(self):
         guard = self.session.create_npc_from_ai({

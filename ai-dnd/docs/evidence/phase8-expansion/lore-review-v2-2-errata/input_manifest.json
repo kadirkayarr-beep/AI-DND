@@ -1,0 +1,160 @@
+{
+  "base_sha256": "2255bc3b1a3b2a907e8b639528c1adb78e1b37e9a41b04934469fd6c33b46ee4",
+  "files": [
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/Baldurs_Gate_V2_2_Candidates.md",
+      "sha256": "c8dc685a4bf4ad5083f3edce9a92f2ca46ea109afccb816185adbcda796d9901",
+      "bytes": 118897
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/lore_extraction_candidates_v2_2.draft.json",
+      "sha256": "2255bc3b1a3b2a907e8b639528c1adb78e1b37e9a41b04934469fd6c33b46ee4",
+      "bytes": 461088
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/V2_1_to_V2_2_Record_Mapping.md",
+      "sha256": "de2fa3e9b4ebdaf6bfff3e393158c2a726c53814923404a1bc91bc19c27fc356",
+      "bytes": 34305
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/V2_2_Conflicts_And_Owner_Decisions.md",
+      "sha256": "135b848dbdbff545aac763abddfae06f3ad3a707a6a45c758a4fb308a4c4cb16",
+      "bytes": 4639
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/V2_2_Correction_Findings.md",
+      "sha256": "c4e343add76c341f7182005d9b84969e5cd509e49c0ad0043b7144915d303893",
+      "bytes": 6329
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/V2_2_Independent_Review_Readiness.md",
+      "sha256": "f48458ab1234d9d8604a313d2e803595342428f78b3d6656af436f1e5f330c87",
+      "bytes": 3102
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/V2_2_Validation_Report.md",
+      "sha256": "faf0750319d8d3115de6908a323757e57c5833681d8dd38f52dc73b4a5d55578",
+      "bytes": 4001
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/validate_v22.py",
+      "sha256": "4384e306f4781cbe05a454bb0b0ee5bfe115b30880dc47c1454d079fbdf450f1",
+      "bytes": 16438
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2/Waterdeep_V2_2_Candidates.md",
+      "sha256": "e80e08c403595cf7135d1461c5cb4dfe2401088799f9a41eb8910937506360bb",
+      "bytes": 178921
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/Baldurs_Gate_V2_1_Candidates.md",
+      "sha256": "1ed6afc1dd1e0200ad60bc51a6fb782ca60c3337d14e77048a99add02c7a7796",
+      "bytes": 104164
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/lore_extraction_candidates_v2_1.draft.json",
+      "sha256": "c95221dca8af57b859a55ac6d80ff203988ae10a65768a94fb7de0a4a5e6dc43",
+      "bytes": 408424
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/V2_1_Conflicts_And_Owner_Decisions.md",
+      "sha256": "6d00f8e4758ef6e5d52c1ef7e2891d53fef074e14cc35d5d589500a9804df218",
+      "bytes": 3451
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/V2_1_Independent_Review_Readiness.md",
+      "sha256": "130e836b545ab2a9e5d35e4a390ca2fc40d5337859b17119b3d0aacca05a8e20",
+      "bytes": 2910
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/V2_1_Validation_Report.md",
+      "sha256": "6cb3ab78f7ec8c5da6527b133d4b265a2bb46c4f3d9b38e64ba645c40b1285d1",
+      "bytes": 5772
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/V2_to_V2_1_Record_Mapping.md",
+      "sha256": "ac91dfb22ea82b3cd3fbc1826049ebfd4661175e32e3152cab00b816ca030267",
+      "bytes": 7304
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-1/Waterdeep_V2_1_Candidates.md",
+      "sha256": "c3c3cfeafef966ba5d9fbf081e5eef7f10b88b931de0c09d1b778bee9b7136fc",
+      "bytes": 156250
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/Baldurs_Gate_V2_Candidates.md",
+      "sha256": "66e8233b9abbda9c0e3d54004d1d5adf3980b760b22edde02e81282af76aa411",
+      "bytes": 61769
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/lore_extraction_candidates_v2.draft.json",
+      "sha256": "66d64df8536dbfa65410931387efc6398efd05337406c02eac3e8ffdcdad9f3c",
+      "bytes": 220396
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/V1_to_V2_Record_Mapping.md",
+      "sha256": "b4a62efcceebefa87b029fdac0a1f942c770f425d807ed680363ed487e49c313",
+      "bytes": 11633
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/V2_Conflicts_And_Owner_Decisions.md",
+      "sha256": "312282c42455eee624896f1f25069e2924f247122048ceb2a0b650831042ff37",
+      "bytes": 3749
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/V2_Independent_Review_Readiness.md",
+      "sha256": "76d5551ed144f019d194d136ca6c40e75fc6b1d3f9439c9d814d3831d39ddf98",
+      "bytes": 3111
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2/Waterdeep_V2_Candidates.md",
+      "sha256": "8816419a0fd2071411fcdc0dce3f6811a861115ba6fe78447cdf781e0b2b0a35",
+      "bytes": 96114
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Baldurs_Gate_Lore_Review_Draft.md",
+      "sha256": "07d863ef1982dbb28ae911c3cdab6ddb9e5dce7f4c477ce31e304bb7f5d14f67",
+      "bytes": 6348
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Baldurs_Gate_Source_Extraction_Candidates.md",
+      "sha256": "322bff7844d596c201491e45626bec5613ec6864bded182a7b79ad0cbbb379c7",
+      "bytes": 21352
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Lore_Activation_Readiness.md",
+      "sha256": "03ffdacebd572c48c11572ab837a359cb0f1cd61e9ed1a9854d9d64e7b1c42d7",
+      "bytes": 7688
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Lore_Conflicts_And_Gaps.md",
+      "sha256": "369f8cbe0d67923e2fac44e12ba759c09f2098d22b03ef21534505665d536424",
+      "bytes": 4009
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/lore_extraction_candidates.draft.json",
+      "sha256": "fcd6678d4f0adaa02829361186ddc7203fb299639f37b879cac0057e75d34fca",
+      "bytes": 46115
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Lore_Review_Queue.md",
+      "sha256": "ea39bb73370e409e057704dd2725601f3ba9dda3ddebb892f4e66099bb0a3816",
+      "bytes": 7023
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Source_Provenance_And_Conflicts.md",
+      "sha256": "50baf15a01487c22ad84f8aca8c3c58cf8827527612a7a22f5709b2c8bf15968",
+      "bytes": 8476
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Waterdeep_Lore_Review_Draft.md",
+      "sha256": "3a39d24d1a094454a89752771104287b5bb77136553b5eac1b74d5d80da0f94d",
+      "bytes": 5835
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review/Waterdeep_Source_Extraction_Candidates.md",
+      "sha256": "da69f97c0b32f11efb1ad45b0a8ed61a64a11035fca362941cbc807ecc98b90b",
+      "bytes": 30548
+    }
+  ]
+}

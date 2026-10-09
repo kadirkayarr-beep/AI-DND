@@ -536,7 +536,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 region_context,
                 region_world_state,
             ),
-            "The North is distinct from the Sword Coast.",
+            "The North is distinct from the Sword Coast in the book’s regional grouping.",
         )
         self.assertIsNone(
             game._supported_lore_question_response(

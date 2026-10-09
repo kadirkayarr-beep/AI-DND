@@ -207,6 +207,11 @@ def _check_source(
     source = sources.get(source_id)
     if source is None:
         raise ValueError(f"Lore record {record_id} has no registered source.")
+    if (
+        authority_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+        or source.source_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+    ):
+        raise ValueError("Owner continuity cannot enter an official lore pack.")
     if source.source_tier is not authority_tier:
         raise ValueError(f"Lore record {record_id} source tier is inconsistent.")
 

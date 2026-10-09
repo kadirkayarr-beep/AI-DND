@@ -15,6 +15,9 @@ from typing import Any, Mapping
 MAX_ID_LENGTH = 128
 MAX_NAME_LENGTH = 160
 MAX_REFERENCE_LENGTH = 240
+# Separate from source references. Covers the longest admitted claim (409)
+# without raising citation limits. The 12 KiB retrieval cap still wins.
+MAX_FACT_VALUE_LENGTH = 1024
 MAX_NOTE_LENGTH = 280
 MAX_CAMPAIGN_FACT_IDS = 2_000
 MAX_CAMPAIGN_OVERRIDES = 500
@@ -42,9 +45,12 @@ class SourceTier(str, Enum):
     TIER_5_PROCEDURAL = "TIER_5_PROCEDURAL"
     LEGACY_OFFICIAL = "LEGACY_OFFICIAL"
     TEST_FIXTURE = "TEST_FIXTURE"
+    OWNER_APPROVED_CONTINUITY = "OWNER_APPROVED_CONTINUITY"
 
     @property
     def rank(self) -> int:
+        if self is SourceTier.OWNER_APPROVED_CONTINUITY:
+            raise ValueError("Owner continuity is outside official source ranking.")
         return {
             SourceTier.TIER_1_CURRENT_CORE: 1,
             SourceTier.TIER_2_OFFICIAL_5E: 2,
@@ -144,6 +150,18 @@ class Relationship(str, Enum):
     RIVER_THROUGH = "river_through"
     COASTAL_TO = "coastal_to"
     DISTRICT_OF = "district_of"
+    COMMANDS = "commands"
+    DIRECTS = "directs"
+    DISTINCT_OFFICE = "distinct_office"
+    ENTRANCE_TO = "entrance_to"
+    HEADQUARTERED_AT = "headquartered_at"
+    HOLDS_OFFICE = "holds_office"
+    LEADS = "leads"
+    MEETS_IN = "meets_in"
+    OUTSIDE_ROUTINE_PATROL = "outside_routine_patrol"
+    PORT_ON = "port_on"
+    RULES_BESIDE = "rules_beside"
+    WATCH_PRECEDES_IN_UPPER_CITY = "watch_precedes_in_upper_city"
 
 
 class ReviewStatus(str, Enum):
@@ -207,6 +225,14 @@ def _enum(enum_type: type[Enum], value: Any, label: str) -> Any:
         raise ValueError(f"{label} is invalid.") from None
 
 
+def _official_tier(value: Any, label: str) -> SourceTier:
+    """Pack JSON may not install owner continuity as an official source."""
+    parsed = _enum(SourceTier, value, label)
+    if parsed is SourceTier.OWNER_APPROVED_CONTINUITY:
+        raise ValueError(f"{label} cannot use owner continuity as an official source.")
+    return parsed
+
+
 def _optional_text(value: Any, label: str, limit: int) -> str | None:
     if value is None:
         return None
@@ -266,7 +292,7 @@ class SourceManifest:
             edition_family=_text(
                 data["edition_family"], "Source edition_family", MAX_NAME_LENGTH
             ),
-            source_tier=_enum(SourceTier, data["source_tier"], "Source source_tier"),
+            source_tier=_official_tier(data["source_tier"], "Source source_tier"),
             setting=_text(data["setting"], "Source setting", MAX_NAME_LENGTH),
             region_scope=_optional_text(
                 data["region_scope"], "Source region_scope", MAX_NAME_LENGTH
@@ -348,9 +374,7 @@ class LoreEntity:
             source_reference=_text(
                 data["source_reference"], "Entity source_reference", MAX_REFERENCE_LENGTH
             ),
-            authority_tier=_enum(
-                SourceTier, data["authority_tier"], "Entity authority_tier"
-            ),
+            authority_tier=_official_tier(data["authority_tier"], "Entity authority_tier"),
             review_status=_enum(
                 ReviewStatus, data["review_status"], "Entity review_status"
             ),
@@ -425,7 +449,7 @@ class LoreFact:
             raise ValueError("Lore fact object_id_or_value must be a scalar.")
         if isinstance(value_field, str):
             value_field = _text(
-                value_field, "Lore fact object_id_or_value", MAX_REFERENCE_LENGTH
+                value_field, "Lore fact object_id_or_value", MAX_FACT_VALUE_LENGTH
             )
         predicate = _text(data["predicate"], "Lore fact predicate", 100)
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,99}", predicate):
@@ -436,9 +460,7 @@ class LoreFact:
             predicate=predicate,
             object_id_or_value=value_field,
             claim_type=_enum(ClaimType, data["claim_type"], "Lore fact claim_type"),
-            authority_tier=_enum(
-                SourceTier, data["authority_tier"], "Lore fact authority_tier"
-            ),
+            authority_tier=_official_tier(data["authority_tier"], "Lore fact authority_tier"),
             source_id=_id(data["source_id"], "Lore fact source_id"),
             source_reference=_text(
                 data["source_reference"], "Lore fact source_reference", MAX_REFERENCE_LENGTH
@@ -859,3 +881,52 @@ def _campaign_id_list(value: Any, label: str, maximum: int) -> tuple[str, ...]:
     if len(set(ids)) != len(ids):
         raise ValueError(f"{label} contains duplicate IDs.")
     return ids
+
+
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+@dataclass(frozen=True)
+class OwnerContinuityRecord:
+    """Owner-approved continuity kept outside official sources and campaign canon.
+
+    Construction records a decision. It does not load a pack, grant knowledge,
+    or authorize narration.
+    """
+
+    decision_id: str
+    provenance_kind: str
+    approved_statement: str
+    subject: str
+    predicate: str
+    year: int
+    scope: str
+    decision_document_digest: str
+
+    def __post_init__(self) -> None:
+        if self.provenance_kind != SourceTier.OWNER_APPROVED_CONTINUITY.value:
+            raise ValueError("Owner continuity provenance is invalid.")
+        if type(self.year) is not int or not 0 <= self.year <= 9999:
+            raise ValueError("Owner continuity year is invalid.")
+        digest = self.decision_document_digest
+        if not isinstance(digest, str) or _SHA256_RE.fullmatch(digest) is None:
+            raise ValueError("Owner decision digest is invalid.")
+        object.__setattr__(self, "decision_id", _id(self.decision_id, "Owner decision_id"))
+        object.__setattr__(
+            self,
+            "approved_statement",
+            _text(self.approved_statement, "Owner approved_statement", MAX_FACT_VALUE_LENGTH),
+        )
+        object.__setattr__(self, "subject", _text(self.subject, "Owner subject", MAX_NAME_LENGTH))
+        object.__setattr__(
+            self, "predicate", _text(self.predicate, "Owner predicate", MAX_NAME_LENGTH)
+        )
+        object.__setattr__(self, "scope", _text(self.scope, "Owner scope", MAX_NOTE_LENGTH))
+
+    @property
+    def runtime_enabled(self) -> bool:
+        return False
+
+    @property
+    def official_source_fact(self) -> bool:
+        return False

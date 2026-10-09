@@ -1,0 +1,50 @@
+{
+  "note": "This manifest does not include its own hash.",
+  "files": [
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/build_ledger.py",
+      "sha256": "77e4b78fa41ab98fd6465c25ee7f4e6963e177b5613e462766b1dc1b9bdad564",
+      "bytes": 6587
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/closure_assessment.md",
+      "sha256": "55d73399805d9880b438833dcf585cc79b9c3dffbd54e139acb001038b4eeea5",
+      "bytes": 1415
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/correction_summary.md",
+      "sha256": "8cf154673aa3107eb69aa33f1b14f722395fde0316df3427b3dd904a658520b0",
+      "bytes": 5225
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/field_errata.json",
+      "sha256": "14ef3cdedb439d9f65a52f3d01a3ad6fe4ca75021ccdc5aedd0b93b635fa2859",
+      "bytes": 61278
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/input_manifest.json",
+      "sha256": "43845a6811626356b7af987785194b7d69ccecc7402563dc74aa0486037191c6",
+      "bytes": 7099
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/prepare_errata.py",
+      "sha256": "ccc872e2dddc4d6ac05de242215991beaac7d77a1942f1a64e04ff50ce6cc66d",
+      "bytes": 22896
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/semantic_ledger.jsonl",
+      "sha256": "a4c053a22f9bfa23503779ed521332d53c2c630a516cfc9ab8d5f4e176a68549",
+      "bytes": 122797
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/validate_errata.py",
+      "sha256": "b284404c469ccf8027c462170291d522313a1de5f8259ebe2c2cc73c4614f577",
+      "bytes": 18572
+    },
+    {
+      "path": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-errata/validation_results.txt",
+      "sha256": "a077f10c80e60627e7eb916b104336cfe47b938d2cadf4ac52f3a5307dbff0d4",
+      "bytes": 1754
+    }
+  ]
+}

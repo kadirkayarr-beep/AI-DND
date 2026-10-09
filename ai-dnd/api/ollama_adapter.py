@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from typing import Any, Iterator
 
 import game
+from api.model_phase import ModelFailure
 from api.world_metadata import validate_world_metadata
 
 
@@ -195,7 +196,7 @@ class AuthenticatedOllamaAdapter:
         except Exception as error:
             failures = _MODEL_FAILURES.get()
             if failures is not None:
-                failures.append(type(error).__name__)
+                failures.append(ModelFailure(type(error).__name__))
             # game.py safely catches model errors; keep its server log sanitized.
             raise RuntimeError("Ollama request failed.") from None
 

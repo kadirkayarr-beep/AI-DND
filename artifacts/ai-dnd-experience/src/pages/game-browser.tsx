@@ -1065,6 +1065,8 @@ export default function GameBrowser() {
   });
   const playTurn = usePlayGameTurn();
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
+  const activeSessionRef = useRef(sessionId);
+  activeSessionRef.current = sessionId;
   const resolveAmbientEventAction = useResolveAmbientEventAction();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
@@ -1372,6 +1374,7 @@ export default function GameBrowser() {
       },
     }, {
       onSuccess: (result) => {
+        const stillVisible = activeSessionRef.current === sessionId;
         if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
         clearPendingTurnAction(actionScope, actionId);
         const next = [
@@ -1383,20 +1386,20 @@ export default function GameBrowser() {
             skillCheckResult: result.skill_check_result ?? undefined,
           },
         ];
-        setEntries(next);
+        if (stillVisible) setEntries(next);
         window.localStorage.setItem(
           `${TRANSCRIPT_KEY}${sessionId}`,
           JSON.stringify(next.map(({ kind, text }) => ({ kind, text }))),
         );
         const combatResult = result.combat_result;
         const combatHistoryEntry = result.combat_history_entry;
-        if (combatHistoryEntry) {
+        if (stillVisible && combatHistoryEntry) {
           setCombatEntries((current) => mergeCombatHistory(
             [combatHistoryEntry],
             current,
           ));
         }
-        if (combatResult) {
+        if (stillVisible && combatResult) {
           if (combatResult.combat_ended) {
             const endReason = combatResult.end_reason;
             setCombatEndNotice(
@@ -1412,11 +1415,11 @@ export default function GameBrowser() {
           if (combatResult.outcome !== 'enemy_turn_resolved' || combatResult.combat_ended) {
             setCombatTargetId('');
           }
-        } else {
+        } else if (stillVisible) {
           setCombatEndNotice(null);
         }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
-        setConversationTargetId('');
+        if (stillVisible) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
           const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
           const objective = quest?.objectives.find((item) => item.objective_id === outcome.objective_id);
@@ -1429,17 +1432,21 @@ export default function GameBrowser() {
           }[outcome.transition] ?? 'görev durumu güncellendi';
           return `${quest?.title ?? 'Görev'}: ${transition}${objective ? ` — ${objective.description}` : ''}.`;
         });
-        if (outcomeMessages.length) {
+        if (stillVisible && outcomeMessages.length) {
           setNotice({
             tone: 'success',
             title: 'Görev güncellendi',
             detail: outcomeMessages.join(' '),
           });
         }
-        setMessage('');
+        if (stillVisible) setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => {
+        if (activeSessionRef.current !== sessionId) {
+          if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
+          return;
+        }
         if ([400, 409, 422].includes(statusCode(error) ?? 0)) {
           pendingTurnRef.current = null;
           clearPendingTurnAction(actionScope, actionId);

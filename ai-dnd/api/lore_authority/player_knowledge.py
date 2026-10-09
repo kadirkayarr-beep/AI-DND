@@ -20,13 +20,24 @@ def read_player_knowledge(
     registry: LoreRegistry,
 ) -> dict[str, Any]:
     state = lore_state or CampaignLoreState.legacy_unbound()
-    return {
-        "known_facts": _known_facts(state, registry),
+    from .freeze_eligibility import player_surface_block_reason
+
+    known_facts = _known_facts(state, registry)
+    projection = {
+        "known_facts": known_facts,
         "people": _people(world),
         "adventure_evidence": _adventure_evidence(world),
         "adventure_possibilities": _adventure_possibilities(state, world),
         "known_factions": _known_factions(state, registry),
     }
+    gaps = [
+        {"fact_id": fact_id, "reason": player_surface_block_reason(fact_id)}
+        for fact_id in state.player_known_fact_ids
+        if player_surface_block_reason(fact_id) is not None
+    ]
+    if gaps:
+        projection["presentation_gaps"] = gaps
+    return projection
 
 
 def read_public_npc_label(npc: Any) -> str:
@@ -36,8 +47,13 @@ def read_public_npc_label(npc: Any) -> str:
 def _known_facts(state: CampaignLoreState, registry: LoreRegistry) -> list[dict[str, str]]:
     if state.binding_status is not BindingStatus.BOUND:
         return []
+    from .freeze_eligibility import player_surface_block_reason
+
     facts: list[dict[str, str]] = []
     for fact_id in state.player_known_fact_ids:
+        blocked = player_surface_block_reason(fact_id)
+        if blocked is not None:
+            continue
         fact = registry.fact(fact_id)
         if fact is None or fact.visibility is VisibilityScope.DM_SECRET:
             continue

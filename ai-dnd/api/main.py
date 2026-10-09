@@ -986,6 +986,7 @@ def create_app(
                 _logger.error(
                     "Engine turn failed (error_type=%s, rolled_back=true)",
                     type(error).__name__,
+                    exc_info=True,
                 )
                 if isinstance(error, combat_lifecycle.CombatRequestError):
                     raise HTTPException(status_code=error.status_code,
@@ -1006,7 +1007,11 @@ def create_app(
                 else None
             )
 
-            if model_failures:
+            from api.model_phase import only_resolved_narration_failures
+            if only_resolved_narration_failures(model_failures):
+                _logger.warning("Resolved narration unavailable; deterministic fallback retained (phases=%s)",
+                                [failure.phase for failure in model_failures])
+            if model_failures and not only_resolved_narration_failures(model_failures):
                 _rollback_session(record, session, snapshot)
                 _logger.warning(
                     "Ollama chat failed (error_type=%s)",

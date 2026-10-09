@@ -138,6 +138,10 @@ def record_player_discovery(
         raise ValueError("An unbound legacy campaign cannot receive canon discovery.")
     if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
         raise ValueError("Lore discovery requires Python engine evidence.")
+    from .freeze_eligibility import discovery_allowed
+
+    if not discovery_allowed(fact_id):
+        raise ValueError("An unapproved freeze record cannot become player knowledge.")
     fact = registry.fact(fact_id)
     if fact is None:
         raise ValueError("Discovered fact is not loaded in the verified registry.")

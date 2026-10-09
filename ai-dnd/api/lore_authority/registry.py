@@ -221,6 +221,7 @@ def _authorized_source(source: SourceManifest) -> bool:
     return (
         source.source_tier is not SourceTier.TIER_5_PROCEDURAL
         and source.source_tier is not SourceTier.TEST_FIXTURE
+        and source.source_tier is not SourceTier.OWNER_APPROVED_CONTINUITY
         and source.authority_status.casefold() == "verified"
         and source.owner_access_status.casefold() == "authorized"
     )
@@ -614,6 +615,8 @@ class LoreRegistry:
             allow_intent_match: bool = False,
         ) -> None:
             if not fact_is_current(fact, campaign_year):
+                return
+            if _public_freeze_fact_blocked(fact):
                 return
             if not ruler_fact_in_scope(fact):
                 return
@@ -1121,6 +1124,16 @@ def _validate_provenance(
     if allow_test_fixtures and review_status is ReviewStatus.TEST_ONLY:
         if source.source_tier is not SourceTier.TEST_FIXTURE:
             raise ValueError(f"{label} test provenance is invalid.")
+    if (
+        authority_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+        or source.source_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+    ):
+        raise ValueError(f"{label} cannot use owner continuity as official provenance.")
+    if source.source_tier is not authority_tier:
+        raise ValueError(f"{label} authority tier does not match its source.")
+    if allow_test_fixtures and review_status is ReviewStatus.TEST_ONLY:
+        if source.source_tier is not SourceTier.TEST_FIXTURE:
+            raise ValueError(f"{label} test provenance is invalid.")
         return
     if review_status is not ReviewStatus.VERIFIED_CANON:
         raise ValueError(f"{label} is not reviewed as verified canon.")
@@ -1221,6 +1234,45 @@ def _year_bound(value: str | None) -> int | None:
     return int(match.group(1))
 
 
+_FREEZE_GUARD: tuple[frozenset[str], frozenset[str]] | None = None
+
+
+def _freeze_guard() -> tuple[frozenset[str], frozenset[str]]:
+    """Pinned corpus ids and restricted ids. A failed load excludes nothing."""
+    global _FREEZE_GUARD
+    if _FREEZE_GUARD is None:
+        from .freeze_admission import load_freeze_evidence
+
+        evidence = load_freeze_evidence()
+        if evidence.integrity_errors:
+            _FREEZE_GUARD = (frozenset(), frozenset())
+        else:
+            _FREEZE_GUARD = (frozenset(evidence.records), frozenset(evidence.restricted_ids))
+    return _FREEZE_GUARD
+
+
+def _freeze_scope_required(fact_id: str) -> bool:
+    """Unscoped corpus ids are not current 1501 facts."""
+    return fact_id in _freeze_guard()[0]
+
+
+def _public_freeze_fact_blocked(fact: LoreFact) -> bool:
+    """Restricted ids and the excluded Castle Ward inference stay out of packets."""
+    from .freeze_admission import EXCLUDED_CASTLE_WARD_INFERENCE
+
+    if fact.fact_id in _freeze_guard()[1] and fact.visibility not in {
+        VisibilityScope.DM_SECRET,
+        VisibilityScope.DISCOVERABLE_SECRET,
+    }:
+        return True
+    value = fact.object_id_or_value
+    return (
+        fact.fact_id == "WD22-F-015"
+        and isinstance(value, str)
+        and EXCLUDED_CASTLE_WARD_INFERENCE in value
+    )
+
+
 def fact_is_current(fact: LoreFact, campaign_year: int) -> bool:
     """Whether a verified fact is current at a campaign DR year.
 
@@ -1238,6 +1290,8 @@ def fact_is_current(fact: LoreFact, campaign_year: int) -> bool:
         return False
     scope = fact.temporal_scope
     if scope is None or scope == _STATIC_SCOPE:
+        if scope is None and _freeze_scope_required(fact.fact_id):
+            return False
         return True
     if scope == _CURRENT_EPOCH_SCOPE:
         return campaign_year == DEFAULT_CAMPAIGN_YEAR

@@ -197,6 +197,19 @@ def public_projection(session):
             "player_node_id": node if node in NODES else None, "visible_opponent": opponent}
 
 
+def visible_dash_narration(session, enemy):
+    """Describe an already resolved Dash only when its endpoint is observable."""
+    if enemy.get("outcome") != "dash":
+        return ""
+    visible = (public_projection(session) or {}).get("visible_opponent") or {}
+    actor_id = enemy.get("actor_id") or enemy.get("actor")
+    distance = visible.get("distance_ft")
+    if not actor_id or actor_id != visible.get("npc_id") or type(distance) is not int:
+        return ""
+    npc = next((npc for npc in session.world_state["npcs"] if npc.get("id") == actor_id), None)
+    return f" {living_world.public_npc_name(npc)} koşarak yer değiştirir; artık senden {distance} feet uzakta."
+
+
 def _reply(session, message, narration, action, **details):
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
     session.messages.extend([{"role": "user", "content": message},
@@ -257,7 +270,7 @@ def resolve_command(session, message, *, player_message=None):
         session.world_state["scene_state"]["player_position"]["bounded_node_id"] = "courtyard_entry"
         refresh(session)
         return _reply(session, message,
-                      "Açık avludasın. Avlu saldırganı 60 feet ötede sopa taşıyor. "
+                      f"Açık avludasın. {living_world.public_npc_name(npc)} 60 feet ötede sopa taşıyor. "
                       "Çatışma başlamadı; başlatmayı seçersen «Avlu çatışmasını başlat» yaz.",
                       "scenario_enter", npc_id=npc["id"], scenario_id=SCENARIO_ID)
     if not state or state["location_id"] != session.world_state.get("location"):
@@ -271,7 +284,9 @@ def resolve_command(session, message, *, player_message=None):
     # Do not create a scheduler: use the existing player-selected combat owner.
     session.start_combat(npc)
     enemies = session._resolve_enemy_turns_until_player()
-    return _reply(session, message, "Seçiminle çatışma başladı; inisiyatif Python tarafından çözüldü.",
+    narration = "Seçiminle çatışma başladı; sıra inisiyatife göre belirlendi."
+    narration += "".join(visible_dash_narration(session, enemy) for enemy in enemies)
+    return _reply(session, message, narration,
                   "action_economy", outcome="combat_started", combat_started=True,
                   npc_id=npc["id"], enemy_actions=enemies,
                   combat_id=session.world_state["combat"]["combat_id"])

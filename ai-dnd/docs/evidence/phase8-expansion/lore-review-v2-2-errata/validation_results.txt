@@ -1,0 +1,20 @@
+base 2255bc3b1a3b2a907e8b639528c1adb78e1b37e9a41b04934469fd6c33b46ee4
+records 202
+patches 47
+page_counts {'569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528': 218, '65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848': 437, '8f582d64c01c84fca6a2e6106aa616ca8daa929fd7cc6243de56525d1f35f455': 228, '3f111653187e0a28f2864d2f90234c81b1643ef8012eda21e701603b69da2614': 260, 'c1f480cec0d650102e697c8e1a64edf4339bfa72a5897911d33519a3a32c6a51': 162, '23208efec1de9bc1bda1a3214f8fd75f4a3aec982d1231c8d669a9898c85dcec': 322}
+keyword screen is not a proof of secret absence or of natural-language correctness
+PASS negative duplicate id ['duplicate record id in base']
+PASS negative missing ancestor ['missing v21 ancestor FR22-F-001 NO-SUCH-ANCESTOR']
+PASS negative wrong patch old value ['old value mismatch WD22-X-004 supported_by']
+PASS negative empty citation ['empty citations FR22-F-001']
+PASS negative empty pages ['bad pages FR22-F-001']
+PASS negative broken endpoint ['broken endpoint WD22-X-001 NO-SUCH-ENTITY']
+PASS negative missing required support ['required support WD22-X-004']
+PASS negative public edge to restricted entity ['public edge to restricted entity WD22-X-004 -> WD22-E-006', 'public edge to restricted entity WD22-X-008 -> WD22-E-006']
+PASS negative transitive restricted dependency ['public depends on nonpublic FR22-F-001 -> WD22-F-004']
+PASS negative page out of range ['page out of range FR22-F-001']
+PASS negative unexpected record deletion ["id set changed missing=['BG22-X-009'] extra=[]"]
+PASS negative invalid status ['status or knowledge changed FR22-F-001']
+PASS negative granted player knowledge ['status or knowledge changed FR22-F-001']
+FAILS 0
+PASS in-memory corrected view
