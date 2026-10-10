@@ -52,11 +52,16 @@ function tone(ctx: AudioContext, frequency: number, start: number, duration: num
   const filter = ctx.createBiquadFilter();
   const amp = ctx.createGain();
   oscillator.type = type;
-  oscillator.frequency.value = frequency;
+  oscillator.frequency.setValueAtTime(frequency * 1.003, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency, start + Math.min(0.11, duration * 0.45));
+  oscillator.detune.setValueAtTime(-2, start);
+  oscillator.detune.linearRampToValueAtTime(1.5, start + duration);
   filter.type = 'lowpass';
-  filter.frequency.value = filterFrequency;
+  filter.frequency.setValueAtTime(filterFrequency * 1.12, start);
+  filter.frequency.exponentialRampToValueAtTime(filterFrequency, start + Math.min(0.16, duration * 0.7));
   amp.gain.setValueAtTime(0.0001, start);
-  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), start + 0.02);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), start + Math.min(0.045, duration * 0.3));
+  amp.gain.setValueAtTime(Math.max(0.0002, gain * 0.72), start + duration * 0.62);
   amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   oscillator.connect(filter);
   filter.connect(amp);
@@ -65,7 +70,7 @@ function tone(ctx: AudioContext, frequency: number, start: number, duration: num
   oscillator.stop(start + duration + 0.02);
 }
 
-function rustle(ctx: AudioContext, start: number, duration: number, gain: number) {
+function rustle(ctx: AudioContext, start: number, duration: number, gain: number, centerFrequency = 900) {
   const length = Math.floor(ctx.sampleRate * duration);
   const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -75,9 +80,11 @@ function rustle(ctx: AudioContext, start: number, duration: number, gain: number
   const amp = ctx.createGain();
   source.buffer = buffer;
   filter.type = 'bandpass';
-  filter.frequency.value = 900;
-  filter.Q.value = 0.7;
-  amp.gain.setValueAtTime(gain, start);
+  filter.frequency.setValueAtTime(centerFrequency * 1.25, start);
+  filter.Q.value = 0.55;
+  filter.frequency.exponentialRampToValueAtTime(centerFrequency * 0.72, start + duration);
+  amp.gain.setValueAtTime(0.0001, start);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), start + Math.min(0.025, duration * 0.3));
   amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   source.connect(filter);
   filter.connect(amp);
@@ -93,21 +100,21 @@ export function playGateSound(cue: GateCue) {
   const now = ctx.currentTime;
   const level = readVolume() * 0.18;
   if (cue === 'menu') {
-    tone(ctx, 196, now, 0.16, 'sine', level, 700);
-    rustle(ctx, now, 0.09, level * 0.45);
+    rustle(ctx, now, 0.105, level * 0.72, 680);
+    tone(ctx, 132, now + 0.018, 0.13, 'sine', level * 0.1, 360);
   } else if (cue === 'select') {
-    tone(ctx, 392, now, 0.12, 'triangle', level * 0.7, 1400);
-    tone(ctx, 587, now + 0.03, 0.14, 'sine', level * 0.45, 1600);
+    rustle(ctx, now, 0.052, level * 0.7, 1500);
+    tone(ctx, 185, now + 0.012, 0.075, 'sine', level * 0.075, 520);
   } else if (cue === 'page') {
-    rustle(ctx, now, 0.14, level * 0.55);
-    tone(ctx, 247, now, 0.1, 'sine', level * 0.35, 800);
+    rustle(ctx, now, 0.16, level * 0.76, 1150);
+    tone(ctx, 118, now + 0.025, 0.11, 'sine', level * 0.09, 310);
   } else if (cue === 'warn') {
-    tone(ctx, 311, now, 0.12, 'sine', level * 0.55, 900);
-    tone(ctx, 233, now + 0.09, 0.16, 'triangle', level * 0.4, 700);
+    rustle(ctx, now, 0.07, level * 0.62, 520);
+    rustle(ctx, now + 0.075, 0.09, level * 0.48, 430);
+    tone(ctx, 104, now + 0.02, 0.14, 'sine', level * 0.08, 260);
   } else {
-    tone(ctx, 262, now, 0.16, 'sine', level * 0.5, 1200);
-    tone(ctx, 330, now + 0.08, 0.18, 'sine', level * 0.45, 1200);
-    tone(ctx, 392, now + 0.16, 0.28, 'triangle', level * 0.4, 1400);
-    rustle(ctx, now, 0.12, level * 0.25);
+    rustle(ctx, now, 0.13, level * 0.7, 920);
+    rustle(ctx, now + 0.025, 0.075, level * 0.24, 1850);
+    tone(ctx, 146, now + 0.045, 0.18, 'sine', level * 0.09, 380);
   }
 }

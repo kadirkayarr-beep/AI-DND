@@ -78,6 +78,8 @@ import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
 import citadelArtwork from '@assets/generated_images/ai-dnd-citadel-gate.jpg';
+import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
+import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -853,6 +855,22 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
   const character = state.character;
+  const classPortraitCells: Record<string, number> = {
+    fighter: 0, barbarian: 1, paladin: 2, ranger: 3, rogue: 4, monk: 5,
+    bard: 6, cleric: 7, druid: 8, sorcerer: 9, wizard: 10, warlock: 11,
+  };
+  const speciesPortraitCells: Record<string, number> = {
+    human: 0, elf: 1, dwarf: 2, halfling: 3, dragonborn: 4, gnome: 5,
+    'half-orc': 6, tiefling: 7, goliath: 8, aasimar: 9, 'wood elf': 10, orc: 11,
+  };
+  const classCell = classPortraitCells[character.class.trim().toLowerCase()];
+  const speciesCell = speciesPortraitCells[character.race.trim().toLowerCase()];
+  const portraitCell = classCell ?? speciesCell;
+  const portraitSheet = classCell !== undefined ? classPortraitSheet : speciesPortraitSheet;
+  const portraitStyle = portraitCell === undefined ? undefined : {
+    backgroundImage: `url("${portraitSheet}")`,
+    backgroundPosition: `${(portraitCell % 4) * 100 / 3}% ${Math.floor(portraitCell / 4) * 50}%`,
+  };
   const abilities = [
     ['KUV', character.strength],
     ['ÇEV', character.dexterity],
@@ -862,24 +880,24 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
     ['KAR', character.charisma],
   ];
   return (
-    <main className="reveal-screen gate-fade" data-testid="screen-character-reveal">
+    <main className="reveal-screen gate-fade cinematic-reveal" data-testid="screen-character-reveal">
       <header className="dnd-shell reveal-header">
         <Brand />
-        <button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening">
+        <button type="button" className="text-button reveal-back" onClick={() => { primeGateSound(); playGateSound('page'); onBack(); }} data-testid="button-back-opening">
           <ArrowLeft size={13} /> Geri dön
         </button>
       </header>
       <div className="reveal-wrap">
         <div className="reveal-heading">
           <Kicker>Yeni macera · Yolcu</Kicker>
-          <h1 className="dnd-display">Yolcu ortaya çıktı.</h1>
-          <p className="dnd-serif">Seçtiğin nitelikler, beceriler ve ekipmanlar kurallara göre mühürlendi. Dünya ilk sözünü bekliyor.</p>
+          <h1 className="dnd-display">Adın artık<br /><em>bir hikâye.</em></h1>
+          <p className="dnd-serif">Yolun belli. Dünya henüz seni tanımıyor.</p>
         </div>
         <div className="reveal-card">
-          <div className="portrait-empty" aria-label="Portre alanı boş">
-            <ScrollText size={25} />
-            <Kicker>Henüz bir suret yok</Kicker>
-            <span>Yol boyunca yüzün hatırlanacak.</span>
+          <div className={`reveal-portrait ${portraitStyle ? '' : 'reveal-portrait-neutral'}`} style={portraitStyle} role="img" aria-label={`${character.name} için ${speciesLabel(character.race)} ${classLabel(character.class)} temsili portre`}>
+            <div className="portrait-vignette" />
+            <div className="portrait-caption"><span>YOLCU PORTRESİ</span><strong>{character.name}</strong><small>Temsili görsel · karakter görünümünü belirlemez</small></div>
+            <div className="portrait-insignia" aria-hidden="true"><OuroborosMark /></div>
           </div>
           <div className="reveal-data">
             <div className="reveal-top">
@@ -952,7 +970,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
             ) : null}
             <div className="reveal-actions">
               <span>Bu yolculukta sana adın, geçmişin ve yeteneklerin eşlik edecek.</span>
-              <button type="button" className="dnd-button" onClick={onContinue} data-testid="button-continue-adventure">
+              <button type="button" className="dnd-button" onClick={() => { primeGateSound(); playGateSound('success'); onContinue(); }} data-testid="button-continue-adventure">
                 Macerayı aç <ArrowRight size={14} />
               </button>
             </div>

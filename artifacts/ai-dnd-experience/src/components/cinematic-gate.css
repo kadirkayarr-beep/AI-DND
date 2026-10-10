@@ -656,3 +656,356 @@
   }
   .gate-actions .dnd-button { transition: none; }
 }
+
+/* Phase 3 — a quiet, ceremonial reveal rather than another character form. */
+.cinematic-reveal {
+  --reveal-ivory: #eee8d8;
+  --reveal-muted: #aaa795;
+  --reveal-gold: #c5a768;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  padding: 0 clamp(22px, 6vw, 96px) 24px;
+  overflow: hidden;
+  color: var(--reveal-ivory);
+  background:
+    radial-gradient(ellipse at 76% 42%, rgba(49, 83, 66, .23), transparent 40%),
+    radial-gradient(ellipse at 13% 100%, rgba(123, 74, 51, .15), transparent 42%),
+    #111512;
+}
+.reveal-screen.gate-fade.cinematic-reveal {
+  height: 100dvh;
+  min-height: 620px;
+  overflow: hidden;
+  color: #eee8d8;
+  background:
+    radial-gradient(ellipse at 78% 47%, rgba(49, 83, 66, .19), transparent 42%),
+    radial-gradient(ellipse at 12% 100%, rgba(123, 74, 51, .12), transparent 42%),
+    #111512;
+  animation: none;
+}
+.reveal-screen.gate-fade.cinematic-reveal .reveal-wrap {
+  flex-direction: row;
+  width: min(84vw, 1640px);
+  max-width: 100%;
+  align-self: center;
+  margin: 0 auto;
+}
+.reveal-screen.gate-fade.cinematic-reveal::before { display: none; }
+.reveal-screen.gate-fade.cinematic-reveal .reveal-heading h1 {
+  color: #f0eadb;
+}
+.reveal-screen.gate-fade.cinematic-reveal .reveal-heading p {
+  color: #d7d2c4;
+}
+.reveal-screen.gate-fade.cinematic-reveal .reveal-card {
+  animation: none;
+  background: #171e19;
+  border-color: rgba(197, 167, 104, .4);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .34), inset 0 1px rgba(247, 235, 201, .04);
+}
+.cinematic-reveal::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+  opacity: .2;
+  background-image: repeating-linear-gradient(117deg, transparent 0 9px, rgba(218, 205, 169, .035) 10px, transparent 11px 21px);
+  mask-image: linear-gradient(90deg, #000, transparent 88%);
+}
+.cinematic-reveal .reveal-header {
+  width: 100%;
+  max-width: 1440px;
+  min-height: 76px;
+  padding: 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  border-bottom: 1px solid rgba(197, 167, 104, .16);
+}
+.cinematic-reveal .brand-mark {
+  border-color: rgba(197, 167, 104, .55);
+  color: #a4b18c;
+  background: rgba(25, 38, 31, .55);
+}
+.cinematic-reveal .brand-name { color: #e7dfca; }
+.cinematic-reveal .brand-subtitle { color: rgba(218, 210, 190, .57); }
+.cinematic-reveal .reveal-back {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(197, 167, 104, .3);
+  color: #d9d1be;
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.cinematic-reveal .reveal-back:hover {
+  border-color: rgba(197, 167, 104, .72);
+  background: rgba(197, 167, 104, .08);
+}
+.cinematic-reveal .reveal-wrap {
+  width: min(100%, 1640px);
+  margin: 0 auto;
+  padding: clamp(20px, 3.5vh, 42px) 0 0;
+  gap: clamp(22px, 4vw, 58px);
+  flex: 1;
+}
+.cinematic-reveal .reveal-heading {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 34%;
+  align-self: center;
+  padding: 0 0 36px;
+}
+.cinematic-reveal .reveal-heading .dnd-kicker {
+  color: var(--reveal-gold);
+  font-size: 9px;
+  letter-spacing: .2em;
+}
+.cinematic-reveal .reveal-heading .dnd-display {
+  margin: 22px 0 18px;
+  color: #f0eadb;
+  font: 500 clamp(2.65rem, 5.1vw, 5.7rem)/.99 'Cinzel', Georgia, serif;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+  text-shadow: 0 8px 34px rgba(0, 0, 0, .32);
+}
+.cinematic-reveal .reveal-heading .dnd-display em {
+  color: #c7ac71;
+  font-weight: 400;
+}
+.cinematic-reveal .reveal-heading .dnd-serif {
+  max-width: 315px;
+  color: rgba(230, 224, 208, .72);
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.45;
+}
+.cinematic-reveal .reveal-card {
+  display: grid;
+  grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr);
+  flex: 1 1 66%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(197, 167, 104, .31);
+  background: rgba(20, 25, 22, .81);
+  box-shadow: 0 26px 90px rgba(0, 0, 0, .32), inset 0 1px rgba(247, 235, 201, .05);
+}
+.cinematic-reveal .reveal-portrait {
+  position: relative;
+  display: flex;
+  min-height: 520px;
+  overflow: hidden;
+  align-items: flex-end;
+  background-color: #222b26;
+  background-size: 400% 300%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.cinematic-reveal .reveal-portrait-neutral {
+  background:
+    radial-gradient(ellipse at 50% 34%, rgba(193, 168, 111, .22), transparent 26%),
+    radial-gradient(ellipse at 50% 52%, rgba(81, 105, 83, .42), transparent 48%),
+    linear-gradient(145deg, #202923, #101613 76%);
+}
+.cinematic-reveal .reveal-portrait-neutral::before {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  width: 42%;
+  aspect-ratio: .78;
+  content: '';
+  transform: translateX(-50%);
+  border: 1px solid rgba(206, 179, 115, .28);
+  border-radius: 48% 48% 22% 22%;
+  background: linear-gradient(160deg, rgba(213, 194, 148, .12), rgba(22, 29, 25, .58));
+  box-shadow: 0 0 65px rgba(198, 170, 106, .12);
+}
+.cinematic-reveal .portrait-vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(9, 13, 11, .96), transparent 53%), linear-gradient(90deg, rgba(9, 13, 11, .26), transparent 47%, rgba(9, 13, 11, .1));
+}
+.cinematic-reveal .portrait-caption {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+  padding: 28px clamp(18px, 2.5vw, 34px);
+}
+.cinematic-reveal .portrait-caption span,
+.cinematic-reveal .portrait-caption small {
+  color: rgba(229, 220, 193, .62);
+  font-size: 8px;
+  letter-spacing: .17em;
+  line-height: 1.5;
+}
+.cinematic-reveal .portrait-caption strong {
+  color: #f0e7d3;
+  font: 500 clamp(1.45rem, 2.6vw, 2.35rem)/1.05 'Cinzel', Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.cinematic-reveal .portrait-insignia {
+  position: absolute;
+  top: 25px;
+  right: 23px;
+  display: grid;
+  width: 48px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(215, 188, 121, .43);
+  border-radius: 50%;
+  background: rgba(11, 17, 14, .47);
+}
+.cinematic-reveal .portrait-insignia .ouroboros { width: 29px; height: 29px; }
+.cinematic-reveal .reveal-data {
+  min-width: 0;
+  padding: clamp(21px, 3vw, 42px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--reveal-ivory);
+  background: linear-gradient(135deg, rgba(30, 36, 30, .83), rgba(17, 22, 19, .92));
+}
+.cinematic-reveal .reveal-top h2 {
+  margin: 8px 0 7px;
+  color: #f2ead9;
+  font: 500 clamp(1.8rem, 3vw, 3rem)/1.08 'Cinzel', Georgia, serif;
+  overflow-wrap: anywhere;
+}
+.cinematic-reveal .character-sub { color: #c1bba9; }
+.cinematic-reveal .character-badge {
+  border-color: rgba(197, 167, 104, .44);
+  color: #dec88f;
+  background: rgba(197, 167, 104, .08);
+}
+.cinematic-reveal .reveal-data .dnd-kicker { color: #bda66f; }
+.cinematic-reveal .reveal-origin {
+  display: grid;
+  gap: 8px;
+  margin-top: 23px;
+  color: #ded6c3;
+}
+.cinematic-reveal .dnd-rule { background: rgba(197, 167, 104, .23); }
+.cinematic-reveal .reveal-metrics {
+  margin: 20px 0 0;
+  padding: 15px 0;
+  border-block: 1px solid rgba(197, 167, 104, .2);
+}
+.cinematic-reveal .reveal-metrics strong { color: #eee5d2; }
+.cinematic-reveal .reveal-data .subtle-text { color: var(--reveal-muted); }
+.cinematic-reveal .reveal-stats,
+.cinematic-reveal .reveal-skills { margin-top: 22px; }
+.cinematic-reveal .stat-box {
+  border-color: rgba(197, 167, 104, .24);
+  background: rgba(9, 15, 12, .4);
+}
+.cinematic-reveal .stat-value { color: #eee5d2; }
+.cinematic-reveal .status-pill {
+  border-color: rgba(197, 167, 104, .26);
+  color: #e1d7c0;
+  background: rgba(197, 167, 104, .07);
+}
+.cinematic-reveal .reveal-data .state-panel {
+  margin: 20px 0 0;
+  padding: 15px;
+  border-color: rgba(197, 167, 104, .2);
+  background: rgba(9, 15, 12, .35);
+}
+.cinematic-reveal .reveal-data .state-panel h2 { color: #e9e0ce; }
+.cinematic-reveal .reveal-actions {
+  position: sticky;
+  bottom: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px -8px -8px;
+  padding: 18px 8px 8px;
+  border-top: 1px solid rgba(197, 167, 104, .2);
+  color: #bcb7a8;
+  background: linear-gradient(180deg, rgba(21, 27, 23, .86), #151b17 26%);
+}
+.cinematic-reveal .reveal-actions .dnd-button {
+  flex: none;
+  min-height: 48px;
+  border: 1px solid #c9ad6b;
+  background: #315744;
+  color: #f2ead8;
+  box-shadow: inset 0 1px rgba(255, 246, 214, .12);
+}
+.cinematic-reveal .reveal-actions .dnd-button:hover {
+  background: #3c6950;
+}
+
+@media (max-width: 900px) {
+  .reveal-screen.gate-fade.cinematic-reveal {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    padding-inline: clamp(18px, 4vw, 28px);
+  }
+  .reveal-screen.gate-fade.cinematic-reveal .reveal-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+    padding-bottom: 18px;
+  }
+  .cinematic-reveal .reveal-heading {
+    align-self: stretch;
+    padding: 0;
+  }
+  .cinematic-reveal .reveal-heading .dnd-display {
+    margin: 13px 0 9px;
+    font-size: clamp(2.35rem, 8vw, 4rem);
+  }
+  .cinematic-reveal .reveal-heading .dnd-serif { max-width: none; }
+  .cinematic-reveal .reveal-card {
+    flex: none;
+    grid-template-columns: minmax(190px, .72fr) minmax(0, 1.28fr);
+    min-height: 560px;
+  }
+  .cinematic-reveal .reveal-portrait { min-height: 100%; }
+}
+@media (max-width: 620px) {
+  .reveal-screen.gate-fade.cinematic-reveal {
+    width: 100%;
+    max-width: 100%;
+    padding: 0 16px 16px;
+    overflow-x: clip;
+    overflow-y: visible;
+    background:
+      radial-gradient(ellipse at 86% 22%, rgba(49, 83, 66, .18), transparent 30rem),
+      #111512;
+  }
+  .cinematic-reveal .reveal-wrap { min-width: 0; }
+  .cinematic-reveal .reveal-header { min-height: 66px; padding: 12px 0; }
+  .cinematic-reveal .brand { gap: 9px; }
+  .cinematic-reveal .brand-mark { width: 37px; height: 37px; }
+  .cinematic-reveal .brand-name { font-size: 8px; }
+  .cinematic-reveal .brand-subtitle { font-size: 7px; }
+  .cinematic-reveal .reveal-back { min-height: 36px; padding: 0 8px; font-size: 11px; }
+  .cinematic-reveal .reveal-heading .dnd-display { font-size: clamp(2.3rem, 12vw, 3.6rem); }
+  .cinematic-reveal .reveal-card {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .cinematic-reveal .reveal-portrait {
+    flex: none;
+    min-height: 0;
+    height: clamp(260px, 74vw, 390px);
+    background-size: 400% 300%;
+  }
+  .cinematic-reveal .reveal-data { overflow: visible; padding: 22px 18px; }
+  .cinematic-reveal .reveal-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 19px;
+  }
+  .cinematic-reveal .reveal-actions .dnd-button { justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-reveal .reveal-back { transition: none; }
+}
