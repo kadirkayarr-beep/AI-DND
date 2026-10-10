@@ -77,6 +77,7 @@ import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGate
 import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
+import citadelArtwork from '@assets/generated_images/ai-dnd-citadel-gate.jpg';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -114,7 +115,7 @@ function GateSoundControl() {
   const [muted, setMuted] = useState(gateSoundMuted);
   const [volume, setVolume] = useState(gateSoundVolume);
   return (
-    <div className="gate-sound">
+    <div className="gate-sound" data-testid="gate-sound-control">
       <button type="button" aria-pressed={muted} onClick={() => { primeGateSound(); const next = !muted; setMuted(next); setGateSoundMuted(next); }}>
         {muted ? 'Ses kapalı' : 'Ses açık'}
       </button>
@@ -150,9 +151,14 @@ function NoticeBanner({ notice }: { notice: Notice }) {
 
 function TavernArtwork() {
   return (
-    <div className="gate-scene" data-testid="artwork-tavern">
-      <div className="gate-mist" />
-      <OuroborosMark awaken />
+    <div className="gate-scene" data-testid="artwork-tavern" role="img" aria-label="Sislerin ardındaki uzak kale ve ona uzanan taş köprü" style={{ backgroundImage: `url("${citadelArtwork}")` }}>
+      <div className="gate-mist gate-mist-near" />
+      <div className="gate-mist gate-mist-far" />
+      <div className="gate-seal" aria-hidden="true">
+        <span className="gate-seal-caption">Yol çağırıyor</span>
+        <OuroborosMark awaken />
+      </div>
+      <span className="gate-art-caption" aria-hidden="true">UNUTULMUŞ DİYARLAR · FAERÛN</span>
     </div>
   );
 }
@@ -178,9 +184,9 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
           <GateSoundControl />
         </header>
         <div className="opening-grid">
-          <section className="opening-copy">
+          <section className="opening-copy" aria-labelledby="opening-title">
             <div className="opening-eyebrow"><Kicker>Kapılar açılıyor</Kicker></div>
-            <h1 className="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
+            <h1 className="opening-title" id="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
             <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
             <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
             <div className="opening-actions gate-actions">
@@ -195,7 +201,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
             {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
             <div className="opening-meta"><span>TEK OYUNCU</span><span className="meta-dot" /><span>DOĞAL DİLLE</span><span className="meta-dot" /><span>SENİN SEÇİMİN</span></div>
           </section>
-          <section className="opening-art"><TavernArtwork /></section>
+          <section className="opening-art" aria-label="Macera kapısı"><TavernArtwork /></section>
         </div>
         <EngineHealth />
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,6 +25,8 @@ import type {
   CharacterCreationCatalogResponse,
 } from '@workspace/api-client-react';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
+import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
+import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import {
   getFightingStyleOptions,
   getClassSkillOptions,
@@ -98,6 +100,28 @@ const STEPS = [
 
 type StepId = typeof STEPS[number]['id'];
 const CHARACTER_CREATION_LEVEL = 1;
+
+const CLASS_PORTRAIT_CELLS: Record<string, number> = {
+  fighter: 0, barbarian: 1, paladin: 2, ranger: 3,
+  rogue: 4, monk: 5, bard: 6, cleric: 7,
+  druid: 8, sorcerer: 9, wizard: 10, warlock: 11,
+};
+
+const SPECIES_PORTRAIT_CELLS: Record<string, number> = {
+  human: 0, elf: 1, dwarf: 2, halfling: 3,
+  dragonborn: 4, gnome: 5, 'half-orc': 6, tiefling: 7,
+  goliath: 8, aasimar: 9, 'wood elf': 10, orc: 11,
+};
+
+function portraitStyle(sheet: string, cell: number | undefined): CSSProperties | undefined {
+  if (cell === undefined) return undefined;
+  const column = cell % 4;
+  const row = Math.floor(cell / 4);
+  return {
+    backgroundImage: `url("${sheet}")`,
+    backgroundPosition: `${column * 100 / 3}% ${row * 50}%`,
+  };
+}
 
 function calculateModifier(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -765,15 +789,23 @@ export function CharacterCreationScreen({
                   <p className="cc-literary">Sınıfın, karakterinin dövüş tarzını, can zarını ve temel yeteneklerini belirler.</p>
                 </div>
 
-                <div className="cc-cards-grid">
+                <div className="cc-cards-grid cc-portrait-grid">
                   {catalog?.classes && Object.entries(catalog.classes as Record<string, any>).map(([clsKey, cls]) => {
                     const isSelected = characterClass === clsKey;
                     return (
                       <div
                         key={clsKey}
                         className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
                         onClick={() => setCharacterClass(clsKey)}
                       >
+                        <span
+                          className={`cc-portrait ${CLASS_PORTRAIT_CELLS[clsKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
+                          style={portraitStyle(classPortraitSheet, CLASS_PORTRAIT_CELLS[clsKey.toLowerCase()])}
+                          aria-hidden="true"
+                        />
                         <div className="cc-card-top">
                           <span className="cc-card-title">{cls.name_tr ?? clsKey}</span>
                           <span className="cc-badge">d{cls.hit_die} Can Zarı</span>
@@ -838,18 +870,26 @@ export function CharacterCreationScreen({
                   <p className="cc-literary">Türün hareket hızını, duyularını ve doğuştan gelen ırksal özelliklerini belirler.</p>
                 </div>
 
-                <div className="cc-cards-grid">
+                <div className="cc-cards-grid cc-portrait-grid">
                   {catalog?.races && Object.entries(catalog.races as Record<string, any>).map(([raceKey, rc]) => {
                     const isSelected = species === raceKey;
                     return (
                       <div
                         key={raceKey}
                         className={`cc-choice-card ${isSelected ? 'selected' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
                         onClick={() => {
                           if (raceKey !== species) setGiantAncestry('');
                           setSpecies(raceKey);
                         }}
                       >
+                        <span
+                          className={`cc-portrait ${SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
+                          style={portraitStyle(speciesPortraitSheet, SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()])}
+                          aria-hidden="true"
+                        />
                         <div className="cc-card-top">
                           <span className="cc-card-title">{rc.name_tr ?? raceKey}</span>
                           <span className="cc-badge">{rc.speed}</span>
@@ -1445,7 +1485,7 @@ export function CharacterCreationScreen({
                   <p className="cc-literary">Karakterinin macera yolculuğuna başlarken kuşanacağı silah, zırh ve teçhizatı seç.</p>
                 </div>
 
-                <div className="cc-cards-grid">
+                <div className="cc-cards-grid cc-portrait-grid">
                   {(classData?.equipment_packages ?? [
                     { id: 'A', label: 'Standart Macera Paketi', items: ['Zırh', 'Silah', 'Macera Çantası', '10 Altın'] },
                   ]).map((pkg: any) => {
