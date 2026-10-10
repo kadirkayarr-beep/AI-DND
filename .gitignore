@@ -46,7 +46,16 @@ Thumbs.db
 
 # Replit
 .cache/
-.local/
+!.local/
+.local/*
+!.local/evidence/
+.local/evidence/*
+!.local/evidence/phase8-master-v1-20261009/
+.local/evidence/phase8-master-v1-20261009/*
+!.local/evidence/phase8-master-v1-20261009/m09-external-chatgpt-assessment-20261010.json
+!.local/evidence/phase8-master-v1-20261009/m09-owner-amendment-20261010.json
+!.local/evidence/phase8-master-v1-20261009/m09-owner-command-b-acceptance-20261010.json
+!.local/evidence/phase8-master-v1-20261009/phase8-expansion-closure-v1-20261010.json
 
 # Python
 ai-dnd/saves/
