@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import type { CampaignSummary, CampaignStartOptionsResponse } from '@workspace/api-client-react';
 import { campaignLocationLabel, classLabel, speciesLabel } from '@/lib/campaign-presentation';
+import { playGateSound, primeGateSound } from '@/lib/gate-sound';
+import '@/components/cinematic-gate.css';
 import { getGetCampaignsQueryKey, useDeleteCampaign } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -71,7 +73,7 @@ export function CampaignLibrary({
   };
   campaigns = campaigns?.filter(campaign => !removed.has(campaign.campaign_id));
   return (
-    <main className="opening min-h-screen" data-testid="screen-campaign-library">
+    <main className="opening cinematic-gate gate-fade" data-testid="screen-campaign-library">
       <div className="dnd-shell">
         <header className="opening-header">
           <button className="text-button" type="button" onClick={onBack} data-testid="button-back-opening">
@@ -82,10 +84,10 @@ export function CampaignLibrary({
           </div>
         </header>
 
-        <section className="mx-auto max-w-4xl py-8 md:py-14">
+        <section className="gate-library mx-auto max-w-4xl py-8 md:py-14">
           <div className="mb-8 max-w-2xl">
             <div className="opening-eyebrow"><span className="dnd-kicker">Kayıtlı yolculuklar</span></div>
-            <h1 className="dnd-display mt-4 text-4xl text-[#eddfc5] sm:text-5xl">Yarım kalan<br /><span className="text-[#c09a61]">hikâyeler.</span></h1>
+            <h1 className="dnd-display mt-4 text-4xl text-[#eddfc5] sm:text-5xl">Karakterler<br /><span className="text-[#c09a61]">ve kayıtlar.</span></h1>
             <p className="dnd-serif mt-4 max-w-xl text-lg leading-7 text-[#a99a80]">
               Her macera, bıraktığın dünyaya açılır. Bir yolculuğu seç ya da yeni bir sayfa başlat.
             </p>
@@ -160,7 +162,7 @@ export function CampaignLibrary({
                           className="dnd-button"
                           type="button"
                           disabled={resuming || deletion.isPending}
-                          onClick={() => onResume(campaign.campaign_id)}
+                          onClick={() => { primeGateSound(); playGateSound('menu'); onResume(campaign.campaign_id); }}
                           data-testid={`button-resume-${campaign.campaign_id}`}
                         >
                           {isResuming ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />}

@@ -69,6 +69,10 @@
   --app-font-serif: 'Cormorant Garamond', Georgia, serif;
   --app-font-mono: 'DM Sans', sans-serif;
   --radius: 0.2rem;
+  --cinematic-obsidian: #100e0c;
+  --cinematic-gold: #c6a15a;
+  --cinematic-emerald: #1f6b52;
+  --cinematic-ivory: #f3ead8;
 }
 
 * { box-sizing: border-box; }

@@ -72,6 +72,9 @@ import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
+import { OuroborosMark } from '@/components/ouroboros-mark';
+import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGateSoundMuted, setGateSoundVolume } from '@/lib/gate-sound';
+import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
 import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
 
@@ -101,8 +104,29 @@ function friendlyError(error: unknown, fallback: string) {
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand" data-testid="brand-ai-dnd">
-      <div className="brand-mark"><Compass size={17} strokeWidth={1.3} /></div>
+      <div className="brand-mark"><OuroborosMark /></div>
       {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Tek oyunculu macera · Forgotten Realms</div></div>}
+    </div>
+  );
+}
+
+function GateSoundControl() {
+  const [muted, setMuted] = useState(gateSoundMuted);
+  const [volume, setVolume] = useState(gateSoundVolume);
+  return (
+    <div className="gate-sound">
+      <button type="button" aria-pressed={muted} onClick={() => { primeGateSound(); const next = !muted; setMuted(next); setGateSoundMuted(next); }}>
+        {muted ? 'Ses kapalı' : 'Ses açık'}
+      </button>
+      <label>
+        Düzey
+        <input aria-label="Ses düzeyi" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => {
+          const next = Number(event.target.value);
+          setVolume(next);
+          setGateSoundVolume(next);
+          primeGateSound();
+        }} />
+      </label>
     </div>
   );
 }
@@ -126,17 +150,9 @@ function NoticeBanner({ notice }: { notice: Notice }) {
 
 function TavernArtwork() {
   return (
-    <div className="tavern-frame dnd-enter dnd-delay-1" data-testid="artwork-tavern">
-      <div className="tavern-scene">
-        <div className="wood-planks" />
-        <div className="tavern-glow" />
-        <div className="candle" style={{ left: '24%', top: '16%' }} />
-        <div className="candle" style={{ right: '23%', top: '24%', transform: 'scale(.8)' }} />
-        <div className="hearth"><div className="hearth-fire" /></div>
-        <div className="tavern-caption"><Kicker>Yolun başladığı yer</Kicker><div className="tavern-title">KÜL VE KUPA</div></div>
-        <div className="tavern-seal"><Compass size={18} strokeWidth={1} /></div>
-      </div>
-      <div className="tavern-note"><Sparkles size={12} /> Yağmurun ardından, bir kapı aralanır</div>
+    <div className="gate-scene" data-testid="artwork-tavern">
+      <div className="gate-mist" />
+      <OuroborosMark awaken />
     </div>
   );
 }
@@ -145,47 +161,33 @@ function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
   return (
-    <aside className="dnd-card dnd-texture p-5 md:p-7" data-testid="panel-engine-health">
-      <div className="relative z-10">
-        <div className="flex items-center gap-2"><Wifi size={14} /><Kicker>Yolun işareti</Kicker></div>
-        <h2 className="dnd-display mt-3 text-xl tracking-wide text-[#decdaa]">{health.isLoading ? 'Dünya uyanıyor.' : ready ? 'Yol açık.' : 'Dünya sessiz.'}</h2>
-        <p className="dnd-serif mt-2 text-[17px] leading-6 text-[#94866e]">Sözlerin yola düşmeye hazır. Dünya, kendi kurallarıyla karşılık verecek.</p>
-        {health.isLoading ? (
-          <div className="mt-7 grid gap-2" data-testid="health-loading">{[1, 2].map((item) => <div className="dnd-skeleton h-10 rounded-sm" key={item} />)}</div>
-        ) : health.isError ? (
-          <div className="notice error mt-6" data-testid="error-health"><span>Dünyanın nabzına ulaşılamadı.</span><button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></div>
-        ) : (
-          <div className="mt-6" data-testid="status-health">
-            <div className="flex items-center justify-between py-3 text-sm">
-              <span className="text-[#897b65]">Yol</span><span className="flex items-center gap-2 font-mono text-xs"><span className={`health-dot ${ready ? '' : 'bad'}`} />{ready ? 'Açık' : 'Sessiz'}</span>
-            </div>
-          </div>
-        )}
-        <div className="mt-6 flex items-center gap-2 text-[10px] text-[#83745e]"><Shield size={13} /> Her hamle dünyanın kurallarıyla tartılır.</div>
-      </div>
+    <aside className="gate-health" data-testid="panel-engine-health">
+      {health.isLoading ? <span data-testid="health-loading">Dünya uyanıyor.</span> : health.isError ? (
+        <span data-testid="error-health">Dünyaya şu an ulaşılamıyor. <button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></span>
+      ) : <span data-testid="status-health">{ready ? 'Yol açık.' : 'Dünya sessiz.'}</span>}
     </aside>
   );
 }
 
 function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
-    <main className="opening" data-testid="app-start">
+    <main className="opening cinematic-gate gate-fade" data-testid="app-start">
       <div className="dnd-shell">
         <header className="opening-header">
           <Brand />
-          <span className="hidden font-mono text-[9px] uppercase tracking-[.2em] text-[#8f8069] md:block">Bir hikâye, yalnızca senin</span>
+          <GateSoundControl />
         </header>
         <div className="opening-grid">
-          <section className="opening-copy dnd-enter">
+          <section className="opening-copy">
             <div className="opening-eyebrow"><Kicker>Kapılar açılıyor</Kicker></div>
             <h1 className="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
             <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
             <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
-            <div className="opening-actions">
-              <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={onCreate}>
+            <div className="opening-actions gate-actions">
+              <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={() => { primeGateSound(); playGateSound('menu'); onCreate(); }}>
                 {creating ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />} {creating ? 'Dünya kuruluyor' : 'Yeni macera'}
               </button>
-              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={onContinue}>
+              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={() => { primeGateSound(); playGateSound('menu'); onContinue(); }}>
                 {loadingCampaigns ? <RefreshCw size={14} className="animate-spin" /> : <BookOpen size={14} />} Maceraya devam et
               </button>
             </div>
@@ -195,7 +197,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
           </section>
           <section className="opening-art"><TavernArtwork /></section>
         </div>
-        <div className="mx-auto mt-8 w-full max-w-[1440px]"><EngineHealth /></div>
+        <EngineHealth />
       </div>
     </main>
   );
@@ -854,7 +856,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
     ['KAR', character.charisma],
   ];
   return (
-    <main className="reveal-screen" data-testid="screen-character-reveal">
+    <main className="reveal-screen gate-fade" data-testid="screen-character-reveal">
       <header className="dnd-shell reveal-header">
         <Brand />
         <button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening">
@@ -1199,6 +1201,8 @@ export default function GameBrowser() {
         previousCombatActive.current = null;
         setSessionId(created.session_id);
         setPhase('reveal');
+        primeGateSound();
+        playGateSound('success');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => setNotice({
