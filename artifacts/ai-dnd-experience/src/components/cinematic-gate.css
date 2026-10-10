@@ -263,6 +263,37 @@
   color: #f3ead8;
   border-color: rgba(198, 161, 90, .35);
 }
+.character-creation-screen.cinematic-create .cc-main-form {
+  background: rgba(22, 19, 16, .98);
+  border: 1px solid rgba(198, 161, 90, .4);
+}
+.character-creation-screen.cinematic-create .cc-step-title-text {
+  color: #f3ead8;
+}
+.character-creation-screen.cinematic-create .cc-step-header p {
+  color: #cfc1a8;
+}
+.character-creation-screen.cinematic-create .cc-choice-card:hover,
+.character-creation-screen.cinematic-create .cc-choice-card-sm:hover {
+  background: rgba(45, 37, 29, .98);
+}
+.character-creation-screen.cinematic-create .cc-choice-card.selected,
+.character-creation-screen.cinematic-create .cc-choice-card-sm.selected,
+.character-creation-screen.cinematic-create button.cc-choice-card.selected {
+  background: rgba(53, 43, 32, .98);
+  border-color: #c6a15a;
+}
+.character-creation-screen.cinematic-create .cc-feature-tag {
+  background: rgba(198, 161, 90, .14);
+  color: #e3d1ae;
+  border: 1px solid rgba(198, 161, 90, .25);
+  font-size: 10px;
+}
+.character-creation-screen.cinematic-create .cc-badge,
+.character-creation-screen.cinematic-create .cc-tag-sub {
+  background: rgba(198, 161, 90, .18);
+  color: #ebddb9;
+}
 
 .reveal-screen.gate-fade {
   height: 100dvh;
