@@ -251,6 +251,7 @@ function AttackReadout({
   const hasHpWindow = hasValue(result.target_hp_before) || hasValue(result.target_hp_after);
   const naturalRoll = result.attack_roll === 20 ? 'DOĞAL 20' : result.attack_roll === 1 ? 'DOĞAL 1' : undefined;
   const deathResolution = result.death_resolution ?? result.death_save?.death_resolution;
+  const spell = 'spell' in result && typeof result.spell === 'string' ? result.spell : undefined;
 
   return (
     <article className={`combat-result-card ${enemy ? 'combat-result-enemy' : ''} ${naturalRoll === 'DOĞAL 20' ? 'combat-result-critical' : ''} ${naturalRoll === 'DOĞAL 1' ? 'combat-result-fumble' : ''}`} data-testid={prefix}>
@@ -284,9 +285,9 @@ function AttackReadout({
         </div>
       )}
 
-      {result.spell && (
+      {spell && (
         <div className="combat-action" data-testid={`${prefix}-spell`}>
-          {result.spell}
+          {spell}
           {result.attack_or_save ? ` · ${result.attack_or_save}` : ''}
           {result.slot_spent === true ? ' · yuva harcandı' : result.slot_spent === false ? ' · yuva harcanmadı' : ''}
         </div>
