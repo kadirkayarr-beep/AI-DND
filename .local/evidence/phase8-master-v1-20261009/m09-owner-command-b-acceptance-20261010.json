@@ -1,0 +1,9 @@
+{
+  "record": "Owner Command B acceptance",
+  "recorded_at": "2026-10-10",
+  "distinct_from": "m09-external-chatgpt-assessment-20261010.json",
+  "decision": "The project owner accepts Command B1/B2 as an evidence-backed replacement verification of the current S10B-AC-027 obligations.",
+  "not_accepted_as": "A reconstruction of the missing historical 165-test command.",
+  "historical_fail": "immutable",
+  "satisfies_m09_by_itself": false
+}
