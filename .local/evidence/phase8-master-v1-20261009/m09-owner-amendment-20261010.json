@@ -1,0 +1,19 @@
+{
+  "record": "P8-M09 narrow owner amendment",
+  "recorded_at": "2026-10-10",
+  "scope": "P8-M09 only. Master Plan v1 sections 16 and 19.1 are not rewritten.",
+  "plan_sha256_unchanged": "bd2b6dae31a5535a2a211bee7ca22807d7e3f8bd6cecffcff40ec6fc58e41cf3",
+  "amendment": "The project owner accepts the recorded ChatGPT technical assessment of Command B1/B2, together with the owner's explicit Command B acceptance, as sufficient for the M09 acceptance gate.",
+  "exception": "Owner-authorized exception to the named-second-human-reviewer requirement for this Phase 8 closure only.",
+  "chatgpt_is_human_reviewer": false,
+  "signature_fabricated": false,
+  "historical_evidence_rewritten": false,
+  "historical_165_command": "unavailable",
+  "accepted_as": "Verified current S10B-AC-027 obligations.",
+  "not_accepted_as": "An exact reconstruction of the missing historical 165-test command.",
+  "m09_status_after_amendment": "ACCEPTED",
+  "sources": [
+    "m09-external-chatgpt-assessment-20261010.json",
+    "m09-owner-command-b-acceptance-20261010.json"
+  ]
+}
