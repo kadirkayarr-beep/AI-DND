@@ -1,0 +1,112 @@
+{
+  "source": "f74 + working tree (weapon fix present; narration path unchanged)",
+  "not_clean_f74": true,
+  "health": {
+    "status": "ok",
+    "engine": "AI-DND",
+    "model": "qwen3:8b"
+  },
+  "session_id": "2a8001db-2a6c-4987-9d5b-1a42290cace6",
+  "budget_used_model_requiring_turns": 1,
+  "budget_cap": 4,
+  "budget_remaining": 3,
+  "rejected_narration_fallback_no_retry": {
+    "status": "PASS",
+    "label": "say_whisper_symbol",
+    "message": "Ona sembol hakkında fısıldıyorum.",
+    "ollama_chat_started": 1,
+    "logged_model_calls": 1,
+    "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”",
+    "interpretation": "Live SAY turn used real Ollama; narration matched deterministic fallback marker; chat starts <=2 so no narration retry storm."
+  },
+  "all_turns_respect_per_turn_cap": true,
+  "turns": [
+    {
+      "label": "setup_look",
+      "message": "Etrafıma bakıyorum.",
+      "mode": "ask_dm",
+      "target_id": null,
+      "action_id": "e673358d-cf95-49d3-abbd-f83211b0d35f",
+      "http": 200,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "call_stats": {
+        "ollama_chat_started": 0,
+        "logged_model_calls": 0,
+        "log_snippets": [
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ]
+      },
+      "per_turn_call_limit_ok": true,
+      "no_retry_ok": true,
+      "narration": "Neverwinter çevresine göz gezdiriyorsun. Yakında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Seyyar bir satıcı, tezgâhını toplayıp yakındaki başka bir sokağa taşınır.",
+      "fallback_marker_hit": false,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "detail": null
+    },
+    {
+      "label": "setup_approach",
+      "message": "Yol kenarında duran, sade bir pelerin giymiş kişi kişisine yaklaşıyorum.",
+      "mode": "do",
+      "target_id": "npc_001",
+      "action_id": "1284f47b-1308-4f71-94a3-0bd58c7c6059",
+      "http": 200,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "call_stats": {
+        "ollama_chat_started": 0,
+        "logged_model_calls": 0,
+        "log_snippets": [
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ]
+      },
+      "per_turn_call_limit_ok": true,
+      "no_retry_ok": true,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi seni fark edip sana dönüyor.",
+      "fallback_marker_hit": false,
+      "conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "role": null
+        }
+      },
+      "detail": null
+    },
+    {
+      "label": "say_whisper_symbol",
+      "message": "Ona sembol hakkında fısıldıyorum.",
+      "mode": "say",
+      "target_id": "npc_001",
+      "action_id": "0bb6969c-4b18-46a5-9067-05435cd77eb1",
+      "http": 200,
+      "model_requiring_turn": true,
+      "budget_used_after": 1,
+      "call_stats": {
+        "ollama_chat_started": 1,
+        "logged_model_calls": 1,
+        "log_snippets": [
+          "INFO: Ollama chat request started (model=qwen3:8b)",
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ]
+      },
+      "per_turn_call_limit_ok": true,
+      "no_retry_ok": true,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”",
+      "fallback_marker_hit": true,
+      "conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "role": null
+        }
+      },
+      "detail": null
+    }
+  ]
+}

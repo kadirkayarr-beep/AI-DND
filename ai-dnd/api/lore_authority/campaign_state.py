@@ -6,11 +6,19 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable
 
 from .models import (
+    LORE_PAYLOAD_VERSION,
     MAX_CAMPAIGN_OVERRIDES,
+    MAX_REFERENCE_LENGTH,
     BindingStatus,
     CampaignCanonOverride,
     CampaignLoreState,
+    ClaimType,
     EntityType,
+    FactionStanding,
+    LoreFact,
+    LoreLayer,
+    ReviewStatus,
+    SourceTier,
     VisibilityScope,
 )
 
@@ -129,6 +137,10 @@ def record_player_discovery(
         raise ValueError("An unbound legacy campaign cannot receive canon discovery.")
     if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
         raise ValueError("Lore discovery requires Python engine evidence.")
+    from .freeze_eligibility import discovery_allowed
+
+    if not discovery_allowed(fact_id):
+        raise ValueError("An unapproved freeze record cannot become player knowledge.")
     fact = registry.fact(fact_id)
     if fact is None:
         raise ValueError("Discovered fact is not loaded in the verified registry.")
@@ -142,6 +154,61 @@ def record_player_discovery(
         state,
         player_known_fact_ids=state.player_known_fact_ids + (fact_id,),
         lore_discoveries=state.lore_discoveries + (fact_id,),
+    )
+
+
+def adventure_possibility_id(quest_id: str) -> str:
+    """Stable id for one heard rumor. Dots are not valid lore ids."""
+    if not isinstance(quest_id, str) or not quest_id.strip():
+        raise ValueError("Adventure possibility id is invalid.")
+    safe = quest_id.replace(".", "-")
+    return _validated_id(f"adv:possibility:{safe}", "Adventure possibility ID")
+
+
+def record_adventure_possibility(
+    state: CampaignLoreState,
+    quest_id: str,
+    rumor: str,
+    *,
+    evidence: EngineActionEvidence | None,
+    source_action_id: str,
+    turn_index: int,
+) -> CampaignLoreState:
+    """Record a heard rumor. It is not a campaign canon fact."""
+    if state.binding_status is not BindingStatus.BOUND:
+        raise ValueError("An unbound legacy campaign cannot hear an adventure rumor.")
+    if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
+        raise ValueError("Adventure rumor requires Python engine evidence.")
+    if not isinstance(rumor, str) or not rumor.strip():
+        raise ValueError("Adventure rumor is empty.")
+    fact_id = adventure_possibility_id(quest_id)
+    subject_id = _validated_id(f"adv:{quest_id.replace('.', '-')}", "Adventure subject ID")
+    LoreFact.from_mapping({
+        "fact_id": fact_id,
+        "subject_id": subject_id,
+        "predicate": "rumor_text",
+        "object_id_or_value": rumor.strip()[:MAX_REFERENCE_LENGTH],
+        "claim_type": ClaimType.ADVENTURE_POSSIBILITY.value,
+        "authority_tier": SourceTier.TIER_5_PROCEDURAL.value,
+        "source_id": "src:adventure-engine",
+        "source_reference": "python-engine",
+        "valid_from": None,
+        "valid_until": None,
+        "visibility": VisibilityScope.REGIONAL_KNOWLEDGE.value,
+        "region_scope": None,
+        "notes": "",
+        "reality_layer": LoreLayer.PROCEDURAL_LOCAL_FICTION.value,
+        "review_status": ReviewStatus.UNREVIEWED_EXTRACTED.value,
+    })
+    if fact_id in state.adventure_possibility_ids:
+        return state
+    if fact_id in state.player_known_fact_ids:
+        raise ValueError("Adventure rumor cannot be stored as a campaign fact.")
+    from dataclasses import replace
+
+    return replace(
+        state,
+        adventure_possibility_ids=state.adventure_possibility_ids + (fact_id,),
     )
 
 
@@ -180,6 +247,57 @@ def grant_npc_knowledge(
         state,
         npc_known_fact_ids=tuple(sorted(existing.items())),
     )
+
+
+def apply_faction_standing(
+    state: CampaignLoreState,
+    *,
+    faction_id: str,
+    standing: int,
+    known_to_player: bool,
+    local_presence: bool,
+    evidence: EngineActionEvidence | None,
+    source_action_id: str,
+    turn_index: int,
+) -> CampaignLoreState:
+    """Change standing only from a committed engine action."""
+    if state.binding_status is not BindingStatus.BOUND:
+        raise ValueError("An unbound legacy campaign cannot change faction standing.")
+    if evidence is None or not evidence.is_valid_for(source_action_id, turn_index):
+        raise ValueError("Faction standing requires matching Python engine evidence.")
+    if any(
+        row.faction_id == faction_id and row.source_action_id == source_action_id
+        for row in state.faction_standings
+    ):
+        return state
+    row = FactionStanding(
+        faction_id=_validated_id(faction_id, "Faction ID"),
+        standing=standing,
+        known_to_player=known_to_player,
+        local_presence=local_presence,
+        source_action_id=_validated_id(source_action_id, "Faction action ID"),
+    )
+    FactionStanding_rows = _faction_rows_with(state, row)
+    from dataclasses import replace
+
+    return replace(
+        state,
+        faction_standings=FactionStanding_rows,
+        lore_payload_version=LORE_PAYLOAD_VERSION,
+    )
+
+
+def _faction_rows_with(
+    state: CampaignLoreState,
+    row: FactionStanding,
+) -> tuple[FactionStanding, ...]:
+    if not -5 <= row.standing <= 5:
+        raise ValueError("Faction standing is invalid.")
+    kept = tuple(item for item in state.faction_standings if item.faction_id != row.faction_id)
+    rows = kept + (row,)
+    if len(rows) > 64:
+        raise ValueError("Faction standing limit reached.")
+    return rows
 
 
 def _validated_id(value: str, label: str) -> str:

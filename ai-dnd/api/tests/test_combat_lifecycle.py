@@ -207,7 +207,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["success"])
         self.assertEqual(result["combat_id"], identity)
         self.assertEqual(result["actor"], "player")
-        self.assertEqual(len(self.app.state.ollama_adapter._client.calls), 1)
+        self.assertEqual(self.app.state.ollama_adapter._client.calls, [])
         self.assertEqual(result["target_hp_before"], result["target_hp_after"])
         self.assertEqual(first.json()["state"]["combat"]["round"], 2)
         self.assertEqual(session.world_state["campaign_time"]["elapsed_seconds"], 6)
@@ -256,7 +256,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
              patch("game.roll_attack", return_value=1), patch("game.roll_d20", return_value=1):
             await self.assert_rejected_unchanged(session, command, 503)
         calls = self.app.state.ollama_adapter._client.calls
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls, [])
         self.assertNotIn("target_hp_after", json.dumps(calls))
 
     async def test_model_combat_proposal_cannot_create_a_result_or_advance_combat(self):

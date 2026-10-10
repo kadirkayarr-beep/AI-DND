@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import closing
+import gc
 import json
 import sqlite3
 import tempfile
@@ -41,6 +41,9 @@ class CampaignLorePersistenceTests(unittest.TestCase):
         self.manager = SessionManager(campaign_store=self.store)
 
     def tearDown(self):
+        self.manager = None
+        self.store = None
+        gc.collect()
         self.temporary_directory.cleanup()
 
     def test_new_campaign_persists_lore_state_outside_engine_save(self):
@@ -92,7 +95,8 @@ class CampaignLorePersistenceTests(unittest.TestCase):
     def test_legacy_payload_migrates_to_unbound_without_remapping_engine_state(self):
         campaign_id, _, record, _ = self.manager.create_campaign("Legacy test")
         original_engine_save = record.game_session.serialize_game_state()
-        with closing(sqlite3.connect(self.database_path)) as connection, connection:
+        connection = sqlite3.connect(self.database_path)
+        try:
             row = connection.execute(
                 "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                 (campaign_id,),
@@ -103,6 +107,9 @@ class CampaignLorePersistenceTests(unittest.TestCase):
                 "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
                 (json.dumps(payload), campaign_id),
             )
+            connection.commit()
+        finally:
+            connection.close()
 
         restarted_manager = SessionManager(
             campaign_store=CampaignStore(self.database_path)
@@ -122,7 +129,8 @@ class CampaignLorePersistenceTests(unittest.TestCase):
 
     def test_malformed_lore_state_is_rejected_as_corrupt_campaign(self):
         campaign_id, _, _, _ = self.manager.create_campaign("Corrupt test")
-        with closing(sqlite3.connect(self.database_path)) as connection, connection:
+        connection = sqlite3.connect(self.database_path)
+        try:
             row = connection.execute(
                 "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
                 (campaign_id,),
@@ -145,6 +153,9 @@ class CampaignLorePersistenceTests(unittest.TestCase):
                 "UPDATE campaigns SET payload_json = ? WHERE campaign_id = ?",
                 (json.dumps(payload), campaign_id),
             )
+            connection.commit()
+        finally:
+            connection.close()
 
         with self.assertRaises(CampaignCorruptError):
             self.store.get_campaign(campaign_id)

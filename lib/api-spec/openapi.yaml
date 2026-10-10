@@ -744,6 +744,9 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        interaction_mode:
+          type: ["string", "null"]
+          enum: [say, do, ask_dm, null]
         target_id:
           type: ["string", "null"]
           minLength: 1
@@ -832,7 +835,31 @@ components:
         quest_outcomes:
           type: array
           items: {$ref: "#/components/schemas/QuestOutcome"}
-      required: [session_id, action_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes]
+        level_up:
+          anyOf:
+            - $ref: "#/components/schemas/LevelUpResult"
+            - type: "null"
+          description: Server-owned experience award for this turn. Null when the turn granted no experience.
+      required: [session_id, action_id, narration, state, combat_result, combat_history_entry, skill_check_result, quest_outcomes, level_up]
+    LevelUpResult:
+      type: object
+      additionalProperties: false
+      properties:
+        previous_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        new_level:
+          type: integer
+          minimum: 1
+          maximum: 4
+        xp_gained:
+          type: integer
+          minimum: 1
+        hit_points_gained:
+          type: integer
+          minimum: 0
+      required: [previous_level, new_level, xp_gained, hit_points_gained]
     QuestObjective:
       type: object
       additionalProperties: false
@@ -1305,6 +1332,20 @@ components:
           anyOf:
             - $ref: "#/components/schemas/DeathResolutionResult"
             - type: "null"
+        spell:
+          type: ["string", "null"]
+        casting_ability:
+          type: ["string", "null"]
+        attack_or_save:
+          type: ["string", "null"]
+        save_roll:
+          type: ["integer", "null"]
+        save_dc:
+          type: ["integer", "null"]
+        healing:
+          type: ["integer", "null"]
+        slot_spent:
+          type: ["boolean", "null"]
         combat_started:
           type: ["boolean", "null"]
         combat_ended:
@@ -1518,6 +1559,41 @@ components:
               interruption: {type: string, enum: [player_confirmation]}
             required: [quote, precondition, depends_on, interruption]
       required: [plan_id, goal, status, cursor, location_id, steps]
+    CampaignAdventureCard:
+      type: object
+      additionalProperties: false
+      properties:
+        title: {type: string}
+        summary: {type: string}
+        label: {type: string}
+        text: {type: string}
+        objectives:
+          type: array
+          items: {type: string}
+      required: []
+    CampaignAdventureJournal:
+      type: object
+      additionalProperties: false
+      properties:
+        rumors:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        active:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        completed:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        failed:
+          type: array
+          items: {$ref: "#/components/schemas/CampaignAdventureCard"}
+        timeline:
+          type: array
+          items: {type: string}
+        affordances:
+          type: array
+          items: {type: string}
+      required: [rumors, active, completed, failed, timeline, affordances]
     GameState:
       type: object
       description: Public state projection produced by the API serializers.
@@ -1548,6 +1624,8 @@ components:
           anyOf:
             - $ref: "#/components/schemas/GameScene"
             - type: "null"
+        conversation:
+          $ref: "#/components/schemas/GameConversation"
         world:
           $ref: "#/components/schemas/GameWorldMetadata"
         journal:
@@ -1601,6 +1679,18 @@ components:
           items: {$ref: "#/components/schemas/QuestOffer"}
         adventure:
           $ref: "#/components/schemas/AdventureProjection"
+        campaign_adventures:
+          $ref: "#/components/schemas/CampaignAdventureJournal"
+        known_lore:
+          type: array
+          items: {$ref: "#/components/schemas/KnownLoreFact"}
+        known_factions:
+          type: array
+          items: {$ref: "#/components/schemas/KnownFactionStanding"}
+        scene_incidents:
+          description: Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.
+          type: array
+          items: {$ref: "#/components/schemas/SceneIncident"}
       required:
         - campaign_time
         - known_scheduled_events
@@ -1608,6 +1698,7 @@ components:
         - journey
         - location
         - scene
+        - conversation
         - world
         - journal
         - locations
@@ -1623,6 +1714,67 @@ components:
         - turn_index
         - quests
         - quest_offers
+        - campaign_adventures
+        - known_lore
+        - known_factions
+    SceneIncident:
+      type: object
+      additionalProperties: false
+      required: [ref, summary, facts, people, props, place, affordances]
+      properties:
+        ref: {type: string}
+        summary: {type: string}
+        facts:
+          type: array
+          items: {type: string}
+        people:
+          type: array
+          items: {type: string}
+        props:
+          type: array
+          items: {type: string}
+        place:
+          anyOf:
+            - type: string
+            - type: "null"
+        affordances:
+          type: array
+          items: {type: string}
+    KnownLoreFact:
+      type: object
+      additionalProperties: false
+      required: [fact_id, title, text]
+      properties:
+        fact_id: {type: string}
+        title: {type: string}
+        text: {type: string}
+    KnownFactionStanding:
+      type: object
+      additionalProperties: false
+      required: [faction_id, title, standing, local_presence]
+      properties:
+        faction_id: {type: string}
+        title: {type: string}
+        standing: {type: integer, minimum: -5, maximum: 5}
+        local_presence: {type: boolean}
+    GameConversationNpc:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        role: {type: ["string", "null"]}
+    GameConversation:
+      type: object
+      additionalProperties: false
+      required: [active, interlocutor]
+      properties:
+        active: {type: boolean}
+        interlocutor:
+          anyOf:
+            - $ref: "#/components/schemas/GameConversationNpc"
+            - type: "null"
     CampaignTime:
       type: object
       additionalProperties: false
@@ -2213,6 +2365,23 @@ components:
           type: integer
         armor_class:
           type: integer
+        cantrips:
+          type: array
+          items:
+            type: string
+        spells:
+          type: array
+          items:
+            type: string
+        spell_slots_remaining:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        xp:
+          type: integer
+          minimum: 0
+          description: Server-owned experience total. Experience past level 4 is kept and does not raise the level.
       required:
         - name
         - race
@@ -2230,6 +2399,10 @@ components:
         - max_hp
         - current_hp
         - armor_class
+        - cantrips
+        - spells
+        - spell_slots_remaining
+        - xp
     GameNpc:
       type: object
       additionalProperties: false

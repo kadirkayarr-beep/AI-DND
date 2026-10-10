@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import uuid
 import copy
@@ -11,6 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import game
+import incidents.hooks as incident_hooks
+from incidents.attempts import SqliteAttemptStore
 
 from api.campaign_journal import (
     create_initial_campaign_journal,
@@ -65,6 +68,7 @@ class ManagedSession:
     )
     turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
     revoked: bool = False
+    usable: bool = True
 
 
 class SessionManager:
@@ -155,6 +159,11 @@ class SessionManager:
         initialize_campaign_opening(session, campaign_id)
         session.ensure_campaign_clock()
         session.world_state["campaign_id"] = campaign_id
+        if (
+            os.environ.get("AI_DND_EMERGENCE_LIVE") == "1"
+            and getattr(lore_authority, "region_pack_id", None) == "fr:pack:the_north:neverwinter:v1"
+        ):
+            session.world_state.setdefault("flags", {})["emergence_live"] = True
         death_state = session.world_state.setdefault(
             "death_state", game._death_state_defaults()
         )
@@ -185,6 +194,7 @@ class SessionManager:
     def _attach_death_checkpoint_hooks(self, record: ManagedSession) -> None:
         """Keep campaign-owned state inside Python's Normal-mode checkpoint."""
         session = record.game_session
+        session.emergence_store = SqliteAttemptStore(self._require_campaign_store())
 
         def capture() -> dict[str, Any]:
             return {
@@ -327,7 +337,11 @@ class SessionManager:
         journal = restore_stored_campaign(session, stored)
         return {
             "campaign": stored.metadata,
-            "state": serialize_session_state(session, journal),
+            "state": serialize_session_state(
+                session,
+                journal,
+                CampaignLoreState.from_mapping(stored.payload.get("lore_authority")),
+            ),
             "history": stored.history,
             "combat_history": stored.combat_history,
         }
@@ -441,7 +455,11 @@ class SessionManager:
                 )
                 stored = store.get_campaign(campaign_id)
             metadata = store.mark_played(campaign_id)
-            state = serialize_session_state(record.game_session, record.journal)
+            state = serialize_session_state(
+                record.game_session,
+                record.journal,
+                record.lore_authority,
+            )
             record.combat_history = copy.deepcopy(stored.combat_history)
         return session_id, record, metadata, stored.history, state
 
@@ -529,6 +547,7 @@ class SessionManager:
             narrative_memory=candidate_memory,
             lore_authority=record.lore_authority,
             turn_action_receipt=turn_action_receipt,
+            emergence_attempt=incident_hooks.take_pending(record.game_session),
         )
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)

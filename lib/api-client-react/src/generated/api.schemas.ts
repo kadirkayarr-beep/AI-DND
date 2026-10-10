@@ -393,6 +393,18 @@ export interface GameScene {
   referents: GameSceneReferent[];
 }
 
+export interface GameConversationNpc {
+  id: string;
+  name: string;
+  /** @nullable */
+  role?: string | null;
+}
+
+export interface GameConversation {
+  active: boolean;
+  interlocutor: GameConversationNpc | null;
+}
+
 export type GameWorldMetadataEnvironment = typeof GameWorldMetadataEnvironment[keyof typeof GameWorldMetadataEnvironment];
 
 
@@ -729,6 +741,8 @@ export interface SpeciesTraitState {
   player_turn_counter: number;
 }
 
+export type GameCharacterSpellSlotsRemaining = {[key: string]: number};
+
 export interface GameCharacter {
   name: string;
   race: string;
@@ -773,6 +787,14 @@ export interface GameCharacter {
   max_hp: number;
   current_hp: number;
   armor_class: number;
+  cantrips: string[];
+  spells: string[];
+  spell_slots_remaining: GameCharacterSpellSlotsRemaining;
+  /**
+     * Server-owned experience total. Experience past level 4 is kept and does not raise the level.
+     * @minimum 0
+     */
+  xp: number;
 }
 
 export type GameSpellcastingSlots = {[key: string]: number};
@@ -1245,6 +1267,50 @@ export interface AdventureProjection {
   recent_events: AdventureProjectionRecentEventsItem[];
 }
 
+export interface CampaignAdventureCard {
+  title?: string;
+  summary?: string;
+  label?: string;
+  text?: string;
+  objectives?: string[];
+}
+
+export interface CampaignAdventureJournal {
+  rumors: CampaignAdventureCard[];
+  active: CampaignAdventureCard[];
+  completed: CampaignAdventureCard[];
+  failed: CampaignAdventureCard[];
+  timeline: string[];
+  affordances: string[];
+}
+
+export interface KnownLoreFact {
+  fact_id: string;
+  title: string;
+  text: string;
+}
+
+export interface KnownFactionStanding {
+  faction_id: string;
+  title: string;
+  /**
+     * @minimum -5
+     * @maximum 5
+     */
+  standing: number;
+  local_presence: boolean;
+}
+
+export interface SceneIncident {
+  ref: string;
+  summary: string;
+  facts: string[];
+  people: string[];
+  props: string[];
+  place: string | null;
+  affordances: string[];
+}
+
 export type GameStateLocations = {[key: string]: GameLocation};
 
 /**
@@ -1259,6 +1325,7 @@ export interface GameState {
   expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
+  conversation: GameConversation;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;
@@ -1278,12 +1345,29 @@ export interface GameState {
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;
+  campaign_adventures: CampaignAdventureJournal;
+  known_lore: KnownLoreFact[];
+  known_factions: KnownFactionStanding[];
+  /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
+  scene_incidents?: SceneIncident[];
 }
 
 export interface GameSession {
   session_id: string;
   state: GameState;
 }
+
+/**
+ * @nullable
+ */
+export type GameTurnInputInteractionMode = typeof GameTurnInputInteractionMode[keyof typeof GameTurnInputInteractionMode] | null;
+
+
+export const GameTurnInputInteractionMode = {
+  say: 'say',
+  do: 'do',
+  ask_dm: 'ask_dm',
+} as const;
 
 export type EconomyStepInputKind = typeof EconomyStepInputKind[keyof typeof EconomyStepInputKind];
 
@@ -1411,6 +1495,8 @@ export interface GameTurnInput {
      * @maxLength 4000
      */
   message: string;
+  /** @nullable */
+  interaction_mode?: GameTurnInputInteractionMode;
   /**
      * @minLength 1
      * @maxLength 128
@@ -1607,6 +1693,20 @@ export interface CombatTurnResult {
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
   /** @nullable */
+  spell?: string | null;
+  /** @nullable */
+  casting_ability?: string | null;
+  /** @nullable */
+  attack_or_save?: string | null;
+  /** @nullable */
+  save_roll?: number | null;
+  /** @nullable */
+  save_dc?: number | null;
+  /** @nullable */
+  healing?: number | null;
+  /** @nullable */
+  slot_spent?: boolean | null;
+  /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
   combat_ended?: boolean | null;
@@ -1728,6 +1828,23 @@ export interface QuestOutcome {
   turn_index: number;
 }
 
+export interface LevelUpResult {
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  previous_level: number;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  new_level: number;
+  /** @minimum 1 */
+  xp_gained: number;
+  /** @minimum 0 */
+  hit_points_gained: number;
+}
+
 export interface GameTurnResult {
   session_id: string;
   action_id: string;
@@ -1740,6 +1857,8 @@ export interface GameTurnResult {
   /** Structured Python-owned skill-check result; null when no skill check occurred. */
   skill_check_result: SkillCheckResult | null;
   quest_outcomes: QuestOutcome[];
+  /** Server-owned experience award for this turn. Null when the turn granted no experience. */
+  level_up: LevelUpResult | null;
 }
 
 export interface QuestCommandResult {

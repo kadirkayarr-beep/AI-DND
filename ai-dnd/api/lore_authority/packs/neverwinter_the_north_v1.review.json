@@ -1,8 +1,9 @@
 {
   "reviewer_id": "owner_source_review_v1",
-  "review_note": "Direct visual check of the cited PDF page and section; approve this normalized record without copied source prose.",
+  "review_note": "Checked against the Heroes of Faerûn timeline. Year name is Mythal. Mythral was a transcription error and is not used. No source prose copied.",
   "items": [
     {"item_type": "entity", "item_id": "fr:world:forgotten_realms"},
+    {"item_type": "entity", "item_id": "fr:epoch:1501_dr"},
     {"item_type": "entity", "item_id": "fr:region:the_north"},
     {"item_type": "entity", "item_id": "fr:region:sword_coast"},
     {"item_type": "entity", "item_id": "fr:city:neverwinter"},

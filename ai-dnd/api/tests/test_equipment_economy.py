@@ -33,6 +33,35 @@ class EquipmentEconomyTests(unittest.TestCase):
         return (next(i for i in self.w["inventory"] if i["name"] == "Kılıç")["item_id"],
                 self.w["npcs"][0]["inventory"][0]["item_id"])
 
+    def test_natural_inventory_query_preempts_npc_resolution(self):
+        self.w["npcs"].extend([
+            {"id": "cael", "name": "Cael", "role": "Muhafız", "location": self.w["location"]},
+            {"id": "liora", "name": "Liora", "role": "Yolcu", "location": self.w["location"]},
+        ])
+        turn_before = self.w["flags"].get("turn_index", 0)
+        with (
+            patch("game.resolve_npc_reference", side_effect=AssertionError("NPC resolver must not run")),
+            patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")),
+        ):
+            result = self.s.run_player_turn("Envanterimde neler var?")
+        self.assertEqual(result["model_calls"], 0)
+        self.assertEqual(result["action_result"]["action"], "inventory")
+        self.assertTrue(result["action_result"]["success"])
+        self.assertIn("Envanterinde:", result["narration"])
+        self.assertIn("Kılıç", result["narration"])
+        self.assertNotIn("Hangisini", result["narration"])
+        self.assertEqual(self.w["flags"].get("turn_index", 0), turn_before)
+
+    def test_inventory_quick_action_phrase_uses_same_owner(self):
+        with patch("game.ollama.chat", side_effect=AssertionError("Unexpected model call")):
+            result = self.s.run_player_turn("Envanterimi gözden geçir")
+        self.assertEqual(result["model_calls"], 0)
+        self.assertEqual(result["action_result"]["action"], "inventory")
+        self.assertTrue(result["action_result"]["success"])
+
+    def test_natural_inventory_query_never_claims_another_actor(self):
+        self.assertIsNone(economy.execute(self.s, "Mira'nın envanterinde ne var?"))
+
     def unchanged_rejection(self, command, reason):
         before, rng = copy.deepcopy(self.w), self.s.rng.getstate()
         result = self.run_item(command)
@@ -48,6 +77,25 @@ class EquipmentEconomyTests(unittest.TestCase):
         self.assertEqual(len(swords), 2)
         self.assertNotEqual(swords[0]["item_id"], swords[1]["item_id"])
         self.assertEqual(len(set(i["item_id"] for i in self.w["inventory"])), 3)
+
+    def test_materialize_rewrites_unique_starting_hand_alias_to_item_id(self):
+        self.assertEqual(self.w["equipment"]["main_hand"], "longsword")
+        economy.materialize(self.w)
+        sword_id = next(i["item_id"] for i in self.w["inventory"] if i["name"] == "Kılıç")
+        self.assertEqual(self.w["equipment"]["main_hand"], sword_id)
+
+    def test_materialize_does_not_auto_equip_empty_hands_from_inventory(self):
+        self.w["equipment"] = {"main_hand": None, "off_hand": None}
+        economy.materialize(self.w)
+        self.assertIsNone(self.w["equipment"]["main_hand"])
+        self.assertIsNone(self.w["equipment"]["off_hand"])
+        self.assertTrue(any(i.get("name") == "Kılıç" for i in self.w["inventory"]))
+
+    def test_materialize_leaves_ambiguous_catalog_hand_alias_unresolved(self):
+        self.w["inventory"].append("Kılıç")
+        economy.materialize(self.w)
+        self.assertEqual(self.w["equipment"]["main_hand"], "longsword")
+        self.assertEqual(sum(1 for i in self.w["inventory"] if i.get("name") == "Kılıç"), 2)
 
     def test_identity_drop_take_and_equipment_cleanup(self):
         sword, _ = self.prepare()

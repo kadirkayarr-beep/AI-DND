@@ -82,12 +82,17 @@ _STAND_RE = re.compile(
 )
 _APPROACH_RE = re.compile(
     r"(?:yaklaş(?:ıyorum|ayım|alım|mak)?|yanına git|yanına yaklaşı|"
+    r"yakınına git|yakınına gid|yakınına yaklaş|"
     r"approach|walk up to|go over to)",
     re.IGNORECASE,
 )
 _ENTER_RE = re.compile(
     r"(?:içeri gir|içeriye gir|içine gir|hana gir|tavernaya gir|taverna.{0,12}gir|meyhaneye gir|"
     r"enter|go inside|head inside)",
+    re.IGNORECASE,
+)
+_LOCAL_TAVERN_DEPARTURE_RE = re.compile(
+    r"\b(?:tavernaya|meyhaneye|hana)\s+gid\w*\b",
     re.IGNORECASE,
 )
 _TAVERN_RE = re.compile(
@@ -165,6 +170,133 @@ def normalize_text(value: Any) -> str:
     return re.sub(r"[^\w]+", " ", text, flags=re.UNICODE).strip()
 
 
+def npc_name_known_to_player(npc: Any) -> bool:
+    """Legacy NPCs remain known; newly-created NPCs opt into hidden-name state."""
+    return bool(
+        isinstance(npc, dict)
+        and npc.get("name_known_to_player", True) is True
+    )
+
+
+def npc_role_known_to_player(npc: Any) -> bool:
+    """Legacy saves stay compatible while new NPCs can hide non-obvious roles."""
+    return bool(
+        isinstance(npc, dict)
+        and npc.get("role_known_to_player", True) is True
+    )
+
+
+def role_is_visibly_obvious(role: Any) -> bool:
+    """Conservative V1 allow-list for roles readable from nearby visible context."""
+    normalized = normalize_text(role)
+    return normalized in {
+        "barmen", "bartender", "hanci", "innkeeper", "muhafiz", "guard",
+        "asker", "soldier", "tuccar", "merchant", "demirci", "blacksmith",
+        "garson", "server", "tezgahtar", "shopkeeper",
+    }
+
+
+_PUBLIC_ROLE_TR = {
+    "shopkeeper": "dükkâncı",
+    "traveler": "yolcu",
+    "bartender": "barmen",
+    "innkeeper": "hancı",
+    "guard": "muhafız",
+    "soldier": "asker",
+    "merchant": "tüccar",
+    "blacksmith": "demirci",
+    "server": "garson",
+}
+
+
+def public_npc_role(npc: Any) -> str | None:
+    if not isinstance(npc, dict) or not npc_role_known_to_player(npc):
+        return None
+    role = str(npc.get("role") or "").strip()
+    if not role:
+        return None
+    return _PUBLIC_ROLE_TR.get(role.casefold(), role)
+
+
+def public_npc_descriptor(npc: Any) -> str:
+    """Describe an unknown NPC from visible cues without exposing canonical identity."""
+    if not isinstance(npc, dict):
+        return "Yakındaki kişi"
+    role = public_npc_role(npc)
+    if role:
+        lowered = role[:1].lower() + role[1:] if role else "kişi"
+        return f"Bir {lowered}"
+    return "Yakındaki kişi"
+
+
+def public_npc_name(npc: Any) -> str:
+    """Return a player-safe display label without mutating canonical NPC identity."""
+    if not isinstance(npc, dict):
+        return "Yakındaki kişi"
+    if npc_name_known_to_player(npc):
+        name = str(npc.get("name") or "").strip()
+        if name:
+            return name
+    return public_npc_descriptor(npc)
+
+
+def public_scene_people(npcs: list) -> str:
+    """A Turkish prose list, keeping identity/appearance and state separate."""
+    labels = []
+    for npc in npcs:
+        label = public_npc_name(npc)
+        role = public_npc_role(npc)
+        if not npc_name_known_to_player(npc):
+            label = f"bir {role[:1].lower() + role[1:]}" if role else "bir kişi"
+        elif role and normalize_text(role) != normalize_text(label):
+            label = f"{label} ({role})"
+        labels.append(label)
+    if len(labels) < 2:
+        return "".join(labels)
+    return ", ".join(labels[:-1]) + " ve " + labels[-1]
+
+
+def public_npc_projection(npc: Any) -> dict[str, Any] | None:
+    """Copy one NPC into a player-safe identity projection."""
+    if not isinstance(npc, dict):
+        return None
+    projected = copy.deepcopy(npc)
+    projected["name"] = public_npc_name(npc)
+    projected["role"] = public_npc_role(npc) or ""
+    projected["name_known_to_player"] = npc_name_known_to_player(npc)
+    projected["role_known_to_player"] = npc_role_known_to_player(npc)
+    return projected
+
+
+
+def public_shop_name(world_state: Any, shop: Any) -> str:
+    """Hide a shop name only when it directly embeds an unknown keeper identity."""
+    if not isinstance(shop, dict):
+        return "Yerel dükkân"
+    name = str(shop.get("name") or "").strip()
+    keeper_id = shop.get("shopkeeper_id")
+    keeper = None
+    if isinstance(world_state, dict):
+        keeper = next((
+            npc for npc in world_state.get("npcs", [])
+            if isinstance(npc, dict) and npc.get("id") == keeper_id
+        ), None)
+    if keeper is not None and not npc_name_known_to_player(keeper):
+        keeper_name = normalize_text(keeper.get("name"))
+        if keeper_name and keeper_name in normalize_text(name):
+            lowered = normalize_text(name)
+            return "Yerel tezgâh" if "tezgah" in lowered else "Yerel dükkân"
+    return name or "Yerel dükkân"
+
+
+def public_shop_projection(world_state: Any, shop: Any) -> dict[str, Any] | None:
+    if not isinstance(shop, dict):
+        return None
+    projected = copy.deepcopy(shop)
+    projected["name"] = public_shop_name(world_state, shop)
+    return projected
+
+
 def classify_scene_action(value: Any) -> str | None:
     """Recognize a small set of high-confidence, harmless scene actions."""
     if not isinstance(value, str):
@@ -194,6 +326,12 @@ def classify_scene_action(value: Any) -> str | None:
     if _APPROACH_RE.search(text):
         return "approach"
     if _ENTER_RE.search(text):
+        return "enter"
+    # "tavernaya gidiyorum" is local entry, not a route to the unbound template.
+    if (
+        _LOCAL_TAVERN_DEPARTURE_RE.search(normalized)
+        and not re.search(r"\b(?:gitmiyorum|istemiyorum|vazgectim)\b", normalized)
+    ):
         return "enter"
     return None
 
@@ -1119,8 +1257,8 @@ def public_scene_projection(
     npcs = [
         {
             "id": npc.get("id"),
-            "name": npc.get("name"),
-            "role": npc.get("role"),
+            "name": public_npc_name(npc),
+            "role": public_npc_role(npc) or "",
             "appearance": npc.get("appearance", ""),
         }
         for npc in world_state.get("npcs", [])

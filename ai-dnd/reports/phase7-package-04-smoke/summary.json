@@ -1,0 +1,2726 @@
+{
+  "status": "MECHANICAL_PASS_NEEDS_NARRATION_REVIEW",
+  "port": 54226,
+  "turns": [
+    {
+      "label": "Procedural locals",
+      "player_message": "Burada kim var?",
+      "narration": "Yakınında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 0,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:00:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+              "role": "",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+              "role": null,
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 1,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 0,
+      "flag": null,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": false
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Learn the name",
+      "player_message": "Adın ne?",
+      "narration": "Marek, “Ben Marek. Kent sakini olarak buradayım.” diye yanıt verir.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 0,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:00:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 2,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 2,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 0,
+      "flag": null,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Current lord",
+      "player_message": "Who is the current lord of Neverwinter?",
+      "narration": "Dagult Neverember is the current Lord of Neverwinter.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [
+        "fr:fact:dagult_neverember_current_lord",
+        "fr:fact:neverwinter_rebuilding",
+        "fr:fact:present_year_dr",
+        "fr:fact:present_year_name"
+      ],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 0,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:00:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 2,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 3,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [
+          {
+            "fact_id": "fr:fact:dagult_neverember_current_lord",
+            "title": "Neverwinter",
+            "text": "Neverwinter kentinin güncel lordu Dagult Neverember."
+          }
+        ],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [
+          "fr:fact:dagult_neverember_current_lord"
+        ],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 0,
+      "flag": null,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Hidden local event",
+      "player_message": "3 dakika bekliyorum",
+      "narration": "Belirttiğin süre geçti.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 3,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:03:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 2,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 4,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [
+          {
+            "fact_id": "fr:fact:dagult_neverember_current_lord",
+            "title": "Neverwinter",
+            "text": "Neverwinter kentinin güncel lordu Dagult Neverember."
+          }
+        ],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [
+          "fr:fact:dagult_neverember_current_lord"
+        ],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 180,
+      "flag": true,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Narration before observation",
+      "player_message": "Yağmurun sesini ve sokaktaki sıradan hareketi betimle. Yeni bir isim veya gizli bir işaret ekleme.",
+      "narration": "Sokak, hafifçe yağmurdamalarıyla sessizleşti. Herhangi bir yerde sadece suyun taşları vurduğu, yolların nemlenip kaygan olduğu hissedilir. Bir yük arabasının tekeri, taşların arasına sıkışmış durumda; sürücü, çevreden yardım istemek üzere dikkatlice bakıyor. Sessizlikte, kuyruklarını sallayan birkaç köpek sesini duyururken, bir de sokaktan geçmekte olan, gizli bir işaret taşıyan genç bir adamın ayakkabısındaki su damlası, hafifçe ışıldamaya başlar.",
+      "model_calls": 2,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 3,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:03:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 2,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 5,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [
+          {
+            "fact_id": "fr:fact:dagult_neverember_current_lord",
+            "title": "Neverwinter",
+            "text": "Neverwinter kentinin güncel lordu Dagult Neverember."
+          }
+        ],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [
+          "fr:fact:dagult_neverember_current_lord"
+        ],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 180,
+      "flag": true,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Observe the aftermath",
+      "player_message": "Etrafıma bakıyorum.",
+      "narration": "Neverwinter çevresine göz gezdiriyorsun. Yakında Marek (Kent sakini), Bir muhafız var. Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır. Mavi tebeşirle çizilmiş küçük bir daire kaldı.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 3,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:03:00"
+        },
+        "known_scheduled_events": [
+          {
+            "summary": "Mavi tebeşirle çizilmiş küçük bir daire kaldı.",
+            "window_start": 30,
+            "window_end": 90,
+            "status": "OCCURRED"
+          }
+        ],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 2,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:12+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 6,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [
+          {
+            "fact_id": "fr:fact:dagult_neverember_current_lord",
+            "title": "Neverwinter",
+            "text": "Neverwinter kentinin güncel lordu Dagult Neverember."
+          }
+        ],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [
+          "fr:fact:dagult_neverember_current_lord"
+        ],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 180,
+      "flag": true,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Second campaign",
+      "player_message": "Burada kim var?",
+      "narration": "Yakınında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 0,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:00:00"
+        },
+        "known_scheduled_events": [],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Yakındaki bir kapı sertçe kapanır; ardından içeriden anlaşılmayan birkaç söz duyulur.",
+          "ambient_event": {
+            "event_id": "city_slammed_door",
+            "instance_id": "81853563-e4e7-41c1-a4a5-bd6f16143207",
+            "variation_id": "v1",
+            "event_type": "GREEN",
+            "repeat_group": "doors",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. İki çocuk dar bir aralıktan kahkahalarla geçip kalabalığın içinde kaybolur. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+              "role": "",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": []
+        },
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:24+00:00",
+              "last_visited_at": "2026-10-07T11:11:24+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+              "role": null,
+              "first_met_at": "2026-10-07T11:11:24+00:00",
+              "last_seen_at": "2026-10-07T11:11:24+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:24+00:00",
+              "last_seen_at": "2026-10-07T11:11:24+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 1,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "12a9b87d-24ff-4cc1-ae62-7aa348617bb8",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:24+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "ad8da1f5-1abd-4552-8db0-c9a1a649830a",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:24+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "a56233de-2564-4cf5-b50d-d72b8a376273",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:24+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 1,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 0,
+      "flag": null,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": false
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    },
+    {
+      "label": "Resume continuity",
+      "player_message": "Burada kim var?",
+      "narration": "Yakınında Marek (Kent sakini), Bir muhafız var. Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+      "model_calls": 0,
+      "retrieved_fact_ids": [],
+      "state": {
+        "location": "fr:city:neverwinter",
+        "campaign_time": {
+          "year": 1501,
+          "month": "Mirtul",
+          "day": 1,
+          "hour": 9,
+          "minute": 3,
+          "second": 0,
+          "day_index": 0,
+          "calendar": "Harptos",
+          "local_convention": "Neverwinter local",
+          "time_of_day": "day",
+          "display": "1 Mirtul — Gündüz",
+          "detail": "1 Mirtul 1501 DR — 09:03:00"
+        },
+        "known_scheduled_events": [
+          {
+            "summary": "Mavi tebeşirle çizilmiş küçük bir daire kaldı.",
+            "window_start": 30,
+            "window_end": 90,
+            "status": "OCCURRED"
+          }
+        ],
+        "pending_event_decisions": [],
+        "journey": null,
+        "expedition": {
+          "walking_seconds": 0,
+          "hours_beyond_eight": 0,
+          "extended_travel_saves": [],
+          "exhaustion": 0,
+          "supplies_enabled": false,
+          "tracking_status": null,
+          "tracking_seconds": 0,
+          "tracking_required_seconds": 3600,
+          "actions": [
+            {
+              "label": "Erzak takibi: aç",
+              "message": "/travel supplies enabled"
+            }
+          ]
+        },
+        "scene": {
+          "id": "scene:fr:city:neverwinter",
+          "location_id": "fr:city:neverwinter",
+          "parent_location_id": null,
+          "kind": "city",
+          "visit_revision": 1,
+          "activity_revision": 0,
+          "last_activity": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+          "ambient_event": {
+            "event_id": "city_cart_wheel",
+            "instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+            "variation_id": "v1",
+            "event_type": "BLUE",
+            "repeat_group": "street_work",
+            "count": 1
+          },
+          "opening": "Gün ışığı altında Neverwinter içindeki yolculuğun açılıyor. Gökyüzü açık; çevrenin çizgileri belirgin. Bir kedi iki kişinin arasından süzülür ve güneş alan bir basamağa kıvrılır. Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait.",
+          "player_position": {
+            "location_id": "fr:city:neverwinter",
+            "kind": "standing",
+            "target_id": null
+          },
+          "npcs": [
+            {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "appearance": "Yol kenarında duran, sade bir pelerin giymiş."
+            },
+            {
+              "id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli."
+            }
+          ],
+          "features": [],
+          "referents": [
+            {
+              "id": "scene_ref_0001",
+              "event_instance_id": "b700066c-e56b-4dd4-b52c-910210c16718",
+              "kind": "person",
+              "description": "Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+              "source_turn": 1,
+              "lifecycle": "presented",
+              "promoted_npc_id": null,
+              "addressable_alias": "araba"
+            }
+          ]
+        },
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "world": {
+          "environment": "city",
+          "time_of_day": "day",
+          "weather": "clear"
+        },
+        "journal": {
+          "schema_version": 1,
+          "discovered_locations": [
+            {
+              "location_id": "fr:city:neverwinter",
+              "name": "Neverwinter",
+              "environment": "city",
+              "first_discovered_at": "2026-10-07T11:11:12+00:00",
+              "last_visited_at": "2026-10-07T11:11:12+00:00",
+              "first_discovered_turn": 0,
+              "last_visited_turn": 0,
+              "visit_count": 1
+            }
+          ],
+          "known_npcs": [
+            {
+              "npc_id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:26+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 7,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            },
+            {
+              "npc_id": "npc_002",
+              "name": "Bir muhafız",
+              "role": "Muhafız",
+              "first_met_at": "2026-10-07T11:11:12+00:00",
+              "last_seen_at": "2026-10-07T11:11:26+00:00",
+              "first_met_turn": 1,
+              "last_seen_turn": 7,
+              "last_known_location_id": "fr:city:neverwinter",
+              "last_known_location": "Neverwinter"
+            }
+          ],
+          "notable_events": [
+            {
+              "event_id": "901419d4-98b0-46cd-bcae-6f1ff2181da1",
+              "event_type": "location_discovered",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 0,
+              "summary": "Neverwinter keşfedildi.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": null,
+              "related_item": null
+            },
+            {
+              "event_id": "3d3569f1-5b5c-4978-bb3c-c76c271ae967",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Yol kenarında duran, sade bir pelerin giymiş kişi ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_001",
+              "related_item": null
+            },
+            {
+              "event_id": "58519dc2-a059-4b07-bcd6-6d5defcdb9ca",
+              "event_type": "npc_met",
+              "created_at": "2026-10-07T11:11:12+00:00",
+              "turn_index": 1,
+              "summary": "Bir muhafız ile karşılaşıldı.",
+              "location_id": "fr:city:neverwinter",
+              "location_name": "Neverwinter",
+              "related_npc_id": "npc_002",
+              "related_item": null
+            }
+          ],
+          "quests": []
+        },
+        "locations": {
+          "tavern": {
+            "id": "tavern",
+            "name": "Taverna",
+            "type": "building",
+            "description": ""
+          },
+          "forest": {
+            "id": "forest",
+            "name": "Orman",
+            "type": "wilderness",
+            "description": ""
+          },
+          "castle": {
+            "id": "castle",
+            "name": "Kale",
+            "type": "building",
+            "description": ""
+          },
+          "fr:city:neverwinter": {
+            "id": "fr:city:neverwinter",
+            "name": "Neverwinter",
+            "type": "city",
+            "description": ""
+          }
+        },
+        "character": {
+          "name": "TestHero",
+          "race": "Human",
+          "species": "Human",
+          "giant_ancestry": null,
+          "species_trait_state": null,
+          "speed_ft": 30,
+          "class": "Fighter",
+          "strength": 16,
+          "dexterity": 14,
+          "constitution": 14,
+          "intelligence": 10,
+          "wisdom": 12,
+          "charisma": 10,
+          "proficient_skills": [
+            "Athletics",
+            "Perception"
+          ],
+          "expertise_skills": [],
+          "species_bonus_skills": [],
+          "level": 1,
+          "proficiency_bonus": 2,
+          "max_hp": 12,
+          "current_hp": 12,
+          "armor_class": 12,
+          "origin_feat": null,
+          "species_bonus_feat": null,
+          "origin_feats": []
+        },
+        "inventory": [
+          "Macera çantası",
+          "Kılıç"
+        ],
+        "spellcasting": null,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "appearance": "Yol kenarında duran, sade bir pelerin giymiş.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "appearance": "Kapı yakınında nöbet tutan, düzenli giyimli.",
+            "relationship": "neutral",
+            "tags": [],
+            "max_hp": 10,
+            "current_hp": 10,
+            "armor_class": 10,
+            "combat_status": "active"
+          }
+        ],
+        "shops": [],
+        "features": [],
+        "doors": [],
+        "combat": {
+          "active": false,
+          "combat_id": null,
+          "status": "ended",
+          "round": 0,
+          "initiative_order": [],
+          "current_turn_index": 0,
+          "current_actor_id": null,
+          "turn_owner": null,
+          "participants": [],
+          "participant_records": [],
+          "target_id": null,
+          "end_reason": null,
+          "action_economy": null
+        },
+        "player_combat_status": "active",
+        "death_state": {
+          "mode": "NORMAL",
+          "status": "active",
+          "successes": 0,
+          "failures": 0,
+          "stable": false,
+          "dead": false,
+          "terminal": false,
+          "prone": false
+        },
+        "turn_index": 7,
+        "quests": [],
+        "quest_offers": [],
+        "adventure": {
+          "threads": [],
+          "commitments": [],
+          "plan": null,
+          "recent_events": []
+        },
+        "known_lore": [
+          {
+            "fact_id": "fr:fact:dagult_neverember_current_lord",
+            "title": "Neverwinter",
+            "text": "Neverwinter kentinin güncel lordu Dagult Neverember."
+          }
+        ],
+        "known_factions": [],
+        "exploration": null
+      },
+      "lore_authority": {
+        "binding_status": "BOUND",
+        "world_id": "fr:world:forgotten_realms",
+        "epoch_id": "fr:epoch:1501_dr",
+        "region_id": "fr:region:the_north",
+        "current_location_entity_id": "fr:city:neverwinter",
+        "player_known_fact_ids": [
+          "fr:fact:dagult_neverember_current_lord"
+        ],
+        "campaign_overrides": [],
+        "faction_standings": []
+      },
+      "elapsed_seconds": 180,
+      "flag": true,
+      "npc_names": [
+        {
+          "id": "npc_001",
+          "name": "Marek",
+          "known": true
+        },
+        {
+          "id": "npc_002",
+          "name": "Cael",
+          "known": false
+        }
+      ]
+    }
+  ],
+  "campaign_id": "a48431c6-85aa-4b1a-8de1-80841c81ab25",
+  "npc_id": "npc_001",
+  "model_call_limit": 2,
+  "pack_hashes": {
+    "neverwinter_the_north_v1.extraction.json": "51b1ce206d8be080de855aff79348a05578a99ca5c5b69c7fee912063d5c64c5",
+    "neverwinter_the_north_v1.review.json": "0438e805ba26c345af6b7b0078770e45a33f71fb0b5e9cab404cfe7571de703e"
+  },
+  "adventure_possibility": "still_alive"
+}

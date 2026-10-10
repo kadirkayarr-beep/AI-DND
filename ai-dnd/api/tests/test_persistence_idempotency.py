@@ -5261,7 +5261,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             db.execute("PRAGMA user_version = 3")
         upgraded = CampaignStore(self.store.path)
         with closing(upgraded._connect()) as db:
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 4)
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 5)
             self.assertEqual(db.execute("SELECT payload_json FROM campaigns").fetchone()[0], payload)
             self.assertEqual(tuple(db.execute("SELECT * FROM campaign_turn_actions").fetchone()), receipt)
         fresh = SessionManager(campaign_store=upgraded)

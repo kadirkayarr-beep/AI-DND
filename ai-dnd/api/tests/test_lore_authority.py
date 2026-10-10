@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from unittest import mock
 
 from api.lore_authority import (
     BindingStatus,
@@ -23,6 +24,7 @@ from api.lore_authority import (
     SourceTier,
     VisibilityScope,
     apply_campaign_override,
+    apply_committed_world_canon,
     bind_campaign,
     build_reviewed_registry,
     default_lore_registry,
@@ -87,6 +89,9 @@ def fact(
     visibility: str = "COMMON_KNOWLEDGE",
     region_scope: str | None = None,
     claim_type: str = "OBJECTIVE_CANON_FACT",
+    temporal_scope: str | None = None,
+    valid_from: str | None = None,
+    valid_until: str | None = None,
 ) -> dict:
     return {
         "fact_id": fact_id,
@@ -97,8 +102,9 @@ def fact(
         "authority_tier": tier,
         "source_id": source_id,
         "source_reference": "Test source, section A",
-        "valid_from": None,
-        "valid_until": None,
+        "valid_from": valid_from,
+        "valid_until": valid_until,
+        "temporal_scope": temporal_scope,
         "visibility": visibility,
         "region_scope": region_scope,
         "notes": "",
@@ -884,6 +890,213 @@ class LoreAuthorityTests(unittest.TestCase):
             "fact:neverwinter:current-lord",
             waterdeep_packet["diagnostics"]["selected_fact_ids"],
         )
+
+    def test_year_name_spelling_is_mythal_and_unreviewed_facts_stay_out(self):
+        year_name = PRODUCTION_REGISTRY.fact("fr:fact:present_year_name")
+        self.assertIsNotNone(year_name)
+        self.assertEqual(year_name.object_id_or_value, "Year of the Shining Mythal")
+        self.assertNotIn("Mythral", str(year_name.object_id_or_value))
+        self.assertIn("Mythal", year_name.notes)
+        self.assertIn("Mythral", year_name.notes)
+        epoch = PRODUCTION_REGISTRY.entity("fr:epoch:1501_dr")
+        self.assertIsNotNone(epoch)
+        self.assertEqual(epoch.canonical_name, "1501 DR")
+
+        from api.lore_authority.pack_loader import REVIEW_FILE, _read_json, load_production_pack
+
+        original = _read_json
+
+        def missing_decision(path):
+            payload = original(path)
+            if path == REVIEW_FILE:
+                payload = {
+                    **payload,
+                    "items": [
+                        item
+                        for item in payload["items"]
+                        if item.get("item_id") != "fr:fact:present_year_name"
+                    ],
+                }
+            return payload
+
+        with mock.patch(
+            "api.lore_authority.pack_loader._read_json",
+            side_effect=missing_decision,
+        ):
+            with self.assertRaises(ValueError):
+                load_production_pack()
+
+    def test_campaign_year_keeps_only_current_facts(self):
+        current = PRODUCTION_REGISTRY.retrieve_lore_context(
+            current_location_id="fr:city:neverwinter",
+            player_message="Bu şehrin hükümdarı kim?",
+            mentioned_entity_ids=set(),
+            campaign_state=CampaignLoreState.legacy_unbound(),
+            campaign_year=1501,
+        )
+        self.assertEqual(
+            current["diagnostics"]["selected_fact_ids"],
+            ["fr:fact:dagult_neverember_current_lord"],
+        )
+
+        other_year = PRODUCTION_REGISTRY.retrieve_lore_context(
+            current_location_id="fr:city:neverwinter",
+            player_message="Bu şehrin hükümdarı kim?",
+            mentioned_entity_ids=set(),
+            campaign_state=CampaignLoreState.legacy_unbound(),
+            campaign_year=1491,
+        )
+        self.assertNotIn(
+            "fr:fact:dagult_neverember_current_lord",
+            other_year["diagnostics"]["selected_fact_ids"],
+        )
+        self.assertEqual(other_year["sections"]["official_forgotten_realms_lore"], [])
+        self.assertIn(
+            "fr:city:neverwinter",
+            {row["entity_id"] for row in other_year["sections"]["unknown_or_unloaded"]},
+        )
+
+        historical = verified_registry(
+            entities=[entity("city:old", "Old City", entity_type="CITY")],
+            facts=[
+                fact(
+                    "fact:old-lord",
+                    "city:old",
+                    "current_lord_id",
+                    "person:past",
+                    temporal_scope="HISTORICAL_DATE_UNSPECIFIED",
+                )
+            ],
+        )
+        historical_packet = historical.retrieve_lore_context(
+            current_location_id="city:old",
+            player_message="Bu şehrin hükümdarı kim?",
+            campaign_year=1501,
+        )
+        self.assertEqual(historical_packet["diagnostics"]["selected_fact_ids"], [])
+        self.assertIn(
+            "city:old",
+            {
+                row["entity_id"]
+                for row in historical_packet["sections"]["unknown_or_unloaded"]
+            },
+        )
+
+        ranged = verified_registry(
+            entities=[entity("city:later", "Later City", entity_type="CITY")],
+            facts=[
+                fact(
+                    "fact:later-lord",
+                    "city:later",
+                    "current_lord_id",
+                    "person:future",
+                    temporal_scope="STATIC_SETTING_FACT",
+                    valid_from="1600 DR",
+                    valid_until="1610 DR",
+                )
+            ],
+        )
+        ranged_packet = ranged.retrieve_lore_context(
+            current_location_id="city:later",
+            player_message="Bu şehrin hükümdarı kim?",
+            campaign_year=1501,
+        )
+        self.assertEqual(ranged_packet["diagnostics"]["selected_fact_ids"], [])
+
+    def test_same_tier_current_facts_stay_unresolved(self):
+        registry = verified_registry(
+            facts=[
+                fact(
+                    "fact:a",
+                    "world:test",
+                    "capital",
+                    "City A",
+                    temporal_scope="CURRENT_AT_1501_DR",
+                ),
+                fact(
+                    "fact:b",
+                    "world:test",
+                    "capital",
+                    "City B",
+                    temporal_scope="CURRENT_AT_1501_DR",
+                ),
+            ]
+        )
+        packet = registry.retrieve_lore_context(
+            current_location_id="world:test",
+            campaign_year=1501,
+        )
+        self.assertEqual(packet["diagnostics"]["selected_fact_ids"], [])
+        self.assertEqual(
+            packet["diagnostics"]["unresolved_conflicts"],
+            [{
+                "subject_id": "world:test",
+                "predicate": "capital",
+                "fact_ids": ["fact:a", "fact:b"],
+            }],
+        )
+
+    def test_engine_events_write_canon_once_and_prose_does_not(self):
+        registry = verified_registry(
+            entities=[entity("city:test", "Test City", entity_type="CITY")],
+            facts=[fact("fact:lord", "city:test", "current_lord_id", "person:ada")],
+        )
+        state = CampaignLoreState.from_mapping({
+            "binding_status": "BOUND",
+            "setting_profile": "TEST_SETTING",
+            "world_id": "world:test",
+            "epoch_id": "epoch:test",
+            "region_id": "region:test",
+            "current_location_entity_id": "city:test",
+            "player_known_fact_ids": [],
+            "npc_known_fact_ids": {},
+            "campaign_overrides": [],
+            "procedural_entity_refs": [],
+            "lore_discoveries": [],
+        })
+        evidence = EngineActionEvidence("turn:2", 2, "python_engine")
+        before = {
+            "npcs": [{"id": "npc_001", "status": "alive"}],
+            "blocked_travel_routes": {},
+        }
+        after = {
+            "npcs": [{"id": "npc_001", "status": "dead"}],
+            "blocked_travel_routes": {"location_001": {"location_002": True}},
+        }
+        prose = apply_committed_world_canon(
+            state,
+            evidence=evidence,
+            before_world=before,
+            after_world=before,
+            action_result={"narration": "The lord died and the road closed."},
+            registry=registry,
+        )
+        self.assertEqual(prose.campaign_overrides, ())
+        self.assertEqual(prose.player_known_fact_ids, ())
+        self.assertEqual(state.campaign_overrides, ())
+
+        committed = apply_committed_world_canon(
+            state,
+            evidence=evidence,
+            before_world=before,
+            after_world=after,
+            action_result={"discovered_fact_ids": ["fact:lord"]},
+            registry=registry,
+        )
+        self.assertEqual(
+            [item.predicate for item in committed.campaign_overrides],
+            ["life_status", "route_status"],
+        )
+        self.assertEqual(committed.player_known_fact_ids, ("fact:lord",))
+        replay = apply_committed_world_canon(
+            committed,
+            evidence=evidence,
+            before_world=before,
+            after_world=after,
+            action_result={"discovered_fact_ids": ["fact:lord"]},
+            registry=registry,
+        )
+        self.assertEqual(replay.to_dict(), committed.to_dict())
 
 
 if __name__ == "__main__":

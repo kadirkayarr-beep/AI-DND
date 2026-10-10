@@ -39,6 +39,8 @@ import {
 } from '@/lib/character-catalog-normalizer';
 import { calculateCharacterPreviewStats } from '@/lib/character-preview-stats';
 import './character-creation-screen.css';
+import { playGateSound, primeGateSound } from '@/lib/gate-sound';
+import './cinematic-gate.css';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
 type DeathMode = 'NORMAL' | 'PERMADEATH' | 'IRONMAN';
@@ -665,8 +667,26 @@ export function CharacterCreationScreen({
     onCreate(characterInput, campaignStart, deathMode);
   };
 
+  useEffect(() => {
+    const root = document.querySelector('[data-testid="screen-character-creation"]');
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>('.cc-choice-card, .cc-choice-card-sm').forEach((node) => {
+      if (node.tabIndex < 0) node.tabIndex = 0;
+      if (!node.hasAttribute('role')) node.setAttribute('role', 'button');
+    });
+  }, [currentStep, catalog, characterClass, background, species, equipmentPackage]);
+
   return (
-    <main className="character-creation-screen dnd-frame dnd-creation" data-testid="screen-character-creation">
+    <main className="character-creation-screen dnd-frame dnd-creation cinematic-create gate-fade" data-testid="screen-character-creation" onClick={(event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('.cc-choice-card')) { primeGateSound(); playGateSound('select'); }
+    }} onKeyDown={(event) => {
+      const target = event.target as HTMLElement;
+      if ((event.key === 'Enter' || event.key === ' ') && target.matches('.cc-choice-card, .cc-choice-card-sm')) {
+        event.preventDefault();
+        target.click();
+      }
+    }}>
       <div className="cc-shell">
         {/* Top Header */}
         <header className="cc-header">
@@ -735,6 +755,7 @@ export function CharacterCreationScreen({
           </nav>
 
           <form className="cc-main-form" onSubmit={handleSubmit}>
+            <div className="cc-step-stage">
             {/* STEP 1: CLASS */}
             {currentStep === 'class' && (
               <section className="cc-step-panel">
@@ -1902,6 +1923,51 @@ export function CharacterCreationScreen({
               </section>
             )}
 
+            {currentStep !== 'review' && (
+              <aside className="cc-verified-summary" aria-label="Doğrulanmış özet">
+                <div className="cc-label">Seçilenler</div>
+                <h2 className="cc-summary-title">Karakter özeti</h2>
+                <dl className="cc-summary-list">
+                  <div><dt>Sınıf</dt><dd>{classData?.name_tr ?? 'Seçilmedi'}</dd></div>
+                  <div><dt>Geçmiş</dt><dd>{backgroundData?.name_tr ?? 'Seçilmedi'}</dd></div>
+                  <div><dt>Tür</dt><dd>{speciesData?.name_tr ?? 'Seçilmedi'}</dd></div>
+                  {name.trim() && <div><dt>Ad</dt><dd>{name.trim()}</dd></div>}
+                </dl>
+                {currentStep === 'class' && classData && (
+                  <p className="cc-summary-note">{classData.desc}</p>
+                )}
+                {currentStep === 'background' && backgroundData && (
+                  <p className="cc-summary-note">{backgroundData.desc}</p>
+                )}
+                {currentStep === 'species' && speciesData && (
+                  <p className="cc-summary-note">{speciesData.desc}</p>
+                )}
+                {classData && (
+                  <p className="cc-summary-note">Can zarı d{classData.hit_die}. Öncelik: {ABILITY_NAMES_TR[classData.primary_ability as AbilityKey]?.short ?? classData.primary_ability}.</p>
+                )}
+                {abilityMethod && (
+                  <div className="cc-summary-scores">
+                    {ABILITY_KEYS.map((key) => (
+                      <span key={key}>{ABILITY_NAMES_TR[key].short} {finalAbilityScores[key]} ({formatModifier(modifiers[key])})</span>
+                    ))}
+                  </div>
+                )}
+                {abilityMethod && (
+                  <p className="cc-summary-note">Can {derivedStats.hp}. Zırh {derivedStats.ac}. İnisiyatif {formatModifier(derivedStats.initiative)}. Hız {derivedStats.speed}.</p>
+                )}
+                {derivedStats.allSkills.length > 0 && (
+                  <p className="cc-summary-note">Beceriler: {derivedStats.allSkills.join(', ')}.</p>
+                )}
+                {equipmentPackage && (
+                  <p className="cc-summary-note">
+                    Teçhizat: {classData?.equipment_packages?.find((pack: { id: string; name?: string }) => pack.id === equipmentPackage)?.name ?? equipmentPackage}
+                    {backgroundEquipmentOption ? ` · geçmiş ${backgroundEquipmentOption}` : ''}.
+                  </p>
+                )}
+              </aside>
+            )}
+            </div>
+
             {/* Stepper Footer Controls */}
             <div className="cc-wizard-footer">
               <div>
@@ -1911,7 +1977,7 @@ export function CharacterCreationScreen({
                     className="cc-nav-btn cc-nav-prev"
                     onClick={() => {
                       const idx = STEPS.findIndex((s) => s.id === currentStep);
-                      if (idx > 0) setCurrentStep(STEPS[idx - 1].id);
+                      if (idx > 0) { primeGateSound(); playGateSound('page'); setCurrentStep(STEPS[idx - 1].id); }
                     }}
                   >
                     <ArrowLeft size={14} /> Önceki Adım
@@ -1931,9 +1997,11 @@ export function CharacterCreationScreen({
                       disabled={!isStepValid(currentStep)}
                       onClick={() => {
                         const idx = STEPS.findIndex((s) => s.id === currentStep);
+                        primeGateSound();
                         if (idx < STEPS.length - 1 && isStepValid(currentStep)) {
+                          playGateSound('page');
                           setCurrentStep(STEPS[idx + 1].id);
-                        }
+                        } else playGateSound('warn');
                       }}
                     >
                       Sonraki Adım <ArrowRight size={14} />

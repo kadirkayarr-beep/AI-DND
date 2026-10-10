@@ -72,8 +72,11 @@ import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
 import { currentSceneContext, classLabel, speciesLabel } from '@/lib/campaign-presentation';
+import { OuroborosMark } from '@/components/ouroboros-mark';
+import { gateSoundMuted, gateSoundVolume, playGateSound, primeGateSound, setGateSoundMuted, setGateSoundVolume } from '@/lib/gate-sound';
+import '@/components/cinematic-gate.css';
 import type { CombatActionInput } from '@workspace/api-client-react';
-import { getContextualActionSuggestions } from '@/lib/action-suggestions';
+import { getContextualActionSuggestions, getTurnInteractionMetadata, type InteractionMode } from '@/lib/action-suggestions';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -101,8 +104,29 @@ function friendlyError(error: unknown, fallback: string) {
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="brand" data-testid="brand-ai-dnd">
-      <div className="brand-mark"><Compass size={17} strokeWidth={1.3} /></div>
+      <div className="brand-mark"><OuroborosMark /></div>
       {!compact && <div><div className="brand-name">AI DUNGEON MASTER</div><div className="brand-subtitle">Tek oyunculu macera · Forgotten Realms</div></div>}
+    </div>
+  );
+}
+
+function GateSoundControl() {
+  const [muted, setMuted] = useState(gateSoundMuted);
+  const [volume, setVolume] = useState(gateSoundVolume);
+  return (
+    <div className="gate-sound">
+      <button type="button" aria-pressed={muted} onClick={() => { primeGateSound(); const next = !muted; setMuted(next); setGateSoundMuted(next); }}>
+        {muted ? 'Ses kapalı' : 'Ses açık'}
+      </button>
+      <label>
+        Düzey
+        <input aria-label="Ses düzeyi" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => {
+          const next = Number(event.target.value);
+          setVolume(next);
+          setGateSoundVolume(next);
+          primeGateSound();
+        }} />
+      </label>
     </div>
   );
 }
@@ -126,17 +150,9 @@ function NoticeBanner({ notice }: { notice: Notice }) {
 
 function TavernArtwork() {
   return (
-    <div className="tavern-frame dnd-enter dnd-delay-1" data-testid="artwork-tavern">
-      <div className="tavern-scene">
-        <div className="wood-planks" />
-        <div className="tavern-glow" />
-        <div className="candle" style={{ left: '24%', top: '16%' }} />
-        <div className="candle" style={{ right: '23%', top: '24%', transform: 'scale(.8)' }} />
-        <div className="hearth"><div className="hearth-fire" /></div>
-        <div className="tavern-caption"><Kicker>Yolun başladığı yer</Kicker><div className="tavern-title">KÜL VE KUPA</div></div>
-        <div className="tavern-seal"><Compass size={18} strokeWidth={1} /></div>
-      </div>
-      <div className="tavern-note"><Sparkles size={12} /> Yağmurun ardından, bir kapı aralanır</div>
+    <div className="gate-scene" data-testid="artwork-tavern">
+      <div className="gate-mist" />
+      <OuroborosMark awaken />
     </div>
   );
 }
@@ -145,47 +161,33 @@ function EngineHealth() {
   const health = useGetGameHealth({ query: { queryKey: getGetGameHealthQueryKey(), staleTime: 30_000, retry: 1 } });
   const ready = Boolean(health.data && ['ok', 'healthy', 'ready'].includes(health.data.status.toLowerCase()));
   return (
-    <aside className="dnd-card dnd-texture p-5 md:p-7" data-testid="panel-engine-health">
-      <div className="relative z-10">
-        <div className="flex items-center gap-2"><Wifi size={14} /><Kicker>Yolun işareti</Kicker></div>
-        <h2 className="dnd-display mt-3 text-xl tracking-wide text-[#decdaa]">{health.isLoading ? 'Dünya uyanıyor.' : ready ? 'Yol açık.' : 'Dünya sessiz.'}</h2>
-        <p className="dnd-serif mt-2 text-[17px] leading-6 text-[#94866e]">Sözlerin yola düşmeye hazır. Dünya, kendi kurallarıyla karşılık verecek.</p>
-        {health.isLoading ? (
-          <div className="mt-7 grid gap-2" data-testid="health-loading">{[1, 2].map((item) => <div className="dnd-skeleton h-10 rounded-sm" key={item} />)}</div>
-        ) : health.isError ? (
-          <div className="notice error mt-6" data-testid="error-health"><span>Dünyanın nabzına ulaşılamadı.</span><button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></div>
-        ) : (
-          <div className="mt-6" data-testid="status-health">
-            <div className="flex items-center justify-between py-3 text-sm">
-              <span className="text-[#897b65]">Yol</span><span className="flex items-center gap-2 font-mono text-xs"><span className={`health-dot ${ready ? '' : 'bad'}`} />{ready ? 'Açık' : 'Sessiz'}</span>
-            </div>
-          </div>
-        )}
-        <div className="mt-6 flex items-center gap-2 text-[10px] text-[#83745e]"><Shield size={13} /> Her hamle dünyanın kurallarıyla tartılır.</div>
-      </div>
+    <aside className="gate-health" data-testid="panel-engine-health">
+      {health.isLoading ? <span data-testid="health-loading">Dünya uyanıyor.</span> : health.isError ? (
+        <span data-testid="error-health">Dünyaya şu an ulaşılamıyor. <button type="button" data-testid="button-retry-health" onClick={() => void health.refetch()}>Tekrar dene</button></span>
+      ) : <span data-testid="status-health">{ready ? 'Yol açık.' : 'Dünya sessiz.'}</span>}
     </aside>
   );
 }
 
 function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaigns, hasCampaigns, showNoCampaigns }: { onCreate: () => void; onContinue: () => void; creating: boolean; notice: Notice | null; loadingCampaigns: boolean; hasCampaigns: boolean; showNoCampaigns: boolean }) {
   return (
-    <main className="opening" data-testid="app-start">
+    <main className="opening cinematic-gate gate-fade" data-testid="app-start">
       <div className="dnd-shell">
         <header className="opening-header">
           <Brand />
-          <span className="hidden font-mono text-[9px] uppercase tracking-[.2em] text-[#8f8069] md:block">Bir hikâye, yalnızca senin</span>
+          <GateSoundControl />
         </header>
         <div className="opening-grid">
-          <section className="opening-copy dnd-enter">
+          <section className="opening-copy">
             <div className="opening-eyebrow"><Kicker>Kapılar açılıyor</Kicker></div>
             <h1 className="opening-title">Hikâyeni<br /><span>anlat.</span></h1>
             <p className="opening-lede dnd-serif">Dünya cevap versin.</p>
             <p className="opening-body">Yağmurun izini kapıda bırak. Dünya kendi kurallarını korurken ilk adımı kendi sözlerinle at.</p>
-            <div className="opening-actions">
-              <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={onCreate}>
+            <div className="opening-actions gate-actions">
+              <button className="dnd-button" type="button" data-testid="button-create-session" disabled={creating} onClick={() => { primeGateSound(); playGateSound('menu'); onCreate(); }}>
                 {creating ? <RefreshCw size={14} className="animate-spin" /> : <ArrowRight size={14} />} {creating ? 'Dünya kuruluyor' : 'Yeni macera'}
               </button>
-              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={onContinue}>
+              <button className="dnd-button secondary" type="button" data-testid="button-continue-session" disabled={loadingCampaigns} onClick={() => { primeGateSound(); playGateSound('menu'); onContinue(); }}>
                 {loadingCampaigns ? <RefreshCw size={14} className="animate-spin" /> : <BookOpen size={14} />} Maceraya devam et
               </button>
             </div>
@@ -195,7 +197,7 @@ function OpeningScreen({ onCreate, onContinue, creating, notice, loadingCampaign
           </section>
           <section className="opening-art"><TavernArtwork /></section>
         </div>
-        <div className="mx-auto mt-8 w-full max-w-[1440px]"><EngineHealth /></div>
+        <EngineHealth />
       </div>
     </main>
   );
@@ -228,20 +230,26 @@ function PeoplePanel({ state }: { state: GameState }) {
   const scenePeople = currentSceneContext(state).people;
   const sceneIds = new Set(scenePeople.map((npc) => npc.id));
   const otherPeople = currentSceneContext(state).scene ? [] : state.npcs.filter((npc) => npc.location === state.location && !sceneIds.has(npc.id));
-  const referents = currentSceneContext(state).scene?.referents ?? [];
+  const referents = (currentSceneContext(state).scene?.referents ?? []).filter(
+    (referent) => !(
+      referent.lifecycle === 'promoted'
+      && referent.promoted_npc_id
+      && sceneIds.has(referent.promoted_npc_id)
+    ),
+  );
   return <section className="state-panel" data-testid="panel-npcs">
     <div className="flex items-end justify-between"><div><Kicker><Users size={12} className="mr-1 inline" /> Karşılaşılanlar</Kicker><h2>Kişiler</h2></div><span className="character-badge">{String(scenePeople.length + otherPeople.length).padStart(2, '0')}</span></div>
     <div className="mt-4">
       <Kicker>Yakınında</Kicker>
       {scenePeople.length ? scenePeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`scene-npc-${npc.id}`}>
-        <div className="data-row-head"><span>{npc.name}</span><span className="status-pill">{npc.role}</span></div>
+        <div className="data-row-head"><span>{npc.name}</span>{npc.role && <span className="status-pill">{npc.role}</span>}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>) : <div className="empty-line mt-2">Şu an yakında tanıdık biri görünmüyor.</div>}
     </div>
     {referents.length > 0 && <div className="mt-4">
       <Kicker>Arka plandaki hareketlilik</Kicker>
       {referents.map((referent) => <div className="data-row mt-2" key={referent.id} data-testid={`scene-referent-${referent.id}`}>
-        <div className="data-row-head"><span>{referent.kind ?? 'Bir kişi'}</span><span className="status-pill">{referent.lifecycle === 'promoted' ? 'tanıştın' : 'uzakta'}</span></div>
+        <div className="data-row-head"><span>Dikkatini çeken</span><span className="status-pill">{referent.lifecycle === 'promoted' ? 'fark ettin' : 'uzakta'}</span></div>
         <div className="data-row-desc">{referent.description}</div>
       </div>)}
     </div>}
@@ -249,7 +257,7 @@ function PeoplePanel({ state }: { state: GameState }) {
       <Kicker>Diğer karşılaştıkların</Kicker>
       {otherPeople.map((npc) => <div className="data-row mt-2" key={npc.id} data-testid={`npc-${npc.id}`}>
         <div className="data-row-head"><span>{npc.name}</span>{npc.combat_status && <span className="status-pill">{npc.combat_status === 'active' ? 'Ayakta' : npc.combat_status === 'unconscious' ? 'Bilinçsiz' : npc.combat_status === 'defeated' ? 'Etkisiz' : npc.combat_status}</span>}</div>
-        <div className="data-row-meta">{npc.role} · {state.locations[npc.location]?.name ?? npc.location}</div>
+        <div className="data-row-meta">{npc.role ? `${npc.role} · ` : ''}{state.locations[npc.location]?.name ?? npc.location}</div>
         {npc.appearance && <div className="data-row-desc">{npc.appearance}</div>}
       </div>)}
     </div>}
@@ -390,6 +398,32 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         ) : <div className="empty-line mt-3" data-testid="empty-journal-events">Henüz kaydedilmiş bir olay yok.</div>}
       </section>
 
+      <section className="journal-section" data-testid="section-journal-lore">
+        <div className="journal-section-heading">
+          <div><Kicker><ScrollText size={11} className="mr-1 inline" /> Bildiklerin</Kicker><h3>Öğrendiklerin</h3></div>
+          <span className="character-badge">{String((state.known_lore ?? []).length).padStart(2, '0')}</span>
+        </div>
+        {(state.known_lore ?? []).length ? (
+          <div className="mt-3">
+            {state.known_lore.map((fact) => (
+              <div className="data-row journal-record" key={fact.fact_id} data-testid={`journal-lore-${fact.fact_id}`}>
+                <div className="data-row-head"><span>{fact.title}</span></div>
+                <div className="journal-record-note">{fact.text}</div>
+              </div>
+            ))}
+          </div>
+        ) : <div className="empty-line mt-3" data-testid="empty-journal-lore">Henüz doğrulanmış bir bilgi yok.</div>}
+        {(state.known_factions ?? []).length > 0 && (
+          <div className="mt-3">
+            {state.known_factions.map((faction) => (
+              <div className="data-row journal-record" key={faction.faction_id} data-testid={`journal-faction-${faction.faction_id}`}>
+                <div className="data-row-head"><span>{faction.title}</span></div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <QuestJournalSection
         quests={state.quests ?? []}
         offers={state.quest_offers ?? []}
@@ -400,6 +434,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         cancelPending={cancelQuest.isPending}
         hasError={acceptQuest.isError || cancelQuest.isError}
         commandNotice={commandNotice}
+        adventures={state.campaign_adventures}
       />
       <AdventureJournalSection adventure={state.adventure} />
     </section>
@@ -466,6 +501,11 @@ function StoryColumn({
   entries,
   message,
   setMessage,
+  interactionMode,
+  setInteractionMode,
+  conversationTargetId,
+  setConversationTargetId,
+  onEndConversation,
   onSubmit,
   onExplorationCommand,
   onEconomyCommand,
@@ -488,6 +528,11 @@ function StoryColumn({
   entries: TranscriptEntry[];
   message: string;
   setMessage: (value: string) => void;
+  interactionMode: InteractionMode;
+  setInteractionMode: (value: InteractionMode) => void;
+  conversationTargetId: string;
+  setConversationTargetId: (value: string) => void;
+  onEndConversation: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onExplorationCommand: (message: string) => void;
   onEconomyCommand: (message: string, command: CombatActionInput) => void;
@@ -518,11 +563,27 @@ function StoryColumn({
       && participant.status === 'active'
       && participant.current_hp > 0,
   );
-  const actionSuggestions = getContextualActionSuggestions(state);
+  const actionSuggestions = [
+    ...getContextualActionSuggestions(state),
+    ...(state.campaign_adventures?.affordances ?? []).map((label) => ({
+      id: `adventure-${label}`,
+      label,
+      message: label,
+      mode: 'do' as const,
+    })),
+  ];
+  const conversationTargets = (state.scene?.npcs ?? []).filter(
+    (npc) => typeof npc.id === 'string' && typeof npc.name === 'string' && npc.name.trim().length > 0,
+  );
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const currentActor = state.combat.participant_records.find(
     (participant) => participant.id === state.combat.current_actor_id,
   );
+  const modePrompt = interactionMode === 'say'
+    ? 'Ne söylüyorsun?'
+    : interactionMode === 'ask_dm'
+      ? 'Anlatıcıya ne sormak istiyorsun?'
+      : 'Ne yapmak istiyorsun?';
   return (
     <section className="story-column workspace-story" data-testid="panel-story">
       <div className="story-heading">
@@ -580,6 +641,10 @@ function StoryColumn({
                 disabled={sending}
                 key={suggestion.id}
                 onClick={() => {
+                  const targetId = "targetId" in suggestion ? suggestion.targetId : undefined;
+                  setInteractionMode(suggestion.mode);
+                  setConversationTargetId(suggestion.mode === 'say' ? (targetId ?? '') : '');
+                  if (state.combat.active && targetId) setCombatTargetId(targetId);
                   setMessage(suggestion.message);
                   messageInputRef.current?.focus();
                 }}
@@ -590,6 +655,63 @@ function StoryColumn({
             ))}
           </div>
         </div>
+        {state.conversation.active && state.conversation.interlocutor && (
+          <div className="data-row mb-3" role="status" data-testid="active-interlocutor">
+            <div className="flex items-center gap-2">
+              <MessageCircle size={13} aria-hidden="true" />
+              <span>Konuşuyorsun: <strong>{state.conversation.interlocutor.name}</strong></span>
+              <button
+                className="action-suggestion ml-auto"
+                type="button"
+                disabled={sending}
+                onClick={onEndConversation}
+                data-testid="button-end-conversation"
+              >
+                Konuşmayı bitir
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="action-suggestion-list mb-3" role="group" aria-label="Etkileşim biçimi" data-testid="interaction-mode-selector">
+          {([
+            ['say', 'SÖYLE'],
+            ['do', 'YAP'],
+            ['ask_dm', 'ANLATICIYA SOR'],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              className="action-suggestion"
+              type="button"
+              aria-pressed={interactionMode === mode}
+              data-testid={`button-mode-${mode}`}
+              disabled={sending || (state.combat.active && mode !== 'do')}
+              onClick={() => {
+                setInteractionMode(mode);
+                if (mode !== 'say') setConversationTargetId('');
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {interactionMode === 'say' && conversationTargets.length > 1 && (
+          <label className="command-target-label mb-3" htmlFor="conversation-target-select">
+            <span>Kiminle konuşuyorsun? <small>— isteğe bağlı</small></span>
+            <select
+              id="conversation-target-select"
+              className="command-target-select"
+              value={conversationTargetId}
+              onChange={(event) => setConversationTargetId(event.target.value)}
+              disabled={sending}
+              data-testid="select-conversation-target"
+            >
+              <option value="">Sözlerimde belirteceğim</option>
+              {conversationTargets.map((npc) => (
+                <option value={npc.id} key={npc.id}>{npc.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <form className="command-form" onSubmit={onSubmit}>
           {state.pending_event_decisions?.map((event, index) => <div className="data-row mb-3" data-testid="scheduled-event-decision" key={index}>
             <p>{event.summary}</p>
@@ -644,7 +766,7 @@ function StoryColumn({
             </label>
           )}
           <label className="sr-only" htmlFor="player-message">Hamleni anlat</label>
-          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder="Ne yapmak istiyorsun?" data-testid="input-player-message" disabled={sending} />
+          <textarea ref={messageInputRef} id="player-message" className="command-input" value={message} maxLength={4000} onChange={(event) => setMessage(event.target.value)} placeholder={modePrompt} data-testid="input-player-message" disabled={sending} />
           <button className="dnd-button" type="submit" disabled={sending || !message.trim()} data-testid="button-send-turn">
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {sending ? 'Dünya yanıt veriyor' : 'Gönder'}
@@ -734,7 +856,7 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
     ['KAR', character.charisma],
   ];
   return (
-    <main className="reveal-screen" data-testid="screen-character-reveal">
+    <main className="reveal-screen gate-fade" data-testid="screen-character-reveal">
       <header className="dnd-shell reveal-header">
         <Brand />
         <button type="button" className="text-button" onClick={onBack} data-testid="button-back-opening">
@@ -904,7 +1026,9 @@ export default function GameBrowser() {
   const [combatEntries, setCombatEntries] = useState<CombatLogEntry[]>([]);
   const [combatEndNotice, setCombatEndNotice] = useState<string | null>(null);
   const [combatTargetId, setCombatTargetId] = useState('');
+  const [conversationTargetId, setConversationTargetId] = useState('');
   const [message, setMessage] = useState('');
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('do');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [activeTab, setActiveTab] = useState<WorldTab>('world');
@@ -943,6 +1067,8 @@ export default function GameBrowser() {
   });
   const playTurn = usePlayGameTurn();
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
+  const activeSessionRef = useRef(sessionId);
+  activeSessionRef.current = sessionId;
   const resolveAmbientEventAction = useResolveAmbientEventAction();
   const stateQuery = useGetGameSessionState(sessionId, { query: { enabled: Boolean(sessionId), queryKey: getGetGameSessionStateQueryKey(sessionId), retry: false } });
   const state = stateQuery.data;
@@ -981,10 +1107,20 @@ export default function GameBrowser() {
   useEffect(() => {
     if (!state) return;
     const active = Boolean(state.combat.active);
-    if (active) setActiveTab('combat');
+    if (active) {
+      setActiveTab('combat');
+      setInteractionMode('do');
+      setConversationTargetId('');
+    }
     else if (previousCombatActive.current === true) setActiveTab('world');
     previousCombatActive.current = active;
   }, [state?.combat.active]);
+
+  useEffect(() => {
+    setConversationTargetId((current) => (
+      state?.scene?.npcs.some((npc) => npc.id === current) ? current : ''
+    ));
+  }, [state?.scene]);
 
   useEffect(() => {
     if (!state || previousLocation.current === '') { if (state) previousLocation.current = state.location; return; }
@@ -1001,6 +1137,8 @@ export default function GameBrowser() {
     if (!sessionId || !stateQuery.isError) return;
     if (statusCode(stateQuery.error) === 404) {
       setSessionId('');
+      setConversationTargetId('');
+      setInteractionMode('do');
       setPhase('library');
       setNotice({ tone: 'warning', title: 'Oturum yeniden açılmalı', detail: 'Kayıtlı macerayı defterden seçerek güvenli biçimde sürdürebilirsin.' });
     }
@@ -1024,6 +1162,8 @@ export default function GameBrowser() {
     setEntries([]);
     setCombatEntries([]);
     setCombatEndNotice(null);
+    setConversationTargetId('');
+    setInteractionMode('do');
     setMessage('');
     setNotice(null);
     setResumingCampaignId(null);
@@ -1055,10 +1195,14 @@ export default function GameBrowser() {
         setEntries([]);
         setCombatEntries([]);
         setCombatEndNotice(null);
+        setInteractionMode('do');
+        setConversationTargetId('');
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(created.session_id);
         setPhase('reveal');
+        primeGateSound();
+        playGateSound('success');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => setNotice({
@@ -1113,6 +1257,8 @@ export default function GameBrowser() {
         setEntries(transcript);
         setCombatEntries(mergeCombatHistory(resumed.combat_history));
         setCombatEndNotice(null);
+        setInteractionMode('do');
+        setConversationTargetId('');
         setActiveTab('world');
         previousCombatActive.current = null;
         setSessionId(resumed.session_id);
@@ -1199,13 +1345,20 @@ export default function GameBrowser() {
     submitAmbientEventAction(request);
   };
 
-  const submitTurn = (text: string, combatAction?: CombatActionInput) => {
+  const submitTurn = (
+    text: string,
+    combatAction?: CombatActionInput,
+    mode: InteractionMode = interactionMode,
+  ) => {
     const trimmed = text.trim();
     if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
-    const targetId = combatTargetId || null;
+    const metadata = getTurnInteractionMetadata(
+      state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
+    );
+    const targetId = metadata.target_id;
     const actionScope = campaignId || sessionId;
-    const signature = JSON.stringify([actionScope, trimmed, targetId, combatAction ?? null]);
+    const signature = JSON.stringify([actionScope, trimmed, metadata.interaction_mode, targetId, combatAction ?? null]);
     const actionId = pendingTurnRef.current?.signature === signature
       ? pendingTurnRef.current.actionId
       : stableTurnActionId(actionScope, signature, state?.combat.active && state.combat.combat_id ? {
@@ -1217,6 +1370,7 @@ export default function GameBrowser() {
       sessionId,
       data: {
         message: trimmed,
+        interaction_mode: metadata.interaction_mode,
         action_id: actionId,
         ...(combatAction ? { combat_action: combatAction } : {}),
         ...storedTurnContext(actionScope, actionId),
@@ -1224,6 +1378,7 @@ export default function GameBrowser() {
       },
     }, {
       onSuccess: (result) => {
+        const stillVisible = activeSessionRef.current === sessionId;
         if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
         clearPendingTurnAction(actionScope, actionId);
         const next = [
@@ -1235,20 +1390,20 @@ export default function GameBrowser() {
             skillCheckResult: result.skill_check_result ?? undefined,
           },
         ];
-        setEntries(next);
+        if (stillVisible) setEntries(next);
         window.localStorage.setItem(
           `${TRANSCRIPT_KEY}${sessionId}`,
           JSON.stringify(next.map(({ kind, text }) => ({ kind, text }))),
         );
         const combatResult = result.combat_result;
         const combatHistoryEntry = result.combat_history_entry;
-        if (combatHistoryEntry) {
+        if (stillVisible && combatHistoryEntry) {
           setCombatEntries((current) => mergeCombatHistory(
             [combatHistoryEntry],
             current,
           ));
         }
-        if (combatResult) {
+        if (stillVisible && combatResult) {
           if (combatResult.combat_ended) {
             const endReason = combatResult.end_reason;
             setCombatEndNotice(
@@ -1264,10 +1419,11 @@ export default function GameBrowser() {
           if (combatResult.outcome !== 'enemy_turn_resolved' || combatResult.combat_ended) {
             setCombatTargetId('');
           }
-        } else {
+        } else if (stillVisible) {
           setCombatEndNotice(null);
         }
         queryClient.setQueryData(getGetGameSessionStateQueryKey(sessionId), result.state);
+        if (stillVisible) setConversationTargetId('');
         const outcomeMessages = (result.quest_outcomes ?? []).map((outcome) => {
           const quest = result.state.quests.find((item) => item.quest_id === outcome.quest_id);
           const objective = quest?.objectives.find((item) => item.objective_id === outcome.objective_id);
@@ -1280,23 +1436,27 @@ export default function GameBrowser() {
           }[outcome.transition] ?? 'görev durumu güncellendi';
           return `${quest?.title ?? 'Görev'}: ${transition}${objective ? ` — ${objective.description}` : ''}.`;
         });
-        if (outcomeMessages.length) {
+        if (stillVisible && outcomeMessages.length) {
           setNotice({
             tone: 'success',
             title: 'Görev güncellendi',
             detail: outcomeMessages.join(' '),
           });
         }
-        setMessage('');
+        if (stillVisible) setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => {
+        if (activeSessionRef.current !== sessionId) {
+          if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
+          return;
+        }
         if ([400, 409, 422].includes(statusCode(error) ?? 0)) {
           pendingTurnRef.current = null;
           clearPendingTurnAction(actionScope, actionId);
           void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
         }
-        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle işlenemedi', detail: friendlyError(error, 'Dünya bu hamleyi kabul etmedi.') });
+        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
       },
     });
   };
@@ -1304,7 +1464,7 @@ export default function GameBrowser() {
   const sessionLabel = useMemo(() => campaignId ? 'Yolculuk sürüyor' : 'Yeni yolculuk', [campaignId]);
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    submitTurn(message);
+    submitTurn(message, undefined, interactionMode);
   };
   if (phase === 'library') return <CampaignLibrary campaigns={campaignsQuery.data} locationCatalog={campaignStartOptionsQuery.data} loading={campaignsQuery.isLoading} error={campaignsQuery.error} resuming={resumeCampaign.isPending} resumingCampaignId={resumingCampaignId} notice={notice} onBack={() => { setPhase('opening'); setNotice(null); }} onNew={handleCreate} onResume={handleResume} onRetry={() => void campaignsQuery.refetch()} onDeleted={deletedId => { if (deletedId === campaignId) { setSessionId(''); setCampaignId(''); setEntries([]); setCombatEntries([]); } }} />;
   if (phase === 'creation') return (
@@ -1364,9 +1524,14 @@ export default function GameBrowser() {
                 entries={entries}
                 message={message}
                 setMessage={setMessage}
+                interactionMode={interactionMode}
+                setInteractionMode={setInteractionMode}
+                conversationTargetId={conversationTargetId}
+                setConversationTargetId={setConversationTargetId}
+                onEndConversation={() => submitTurn('Konuşmayı bitiriyorum.', undefined, 'do')}
                 onSubmit={handleSubmit}
-                onExplorationCommand={submitTurn}
-                onEconomyCommand={submitTurn}
+                onExplorationCommand={(text) => submitTurn(text, undefined, 'do')}
+                onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}
                 sending={playTurn.isPending}
                 notice={notice}
                 scrollRef={storyScrollRef}

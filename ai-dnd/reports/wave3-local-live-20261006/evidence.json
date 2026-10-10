@@ -1,0 +1,1830 @@
+{
+  "base": "http://127.0.0.1:8008",
+  "budget_max_model_requiring_turns": 7,
+  "budget_used": 3,
+  "turns": [
+    {
+      "label": "ask_dm_city_look",
+      "message": "Etrafıma bakıyorum.",
+      "interaction_mode": "ask_dm",
+      "target_id": null,
+      "action_id": "6f7903fe-2aa3-4cce-9867-ae69a4f139ab",
+      "http_status": 200,
+      "elapsed_s": 0.561,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_active": false,
+        "npcs": [],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Neverwinter çevresine göz gezdiriyorsun. Yakında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Bir ulak kapının önünde durup içeriden yanıt bekler.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "ask_dm_city_presence",
+      "message": "Burada kimler var?",
+      "interaction_mode": "ask_dm",
+      "target_id": null,
+      "action_id": "715085d4-bda7-4e54-afb7-ca9082203a8f",
+      "http_status": 200,
+      "elapsed_s": 0.365,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Yakınında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Bir ulak kapının önünde durup içeriden yanıt bekler.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "say_greet_primary",
+      "message": "Merhaba, nasılsın?",
+      "interaction_mode": "say",
+      "target_id": "npc_001",
+      "action_id": "02e8121d-452c-4fde-8153-7089395da4d6",
+      "http_status": 200,
+      "elapsed_s": 0.501,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": null
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi, “İyiyim; sabah erken kalktım, hepsi bu.” diye yanıt verir.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "say_ask_name",
+      "message": "Adın ne?",
+      "interaction_mode": "say",
+      "target_id": "npc_001",
+      "action_id": "8a631883-4c28-4aaa-b115-711a97284c52",
+      "http_status": 200,
+      "elapsed_s": 0.386,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": null
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "role": "",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Marek, “Ben Marek. Kent sakini olarak buradayım.” diye yanıt verir.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "say_switch_target",
+      "message": "Seninle konuşmak istiyorum.",
+      "interaction_mode": "say",
+      "target_id": "npc_002",
+      "action_id": "6712810d-4276-432c-9565-6627202b1bc3",
+      "http_status": 200,
+      "elapsed_s": 0.401,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Bir muhafız sana dönüyor. “Seni dinliyorum,” der.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "say_end_conversation",
+      "message": "Konuşmayı bitiriyorum.",
+      "interaction_mode": "say",
+      "target_id": null,
+      "action_id": "05b2bd34-c860-4c76-905e-f6a425c4240c",
+      "http_status": 200,
+      "elapsed_s": 0.392,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 0,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Bir muhafız sana dönüyor. “Seni dinliyorum,” der.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_ambiguous_ona_after_end",
+      "message": "Ona el sallarım.",
+      "interaction_mode": "do",
+      "target_id": null,
+      "action_id": "7bab7fac-9699-4eed-9952-6e63f296a422",
+      "http_status": 200,
+      "elapsed_s": 12.073,
+      "model_calls": 1,
+      "model_requiring_turn": true,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Ollama chat request started (model=qwen3:8b)",
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=1, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Şimdilik yeni bir iş çıkmıyor; sohbet olağan akışında sürüyor.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_tavern_search",
+      "message": "Yakınlarda bir yerel taverna veya han arıyorum.",
+      "interaction_mode": "do",
+      "target_id": null,
+      "action_id": "753ec908-d609-4d98-90c2-e1d6936f6a16",
+      "http_status": 200,
+      "elapsed_s": 0.408,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Yakınlarda Elaris Hanı adlı küçük bir han buluyorsun. Sokağa açılan kapısı kolayca fark ediliyor.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "say_reengage_before_combat",
+      "message": "Tekrar seninle konuşmak istiyorum.",
+      "interaction_mode": "say",
+      "target_id": "npc_001",
+      "action_id": "52f58fe3-fe7f-479a-8b3e-d75953c0997f",
+      "http_status": 200,
+      "elapsed_s": 0.418,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Marek sana dönüyor. “Seni dinliyorum,” der.",
+      "detail": null,
+      "combat_result": null
+    },
+    {
+      "label": "do_attack_into_combat",
+      "message": "Ona kılıcımla saldırıyorum.",
+      "interaction_mode": "do",
+      "target_id": "npc_001",
+      "action_id": "c76f41d8-afd4-413f-a9ef-d4bd845748d3",
+      "http_status": 400,
+      "elapsed_s": 0.026,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": null,
+        "conversation": null,
+        "combat_active": false,
+        "npcs": [],
+        "inventory_labels": [],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": null,
+      "detail": {
+        "code": "distance_unknown",
+        "message": "Authoritative attack distance is unavailable."
+      },
+      "combat_result": null
+    },
+    {
+      "label": "ask_dm_inventory",
+      "message": "Envanterimde neler var?",
+      "interaction_mode": "ask_dm",
+      "target_id": null,
+      "action_id": "b56ffd4b-d427-436f-a608-ea9538ad236a",
+      "http_status": 200,
+      "elapsed_s": 0.501,
+      "model_calls": 0,
+      "model_requiring_turn": false,
+      "budget_used_after": 1,
+      "log_lines": [
+        "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+      ],
+      "before": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "after": {
+        "location": "fr:city:neverwinter",
+        "conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_active": false,
+        "npcs": [
+          {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          },
+          {
+            "id": "npc_002",
+            "name": "Bir muhafız",
+            "role": "Muhafız",
+            "location": "fr:city:neverwinter",
+            "reality_layer": null,
+            "name_known_to_player": null
+          }
+        ],
+        "inventory_labels": [
+          null,
+          null
+        ],
+        "flags": {
+          "active_npc_id": null,
+          "turn_index": null
+        }
+      },
+      "narration": "Envanterinde: Macera çantası, Kılıç.",
+      "detail": null,
+      "combat_result": null
+    }
+  ],
+  "scenarios": {
+    "neverwinter_start": {
+      "status": "PASS"
+    },
+    "neverwinter_npc_access": {
+      "status": "PASS",
+      "npc_count": 2,
+      "npcs": [
+        {
+          "id": "npc_001",
+          "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "role": "",
+          "location": "fr:city:neverwinter",
+          "reality_layer": null,
+          "name_known_to_player": null
+        },
+        {
+          "id": "npc_002",
+          "name": "Bir muhafız",
+          "role": "Muhafız",
+          "location": "fr:city:neverwinter",
+          "reality_layer": null,
+          "name_known_to_player": null
+        }
+      ],
+      "look_model_calls": 0,
+      "presence_model_calls": 0,
+      "ownership_note": "ASK_DM look/presence -> plan_living_world_turn -> living_world.materialize_scene (engine-owned; not direct API seed)"
+    },
+    "unknown_name_on_greet": {
+      "status": "PASS",
+      "public_interlocutor": {
+        "id": "npc_001",
+        "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+        "role": null
+      },
+      "internal_name_known_flag": null,
+      "narration_mentions_raw_internal_name": true
+    },
+    "explicit_name_learning": {
+      "status": "PASS",
+      "name_known_after": null,
+      "public_interlocutor": {
+        "id": "npc_001",
+        "name": "Marek",
+        "role": "Kent sakini"
+      },
+      "note": "Learning only via existing open rule; selecting target alone must not learn."
+    },
+    "target_switch": {
+      "status": "PASS",
+      "from": "npc_001",
+      "to": "npc_002",
+      "interlocutor": {
+        "id": "npc_002",
+        "name": "Bir muhafız",
+        "role": "Muhafız"
+      }
+    },
+    "end_conversation": {
+      "status": "RETESTED_WITH_DO",
+      "prior_say_result": "FAIL_expected_under_contract",
+      "do_result": "PASS",
+      "contract": "end conversation owner is DO/default path in _dispatch_player_turn"
+    },
+    "ambiguous_ona_after_end": {
+      "status": "PASS",
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "narration": "Bu tanıma uyan birden fazla kişi var: Marek, Bir muhafız. Hangisini kastettiğini belirt.",
+      "model_calls": 0,
+      "bound_interlocutor": null
+    },
+    "do_supported_action": {
+      "status": "PASS",
+      "model_calls": 0,
+      "narration": "Yakınlarda Elaris Hanı adlı küçük bir han buluyorsun. Sokağa açılan kapısı kolayca fark ediliyor.",
+      "procedural_children": [],
+      "note": "Rest clarification is not accepted as success."
+    },
+    "combat_from_active_conversation": {
+      "status": "RETESTED_AFTER_APPROACH",
+      "prior_without_distance": "FAIL distance_unknown",
+      "after_approach": "FAIL",
+      "note": "Authoritative distance required; approach sets npc distance_ft=5"
+    },
+    "inventory_ask_dm": {
+      "status": "PASS",
+      "model_calls": 0,
+      "narration": "Envanterinde: Macera çantası, Kılıç."
+    },
+    "real_qwen_narration": {
+      "status": "PASS",
+      "sample_labels": [
+        "do_ambiguous_ona_after_end"
+      ],
+      "note": "Fake-adapter tests are separate; these rows used live Ollama qwen3:8b."
+    },
+    "rejected_narration_fallback_no_retry": {
+      "status": "OPEN",
+      "detail": "No rejected narration observed in this budgeted live run; did not spam model calls to force rejection. Contract remains: rejected -> deterministic fallback, no model retry."
+    },
+    "end_conversation_do": {
+      "status": "PASS",
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "narration": "Marek ile konuşmayı bitiriyorsun.",
+      "model_calls": 0,
+      "note": "Wave3 contract clears interlocutor via DO/default, not SAY."
+    },
+    "combat_from_conversation_after_approach": {
+      "status": "FAIL",
+      "approach_http": 200,
+      "approach_narration": "Marek seni fark edip sana dönüyor.",
+      "approach_conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Marek",
+          "role": "Kent sakini"
+        }
+      },
+      "attack_http": 400,
+      "attack_detail": {
+        "code": "weapon_not_held",
+        "message": "Requested weapon is not held."
+      },
+      "attack_combat": false,
+      "attack_conversation": null,
+      "attack_combat_result": null,
+      "attack_narration": null,
+      "attack_model_calls": 0
+    },
+    "combat_from_active_conversation_final": {
+      "status": "PASS",
+      "turns": [
+        {
+          "label": "approach4",
+          "http": 200,
+          "calls": 0,
+          "budget": 3,
+          "detail": null,
+          "narr": "Marek seni fark edip sana dönüyor.",
+          "combat": false,
+          "conv": {
+            "active": true,
+            "interlocutor": {
+              "id": "npc_001",
+              "name": "Marek",
+              "role": "Kent sakini"
+            }
+          },
+          "combat_result": null
+        },
+        {
+          "label": "draw_attack",
+          "http": 200,
+          "calls": 0,
+          "budget": 3,
+          "detail": null,
+          "narr": "Saldırın hedefi ıskalar. Rakibin savunmaya geçer.",
+          "combat": true,
+          "conv": {
+            "active": false,
+            "interlocutor": null
+          },
+          "combat_result": {
+            "action": "attack",
+            "status": "resolved",
+            "success": false,
+            "outcome": "miss",
+            "actor": "player",
+            "actor_name": "TestHero",
+            "target": "npc_001",
+            "target_id": "npc_001",
+            "target_name": "Marek",
+            "weapon": "Kılıç",
+            "attack_roll": 4,
+            "attack_bonus": 5,
+            "attack_total": 9,
+            "target_ac": 10,
+            "critical": false,
+            "damage": 0,
+            "target_hp_before": 10,
+            "target_hp_after": 10,
+            "target_status": "active",
+            "damage_type": "slashing",
+            "attack_rolls": [
+              4
+            ],
+            "disadvantage": false,
+            "hp_damage": 0,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": [],
+            "action_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e",
+            "resolution_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e:attack_roll:1",
+            "resolution": {
+              "action_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e",
+              "session_id": "86266855-1ff3-4f90-afcc-90b75062c42b",
+              "resolution_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e:attack_roll:1",
+              "resolution_type": "attack_roll",
+              "roll_type": "d20",
+              "raw_rolls": [
+                4
+              ],
+              "selected_roll": 4,
+              "advantage": false,
+              "disadvantage": false,
+              "advantage_cancelled": false,
+              "actor_id": "player",
+              "target_id": "npc_001",
+              "modifier_breakdown": {
+                "attack_bonus": 5
+              },
+              "total_modifier": 5,
+              "total": 9,
+              "target_value": 10,
+              "target_ac": 10,
+              "outcome": "MISS",
+              "critical_state": null
+            },
+            "economy_steps": null,
+            "combat_id": "ceb4ee30-e63a-45f0-bd2f-aa842bb1b2a4",
+            "combat_status": "active",
+            "round": 2,
+            "current_turn_index": 0,
+            "combat_started": true,
+            "combat_ended": null,
+            "end_reason": null,
+            "current_actor_id": "player",
+            "turn_owner": "player",
+            "enemy_action": {
+              "action": "monster_dodge",
+              "status": "resolved",
+              "success": true,
+              "outcome": "dodge",
+              "actor": "npc_001",
+              "actor_name": "Marek",
+              "target": null,
+              "target_id": null,
+              "target_name": null,
+              "weapon": null,
+              "attack_roll": null,
+              "attack_bonus": null,
+              "attack_total": null,
+              "target_ac": null,
+              "critical": null,
+              "damage": 0,
+              "target_hp_before": null,
+              "target_hp_after": null,
+              "target_status": null,
+              "damage_type": null,
+              "attack_rolls": null,
+              "disadvantage": null,
+              "hp_damage": null,
+              "temporary_hp_before": null,
+              "temporary_hp_absorbed": null,
+              "temporary_hp_after": null,
+              "species_effects": null
+            },
+            "enemy_actions": [
+              {
+                "action": "monster_dodge",
+                "status": "resolved",
+                "success": true,
+                "outcome": "dodge",
+                "actor": "npc_001",
+                "actor_name": "Marek",
+                "target": null,
+                "target_id": null,
+                "target_name": null,
+                "weapon": null,
+                "attack_roll": null,
+                "attack_bonus": null,
+                "attack_total": null,
+                "target_ac": null,
+                "critical": null,
+                "damage": 0,
+                "target_hp_before": null,
+                "target_hp_after": null,
+                "target_status": null,
+                "damage_type": null,
+                "attack_rolls": null,
+                "disadvantage": null,
+                "hp_damage": null,
+                "temporary_hp_before": null,
+                "temporary_hp_absorbed": null,
+                "temporary_hp_after": null,
+                "species_effects": null
+              }
+            ]
+          }
+        }
+      ],
+      "smallest_fix_if_bug": {
+        "symptom": "DO attack after approach returns weapon_not_held while inventory contains Kılıç [item_000002]",
+        "likely_owners": [
+          "ai-dnd/weapon_attack.py (natural_choice/held check/draw)",
+          "ai-dnd/api/character_creation.py or campaign bootstrap equipment hands",
+          "ai-dnd/equipment_economy.py equip path"
+        ],
+        "scope": "Ensure starting campaign equips held hand to inventory item_id OR named attack auto-draw on Attack action; do not broaden combat rewrite",
+        "implemented_in_this_task": false
+      }
+    }
+  },
+  "notes": [],
+  "health": {
+    "status": "ok",
+    "engine": "AI-DND",
+    "model": "qwen3:8b"
+  },
+  "campaign_id": "95a25157-c032-4843-bc74-41d8dded8c1b",
+  "session_id": "86266855-1ff3-4f90-afcc-90b75062c42b",
+  "create_state": {
+    "location": "fr:city:neverwinter",
+    "conversation": {
+      "active": false,
+      "interlocutor": null
+    },
+    "combat_active": false,
+    "npcs": [],
+    "inventory_labels": [
+      null,
+      null
+    ],
+    "flags": {
+      "active_npc_id": null,
+      "turn_index": null
+    }
+  },
+  "ux_findings": {
+    "inventory_item_star_labels": [
+      "item_000001",
+      "item_000002"
+    ],
+    "observed_public_inventory_strings": [
+      "Macera Cantasi [item_000001]",
+      "Kilic [item_000002]"
+    ],
+    "note": "item_* tags appear in public inventory projection; contracts preserved; no code change"
+  },
+  "budget_remaining": 4,
+  "followup": {
+    "session_id": "86266855-1ff3-4f90-afcc-90b75062c42b",
+    "budget_used_start": 1,
+    "turns": [
+      {
+        "label": "do_end_conversation",
+        "message": "Konuşmayı bitiriyorum.",
+        "interaction_mode": "do",
+        "target_id": null,
+        "action_id": "69b3fd72-5330-4783-aabb-647b41e8d65b",
+        "http_status": 200,
+        "elapsed_s": 0.33,
+        "model_calls": 0,
+        "model_requiring_turn": false,
+        "budget_used_after": 1,
+        "log_lines": [
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ],
+        "before_conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "after_combat": false,
+        "narration": "Marek ile konuşmayı bitiriyorsun.",
+        "detail": null,
+        "combat_result": null
+      },
+      {
+        "label": "do_ona_after_real_end",
+        "message": "Ona el sallarım.",
+        "interaction_mode": "do",
+        "target_id": null,
+        "action_id": "8c600168-9026-41f2-ad7e-5f2cbbcab1c6",
+        "http_status": 200,
+        "elapsed_s": 0.324,
+        "model_calls": 0,
+        "model_requiring_turn": false,
+        "budget_used_after": 1,
+        "log_lines": [
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ],
+        "before_conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "after_conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "after_combat": false,
+        "narration": "Bu tanıma uyan birden fazla kişi var: Marek, Bir muhafız. Hangisini kastettiğini belirt.",
+        "detail": null,
+        "combat_result": null
+      },
+      {
+        "label": "do_approach_marek",
+        "message": "Marek'e yaklaşıyorum.",
+        "interaction_mode": "do",
+        "target_id": "npc_001",
+        "action_id": "d7639411-a307-4015-a406-a8978ccea544",
+        "http_status": 200,
+        "elapsed_s": 0.328,
+        "model_calls": 0,
+        "model_requiring_turn": false,
+        "budget_used_after": 1,
+        "log_lines": [
+          "INFO: Game turn completed (model=qwen3:8b, model_calls=0, narrative_scene=unavailable, narrative_tokens=unavailable, narrative_estimated_total=unavailable, narrative_budget=unavailable/unavailable, narrative_context_bytes=unavailable, narrative_selected={}, narrative_ambiguities=0)"
+        ],
+        "before_conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "after_conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_combat": false,
+        "narration": "Marek seni fark edip sana dönüyor.",
+        "detail": null,
+        "combat_result": null
+      },
+      {
+        "label": "do_attack_after_approach",
+        "message": "Ona kılıcımla saldırıyorum.",
+        "interaction_mode": "do",
+        "target_id": "npc_001",
+        "action_id": "9b0122ab-dbbb-4ab5-8495-0d12bdd5697f",
+        "http_status": 400,
+        "elapsed_s": 0.01,
+        "model_calls": 0,
+        "model_requiring_turn": false,
+        "budget_used_after": 1,
+        "log_lines": [],
+        "before_conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_conversation": null,
+        "after_combat": false,
+        "narration": null,
+        "detail": {
+          "code": "weapon_not_held",
+          "message": "Requested weapon is not held."
+        },
+        "combat_result": null
+      }
+    ],
+    "scenarios": {
+      "end_conversation_do": {
+        "status": "PASS",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "narration": "Marek ile konuşmayı bitiriyorsun.",
+        "model_calls": 0,
+        "note": "Wave3 contract clears interlocutor via DO/default, not SAY."
+      },
+      "ambiguous_ona_after_end": {
+        "status": "PASS",
+        "conversation": {
+          "active": false,
+          "interlocutor": null
+        },
+        "narration": "Bu tanıma uyan birden fazla kişi var: Marek, Bir muhafız. Hangisini kastettiğini belirt.",
+        "model_calls": 0,
+        "bound_interlocutor": null
+      },
+      "combat_from_conversation_after_approach": {
+        "status": "FAIL",
+        "approach_http": 200,
+        "approach_narration": "Marek seni fark edip sana dönüyor.",
+        "approach_conversation": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "attack_http": 400,
+        "attack_detail": {
+          "code": "weapon_not_held",
+          "message": "Requested weapon is not held."
+        },
+        "attack_combat": false,
+        "attack_conversation": null,
+        "attack_combat_result": null,
+        "attack_narration": null,
+        "attack_model_calls": 0
+      }
+    },
+    "budget_used": 1,
+    "budget_remaining": 6
+  },
+  "combat_retry": {
+    "budget_used": 2,
+    "budget_remaining": 5,
+    "turns": [
+      {
+        "label": "reapproach",
+        "message": "Marek'e yaklaşıyorum.",
+        "mode": "do",
+        "target": "npc_001",
+        "http": 200,
+        "calls": 0,
+        "budget": 1,
+        "before_conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat": false,
+        "narration": "Marek seni fark edip sana dönüyor.",
+        "detail": null,
+        "combat_result": null,
+        "inventory": [
+          "Macera çantası [item_000001]",
+          "Kılıç [item_000002]"
+        ]
+      },
+      {
+        "label": "equip_sword",
+        "message": "Kılıcımı kuşanıyorum.",
+        "mode": "do",
+        "target": null,
+        "http": 200,
+        "calls": 2,
+        "budget": 2,
+        "before_conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat": false,
+        "narration": "Bu konuda güvenilir bir doğrulamam yok; kesin yanıt belirsiz.",
+        "detail": null,
+        "combat_result": null,
+        "inventory": [
+          "Macera çantası [item_000001]",
+          "Kılıç [item_000002]"
+        ]
+      },
+      {
+        "label": "attack_plain",
+        "message": "Ona saldırıyorum.",
+        "mode": "do",
+        "target": "npc_001",
+        "http": 400,
+        "calls": 0,
+        "budget": 2,
+        "before_conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "after_conv": null,
+        "combat": false,
+        "narration": null,
+        "detail": {
+          "code": "weapon_not_held",
+          "message": "Requested weapon is not held."
+        },
+        "combat_result": null,
+        "inventory": null
+      }
+    ]
+  },
+  "combat_retry2": {
+    "budget_used": 3,
+    "turns": [
+      {
+        "label": "approach3",
+        "http": 200,
+        "calls": 0,
+        "budget": 2,
+        "detail": null,
+        "narr": "Marek seni fark edip sana dönüyor.",
+        "combat": false,
+        "conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "inv": [
+          "Macera çantası [item_000001]",
+          "Kılıç [item_000002]"
+        ]
+      },
+      {
+        "label": "prepare_weapon",
+        "http": 200,
+        "calls": 2,
+        "budget": 3,
+        "detail": null,
+        "narr": "Sahnedeki hareketlilik sürüyor; ne yapmak istediğini biraz daha belirgin anlatabilirsin.",
+        "combat": false,
+        "conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "inv": [
+          "Macera çantası [item_000001]",
+          "Kılıç [item_000002]"
+        ]
+      },
+      {
+        "label": "attack_after_prepare",
+        "http": 400,
+        "calls": 0,
+        "budget": 3,
+        "detail": {
+          "code": "weapon_not_held",
+          "message": "Requested weapon is not held."
+        },
+        "narr": "",
+        "combat": false,
+        "conv": null,
+        "inv": null
+      }
+    ]
+  },
+  "combat_retry3": {
+    "budget_used": 3,
+    "turns": [
+      {
+        "label": "approach4",
+        "http": 200,
+        "calls": 0,
+        "budget": 3,
+        "detail": null,
+        "narr": "Marek seni fark edip sana dönüyor.",
+        "combat": false,
+        "conv": {
+          "active": true,
+          "interlocutor": {
+            "id": "npc_001",
+            "name": "Marek",
+            "role": "Kent sakini"
+          }
+        },
+        "combat_result": null
+      },
+      {
+        "label": "draw_attack",
+        "http": 200,
+        "calls": 0,
+        "budget": 3,
+        "detail": null,
+        "narr": "Saldırın hedefi ıskalar. Rakibin savunmaya geçer.",
+        "combat": true,
+        "conv": {
+          "active": false,
+          "interlocutor": null
+        },
+        "combat_result": {
+          "action": "attack",
+          "status": "resolved",
+          "success": false,
+          "outcome": "miss",
+          "actor": "player",
+          "actor_name": "TestHero",
+          "target": "npc_001",
+          "target_id": "npc_001",
+          "target_name": "Marek",
+          "weapon": "Kılıç",
+          "attack_roll": 4,
+          "attack_bonus": 5,
+          "attack_total": 9,
+          "target_ac": 10,
+          "critical": false,
+          "damage": 0,
+          "target_hp_before": 10,
+          "target_hp_after": 10,
+          "target_status": "active",
+          "damage_type": "slashing",
+          "attack_rolls": [
+            4
+          ],
+          "disadvantage": false,
+          "hp_damage": 0,
+          "temporary_hp_before": null,
+          "temporary_hp_absorbed": null,
+          "temporary_hp_after": null,
+          "species_effects": [],
+          "action_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e",
+          "resolution_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e:attack_roll:1",
+          "resolution": {
+            "action_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e",
+            "session_id": "86266855-1ff3-4f90-afcc-90b75062c42b",
+            "resolution_id": "34f4b24c-08da-47ad-91c9-6223a03b7a3e:attack_roll:1",
+            "resolution_type": "attack_roll",
+            "roll_type": "d20",
+            "raw_rolls": [
+              4
+            ],
+            "selected_roll": 4,
+            "advantage": false,
+            "disadvantage": false,
+            "advantage_cancelled": false,
+            "actor_id": "player",
+            "target_id": "npc_001",
+            "modifier_breakdown": {
+              "attack_bonus": 5
+            },
+            "total_modifier": 5,
+            "total": 9,
+            "target_value": 10,
+            "target_ac": 10,
+            "outcome": "MISS",
+            "critical_state": null
+          },
+          "economy_steps": null,
+          "combat_id": "ceb4ee30-e63a-45f0-bd2f-aa842bb1b2a4",
+          "combat_status": "active",
+          "round": 2,
+          "current_turn_index": 0,
+          "combat_started": true,
+          "combat_ended": null,
+          "end_reason": null,
+          "current_actor_id": "player",
+          "turn_owner": "player",
+          "enemy_action": {
+            "action": "monster_dodge",
+            "status": "resolved",
+            "success": true,
+            "outcome": "dodge",
+            "actor": "npc_001",
+            "actor_name": "Marek",
+            "target": null,
+            "target_id": null,
+            "target_name": null,
+            "weapon": null,
+            "attack_roll": null,
+            "attack_bonus": null,
+            "attack_total": null,
+            "target_ac": null,
+            "critical": null,
+            "damage": 0,
+            "target_hp_before": null,
+            "target_hp_after": null,
+            "target_status": null,
+            "damage_type": null,
+            "attack_rolls": null,
+            "disadvantage": null,
+            "hp_damage": null,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": null
+          },
+          "enemy_actions": [
+            {
+              "action": "monster_dodge",
+              "status": "resolved",
+              "success": true,
+              "outcome": "dodge",
+              "actor": "npc_001",
+              "actor_name": "Marek",
+              "target": null,
+              "target_id": null,
+              "target_name": null,
+              "weapon": null,
+              "attack_roll": null,
+              "attack_bonus": null,
+              "attack_total": null,
+              "target_ac": null,
+              "critical": null,
+              "damage": 0,
+              "target_hp_before": null,
+              "target_hp_after": null,
+              "target_status": null,
+              "damage_type": null,
+              "attack_rolls": null,
+              "disadvantage": null,
+              "hp_damage": null,
+              "temporary_hp_before": null,
+              "temporary_hp_absorbed": null,
+              "temporary_hp_after": null,
+              "species_effects": null
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "posix_tests": {
+    "status": "OPEN",
+    "reason": "No WSL distro installed"
+  },
+  "decision": {
+    "verdict": "NOGO",
+    "scope": "Wave3 first slice local live only"
+  }
+}

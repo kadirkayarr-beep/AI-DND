@@ -345,7 +345,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         finally:
             connection.close()
 
-        self.assertEqual(database_version, 4)
+        self.assertEqual(database_version, 5)
         self.assertEqual(stored.combat_history, [])
         self.assertEqual(stored.metadata["name"], "Legacy campaign")
 

@@ -124,6 +124,8 @@ def advance(world, seconds, reason, source, *, observation=None):
         resolution=resolution, allow_interrupt=reason != "combat_round",
         travelling=travelling,
     )
+    import adventure.play as adventure_play
+    adventure_play.close_due(world)
     actual = resolution["stop_at"] - old
     clock["elapsed_seconds"] = old + actual
     return {"elapsed_seconds": actual, "requested_seconds": seconds,

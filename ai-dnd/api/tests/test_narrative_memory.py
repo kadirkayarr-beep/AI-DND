@@ -86,6 +86,46 @@ class NarrativeMemoryTests(unittest.TestCase):
         self.assertEqual(result["entity_memory"]["npcs"]["npc_a"]["id"], "npc_a")
         self.assertEqual(result["npc_interactions"]["npc_a"][0]["source"], "player_utterance")
 
+    def test_hidden_npc_identity_is_not_promoted_into_narrator_memory(self):
+        hidden = {
+            "id": "npc_hidden",
+            "name": "SecretLiora",
+            "role": "Traveler",
+            "location": "tavern",
+            "name_known_to_player": False,
+            "role_known_to_player": False,
+        }
+        after = world(npcs=[hidden], turn=1)
+        memory = self.turn(
+            empty_narrative_memory(),
+            "O kişiyle konuşuyorum.",
+            "Yakındaki kişi sana dönüyor.",
+            {"npc_id": "npc_hidden", "action": "dialogue"},
+            after=after,
+        )
+        encoded_memory = json.dumps(memory, ensure_ascii=False)
+        self.assertNotIn("SecretLiora", encoded_memory)
+        self.assertNotIn("Traveler", encoded_memory)
+        self.assertEqual(
+            memory["entity_memory"]["npcs"]["npc_hidden"]["name"],
+            "Yakındaki kişi",
+        )
+        packet, _ = build_narrative_context(
+            memory,
+            {
+                "location_id": "tavern",
+                "current_npc_target": {
+                    "id": "npc_hidden",
+                    "name": "Yakındaki kişi",
+                    "role": None,
+                },
+            },
+            "Ona selam veriyorum.",
+            {"npc_id": "npc_hidden", "action": "dialogue"},
+        )
+        self.assertNotIn("SecretLiora", json.dumps(packet, ensure_ascii=False))
+        self.assertNotIn("Traveler", json.dumps(packet, ensure_ascii=False))
+
     def test_invented_mechanics_never_become_facts(self):
         result = self.turn(
             empty_narrative_memory(),

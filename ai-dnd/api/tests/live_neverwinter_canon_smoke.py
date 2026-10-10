@@ -15,6 +15,7 @@ import logging
 import os
 from pathlib import Path
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -69,12 +70,24 @@ def _world_projection(session: Any) -> dict[str, Any]:
             if isinstance(item, dict)
         ]
 
+    location_records = {}
+    if isinstance(locations, dict):
+        for loc_id, record in locations.items():
+            if not isinstance(record, dict):
+                continue
+            location_records[loc_id] = {
+                "parent_location_id": record.get("parent_location_id"),
+                "exit_location_id": record.get("exit_location_id"),
+                "reality_layer": record.get("reality_layer"),
+                "scene_kind": record.get("scene_kind"),
+            }
     return {
         "location": world.get("location"),
         "location_ids": sorted(locations) if isinstance(locations, dict) else [],
+        "locations": location_records,
         "npcs": records(
             npcs,
-            ("id", "name", "role", "location", "shop_id", "reality_layer", "tags"),
+            ("id", "name", "role", "location", "shop_id", "reality_layer", "tags", "memory"),
         ),
         "shops": records(
             shops,
@@ -169,6 +182,14 @@ def _parse_turn_logs(messages: list[str]) -> tuple[list[str] | None, int | None,
     return fact_ids, model_calls, model_name
 
 
+def _turn_action_status(messages: list[str]) -> str | None:
+    for message in reversed(messages):
+        if message.startswith("Turn diagnostics ("):
+            match = re.search(r"safety_code=([^, )]+)", message)
+            return match.group(1) if match else None
+    return None
+
+
 def _append_json_line(path: Path, value: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(value, ensure_ascii=False, allow_nan=False) + "\n")
@@ -187,6 +208,43 @@ def _serve_isolated_api(port: int, database_path: Path, audit_path: Path) -> Non
     api_logger.setLevel(logging.INFO)
     api_logger.addHandler(capture)
     manager = app.state.session_manager
+    # Smoke-only observers retain call order and gate outcomes, never prompts/credentials.
+    from functools import wraps
+    import game
+    from api.ollama_adapter import AuthenticatedOllamaAdapter
+    trace = []
+    original_chat = AuthenticatedOllamaAdapter.chat
+    @wraps(original_chat)
+    def traced_chat(self, *args, **kwargs):
+        schema = kwargs.get("format", {})
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        phase = "intent" if "intent" in properties else "narration"
+        import hashlib
+        from api.model_phase import _PHASE
+        def digest():
+            session = game._session()
+            payload = {"world": session.world_state, "character": session.character,
+                       "rng": session.rng.getstate()}
+            return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+        event = {"event": "model_call", "phase": phase, "resolution_phase": _PHASE.get(),
+                 "canonical_before": digest()}
+        trace.append(event)
+        try:
+            return original_chat(self, *args, **kwargs)
+        finally:
+            event["canonical_after"] = digest()
+    AuthenticatedOllamaAdapter.chat = traced_chat
+    if app.state.ollama_adapter is not None:
+        app.state.ollama_adapter.install_for_engine()
+    original_finalize = game.finalize_narration
+    @wraps(original_finalize)
+    def traced_finalize(*args, **kwargs):
+        reply = original_finalize(*args, **kwargs)
+        diagnostic = dict(getattr(game._session(), "last_narration_safety", {}) or {})
+        trace.append({"event": "narration_finalized", "handling": diagnostic.get("handling"),
+                      "reason_code": diagnostic.get("reason_code")})
+        return reply
+    game.finalize_narration = traced_finalize
 
     class TurnAuditMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Any, call_next: Any) -> Any:
@@ -195,6 +253,7 @@ def _serve_isolated_api(port: int, database_path: Path, audit_path: Path) -> Non
                 request.url.path,
             )
             start = len(capture.messages)
+            trace_start = len(trace)
             response = await call_next(request)
             if match and response.status_code < 400:
                 session_id = match.group(1)
@@ -208,11 +267,13 @@ def _serve_isolated_api(port: int, database_path: Path, audit_path: Path) -> Non
                 reason_code = safety.get("reason_code")
                 row = {
                     "session_id": session_id,
+                    "model_call_trace": trace[trace_start:],
                     "turn_index": session.world_state.get("flags", {}).get(
                         "turn_index"
                     ),
                     "model": model_name,
                     "model_calls": model_calls,
+                    "action_status": _turn_action_status(capture.messages[start:]),
                     "retrieved_fact_ids": fact_ids,
                     "lore_safety_action": _lore_safety_action(safety),
                     "narrative_safety_action": {
@@ -253,6 +314,9 @@ def _start_api(
 ) -> tuple[subprocess.Popen[bytes], Any]:
     environment = os.environ.copy()
     environment["AI_DND_CAMPAIGN_DB"] = str(database_path)
+    # The isolated API redirects stdout to a file. Windows cp1254 cannot
+    # encode the dice emoji printed by the existing Python skill-check path.
+    environment["PYTHONIOENCODING"] = "utf-8"
     log_handle = log_path.open("wb")
     process = subprocess.Popen(
         [
@@ -363,6 +427,20 @@ def _shop_by_id(state: dict[str, Any], shop_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _narration_reports_no_shop(narration: Any) -> bool:
+    """Require a grounded absence statement, not developer-facing wording."""
+    if not isinstance(narration, str):
+        return False
+    text = narration.casefold()
+    subject = re.search(r"\b(?:dükkâncı|dükkân|dükkancı|dükkan|mağaza|shops?|merchants?)\b", text)
+    absence = re.search(r"\b(?:yok|bulunmuyor|görünmüyor)\b|mevcut değil|\bno (?:visible )?(?:shops?|merchants?)\b", text)
+    unsupported_presence = re.search(
+        r"\b(?:dükkâncı|dükkân|dükkancı|dükkan|mağaza|shops?|merchants?)\b.{0,50}\b(?:var|bulunuyor)\b",
+        text,
+    )
+    return bool(subject and absence and not unsupported_presence)
+
+
 def _has_false_name_recall(narration: str) -> bool:
     text = narration.casefold()
     patterns = (
@@ -375,6 +453,29 @@ def _has_false_name_recall(narration: str) -> bool:
         r"\bbana adının\b.{0,40}\bsöylemiştin\b",
     )
     return any(re.search(pattern, text) for pattern in patterns)
+
+
+def _preserve_failure_logs(source_dir: Path) -> list[str]:
+    """Keep only isolated API logs, never the disposable campaign database."""
+    log_paths = [
+        source_dir / name
+        for name in ("api-first.log", "api-after-restart.log")
+        if (source_dir / name).is_file()
+    ]
+    if not log_paths:
+        return []
+    destination = (
+        Path(tempfile.gettempdir())
+        / "ai-dnd-stage10a-diagnostics"
+        / uuid.uuid4().hex
+    )
+    destination.mkdir(parents=True, exist_ok=False)
+    retained = []
+    for log_path in log_paths:
+        target = destination / log_path.name
+        shutil.copyfile(log_path, target)
+        retained.append(str(target))
+    return retained
 
 
 def run_smoke() -> dict[str, Any]:
@@ -435,12 +536,25 @@ def run_smoke() -> dict[str, Any]:
                 and narrative_safety["handling"] != "unavailable",
                 f"{label}: current-turn narrative safety diagnostics are missing.",
             )
+            call_trace = audit.get("model_call_trace", [])
+            observed_calls = [event for event in call_trace if event.get("event") == "model_call"]
+            _require(len(observed_calls) == calls, f"{label}: call trace and adapter count disagree.")
+            _require(sum(event.get("phase") == "narration" for event in observed_calls) <= 1,
+                     f"{label}: narration was retried.")
+            finalized = [index for index, event in enumerate(call_trace)
+                         if event.get("event") == "narration_finalized"]
+            if finalized:
+                _require(not any(event.get("event") == "model_call"
+                                 for event in call_trace[finalized[-1] + 1:]),
+                         f"{label}: model called after narration gate.")
             result_row = {
                 "turn": len(turns) + 1,
                 "label": label,
                 "player_message": message,
                 "narration": turn.get("narration"),
                 "model_calls": calls,
+                "model_call_trace": audit.get("model_call_trace", []),
+                "action_status": audit.get("action_status"),
                 "retrieved_fact_ids": audit["retrieved_fact_ids"],
                 "lore_safety_action": audit["lore_safety_action"],
                 "narrative_safety_action": audit["narrative_safety_action"],
@@ -601,6 +715,14 @@ def run_smoke() -> dict[str, Any]:
                     "The lore-relevant investigation did not return an authoritative skill result.",
                 )
 
+                if skill_turn["skill_check_result"].get("success") is True or skill_turn["skill_check_result"].get("outcome") in {"success", "critical_success"}:
+                    _require("başarılı" in str(skill_turn.get("narration", "")).casefold()
+                             or "success" in str(skill_turn.get("narration", "")).casefold(),
+                             "Successful Investigation was lost in narration.")
+                if skill_turn["skill_check_result"].get("outcome") in {"failure", "critical_failure"}:
+                    _require("sonuç vermedi" in str(skill_turn.get("narration", "")).casefold()
+                             or "failed" in str(skill_turn.get("narration", "")).casefold(),
+                             "Failed Investigation was presented as a discovery.")
                 negative_shop_turn = play_turn(
                     client,
                     session_id,
@@ -613,7 +735,7 @@ def run_smoke() -> dict[str, Any]:
                     "A negative request created a shop or merchant.",
                 )
                 _require(
-                    "dükkâncı eklemedim" in str(
+                    "aramadan yoluna devam" in str(
                         negative_shop_turn.get("narration", "")
                     ).casefold()
                     and turns[-1]["model_calls"] == 0,
@@ -632,14 +754,13 @@ def run_smoke() -> dict[str, Any]:
                     "An ordinary shop question created a shop or merchant.",
                 )
                 _require(
-                    "kampanyaya kayıtlı" in str(
-                        ordinary_shop_turn.get("narration", "")
-                    ).casefold()
-                    and "yok" in str(
-                        ordinary_shop_turn.get("narration", "")
-                    ).casefold()
+                    turns[-1]["action_status"] == "answered_from_campaign_state"
                     and turns[-1]["model_calls"] == 0,
-                    "An ordinary shop question was not answered from current campaign state.",
+                    "An ordinary shop question did not use the deterministic campaign-state path.",
+                )
+                _require(
+                    _narration_reports_no_shop(ordinary_shop_turn.get("narration")),
+                    "An ordinary shop question did not truthfully report that no shop is present.",
                 )
 
                 shop_turn = play_turn(
@@ -702,7 +823,7 @@ def run_smoke() -> dict[str, Any]:
                 second_shop_turn = play_turn(
                     client,
                     session_id,
-                    "English duplicate shop request",
+                    "English existing merchant search",
                     "Find a local merchant for this campaign.",
                 )
                 _require(
@@ -711,6 +832,11 @@ def run_smoke() -> dict[str, Any]:
                     and second_shop_turn["state"]["shops"][0].get("id") == shop_id,
                     "The English request created a second shop or shopkeeper.",
                 )
+
+                _require(turns[-1]["action_status"] == "found"
+                         and turns[-1]["model_calls"] == 0
+                         and "dükkâncı" in str(second_shop_turn.get("narration", "")).casefold(),
+                         "Merchant search did not find the existing keeper deterministically.")
 
                 before_economy = turns[-1]["world_projection"]
                 economy_turn = play_turn(
@@ -734,9 +860,27 @@ def run_smoke() -> dict[str, Any]:
                     "tavernaya gidiyorum",
                 )
                 tavern_location = tavern_turn["state"].get("location")
+                tavern_record = turns[-1]["world_projection"]["locations"].get(
+                    tavern_location, {}
+                )
+                procedural_taverns = [
+                    loc_id
+                    for loc_id, record in turns[-1]["world_projection"]["locations"].items()
+                    if record.get("scene_kind") == "tavern"
+                    and record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+                ]
                 _require(
-                    tavern_location != "fr:city:neverwinter",
-                    "The smoke did not leave Neverwinter for the revisit check.",
+                    tavern_location != "fr:city:neverwinter"
+                    and tavern_record.get("parent_location_id") == "fr:city:neverwinter"
+                    and tavern_record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
+                    and tavern_record.get("scene_kind") == "tavern"
+                    and procedural_taverns == [tavern_location]
+                    and turns[-1]["world_projection"]["locations"]["tavern"].get(
+                        "parent_location_id"
+                    ) is None
+                    and turns[-1]["world_projection"]["shops"][0].get("location")
+                    == "fr:city:neverwinter",
+                    "Local tavern entry did not move to one parented procedural tavern.",
                 )
                 _require(
                     len(tavern_turn["state"].get("shops", [])) == 1
@@ -758,9 +902,22 @@ def run_smoke() -> dict[str, Any]:
                     not _has_false_name_recall(false_recall_turn["narration"]),
                     "Narration claimed unsupported name continuity for unregistered Elara.",
                 )
+                tavern_npc_ids = [
+                    npc.get("id")
+                    for npc in tavern_turn["state"].get("npcs", [])
+                    if isinstance(npc, dict)
+                ]
+                false_recall_npcs = [
+                    npc for npc in false_recall_turn["state"].get("npcs", [])
+                    if isinstance(npc, dict)
+                ]
                 _require(
                     len(false_recall_turn["state"].get("shops", [])) == 1
-                    and len(false_recall_turn["state"].get("npcs", [])) == 1
+                    and [npc.get("id") for npc in false_recall_npcs] == tavern_npc_ids
+                    and not any(
+                        npc.get("name", "").casefold() == "elara"
+                        for npc in false_recall_npcs
+                    )
                     and turns[-1]["player_disclosure_npc_ids"] == [],
                     "The unregistered Elara claim created an entity or NPC memory.",
                 )
@@ -795,7 +952,9 @@ def run_smoke() -> dict[str, Any]:
                     DISCLOSED_NAME.casefold() in disclosure_narration
                     and "hatırlayacağım" in disclosure_narration
                     and turns[-1]["narrative_safety_action"]["reason_code"]
-                    == "NPC_MEMORY_EXPLICIT_PLAYER_NAME",
+                    == "NPC_MEMORY_EXPLICIT_PLAYER_NAME"
+                    and turns[-1]["model_calls"] == 0
+                    and turns[-1]["player_disclosure_npc_ids"] == [keeper_id],
                     "The shopkeeper did not safely acknowledge the explicit player-name disclosure.",
                 )
 
@@ -806,9 +965,13 @@ def run_smoke() -> dict[str, Any]:
                     "Bu bölgede bana sunulmuş etkin bir görev var mı?",
                 )
                 journal = quest_turn["state"].get("journal", {})
+                quest_narration = str(quest_turn.get("narration", "")).casefold()
                 _require(
                     not quest_turn["state"].get("quests")
-                    and not journal.get("quests"),
+                    and not journal.get("quests")
+                    and turns[-1]["model_calls"] == 0
+                    and "etkin bir görev yok" in quest_narration
+                    and "duydum" not in quest_narration,
                     "Narration created a quest despite the empty production quest catalog.",
                 )
 
@@ -907,6 +1070,10 @@ def run_smoke() -> dict[str, Any]:
                 not fact_counts or max(fact_counts) < 20,
                 "A turn still retrieved all 20 regional facts.",
             )
+            _require(
+                not result.get("scenario_failures"),
+                "; ".join(result.get("scenario_failures", [])),
+            )
             result.update(
                 {
                     "status": "MECHANICAL_PASS_NEEDS_MANUAL_NARRATION_REVIEW",
@@ -933,6 +1100,23 @@ def run_smoke() -> dict[str, Any]:
         finally:
             if process is not None:
                 _stop_api(process, log_handle)
+            if result["status"] == "FAIL" or os.environ.get("AI_DND_SMOKE_EVIDENCE_DIR"):
+                try:
+                    evidence_dir = os.environ.get("AI_DND_SMOKE_EVIDENCE_DIR")
+                    if evidence_dir:
+                        destination = Path(evidence_dir) / ("live-api-" + uuid.uuid4().hex[:8])
+                        destination.mkdir(parents=True, exist_ok=False)
+                        for name in ("api-first.log", "api-after-restart.log", "turn-audit.jsonl"):
+                            source = temp_path / name
+                            if source.exists():
+                                shutil.copy2(source, destination / name)
+                        retained = {"directory": str(destination)}
+                    else:
+                        retained = _preserve_failure_logs(temp_path)
+                    if retained:
+                        result["diagnostic_logs"] = retained
+                except OSError as error:
+                    result["diagnostic_log_error"] = type(error).__name__
 
     return result
 

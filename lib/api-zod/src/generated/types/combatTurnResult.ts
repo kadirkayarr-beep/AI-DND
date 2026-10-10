@@ -103,6 +103,20 @@ export interface CombatTurnResult {
   death_save?: DeathSaveResult | null;
   death_resolution?: DeathResolutionResult | null;
   /** @nullable */
+  spell?: string | null;
+  /** @nullable */
+  casting_ability?: string | null;
+  /** @nullable */
+  attack_or_save?: string | null;
+  /** @nullable */
+  save_roll?: number | null;
+  /** @nullable */
+  save_dc?: number | null;
+  /** @nullable */
+  healing?: number | null;
+  /** @nullable */
+  slot_spent?: boolean | null;
+  /** @nullable */
   combat_started?: boolean | null;
   /** @nullable */
   combat_ended?: boolean | null;

@@ -1,0 +1,36 @@
+{
+  "head": "f74f32a7d150340ea44614c68f5dcd52f8176f1b",
+  "branch": "repair/pre04-wave3-conversation-ux",
+  "verdict": "NOGO",
+  "budget_model_requiring_turns_used": 3,
+  "budget_remaining": 4,
+  "budget_cap": 7,
+  "local_addresses": {
+    "game_ui": "http://127.0.0.1:5173/ai-dnd-experience/",
+    "api": "http://127.0.0.1:8008",
+    "vite": "http://127.0.0.1:22785/ai-dnd-experience/",
+    "temp_db": "ai-dnd/reports/wave3-local-live-20261006/campaigns-temp.sqlite3"
+  },
+  "closed": [
+    "neverwinter_start",
+    "ask_dm_look_presence_npc_access",
+    "unknown_name_projection_and_name_learning",
+    "target_switch",
+    "end_conversation_via_do",
+    "ambiguous_ona_after_end",
+    "do_tavern_search",
+    "combat_after_approach_and_draw_attack",
+    "ask_dm_inventory",
+    "real_qwen_at_least_one_turn"
+  ],
+  "open_or_fail": [
+    "plain_do_ona_saldiriyorum_weapon_not_held",
+    "rejected_narration_fallback_live_demo",
+    "posix_two_signal_tests"
+  ],
+  "ux_inventory_item_labels": [
+    "item_000001",
+    "item_000002"
+  ],
+  "evidence": "ai-dnd/reports/wave3-local-live-20261006/evidence.json"
+}

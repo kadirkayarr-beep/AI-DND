@@ -6,12 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdventureProjection } from './adventureProjection';
+import type { CampaignAdventureJournal } from './campaignAdventureJournal';
 import type { CampaignJournal } from './campaignJournal';
 import type { CampaignTime } from './campaignTime';
 import type { DeathStateProjection } from './deathStateProjection';
 import type { ExplorationState } from './explorationState';
 import type { GameCharacter } from './gameCharacter';
 import type { GameCombat } from './gameCombat';
+import type { GameConversation } from './gameConversation';
 import type { GameDoor } from './gameDoor';
 import type { GameExpedition } from './gameExpedition';
 import type { GameFeature } from './gameFeature';
@@ -23,10 +25,13 @@ import type { GameSpellcasting } from './gameSpellcasting';
 import type { GameStateLocations } from './gameStateLocations';
 import type { GameStatePlayerCombatStatus } from './gameStatePlayerCombatStatus';
 import type { GameWorldMetadata } from './gameWorldMetadata';
+import type { KnownFactionStanding } from './knownFactionStanding';
+import type { KnownLoreFact } from './knownLoreFact';
 import type { KnownScheduledEvent } from './knownScheduledEvent';
 import type { PendingEventDecision } from './pendingEventDecision';
 import type { QuestOffer } from './questOffer';
 import type { QuestState } from './questState';
+import type { SceneIncident } from './sceneIncident';
 
 /**
  * Public state projection produced by the API serializers.
@@ -40,6 +45,7 @@ export interface GameState {
   expedition?: GameExpedition;
   location: string;
   scene: GameScene | null;
+  conversation: GameConversation;
   world: GameWorldMetadata;
   journal: CampaignJournal;
   locations: GameStateLocations;
@@ -59,4 +65,9 @@ export interface GameState {
   quests: QuestState[];
   quest_offers: QuestOffer[];
   adventure?: AdventureProjection;
+  campaign_adventures: CampaignAdventureJournal;
+  known_lore: KnownLoreFact[];
+  known_factions: KnownFactionStanding[];
+  /** Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview. */
+  scene_incidents?: SceneIncident[];
 }

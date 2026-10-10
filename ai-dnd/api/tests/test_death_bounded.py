@@ -1,5 +1,6 @@
 """Focused #08 tests: real engine transitions and temporary campaign stores."""
 import copy
+from contextlib import closing
 import unittest
 from unittest.mock import patch
 
@@ -226,7 +227,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         again = await self.http.delete(f"/api/game/campaigns/{a['campaign_id']}")
         self.assertFalse(again.json()["deleted"])
         import sqlite3
-        with sqlite3.connect(self.store.path) as connection:
+        with closing(sqlite3.connect(self.store.path)) as connection:
             for table in ("campaign_history", "campaign_combat_history", "campaign_turn_actions"):
                 self.assertEqual(connection.execute(
                     f"SELECT count(*) FROM {table} WHERE campaign_id=?", (a["campaign_id"],)

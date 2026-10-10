@@ -182,10 +182,19 @@ def run_command(name, argv, repo, timeout, log):
         except BaseException:
             # Stop descendants too: an orphaned test/build must not keep changing
             # logs or source after this command's evidence has been finalized.
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                if process.poll() is None:
+                    process.kill()
+            else:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
             process.wait()
             raise
         row.update(status="PASS" if result == 0 else "FAIL",

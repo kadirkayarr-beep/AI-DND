@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import shlex
 from decimal import Decimal
 
@@ -89,6 +90,43 @@ def validate_world(world):
         fail("invalid_reward_receipts")
 
 
+def sync_equipment_identities(world):
+    """Rewrite unique catalog/name hand aliases to owned item_id after migration.
+
+    Does not equip empty hands from inventory. Ambiguous aliases stay unchanged
+    so later owners can reject unresolved identity instead of guessing.
+    """
+    owners = [("player", world)]
+    for npc in world.get("npcs", []):
+        if isinstance(npc, dict) and isinstance(npc.get("id"), str):
+            owners.append((npc["id"], npc))
+    for actor, owner in owners:
+        hands = owner.get("equipment")
+        if hands is None:
+            continue
+        if not isinstance(hands, dict) or set(hands) != {"main_hand", "off_hand"}:
+            fail("invalid_equipment")
+        items = world["inventory"] if actor == "player" else owner.get("inventory", [])
+        if not isinstance(items, list):
+            continue
+        for hand, held in list(hands.items()):
+            if held is None:
+                continue
+            if any(isinstance(item, dict) and item.get("item_id") == held for item in items):
+                continue
+            weapon = lookup(held)
+            matches = [
+                item for item in items
+                if isinstance(item, dict)
+                and (
+                    item.get("name") == held
+                    or (weapon is not None and item.get("weapon_id") == weapon["weapon_id"])
+                )
+            ]
+            if len(matches) == 1:
+                hands[hand] = matches[0]["item_id"]
+
+
 def materialize(world):
     """Lazy compatible migration; called only inside the atomic transaction."""
     validate_world(world)
@@ -116,6 +154,7 @@ def materialize(world):
             items[index] = record
             reserved.add(identity)
     world["item_sequence"] = sequence
+    sync_equipment_identities(world)
     validate_world(world)
 
 
@@ -297,6 +336,62 @@ def consent(npc, item, operation, recipient):
     }:
         fail("npc_consent_required")
     del grants[item["item_id"]]
+
+
+def grant_catalog_item(world, identity):
+    """Place one existing catalog weapon in the player inventory."""
+    weapon = lookup(identity)
+    if weapon is None or weapon.get("magic_attack_bonus") or weapon.get("magic_damage_bonus"):
+        fail("reward_source_unavailable")
+    materialize(world)
+    sequence = world.get("item_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    reserved = {
+        item.get("item_id")
+        for _, items in containers(world)
+        for item in items
+        if isinstance(item, dict)
+    }
+    while True:
+        sequence += 1
+        item_id = f"item_{sequence:06d}"
+        if item_id not in reserved:
+            break
+    record = {"item_id": item_id, "name": weapon["name"], "weapon_id": weapon["weapon_id"]}
+    world["inventory"].append(record)
+    world["item_sequence"] = sequence
+    validate_world(world)
+    return record
+
+
+def grant_named_item(world, name):
+    """Place one non-magical named item. Catalog weapons keep their identity."""
+    if not isinstance(name, str) or not name.strip() or len(name) > 200:
+        fail("invalid_item_identity")
+    weapon = lookup(name)
+    if weapon is not None:
+        return grant_catalog_item(world, weapon["weapon_id"])
+    materialize(world)
+    sequence = world.get("item_sequence", 0)
+    if type(sequence) is not int or sequence < 0:
+        sequence = 0
+    reserved = {
+        item.get("item_id")
+        for _, items in containers(world)
+        for item in items
+        if isinstance(item, dict)
+    }
+    while True:
+        sequence += 1
+        item_id = f"item_{sequence:06d}"
+        if item_id not in reserved:
+            break
+    record = {"item_id": item_id, "name": name.strip()}
+    world["inventory"].append(record)
+    world["item_sequence"] = sequence
+    validate_world(world)
+    return record
 
 
 def pay(world, payer, recipient, amount, *, reward_id=None):
@@ -486,14 +581,29 @@ def _apply(world, operation, args):
     return "Eşya işlemi Python tarafından atomik olarak tamamlandı."
 
 
+def _natural_inventory_query(text):
+    """Recognize only first-person inventory inspection; never expose another actor's inventory."""
+    if not isinstance(text, str):
+        return False
+    lowered = text.casefold().strip()
+    if not re.search(r"\benvanter(?:im|imde|imi|ime|imin)\b", lowered):
+        return False
+    return bool(re.search(
+        r"\b(?:ne|neler|var|gözden\s+geçir\w*|gozden\s+gecir\w*|"
+        r"bak\w*|göster\w*|goster\w*|listele\w*|kontrol\s+et\w*)\b",
+        lowered,
+    ))
+
+
 def execute(session, text, *, advance_turn=True):
     """Return None for unrelated input; model output never enters this owner."""
-    if not text.strip().startswith("/item"):
+    natural_list = _natural_inventory_query(text)
+    if not natural_list and not text.strip().startswith("/item"):
         return None
     before = copy.deepcopy(session.world_state)
     success, reason = False, None
     try:
-        tokens = shlex.split(text)
+        tokens = ["/item", "list"] if natural_list else shlex.split(text)
         if len(tokens) < 2 or tokens[0] != "/item":
             fail("invalid_item_command")
         world = session.world_state
@@ -507,6 +617,12 @@ def execute(session, text, *, advance_turn=True):
         candidate = copy.deepcopy(world)
         narration = _apply(candidate, tokens[1], tokens[2:])
         validate_world(candidate)
+        if natural_list:
+            item_names = labels(candidate["inventory"])
+            narration = (
+                f"Envanterinde: {', '.join(item_names)}."
+                if item_names else "Envanterin boş."
+            )
         world.clear()
         world.update(candidate)
         if advance_turn and tokens[1] != "list":
@@ -518,7 +634,11 @@ def execute(session, text, *, advance_turn=True):
     return {
         "messages": session.messages, "narration": narration, "model_calls": 0,
         "action_result": {
-            "action": "dialogue" if success and tokens[1] == "talk" else "equipment_transaction",
+            "action": (
+                "inventory" if success and natural_list
+                else "dialogue" if success and tokens[1] == "talk"
+                else "equipment_transaction"
+            ),
             "npc_id": (
                 tokens[3] if success and tokens[1] in {"request", "receive", "give"}
                 else tokens[2] if success and tokens[1] == "talk"

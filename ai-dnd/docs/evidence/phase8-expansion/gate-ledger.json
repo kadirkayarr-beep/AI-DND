@@ -1,0 +1,198 @@
+{
+  "branch": "phase8/emergent-storytelling-expansion",
+  "base": "7ba2ea5228222454b344496df8c50c1862a019f1",
+  "protected_refs": {
+    "phase8/dynamic-adventure-v1": "7ba2ea5228222454b344496df8c50c1862a019f1",
+    "phase7/package-04": "83f005b05b87a4993138a443b86dfd77dc5dcd30",
+    "integration/cursor-latest": "d9ae97a7950b3284d95b29b391209407b2691bd5",
+    "main": "f9408f814352d444b6e8211ec8c7a0f0af24219e"
+  },
+  "gates": [
+    {
+      "gate": "A",
+      "packages": ["E02", "E85", "E03", "E86", "E04", "E78", "E05", "E06", "E68", "E87", "E69", "E88", "E07", "E70", "E77"],
+      "head": "9a1f696446ce1c3d2a68c53022ffbf93145c2994",
+      "commit_range": "03ac2e5..9a1f696",
+      "focused_tests": {
+        "modules": ["test_incident_gate_a", "test_incident_models", "test_incident_projection"],
+        "count": 30,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_campaign_persistence", "test_persistence_idempotency", "test_campaign_lore_persistence", "test_adventure_release", "test_model_isolation"],
+        "count_with_focused": 128,
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "B",
+      "packages": ["E08", "E09", "E10", "E11", "E12", "E13", "E71", "E72", "E74"],
+      "head": "af4d6d3f1b43e543f71532c0fe41551eb6c0f238",
+      "commit_range": "9a1f696..af4d6d3",
+      "focused_tests": {
+        "modules": ["test_incident_gate_b", "test_incident_gate_a", "test_incident_projection"],
+        "count": 39,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_contract_parity", "test_campaign_persistence", "test_persistence_idempotency", "test_adventure_release", "test_model_isolation"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "C",
+      "packages": ["E14", "E15", "E16", "E17", "E18", "E19", "E73", "E75"],
+      "head": "75ed99b",
+      "commit_range": "af4d6d3..75ed99b",
+      "focused_tests": {
+        "modules": ["test_incident_gate_c"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "E",
+      "packages": ["E20", "E21", "E22", "E23", "E24", "E25", "E26", "E76"],
+      "head": "8347a73",
+      "commit_range": "75ed99b..8347a73",
+      "focused_tests": {
+        "modules": ["test_incident_gate_e"],
+        "result": "OK"
+      },
+      "live_generation": "off",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "D",
+      "packages": ["E27", "E28", "E29", "E30", "E31", "E32", "E33", "E34", "E79", "E82"],
+      "head": "47dfee3f6af3ed5312132fa087be824e3711b21a",
+      "commit_range": "8347a73..47dfee3",
+      "focused_tests": {
+        "modules": ["test_incident_gate_d", "test_incident_gate_a", "test_incident_gate_b", "test_incident_gate_c", "test_incident_gate_e", "test_incident_models", "test_incident_projection"],
+        "count": 69,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_adventure_release", "test_model_isolation", "test_equipment_economy", "test_lore_authority", "test_persistence_idempotency", "test_campaign_persistence", "test_campaign_lore_persistence"],
+        "count": 147,
+        "result": "OK"
+      },
+      "live_generation": "BLOCKED",
+      "live_generation_reason": "Ollama is unreachable; qwen3:8b unverified. Missing model is BLOCKED, not FAIL.",
+      "neverwinter_profile": "enabled_from_reviewed_pack_neverwinter_the_north_v1",
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED",
+      "sourcebooks_accessible": true,
+      "sourcebook_ingestion": "deferred_until_E80_E81",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "G",
+      "packages": ["E35", "E36", "E37", "E38", "E80", "E81"],
+      "head": "16891887ac53fe2c3b622d23db558c25c8342c3b",
+      "commit_range": "47dfee3..1689188",
+      "focused_tests": {
+        "modules": ["test_incident_gate_g"],
+        "count": 6,
+        "result": "OK"
+      },
+      "neighbor_tests": {
+        "modules": ["test_incident_gate_a", "test_incident_gate_d", "test_lore_authority", "test_campaign_starts", "test_adventure_release", "test_campaign_lore_persistence"],
+        "result": "OK"
+      },
+      "live_generation": "BLOCKED",
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED_INCOMPLETE",
+      "protected_refs_unchanged": true,
+      "status": "PASS"
+    },
+    {
+      "gate": "wave7",
+      "packages": ["E39", "E40", "E41", "E42", "E43", "E44", "E45", "E46", "E47", "E48", "E49", "E50"],
+      "head": "3d0dcee",
+      "focused_tests": {"modules": ["test_incident_wave7", "test_adventure_phase8"], "result": "OK"},
+      "status": "PASS"
+    },
+    {
+      "gate": "I",
+      "packages": ["E51", "E52", "E53", "E54", "E55", "E56", "E57", "E58", "E83"],
+      "head": "61d60f6",
+      "focused_tests": {"modules": ["test_incident_wave8_9"], "result": "OK"},
+      "status": "PASS"
+    },
+    {
+      "gate": "J",
+      "packages": ["E59", "E60", "E61", "E62", "E63", "E64", "E65", "E66", "E67", "E84"],
+      "head": "94d3f04ed9946eee71fb5c0036ce6224927c9ec8",
+      "focused_tests": {"modules": ["test_incident_gate_j"], "result": "OK"},
+      "live_generation": "PARTIAL",
+      "live_generation_reason": "qwen3:8b answered. One Neverwinter tavern proposal was ACCEPT with one call. 50-turn and 100-turn city loops stayed within two calls, did not create quests, resumed, and did not enter Waterdeep or Baldur's Gate. Those loops produced no scene incidents, so NPC continuity is not yet proven.",
+      "proposal_repair": "5ee76bafc27fd127d19fb46ce36bf7608613ea97",
+      "long_smoke_runner": "443eca8",
+      "live_smoke": {
+        "neverwinter_accept": {"model_calls": 1, "gate": "ACCEPT", "quests": 0},
+        "turns_50": {"executed": 50, "max_model_calls": 2, "turns_with_model": 31, "scene_incidents": 0, "quests_unchanged": true},
+        "turns_100": {"executed": 100, "max_model_calls": 2, "turns_with_model": 61, "scene_incidents": 0, "quests_unchanged": true}
+      },
+      "waterdeep_baldurs_gate": "UNREVIEWED_DISABLED",
+      "review_pending_is_pass": false,
+      "protected_refs_unchanged": true,
+      "status": "PARTIAL"
+    }
+  ],
+  "npc_continuity": {
+    "deterministic": "PASS",
+    "evidence": "test_incident_continuity: Neverwinter arrival accepted, talk affordance promotes one NPC, relationship +1 via relationships.note, save/resume keeps the id, four Harptos days later the same id is still at the city. Look does not promote. City-chatter text is not an arrival or look trigger.",
+    "live": "PASS_ONE_CASE",
+    "live_evidence": "qwen3:8b through AuthenticatedOllamaAdapter: 1 call, ACCEPT, person yolcu promoted to npc_001, talk used 0 calls, resume kept the id, relationship score 1, public name hid the personal name, no quest, hidden facts stayed out of the scene packet.",
+    "release": "NO-GO"
+  },
+  "contract_parity": {
+    "status": "PASS",
+    "command": "python -m unittest api.tests.test_contract_parity",
+    "head": "9af3b24e0ce29e03abeed142e87866a0e64c54e6",
+    "port_8008": "free_before_run",
+    "result": "Ran 90 tests in 650.209s OK",
+    "failures": 0,
+    "errors": 0,
+    "historical_9_failures_1_error": "Not reproduced on this isolated run. No contract YAML or serializer was changed for this run. Earlier killed or overlapping jobs are classified as environment/process interference, not as a current public-contract defect."
+  },
+  "validation_gates": {
+    "gate_1_real_triggers": {
+      "status": "PASS",
+      "head": "9af3b24e0ce29e03abeed142e87866a0e64c54e6",
+      "commits": ["385607ccc6682541e29fb2eea258a0402c514dae", "9af3b24e0ce29e03abeed142e87866a0e64c54e6"],
+      "short_live": {
+        "silence_rate": 0.55,
+        "arrival": "accepted inc.10782daacd5df64d2dab22f4 model_calls 1",
+        "look": "detected look_around, suppressed, model_calls 0",
+        "rest": "detected rest, suppressed, model_calls 0",
+        "repeat_model_calls": 0,
+        "resumed_same_incident": true,
+        "quests_unchanged": true,
+        "other_campaign_incidents": 0,
+        "hidden_facts_in_scene": false
+      },
+      "turns_50": {"executed": 50, "max_model_calls": 2, "turns_with_model": 17, "scene_incident_refs": 7, "quests_unchanged": true, "resume_checked": true},
+      "turns_100": {"executed": 100, "max_model_calls": 2, "turns_with_model": 31, "scene_incident_refs": 11, "quests_unchanged": true, "resume_checked": true}
+    },
+    "gate_2_consequences": {
+      "status": "PASS",
+      "head": "385607ccc6682541e29fb2eea258a0402c514dae",
+      "reward": "claim pays coin_small once through rewards.grant; second claim and narration do not pay; quest stays AVAILABLE; save/resume keeps the wallet",
+      "second_encounter": "known surface fact is in the narrator packet; personal name, hidden fact, and relationship reason are not; relationship string stays neutral",
+      "live_narration": {"model": "qwen3:8b", "model_calls": 1, "world_unchanged": true, "reply_mentions_private_name": false, "reply_applied": false},
+      "bridge": "bind returns None until a heard possibility and two NPCs exist; then one AVAILABLE quest, not accepted; second bind is None"
+    },
+    "gate_3_contract_parity": {"status": "PASS", "tests": 90, "failures": 0, "errors": 0}
+  },
+  "expansion_verdict": "NO-GO for live release. Trigger coverage, reward claim, safe reunion narration, the incident bridge, and an isolated contract-parity run passed. Independent lore review is still required. Waterdeep and Baldur's Gate stay UNREVIEWED and DISABLED. Do not start Phase 9. No push. No merge."
+}

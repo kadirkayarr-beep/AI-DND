@@ -7,19 +7,22 @@ import hashlib
 import inspect
 import json
 import logging
+import os
 from dataclasses import replace
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
 import game
+import campaign_time
 import combat_lifecycle
 import scheduled_events
 import living_world
+import adventure.projection as adventure_projection
 from api.campaign_journal import (
     append_ambient_event_outcome,
     update_campaign_journal,
@@ -34,6 +37,8 @@ from api.lore_authority import (
     PRODUCTION_REGISTRY,
     PRODUCTION_START_CATALOG,
     apply_campaign_override,
+    apply_committed_world_canon,
+    is_setting_place,
 )
 from api.ollama_adapter import (
     AuthenticatedOllamaAdapter,
@@ -71,6 +76,7 @@ from api.schemas import (
     CampaignSessionResponse,
     CampaignSummary,
     HealthResponse,
+    LevelUpResult,
     SessionResponse,
     TurnRequest,
     TurnResponse,
@@ -117,6 +123,25 @@ def _restore_session(session: Any, snapshot: dict[str, Any]) -> None:
     session._restore_runtime_snapshot(snapshot["runtime"])
 
 
+def _rollback_session(record: Any, session: Any, snapshot: dict[str, Any]) -> None:
+    """Restore the pre-turn snapshot or close the session if that restore fails."""
+    try:
+        _restore_session(session, snapshot)
+    except Exception as restore_error:
+        record.usable = False
+        _logger.critical(
+            "Session restore failed (error_type=%s); session closed",
+            type(restore_error).__name__,
+        )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "session_restore_failed",
+                "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
+            },
+        ) from None
+
+
 def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
     if not isinstance(npc, dict):
         return None
@@ -129,6 +154,15 @@ def _lore_entity_reference(registry: Any, npc: Any) -> str | None:
     return None
 
 
+def _campaign_lore_year(world: Any) -> int:
+    """Use the campaign clock year, or the bound 1501 epoch when no clock exists."""
+    public = campaign_time.public_time(world) if isinstance(world, dict) else None
+    year = public.get("year") if isinstance(public, dict) else None
+    if type(year) is int:
+        return year
+    return 1501
+
+
 def _lore_context_for_turn(
     record: Any,
     session: Any,
@@ -139,9 +173,14 @@ def _lore_context_for_turn(
 ) -> dict[str, Any]:
     state = getattr(record, "lore_authority", CampaignLoreState.legacy_unbound())
     if state.binding_status is not BindingStatus.BOUND:
-        return registry.retrieve_lore_context(
-            campaign_state=state,
-            player_message=player_message,
+        return _with_player_adventure(
+            registry.retrieve_lore_context(
+                campaign_state=state,
+                player_message=player_message,
+                campaign_year=_campaign_lore_year(getattr(session, "world_state", None)),
+            ),
+            getattr(session, "world_state", None),
+            state,
         )
 
     world = session.world_state
@@ -156,6 +195,7 @@ def _lore_context_for_turn(
     if (
         current_location is None
         or current_location.entity_type not in CANONICAL_LOCATION_TYPES
+        or not is_setting_place(current_location)
     ):
         current_location_id = state.current_location_entity_id
     present_npc_ids = {
@@ -186,16 +226,37 @@ def _lore_context_for_turn(
         and isinstance(quest_id := quest.get("quest_id"), str)
         and quest_id
     }
-    return registry.retrieve_lore_context(
-        current_location_id=current_location_id,
-        player_message=player_message,
-        mentioned_entity_ids=mentioned,
-        present_npc_ids=present_npc_ids,
-        active_quest_subject_ids=quest_subject_ids,
-        campaign_state=state,
-        target_npc_id=target_npc_id,
-        include_dm_secrets=False,
+    return _with_player_adventure(
+        registry.retrieve_lore_context(
+            current_location_id=current_location_id,
+            player_message=player_message,
+            mentioned_entity_ids=mentioned,
+            present_npc_ids=present_npc_ids,
+            active_quest_subject_ids=quest_subject_ids,
+            campaign_state=state,
+            target_npc_id=target_npc_id,
+            include_dm_secrets=False,
+            campaign_year=_campaign_lore_year(world),
+        ),
+        world,
+        state,
     )
+
+
+def _with_player_adventure(context, world, lore_state=None):
+    """Attach the player-safe adventure slice without a new model call."""
+    if not isinstance(context, dict):
+        return context
+    packet = adventure_projection.model_packet(
+        world if isinstance(world, dict) else {},
+        lore_state,
+    )
+    candidate = dict(context)
+    candidate["player_adventure"] = packet
+    encoded = json.dumps(candidate, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > 12 * 1024:
+        return context
+    return candidate
 
 
 def _procedural_entity_refs(world_state: Any) -> set[str]:
@@ -325,6 +386,14 @@ def _stage_engine_lore_state(
                 override,
                 evidence=action_evidence,
             )
+        updated = apply_committed_world_canon(
+            updated,
+            evidence=action_evidence,
+            before_world=before_world,
+            after_world=after_world,
+            action_result=action_result,
+            registry=PRODUCTION_REGISTRY,
+        )
     return CampaignLoreState.from_mapping(updated.to_dict())
 
 
@@ -370,12 +439,21 @@ def create_app(
 
     def get_record(session_id: str):
         try:
-            return manager.get(session_id)
+            record = manager.get(session_id)
         except UnknownSessionError:
             raise HTTPException(
                 status_code=404,
                 detail={"code": "unknown_session", "message": "Session not found."},
             ) from None
+        if not getattr(record, "usable", True):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "session_restore_failed",
+                    "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
+                },
+            )
+        return record
 
     def campaign_http_exception(error: CampaignError) -> HTTPException:
         if isinstance(error, CampaignStaleError):
@@ -447,7 +525,8 @@ def create_app(
 
     @application.get("/api/game/health", response_model=HealthResponse)
     @application.get("/api/health", response_model=HealthResponse)
-    def health() -> HealthResponse:
+    def health(response: Response) -> HealthResponse:
+        response.headers["X-AI-DND-Instance"] = str(os.getpid())
         return HealthResponse()
 
     @application.get(
@@ -487,7 +566,11 @@ def create_app(
     @application.post("/api/sessions", response_model=SessionResponse)
     def create_session() -> SessionResponse:
         session_id, record = manager.create()
-        state = serialize_session_state(record.game_session, record.journal)
+        state = serialize_session_state(
+            record.game_session,
+            record.journal,
+            record.lore_authority,
+        )
         return SessionResponse(
             session_id=session_id,
             state=redact_sensitive_values(state),
@@ -539,6 +622,7 @@ def create_app(
                     "state": serialize_session_state(
                         record.game_session,
                         record.journal,
+                        record.lore_authority,
                     ),
                     "history": [],
                     "combat_history": [],
@@ -638,6 +722,7 @@ def create_app(
             state = serialize_session_state(
                 record.game_session,
                 record.journal,
+                record.lore_authority,
             )
         return redact_sensitive_values(state)
 
@@ -653,7 +738,11 @@ def create_app(
         record = get_record(session_id)
         active_adapter = application.state.ollama_adapter
         action_id = str(request.action_id or uuid4())
+        effective_mode = "do" if request.combat_action is not None else request.interaction_mode
         hash_payload = {"message": request.message, "target_id": request.target_id}
+        # Omitted modes keep the legacy hash used by saved turn receipts.
+        if request.interaction_mode is not None:
+            hash_payload["interaction_mode"] = request.interaction_mode
         if request.combat_action is not None:
             hash_payload["combat_action"] = request.combat_action.model_dump(exclude_none=True)
         if request.combat_id is not None:
@@ -694,7 +783,10 @@ def create_app(
             if isinstance(session, game.GameSession):
                 try:
                     combat_lifecycle.validate_request(
-                        session, request.message, request.target_id, combat_id=request.combat_id,
+                        session,
+                        request.message if effective_mode in {None, "do"} else "",
+                        request.target_id if effective_mode in {None, "do"} else None,
+                        combat_id=request.combat_id,
                         combat_round=request.combat_round, combat_turn_index=request.combat_turn_index,
                     )
                 except combat_lifecycle.CombatRequestError as error:
@@ -774,11 +866,29 @@ def create_app(
             def restore_turn_snapshot() -> None:
                 # Checkpoint restoration can replace these separately-owned
                 # values before an engine/model failure rejects the turn.
-                _restore_session(session, snapshot)
-                session.world_metadata = copy.deepcopy(metadata_snapshot)
-                record.journal = copy.deepcopy(journal_snapshot)
-                record.narrative_memory = copy.deepcopy(narrative_memory_snapshot)
-                record.lore_authority = lore_authority_snapshot
+                try:
+                    _rollback_session(record, session, snapshot)
+                    session.world_metadata = copy.deepcopy(metadata_snapshot)
+                    record.journal = copy.deepcopy(journal_snapshot)
+                    record.narrative_memory = copy.deepcopy(
+                        narrative_memory_snapshot
+                    )
+                    record.lore_authority = lore_authority_snapshot
+                except HTTPException:
+                    raise
+                except Exception as restore_error:
+                    record.usable = False
+                    _logger.critical(
+                        "Turn snapshot restore failed (error_type=%s); session closed",
+                        type(restore_error).__name__,
+                    )
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "code": "session_restore_failed",
+                            "message": "Oturum güvenli biçimde geri alınamadı ve kapatıldı.",
+                        },
+                    ) from None
 
             narrative_player_message = redact_sensitive_values(
                 request.message
@@ -797,15 +907,32 @@ def create_app(
                         session.character,
                         record.campaign_id,
                     )
+                effective_target_id = (
+                    None
+                    if effective_mode == "ask_dm"
+                    else request.target_id
+                )
+                plan_kwargs = {"target_id": effective_target_id}
+                if effective_mode is not None:
+                    try:
+                        plan_parameters = inspect.signature(
+                            session.plan_living_world_turn
+                        ).parameters
+                    except (TypeError, ValueError):
+                        plan_parameters = inspect.signature(
+                            game.plan_living_world_turn
+                        ).parameters
+                    if "interaction_mode" in plan_parameters:
+                        plan_kwargs["interaction_mode"] = effective_mode
                 scene_plan = session.plan_living_world_turn(
                     narrative_player_message,
-                    target_id=request.target_id,
+                    **plan_kwargs,
                 )
                 lore_context = _lore_context_for_turn(
                     record,
                     session,
                     narrative_player_message,
-                    request.target_id,
+                    effective_target_id,
                     scene_plan=scene_plan,
                 )
                 lore_diagnostics = lore_context.get("diagnostics", {})
@@ -816,6 +943,7 @@ def create_app(
                     lore_diagnostics.get("selected_fact_ids", []),
                 )
                 session.lore_authority_context = lore_context
+                session.campaign_lore_state = lore_authority_snapshot
                 with narrative_turn_context(
                     record.narrative_memory,
                     narrative_player_message,
@@ -859,12 +987,17 @@ def create_app(
                                         run_kwargs["combat_action"] = request.combat_action.model_dump(exclude_none=True)
                                     if "scene_plan" in run_parameters:
                                         run_kwargs["scene_plan"] = scene_plan
+                                    if (
+                                        "interaction_mode" in run_parameters
+                                        and effective_mode is not None
+                                    ):
+                                        run_kwargs["interaction_mode"] = effective_mode
                                     if "action_id" in run_parameters:
                                         run_kwargs["action_id"] = action_id
                                     if "session_id" in run_parameters:
                                         run_kwargs["session_id"] = session_id
-                                    if request.target_id is not None:
-                                        run_kwargs["target_id"] = request.target_id
+                                    if effective_target_id is not None:
+                                        run_kwargs["target_id"] = effective_target_id
                                     result = run_turn(request.message, **run_kwargs)
                     finally:
                         if previous_claims is missing_claims:
@@ -874,14 +1007,20 @@ def create_app(
             except Exception as error:
                 try:
                     restore_turn_snapshot()
+                except HTTPException:
+                    raise
                 except Exception as restore_error:
+                    record.usable = False
                     _logger.critical(
-                        "Session rollback failed (error_type=%s)",
+                        "Session rollback failed (error_type=%s); session closed",
                         type(restore_error).__name__,
                     )
+                if isinstance(error, HTTPException):
+                    raise
                 _logger.error(
-                    "Engine turn failed (error_type=%s)",
+                    "Engine turn failed (error_type=%s, rolled_back=true)",
                     type(error).__name__,
+                    exc_info=True,
                 )
                 if isinstance(error, combat_lifecycle.CombatRequestError):
                     raise HTTPException(status_code=error.status_code,
@@ -902,14 +1041,15 @@ def create_app(
                 else None
             )
 
-            if model_failures:
-                try:
-                    restore_turn_snapshot()
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after model error (error_type=%s)",
-                        type(error).__name__,
-                    )
+            from api.model_phase import only_resolved_narration_failures
+
+            if only_resolved_narration_failures(model_failures):
+                _logger.warning(
+                    "Resolved narration unavailable; deterministic fallback retained (phases=%s)",
+                    [failure.phase for failure in model_failures],
+                )
+            elif model_failures:
+                restore_turn_snapshot()
                 _logger.warning(
                     "Ollama chat failed (error_type=%s)",
                     model_failures[0],
@@ -923,13 +1063,7 @@ def create_app(
                 ) from None
 
             if len(model_calls) > MAX_MODEL_CALLS_PER_TURN:
-                try:
-                    restore_turn_snapshot()
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after model-call limit (error_type=%s)",
-                        type(error).__name__,
-                    )
+                restore_turn_snapshot()
                 _logger.error("Engine exceeded the per-turn model-call limit.")
                 raise HTTPException(
                     status_code=500,
@@ -941,13 +1075,7 @@ def create_app(
 
             narration = result.get("narration") if isinstance(result, dict) else None
             if not isinstance(narration, str) or not narration.strip():
-                try:
-                    restore_turn_snapshot()
-                except Exception as error:
-                    _logger.critical(
-                        "Session rollback failed after invalid engine result (error_type=%s)",
-                        type(error).__name__,
-                    )
+                restore_turn_snapshot()
                 _logger.error("Engine returned an invalid turn result.")
                 raise HTTPException(
                     status_code=500,
@@ -962,6 +1090,29 @@ def create_app(
                 if isinstance(result, dict)
                 else None
             )
+            if (
+                isinstance(action_result, dict)
+                and action_result.get("status") == "infrastructure_failure"
+            ):
+                code = action_result.get("infrastructure_code")
+                if code not in {
+                    "model_unavailable",
+                    "intent_json_invalid",
+                    "intent_timeout",
+                }:
+                    code = "model_unavailable"
+                restore_turn_snapshot()
+                _logger.warning(
+                    "Intent infrastructure failure (code=%s, rolled_back=true)",
+                    code,
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "code": code,
+                        "message": "The turn was not committed because intent parsing failed.",
+                    },
+                )
             def contains_death_rollback(value: Any) -> bool:
                 if not isinstance(value, dict):
                     return False
@@ -984,7 +1135,7 @@ def create_app(
                     record.lore_authority
                     if death_rolled_back
                     else _stage_engine_lore_state(
-                        lore_authority_snapshot,
+                        getattr(session, "campaign_lore_state", None) or lore_authority_snapshot,
                         engine_evidence,
                         action_result,
                         snapshot["save"].get("world_state", {}),
@@ -992,17 +1143,11 @@ def create_app(
                     )
                 )
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                    record.narrative_memory = narrative_memory_snapshot
-                    record.lore_authority = lore_authority_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after lore-evidence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
                 _logger.error(
                     "Engine lore evidence failed validation (error_type=%s)",
                     type(error).__name__,
@@ -1035,17 +1180,11 @@ def create_app(
                     )
                 )
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                    record.narrative_memory = narrative_memory_snapshot
-                    record.lore_authority = lore_authority_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after narrative-memory error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
                 _logger.error(
                     "Narrative continuity update failed (error_type=%s)",
                     type(error).__name__,
@@ -1062,7 +1201,7 @@ def create_app(
                     action_result,
                     session,
                 )
-                combat_result = serialize_combat_result(action_result)
+                combat_result = serialize_combat_result(action_result, session)
                 combat_history_entry = serialize_combat_history_entry(
                     combat_result,
                     session,
@@ -1099,19 +1238,17 @@ def create_app(
                         ),
                         presence_location_id=presence_location_id,
                     )
-                state = serialize_session_state(session, record.journal)
+                state = serialize_session_state(
+                    session,
+                    record.journal,
+                    staged_lore_authority,
+                )
             except Exception as error:
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                    record.narrative_memory = narrative_memory_snapshot
-                    record.lore_authority = lore_authority_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after journal update error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
                 if isinstance(error, SkillCheckResultSerializationError):
                     _logger.error(
                         "Engine returned an invalid skill-check result."
@@ -1159,6 +1296,11 @@ def create_app(
                     if isinstance(action_result, dict)
                     else []
                 ),
+                level_up=(
+                    LevelUpResult.model_validate(action_result["level_up"])
+                    if isinstance(action_result, dict) and action_result.get("level_up") is not None
+                    else None
+                ),
             )
             response_payload = redact_sensitive_values(
                 response.model_dump(mode="json")
@@ -1178,17 +1320,12 @@ def create_app(
                 )
             except CampaignError as error:
                 record.lore_authority = lore_authority_snapshot
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                    record.narrative_memory = narrative_memory_snapshot
-                    record.lore_authority = lore_authority_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after persistence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
@@ -1209,17 +1346,12 @@ def create_app(
                 raise campaign_http_exception(error) from None
             except Exception as error:
                 record.lore_authority = lore_authority_snapshot
-                try:
-                    _restore_session(session, snapshot)
-                    session.world_metadata = metadata_snapshot
-                    record.journal = journal_snapshot
-                    record.narrative_memory = narrative_memory_snapshot
-                    record.lore_authority = lore_authority_snapshot
-                except Exception as restore_error:
-                    _logger.critical(
-                        "Session rollback failed after unexpected persistence error (error_type=%s)",
-                        type(restore_error).__name__,
-                    )
+                _rollback_session(record, session, snapshot)
+                session.campaign_lore_state = lore_authority_snapshot
+                session.world_metadata = metadata_snapshot
+                record.journal = journal_snapshot
+                record.narrative_memory = narrative_memory_snapshot
+                record.lore_authority = lore_authority_snapshot
                 _logger.error(
                     "Campaign autosave failed (error_type=%s)",
                     type(error).__name__,
@@ -1232,6 +1364,17 @@ def create_app(
                     },
                 ) from None
 
+            safety_code = (
+                action_result.get("infrastructure_code")
+                or action_result.get("status")
+                if isinstance(action_result, dict)
+                else "unavailable"
+            )
+            _logger.info(
+                "Turn diagnostics (model_calls=%d, safety_code=%s, rolled_back=false)",
+                len(model_calls),
+                safety_code,
+            )
             _logger.info(
                 "Game turn completed (model=%s, model_calls=%d, narrative_scene=%s, narrative_tokens=%s, narrative_estimated_total=%s, narrative_budget=%s/%s, narrative_context_bytes=%s, narrative_selected=%s, narrative_ambiguities=%d)",
                 MODEL_NAME,
@@ -1266,23 +1409,26 @@ def create_app(
             try:
                 result = getattr(session, f"{command}_quest")(quest_id)
             except ValueError as error:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise HTTPException(
                     status_code=404,
                     detail={"code": "quest_unavailable", "message": str(error)},
                 ) from None
             try:
-                state = serialize_session_state(session, record.journal)
+                lore_for_view = getattr(session, "campaign_lore_state", None) or record.lore_authority
+                if lore_for_view is not None:
+                    record.lore_authority = lore_for_view
+                state = serialize_session_state(session, record.journal, record.lore_authority)
+                quest_payload = result["quest"]
+                if quest_payload.get("record_kind") == "dynamic":
+                    quest_payload = adventure_projection.command_view(quest_payload)
                 public_quest = QuestState.model_validate(
                     {
-                    "quest_id": result["quest"]["quest_id"],
-                    "title": result["quest"]["title"],
-                    "description": result["quest"]["description"],
-                    "status": result["quest"]["status"],
-                    "giver_npc_id": result["quest"].get("giver_npc_id"),
+                    "quest_id": quest_payload["quest_id"],
+                    "title": quest_payload["title"],
+                    "description": quest_payload["description"],
+                    "status": quest_payload["status"],
+                    "giver_npc_id": quest_payload.get("giver_npc_id"),
                     "objectives": [
                         {
                             "objective_id": item["objective_id"],
@@ -1291,7 +1437,7 @@ def create_app(
                             "progress": item.get("progress", 0),
                             "required_count": item.get("required_count", 1),
                         }
-                        for item in result["quest"]["objectives"]
+                        for item in quest_payload["objectives"]
                     ],
                     }
                 )
@@ -1305,16 +1451,10 @@ def create_app(
                     manager.save_campaign_locked(record)
                 return redact_sensitive_values(response.model_dump())
             except CampaignError as error:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise campaign_http_exception(error) from None
             except Exception:
-                try:
-                    _restore_session(session, snapshot)
-                except Exception:
-                    pass
+                _rollback_session(record, session, snapshot)
                 raise
 
     @application.post(
@@ -1385,7 +1525,7 @@ def create_app(
                 response = SpeciesTraitCommandResult(
                     session_id=session_id,
                     action_id=action_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=SpeciesTraitActionResult.model_validate(result),
                 )
                 response_payload = redact_sensitive_values(response.model_dump(mode="json"))
@@ -1475,7 +1615,7 @@ def create_app(
             ) -> dict[str, Any]:
                 response = AmbientEventCommandResult(
                     session_id=session_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=AmbientEventResult(
                         event_instance_id=event_instance_key,
                         action_id=action_id,
@@ -1619,7 +1759,7 @@ def create_app(
                 )
                 response = AmbientEventCommandResult(
                     session_id=session_id,
-                    state=serialize_session_state(session, record.journal),
+                    state=serialize_session_state(session, record.journal, record.lore_authority),
                     result=AmbientEventResult(
                         event_instance_id=event_instance_key,
                         action_id=action_id,

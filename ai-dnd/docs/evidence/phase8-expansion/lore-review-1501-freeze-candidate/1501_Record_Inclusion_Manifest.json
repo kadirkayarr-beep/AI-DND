@@ -1,0 +1,2915 @@
+{
+  "status": "FREEZE_CANDIDATE_NOT_APPROVED",
+  "do_not_load_as_pack": true,
+  "player_knowledge": "not_granted",
+  "review_status": "UNREVIEWED",
+  "production_status": "DRAFT",
+  "base_sha256": "2255bc3b1a3b2a907e8b639528c1adb78e1b37e9a41b04934469fd6c33b46ee4",
+  "errata_sha256": "14ef3cdedb439d9f65a52f3d01a3ad6fe4ca75021ccdc5aedd0b93b635fa2859",
+  "ledger_sha256": "8e1a846004dfb3d03f3cfbc51dc198c4260f37331b1a1fd85d4b6f780e1d0889",
+  "included_full": 94,
+  "included_partial": 1,
+  "included_total": 95,
+  "records": [
+    {
+      "id": "FR22-F-001",
+      "city": "shared",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            59
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-001",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-003",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-005",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-008",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-010",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-014",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-015",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_clause_excluded",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_partial",
+      "included_scope": "Heroes PDF 98 names Sea Ward, North Ward, Trade Ward, Southern Ward, Dock Ward, the City of the Dead, and the Field Ward outside the normal wards. The wording is include.",
+      "excluded_scope": "Castle Ward is not named. The inference that its absence does not abolish it is excluded."
+    },
+    {
+      "id": "WD22-F-016",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-017-2",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-026",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            120
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-027",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            117
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-041",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-045",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-048",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-050",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-054",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-058-1",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-058-2",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-058-3",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-058-4",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-065",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-F-066",
+      "city": "waterdeep",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-001",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-001"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-002",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-003"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-003",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-005"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-004",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-003"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-006",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-008"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-007",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-010"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-011",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-041"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-013",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-058-1",
+          "WD22-F-058-2",
+          "WD22-F-058-3",
+          "WD22-F-058-4"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-014",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-066"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-015",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-050"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-016",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-048"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-017",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-054"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-E-020",
+      "city": "waterdeep",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-065"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-X-002",
+      "city": "waterdeep",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-005"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "WD22-E-003"
+          },
+          {
+            "role": "target",
+            "id": "WD22-E-002"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-X-003-1",
+      "city": "waterdeep",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-003"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "WD22-E-004"
+          },
+          {
+            "role": "target",
+            "id": "WD22-E-002"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-X-006",
+      "city": "waterdeep",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-041"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "WD22-E-011"
+          },
+          {
+            "role": "target",
+            "id": "WD22-E-013"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-X-008",
+      "city": "waterdeep",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-048"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "WD22-E-016"
+          },
+          {
+            "role": "target",
+            "id": "WD22-E-006"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "WD22-X-009",
+      "city": "waterdeep",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            98
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "WD22-F-054",
+          "WD22-F-005"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "WD22-E-017"
+          },
+          {
+            "role": "target",
+            "id": "WD22-E-002"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-001",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-002",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        },
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-003",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-004",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-005",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        },
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-006",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-009",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-010",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-1",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-2",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-3",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-4",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-5",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-011-6",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-012",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-013-1",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-013-2",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-015",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            281
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-016",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            275
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-018",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-019",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-021",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            283
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-022",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            284
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-023",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            288
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-F-027",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-001",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-001"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-002",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-002"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-003",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-002"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-004",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-002"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-005",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-001"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-006",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-001"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-007",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-004"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-008",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-009"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-009",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-010"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-010",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-011-1",
+          "BG22-F-011-2",
+          "BG22-F-011-3",
+          "BG22-F-011-4",
+          "BG22-F-011-5",
+          "BG22-F-011-6"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-011",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-012"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-012",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-005"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-013",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-006"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-014",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-006"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-015",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-009"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-016",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-011-2"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-017",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            275
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-016"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-018",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-013-1"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-E-019",
+      "city": "baldurs_gate",
+      "kind": "entity",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-003"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-001",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-005"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-012"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-010"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-002",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-004"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-007"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-010"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-003",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-009"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-008"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-015"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-004",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-011-3"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-009"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-010"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-005",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-011-2"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-010"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-016"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-006",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            281
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-015"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-007",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            270
+          ]
+        },
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            288
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-001"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-005"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-006"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-008",
+      "city": "baldurs_gate",
+      "kind": "edge",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            277
+          ]
+        },
+        {
+          "source_title": "Forgotten Realms: Heroes of Faerûn",
+          "source_sha256": "569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528",
+          "pdf_pages": [
+            97
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-013-1",
+          "BG22-F-012"
+        ],
+        "endpoints": [
+          {
+            "role": "source",
+            "id": "BG22-E-018"
+          },
+          {
+            "role": "target",
+            "id": "BG22-E-011"
+          }
+        ]
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-010",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            274
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-011-6"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    },
+    {
+      "id": "BG22-X-009",
+      "city": "baldurs_gate",
+      "kind": "fact",
+      "knowledge": "public",
+      "sources": [
+        {
+          "source_title": "Forgotten Realms: Adventures in Faerûn",
+          "source_sha256": "65bc8ed7b87e1f89466b8598464f90d024b87df83d0c87a45cc0feddf8b36848",
+          "pdf_pages": [
+            273
+          ]
+        }
+      ],
+      "evidence_reference": "ai-dnd/docs/evidence/phase8-expansion/lore-review-v2-2-current-1501/current_1501_ledger.jsonl",
+      "ledger_verdict": "verified_public",
+      "dependencies": {
+        "supported_by": [
+          "BG22-F-010"
+        ],
+        "endpoints": []
+      },
+      "player_knowledge": "not_granted",
+      "review_status": "UNREVIEWED",
+      "production_status": "DRAFT",
+      "public_narration_grant": "not_granted",
+      "inclusion_status": "included_full",
+      "included_scope": "The audited public claim.",
+      "excluded_scope": null
+    }
+  ]
+}

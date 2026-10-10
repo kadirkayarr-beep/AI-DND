@@ -36,8 +36,46 @@ from api.persistence.campaign_validation import (
 )
 
 
-_DATABASE_SCHEMA_VERSION = 4
+_DATABASE_SCHEMA_VERSION = 5
 MAX_COMBAT_HISTORY_ENTRIES = 50
+
+# Operational generation receipts. Not campaign canon. The primary key is the
+# cross-process guarantee that one trigger gets at most one proposal attempt.
+_EMERGENCE_ATTEMPT_COLUMNS = (
+    "campaign_id", "trigger_id", "attempt_id", "status", "owner_token",
+    "canon_stamp", "proposal_json", "proposal_hash", "incident_id",
+    "gate_outcome", "rejection_reason", "model_id", "prompt_contract_version",
+    "envelope_version", "envelope_hash", "proposal_schema_version",
+    "gate_policy_version", "incident_schema_version", "model_call_count",
+    "created_at", "completed_at",
+)
+_EMERGENCE_ATTEMPTS_TABLE = """
+    CREATE TABLE IF NOT EXISTS campaign_emergence_attempts (
+        campaign_id TEXT NOT NULL REFERENCES campaigns(campaign_id) ON DELETE CASCADE,
+        trigger_id TEXT NOT NULL,
+        attempt_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        owner_token TEXT NOT NULL,
+        canon_stamp TEXT NOT NULL,
+        proposal_json TEXT,
+        proposal_hash TEXT,
+        incident_id TEXT,
+        gate_outcome TEXT,
+        rejection_reason TEXT,
+        model_id TEXT NOT NULL,
+        prompt_contract_version INTEGER NOT NULL,
+        envelope_version INTEGER NOT NULL,
+        envelope_hash TEXT NOT NULL,
+        proposal_schema_version INTEGER NOT NULL,
+        gate_policy_version INTEGER NOT NULL,
+        incident_schema_version INTEGER NOT NULL,
+        model_call_count INTEGER NOT NULL CHECK (model_call_count BETWEEN 0 AND 1),
+        created_at TEXT NOT NULL,
+        completed_at TEXT,
+        PRIMARY KEY (campaign_id, trigger_id)
+    )
+"""
+_EMERGENCE_TERMINAL = ("accepted", "rejected", "stale", "no_proposal")
 
 
 def _now() -> str:
@@ -201,6 +239,17 @@ class CampaignStore:
                 except Exception:
                     connection.rollback()
                     raise
+                current_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if current_version == 4:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    if int(connection.execute("PRAGMA user_version").fetchone()[0]) == 4:
+                        connection.execute(_EMERGENCE_ATTEMPTS_TABLE)
+                        connection.execute("PRAGMA user_version = 5")
+                    connection.commit()
+                except Exception:
+                    connection.rollback()
+                    raise
             self._validate_schema(connection)
             # Reserve identities that old event APIs kept in canonical journals.
             # Do this before a later bounded journal trim can discard provenance.
@@ -264,6 +313,14 @@ class CampaignStore:
         if not {
             "campaign_id", "action_id", "request_hash", "response_json", "created_at"
         }.issubset(turn_action_columns):
+            raise CampaignStorageError("Campaign database schema is incomplete.")
+        attempt_columns = {
+            str(row["name"])
+            for row in connection.execute(
+                "PRAGMA table_info(campaign_emergence_attempts)"
+            ).fetchall()
+        }
+        if not set(_EMERGENCE_ATTEMPT_COLUMNS).issubset(attempt_columns):
             raise CampaignStorageError("Campaign database schema is incomplete.")
 
     @staticmethod
@@ -441,6 +498,7 @@ class CampaignStore:
         narrative_memory: dict[str, Any] | None = None,
         lore_authority: CampaignLoreState | dict[str, Any] | None = None,
         turn_action_receipt: dict[str, Any] | None = None,
+        emergence_attempt: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
         if journal is None or narrative_memory is None or lore_authority is None:
@@ -595,6 +653,8 @@ class CampaignStore:
                             now,
                         ),
                     )
+                if emergence_attempt is not None:
+                    self._finish_attempt(connection, campaign_id, emergence_attempt, now)
                 if turn_action_receipt is not None and action_json is not None:
                     connection.execute(
                         """
@@ -639,6 +699,105 @@ class CampaignStore:
             raise
         except (sqlite3.Error, OSError, TypeError, ValueError):
             raise CampaignStorageError("Campaign could not be saved safely.") from None
+
+    @staticmethod
+    def _attempt_row(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        return None if row is None else {key: row[key] for key in _EMERGENCE_ATTEMPT_COLUMNS}
+
+    def claim_emergence_attempt(self, row: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+        """Insert-first claim. The loser reads the row that already exists."""
+        self._validate_campaign_id(row["campaign_id"])
+        values = dict(row, status="claiming", created_at=_now(), completed_at=None,
+                      proposal_json=None, proposal_hash=None, incident_id=None,
+                      gate_outcome=None, rejection_reason=None, model_call_count=0)
+        try:
+            with self._transaction() as connection:
+                try:
+                    connection.execute(
+                        f"INSERT INTO campaign_emergence_attempts ({', '.join(_EMERGENCE_ATTEMPT_COLUMNS)}) "
+                        f"VALUES ({', '.join('?' for _ in _EMERGENCE_ATTEMPT_COLUMNS)})",
+                        tuple(values[key] for key in _EMERGENCE_ATTEMPT_COLUMNS),
+                    )
+                    won = True
+                except sqlite3.IntegrityError:
+                    won = False
+                current = self._attempt_row(connection.execute(
+                    "SELECT * FROM campaign_emergence_attempts WHERE campaign_id = ? AND trigger_id = ?",
+                    (row["campaign_id"], row["trigger_id"]),
+                ).fetchone())
+        except sqlite3.Error:
+            raise CampaignStorageError("Emergence attempt could not be claimed.") from None
+        if current is None:
+            raise CampaignStorageError("Emergence attempt could not be claimed.")
+        return won, current
+
+    def update_emergence_attempt(
+        self, campaign_id: str, trigger_id: str, owner_token: str,
+        expected: tuple[str, ...], fields: dict[str, Any],
+    ) -> bool:
+        """Owner-only move. Terminal rows never move again."""
+        self._validate_campaign_id(campaign_id)
+        allowed = {"status", "owner_token", "proposal_json", "proposal_hash", "incident_id",
+                   "gate_outcome", "rejection_reason", "model_call_count", "completed_at"}
+        if not set(fields).issubset(allowed) or any(status in _EMERGENCE_TERMINAL for status in expected):
+            raise CampaignValidationError("Emergence attempt update is invalid.")
+        if fields.get("status") in _EMERGENCE_TERMINAL:
+            fields = dict(fields, completed_at=_now())
+        assignments = ", ".join(f"{key} = ?" for key in fields)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    f"UPDATE campaign_emergence_attempts SET {assignments} "
+                    f"WHERE campaign_id = ? AND trigger_id = ? AND owner_token = ? "
+                    f"AND status IN ({', '.join('?' for _ in expected)})",
+                    (*fields.values(), campaign_id, trigger_id, owner_token, *expected),
+                )
+                return cursor.rowcount == 1
+        except sqlite3.Error:
+            raise CampaignStorageError("Emergence attempt could not be updated.") from None
+
+    @staticmethod
+    def _finish_attempt(connection, campaign_id, attempt, now) -> None:
+        cursor = connection.execute(
+            """
+            UPDATE campaign_emergence_attempts
+            SET status = 'accepted', incident_id = ?, gate_outcome = ?, completed_at = ?
+            WHERE campaign_id = ? AND trigger_id = ? AND owner_token = ?
+              AND status = 'proposal_stored'
+            """,
+            (attempt["incident_id"], attempt["gate_outcome"], now, campaign_id,
+             attempt["trigger_id"], attempt["owner_token"]),
+        )
+        if cursor.rowcount != 1:
+            raise CampaignValidationError("Emergence attempt is no longer owned by this turn.")
+
+    def get_emergence_attempt(self, campaign_id: str, trigger_id: str) -> dict[str, Any] | None:
+        self._validate_campaign_id(campaign_id)
+        connection = self._connect()
+        try:
+            return self._attempt_row(connection.execute(
+                "SELECT * FROM campaign_emergence_attempts WHERE campaign_id = ? AND trigger_id = ?",
+                (campaign_id, trigger_id),
+            ).fetchone())
+        except sqlite3.Error:
+            raise CampaignStorageError("Emergence attempt could not be read.") from None
+        finally:
+            connection.close()
+
+    def compact_emergence_attempts(self, campaign_id: str) -> int:
+        """Drop raw proposal bytes on terminal rows. Keys and hashes stay."""
+        self._validate_campaign_id(campaign_id)
+        try:
+            with self._transaction() as connection:
+                cursor = connection.execute(
+                    f"UPDATE campaign_emergence_attempts SET proposal_json = NULL "
+                    f"WHERE campaign_id = ? AND proposal_json IS NOT NULL AND proposal_hash IS NOT NULL "
+                    f"AND status IN ({', '.join('?' for _ in _EMERGENCE_TERMINAL)})",
+                    (campaign_id, *_EMERGENCE_TERMINAL),
+                )
+                return cursor.rowcount
+        except sqlite3.Error:
+            raise CampaignStorageError("Emergence attempts could not be compacted.") from None
 
     def get_turn_action(
         self,

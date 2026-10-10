@@ -12,6 +12,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+import living_world
+
 KEY = "interaction_adventure_v1"
 ACTIVE = {"discovered", "offered", "active", "progressing", "reframed"}
 TERMINAL = {"succeeded", "failed", "abandoned", "expired"}
@@ -404,11 +406,22 @@ def context(world, npc):
             for t in threads if t["npc_id"] == npc["id"] or t["thread_id"] in visible
             or t["title"] in heard
         ]
+    addressee = perspective(world, npc)
+    if isinstance(addressee, dict) and isinstance(npc, dict):
+        addressee = copy.deepcopy(addressee)
+        addressee["name"] = living_world.public_npc_name(npc)
+        addressee["role"] = living_world.public_npc_role(npc)
     return {
         "location_id": world.get("location"),
-        "actors": [{"npc_id": n["id"], "name": n.get("name"),
-                    "role": n.get("role")} for n in present_npcs(world)],
-        "addressee": perspective(world, npc),
+        "actors": [
+            {
+                "npc_id": n["id"],
+                "name": living_world.public_npc_name(n),
+                "role": living_world.public_npc_role(n),
+            }
+            for n in present_npcs(world)
+        ],
+        "addressee": addressee,
         "threads": threads,
         "commitments": [
             {key: c[key] for key in ("commitment_id", "npc_id", "quote", "kind", "thread_id")}
@@ -500,7 +513,7 @@ def hint(text, npc=None):
 
 def immersive_unknown(npc=None):
     if npc:
-        return f'{npc.get("name", "Karşındaki kişi")} başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”'
+        return f'{living_world.public_npc_name(npc)} başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”'
     return "Şu ana kadar gördüklerin bu düşünceyi doğrulamıyor. Nasıl ilerlemek istediğin sana kalmış."
 
 
@@ -616,7 +629,7 @@ def record_item_dialogue(world, npc, quote):
     _remember_claim(world, state, quote, npc, "addressed")
     validate(state, world)
     world[KEY] = state
-    return f'{npc["name"]} sözlerini duydu.'
+    return f'{living_world.public_npc_name(npc)} sözlerini duydu.'
 
 
 def item_request(world, npc, reference):
@@ -720,7 +733,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             state["commitments"].append(commitment)
             _event(world, state, "commitment_made", "Aranızda bir söz kaldı.", npc, thread,
                    data["privacy"])
-        result = _result(operation, "recorded", f'{npc["name"]} sözlerini dikkatle dinliyor. Henüz bir şey yerine getirilmiş değil.')
+        result = _result(operation, "recorded", f'{living_world.public_npc_name(npc)} sözlerini dikkatle dinliyor. Henüz bir şey yerine getirilmiş değil.')
     elif operation in {"negotiate", "request", "threat"}:
         inspected = item_request(world, npc, data["requested_item"])
         if operation == "request" and inspected["owned"]:
@@ -739,7 +752,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
                     item_validation={"owned": True, "transfer_possible": True, "reason": None},
                     state_changes=transfer["action_result"]["state_changes"],
                 )
-        text = (f'{npc["name"]} elindekini bırakmıyor. “Önce ne istediğimizi açıkça konuşalım.”'
+        text = (f'{living_world.public_npc_name(npc)} elindekini bırakmıyor. “Önce ne istediğimizi açıkça konuşalım.”'
                 if npc else "Teklifini kime yönelttiğini açıkça belirtmen gerekiyor.")
         result = _result(operation, "pending", text, requested_item=data["requested_item"],
                          rejected_consideration=data["rejected_consideration"],
@@ -756,7 +769,7 @@ def resolve(session, player_input, raw, npc=None, fallback_operation=None):
             prefix = {"belief": "Bana kalırsa", "rumor": "Duyduğuma göre",
                       "lie": "Sana söyleyebileceğim şu", "player_claim": "Senin söylediğin",
                       "witnessed": "Gördüğüm şu"}[entry["kind"]]
-            text = f'{npc["name"]}: “{prefix}: {entry["text"]}”'
+            text = f'{living_world.public_npc_name(npc)}: “{prefix}: {entry["text"]}”'
         result = _result(operation, "answered", text)
         if npc:
             _remember_claim(world, state, quote, npc, data["privacy"])
@@ -883,11 +896,11 @@ def accept_candidate(world, state, candidate):
            and old["location_id"] == novelty["location_id"] for old in state["novelty"][-8:]):
         return None
     titles = {
-        "inquiry": f'{npc["name"]} ile cevap bekleyen bir sorunun peşine düşebilirsin.',
-        "cooperation": f'{npc["name"]} birlikte hareket etme olasılığını konuşmak istiyor.',
-        "dispute": f'{npc["name"]} farklı görüşleri sakin biçimde ele almayı teklif ediyor.',
-        "warning": f'{npc["name"]} temkinli davranmanı öneriyor; ayrıntıları kendisine sorabilirsin.',
-        "meeting": f'{npc["name"]} burada seninle görüşmek istiyor.',
+        "inquiry": f'{living_world.public_npc_name(npc)} ile cevap bekleyen bir sorunun peşine düşebilirsin.',
+        "cooperation": f'{living_world.public_npc_name(npc)} birlikte hareket etme olasılığını konuşmak istiyor.',
+        "dispute": f'{living_world.public_npc_name(npc)} farklı görüşleri sakin biçimde ele almayı teklif ediyor.',
+        "warning": f'{living_world.public_npc_name(npc)} temkinli davranmanı öneriyor; ayrıntıları kendisine sorabilirsin.',
+        "meeting": f'{living_world.public_npc_name(npc)} burada seninle görüşmek istiyor.',
     }
     thread = _new_thread(world, state, titles[kind], npc, origin="local_proposal",
                          routes=candidate["routes"])
@@ -996,8 +1009,8 @@ def initiative_beat(world):
         e["kind"] in {"betray", "abandon", "refuse"} and e["thread_id"] == candidate["thread_id"]
         and npc["id"] in e["listeners"] for e in state["events"]
     )
-    summary = (f'{npc["name"]} aranızda kalan sözü unutmamış.' if known_broken
-               else f'{npc["name"]} verdiğin sözü hatırlatıyor.')
+    summary = (f'{living_world.public_npc_name(npc)} aranızda kalan sözü unutmamış.' if known_broken
+               else f'{living_world.public_npc_name(npc)} verdiğin sözü hatırlatıyor.')
     event = _event(world, state, "callback", summary, npc)
     state["last_beat_turn"] = turn
     world[KEY] = state

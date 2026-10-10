@@ -16,6 +16,8 @@ import scheduled_events
 import timed_gameplay
 import exploration
 import interaction_adventure
+import adventure.projection as adventure_projection
+import incidents.projection as incident_projection
 from pydantic import ValidationError
 from api.schemas import (
     CombatHistoryEntry,
@@ -26,6 +28,7 @@ from api.schemas import (
 )
 from api.world_metadata import world_metadata_for_state
 from api.campaign_journal import empty_campaign_journal
+from api.lore_authority import PRODUCTION_REGISTRY, read_player_knowledge
 
 
 _PLAYER_FIELDS = (
@@ -59,6 +62,10 @@ _PLAYER_FIELDS = (
     "max_hp",
     "current_hp",
     "armor_class",
+    "cantrips",
+    "spells",
+    "spell_slots_remaining",
+    "xp",
 )
 _NPC_FIELDS = (
     "id",
@@ -136,6 +143,13 @@ _COMBAT_TURN_FIELDS = (
     "combat_status",
     "round",
     "current_turn_index",
+    "spell",
+    "casting_ability",
+    "attack_or_save",
+    "save_roll",
+    "save_dc",
+    "healing",
+    "slot_spent",
     "combat_started",
     "combat_ended",
     "end_reason",
@@ -143,6 +157,47 @@ _COMBAT_TURN_FIELDS = (
     "turn_owner",
     "economy_steps",
 )
+
+
+def _conversation_projection(world: Mapping[str, Any]) -> dict[str, Any]:
+    flags = world.get("flags", {}) if isinstance(world, Mapping) else {}
+    if not isinstance(flags, Mapping):
+        flags = {}
+    combat = world.get("combat", {}) if isinstance(world, Mapping) else {}
+    if isinstance(combat, Mapping) and combat.get("active") is True:
+        return {"active": False, "interlocutor": None}
+    active_id = flags.get("active_npc_id")
+    turn_index = flags.get("turn_index", 0)
+    active_until = flags.get("active_npc_until_turn", -1)
+    if (
+        not isinstance(active_id, str)
+        or not active_id
+        or type(turn_index) is not int
+        or type(active_until) is not int
+        or turn_index > active_until
+    ):
+        return {"active": False, "interlocutor": None}
+    current = world.get("location")
+    npc = next(
+        (
+            item for item in world.get("npcs", [])
+            if isinstance(item, Mapping)
+            and item.get("id") == active_id
+            and item.get("location") == current
+        ),
+        None,
+    )
+    projected = living_world.public_npc_projection(dict(npc)) if npc is not None else None
+    if projected is None:
+        return {"active": False, "interlocutor": None}
+    return {
+        "active": True,
+        "interlocutor": {
+            "id": projected.get("id"),
+            "name": projected.get("name"),
+            "role": projected.get("role") or None,
+        },
+    }
 
 
 class SkillCheckResultSerializationError(ValueError):
@@ -173,10 +228,42 @@ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     ]
 
 
-def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
+def _public_combat_name(identity: Any, fallback: Any, world_state: Any) -> Any:
+    if identity == "player":
+        return fallback
+    if not isinstance(identity, str) or not isinstance(world_state, Mapping):
+        return fallback
+    npc = next((
+        item for item in world_state.get("npcs", [])
+        if isinstance(item, Mapping) and item.get("id") == identity
+    ), None)
+    return living_world.public_npc_name(npc) if npc is not None else fallback
+
+
+def _sanitize_combat_names(projected: dict[str, Any], world_state: Any) -> dict[str, Any]:
+    if not isinstance(projected, dict):
+        return projected
+    for key, value in projected.items():
+        if isinstance(value, dict):
+            _sanitize_combat_names(value, world_state)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _sanitize_combat_names(item, world_state)
+    actor_id = projected.get("actor_id") or projected.get("actor")
+    target_id = projected.get("target_id") or projected.get("target")
+    if "actor_name" in projected:
+        projected["actor_name"] = _public_combat_name(actor_id, projected.get("actor_name"), world_state)
+    if "target_name" in projected:
+        projected["target_name"] = _public_combat_name(target_id, projected.get("target_name"), world_state)
+    return projected
+
+
+def serialize_combat_result(action_result: Any, session: Any = None) -> dict[str, Any] | None:
     """Expose only Python-owned combat outcome fields to the browser."""
     if not isinstance(action_result, Mapping) or action_result.get("action") not in {
         "attack",
+        "cast",
         "death_save",
         "action_economy",
     }:
@@ -187,17 +274,21 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     }:
         return None  # Rejection/clarification is not a canonical combat result.
 
-    projected = _project_fields(action_result, _COMBAT_TURN_FIELDS)
+    world_state = getattr(session, "world_state", None)
+    projected = _sanitize_combat_names(
+        _project_fields(action_result, _COMBAT_TURN_FIELDS), world_state
+    )
     enemy_action = action_result.get("enemy_action")
     if isinstance(enemy_action, Mapping):
-        projected["enemy_action"] = _project_fields(
-            enemy_action,
-            _COMBAT_ATTACK_FIELDS,
+        projected["enemy_action"] = _sanitize_combat_names(
+            _project_fields(enemy_action, _COMBAT_ATTACK_FIELDS), world_state
         )
     enemy_actions = action_result.get("enemy_actions")
     if isinstance(enemy_actions, list):
         projected["enemy_actions"] = [
-            _project_fields(item, _COMBAT_ATTACK_FIELDS)
+            _sanitize_combat_names(
+                _project_fields(item, _COMBAT_ATTACK_FIELDS), world_state
+            )
             for item in enemy_actions
             if isinstance(item, Mapping)
         ]
@@ -210,7 +301,7 @@ def serialize_combat_result(action_result: Any) -> dict[str, Any] | None:
     return validated.model_dump(exclude_unset=True)
 
 
-def serialize_combat_state(value: Any) -> dict[str, Any]:
+def serialize_combat_state(value: Any, world_state: Any = None) -> dict[str, Any]:
     """Expose only the public scheduler fields and canonical combatant status."""
     combat = value if isinstance(value, Mapping) else {}
     current_actor_id = combat.get("current_actor_id")
@@ -233,7 +324,12 @@ def serialize_combat_state(value: Any) -> dict[str, Any]:
         ),
         "participant_records": [
             {
-                **_project_fields(
+                **(lambda item: {
+                    **item,
+                    "name": _public_combat_name(
+                        record.get("id"), item.get("name"), world_state
+                    ),
+                })(_project_fields(
                     record,
                     (
                         "id",
@@ -245,7 +341,7 @@ def serialize_combat_state(value: Any) -> dict[str, Any]:
                         "status",
                         "primary_action_available",
                     ),
-                ),
+                )),
                 "is_current_actor": record.get("id") == current_actor_id,
             }
             for record in (records if isinstance(records, list) else [])
@@ -436,6 +532,7 @@ def serialize_skill_check_result(
 def serialize_session_state(
     session: Any,
     journal: dict[str, Any] | None = None,
+    lore_state: Any = None,
 ) -> dict[str, Any]:
     """Project the engine snapshot without exposing prompts or private internals."""
     import bounded_encounter
@@ -447,12 +544,17 @@ def serialize_session_state(
 
     raw_locations = world.get("locations", {})
     known_location_ids = exploration.known_locations(world)
+    visible_npcs = [
+        projected
+        for npc in exploration.player_entities(world, scheduled_events.visible_npcs(world))
+        if (projected := living_world.public_npc_projection(npc)) is not None
+    ]
     visible_world = {
         **world,
         "features": exploration.player_entities(world, world.get("features", [])),
         "shops": exploration.player_entities(world, world.get("shops", [])),
         "doors": exploration.visible_doors(world),
-        "npcs": exploration.player_entities(world, scheduled_events.visible_npcs(world)),
+        "npcs": visible_npcs,
     }
     locations = {
         str(location_id): _project_fields(record, _LOCATION_FIELDS)
@@ -560,6 +662,8 @@ def serialize_session_state(
         }
         for item in raw_quests
         if isinstance(item, dict)
+        and item.get("record_kind") != "dynamic"
+        and item.get("status") in {"accepted", "completed", "cancelled"}
     ]
     offers = [
         {
@@ -590,6 +694,7 @@ def serialize_session_state(
         "scene": living_world.public_scene_projection(
             visible_world, flags.get("turn_index", 0)
         ),
+        "conversation": _conversation_projection(visible_world),
         "world": world_metadata,
         "journal": copy.deepcopy(
             journal if journal is not None else empty_campaign_journal()
@@ -603,11 +708,11 @@ def serialize_session_state(
             if world.get("spellcasting_v1") is not None else None
         ),
         "npcs": _project_list(visible_world["npcs"], _NPC_FIELDS),
-        "shops": _project_list(exploration.player_entities(world, world.get("shops", [])), _SHOP_FIELDS),
+        "shops": _project_list([living_world.public_shop_projection(world, shop) for shop in exploration.player_entities(world, world.get("shops", []))], _SHOP_FIELDS),
         "features": _project_list(exploration.player_entities(world, world.get("features", [])), _FEATURE_FIELDS),
         "doors": _project_list(exploration.visible_doors(world), _DOOR_FIELDS),
         "combat": {
-            **serialize_combat_state(world.get("combat", {})),
+            **serialize_combat_state(world.get("combat", {}), world),
             "action_economy": game.action_economy.projection(session)
             if isinstance(session, game.GameSession) and world.get("combat", {}).get("active") else None,
         },
@@ -619,8 +724,26 @@ def serialize_session_state(
         "quests": quest_state,
         "quest_offers": offers,
         "adventure": interaction_adventure.public(world),
+        "campaign_adventures": adventure_projection.journal(
+            world,
+            lore_state if lore_state is not None else getattr(session, "campaign_lore_state", None),
+        ),
+        **_known_projection(session, world, lore_state),
         "exploration": exploration.public_projection(world),
         **({"bounded_encounter": bounded_state} if bounded_state is not None else {}),
+        "scene_incidents": incident_projection.scene_annotation(world),
+    }
+
+
+def _known_projection(session: Any, world: Any, lore_state: Any = None) -> dict[str, Any]:
+    projection = read_player_knowledge(
+        lore_state if lore_state is not None else getattr(session, "lore_authority", None),
+        world,
+        PRODUCTION_REGISTRY,
+    )
+    return {
+        "known_lore": projection["known_facts"],
+        "known_factions": projection["known_factions"],
     }
 
 

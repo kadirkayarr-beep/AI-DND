@@ -1,0 +1,274 @@
+{"event": "parent_http", "phase": "started", "label": "city look", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.020424300000740914, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0005383000006986549, "resolved_action": "explore", "resolved_status": "observed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.059631899999658344}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 1}
+{"event": "parent_http", "phase": "finished", "label": "city look", "elapsed_seconds": 0.0743027999997139, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "city presence", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.005126699999891571, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0002880000010918593, "resolved_action": "query", "resolved_status": "answered_from_current_scene"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03439710000020568}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 2}
+{"event": "parent_http", "phase": "finished", "label": "city presence", "elapsed_seconds": 0.048004000000219094, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "approach and greet first local", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0045238000002427725, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0004430999997566687, "resolved_action": "approach", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03095249999933003}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 3}
+{"event": "parent_http", "phase": "finished", "label": "approach and greet first local", "elapsed_seconds": 0.045356900000115274, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask first local name", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.005066100000476581, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0069733000000269385, "resolved_action": "query", "resolved_status": "answered_from_campaign_state"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.04990619999989576}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 4}
+{"event": "parent_http", "phase": "finished", "label": "ask first local name", "elapsed_seconds": 0.06471739999869897, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "disclose player name", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0047321999991254415, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0017461999996157829, "resolved_action": "dialogue", "resolved_status": "player_name_disclosed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03800019999835058}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 5}
+{"event": "parent_http", "phase": "finished", "label": "disclose player name", "elapsed_seconds": 0.05220750000080443, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask local occupation", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.00455589999910444, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0018851999993785284, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.0394536000003427}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 6}
+{"event": "parent_http", "phase": "finished", "label": "ask local occupation", "elapsed_seconds": 0.05388189999939641, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask local current activity", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0050069999997504056, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.002367400000366615, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03836509999928239}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 7}
+{"event": "parent_http", "phase": "finished", "label": "ask local current activity", "elapsed_seconds": 0.05407239999840385, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask local recent activity", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0047558000005665235, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0019119999997201376, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03728109999974549}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 8}
+{"event": "parent_http", "phase": "finished", "label": "ask local recent activity", "elapsed_seconds": 0.05171350000091479, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask local origin", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0046445000007224735, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0020208999994792975, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.038400599998567486}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 9}
+{"event": "parent_http", "phase": "finished", "label": "ask local origin", "elapsed_seconds": 0.053234400000292226, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask local day", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004462499999135616, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0016581999989284668, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03717230000074778}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 10}
+{"event": "parent_http", "phase": "finished", "label": "ask local day", "elapsed_seconds": 0.05210170000100334, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "local historical name recall", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003962499999033753, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0025901000008161645, "resolved_action": "dialogue", "resolved_status": "answered_from_npc_memory"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03708889999870735}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 11}
+{"event": "parent_http", "phase": "finished", "label": "local historical name recall", "elapsed_seconds": 0.051993200000651996, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "discover local merchant", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0062641999993502395, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0005063999997219071, "resolved_action": "local_search", "resolved_status": "found"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.04280979999930423}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 12}
+{"event": "parent_http", "phase": "finished", "label": "discover local merchant", "elapsed_seconds": 0.059077600000819075, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask merchant occupation", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.00484870000036608, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0026569000001472887, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.04396919999999227}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 13}
+{"event": "parent_http", "phase": "finished", "label": "ask merchant occupation", "elapsed_seconds": 0.059065800000098534, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "unsupported route challenge", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004929999999149004, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.002102099999319762, "resolved_action": "dialogue", "resolved_status": "unverified"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.04089089999979478}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 14}
+{"event": "parent_http", "phase": "finished", "label": "unsupported route challenge", "elapsed_seconds": 0.05913650000002235, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "local work query", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "daff8ee5-19fe-4db3-8e29-954a97c6be75"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.01362659999904281, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.006309799999144161, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.07572460000119463}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 15}
+{"event": "parent_http", "phase": "finished", "label": "local work query", "elapsed_seconds": 0.11024619999989227, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "work acceptance without offer", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.00802800000019488, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.005459500000142725, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.04854880000129924}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 16}
+{"event": "parent_http", "phase": "finished", "label": "work acceptance without offer", "elapsed_seconds": 0.06275030000142579, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "discover local tavern", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.00407190000078117, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0003725000005943002, "resolved_action": "local_search", "resolved_status": "found"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03142669999942882}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 17}
+{"event": "parent_http", "phase": "finished", "label": "discover local tavern", "elapsed_seconds": 0.045424300000377116, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "enter discovered tavern", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003756699999939883, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0004487000005610753, "resolved_action": "enter", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03575339999952121}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 18}
+{"event": "parent_http", "phase": "finished", "label": "enter discovered tavern", "elapsed_seconds": 0.051085900000543916, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "tavern look", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004210600000078557, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "model_call", "phase": "started", "call_role": "narration", "attempt_index": 1, "request_utf8_bytes": 13973, "message_count": 2, "scene_type": "tavern", "narration_only": true, "selected_context_counts": {"official_forgotten_realms_lore": 0, "campaign_canon": 0, "player_known_lore": 0, "npc_known_lore": 0, "procedural_local_content": 0, "verified_entities": 3, "unknown_or_unloaded": 0}, "provider_timeout_seconds": 90}
+{"event": "model_call", "phase": "finished", "call_role": "narration", "attempt_index": 1, "elapsed_seconds": 3.1564432000013767, "prompt_eval_count": 3818, "eval_count": 171}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 3.1734028000009857, "resolved_action": "explore", "resolved_status": "observed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 3.2093649999987974}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 19}
+{"event": "parent_http", "phase": "finished", "label": "tavern look", "elapsed_seconds": 3.2243409999991854, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask bartender name", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0037276000002748333, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.00381799999922805, "resolved_action": "query", "resolved_status": "answered_from_campaign_state"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03856350000023667}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 20}
+{"event": "parent_http", "phase": "finished", "label": "ask bartender name", "elapsed_seconds": 0.05384770000091521, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "disclose name to bartender", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003704900000229827, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0010168000007979572, "resolved_action": "dialogue", "resolved_status": "player_name_disclosed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03607990000091377}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 21}
+{"event": "parent_http", "phase": "finished", "label": "disclose name to bartender", "elapsed_seconds": 0.050921800000651274, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "ask bartender daily activity", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0038799000012659235, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0036909999998897547, "resolved_action": "dialogue", "resolved_status": "answered_personal_question"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.038197399999262416}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 22}
+{"event": "parent_http", "phase": "finished", "label": "ask bartender daily activity", "elapsed_seconds": 0.05340940000132832, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "sit at presented table", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003946999999243417, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0005228999998507788, "resolved_action": "sit", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.036852499999440624}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 23}
+{"event": "parent_http", "phase": "finished", "label": "sit at presented table", "elapsed_seconds": 0.051584200000434066, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "observe tavern traveler", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004032500000903383, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.000325400000292575, "resolved_action": "explore", "resolved_status": "observed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03515680000054999}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 24}
+{"event": "parent_http", "phase": "finished", "label": "observe tavern traveler", "elapsed_seconds": 0.050110999998651096, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "approach tavern traveler", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003729800000655814, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0003082000002905261, "resolved_action": "approach", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03660219999983383}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 25}
+{"event": "parent_http", "phase": "finished", "label": "approach tavern traveler", "elapsed_seconds": 0.05160910000086005, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "follow up promoted traveler", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.0038383999999496154, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "model_call", "phase": "started", "call_role": "narration", "attempt_index": 1, "request_utf8_bytes": 16203, "message_count": 2, "scene_type": "tavern", "narration_only": true, "selected_context_counts": {"official_forgotten_realms_lore": 0, "campaign_canon": 0, "player_known_lore": 0, "npc_known_lore": 0, "procedural_local_content": 0, "verified_entities": 3, "unknown_or_unloaded": 0}, "provider_timeout_seconds": 90}
+{"event": "model_call", "phase": "finished", "call_role": "narration", "attempt_index": 1, "elapsed_seconds": 3.5468338999999105, "prompt_eval_count": 2050, "eval_count": 198}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 3.5628156999991916, "resolved_action": "dialogue", "resolved_status": "answered_smalltalk"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 3.599473600001147}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 26}
+{"event": "parent_http", "phase": "finished", "label": "follow up promoted traveler", "elapsed_seconds": 3.6144676999992953, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "leave tavern", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.003970699999626959, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.00037259999953676015, "resolved_action": "exit", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.03540839999914169}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 27}
+{"event": "parent_http", "phase": "finished", "label": "leave tavern", "elapsed_seconds": 0.05048559999886493, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "return to same tavern", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.00391229999877396, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.0003448999996180646, "resolved_action": "enter", "resolved_status": "completed"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.036283499999626656}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 28}
+{"event": "parent_http", "phase": "finished", "label": "return to same tavern", "elapsed_seconds": 0.05154210000000603, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "active NPC world subject routing", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004425600000104168, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.005468399998790119, "resolved_action": "dialogue", "resolved_status": "answered_from_loaded_lore"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.0412136000013561}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 29}
+{"event": "parent_http", "phase": "finished", "label": "active NPC world subject routing", "elapsed_seconds": 0.057727200000954326, "timeout_layer": "smoke_http_client"}
+{"event": "parent_http", "phase": "started", "label": "return to tavern for final continuity check", "timeout_layer": "smoke_http_client", "timeout_seconds": 240}
+{"event": "api_turn", "phase": "started", "session_id": "a5bba6f5-7b8d-43e8-bc92-3af867a9eb6f"}
+{"event": "preflight", "phase": "started", "counted_as_generation": false}
+{"event": "preflight", "phase": "finished", "elapsed_seconds": 0.004086700000698329, "counted_as_generation": false}
+{"event": "engine", "phase": "started"}
+{"event": "engine", "phase": "finished", "elapsed_seconds": 0.00034780000169121195, "resolved_action": "enter", "resolved_status": "already_inside"}
+{"event": "api_turn", "phase": "finished", "elapsed_seconds": 0.036915499998940504}
+{"event": "replay_checkpoint", "phase": "finished", "storage": "private_replay", "turn_index": 30}
+{"event": "parent_http", "phase": "finished", "label": "return to tavern for final continuity check", "elapsed_seconds": 0.052465400000073714, "timeout_layer": "smoke_http_client"}

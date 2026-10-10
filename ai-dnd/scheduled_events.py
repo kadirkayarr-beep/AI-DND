@@ -273,6 +273,8 @@ def process_events(world, old, now, *, observation=None, resolution=None,
             identity = event["event_id"]
             if identity in processed or identity in blocked or event["status"] != "PENDING":
                 continue
+            if not _in_player_horizon(event, world):
+                continue
             dependencies = [by_id[d] for d in event.get("dependencies", [])]
             if any(d["status"] == "PENDING" for d in dependencies):
                 continue
@@ -317,6 +319,7 @@ def process_events(world, old, now, *, observation=None, resolution=None,
         elif at >= event["window_end"]:
             event["status"] = "EXPIRED"
             event["encounter_status"] = "MISSED"
+    _mark_missed_outside_horizon(events, world, limit)
     # Observation of already-resolved events/aftermath does not reapply effects.
     for event in sorted(events, key=lambda e: (-e.get("priority", 0), e["location_id"], e["event_id"])):
         active = event["window_start"] <= limit < event["window_end"]
@@ -342,6 +345,35 @@ def public_event(event, now):
         "window_start": event["window_start"], "window_end": event["window_end"],
         "status": event["status"],
     }
+
+
+def _mark_missed_outside_horizon(events, world, limit):
+    """Record that a due encounter was not faced, without simulating it.
+
+    Full occurrence, effects, narration, and player knowledge stay inside the
+    horizon. The deadline only closes the encounter lifecycle.
+    """
+    for event in events:
+        if event["status"] != "PENDING" or event.get("decision_status") not in {None, "NONE"}:
+            continue
+        if _in_player_horizon(event, world) or event["window_end"] > limit:
+            continue
+        if event["encounter_status"] in {"UNKNOWN", "AVAILABLE"}:
+            event["encounter_status"] = "MISSED"
+
+
+def _in_player_horizon(event, world):
+    """V1 only advances the current settlement, its children, and the active road."""
+    here = world.get("location")
+    location_id = event.get("location_id")
+    if location_id == here:
+        return True
+    record = world.get("locations", {}).get(location_id)
+    if isinstance(record, dict) and record.get("parent_location_id") == here:
+        return True
+    journey = world.get("journey") or {}
+    destination = event.get("route_destination")
+    return bool(destination and destination == journey.get("destination"))
 
 
 def public_events(world):
