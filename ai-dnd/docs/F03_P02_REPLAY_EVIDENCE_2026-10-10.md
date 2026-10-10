@@ -72,6 +72,27 @@ All temporary stores and browser profiles were removed.
 
 ## Limits and gates
 
+- A one-campaign UI double-click/delayed-retry attempt ran at
+  `20261010T182437Z`. Two CDP mouse click sequences were dispatched 20 ms apart;
+  the browser used the Python-native `/explore look` action, with the model guard
+  disabled and not triggered. After a 1.5-second wait, the browser sent the
+  captured request body again; its page-fetch response was HTTP 200 and matched
+  the original response. The script evaluated its aggregate acceptance checks as
+  true, including one history/receipt after the UI clicks and after delayed
+  replay, zero combat-history rows, unchanged retry payload/state, and the same
+  action ID.
+- This attempt is **INCOMPLETE EVIDENCE**, not an auditable PASS: a
+  `ReferenceError` (`disabledAfterFirstClick` was referenced, but the variable
+  was named `disabledAfterFirst`) interrupted evidence serialization. The saved
+  JSON therefore lacks the actual UI POST count, disabled-button observation,
+  CDP request IDs, and exact SQLite values; no screenshot was saved. The run is
+  finished and was not repeated to avoid creating another campaign.
+- A separate Git checkpoint surprise was observed: HEAD is
+  `83ae439ea56e8e96e969bd0cbb1393fa3a5bfe1c`, a Replit Agent-authored commit
+  dated 2026-10-10 17:41:43Z titled “Update replay evidence documentation”.
+  Relative to its parent `1940636296977e8d1dd8df3ced21461afd276854`, it deletes
+  all four Phase8 JSON files listed in the original evidence request. They are
+  not tracked at this HEAD; no reset, restore, or new commit was attempted.
 - Browser evidence now covers one non-combat action, identical-payload replay,
   and changed-payload conflict. It does not test UI double-click timing or a
   delayed browser retry.
