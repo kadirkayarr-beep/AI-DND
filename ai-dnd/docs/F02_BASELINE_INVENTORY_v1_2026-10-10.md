@@ -48,6 +48,28 @@ All 15 section 2 rows are mapped in `owners.json` and labeled `KORUNUR`. No row 
 
 Detailed inventory and hashes: `.local/evidence/F02/20261010T140640Z/` (`sources-hashes.json`, `dependency-manifest.json`, `owners.json`, `bugs.json`, `run-matrix.yaml`). Evidence files are in the ignored `.local` tree; this report is the only tracked-path addition from this slice.
 
-## Next small safe verification
+## Stage 2/3 review update
 
-Run F02-P02 in an isolated, disposable environment: establish separate selected-regression, full-discovery, browser and live-Qwen rows with command, source/lock hashes, exit, and explicit NOT TESTED where a mode is not authorized. Do not use the owner SQLite or current 8008/8000 workers. Then gather the original idempotency timeout trace/reproduction before upgrading F02-AC-004 from BLOCKED.
+Stage 1 remains historical: its original `run-matrix.yaml` and AC-004 BLOCKED result are unchanged. The stage-2 isolated archive omitted required assets and generated library declarations; those failures are documented as harness failures, not game regressions. Stage 3 corrected only the disposable copy:
+
+- Source baseline: `e74515bc3ddf5d71f3e7a6d16437e05c19ba2680`; source archive SHA-256 `31d58f449b7516bb870f4237ff49ee730e3a7c6519fbca35db4d6649fae88bbf`.
+- Offline frozen pnpm install: exit 0 in 37 seconds. Library typecheck exit 0/26s; Experience typecheck exit 0/10s; frontend tests exit 0/12s (67/67); build exit 0/12s with `PORT=22785 BASE_PATH=/ai-dnd-experience/`.
+- The three referenced generated images were restored from the e74515b Git blobs into the disposable copy only. SHA-256 and blob provenance are in `stage3/assets-provenance.txt`.
+- All five F01 pin SHA-256 values are identical before install, after install and after build. Exact values are in `stage3/pins-after-build.txt`.
+- Current workspace branch at stage 3: `maintenance/pre04-runtime-health`, HEAD `b87ebfd9b523c9c0a97688498b57a25c54ceab82` (documentation-only commit above the tested e74515b base). No branch or history operation was performed.
+
+## Current acceptance assessment
+
+| AC | Current status | Evidence boundary |
+|---|---|---|
+| F02-AC-001 | PASS | Isolated locked install and bounded library/frontend typecheck, 67 tests and build have command, exit and timing records. |
+| F02-AC-002 | PASS | Selected frontend regression PASS; full Python discovery, live Qwen and manual gameplay remain NOT TESTED. Browser is PASS-SCOPED HISTORICAL only, not a new run. |
+| F02-AC-003 | PASS-SCOPED | All five F01 pin bytes remained unchanged through offline install and frontend build. |
+| F02-AC-004 | PASS WITH UNCONFIRMED HISTORICAL DEFECTS | Required bug-register fields are present; reproducing or fixing historical reports is not required by the Bible criterion. Stage-1 BLOCKED remains historical. |
+| F02-AC-005 | PASS | The same 15 owner rows remain labeled KORUNUR. |
+
+F02 is **PASS within this evidence scope**. This does not claim that the untested Python discovery, fresh browser, Qwen, or manual modes passed. The scoped closure is `F02_PHASE_ACCEPTANCE_v1_2026-10-10.md`; stage 2/3 logs, hashes and matrices are under `.local/evidence/F02/20261010T140640Z/`.
+
+## Scope and next step
+
+No game/frontend source, frozen Bible, lore pin, workflow, owner SQLite, API, session, or Qwen state was changed or accessed. The disposable test directory is removed only after the evidence is verified. Next project work can proceed to F03 in sequence; any untested F02 modes remain explicitly untested and must not be described as fresh passes.
