@@ -565,7 +565,7 @@ function StoryColumn({
   );
   const actionSuggestions = [
     ...getContextualActionSuggestions(state),
-    ...(state.campaign_adventures?.affordances ?? []).map((label) => ({
+    ...(state.campaign_adventures?.affordances ?? []).map((label: string) => ({
       id: `adventure-${label}`,
       label,
       message: label,
