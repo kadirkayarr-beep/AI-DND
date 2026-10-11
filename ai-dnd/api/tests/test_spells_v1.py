@@ -73,6 +73,40 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
             restored["character"]["spell_slots_remaining"],
             before["character"]["spell_slots_remaining"],
         )
+        saved = session.serialize_game_state()
+        self.assertEqual(saved["version"], 3)
+        for field in ("cantrips", "spells", "spell_slots_remaining"):
+            self.assertNotIn(field, saved["player"])
+
+    def test_v3_projection_reads_live_spell_fields_only(self):
+        import game
+
+        first = game.create_session(seed=3)
+        second = game.create_session(seed=4)
+        first.character["cantrips"] = ["Fire Bolt"]
+        first.character["spells"] = ["Magic Missile"]
+        first.character["spell_slots_remaining"] = {"1": 2}
+        first.character["secret_prompt"] = "must not be returned"
+        projected = serialize_session_state(first)
+        self.assertEqual(projected["character"]["cantrips"], ["Fire Bolt"])
+        self.assertEqual(projected["character"]["spells"], ["Magic Missile"])
+        self.assertEqual(projected["character"]["spell_slots_remaining"], {"1": 2})
+        self.assertNotIn("secret_prompt", projected["character"])
+        projected["character"]["spell_slots_remaining"]["1"] = 0
+        self.assertEqual(first.character["spell_slots_remaining"], {"1": 2})
+        saved = first.serialize_game_state()
+        self.assertEqual(saved["version"], 3)
+        self.assertNotIn("spell_slots_remaining", saved["player"])
+        other = serialize_session_state(second)
+        self.assertNotEqual(
+            other["character"].get("spell_slots_remaining"),
+            {"1": 2},
+        )
+        first.character["spell_slots_remaining"] = {"9": 4}
+        self.assertNotIn(
+            "spell_slots_remaining",
+            serialize_session_state(first)["character"],
+        )
 
     def test_cast_result_projects_spell_fields_and_hides_private_state(self):
         projected = serialize_combat_result(
