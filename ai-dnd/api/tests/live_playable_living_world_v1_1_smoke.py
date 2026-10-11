@@ -90,6 +90,54 @@ class SmokeFailure(RuntimeError):
     pass
 
 
+def apply_smoke_summary(
+    result: dict[str, Any],
+    evidence_rows: list[dict[str, Any]],
+    ordinary_fallbacks: int,
+    failure: Exception | None,
+) -> dict[str, Any]:
+    """Summarize incomplete smoke evidence without hiding the original failure.
+
+    This compatibility entry point is used by deterministic stability checks.
+    It cannot grant a live or human-review PASS.
+    """
+    result = copy.deepcopy(result)
+    gaps = list(result.get("evidence_incomplete", []))
+    if len(evidence_rows) != len(EXPECTED_LABELS):
+        gaps.append("30-turn action sequence incomplete")
+    skipped = []
+    reasons = []
+    for row in evidence_rows:
+        gaps.extend(telemetry._proposal_trace_gaps(row))
+        if row.get("proposal_trace_status") == "validator_not_invoked":
+            intentional = row.get("proposal_validation_calls") == 0
+            skipped.append({
+                "turn": row.get("turn"), "label": row.get("label"),
+                "classification": "intentional_skip" if intentional else "inconsistent",
+            })
+            if not intentional:
+                gaps.append("validator skip was not an intentional no-call")
+        if row.get("fallback_budget_counted") and row.get("safety_reason"):
+            reasons.append(row["safety_reason"])
+    result.update(
+        evidence_incomplete=list(dict.fromkeys(gaps)),
+        validator_not_invoked=skipped,
+        ordinary_fallback_candidate_count=ordinary_fallbacks,
+        ordinary_fallback_reason_codes=list(dict.fromkeys(reasons)),
+    )
+    if failure is not None:
+        # Retain only a known turn label; never copy arbitrary error text/secrets.
+        label = next((label for label in EXPECTED_LABELS
+                      if str(failure).startswith(label + ":")), None)
+        result["error"] = f"{type(failure).__name__}: {label or 'details redacted'}"
+        if label is not None:
+            result["error_turn_label"] = label
+        result["status"] = "BLOCKED / LIVE PLAYABILITY UNVERIFIED"
+    elif gaps:
+        result["status"] = "BLOCKED / EVIDENCE_INCOMPLETE"
+    return result
+
+
 def _require(condition: Any, message: str) -> None:
     if not condition:
         raise SmokeFailure(message)

@@ -212,6 +212,7 @@ function CharacterPanel({ character, compact = false }: { character: GameCharact
       <div className="health-row"><span className="flex items-center gap-2"><Heart size={13} /> Can durumu</span><span data-testid="text-character-hp">{character.current_hp} / {character.max_hp}</span></div>
       <div className="health-track"><div className="health-fill" style={{ width: `${hp}%` }} data-testid="meter-health" /></div>
       <div className="key-values"><div className="key-value"><Kicker>ZIRH</Kicker><span>{character.armor_class}</span></div><div className="key-value"><Kicker>USTALIK</Kicker><span>+{character.proficiency_bonus}</span></div></div>
+      <div className="data-row mt-3" data-testid="text-character-xp">Deneyim: {character.xp}</div>
       {!compact && <div className="mt-5"><Kicker>Yetenekler</Kicker><div className="stat-strip">{abilities.map(([label, value]) => <div className="stat-box" key={label}><Kicker>{label}</Kicker><div className="stat-value">{value}</div></div>)}</div></div>}
       {!compact && <div className="mt-5 border-t border-[#4b3926] pt-4"><Kicker>Usta olunan beceriler</Kicker><div className="mt-3 flex flex-wrap gap-2">{character.proficient_skills.length ? character.proficient_skills.map((skill) => <span className="status-pill" key={skill}>{skill}</span>) : <span className="subtle-text">Henüz bir beceride ustalaşmadın.</span>}</div></div>}
     </section>
@@ -424,6 +425,16 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
         )}
       </section>
 
+      <section className="journal-section" data-testid="section-journal-shops">
+        <Kicker>Uğraklar</Kicker><h3>Dükkânlar</h3>
+        {state.shops.length ? state.shops.map((shop) => (
+          <div className="data-row journal-record" key={shop.id} data-testid={`journal-shop-${shop.id}`}>
+            <div className="data-row-head">{shop.name}</div>
+            <p className="data-row-desc">{shop.description}</p>
+            <span className="data-row-meta">{state.locations[shop.location]?.name ?? shop.location}</span>
+          </div>
+        )) : <div className="empty-line mt-3">Henüz keşfedilmiş bir dükkân yok.</div>}
+      </section>
       <QuestJournalSection
         quests={state.quests ?? []}
         offers={state.quest_offers ?? []}
@@ -1066,6 +1077,9 @@ export default function GameBrowser() {
     },
   });
   const playTurn = usePlayGameTurn();
+  const inFlightSessionsRef = useRef(new Set<string>());
+  const [inFlightSessions, setInFlightSessions] = useState<Set<string>>(new Set());
+  const turnSending = inFlightSessions.has(sessionId);
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const activeSessionRef = useRef(sessionId);
   activeSessionRef.current = sessionId;
@@ -1351,7 +1365,7 @@ export default function GameBrowser() {
     mode: InteractionMode = interactionMode,
   ) => {
     const trimmed = text.trim();
-    if (!sessionId || playTurn.isPending || trimmed.length < 1 || trimmed.length > 4000) return;
+    if (!sessionId || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
     setNotice(null);
     const metadata = getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
@@ -1366,7 +1380,9 @@ export default function GameBrowser() {
         combat_turn_index: state.combat.current_turn_index,
       } : {});
     pendingTurnRef.current = { signature, actionId };
-    playTurn.mutate({
+    inFlightSessionsRef.current.add(sessionId);
+    setInFlightSessions(new Set(inFlightSessionsRef.current));
+    void playTurn.mutateAsync({
       sessionId,
       data: {
         message: trimmed,
@@ -1376,8 +1392,7 @@ export default function GameBrowser() {
         ...storedTurnContext(actionScope, actionId),
         ...(targetId ? { target_id: targetId } : {}),
       },
-    }, {
-      onSuccess: (result) => {
+    }).then((result) => {
         const stillVisible = activeSessionRef.current === sessionId;
         if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
         clearPendingTurnAction(actionScope, actionId);
@@ -1445,8 +1460,7 @@ export default function GameBrowser() {
         }
         if (stillVisible) setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
-      },
-      onError: (error) => {
+      }, (error) => {
         if (activeSessionRef.current !== sessionId) {
           if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
           return;
@@ -1457,7 +1471,9 @@ export default function GameBrowser() {
           void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
         }
         setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
-      },
+      }).finally(() => {
+        inFlightSessionsRef.current.delete(sessionId);
+        setInFlightSessions(new Set(inFlightSessionsRef.current));
     });
   };
 
@@ -1532,7 +1548,7 @@ export default function GameBrowser() {
                 onSubmit={handleSubmit}
                 onExplorationCommand={(text) => submitTurn(text, undefined, 'do')}
                 onEconomyCommand={(text, command) => submitTurn(text, command, 'do')}
-                sending={playTurn.isPending}
+                sending={turnSending}
                 notice={notice}
                 scrollRef={storyScrollRef}
                 onScroll={handleStoryScroll}
@@ -1554,6 +1570,7 @@ export default function GameBrowser() {
         {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
+          {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}
         </div>
       </div>
     </EnvironmentThemeProvider>
