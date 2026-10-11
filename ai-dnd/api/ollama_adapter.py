@@ -10,11 +10,16 @@ from contextvars import ContextVar
 from typing import Any, Iterator
 
 import game
+from api.model_phase import ModelFailure
 from api.world_metadata import validate_world_metadata
 
 
 MODEL_NAME = "qwen3:8b"
 MAX_MODEL_CALLS_PER_TURN = 2
+# Successful tavern narration has completed in about 25s. A hung call was
+# still inside the client at the smoke's 240s HTTP limit. 90s fails closed
+# first and leaves the turn lock.
+PROVIDER_TIMEOUT_SECONDS = 90
 _MODEL_FAILURES: ContextVar[list[str] | None] = ContextVar(
     "ai_dnd_api_model_failures", default=None
 )
@@ -113,6 +118,7 @@ class AuthenticatedOllamaAdapter:
             client = ollama.Client(
                 host=host,
                 headers={"Authorization": f"Bearer {token}"},
+                timeout=PROVIDER_TIMEOUT_SECONDS,
             )
         except Exception as error:
             _logger.error(
@@ -190,7 +196,7 @@ class AuthenticatedOllamaAdapter:
         except Exception as error:
             failures = _MODEL_FAILURES.get()
             if failures is not None:
-                failures.append(type(error).__name__)
+                failures.append(ModelFailure(type(error).__name__))
             # game.py safely catches model errors; keep its server log sanitized.
             raise RuntimeError("Ollama request failed.") from None
 

@@ -8,6 +8,7 @@ delete process.env.REPL_ID;
 
 let vite;
 let getContextualActionSuggestions;
+let getTurnInteractionMetadata;
 
 before(async () => {
   const { createServer } = await import('vite');
@@ -19,6 +20,7 @@ before(async () => {
   });
   const module = await vite.ssrLoadModule('/src/lib/action-suggestions.ts');
   getContextualActionSuggestions = module.getContextualActionSuggestions;
+  getTurnInteractionMetadata = module.getTurnInteractionMetadata;
 });
 
 after(async () => {
@@ -57,6 +59,10 @@ test('suggestions use the current scene and actual inventory', () => {
   assert.ok(messages.includes('Envanterimde neler var?'));
   assert.ok(!messages.some((message) => message.includes('Lyra')));
   assert.ok(!messages.some((message) => message.includes('saldırıyorum')));
+  assert.equal(suggestions.find((item) => item.id === 'observe')?.mode, 'do');
+  assert.equal(suggestions.find((item) => item.id === 'talk-npc_001')?.mode, 'say');
+  assert.equal(suggestions.find((item) => item.id === 'talk-npc_001')?.targetId, 'npc_001');
+  assert.equal(suggestions.find((item) => item.id === 'inventory')?.mode, 'ask_dm');
 });
 
 test('combat suggestions require the player turn, a live target, and a sword', () => {
@@ -89,6 +95,9 @@ test('combat suggestions require the player turn, a live target, and a sword', (
   assert.ok(attackSuggestions[0].message.includes('Gromm'));
   assert.ok(!attackSuggestions[0].message.includes('Lyra'));
 
+  assert.equal(attackSuggestions[0].mode, 'do');
+  assert.equal(attackSuggestions[0].targetId, 'npc_001');
+
   const enemyTurn = getContextualActionSuggestions(makeState({
     combat: { ...combat, current_actor_id: 'npc_001' },
   }));
@@ -109,4 +118,37 @@ test('empty scenes offer a grounded presence question rather than an invented ta
 
   assert.ok(suggestions.some((suggestion) => suggestion.id === 'presence'));
   assert.ok(!suggestions.some((suggestion) => suggestion.id.startsWith('attack-')));
+  assert.equal(suggestions.find((suggestion) => suggestion.id === 'presence')?.mode, 'ask_dm');
+});
+
+test('conversation mode uses only a target in the current scene', () => {
+  const state = makeState();
+  assert.deepEqual(getTurnInteractionMetadata(state, 'say', 'npc_001', 'npc_combat'), {
+    interaction_mode: 'say', target_id: 'npc_001',
+  });
+  for (const target of ['', 'npc_previous_scene']) {
+    assert.deepEqual(getTurnInteractionMetadata(state, 'say', target, 'npc_combat'), {
+      interaction_mode: 'say', target_id: null,
+    });
+  }
+});
+
+test('narrator questions and world actions do not carry a conversation target', () => {
+  for (const mode of ['ask_dm', 'do']) {
+    assert.deepEqual(getTurnInteractionMetadata(makeState(), mode, 'npc_001', 'npc_combat'), {
+      interaction_mode: mode, target_id: null,
+    });
+  }
+});
+
+test('active combat and structured actions keep the existing action route', () => {
+  const state = makeState({ combat: { active: true } });
+  for (const mode of ['say', 'ask_dm', 'do']) {
+    assert.deepEqual(getTurnInteractionMetadata(state, mode, 'npc_001', 'npc_enemy'), {
+      interaction_mode: 'do', target_id: 'npc_enemy',
+    });
+  }
+  assert.deepEqual(getTurnInteractionMetadata(makeState(), 'say', 'npc_001', '', true), {
+    interaction_mode: 'do', target_id: null,
+  });
 });

@@ -66,10 +66,13 @@ const basePanelProps = {
   onRetry() {},
 };
 
-test('only a presented BLUE ambient event exposes Interact and Observe controls', () => {
+test('only a presented BLUE ambient event exposes immersive Interact and Observe controls', () => {
   const html = renderPanel(basePanelProps);
 
   assert.match(html, /data-testid="panel-ambient-event"/);
+  assert.match(html, /DİKKATİNİ ÇEKEN/);
+  assert.match(html, /A temporary visitor/);
+  assert.doesNotMatch(html, /Mavi olay/);
   assert.match(html, /data-testid="button-ambient-action-interact"/);
   assert.match(html, /Etkileşime geç/);
   assert.match(html, /data-testid="button-ambient-action-observe"/);
@@ -124,10 +127,15 @@ test('action requests use a single generated UUIDv4 and preserve the selected ac
   );
 });
 
-test('all four server statuses and their reason codes render without synthesized outcomes', () => {
-  const statuses = ['APPLIED', 'REJECTED', 'NO_EFFECT', 'ALREADY_APPLIED'];
+test('all four server statuses render as player-facing outcomes without raw internal codes', () => {
+  const labels = {
+    APPLIED: 'Karşılaşma ilerledi.',
+    REJECTED: 'Şu anda buna müdahale edemiyorsun.',
+    NO_EFFECT: 'Bir süre gözlemliyorsun; belirgin bir değişiklik olmuyor.',
+    ALREADY_APPLIED: 'Bu karşılaşma zaten gelişti.',
+  };
 
-  for (const status of statuses) {
+  for (const [status, label] of Object.entries(labels)) {
     const html = renderPanel({
       ...basePanelProps,
       result: {
@@ -141,8 +149,10 @@ test('all four server statuses and their reason codes render without synthesized
     });
 
     assert.match(html, new RegExp(`data-status="${status}"`));
-    assert.match(html, new RegExp(`>${status}<`));
-    assert.match(html, /data-testid="ambient-event-reason-code">server_reason/);
+    assert.match(html, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(html, new RegExp(`>${status}<`));
+    assert.doesNotMatch(html, /server_reason/);
+    assert.doesNotMatch(html, /ambient-event-status-code|ambient-event-reason-code/);
   }
 });
 

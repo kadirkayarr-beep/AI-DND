@@ -1,0 +1,13 @@
+PASS negative invented source title
+  prior view_errors: []
+  addendum: ["source title mismatch FR22-F-001: 'Invented Chronicle' does not match hash 569020fece5281a8aba01fac59a2fbb804dfe3f32af75df70aa20d7f3363c528"]
+PASS negative wrong existing V2.1 parent
+  prior view_errors: []
+  addendum: ['lineage parent mismatch FR22-F-001: v21_id is WD21-F-001; required parent is FR21-F-001']
+positive corrected view errors: 0
+patches 47 records 38
+ledger verdicts {'supported_at_stated_scope': 137, 'valid_historical_or_adventure': 20, 'corrected_by_erratum': 38, 'unresolved_owner_decision': 7}
+ledger corrected_by_erratum is assigned from patch membership before keyword overlap
+keyword overlap is not semantic verification
+FAILS 0
+PASS addendum

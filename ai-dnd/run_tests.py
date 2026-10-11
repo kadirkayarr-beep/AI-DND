@@ -3,7 +3,9 @@
 
 import argparse
 import math
+import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import tempfile
@@ -13,6 +15,7 @@ from test_definition_preflight import check_test_definitions
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_GATE_TIMEOUT = 300.0
+TIMEOUT_CLEANUP_LIMIT = 5.0
 TESTS = (
     "test_definition_preflight_checks.py",
     "test_runner_inventory.py",
@@ -26,6 +29,9 @@ TESTS = (
     "test_combat_v2_authoritative.py",
     "api/tests/test_death_bounded.py",
     "api/tests/test_initiative.py",
+    "test_local_exploration.py",
+    "test_held_weapon.py",
+    "test_monster_sense.py",
     "test_regression.py",
     "test_migration.py",
     "test_migration_harden.py",
@@ -81,15 +87,74 @@ def positive_timeout(value):
     return seconds
 
 
-def run_child_gate(command, test_name, timeout):
-    """Bound the entire child lifetime, including imports and loading hooks."""
+def stop_child_gate(child, test_name):
+    """Kill inherited-group work and bound the direct child's reap."""
+    # Kill even if the leader has already exited: descendants may still live.
     try:
-        # subprocess.run kills and waits for the direct child on TimeoutExpired.
-        return subprocess.run(command, cwd=ROOT, timeout=timeout)
+        os.killpg(child.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    try:
+        child.wait(timeout=TIMEOUT_CLEANUP_LIMIT)
     except subprocess.TimeoutExpired:
-        print(f"GATE TIMED OUT: {test_name} exceeded {timeout:g} seconds",
+        print(f"GATE CLEANUP FAILED: {test_name} direct child did not exit "
+              f"within {TIMEOUT_CLEANUP_LIMIT:g} seconds after SIGKILL",
               file=sys.stderr, flush=True)
-        return None
+
+
+def run_child_gate(command, test_name, timeout):
+    """Bound child lifetime on timeout and catchable runner interruption."""
+    if os.name != "posix":
+        raise RuntimeError("Gate process-tree cleanup requires a POSIX runtime")
+    child = None
+    pending_signal = None
+    signals = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+    previous = {number: signal.getsignal(number) for number in signals}
+
+    def ignore_interruptions():
+        for number in signals:
+            signal.signal(number, signal.SIG_IGN)
+
+    def interrupt(number, frame):
+        nonlocal pending_signal
+        # Popen can be interrupted after spawning but before returning its handle.
+        # Defer the exception until we own that handle so cleanup cannot miss it.
+        if child is None:
+            pending_signal = number
+            return
+        ignore_interruptions()
+        if number == signal.SIGINT:
+            raise KeyboardInterrupt
+        raise SystemExit(128 + number)
+
+    def stop():
+        # Repeated catchable signals must not interrupt the bounded reap.
+        ignore_interruptions()
+        stop_child_gate(child, test_name)
+
+    try:
+        for number in signals:
+            signal.signal(number, interrupt)
+        child = subprocess.Popen(command, cwd=ROOT, start_new_session=True)
+        if pending_signal is not None:
+            interrupt(pending_signal, None)
+        try:
+            return subprocess.CompletedProcess(command, child.wait(timeout=timeout))
+        except subprocess.TimeoutExpired:
+            print(f"GATE TIMED OUT: {test_name} exceeded {timeout:g} seconds",
+                  file=sys.stderr, flush=True)
+            stop()
+            return None
+    except BaseException:
+        if child is not None:
+            ignore_interruptions()
+            print(f"GATE INTERRUPTED: {test_name}; stopping its process group",
+                  file=sys.stderr, flush=True)
+            stop()
+        raise
+    finally:
+        for number, handler in previous.items():
+            signal.signal(number, handler)
 
 
 def main(argv=()):
@@ -140,7 +205,7 @@ def main(argv=()):
                     "sys.exit(run_unittest_gate(sys.argv[1], sys.argv[2]))",
                     module, str(completion_path),
                 ]
-                result = run_child_gate(command, test_name, args.gate_timeout)
+                result = run_child_gate(command, test_name=test_name, timeout=args.gate_timeout)
                 if result is None:
                     failures.append(test_name)
                     continue
@@ -160,7 +225,7 @@ def main(argv=()):
                     failures.append(test_name)
         else:
             command = [sys.executable, str(ROOT / test_name)]
-            result = run_child_gate(command, test_name, args.gate_timeout)
+            result = run_child_gate(command, test_name=test_name, timeout=args.gate_timeout)
             if result is None or result.returncode != 0:
                 failures.append(test_name)
 

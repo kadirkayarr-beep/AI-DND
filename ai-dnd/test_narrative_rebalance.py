@@ -895,6 +895,7 @@ class ResolvedNarrationFallbackTests(unittest.TestCase):
             "personality": "Kibar.", "appearance": "Sade bir pelerin giymiş.",
             "relationship": "neutral",
         })
+        self.npc["name_known_to_player"] = True
         self.world["flags"]["active_npc_id"] = self.npc["id"]
         living_world.ensure_scene_record(self.world, "tavern", 0)["materialized"] = True
         self.session.lore_authority_context = game._empty_lore_authority_context()

@@ -46,7 +46,16 @@ Thumbs.db
 
 # Replit
 .cache/
-.local/
+!.local/
+.local/*
+!.local/evidence/
+.local/evidence/*
+!.local/evidence/phase8-master-v1-20261009/
+.local/evidence/phase8-master-v1-20261009/*
+!.local/evidence/phase8-master-v1-20261009/m09-external-chatgpt-assessment-20261010.json
+!.local/evidence/phase8-master-v1-20261009/m09-owner-amendment-20261010.json
+!.local/evidence/phase8-master-v1-20261009/m09-owner-command-b-acceptance-20261010.json
+!.local/evidence/phase8-master-v1-20261009/phase8-expansion-closure-v1-20261010.json
 
 # Python
 ai-dnd/saves/
@@ -76,3 +85,15 @@ __pycache__/
 # is ignored by a machine-wide git configuration.
 !ai-dnd/docs/evidence/suite-runs/**/output.log
 !ai-dnd/docs/evidence/development-runs/**/output.log
+
+# Wave3 local live harness: ignore service/runtime noise; keep JSON + summary logs.
+ai-dnd/reports/wave3-local-live-*/api*.log
+ai-dnd/reports/wave3-local-live-*/bridge.*.log
+ai-dnd/reports/wave3-local-live-*/web.*.log
+ai-dnd/reports/wave3-local-live-*/proxy.*.log
+ai-dnd/reports/wave3-local-live-*/debug_*.py
+ai-dnd/reports/wave3-local-live-*/wsl-*.txt
+ai-dnd/reports/wave3-local-live-*/full_suite_api_discover.log
+ai-dnd/reports/wave3-local-live-*/full_suite_release_gates.log
+!ai-dnd/reports/wave3-local-live-*/full_suite_*_retry.log
+!ai-dnd/reports/wave3-local-live-*/posix_httpevidence_wsl.log

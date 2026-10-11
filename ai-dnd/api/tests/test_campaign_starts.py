@@ -30,7 +30,7 @@ class CampaignStartPackTests(unittest.TestCase):
             *REVIEWED_PACK.edges,
             *REVIEWED_PACK.facts,
         )
-        self.assertEqual(len(EXTRACTED_PACK.entities), 13)
+        self.assertEqual(len(EXTRACTED_PACK.entities), 14)
         self.assertEqual(len(EXTRACTED_PACK.edges), 7)
         self.assertEqual(len(EXTRACTED_PACK.facts), 20)
         self.assertTrue(
@@ -42,7 +42,7 @@ class CampaignStartPackTests(unittest.TestCase):
         self.assertEqual(
             (PRODUCTION_REGISTRY.entity_count, PRODUCTION_REGISTRY.edge_count,
              PRODUCTION_REGISTRY.fact_count),
-            (13, 7, 20),
+            (14, 7, 20),
         )
         self.assertTrue(
             all(fact.visibility.value != "DM_SECRET" for fact in REVIEWED_PACK.facts)

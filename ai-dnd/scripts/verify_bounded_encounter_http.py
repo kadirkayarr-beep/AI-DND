@@ -267,7 +267,11 @@ def execute(base, resume_base, evidence, checkpoint):
         assert seen_after_dash["distance_ft"] == 5
         assert seen_after_dash["node_id"] == "courtyard_near"
         budget = state_after_dash["combat"]["action_economy"]["actors"][seen["npc_id"]]
-        assert budget["movement_used"] == 55 and budget["dash_count"] == 1 and budget["base_action_spent"]
+        # The response is returned after the monster turn has completed, so
+        # its per-turn base-action flag has already reset. The reported
+        # monster_dash event above is the authoritative action-use evidence.
+        assert budget["movement_used"] == 55 and budget["dash_count"] == 1
+        assert dash["status"] == "resolved" and dash["outcome"] == "dash"
         body, attacked = turn("Turumu bitiriyorum", [{"kind": "end_turn"}])
         attack = next(d for d in dictionaries(attacked) if d.get("action") == "enemy_attack")
         assert attack["target_id"] == "player"

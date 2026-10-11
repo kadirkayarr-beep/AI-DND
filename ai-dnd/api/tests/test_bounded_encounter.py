@@ -134,7 +134,10 @@ class ProductionOwnerIntegrationTests(NativeBase):
         self.assertEqual(self.session.world_state["monster_routes"][actor][0]["distance_ft"], 55)
 
     def test_route_updates_position_and_existing_action_budget(self):
-        self.walk_to_contact()
+        result = self.walk_to_contact()
+        self.assertIn("5 feet", result["narration"])
+        self.assertIn("koşarak yer değiştirir", result["narration"])
+        self.assertNotIn("Python", result["narration"])
         state = self.session.world_state["bounded_encounter"]
         npc = next(n for n in self.session.world_state["npcs"] if n["id"] == state["npc_id"])
         budget = self.session.world_state["combat"]["turn_resources"][npc["id"]]
@@ -149,6 +152,18 @@ class ProductionOwnerIntegrationTests(NativeBase):
         self.assertIn(combat["round"], (1, 2))
         self.assertEqual(budget["base_action_spent"], combat["round"] == 1)
         self.assertEqual(budget["base_action_spent"], npc["id"] in combat["actions_used"])
+
+    def test_visible_descriptor_and_dash_never_reveal_hidden_identity(self):
+        entered = self.enter()
+        npc = next(n for n in self.session.world_state["npcs"]
+                   if n["id"] == self.session.world_state["bounded_encounter"]["npc_id"])
+        self.assertIn(living_world.public_npc_name(npc), entered["narration"])
+        before = self.canonical()
+        self.assertEqual(owner.visible_dash_narration(self.session, {"outcome": "hit", "actor": npc["id"]}), "")
+        self.assertEqual(owner.visible_dash_narration(self.session, {"outcome": "dash", "actor": "missing"}), "")
+        self.assertEqual(before, self.canonical())
+        npc["hidden"] = True
+        self.assertEqual(owner.visible_dash_narration(self.session, {"outcome": "dash", "actor": npc["id"]}), "")
 
     def test_repeat_entry_does_not_heal_or_respawn(self):
         self.enter()

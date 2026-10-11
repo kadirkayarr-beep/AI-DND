@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "distro": "Ubuntu-24.04 (WSL2)",
+  "workdir": "/tmp/ai-dnd-posix-evidence",
+  "note": "Copied ai-dnd to native Linux FS + git init because Windows worktree gitdir is not resolvable under /mnt/c",
+  "tests": [
+    "HttpEvidenceTests.test_sigterm_has_end_time_and_actual_exit_status",
+    "HttpEvidenceTests.test_hard_kill_leaves_identifiable_incomplete_record_never_pass"
+  ],
+  "log_path": "/mnt/c/Users/Kadir/Desktop/AI-DND-pre04-wave3/ai-dnd/reports/wave3-local-live-20261006/posix_httpevidence_wsl.log",
+  "log_tail": "test_sigterm_has_end_time_and_actual_exit_status (api.tests.test_http_acceptance_evidence.HttpEvidenceTests.test_sigterm_has_end_time_and_actual_exit_status) ... ok\ntest_hard_kill_leaves_identifiable_incomplete_record_never_pass (api.tests.test_http_acceptance_evidence.HttpEvidenceTests.test_hard_kill_leaves_identifiable_incomplete_record_never_pass) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.543s\n\nOK\n"
+}

@@ -109,11 +109,25 @@ def item_for(session, actor, data, weapon, instance=None):
 
 def held_identity(session, actor, data, value):
     """Unique owned item IDs distinguish two weapons of the same catalog type."""
-    for item in inventory(session, actor, data):
+    items = inventory(session, actor, data)
+    for item in items:
         if isinstance(item, dict) and item.get("item_id") == value:
             return value
-    found = lookup(value)
-    return found["weapon_id"] if found else value
+    weapon = lookup(value)
+    if weapon is not None:
+        matches = [
+            item for item in items
+            if isinstance(item, dict)
+            and isinstance(item.get("item_id"), str)
+            and (
+                item.get("weapon_id") == weapon["weapon_id"]
+                or item.get("name") == value
+            )
+        ]
+        if len(matches) == 1:
+            return matches[0]["item_id"]
+        return weapon["weapon_id"]
+    return value
 
 
 def pair(session, actor, target):
@@ -865,6 +879,24 @@ def _resolve(session, c):
     return result
 
 
+def _held_weapon_profiles(session, actor, data):
+    """Catalog profiles for currently held hands; item_id refs resolve via inventory."""
+    hands = equipment(session, actor, data)
+    profiles = []
+    for value in hands.values():
+        if value is None:
+            continue
+        weapon = lookup(value)
+        if weapon is None:
+            for item in inventory(session, actor, data):
+                if isinstance(item, dict) and item.get("item_id") == value:
+                    weapon = lookup(item.get("weapon_id", item.get("name")))
+                    break
+        if weapon is not None:
+            profiles.append(weapon)
+    return profiles
+
+
 def natural_choice(session, text):
     """Choices only; no model-derived stats, grants, distance or hand state."""
     normalized = session._normalize_turkish_typos(text)
@@ -879,8 +911,7 @@ def natural_choice(session, text):
     unarmed = bool(re.search(r"yumruk|tekme|unarmed|grapple|kavra|gures|shove|itiyorum", normalized))
     identity = "unarmed" if unarmed else selected[0] if selected else None
     if identity is None:
-        hands = session.world_state.get("equipment", {})
-        held = [lookup(v) for v in hands.values() if lookup(v)]
+        held = _held_weapon_profiles(session, "player", getattr(session, "character", {}))
         if not held:
             fail("no_weapon", "Specify an available held weapon or Unarmed Strike.")
         identity = held[0]["weapon_id"]

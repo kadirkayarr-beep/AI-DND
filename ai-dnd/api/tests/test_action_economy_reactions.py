@@ -156,13 +156,16 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_react_save_rolls_back_and_retries_once_after_reopening(self):
         await self.assert_failed_resolution_retry("react")
 
+    async def test_failed_readied_movement_save_rolls_back_and_retries_once_after_reopening(self):
+        await self.assert_failed_resolution_retry("react", response_kind="move")
+
     async def test_failed_decline_save_rolls_back_and_retries_once_after_reopening(self):
         await self.assert_failed_resolution_retry("decline_reaction")
 
-    async def assert_failed_resolution_retry(self, kind):
+    async def assert_failed_resolution_retry(self, kind, response_kind="attack"):
         record = self.manager.get(self.sid)
         session = record.game_session
-        npcs, identity = interrupted(session)
+        npcs, identity = interrupted(session, response_kind=response_kind)
         # These real d20 rolls both hit. Fix only damage and the readied strike's
         # miss so this remains a nonfatal scheduler/persistence regression.
         session.rng.seed(0)
@@ -217,7 +220,10 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failed.status_code, 503, failed.text)
         self.assertEqual(save.call_count, 1)
         self.assertEqual(enemy_roll.call_count, 2)
-        self.assertEqual(reaction_roll.call_count, int(kind == "react"))
+        self.assertEqual(
+            reaction_roll.call_count,
+            int(kind == "react" and response_kind == "attack"),
+        )
         self.assertEqual(runtime(record), before)
         self.assertEqual(session.character["current_hp"], 100)
         self.assertEqual(session.world_state["combat"], combat_before)
@@ -234,7 +240,10 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(successful.status_code, 200, successful.text)
         self.assertEqual(save.call_count, 1)
         self.assertEqual(enemy_roll.call_count, 2)
-        self.assertEqual(reaction_roll.call_count, int(kind == "react"))
+        self.assertEqual(
+            reaction_roll.call_count,
+            int(kind == "react" and response_kind == "attack"),
+        )
         body = successful.json()
         # A failed attempt's uncommitted history event gets a fresh UUID on retry;
         # the mechanical outcome and narration must still be identical.

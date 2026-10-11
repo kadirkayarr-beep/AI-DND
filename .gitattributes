@@ -6,3 +6,10 @@ attached_assets/.D&D_5e_-_Players_Handbook_2024_1790967718467.pdf.daxyuuZ1rSQcea
 attached_assets/D&D_5e_-_Dungeon_Master_Guide_2024_1790967864536.pdf filter=lfs diff=lfs merge=lfs -text
 attached_assets/D&D_5e_-_Monster_Manual_2024_1790967864536.pdf filter=lfs diff=lfs merge=lfs -text
 attached_assets/D&D_5e_-_Players_Handbook_2024_1790967864536.pdf filter=lfs diff=lfs merge=lfs -text
+ai-dnd/docs/evidence/phase8-expansion/lore-review-1501-freeze-candidate/Owner_Decision_Castle_Ward_1501.md -text
+ai-dnd/api/lore_authority/packs/pack_index.json -text
+ai-dnd/api/lore_authority/packs/neverwinter_the_north_v1.extraction.json -text
+ai-dnd/api/lore_authority/packs/neverwinter_the_north_v1.review.json -text
+ai-dnd/api/lore_authority/packs/installed_region_catalog.json -text
+ai-dnd/docs/AI-DND_Future_Project_Bible_v*.md -text
+ai-dnd/docs/archive/future-project-bible/*.md -text

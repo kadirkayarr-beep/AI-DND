@@ -48,7 +48,7 @@ class CampaignShopTests(unittest.TestCase):
             "game.ask_dungeon_master",
             return_value=shop_response(create_shops=[valid_shop_proposal()]),
         ) as ask:
-            result = self.session.run_player_turn("Find a local merchant.")
+            result = self.session.run_player_turn("Create a local shop and merchant.")
 
         shop = self.session.world_state["shops"][0]
         owner = next(
@@ -72,7 +72,8 @@ class CampaignShopTests(unittest.TestCase):
             result["_engine_event_evidence"]["procedural_entity_ids"],
             ["npc_001", "shop_001"],
         )
-        self.assertTrue(ask.call_args.kwargs["allow_new_shops"])
+        self.assertFalse(ask.call_args.kwargs["allow_new_shops"])
+        self.assertTrue(ask.call_args.kwargs["narration_only"])
         self.assertFalse(ask.call_args.kwargs["allow_new_npcs"])
 
         projected = serialize_session_state(self.session)
@@ -106,14 +107,12 @@ class CampaignShopTests(unittest.TestCase):
                 }
             },
         ) as chat:
-            result = self.session.run_player_turn("Find a local merchant.")
+            result = self.session.run_player_turn("Create a local shop and merchant.")
 
         schema = chat.call_args.kwargs["format"]
         world_updates = schema["properties"]["world_updates"]
         properties = world_updates["properties"]
-        self.assertIn("create_shops", world_updates["required"])
-        self.assertEqual(properties["create_shops"]["minItems"], 1)
-        self.assertEqual(properties["create_shops"]["maxItems"], 1)
+        self.assertEqual(properties["create_shops"]["maxItems"], 0)
         for field in (
             "create_locations",
             "create_npcs",
@@ -130,6 +129,7 @@ class CampaignShopTests(unittest.TestCase):
         self.assertIn("yerel dükkân", result["narration"])
         self.assertNotIn("Vharion", result["narration"])
         self.assertNotIn("gold", result["narration"])
+        self.assertNotEqual(self.session.world_state["shops"][0]["name"], valid_shop_proposal()["name"])
 
     def test_player_name_memory_is_bound_to_the_selected_npc_id(self):
         self.session.lore_authority_context = game._empty_lore_authority_context()
@@ -230,13 +230,14 @@ class CampaignShopTests(unittest.TestCase):
             narration="A new shop appears, run by Mira.",
             create_shops=[],
         )
-        with patch("game.ask_dungeon_master", return_value=response):
-            result = self.session.run_player_turn("Find a local merchant.")
+        with patch.object(self.session, "create_shop_from_proposal", return_value=None), patch("game.ask_dungeon_master", return_value=response) as ask:
+            result = self.session.run_player_turn("Create a local shop and merchant.")
 
         self.assertEqual(self.session.world_state["shops"], [])
         self.assertEqual(self.session.world_state["npcs"], [])
         self.assertEqual(result["action_result"]["status"], "proposal_rejected")
-        self.assertIn("hiçbir dükkân eklenmedi", result["narration"])
+        self.assertIn("oluşturulamıyor", result["narration"])
+        ask.assert_not_called()
 
     def test_only_one_shop_and_shopkeeper_can_be_created(self):
         created = self.session.create_shop_from_proposal(valid_shop_proposal())

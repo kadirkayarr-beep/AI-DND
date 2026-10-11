@@ -33,7 +33,7 @@ def validate_catalog(catalog: Any = CATALOG) -> tuple[Mapping[str, Any], ...]:
         if not isinstance(quest, Mapping):
             raise ValueError("Quest definition must be an object.")
         required = {"quest_id", "title", "description", "objectives"}
-        optional = {"giver_npc_id", "offer_condition"}
+        optional = {"giver_npc_id", "offer_condition", "xp"}
         if not required.issubset(quest) or set(quest) - required - optional:
             raise ValueError("Quest definition fields are invalid.")
         quest_id = quest["quest_id"]
@@ -45,6 +45,11 @@ def validate_catalog(catalog: Any = CATALOG) -> tuple[Mapping[str, Any], ...]:
             quest["giver_npc_id"], 120
         ):
             raise ValueError("Quest giver is invalid.")
+        quest_xp = quest.get("xp")
+        if "xp" in quest and (
+            type(quest_xp) is not int or quest_xp < 1 or quest_xp > 100_000
+        ):
+            raise ValueError("Quest experience is invalid.")
         offer_condition = quest.get("offer_condition")
         frozen_condition = None
         if offer_condition is not None:
@@ -98,14 +103,17 @@ def validate_catalog(catalog: Any = CATALOG) -> tuple[Mapping[str, Any], ...]:
             frozen["required_count"] = count
             frozen_objectives.append(MappingProxyType(frozen))
         seen.add(quest_id)
-        validated.append(MappingProxyType({
+        frozen_quest = {
             "quest_id": quest_id,
             "title": quest["title"],
             "description": quest["description"],
             "giver_npc_id": quest.get("giver_npc_id"),
             "offer_condition": frozen_condition,
             "objectives": tuple(frozen_objectives),
-        }))
+        }
+        if "xp" in quest:
+            frozen_quest["xp"] = quest_xp
+        validated.append(MappingProxyType(frozen_quest))
     return tuple(validated)
 
 

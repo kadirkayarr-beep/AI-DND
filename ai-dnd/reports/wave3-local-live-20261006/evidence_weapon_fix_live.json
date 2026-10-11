@@ -1,0 +1,414 @@
+{
+  "source": "f74 + working tree weapon_not_held fix",
+  "not_clean_f74": true,
+  "health": {
+    "status": "ok",
+    "engine": "AI-DND",
+    "model": "qwen3:8b"
+  },
+  "budget_used_model_requiring_turns": 0,
+  "budget_cap": 4,
+  "named_campaign": "b2000bf9-cf23-4d68-ab09-98eae3513822",
+  "pronoun_campaign": "584928a4-dae2-49b5-9020-d8fb3b208774",
+  "unequip_campaign": "ebc9053e-2469-4025-84ab-51a6912f152d",
+  "inventory_after_materialize": [
+    "Macera çantası [item_000001]",
+    "Kılıç [item_000002] (kuşanılmış)"
+  ],
+  "named_attack_no_draw": {
+    "status": "PASS",
+    "http": 200,
+    "combat": true,
+    "conversation": {
+      "active": false,
+      "interlocutor": null
+    },
+    "detail": null,
+    "calls": 0,
+    "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi, bir darbe alır: 8 hasar. Rakibin savunmaya geçer. Rakibin savunmaya geçer.",
+    "inventory": [
+      "Macera çantası [item_000001]",
+      "Kılıç [item_000002] (kuşanılmış)"
+    ]
+  },
+  "pronoun_attack_no_draw": {
+    "status": "PASS",
+    "http": 200,
+    "combat": true,
+    "conversation": {
+      "active": false,
+      "interlocutor": null
+    },
+    "detail": null,
+    "calls": 0,
+    "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi, bir darbe alır: 8 hasar. Rakibin savunmaya geçer. Rakibin savunmaya geçer.",
+    "inventory": [
+      "Macera çantası [item_000001]",
+      "Kılıç [item_000002] (kuşanılmış)"
+    ]
+  },
+  "unheld_still_rejected": {
+    "status": "PASS",
+    "unequip": {
+      "label": "unequip",
+      "message": "/item unequip main_hand",
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "combat": false,
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002]"
+      ],
+      "narration": "Eşya işlemi Python tarafından atomik olarak tamamlandı."
+    },
+    "attack": {
+      "label": "unheld_named_attack",
+      "message": "Ona kılıcımla saldırıyorum.",
+      "http": 400,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": {
+        "code": "weapon_not_held",
+        "message": "Requested weapon is not held."
+      },
+      "combat": false,
+      "inventory": null,
+      "narration": ""
+    }
+  },
+  "turns_named": [
+    {
+      "label": "look",
+      "message": "Etrafıma bakıyorum.",
+      "mode": "ask_dm",
+      "target": null,
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Neverwinter çevresine göz gezdiriyorsun. Yakında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Sokağın ilerisinde bir köpek havlar; başka bir köpek kısa bir karşılık verir.",
+      "combat": false,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası",
+        "Kılıç"
+      ],
+      "combat_result": null
+    },
+    {
+      "label": "inventory",
+      "message": "Envanterimde neler var?",
+      "mode": "ask_dm",
+      "target": null,
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Envanterinde: Macera çantası, Kılıç.",
+      "combat": false,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ],
+      "combat_result": null
+    },
+    {
+      "label": "approach",
+      "message": "Yol kenarında duran, sade bir pelerin giymiş kişi kişisine yaklaşıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi seni fark edip sana dönüyor.",
+      "combat": false,
+      "conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "role": null
+        }
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ],
+      "combat_result": null
+    },
+    {
+      "label": "named_attack_no_draw",
+      "message": "Ona kılıcımla saldırıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi, bir darbe alır: 8 hasar. Rakibin savunmaya geçer. Rakibin savunmaya geçer.",
+      "combat": true,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ],
+      "combat_result": {
+        "action": "attack",
+        "status": "resolved",
+        "success": true,
+        "outcome": "hit",
+        "actor": "player",
+        "actor_name": "TestHero",
+        "target": "npc_001",
+        "target_id": "npc_001",
+        "target_name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+        "weapon": "Kılıç",
+        "attack_roll": 8,
+        "attack_bonus": 5,
+        "attack_total": 13,
+        "target_ac": 10,
+        "critical": false,
+        "damage": 8,
+        "target_hp_before": 10,
+        "target_hp_after": 2,
+        "target_status": "active",
+        "damage_type": "slashing",
+        "attack_rolls": [
+          8
+        ],
+        "disadvantage": false,
+        "hp_damage": 8,
+        "temporary_hp_before": null,
+        "temporary_hp_absorbed": null,
+        "temporary_hp_after": null,
+        "species_effects": [],
+        "action_id": "8638e881-17b9-47cc-acb4-05354ed87a49",
+        "resolution_id": "8638e881-17b9-47cc-acb4-05354ed87a49:attack_roll:1",
+        "resolution": {
+          "action_id": "8638e881-17b9-47cc-acb4-05354ed87a49",
+          "session_id": "b2000bf9-cf23-4d68-ab09-98eae3513822",
+          "resolution_id": "8638e881-17b9-47cc-acb4-05354ed87a49:attack_roll:1",
+          "resolution_type": "attack_roll",
+          "roll_type": "d20",
+          "raw_rolls": [
+            8
+          ],
+          "selected_roll": 8,
+          "advantage": false,
+          "disadvantage": false,
+          "advantage_cancelled": false,
+          "actor_id": "player",
+          "target_id": "npc_001",
+          "modifier_breakdown": {
+            "attack_bonus": 5
+          },
+          "total_modifier": 5,
+          "total": 13,
+          "target_value": 10,
+          "target_ac": 10,
+          "outcome": "HIT",
+          "critical_state": null
+        },
+        "economy_steps": null,
+        "combat_id": "cc97f92b-fc85-47c2-acda-4c6ef18d064d",
+        "combat_status": "active",
+        "round": 2,
+        "current_turn_index": 1,
+        "combat_started": true,
+        "combat_ended": null,
+        "end_reason": null,
+        "current_actor_id": "player",
+        "turn_owner": "player",
+        "enemy_action": {
+          "action": "monster_dodge",
+          "status": "resolved",
+          "success": true,
+          "outcome": "dodge",
+          "actor": "npc_001",
+          "actor_name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "target": null,
+          "target_id": null,
+          "target_name": null,
+          "weapon": null,
+          "attack_roll": null,
+          "attack_bonus": null,
+          "attack_total": null,
+          "target_ac": null,
+          "critical": null,
+          "damage": 0,
+          "target_hp_before": null,
+          "target_hp_after": null,
+          "target_status": null,
+          "damage_type": null,
+          "attack_rolls": null,
+          "disadvantage": null,
+          "hp_damage": null,
+          "temporary_hp_before": null,
+          "temporary_hp_absorbed": null,
+          "temporary_hp_after": null,
+          "species_effects": null
+        },
+        "enemy_actions": [
+          {
+            "action": "monster_dodge",
+            "status": "resolved",
+            "success": true,
+            "outcome": "dodge",
+            "actor": "npc_001",
+            "actor_name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "target": null,
+            "target_id": null,
+            "target_name": null,
+            "weapon": null,
+            "attack_roll": null,
+            "attack_bonus": null,
+            "attack_total": null,
+            "target_ac": null,
+            "critical": null,
+            "damage": 0,
+            "target_hp_before": null,
+            "target_hp_after": null,
+            "target_status": null,
+            "damage_type": null,
+            "attack_rolls": null,
+            "disadvantage": null,
+            "hp_damage": null,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": null
+          },
+          {
+            "action": "monster_dodge",
+            "status": "resolved",
+            "success": true,
+            "outcome": "dodge",
+            "actor": "npc_001",
+            "actor_name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+            "target": null,
+            "target_id": null,
+            "target_name": null,
+            "weapon": null,
+            "attack_roll": null,
+            "attack_bonus": null,
+            "attack_total": null,
+            "target_ac": null,
+            "critical": null,
+            "damage": 0,
+            "target_hp_before": null,
+            "target_hp_after": null,
+            "target_status": null,
+            "damage_type": null,
+            "attack_rolls": null,
+            "disadvantage": null,
+            "hp_damage": null,
+            "temporary_hp_before": null,
+            "temporary_hp_absorbed": null,
+            "temporary_hp_after": null,
+            "species_effects": null
+          }
+        ]
+      }
+    }
+  ],
+  "turns_pronoun": [
+    {
+      "label": "look2",
+      "message": "Etrafıma bakıyorum.",
+      "mode": "ask_dm",
+      "target": null,
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Neverwinter çevresine göz gezdiriyorsun. Yakında Yol kenarında duran, sade bir pelerin giymiş kişi, Bir muhafız var. Bir yük arabasının tekeri taşların arasına sıkışır; sürücüsü çevreden yardım ister gibi bakınır.",
+      "combat": false,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası",
+        "Kılıç"
+      ]
+    },
+    {
+      "label": "inventory2",
+      "message": "Envanterimde neler var?",
+      "mode": "ask_dm",
+      "target": null,
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Envanterinde: Macera çantası, Kılıç.",
+      "combat": false,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ]
+    },
+    {
+      "label": "approach2",
+      "message": "Yol kenarında duran, sade bir pelerin giymiş kişi kişisine yaklaşıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi seni fark edip sana dönüyor.",
+      "combat": false,
+      "conversation": {
+        "active": true,
+        "interlocutor": {
+          "id": "npc_001",
+          "name": "Yol kenarında duran, sade bir pelerin giymiş kişi",
+          "role": null
+        }
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ]
+    },
+    {
+      "label": "pronoun_attack_no_draw",
+      "message": "Ona saldırıyorum.",
+      "mode": "do",
+      "target": "npc_001",
+      "http": 200,
+      "calls": 0,
+      "budget_used": 0,
+      "detail": null,
+      "narration": "Yol kenarında duran, sade bir pelerin giymiş kişi, bir darbe alır: 8 hasar. Rakibin savunmaya geçer. Rakibin savunmaya geçer.",
+      "combat": true,
+      "conversation": {
+        "active": false,
+        "interlocutor": null
+      },
+      "inventory": [
+        "Macera çantası [item_000001]",
+        "Kılıç [item_000002] (kuşanılmış)"
+      ]
+    }
+  ],
+  "prior_failing_evidence_preserved": "C:\\Users\\Kadir\\Desktop\\AI-DND-pre04-wave3\\ai-dnd\\reports\\wave3-local-live-20261006\\evidence.json"
+}

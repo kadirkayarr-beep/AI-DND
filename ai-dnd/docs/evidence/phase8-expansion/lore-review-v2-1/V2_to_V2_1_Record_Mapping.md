@@ -1,0 +1,185 @@
+# V2 to V2.1 record mapping
+
+V2 IDs accounted: 180 of 180.
+V2.1 records: 202.
+
+- `FR2-F-001` retained -> FR21-F-001
+- `WD2-F-001` retained -> WD21-F-001
+- `WD2-F-002` split -> WD21-F-002-1, WD21-F-002-2
+- `WD2-F-003` retained -> WD21-F-003
+- `WD2-F-004` corrected -> WD21-F-004
+- `WD2-F-005` retained -> WD21-F-005
+- `WD2-F-006` retained -> WD21-F-006
+- `WD2-F-007` corrected -> WD21-F-007
+- `WD2-F-008` retained -> WD21-F-008
+- `WD2-F-009` split -> WD21-F-009-1, WD21-F-009-2, WD21-F-009-3
+- `WD2-F-010` retained -> WD21-F-010
+- `WD2-F-011` corrected -> WD21-F-011
+- `WD2-F-012` corrected -> WD21-F-012
+- `WD2-F-013` corrected -> WD21-F-013
+- `WD2-F-014` corrected -> WD21-F-014
+- `WD2-F-015` retained -> WD21-F-015
+- `WD2-F-016` retained -> WD21-F-016
+- `WD2-F-017` split -> WD21-F-017-1, WD21-F-017-2, WD21-F-017-3
+- `WD2-F-018` corrected -> WD21-F-018
+- `WD2-F-019` corrected -> WD21-F-019
+- `WD2-F-020` corrected -> WD21-F-020
+- `WD2-F-021` corrected -> WD21-F-021
+- `WD2-F-022` corrected -> WD21-F-022
+- `WD2-F-023` split -> WD21-F-023-1, WD21-F-023-2, WD21-F-023-3
+- `WD2-F-024` corrected -> WD21-F-024
+- `WD2-R-001` retained -> WD21-R-001
+- `WD2-F-025` corrected -> WD21-F-025
+- `WD2-F-026` retained -> WD21-F-026
+- `WD2-F-027` retained -> WD21-F-027
+- `WD2-F-028` corrected -> WD21-F-028
+- `WD2-F-029` corrected -> WD21-F-029
+- `WD2-F-030` corrected -> WD21-F-030
+- `WD2-F-031` corrected -> WD21-F-031
+- `WD2-F-032` corrected -> WD21-F-032
+- `WD2-F-033` corrected -> WD21-F-033
+- `WD2-F-034` corrected -> WD21-F-034
+- `WD2-F-035` split -> WD21-F-035-1, WD21-F-035-2
+- `WD2-F-036` corrected -> WD21-F-036
+- `WD2-F-037` corrected -> WD21-F-037
+- `WD2-F-038` corrected -> WD21-F-038
+- `WD2-F-039` corrected -> WD21-F-039
+- `WD2-F-040` corrected -> WD21-F-040
+- `WD2-C-001` corrected -> WD21-C-001
+- `WD2-C-002` retained -> WD21-C-002
+- `WD2-F-041` retained -> WD21-F-041
+- `WD2-F-042` corrected -> WD21-F-042
+- `WD2-F-043` corrected -> WD21-F-043
+- `WD2-F-044` corrected -> WD21-F-044
+- `WD2-F-045` retained -> WD21-F-045
+- `WD2-F-046` corrected -> WD21-F-046
+- `WD2-F-047` corrected -> WD21-F-047
+- `WD2-F-048` retained -> WD21-F-048
+- `WD2-F-049` corrected -> WD21-F-049
+- `WD2-F-050` retained -> WD21-F-050
+- `WD2-F-051` corrected -> WD21-F-051
+- `WD2-F-052` corrected -> WD21-F-052
+- `WD2-F-053` corrected -> WD21-F-053
+- `WD2-F-054` retained -> WD21-F-054
+- `WD2-F-055` corrected -> WD21-F-055
+- `WD2-F-056` retained -> WD21-F-056
+- `WD2-F-057` retained -> WD21-F-057
+- `WD2-H-001` retained -> WD21-H-001
+- `WD2-H-002` retained -> WD21-H-002
+- `WD2-F-058` split -> WD21-F-058-1, WD21-F-058-2, WD21-F-058-3, WD21-F-058-4
+- `WD2-M-001` retained -> WD21-M-001
+- `WD2-F-059` corrected -> WD21-F-059
+- `WD2-F-060` corrected -> WD21-F-060
+- `WD2-F-061` corrected -> WD21-F-061
+- `WD2-F-062` corrected -> WD21-F-062
+- `WD2-F-063` split -> WD21-F-063-1, WD21-F-063-2
+- `WD2-F-064` corrected -> WD21-F-064
+- `WD2-F-065` corrected -> WD21-F-065
+- `WD2-F-066` corrected -> WD21-F-066
+- `WD2-F-067` retained -> WD21-F-067
+- `WD2-F-068` retained -> WD21-F-068
+- `WD2-X-001` corrected -> WD21-X-001
+- `WD2-F-069` reclassified -> WD21-F-069
+- `WD2-A-001` retained -> WD21-A-001
+- `WD2-A-002` retained -> WD21-A-002
+- `WD2-A-003` retained -> WD21-A-003
+- `WD2-A-004` retained -> WD21-A-004
+- `WD2-E-001` retained -> WD21-E-001
+- `WD2-E-002` retained -> WD21-E-002
+- `WD2-E-003` retained -> WD21-E-003
+- `WD2-E-004` retained -> WD21-E-004
+- `WD2-E-005` corrected -> WD21-E-005
+- `WD2-E-006` retained -> WD21-E-006
+- `WD2-E-007` retained -> WD21-E-007
+- `WD2-E-008` corrected -> WD21-E-008
+- `WD2-E-009` corrected -> WD21-E-009
+- `WD2-E-010` corrected -> WD21-E-010
+- `WD2-E-011` retained -> WD21-E-011
+- `WD2-E-012` corrected -> WD21-E-012
+- `WD2-E-013` corrected -> WD21-E-013
+- `WD2-E-014` corrected -> WD21-E-014
+- `WD2-E-015` retained -> WD21-E-015
+- `WD2-E-016` retained -> WD21-E-016
+- `WD2-E-017` retained -> WD21-E-017
+- `WD2-E-019` corrected -> WD21-E-019
+- `WD2-E-020` retained -> WD21-E-020
+- `WD2-E-018` corrected -> WD21-E-018
+- `WD2-X-002` corrected -> WD21-X-002
+- `WD2-X-003` split -> WD21-X-003-1, WD21-X-003-2
+- `WD2-X-004` corrected -> WD21-X-004
+- `WD2-X-005` corrected -> WD21-X-005
+- `WD2-X-006` corrected -> WD21-X-006
+- `WD2-X-007` corrected -> WD21-X-007
+- `WD2-X-008` corrected -> WD21-X-008
+- `WD2-X-009` corrected -> WD21-X-009
+- `BG2-F-001` retained -> BG21-F-001
+- `BG2-F-002` corrected -> BG21-F-002
+- `BG2-F-003` retained -> BG21-F-003
+- `BG2-F-004` retained -> BG21-F-004
+- `BG2-F-005` retained -> BG21-F-005
+- `BG2-F-006` retained -> BG21-F-006
+- `BG2-F-007` retained -> BG21-F-007
+- `BG2-F-008` corrected -> BG21-F-008
+- `BG2-F-009` retained -> BG21-F-009
+- `BG2-F-010` retained -> BG21-F-010
+- `BG2-F-011` split -> BG21-F-011-1, BG21-F-011-2, BG21-F-011-3, BG21-F-011-4, BG21-F-011-5, BG21-F-011-6
+- `BG2-F-012` retained -> BG21-F-012
+- `BG2-F-013` split -> BG21-F-013-1, BG21-F-013-2, BG21-F-013-3
+- `BG2-F-014` corrected -> BG21-F-014
+- `BG2-F-015` retained -> BG21-F-015
+- `BG2-F-016` retained -> BG21-F-016
+- `BG2-F-017` corrected -> BG21-F-017
+- `BG2-F-018` retained -> BG21-F-018
+- `BG2-F-019` retained -> BG21-F-019
+- `BG2-F-020` corrected -> BG21-F-020
+- `BG2-R-001` retained -> BG21-R-001
+- `BG2-F-021` retained -> BG21-F-021
+- `BG2-F-022` retained -> BG21-F-022
+- `BG2-F-023` retained -> BG21-F-023
+- `BG2-F-024` retained -> BG21-F-024
+- `BG2-F-025` split -> BG21-F-025-1, BG21-F-025-2
+- `BG2-F-026` retained -> BG21-F-026
+- `BG2-F-027` retained -> BG21-F-027
+- `BG2-F-028` corrected -> BG21-F-028
+- `BG2-F-029` retained -> BG21-F-029
+- `BG2-H-001` retained -> BG21-H-001
+- `BG2-H-002` retained -> BG21-H-002
+- `BG2-H-003` retained -> BG21-H-003
+- `BG2-H-004` retained -> BG21-H-004
+- `BG2-H-005` retained -> BG21-H-005
+- `BG2-A-001` retained -> BG21-A-001
+- `BG2-A-002` retained -> BG21-A-002
+- `BG2-A-003` split -> BG21-A-003-1, BG21-A-003-2
+- `BG2-A-004` retained -> BG21-A-004
+- `BG2-C-001` corrected -> BG21-C-001
+- `BG2-C-002` corrected -> BG21-C-002
+- `BG2-E-001` retained -> BG21-E-001
+- `BG2-E-002` retained -> BG21-E-002
+- `BG2-E-003` retained -> BG21-E-003
+- `BG2-E-004` retained -> BG21-E-004
+- `BG2-E-005` retained -> BG21-E-005
+- `BG2-E-006` retained -> BG21-E-006
+- `BG2-E-007` retained -> BG21-E-007
+- `BG2-E-008` retained -> BG21-E-008
+- `BG2-E-009` retained -> BG21-E-009
+- `BG2-E-010` retained -> BG21-E-010
+- `BG2-E-011` retained -> BG21-E-011
+- `BG2-E-012` retained -> BG21-E-012
+- `BG2-E-013` corrected -> BG21-E-013
+- `BG2-E-014` retained -> BG21-E-014
+- `BG2-E-015` retained -> BG21-E-015
+- `BG2-E-016` retained -> BG21-E-016
+- `BG2-E-017` retained -> BG21-E-017
+- `BG2-E-018` corrected -> BG21-E-018
+- `BG2-E-019` retained -> BG21-E-019
+- `BG2-E-020` retained -> BG21-E-020
+- `BG2-X-001` corrected -> BG21-X-001
+- `BG2-X-002` corrected -> BG21-X-002
+- `BG2-X-003` corrected -> BG21-X-003
+- `BG2-X-004` corrected -> BG21-X-004
+- `BG2-X-005` corrected -> BG21-X-005
+- `BG2-X-006` corrected -> BG21-X-006
+- `BG2-X-007` corrected -> BG21-X-007
+- `BG2-X-008` corrected -> BG21-X-008
+- `BG2-X-010` corrected -> BG21-X-010
+- `BG2-X-009` corrected -> BG21-X-009

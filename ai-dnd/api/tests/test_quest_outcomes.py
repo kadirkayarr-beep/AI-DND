@@ -258,7 +258,7 @@ class QuestOutcomeTests(unittest.TestCase):
         self.assertIs(session.rng, held_rng)
         self.assertEqual(session.rng.getstate(), rng_state)
         self.assertEqual(session.world_state, expected_world)
-        self.assertEqual(session.serialize_game_state()["version"], 3)
+        self.assertEqual(session.serialize_game_state()["version"], game.SAVE_FORMAT_VERSION)
 
     def test_malformed_v2_quest_records_are_rejected(self):
         session = game.create_session(seed=2)

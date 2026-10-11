@@ -103,7 +103,7 @@ def verified_files(repo):
                 if (".." in Path(relative).parts or Path(relative).is_absolute()
                         or not path.is_relative_to(approved) or digest(path) != sha):
                     raise ValueError(f"Missing, modified or out-of-scope evidence: {relative}")
-            owned.update(receipt["files"])
+            owned.update(Path(relative).as_posix() for relative in receipt["files"])
             receipts.append(str(receipt_path))
         except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
             errors.append({"receipt": str(receipt_path), "error": str(exc)})
@@ -114,7 +114,7 @@ def classify(repo, state, current_files=()):
     owned, errors, receipts = verified_files(repo)
     # The current run has not been sealed yet. Its exclusively created outputs
     # are allowed only for its own end-state check, never for a later invocation.
-    owned.update(str(p.relative_to(repo)) for p in current_files if p.is_relative_to(repo))
+    owned.update(p.relative_to(repo).as_posix() for p in current_files if p.is_relative_to(repo))
     exempt = [r for r in state["entries"]
               if r["index"] == r["worktree"] == "?" and r["path"] in owned]
     blocking = [r for r in state["entries"] if r not in exempt]

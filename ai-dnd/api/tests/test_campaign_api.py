@@ -2282,6 +2282,195 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
                 self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
 
+    async def test_partial_death_markers_block_saved_city_ruler_question(self):
+        question = "Bu şehrin hükümdarı kim?"
+        city_id = "fr:city:neverwinter"
+        npc_id = "npc_partial_dead_ruler_local"
+        for mode in ("NORMAL", "PERMADEATH", "IRONMAN"):
+            for death_marker in ("player_combat_status", "death_state"):
+                for target_id in (None, npc_id):
+                    with self.subTest(
+                        mode=mode, death_marker=death_marker, target_id=target_id
+                    ):
+                        created_response = await self.http.post(
+                            "/api/game/campaigns",
+                            json={
+                                "death_mode": mode,
+                                "campaign_start": {
+                                    "setting_id": "forgotten_realms",
+                                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                                    "region_id": "fr:region:the_north",
+                                    "starting_location_id": city_id,
+                                },
+                            },
+                        )
+                        self.assertEqual(
+                            created_response.status_code, 200, created_response.text
+                        )
+                        created = created_response.json()
+                        campaign_id = created["campaign_id"]
+                        record = self.manager.get(created["session_id"])
+                        session = record.game_session
+                        session.world_state["npcs"].append({
+                            "id": npc_id,
+                            "name": "Elara",
+                            "role": "Guide",
+                            "location": city_id,
+                            "reality_layer": "PROCEDURAL_LOCAL_FICTION",
+                            "memory": [],
+                            "knowledge": [],
+                        })
+                        session.character.update(current_hp=10, max_hp=10)
+                        # Prepare combat before introducing conflicting markers;
+                        # ensure_combat_state also validates death state.
+                        self.assertFalse(session.ensure_combat_state()["active"])
+                        session.world_state["player_combat_status"] = (
+                            "dead" if death_marker == "player_combat_status" else "active"
+                        )
+                        session.world_state["death_state"]["dead"] = (
+                            death_marker == "death_state"
+                        )
+                        session.world_state["death_state"]["terminal"] = False
+                        saved = await self.http.post(
+                            f"/api/game/campaigns/{campaign_id}/save"
+                        )
+                        self.assertEqual(saved.status_code, 200, saved.text)
+                        before_campaign = copy.deepcopy(self.store.get_campaign(campaign_id))
+                        before_save = copy.deepcopy(session.serialize_game_state())
+                        before_messages = copy.deepcopy(session.messages)
+                        before_rng = session.rng.getstate()
+                        before_metadata = copy.deepcopy(session.world_metadata)
+                        before_journal = copy.deepcopy(record.journal)
+                        before_memory = copy.deepcopy(record.narrative_memory)
+                        before_lore = copy.deepcopy(record.lore_authority.to_dict())
+                        before_context = copy.deepcopy(session.lore_authority_context)
+                        before_receipts = copy.deepcopy(record.turn_action_receipts)
+                        self.assertEqual(before_campaign.payload["engine_save"], before_save)
+                        self.assertEqual(before_campaign.payload["lore_authority"], before_lore)
+                        self.assertEqual(before_lore["binding_status"], "BOUND")
+                        self.assertEqual(before_save["player"]["current_hp"], 10)
+                        saved_world = before_save["world_state"]
+                        self.assertEqual(saved_world["death_state"]["mode"], mode)
+                        self.assertFalse(saved_world["death_state"]["terminal"])
+                        self.assertNotEqual(
+                            saved_world["player_combat_status"] == "dead",
+                            saved_world["death_state"]["dead"],
+                        )
+                        action_id = str(uuid.uuid4())
+                        body = {"message": question, "action_id": action_id}
+                        if target_id is not None:
+                            body["target_id"] = target_id
+                        rejections = []
+                        # This positive-HP inconsistency is rejected by the
+                        # real planning death gate, before turn dispatch. Prove
+                        # that it is otherwise a supported lore question.
+                        lore_context = main_module._lore_context_for_turn(
+                            record, session, question, target_id
+                        )
+                        self.assertEqual(
+                            game._supported_lore_question_response(
+                                question, lore_context, session.world_state
+                            ),
+                            "Neverwinter kentinin güncel Lordu Dagult Neverember.",
+                        )
+                        before_runtime = session._capture_runtime_snapshot()
+                        world_reference = session.world_state
+                        character_reference = session.character
+                        messages_reference = session.messages
+                        narrations_reference = session.recent_dm_narrations
+                        # External saves must still reject this inconsistent
+                        # state. Only an internal capture may restore it.
+                        invalid_path = Path(self.temporary_directory.name) / "invalid-death.json"
+                        invalid_path.write_text(json.dumps(before_save), encoding="utf-8")
+                        with self.assertRaises(ValueError):
+                            session.load_game(invalid_path)
+                        self.assertEqual(session._capture_runtime_snapshot(), before_runtime)
+                        real_plan = session.plan_living_world_turn
+
+                        @wraps(real_plan)
+                        def capture_rejected_plan(*args, **kwargs):
+                            # Speculative setup can change state before the
+                            # real positive-HP death gate rejects planning.
+                            session.world_state["flags"]["speculative_setup"] = True
+                            session.world_state["npcs"][0]["memory"].append("uncommitted")
+                            session.character["current_hp"] = 9
+                            session.character["uncommitted_detail"] = {"nested": [1]}
+                            session.messages.append({"role": "user", "content": "uncommitted"})
+                            session.recent_dm_narrations.append("uncommitted")
+                            session.rng.random()
+                            session.world_metadata = {}
+                            record.journal.clear()
+                            record.narrative_memory.clear()
+                            record.lore_authority = type(record.lore_authority).legacy_unbound()
+                            session.lore_authority_context = {"uncommitted": True}
+                            self.assertNotEqual(session._capture_runtime_snapshot(), before_runtime)
+                            try:
+                                return real_plan(*args, **kwargs)
+                            except ValueError as error:
+                                rejections.append(str(error))
+                                raise
+
+                        with (
+                            patch.object(
+                                session, "plan_living_world_turn", new=capture_rejected_plan
+                            ),
+                            patch.object(
+                                session, "run_player_turn",
+                                side_effect=AssertionError(
+                                    "Invalid death state must block turn dispatch"
+                                ),
+                            ) as turn_dispatch,
+                            patch.object(
+                                game, "parse_player_intent",
+                                side_effect=AssertionError(
+                                    "Partial death markers must block intent parsing"
+                                ),
+                            ) as intent_model,
+                            patch.object(
+                                game, "ask_dungeon_master",
+                                side_effect=AssertionError(
+                                    "Partial death markers must block narration"
+                                ),
+                            ) as narration_model,
+                            patch.object(main_module._logger, "critical") as rollback_failed,
+                        ):
+                            response = await self.http.post(
+                                f"/api/game/sessions/{created['session_id']}/turn", json=body
+                            )
+
+                        self.assertEqual(response.status_code, 500, response.text)
+                        self.assertEqual(response.json()["detail"], {
+                            "code": "engine_error",
+                            "message": "The game turn could not be completed.",
+                        })
+                        # Positive HP rejects during real death-state validation,
+                        # before the zero-HP dead-action gate or any lore answer.
+                        self.assertEqual(
+                            rejections, ["Dead player state cannot have positive hit points."]
+                        )
+                        turn_dispatch.assert_not_called()
+                        intent_model.assert_not_called()
+                        narration_model.assert_not_called()
+                        rollback_failed.assert_not_called()
+                        self.assertEqual(session._capture_runtime_snapshot(), before_runtime)
+                        self.assertIs(session.world_state, world_reference)
+                        self.assertIs(session.character, character_reference)
+                        self.assertIs(session.messages, messages_reference)
+                        self.assertIs(session.recent_dm_narrations, narrations_reference)
+                        self.assertEqual(session.serialize_game_state(), before_save)
+                        self.assertEqual(session.messages, before_messages)
+                        self.assertEqual(session.rng.getstate(), before_rng)
+                        self.assertEqual(session.world_metadata, before_metadata)
+                        self.assertEqual(record.journal, before_journal)
+                        self.assertEqual(record.narrative_memory, before_memory)
+                        self.assertEqual(record.lore_authority.to_dict(), before_lore)
+                        self.assertEqual(session.lore_authority_context, before_context)
+                        self.assertEqual(record.turn_action_receipts, before_receipts)
+                        self.assertNotIn(action_id, record.turn_action_receipts)
+                        self.assertIsNone(self.manager.get_turn_action(record, action_id))
+                        self.assertIsNone(self.store.get_turn_action(campaign_id, action_id))
+                        self.assertEqual(self.store.get_campaign(campaign_id), before_campaign)
+
     async def test_stable_unconscious_lore_question_preserves_saved_pending_recovery(self):
         question = "Bu şehrin hükümdarı kim?"
         city_id = "fr:city:neverwinter"
@@ -5253,6 +5442,105 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             shared_action=False, post_save_receipt_error=CampaignCorruptError,
         )
 
+    async def test_first_merchant_save_race_timeout_drains_worker_before_teardown(self):
+        worker_entered = threading.Event()
+        release_worker = threading.Event()
+        worker_finished = threading.Event()
+        real_save = CampaignStore.save_campaign
+        real_wait_for = asyncio.wait_for
+        real_exit = httpx.AsyncClient.__aexit__
+        turn_saves = []
+        request_tasks = []
+        exited_clients = []
+        timed_out = False
+
+        def delayed_save(store, *args, **kwargs):
+            if kwargs.get("turn_action_receipt") is not None:
+                turn_saves.append(store)
+                # The instance-level pause runs before this class-level spy.
+                # Identify the loser by its save patch, not thread arrival order.
+                if callable(getattr(store.save_campaign, "side_effect", None)):
+                    worker_entered.set()
+                    if not release_worker.wait(timeout=5):
+                        raise AssertionError("Timeout injection did not release the worker.")
+                    try:
+                        self.assertIs(CampaignStore.save_campaign, delayed_save)
+                        self.assertTrue(callable(getattr(store.save_campaign, "side_effect", None)))
+                        self.assertTrue(self.store.path.exists())
+                        return real_save(store, *args, **kwargs)
+                    finally:
+                        worker_finished.set()
+            return real_save(store, *args, **kwargs)
+
+        async def injected_wait_for(awaitable, timeout):
+            nonlocal timed_out
+            if timeout == 30:
+                if len(request_tasks) == 2:
+                    self.assertTrue(await asyncio.to_thread(worker_entered.wait, 5))
+                    self.assertFalse(worker_finished.is_set())
+                    # Emulate wait_for's timeout cancellation. Only the shield
+                    # may be cancelled; the ASGI task and its save must survive.
+                    awaitable.cancel()
+                    timed_out = True
+                    asyncio.get_running_loop().call_soon(release_worker.set)
+                    raise TimeoutError("injected merchant request timeout")
+            return await real_wait_for(awaitable, timeout)
+
+        real_request_wait = self._wait_for_merchant_race_request
+
+        async def observed_request_wait(task):
+            request_tasks.append(task)
+            return await real_request_wait(task)
+
+        async def checked_exit(client, *args):
+            if timed_out:
+                self.assertFalse(client.is_closed)
+                self.assertTrue(worker_finished.is_set())
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                exited_clients.append(client)
+            return await real_exit(client, *args)
+
+        try:
+            with (
+                patch.object(CampaignStore, "save_campaign", new=delayed_save),
+                patch.object(asyncio, "wait_for", new=injected_wait_for),
+                patch.object(self, "_wait_for_merchant_race_request", new=observed_request_wait),
+                patch.object(httpx.AsyncClient, "__aexit__", new=checked_exit),
+            ):
+                with self.assertRaisesRegex(TimeoutError, "injected merchant request timeout"):
+                    await self._assert_first_merchant_search_save_race(shared_action=False)
+                self.assertTrue(timed_out)
+                self.assertTrue(worker_finished.is_set())
+                self.assertEqual(len(turn_saves), 2)
+                self.assertEqual(len(request_tasks), 2)
+                self.assertEqual(len(exited_clients), 2)
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                # Read the real SQLite fixture after cleanup, while patches are
+                # still installed: the worker must not outlive this scope.
+                with closing(sqlite3.connect(self.store.path)) as connection:
+                    self.assertEqual(connection.execute(
+                        "SELECT COUNT(*) FROM campaign_turn_actions",
+                    ).fetchone()[0], 1)
+        finally:
+            release_worker.set()
+
+    async def _wait_for_merchant_race_request(self, task):
+        try:
+            return await asyncio.wait_for(asyncio.shield(task), timeout=30)
+        except BaseException:
+            # ASGI cancellation cannot stop a synchronous database worker.
+            # Keep the client, patches and SQLite fixture alive until it exits.
+            # The cleanup budget exceeds the fixture's 30-second event waits.
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=35)
+            except TimeoutError as error:
+                raise AssertionError("Merchant race request did not drain during cleanup.") from error
+            except Exception:
+                # Retrieve the worker error without replacing the original
+                # timeout/assertion/cancellation that triggered cleanup.
+                pass
+            raise
+
     async def _assert_first_merchant_search_save_race(
         self, *, shared_action, fail_resumed_retry=False, changed_payload=False,
         post_save_receipt_error=None,
@@ -5430,8 +5718,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.to_thread(save_reached.wait, 30),
                         "First discovery never reached persistence.",
                     )
-                    winner = await asyncio.wait_for(
-                        winner_http.post(winner_url, json=winner_body), timeout=30,
+                    winner = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(winner_http.post(winner_url, json=winner_body)),
                     )
                     self.assertEqual(winner.status_code, 200, winner.text)
                     committed = winner_store.get_campaign(campaign_id)
@@ -5456,8 +5744,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 "Winning-session replay must not save again.",
                             )) as blocked_save,
                         ):
-                            winner_replay = await asyncio.wait_for(
-                                winner_http.post(winner_url, json=winner_body), timeout=30,
+                            winner_replay = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(winner_http.post(winner_url, json=winner_body)),
                             )
                         self.assertEqual(winner_replay.status_code, 200, winner_replay.text)
                         self.assertEqual(winner_replay.json(), winner.json())
@@ -5483,7 +5771,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(receipt_rows(), committed_rows)
                 finally:
                     release_save.set()
-                    loser = await asyncio.wait_for(pending, timeout=30)
+                    loser = await self._wait_for_merchant_race_request(pending)
 
             raced_save.assert_called_once()
             if post_save_receipt_error is not None:
@@ -6012,8 +6300,128 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             shared_action=True, changed_payload=True,
         )
 
+    async def test_recovered_merchant_search_paused_winner_receipt_storage_error_is_safe(self):
+        for shared_action, changed_payload in ((False, False), (True, False), (True, True)):
+            with self.subTest(shared_action=shared_action, changed_payload=changed_payload):
+                await self._assert_recovered_merchant_search_save_race(
+                    shared_action=shared_action, changed_payload=changed_payload,
+                    paused_receipt_error=CampaignStorageError,
+                )
+
+    async def test_recovered_merchant_search_paused_winner_receipt_corrupt_error_is_safe(self):
+        for shared_action, changed_payload in ((False, False), (True, False), (True, True)):
+            with self.subTest(shared_action=shared_action, changed_payload=changed_payload):
+                await self._assert_recovered_merchant_search_save_race(
+                    shared_action=shared_action, changed_payload=changed_payload,
+                    paused_receipt_error=CampaignCorruptError,
+                )
+
+    async def test_recovered_merchant_save_race_winner_timeout_drains_workers_before_teardown(self):
+        await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=True)
+
+    async def test_recovered_merchant_save_race_loser_timeout_drains_workers_before_teardown(self):
+        await self._assert_recovered_merchant_timeout_cleanup(timeout_winner=False)
+
+    async def _assert_recovered_merchant_timeout_cleanup(self, *, timeout_winner):
+        worker_entered = threading.Event()
+        release_worker = threading.Event()
+        worker_finished = threading.Event()
+        real_save = CampaignStore.save_campaign
+        real_wait_for = asyncio.wait_for
+        real_exit = httpx.AsyncClient.__aexit__
+        real_request_wait = self._wait_for_merchant_race_request
+        turn_saves = []
+        request_tasks = []
+        exited_clients = []
+        worker_checks = []
+        timed_out = False
+
+        def delayed_save(store, *args, **kwargs):
+            if kwargs.get("turn_action_receipt") is not None:
+                turn_saves.append(store)
+                is_recovered = callable(getattr(store.save_campaign, "side_effect", None))
+                # Ignore the initial discovery. Delay either the competing
+                # winner or the recovered save after its instance barrier opens.
+                if (timeout_winner and len(turn_saves) == 2) or (
+                    not timeout_winner and is_recovered
+                ):
+                    worker_entered.set()
+                    if not release_worker.wait(timeout=5):
+                        raise AssertionError("Recovered timeout injection did not release the worker.")
+                    try:
+                        worker_checks.append((
+                            CampaignStore.save_campaign is delayed_save,
+                            callable(getattr(store.save_campaign, "side_effect", None)),
+                            self.store.path.exists(),
+                        ))
+                        return real_save(store, *args, **kwargs)
+                    finally:
+                        worker_finished.set()
+            return real_save(store, *args, **kwargs)
+
+        async def observed_request_wait(task):
+            request_tasks.append(task)
+            return await real_request_wait(task)
+
+        async def injected_wait_for(awaitable, timeout):
+            nonlocal timed_out
+            # Without a shared action, the helper waits for the winner, its
+            # changed-payload conflict, then the recovered losing request.
+            target_wait = 1 if timeout_winner else 3
+            if timeout == 30 and len(request_tasks) == target_wait and not timed_out:
+                self.assertTrue(await asyncio.to_thread(worker_entered.wait, 5))
+                self.assertFalse(worker_finished.is_set())
+                self.assertTrue(all(not client.is_closed for client in turn_clients))
+                # Cancel the timeout wrapper, never the underlying ASGI task.
+                awaitable.cancel()
+                timed_out = True
+                asyncio.get_running_loop().call_soon(release_worker.set)
+                raise TimeoutError("injected recovered merchant request timeout")
+            return await real_wait_for(awaitable, timeout)
+
+        turn_clients = []
+        real_enter = httpx.AsyncClient.__aenter__
+
+        async def observed_enter(client):
+            turn_clients.append(client)
+            return await real_enter(client)
+
+        async def checked_exit(client, *args):
+            self.assertTrue(timed_out)
+            self.assertFalse(client.is_closed)
+            self.assertTrue(worker_finished.is_set())
+            self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+            self.assertEqual(len(turn_saves), 3)
+            exited_clients.append(client)
+            return await real_exit(client, *args)
+
+        try:
+            with (
+                patch.object(CampaignStore, "save_campaign", new=delayed_save),
+                patch.object(asyncio, "wait_for", new=injected_wait_for),
+                patch.object(self, "_wait_for_merchant_race_request", new=observed_request_wait),
+                patch.object(httpx.AsyncClient, "__aenter__", new=observed_enter),
+                patch.object(httpx.AsyncClient, "__aexit__", new=checked_exit),
+            ):
+                with self.assertRaisesRegex(TimeoutError, "injected recovered merchant request timeout"):
+                    await self._assert_recovered_merchant_search_save_race(shared_action=False)
+                self.assertTrue(timed_out)
+                self.assertTrue(worker_finished.is_set())
+                self.assertEqual(worker_checks, [(True, not timeout_winner, True)])
+                self.assertEqual(len(request_tasks), 2 if timeout_winner else 3)
+                self.assertEqual(len(exited_clients), 2)
+                self.assertTrue(all(task.done() and not task.cancelled() for task in request_tasks))
+                # Both real accepted turns remain readable before the patches
+                # and temporary SQLite fixture can be torn down.
+                with closing(sqlite3.connect(self.store.path)) as connection:
+                    self.assertEqual(connection.execute(
+                        "SELECT COUNT(*) FROM campaign_turn_actions",
+                    ).fetchone()[0], 2)
+        finally:
+            release_worker.set()
+
     async def _assert_recovered_merchant_search_save_race(
-        self, *, shared_action, changed_payload=False,
+        self, *, shared_action, changed_payload=False, paused_receipt_error=None,
     ):
         city_id = "fr:city:neverwinter"
         created = await self.http.post(
@@ -6207,19 +6615,64 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.to_thread(save_reached.wait, 30),
                         "Recovered request never reached persistence.",
                     )
-                    competing = await asyncio.wait_for(
-                        active_http.post(active_url, json=competing_body), timeout=30,
+                    competing = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(active_http.post(active_url, json=competing_body)),
                     )
                     self.assertEqual(competing.status_code, 200, competing.text)
                     newer = active_store.get_campaign(campaign_id)
                     newer_rows = receipt_rows()
+                    # Changed reuse must be rejected through the winning session
+                    # before the losing save is released, in every race variant.
+                    committed_receipt = active_store.get_turn_action(
+                        campaign_id, competing_body["action_id"],
+                    )
+                    self.assertEqual(committed_receipt["response"], competing.json())
+                    changed_retry_body = {
+                        **competing_body,
+                        "message": "Çevreme bakıyorum.",
+                    }
+                    self.assertNotEqual(changed_retry_body["message"], competing_body["message"])
+                    self.assertFalse(release_save.is_set())
+                    self.assertFalse(pending.done())
+                    with (
+                        patch.object(active_session, "run_player_turn", side_effect=AssertionError(
+                            "Winning-session changed retry must not execute another search.",
+                        )) as conflict_turn,
+                        patch.object(active_store, "save_campaign", side_effect=AssertionError(
+                            "Winning-session changed retry must not save again.",
+                        )) as conflict_save,
+                    ):
+                        winner_conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(active_http.post(active_url, json=changed_retry_body)),
+                        )
+                    self.assertEqual(winner_conflict.status_code, 409, winner_conflict.text)
+                    self.assertEqual(
+                        winner_conflict.json()["detail"]["code"], "action_id_conflict",
+                    )
+                    conflict_turn.assert_not_called()
+                    conflict_save.assert_not_called()
+                    self.assertFalse(release_save.is_set())
+                    self.assertFalse(pending.done())
+                    raced_save.assert_called_once()
+                    self.assertEqual(len(attempts), 1)
+                    self.assertEqual(len(active_results), 1)
+                    self.assertEqual(len(results), 1)
+                    for store in (active_store, recovered_store):
+                        after_conflict = store.get_campaign(campaign_id)
+                        self.assertEqual(after_conflict, newer)
+                        self.assertEqual(after_conflict.payload, newer.payload)
+                        self.assertEqual(after_conflict.history, newer.history)
+                        self.assertEqual(
+                            after_conflict.metadata["revision"], newer.metadata["revision"],
+                        )
+                        self.assertEqual(
+                            store.get_turn_action(campaign_id, competing_body["action_id"]),
+                            committed_receipt,
+                        )
+                    self.assertEqual(receipt_rows(), newer_rows)
                     if shared_action and not changed_payload:
                         # Replay the committed winner while the recovered
                         # request is still paused before its revision check.
-                        committed_receipt = active_store.get_turn_action(
-                            campaign_id, competing_body["action_id"],
-                        )
-                        self.assertEqual(committed_receipt["response"], competing.json())
                         self.assertFalse(release_save.is_set())
                         self.assertFalse(pending.done())
                         self.assertEqual(len(active_results), 1)
@@ -6233,8 +6686,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 "Winning-session replay must not save again.",
                             )) as blocked_save,
                         ):
-                            winner_replay = await asyncio.wait_for(
-                                active_http.post(active_url, json=competing_body), timeout=30,
+                            winner_replay = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(active_http.post(active_url, json=competing_body)),
                             )
                         self.assertEqual(winner_replay.status_code, 200, winner_replay.text)
                         self.assertEqual(winner_replay.json(), competing.json())
@@ -6258,9 +6711,80 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 committed_receipt,
                             )
                         self.assertEqual(receipt_rows(), newer_rows)
+                    if paused_receipt_error is not None:
+                        # Fail only the winner's durable receipt read. The losing
+                        # save must remain paused, and its later rollback lookup
+                        # must use the restored, independent store.
+                        winner_record = active_manager.get(active_id)
+                        winner_engine = copy.deepcopy(active_session.serialize_game_state())
+                        winner_journal = copy.deepcopy(winner_record.journal)
+                        winner_memory = copy.deepcopy(winner_record.narrative_memory)
+                        winner_receipts = copy.deepcopy(winner_record.turn_action_receipts)
+                        winner_version = active_session._campaign_persistence_version
+                        real_lookup = active_store.get_turn_action
+                        private_detail = "private paused winner receipt lookup failure"
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        with (
+                            patch.object(
+                                active_store, "get_turn_action",
+                                side_effect=paused_receipt_error(private_detail),
+                            ) as failed_lookup,
+                            patch.object(active_session, "run_player_turn", side_effect=AssertionError(
+                                "Unreadable winner receipt must not execute another search.",
+                            )) as blocked_turn,
+                            patch.object(active_store, "save_campaign", side_effect=AssertionError(
+                                "Unreadable winner receipt must not save again.",
+                            )) as blocked_save,
+                        ):
+                            failed_retry = await self._wait_for_merchant_race_request(
+                                asyncio.create_task(active_http.post(active_url, json=competing_body)),
+                            )
+                            failed_lookup.assert_called_once_with(
+                                campaign_id, competing_body["action_id"],
+                            )
+                            blocked_turn.assert_not_called()
+                            blocked_save.assert_not_called()
+                        status, code, message = (
+                            (503, "campaign_storage_unavailable",
+                             "Macera kaydı şu anda güvenli biçimde saklanamıyor.")
+                            if paused_receipt_error is CampaignStorageError
+                            else (409, "campaign_unavailable",
+                                  "Bu macera kaydı güvenli biçimde yüklenemedi.")
+                        )
+                        self.assertEqual(failed_retry.status_code, status, failed_retry.text)
+                        self.assertEqual(
+                            failed_retry.json(), {"detail": {"code": code, "message": message}},
+                        )
+                        self.assertNotIn(private_detail, failed_retry.text)
+                        self.assertEqual(active_store.get_turn_action, real_lookup)
+                        self.assertFalse(release_save.is_set())
+                        self.assertFalse(pending.done())
+                        raced_save.assert_called_once()
+                        self.assertEqual(len(attempts), 1)
+                        self.assertEqual(len(active_results), 1)
+                        self.assertEqual(len(results), 1)
+                        self.assertEqual(active_session.serialize_game_state(), winner_engine)
+                        self.assertEqual(winner_record.journal, winner_journal)
+                        self.assertEqual(winner_record.narrative_memory, winner_memory)
+                        self.assertEqual(winner_record.turn_action_receipts, winner_receipts)
+                        self.assertEqual(active_session._campaign_persistence_version, winner_version)
+                        for store in (active_store, recovered_store):
+                            after_failure = store.get_campaign(campaign_id)
+                            self.assertEqual(after_failure, newer)
+                            self.assertEqual(after_failure.payload, newer.payload)
+                            self.assertEqual(after_failure.history, newer.history)
+                            self.assertEqual(
+                                after_failure.metadata["revision"], newer.metadata["revision"],
+                            )
+                            self.assertEqual(
+                                store.get_turn_action(campaign_id, competing_body["action_id"]),
+                                committed_receipt,
+                            )
+                        self.assertEqual(receipt_rows(), newer_rows)
                 finally:
                     release_save.set()
-                    rejected = await asyncio.wait_for(pending, timeout=30)
+                    rejected = await self._wait_for_merchant_race_request(pending)
             raced_save.assert_called_once()
             self.assertEqual(rejected.status_code, 409, rejected.text)
             self.assertEqual(
@@ -6381,8 +6905,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )) as blocked_restore,
                 ):
                     if changed_payload:
-                        conflict = await asyncio.wait_for(
-                            recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                        conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(recovered_http.post(recovered_url, json=rejected_body)),
                         )
                         self.assertEqual(conflict.status_code, 409, conflict.text)
                         self.assertEqual(conflict.json()["detail"]["code"], "action_id_conflict")
@@ -6392,8 +6916,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         blocked_restore.assert_not_called()
                         assert_stale_retry_unchanged()
 
-                    replay = await asyncio.wait_for(
-                        recovered_http.post(recovered_url, json=competing_body), timeout=30,
+                    replay = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(recovered_http.post(recovered_url, json=competing_body)),
                     )
                     self.assertEqual(replay.status_code, 200, replay.text)
                     expected = copy.deepcopy(competing.json())
@@ -6455,8 +6979,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )) as blocked_save,
                 ):
                     if changed_payload:
-                        conflict = await asyncio.wait_for(
-                            recovered_http.post(recovered_url, json=rejected_body), timeout=30,
+                        conflict = await self._wait_for_merchant_race_request(
+                            asyncio.create_task(recovered_http.post(recovered_url, json=rejected_body)),
                         )
                         self.assertEqual(conflict.status_code, 409, conflict.text)
                         self.assertEqual(
@@ -6465,8 +6989,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         blocked_turn.assert_not_called()
                         blocked_save.assert_not_called()
                         assert_shared_receipt_unchanged()
-                    replay = await asyncio.wait_for(
-                        recovered_http.post(recovered_url, json=competing_body), timeout=30,
+                    replay = await self._wait_for_merchant_race_request(
+                        asyncio.create_task(recovered_http.post(recovered_url, json=competing_body)),
                     )
                 self.assertEqual(replay.status_code, 200, replay.text)
                 expected = copy.deepcopy(competing.json())
@@ -6702,6 +7226,21 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reopened_declined_merchant_search_does_not_rediscover_or_duplicate(self):
         city_id = "fr:city:neverwinter"
+        # Ambient scene selection is seeded by campaign UUID, not session RNG.
+        # A random BLUE referent can match "tüccar" and legitimately promote a
+        # separate traveler. This fixture tests merchant rediscovery, not that
+        # independent promotion. Keep the real scene/engine owners and a known
+        # non-overlapping ambient seed; campaign/session/action UUIDs stay real.
+        original_context = living_world.set_ambient_context
+
+        def fixture_context(world, metadata, character, campaign_id):
+            return original_context(
+                world, metadata, character,
+                "10000000-0000-4000-8000-000000000001",
+            )
+
+        self.enterContext(patch.object(living_world, "set_ambient_context",
+                                      new=fixture_context))
         response = await self.http.post(
             "/api/game/campaigns",
             json={
@@ -7610,6 +8149,283 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 exit_receipt,
             )
             self.assertEqual(stale_session.serialize_game_state(), stale_save)
+
+    async def test_reopened_name_fallback_uses_only_player_claim_bound_to_same_npc(self):
+        from api.narrative_memory import build_narrative_context
+
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        original_record = self.manager.get(created["session_id"])
+        original_session = original_record.game_session
+        location_id = original_session.world_state["location"]
+        npc_a = {
+            "id": "npc_continuity_name_mira",
+            "name": "Mira",
+            "role": "Yolcu",
+            "location": location_id,
+            "memory": [],
+        }
+        npc_b = {
+            "id": "npc_continuity_name_aldren",
+            "name": "Aldren",
+            "role": "Muhafız",
+            "location": location_id,
+            "memory": [],
+        }
+        original_session.world_state["npcs"] = [npc_a, npc_b]
+        self.manager.save_campaign(campaign_id)
+
+        disclosure = {
+            "message": "Benim adım Arven.",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        response = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=disclosure
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Arven", response.json()["narration"])
+        player_claims = (
+            original_record.narrative_memory["npc_interactions"][npc_a["id"]]
+        )
+        self.assertTrue(any(
+            entry.get("source") == "player_utterance"
+            and entry.get("authority") == "narrative_continuity"
+            and "Benim adım Arven." in entry.get("text", "")
+            for entry in player_claims
+        ))
+
+        # Build a saved fixture where only the NPC's direct duplicate is
+        # absent. The player-origin claim remains bound to Mira's stable ID.
+        npc_a["memory"] = []
+        memory = original_record.narrative_memory
+        memory["recent_turns"][-1]["narration"] = "Mira: Adın Galen."
+        self.manager.save_campaign(campaign_id)
+        saved = self.store.get_campaign(campaign_id)
+        saved_world = saved.payload["engine_save"]["world_state"]
+        saved_npcs = {npc["id"]: npc for npc in saved_world["npcs"]}
+        self.assertEqual(saved_npcs[npc_a["id"]]["memory"], [])
+        saved_claims = saved.payload["narrative_memory"]["npc_interactions"]
+        self.assertTrue(any(
+            entry.get("source") == "player_utterance"
+            and entry.get("authority") == "narrative_continuity"
+            and "Benim adım Arven." in entry.get("text", "")
+            for entry in saved_claims[npc_a["id"]]
+        ))
+
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = reopened_manager.get(session_id)
+            session = record.game_session
+            self.assertIsNot(session, original_session)
+            self.assertEqual(session.world_state["npcs"][0]["memory"], [])
+
+            ask_a = {
+                "message": "Bana adımla hitap et",
+                "target_id": npc_a["id"],
+                "action_id": str(uuid.uuid4()),
+            }
+            ask_b = {
+                **ask_a,
+                "target_id": npc_b["id"],
+                "action_id": str(uuid.uuid4()),
+            }
+            packet_a, _ = build_narrative_context(
+                record.narrative_memory,
+                game.build_world_context(
+                    npc_target=session.world_state["npcs"][0], session=session
+                ),
+                ask_a["message"],
+                {"npc_id": npc_a["id"]},
+            )
+            packet_b, _ = build_narrative_context(
+                record.narrative_memory,
+                game.build_world_context(
+                    npc_target=session.world_state["npcs"][1], session=session
+                ),
+                ask_b["message"],
+                {"npc_id": npc_b["id"]},
+            )
+            self.assertNotIn(
+                "Galen", json.dumps(packet_a, ensure_ascii=False)
+            )
+            self.assertNotIn(
+                "Benim adım Arven.",
+                json.dumps(
+                    packet_b["relevant_continuity"], ensure_ascii=False
+                ),
+            )
+            self.assertEqual(
+                record.narrative_memory["recent_turns"][-1]["narration"],
+                "Mira: Adın Galen.",
+            )
+
+            for body, expected_name in ((ask_a, "Arven"), (ask_b, None)):
+                with self.subTest(target_id=body["target_id"]):
+                    before = reopened_store.get_campaign(campaign_id)
+                    turn = await http.post(
+                        f"/api/game/sessions/{session_id}/turn", json=body
+                    )
+                    self.assertEqual(turn.status_code, 200, turn.text)
+                    narration = turn.json()["narration"]
+                    if expected_name:
+                        self.assertIn(expected_name, narration)
+                        self.assertNotIn("Galen", narration)
+                    else:
+                        self.assertNotIn("Arven", narration)
+                        self.assertNotIn("Galen", narration)
+                    after = reopened_store.get_campaign(campaign_id)
+                    self.assertEqual(after.history[:-1], before.history)
+                    self.assertEqual(
+                        after.history[-1]["player_message"], body["message"]
+                    )
+                    receipt = reopened_store.get_turn_action(
+                        campaign_id, body["action_id"]
+                    )
+                    self.assertEqual(receipt["response"], turn.json())
+
+    async def test_reopened_personal_reply_conflicts_when_target_changes(self):
+        created = await self.create_campaign()
+        campaign_id = created["campaign_id"]
+        original_session = self.manager.get(created["session_id"]).game_session
+        location_id = original_session.world_state["location"]
+        npc_a = {
+            "id": "npc_personal_receipt_mira",
+            "name": "Mira",
+            "role": "Yolcu",
+            "location": location_id,
+            "memory": [],
+        }
+        npc_b = {
+            "id": "npc_personal_receipt_aldren",
+            "name": "Aldren",
+            "role": "Muhafız",
+            "location": location_id,
+            "memory": [],
+        }
+        original_session.world_state["npcs"] = [npc_a, npc_b]
+        self.manager.save_campaign(campaign_id)
+        disclosure = {
+            "message": "Benim adım Arven.",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        disclosed = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=disclosure
+        )
+        self.assertEqual(disclosed.status_code, 200, disclosed.text)
+        self.assertIn("Arven", disclosed.json()["narration"])
+
+        body = {
+            "message": "Bana adımla hitap et",
+            "target_id": npc_a["id"],
+            "action_id": str(uuid.uuid4()),
+        }
+        original_answer = await self.http.post(
+            f"/api/game/sessions/{created['session_id']}/turn", json=body
+        )
+        self.assertEqual(original_answer.status_code, 200, original_answer.text)
+        self.assertIn("Arven", original_answer.json()["narration"])
+        original_receipt = self.store.get_turn_action(
+            campaign_id, body["action_id"]
+        )
+        self.assertEqual(original_receipt["response"], original_answer.json())
+
+        reopened_store = CampaignStore(self.store.path)
+        reopened_manager = SessionManager(campaign_store=reopened_store)
+        reopened_app = create_app(
+            session_manager=reopened_manager,
+            ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=reopened_app),
+            base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign_id}/resume"
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            record = reopened_manager.get(session_id)
+            session = record.game_session
+            self.assertIsNot(session, original_session)
+            committed = reopened_store.get_campaign(campaign_id)
+            self.assertEqual(
+                session.serialize_game_state(), committed.payload["engine_save"]
+            )
+            self.assertEqual(resumed.json()["history"], committed.history)
+            before_replay = reopened_store.get_campaign(campaign_id)
+            runtime_before = copy.deepcopy((
+                session.serialize_game_state(),
+                session.rng.getstate(),
+                session.messages,
+                record.journal,
+                record.narrative_memory,
+                record.turn_action_receipts,
+            ))
+
+            changed = {**body, "target_id": npc_b["id"]}
+            with patch.object(
+                session, "run_player_turn",
+                side_effect=AssertionError("saved personal reply reran"),
+            ), patch.object(
+                reopened_store, "save_campaign",
+                side_effect=AssertionError("saved personal reply autosaved"),
+            ):
+                replay = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=body
+                )
+                self.assertEqual(replay.status_code, 200, replay.text)
+                self.assertEqual(
+                    replay.json(),
+                    dict(original_receipt["response"], session_id=session_id),
+                )
+                self.assertEqual(runtime_before, (
+                    session.serialize_game_state(),
+                    session.rng.getstate(),
+                    session.messages,
+                    record.journal,
+                    record.narrative_memory,
+                    record.turn_action_receipts,
+                ))
+                self.assertEqual(
+                    reopened_store.get_campaign(campaign_id), before_replay
+                )
+                conflict = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=changed
+                )
+            self.assertEqual(conflict.status_code, 409, conflict.text)
+            self.assertEqual(
+                conflict.json()["detail"]["code"], "action_id_conflict"
+            )
+            self.assertEqual(
+                reopened_store.get_campaign(campaign_id), before_replay
+            )
+            self.assertEqual(runtime_before, (
+                session.serialize_game_state(),
+                session.rng.getstate(),
+                session.messages,
+                record.journal,
+                record.narrative_memory,
+                record.turn_action_receipts,
+            ))
+            self.assertEqual(
+                reopened_store.get_turn_action(campaign_id, body["action_id"]),
+                original_receipt,
+            )
 
     async def test_reopened_personal_questions_stay_bound_to_saved_npcs(self):
         created = await self.create_campaign()

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CombatActionInput } from './combatActionInput';
+import type { GameTurnInputInteractionMode } from './gameTurnInputInteractionMode';
 
 /**
  * The message must contain at least one non-whitespace character.
@@ -33,6 +34,8 @@ export interface GameTurnInput {
      * @maxLength 4000
      */
   message: string;
+  /** @nullable */
+  interaction_mode?: GameTurnInputInteractionMode;
   /**
      * @minLength 1
      * @maxLength 128

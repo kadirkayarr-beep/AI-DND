@@ -11,6 +11,8 @@ import re
 import unicodedata
 from typing import Any
 
+import living_world
+
 
 VERIFIED_SETTING_FACT = "VERIFIED_SETTING_FACT"
 CAMPAIGN_FACT = "CAMPAIGN_FACT"
@@ -358,7 +360,7 @@ def personal_answer(npc: Any, player_input: Any) -> tuple[str, str] | None:
     profile = ensure_personal_profile(npc)
     if not profile:
         return None
-    name = npc["name"]
+    name = living_world.public_npc_name(npc)
     answers = {
         "occupation": profile["occupation"],
         "current_activity": profile["current_activity"],
@@ -386,6 +388,21 @@ def personal_answer(npc: Any, player_input: Any) -> tuple[str, str] | None:
     return None
 
 
+def quest_availability_question(value: Any) -> bool:
+    """True for an explicit question about quests that Python can answer."""
+    if not isinstance(value, str):
+        return False
+    text = normalize_text(value)
+    if re.search(r"\b(?:kabul|tamamla|odul|xp|deneyim)\b", text):
+        return False
+    has_quest_word = bool(re.search(r"\b(?:gorev|quest)\w*\b", text))
+    asks_availability = bool(re.search(
+        r"\b(?:var mi|sunul\w*|etkin|aktif)\b",
+        text,
+    ))
+    return has_quest_word and asks_availability
+
+
 def unaddressed_work_answer(player_input: Any) -> tuple[str, str] | None:
     kind = personal_question_kind(player_input)
     if kind == "local_work":
@@ -400,3 +417,22 @@ def unaddressed_work_answer(player_input: Any) -> tuple[str, str] | None:
             CAMPAIGN_FACT,
         )
     return None
+
+def unresolved_named_address(player_input: Any, available: list) -> str | None:
+    """An explicit unknown vocative cannot inherit the active conversation."""
+    if not isinstance(player_input, str):
+        return None
+    match = re.match(r"^\s*([A-ZÇĞİÖŞÜ][\wÇĞİÖŞÜçğıöşü’'-]{1,40}),\s+", player_input)
+    if not match:
+        return None
+    name = match.group(1)
+    normalized = normalize_text(name)
+    if normalized in {"evet", "hayir", "peki", "tamam", "selam", "merhaba", "lutfen", "ben"}:
+        return None
+    for npc in available:
+        if not isinstance(npc, dict):
+            continue
+        if normalized in {normalize_text(living_world.public_npc_name(npc)),
+                          normalize_text(living_world.public_npc_role(npc))}:
+            return None
+    return name

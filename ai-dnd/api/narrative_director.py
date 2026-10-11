@@ -28,15 +28,48 @@ _active_turn: ContextVar[NarrativeTurnContext | None] = ContextVar(
 )
 
 
+def _selected_player_claims(interactions: Any) -> list[dict[str, str]]:
+    if not isinstance(interactions, dict):
+        return []
+    claims: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for npc_id, entries in interactions.items():
+        if not isinstance(npc_id, str) or not npc_id or not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            if (
+                entry.get("source") != "player_utterance"
+                or entry.get("authority") != "narrative_continuity"
+            ):
+                continue
+            text = entry.get("text")
+            if not isinstance(text, str) or not text.strip():
+                continue
+            key = (npc_id, text)
+            if key in seen:
+                continue
+            seen.add(key)
+            claims.append({"npc_id": npc_id, "text": text})
+            if len(claims) >= 12:
+                return claims
+    return claims
+
+
 @contextmanager
 def narrative_turn_context(
     memory: dict[str, Any],
     player_message: str,
 ) -> Iterator[NarrativeTurnContext]:
     """Bind a copy of campaign memory to this request/thread only."""
+    validated_memory = validate_narrative_memory(memory)
     frame = NarrativeTurnContext(
-        memory=validate_narrative_memory(memory),
+        memory=validated_memory,
         player_message=player_message,
+        selected_player_claims=_selected_player_claims(
+            validated_memory.get("npc_interactions", {})
+        ),
     )
     token = _active_turn.set(frame)
     try:
@@ -81,7 +114,6 @@ def install_narrative_context_adapter(game_module: Any) -> None:
         if frame is None or not isinstance(canonical_context, dict):
             return canonical_context
 
-        frame.selected_player_claims = []
         packet, diagnostics = build_narrative_context(
             frame.memory,
             canonical_context,
@@ -95,35 +127,7 @@ def install_narrative_context_adapter(game_module: Any) -> None:
             if isinstance(relevant, dict)
             else {}
         )
-        if isinstance(interactions, dict):
-            seen: set[tuple[str, str]] = set()
-            for npc_id, entries in interactions.items():
-                if not isinstance(npc_id, str) or not npc_id or not isinstance(
-                    entries, list
-                ):
-                    continue
-                for entry in entries:
-                    if not isinstance(entry, dict):
-                        continue
-                    if (
-                        entry.get("source") != "player_utterance"
-                        or entry.get("authority") != "narrative_continuity"
-                    ):
-                        continue
-                    text = entry.get("text")
-                    if not isinstance(text, str) or not text.strip():
-                        continue
-                    key = (npc_id, text)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    frame.selected_player_claims.append(
-                        {"npc_id": npc_id, "text": text}
-                    )
-                    if len(frame.selected_player_claims) >= 12:
-                        break
-                if len(frame.selected_player_claims) >= 12:
-                    break
+        frame.selected_player_claims = _selected_player_claims(interactions)
         enriched = dict(canonical_context)
         enriched["narrative_continuity"] = {
             "authority_boundary": packet.get("authority_boundary", {}),

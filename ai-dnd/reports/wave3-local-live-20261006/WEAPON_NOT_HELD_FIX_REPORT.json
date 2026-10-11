@@ -1,0 +1,45 @@
+{
+  "source": "f74 + working tree changes (NOT clean f74)",
+  "base_commit": "f74f32a7d150340ea44614c68f5dcd52f8176f1b",
+  "branch": "repair/pre04-wave3-conversation-ux",
+  "prior_failing_evidence_preserved": "evidence.json",
+  "live_revalidation": "evidence_weapon_fix_live.json",
+  "three_hypotheses": {
+    "1_materialize_breaks_hand_ref": {
+      "result": "CONFIRMED root cause",
+      "detail": "Default equipment.main_hand=longsword; materialize converts inventory Kılıç to item_000002 but left hand as catalog longsword; resolve compared instance item_* vs held longsword → weapon_not_held"
+    },
+    "2_attack_owner_routing": {
+      "result": "OK after identity sync",
+      "detail": "Ona saldırıyorum / Ona kılıcımla saldırıyorum reach weapon_attack.natural_choice + resolve; named phrase selected longsword; pronoun uses held hand"
+    },
+    "3_not_held_contract": {
+      "result": "PRESERVED",
+      "detail": "Empty hands + sword only in inventory still returns weapon_not_held without draw; inventory presence is not treated as held"
+    }
+  },
+  "changed_files": [
+    "ai-dnd/equipment_economy.py",
+    "ai-dnd/weapon_attack.py",
+    "ai-dnd/api/tests/test_equipment_economy.py",
+    "ai-dnd/api/tests/test_weapon_attack.py"
+  ],
+  "tests": {
+    "api.tests.test_equipment_economy": "PASS (module)",
+    "api.tests.test_equipment_economy_http": "PASS (module)",
+    "api.tests.test_weapon_attack": "PASS (module)",
+    "api.tests.test_combat_lifecycle": "PASS (module)",
+    "total": "291 OK"
+  },
+  "live_attack_revalidation": {
+    "named_no_draw": "PASS",
+    "pronoun_no_draw": "PASS",
+    "unheld_still_rejected": "PASS",
+    "model_requiring_turns_used": 0,
+    "budget_remaining_of_4": 4
+  },
+  "still_open_for_first_slice_GO": [
+    "rejected_narration_fallback_no_retry live demo",
+    "posix_two_signal_tests (no WSL)"
+  ]
+}

@@ -15,12 +15,17 @@ from typing import Any, Mapping
 MAX_ID_LENGTH = 128
 MAX_NAME_LENGTH = 160
 MAX_REFERENCE_LENGTH = 240
+# Separate from source references. Covers the longest admitted claim (409)
+# without raising citation limits. The 12 KiB retrieval cap still wins.
+MAX_FACT_VALUE_LENGTH = 1024
 MAX_NOTE_LENGTH = 280
 MAX_CAMPAIGN_FACT_IDS = 2_000
 MAX_CAMPAIGN_OVERRIDES = 500
 MAX_PROCEDURAL_REFERENCES = 1_000
 MAX_NPCS_WITH_KNOWLEDGE = 500
 MAX_FACTS_PER_NPC = 500
+MAX_FACTION_ROWS = 64
+LORE_PAYLOAD_VERSION = 2
 
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$")
 
@@ -40,9 +45,12 @@ class SourceTier(str, Enum):
     TIER_5_PROCEDURAL = "TIER_5_PROCEDURAL"
     LEGACY_OFFICIAL = "LEGACY_OFFICIAL"
     TEST_FIXTURE = "TEST_FIXTURE"
+    OWNER_APPROVED_CONTINUITY = "OWNER_APPROVED_CONTINUITY"
 
     @property
     def rank(self) -> int:
+        if self is SourceTier.OWNER_APPROVED_CONTINUITY:
+            raise ValueError("Owner continuity is outside official source ranking.")
         return {
             SourceTier.TIER_1_CURRENT_CORE: 1,
             SourceTier.TIER_2_OFFICIAL_5E: 2,
@@ -64,6 +72,7 @@ class ClaimType(str, Enum):
     PROCEDURAL_FACT = "PROCEDURAL_FACT"
     NARRATIVE_TEXTURE = "NARRATIVE_TEXTURE"
     CANONICAL_LOCAL_BELIEF = "CANONICAL_LOCAL_BELIEF"
+    ADVENTURE_POSSIBILITY = "ADVENTURE_POSSIBILITY"
 
 
 class VisibilityScope(str, Enum):
@@ -102,6 +111,32 @@ class EntityType(str, Enum):
     CULTURE_PEOPLE = "CULTURE_PEOPLE"
 
 
+PLACE_ENTITY_TYPES = frozenset({
+    EntityType.CONTINENT,
+    EntityType.REGION,
+    EntityType.KINGDOM_NATION,
+    EntityType.CITY,
+    EntityType.TOWN,
+    EntityType.VILLAGE,
+    EntityType.DISTRICT,
+    EntityType.LANDMARK,
+    EntityType.ROAD_ROUTE,
+    EntityType.WILDERNESS,
+    EntityType.FOREST,
+    EntityType.MOUNTAIN_RANGE,
+    EntityType.RIVER,
+    EntityType.SEA,
+    EntityType.ISLAND,
+    EntityType.INN_TAVERN,
+    EntityType.TEMPLE,
+})
+
+
+def is_setting_place(entity: "LoreEntity | None") -> bool:
+    """True when the entity can be a current setting location."""
+    return entity is not None and entity.entity_type in PLACE_ENTITY_TYPES
+
+
 class Relationship(str, Enum):
     LOCATED_IN = "located_in"
     PART_OF = "part_of"
@@ -115,6 +150,18 @@ class Relationship(str, Enum):
     RIVER_THROUGH = "river_through"
     COASTAL_TO = "coastal_to"
     DISTRICT_OF = "district_of"
+    COMMANDS = "commands"
+    DIRECTS = "directs"
+    DISTINCT_OFFICE = "distinct_office"
+    ENTRANCE_TO = "entrance_to"
+    HEADQUARTERED_AT = "headquartered_at"
+    HOLDS_OFFICE = "holds_office"
+    LEADS = "leads"
+    MEETS_IN = "meets_in"
+    OUTSIDE_ROUTINE_PATROL = "outside_routine_patrol"
+    PORT_ON = "port_on"
+    RULES_BESIDE = "rules_beside"
+    WATCH_PRECEDES_IN_UPPER_CITY = "watch_precedes_in_upper_city"
 
 
 class ReviewStatus(str, Enum):
@@ -178,6 +225,14 @@ def _enum(enum_type: type[Enum], value: Any, label: str) -> Any:
         raise ValueError(f"{label} is invalid.") from None
 
 
+def _official_tier(value: Any, label: str) -> SourceTier:
+    """Pack JSON may not install owner continuity as an official source."""
+    parsed = _enum(SourceTier, value, label)
+    if parsed is SourceTier.OWNER_APPROVED_CONTINUITY:
+        raise ValueError(f"{label} cannot use owner continuity as an official source.")
+    return parsed
+
+
 def _optional_text(value: Any, label: str, limit: int) -> str | None:
     if value is None:
         return None
@@ -237,7 +292,7 @@ class SourceManifest:
             edition_family=_text(
                 data["edition_family"], "Source edition_family", MAX_NAME_LENGTH
             ),
-            source_tier=_enum(SourceTier, data["source_tier"], "Source source_tier"),
+            source_tier=_official_tier(data["source_tier"], "Source source_tier"),
             setting=_text(data["setting"], "Source setting", MAX_NAME_LENGTH),
             region_scope=_optional_text(
                 data["region_scope"], "Source region_scope", MAX_NAME_LENGTH
@@ -319,9 +374,7 @@ class LoreEntity:
             source_reference=_text(
                 data["source_reference"], "Entity source_reference", MAX_REFERENCE_LENGTH
             ),
-            authority_tier=_enum(
-                SourceTier, data["authority_tier"], "Entity authority_tier"
-            ),
+            authority_tier=_official_tier(data["authority_tier"], "Entity authority_tier"),
             review_status=_enum(
                 ReviewStatus, data["review_status"], "Entity review_status"
             ),
@@ -396,7 +449,7 @@ class LoreFact:
             raise ValueError("Lore fact object_id_or_value must be a scalar.")
         if isinstance(value_field, str):
             value_field = _text(
-                value_field, "Lore fact object_id_or_value", MAX_REFERENCE_LENGTH
+                value_field, "Lore fact object_id_or_value", MAX_FACT_VALUE_LENGTH
             )
         predicate = _text(data["predicate"], "Lore fact predicate", 100)
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,99}", predicate):
@@ -407,9 +460,7 @@ class LoreFact:
             predicate=predicate,
             object_id_or_value=value_field,
             claim_type=_enum(ClaimType, data["claim_type"], "Lore fact claim_type"),
-            authority_tier=_enum(
-                SourceTier, data["authority_tier"], "Lore fact authority_tier"
-            ),
+            authority_tier=_official_tier(data["authority_tier"], "Lore fact authority_tier"),
             source_id=_id(data["source_id"], "Lore fact source_id"),
             source_reference=_text(
                 data["source_reference"], "Lore fact source_reference", MAX_REFERENCE_LENGTH
@@ -579,6 +630,26 @@ class CampaignCanonOverride:
 
 
 @dataclass(frozen=True)
+class FactionStanding:
+    """Campaign-local standing. Hidden rows are not a public fact."""
+
+    faction_id: str
+    standing: int
+    known_to_player: bool
+    local_presence: bool
+    source_action_id: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "faction_id": self.faction_id,
+            "standing": self.standing,
+            "known_to_player": self.known_to_player,
+            "local_presence": self.local_presence,
+            "source_action_id": self.source_action_id,
+        }
+
+
+@dataclass(frozen=True)
 class CampaignLoreState:
     """Small campaign-owned references; never contains static sourcebook lore."""
 
@@ -595,6 +666,9 @@ class CampaignLoreState:
     campaign_overrides: tuple[CampaignCanonOverride, ...] = ()
     procedural_entity_refs: tuple[str, ...] = ()
     lore_discoveries: tuple[str, ...] = ()
+    faction_standings: tuple[FactionStanding, ...] = ()
+    adventure_possibility_ids: tuple[str, ...] = ()
+    lore_payload_version: int = 1
 
     @classmethod
     def legacy_unbound(cls) -> "CampaignLoreState":
@@ -619,7 +693,13 @@ class CampaignLoreState:
                 "procedural_entity_refs",
                 "lore_discoveries",
             },
-            optional={"region_pack_id", "starting_location_entity_id"},
+            optional={
+                "region_pack_id",
+                "starting_location_entity_id",
+                "faction_standings",
+                "adventure_possibility_ids",
+                "lore_payload_version",
+            },
             label="Campaign Lore Authority state",
         )
         status = _enum(
@@ -689,6 +769,17 @@ class CampaignLoreState:
             "Campaign lore_discoveries",
             MAX_CAMPAIGN_FACT_IDS,
         )
+        faction_standings = _faction_standings(data.get("faction_standings", []))
+        possibility_ids = _campaign_id_list(
+            data.get("adventure_possibility_ids", []),
+            "Campaign adventure_possibility_ids",
+            MAX_CAMPAIGN_FACT_IDS,
+        )
+        payload_version = data.get("lore_payload_version", 1)
+        if type(payload_version) is not int or payload_version not in {1, LORE_PAYLOAD_VERSION}:
+            raise ValueError("Campaign lore payload version is invalid.")
+        if faction_standings and payload_version < LORE_PAYLOAD_VERSION:
+            payload_version = LORE_PAYLOAD_VERSION
         if status is BindingStatus.BOUND and not all(
             (profile, world_id, epoch_id, region_id, location_id)
         ):
@@ -719,6 +810,9 @@ class CampaignLoreState:
             campaign_overrides=overrides,
             procedural_entity_refs=procedural_refs,
             lore_discoveries=discoveries,
+            faction_standings=faction_standings,
+            adventure_possibility_ids=possibility_ids,
+            lore_payload_version=payload_version,
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -738,7 +832,46 @@ class CampaignLoreState:
             "campaign_overrides": [item.to_dict() for item in self.campaign_overrides],
             "procedural_entity_refs": list(self.procedural_entity_refs),
             "lore_discoveries": list(self.lore_discoveries),
+            "faction_standings": [item.to_dict() for item in self.faction_standings],
+            "adventure_possibility_ids": list(self.adventure_possibility_ids),
+            "lore_payload_version": self.lore_payload_version,
         }
+
+
+def _faction_standings(value: Any) -> tuple[FactionStanding, ...]:
+    if not isinstance(value, list) or len(value) > MAX_FACTION_ROWS:
+        raise ValueError("Campaign faction_standings is invalid.")
+    rows: list[FactionStanding] = []
+    seen: set[str] = set()
+    for item in value:
+        data = _strict_mapping(
+            item,
+            required={
+                "faction_id",
+                "standing",
+                "known_to_player",
+                "local_presence",
+                "source_action_id",
+            },
+            label="Faction standing",
+        )
+        standing = data["standing"]
+        if type(standing) is not int or not -5 <= standing <= 5:
+            raise ValueError("Faction standing is invalid.")
+        if type(data["known_to_player"]) is not bool or type(data["local_presence"]) is not bool:
+            raise ValueError("Faction visibility is invalid.")
+        faction_id = _id(data["faction_id"], "Faction faction_id")
+        if faction_id in seen:
+            raise ValueError("Campaign faction_standings contains duplicate IDs.")
+        seen.add(faction_id)
+        rows.append(FactionStanding(
+            faction_id=faction_id,
+            standing=standing,
+            known_to_player=data["known_to_player"],
+            local_presence=data["local_presence"],
+            source_action_id=_id(data["source_action_id"], "Faction source_action_id"),
+        ))
+    return tuple(rows)
 
 
 def _campaign_id_list(value: Any, label: str, maximum: int) -> tuple[str, ...]:
@@ -748,3 +881,52 @@ def _campaign_id_list(value: Any, label: str, maximum: int) -> tuple[str, ...]:
     if len(set(ids)) != len(ids):
         raise ValueError(f"{label} contains duplicate IDs.")
     return ids
+
+
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+@dataclass(frozen=True)
+class OwnerContinuityRecord:
+    """Owner-approved continuity kept outside official sources and campaign canon.
+
+    Construction records a decision. It does not load a pack, grant knowledge,
+    or authorize narration.
+    """
+
+    decision_id: str
+    provenance_kind: str
+    approved_statement: str
+    subject: str
+    predicate: str
+    year: int
+    scope: str
+    decision_document_digest: str
+
+    def __post_init__(self) -> None:
+        if self.provenance_kind != SourceTier.OWNER_APPROVED_CONTINUITY.value:
+            raise ValueError("Owner continuity provenance is invalid.")
+        if type(self.year) is not int or not 0 <= self.year <= 9999:
+            raise ValueError("Owner continuity year is invalid.")
+        digest = self.decision_document_digest
+        if not isinstance(digest, str) or _SHA256_RE.fullmatch(digest) is None:
+            raise ValueError("Owner decision digest is invalid.")
+        object.__setattr__(self, "decision_id", _id(self.decision_id, "Owner decision_id"))
+        object.__setattr__(
+            self,
+            "approved_statement",
+            _text(self.approved_statement, "Owner approved_statement", MAX_FACT_VALUE_LENGTH),
+        )
+        object.__setattr__(self, "subject", _text(self.subject, "Owner subject", MAX_NAME_LENGTH))
+        object.__setattr__(
+            self, "predicate", _text(self.predicate, "Owner predicate", MAX_NAME_LENGTH)
+        )
+        object.__setattr__(self, "scope", _text(self.scope, "Owner scope", MAX_NOTE_LENGTH))
+
+    @property
+    def runtime_enabled(self) -> bool:
+        return False
+
+    @property
+    def official_source_fact(self) -> bool:
+        return False

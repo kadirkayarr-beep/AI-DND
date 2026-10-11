@@ -355,7 +355,7 @@ def _door_action(session, message, identity, operation):
     _busy(session)
     candidates = {e.get("door_id") for e in catalog.EXITS.values()
                   if e["from"] == world["location"] and visible_exit(world, e)}
-    candidates.update(d["id"] for d in world.get("doors", [])
+    candidates.update(d["id"] for d in world.get("doors", []) if d.get("id")
                       if d.get("id") not in catalog.DOORS and d.get("location") == world["location"]
                       and not d.get("hidden", False))
     gate = door(world, identity)

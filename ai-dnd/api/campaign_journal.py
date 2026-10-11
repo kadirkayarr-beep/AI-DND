@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 import uuid
 from typing import Any
 
+import living_world
+
 
 JOURNAL_SCHEMA_VERSION = 1
 MAX_LOCATIONS = 500
@@ -606,14 +608,13 @@ def update_campaign_journal(
         ):
             continue
         location = _location_record(after_world, current_location_id)
-        role = npc.get("role")
-        if not isinstance(role, str) or not role.strip():
-            role = None
+        public_name = living_world.public_npc_name(npc)
+        role = living_world.public_npc_role(npc)
         existing = known_by_id.get(npc_id)
         if existing is None:
             entry = {
                 "npc_id": npc_id,
-                "name": npc["name"].strip(),
+                "name": public_name,
                 "role": role.strip() if role is not None else None,
                 "first_met_at": now,
                 "last_seen_at": now,
@@ -643,6 +644,10 @@ def update_campaign_journal(
                     related_npc_id=npc_id,
                 )
         else:
+            # The stable NPC ID survives discovery; the display identity may
+            # become more specific only when Python says the player learned it.
+            existing["name"] = public_name
+            existing["role"] = role.strip() if role is not None else None
             existing["last_seen_at"] = now
             existing["last_seen_turn"] = turn_index
             existing["last_known_location_id"] = (

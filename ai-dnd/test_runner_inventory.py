@@ -5,11 +5,14 @@ from io import StringIO
 from pathlib import Path
 import ast
 import json
+import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 import textwrap
+import time
 import unittest
 from unittest.mock import patch
 
@@ -18,7 +21,7 @@ import run_tests
 
 class RunnerInventoryTests(unittest.TestCase):
     @staticmethod
-    def completed_gate(command, *, cwd, timeout, returncode=0):
+    def completed_gate(command, *, test_name, timeout, returncode=0):
         """Simulate the child's receipt as well as its process exit status."""
         if len(command) == 5 and returncode == 0:
             Path(command[4]).write_text(command[3], encoding="utf-8")
@@ -32,6 +35,7 @@ class RunnerInventoryTests(unittest.TestCase):
             "test_startup.py", "test_sessions.py", "test_playable_living_world.py",
             "test_persistence.py", "test_combat.py", "test_combat_v2_authoritative.py",
             "api/tests/test_death_bounded.py", "api/tests/test_initiative.py",
+            "test_local_exploration.py", "test_held_weapon.py", "test_monster_sense.py",
             "test_regression.py", "test_migration.py", "test_migration_harden.py",
             "test_door_enter.py", "test_query.py", "test_self_query.py",
             "test_actual_logic.py", "test_npc_query.py",
@@ -50,7 +54,7 @@ class RunnerInventoryTests(unittest.TestCase):
         for argv in ((), ("--suite", "release")):
             with self.subTest(argv=argv), \
                  patch.object(run_tests, "check_test_definitions", return_value=[]) as preflight, \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stdout(StringIO()):
                 execute.side_effect = self.completed_gate
                 self.assertEqual(run_tests.main(argv), 0)
@@ -68,8 +72,8 @@ class RunnerInventoryTests(unittest.TestCase):
                      [run_tests.sys.executable, str(run_tests.ROOT / name)])
                     for name in run_tests.TESTS
                 ])
-                self.assertTrue(all(call.kwargs["cwd"] == run_tests.ROOT
-                                    for call in execute.call_args_list))
+                self.assertEqual([call.kwargs["test_name"] for call in execute.call_args_list],
+                                 list(run_tests.TESTS))
                 self.assertTrue(all(call.kwargs["timeout"] == run_tests.DEFAULT_GATE_TIMEOUT
                                     for call in execute.call_args_list))
                 receipts = [Path(call.args[0][4]) for call in execute.call_args_list
@@ -87,7 +91,7 @@ class RunnerInventoryTests(unittest.TestCase):
                 with self.subTest(argv=argv, evidence=evidence), \
                      patch.object(run_tests, "TESTS", gates), \
                      patch.object(run_tests, "check_test_definitions", return_value=[]), \
-                     patch.object(run_tests.subprocess, "run") as execute, \
+                     patch.object(run_tests, "run_child_gate") as execute, \
                      redirect_stdout(StringIO()) as output, \
                      redirect_stderr(StringIO()) as stderr:
                     receipts = []
@@ -123,7 +127,7 @@ class RunnerInventoryTests(unittest.TestCase):
             output = StringIO()
             with self.subTest(failed=failed), \
                  patch.object(run_tests, "check_test_definitions", return_value=[]) as preflight, \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stdout(output):
                 execute.side_effect = [
                     subprocess.CompletedProcess([], int(failed)),
@@ -144,7 +148,7 @@ class RunnerInventoryTests(unittest.TestCase):
     def test_authoritative_failure_blocks_release_but_remaining_gates_run(self):
         output = StringIO()
         with patch.object(run_tests, "check_test_definitions", return_value=[]), \
-             patch.object(run_tests.subprocess, "run") as execute, redirect_stdout(output):
+             patch.object(run_tests, "run_child_gate") as execute, redirect_stdout(output):
             results = iter([
                 subprocess.CompletedProcess([], int(name == "test_combat_v2_authoritative.py"))
                 for name in run_tests.TESTS
@@ -164,7 +168,7 @@ class RunnerInventoryTests(unittest.TestCase):
                 output = StringIO()
                 with self.subTest(argv=argv, failed_gate=failed_gate), \
                      patch.object(run_tests, "check_test_definitions", return_value=[]), \
-                     patch.object(run_tests.subprocess, "run") as execute, \
+                     patch.object(run_tests, "run_child_gate") as execute, \
                      redirect_stdout(output):
                     results = iter([
                         subprocess.CompletedProcess([], int(name == failed_gate))
@@ -185,7 +189,7 @@ class RunnerInventoryTests(unittest.TestCase):
                 output = StringIO()
                 with self.subTest(argv=argv, failed_gate=failed_gate), \
                      patch.object(run_tests, "check_test_definitions", return_value=[]), \
-                     patch.object(run_tests.subprocess, "run") as execute, \
+                     patch.object(run_tests, "run_child_gate") as execute, \
                      redirect_stdout(output):
                     results = iter([
                         subprocess.CompletedProcess([], int(name == failed_gate))
@@ -225,11 +229,11 @@ class RunnerInventoryTests(unittest.TestCase):
                     encoding="utf-8",
                 )
                 with patch.object(run_tests, "ROOT", root), \
-                     patch.object(run_tests.subprocess, "run") as execute, \
+                     patch.object(run_tests, "run_child_gate") as execute, \
                      redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
                     self.assertEqual(run_tests.main(), 1)
                     execute.assert_not_called()
-                self.assertIn(failed_gate, stderr.getvalue())
+                self.assertIn(failed_gate, stderr.getvalue().replace("\\", "/"))
                 self.assertIn("duplicate method Checks.test_boundary", stderr.getvalue())
 
     def test_listing_is_source_only_and_not_a_pass_claim(self):
@@ -238,7 +242,7 @@ class RunnerInventoryTests(unittest.TestCase):
             output = StringIO()
             with self.subTest(suite=suite), \
                  patch.object(run_tests, "check_test_definitions") as preflight, \
-                 patch.object(run_tests.subprocess, "run") as execute, redirect_stdout(output):
+                 patch.object(run_tests, "run_child_gate") as execute, redirect_stdout(output):
                 self.assertEqual(run_tests.main(("--suite", suite, "--list")), 0)
                 preflight.assert_not_called()
                 execute.assert_not_called()
@@ -251,7 +255,7 @@ class RunnerInventoryTests(unittest.TestCase):
         for value in ("0", "-1", "nan", "inf", "-inf", "not-a-number"):
             with self.subTest(value=value), \
                  patch.object(run_tests, "check_test_definitions") as preflight, \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stderr(StringIO()), self.assertRaises(SystemExit) as error:
                 run_tests.main((f"--gate-timeout={value}",))
             self.assertEqual(error.exception.code, 2)
@@ -263,13 +267,15 @@ class RunnerInventoryTests(unittest.TestCase):
         receipts = []
         with patch.object(run_tests, "TESTS", gates), \
              patch.object(run_tests, "check_test_definitions", return_value=[]), \
-             patch.object(run_tests.subprocess, "run") as execute, \
+             patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stdout(StringIO()) as output, redirect_stderr(StringIO()) as stderr:
             def finish(command, **kwargs):
                 if len(command) == 5:
                     receipts.append(Path(command[4]))
                     self.completed_gate(command, **kwargs)
-                    raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+                    print(f"GATE TIMED OUT: {kwargs['test_name']} exceeded "
+                          f"{kwargs['timeout']:g} seconds", file=sys.stderr)
+                    return None
                 return self.completed_gate(command, **kwargs)
 
             execute.side_effect = finish
@@ -282,8 +288,98 @@ class RunnerInventoryTests(unittest.TestCase):
                          f"RELEASE DETERMINISTIC GATES FAILED: {gates[0]}")
         self.assertTrue(all(not path.parent.exists() for path in receipts))
 
+    def test_timeout_group_cleanup_is_bounded_even_when_leader_exits_or_wait_fails(self):
+        for missing_group, reap_timeout in ((False, False), (True, False), (False, True)):
+            with self.subTest(missing_group=missing_group, reap_timeout=reap_timeout), \
+                 patch.object(run_tests.subprocess, "Popen") as spawn, \
+                 patch.object(run_tests.os, "killpg") as kill_group, \
+                 redirect_stderr(StringIO()) as stderr:
+                command = [sys.executable, "toy_gate.py"]
+                child = spawn.return_value
+                child.pid = 123456
+                child.wait.side_effect = [
+                    subprocess.TimeoutExpired(command, 0.25),
+                    subprocess.TimeoutExpired(command, run_tests.TIMEOUT_CLEANUP_LIMIT)
+                    if reap_timeout else -signal.SIGKILL,
+                ]
+                if missing_group:
+                    kill_group.side_effect = ProcessLookupError
+                self.assertIsNone(run_tests.run_child_gate(command, "toy_gate.py", 0.25))
+                spawn.assert_called_once_with(command, cwd=run_tests.ROOT,
+                                              start_new_session=True)
+                kill_group.assert_called_once_with(child.pid, signal.SIGKILL)
+                self.assertEqual([call.kwargs["timeout"] for call in child.wait.call_args_list],
+                                 [0.25, run_tests.TIMEOUT_CLEANUP_LIMIT])
+                self.assertIn("GATE TIMED OUT: toy_gate.py exceeded 0.25 seconds",
+                              stderr.getvalue())
+                self.assertEqual("GATE CLEANUP FAILED:" in stderr.getvalue(), reap_timeout)
+
+    def test_interruption_cleanup_is_bounded_and_restores_signal_handlers(self):
+        for exception in (KeyboardInterrupt(), SystemExit(143)):
+            for reap_timeout in (False, True):
+                with self.subTest(exception=exception, reap_timeout=reap_timeout), \
+                     patch.object(run_tests.subprocess, "Popen") as spawn, \
+                     patch.object(run_tests.os, "killpg") as kill_group, \
+                     redirect_stderr(StringIO()) as stderr:
+                    previous = {number: signal.getsignal(number) for number in
+                                (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+                    child = spawn.return_value
+                    child.pid = 123456
+
+                    def reap(*, timeout):
+                        self.assertEqual(timeout, run_tests.TIMEOUT_CLEANUP_LIMIT)
+                        for number in previous:
+                            self.assertEqual(signal.getsignal(number), signal.SIG_IGN)
+                        if reap_timeout:
+                            raise subprocess.TimeoutExpired(["toy"], timeout)
+                        return -signal.SIGKILL
+
+                    # Use a function to observe the handlers during cleanup.
+                    calls = []
+                    def wait(*, timeout):
+                        calls.append(timeout)
+                        if len(calls) == 1:
+                            raise exception
+                        return reap(timeout=timeout)
+                    child.wait.side_effect = wait
+                    with self.assertRaises(type(exception)) as caught:
+                        run_tests.run_child_gate(["toy"], "toy_gate.py", 0.25)
+                    self.assertIs(caught.exception, exception)
+                    kill_group.assert_called_once_with(child.pid, signal.SIGKILL)
+                    self.assertEqual(calls, [0.25, run_tests.TIMEOUT_CLEANUP_LIMIT])
+                    self.assertIn("GATE INTERRUPTED: toy_gate.py", stderr.getvalue())
+                    self.assertEqual("GATE CLEANUP FAILED:" in stderr.getvalue(), reap_timeout)
+                    self.assertEqual({n: signal.getsignal(n) for n in previous}, previous)
+
+    def test_signal_during_spawn_is_deferred_until_child_handle_is_available(self):
+        for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(number=number), \
+                 patch.object(run_tests.subprocess, "Popen") as spawn, \
+                 patch.object(run_tests.os, "killpg") as kill_group, \
+                 redirect_stderr(StringIO()):
+                child = unittest.mock.Mock(pid=123456)
+                child.wait.return_value = -signal.SIGKILL
+                def spawning(*args, **kwargs):
+                    signal.getsignal(number)(number, None)
+                    return child
+                spawn.side_effect = spawning
+                with self.assertRaises(KeyboardInterrupt if number == signal.SIGINT
+                                       else SystemExit):
+                    run_tests.run_child_gate(["toy"], "toy_gate.py", 0.25)
+                kill_group.assert_called_once_with(child.pid, signal.SIGKILL)
+                child.wait.assert_called_once_with(timeout=run_tests.TIMEOUT_CLEANUP_LIMIT)
+
+    def test_successful_child_is_reaped_without_group_kill(self):
+        with patch.object(run_tests.subprocess, "Popen") as spawn, \
+             patch.object(run_tests.os, "killpg") as kill_group:
+            spawn.return_value.wait.return_value = 7
+            result = run_tests.run_child_gate(["toy"], "toy_gate.py", 0.25)
+            self.assertEqual(result.returncode, 7)
+            spawn.return_value.wait.assert_called_once_with(timeout=0.25)
+            kill_group.assert_not_called()
+
     def test_unknown_suite_is_rejected_before_execution(self):
-        with patch.object(run_tests.subprocess, "run") as execute, \
+        with patch.object(run_tests, "run_child_gate") as execute, \
              redirect_stderr(StringIO()), self.assertRaises(SystemExit) as error:
             run_tests.main(("--suite", "all"))
         self.assertEqual(error.exception.code, 2)
@@ -293,7 +389,7 @@ class RunnerInventoryTests(unittest.TestCase):
         for suite in ("release", "prototype"):
             with self.subTest(suite=suite), tempfile.TemporaryDirectory() as directory, \
                  patch.object(run_tests, "ROOT", Path(directory)), \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stderr(StringIO()) as stderr, redirect_stdout(StringIO()):
                 self.assertEqual(run_tests.main(("--suite", suite)), 1)
                 execute.assert_not_called()
@@ -309,7 +405,7 @@ class RunnerInventoryTests(unittest.TestCase):
             for name in run_tests.PROTOTYPE_TESTS:
                 (root / name).write_text("class Invalid:\n", encoding="utf-8")
             with patch.object(run_tests, "ROOT", root), \
-                 patch.object(run_tests.subprocess, "run") as execute, \
+                 patch.object(run_tests, "run_child_gate") as execute, \
                  redirect_stdout(StringIO()), redirect_stderr(StringIO()) as stderr:
                 execute.side_effect = self.completed_gate
                 self.assertEqual(run_tests.main(), 0)
@@ -375,6 +471,256 @@ class RunnerProcessTests(unittest.TestCase):
             cwd=root if cwd is None else cwd,
             capture_output=True, text=True, timeout=20,
         )
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "uses Linux /proc process state")
+    def test_timeout_stops_sleeping_descendants_before_later_gates(self):
+        cases = [
+            (argv, inventory, "script") for argv, inventory in self.SELECTIONS
+        ] + [
+            ((), "TESTS", "import"),
+            (("--suite", "release"), "TESTS", "load_tests"),
+        ]
+        for argv, inventory, kind in cases:
+            with self.subTest(argv=argv, kind=kind), \
+                 tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                first = ("api/tests/test_tree.py" if kind != "script"
+                         else self.SUITES[inventory][0])
+                failed, later = "failed.py", self.SUITES[inventory][1]
+                suites = dict(self.SUITES)
+                suites[inventory] = (first, failed, later)
+                with patch.object(self, "SUITES", suites):
+                    self.copy_runner(root)
+                # Both generations inherit the gate's process group and output
+                # pipes. Ignoring TERM proves cleanup is not merely graceful.
+                (root / "tree_worker.py").write_text(textwrap.dedent("""
+                    import os, signal, subprocess, sys, time
+                    from pathlib import Path
+                    depth = int(sys.argv[1])
+                    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+                    Path(f'worker{depth}.pid').write_text(str(os.getpid()))
+                    if depth:
+                        subprocess.Popen([sys.executable, __file__, '0'])
+                    time.sleep(60)
+                    Path(f'worker{depth}.finished').write_text('work continued')
+                """), encoding="utf-8")
+                spawn = textwrap.dedent("""
+                    import os, subprocess, sys, time
+                    Path('leader.pid').write_text(str(os.getpid()))
+                    subprocess.Popen([sys.executable, 'tree_worker.py', '1'])
+                    with Path('order.txt').open('a') as log:
+                        log.write(NAME + '\\n')
+                    time.sleep(60)
+                """).replace("NAME", repr(first))
+                if kind == "script":
+                    self.write_gate(root, first, "def test_ok(): pass\n" + spawn)
+                else:
+                    package = root / "api" / "tests"
+                    package.mkdir(parents=True)
+                    (package.parent / "__init__.py").touch()
+                    (package / "__init__.py").touch()
+                    prefix = (
+                        "import unittest\nfrom pathlib import Path\n"
+                        "class TreeTests(unittest.TestCase):\n"
+                        "    def test_ok(self): pass\n"
+                    )
+                    if kind == "load_tests":
+                        spawn = ("def load_tests(loader, tests, pattern):\n"
+                                 + textwrap.indent(spawn, "    "))
+                    (root / first).write_text(prefix + spawn, encoding="utf-8")
+                self.write_gate(root, failed, "def test_ok(): pass\n", exit_code=7)
+                # Check while the later gate is executing, not just after the
+                # outer runner exits. Zombies cannot do work and are reaped by
+                # their adopting parent, not by this runner.
+                stopped = textwrap.dedent("""
+                    import time
+                    def test_ok(): pass
+                    def active(pid):
+                        try:
+                            state = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[0]
+                            return state not in ('Z', 'X')
+                        except FileNotFoundError:
+                            return False
+                    pids = [int(Path(name).read_text()) for name in
+                            ('leader.pid', 'worker1.pid', 'worker0.pid')]
+                    deadline = time.monotonic() + 1
+                    while any(active(pid) for pid in pids) and time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    assert not any(active(pid) for pid in pids), 'descendant work remains'
+                    Path('tree.stopped').write_text('verified')
+                """)
+                self.write_gate(root, later, stopped)
+                self.assertEqual(run_tests.check_test_definitions(
+                    root / name for name in suites[inventory]), [])
+                self.assertFalse(list(root.glob("*.pid")), "preflight executed a gate")
+                started = time.monotonic()
+                try:
+                    result = self.launch_runner(root, (*argv, "--gate-timeout", "1"))
+                    output = result.stdout + result.stderr
+                    self.assertLess(time.monotonic() - started, 8, output)
+                    self.assertEqual(result.returncode, 1, output)
+                    self.assertIn(f"GATE TIMED OUT: {first} exceeded 1 seconds", result.stderr)
+                    label = ("RELEASE DETERMINISTIC GATES" if inventory == "TESTS"
+                             else "HISTORICAL PROTOTYPE CHECKS (NOT RELEASE GATES)")
+                    self.assertEqual(result.stdout.splitlines()[-1],
+                                     f"{label} FAILED: {first}, {failed}")
+                    self.assertEqual((root / "order.txt").read_text().splitlines(),
+                                     [first, failed, later])
+                    self.assertEqual((root / "tree.stopped").read_text(), "verified")
+                    self.assertFalse(list(root.glob("*.finished")))
+                    self.assertNotIn("PASSED", output)
+                    self.assertNotIn("PREFLIGHT FAILED", output)
+                finally:
+                    # Keep the acceptance fixture safe even against a broken
+                    # copied runner: kill its isolated group and recorded workers.
+                    leader = root / "leader.pid"
+                    if leader.exists():
+                        try:
+                            os.killpg(int(leader.read_text()), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    for path in root.glob("worker*.pid"):
+                        try:
+                            os.kill(int(path.read_text()), signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "uses Linux /proc process state")
+    def test_interrupted_runner_stops_active_gate_and_inherited_descendants(self):
+        cases = [(argv, inventory, "script") for argv, inventory in self.SELECTIONS]
+        cases += [((), "TESTS", kind) for kind in ("import", "load_tests", "execution")]
+        for argv, inventory, kind in cases:
+            for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+                with self.subTest(argv=argv, kind=kind, signal=number), \
+                     tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    first = ("api/tests/test_tree.py" if kind != "script"
+                             else self.SUITES[inventory][0])
+                    later = self.SUITES[inventory][1]
+                    suites = dict(self.SUITES)
+                    suites[inventory] = (first, later)
+                    with patch.object(self, "SUITES", suites):
+                        self.copy_runner(root)
+                    (root / "tree_worker.py").write_text(textwrap.dedent("""
+                        import os, signal, subprocess, sys, time
+                        from pathlib import Path
+                        depth = int(sys.argv[1])
+                        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+                        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+                        Path(f'worker{depth}.pid').write_text(str(os.getpid()))
+                        if depth:
+                            subprocess.Popen([sys.executable, __file__, '0'])
+                        time.sleep(60)
+                        Path(f'worker{depth}.finished').write_text('work continued')
+                    """), encoding="utf-8")
+                    spawn = textwrap.dedent("""
+                        import os, subprocess, sys, time
+                        Path('leader.pid').write_text(str(os.getpid()))
+                        subprocess.Popen([sys.executable, 'tree_worker.py', '1'])
+                        time.sleep(60)
+                        Path('leader.finished').write_text('work continued')
+                    """)
+                    if kind == "script":
+                        self.write_gate(root, first, "def test_ok(): pass\n" + spawn)
+                    else:
+                        package = root / "api" / "tests"
+                        package.mkdir(parents=True)
+                        (package.parent / "__init__.py").touch()
+                        (package / "__init__.py").touch()
+                        # A receipt written early must not turn interruption into
+                        # success. Record its path to verify temporary-dir cleanup.
+                        receipt = (
+                            "import sys\nfrom pathlib import Path\n"
+                            "Path('receipt.path').write_text(sys.argv[2])\n"
+                            "Path(sys.argv[2]).write_text(sys.argv[1])\n"
+                        )
+                        body = (
+                            "import unittest\n" + receipt
+                            + "class TreeTests(unittest.TestCase):\n"
+                            + "    def test_ok(self):\n"
+                            + (textwrap.indent(spawn, "        ") if kind == "execution"
+                               else "        pass\n")
+                        )
+                        if kind == "import":
+                            body += spawn
+                        elif kind == "load_tests":
+                            body += ("def load_tests(loader, tests, pattern):\n"
+                                     + textwrap.indent(spawn, "    "))
+                        (root / first).write_text(body, encoding="utf-8")
+                    self.write_gate(root, later, "def test_ok(): pass\n")
+                    self.assertEqual(run_tests.check_test_definitions(
+                        root / name for name in suites[inventory]), [])
+                    self.assertFalse(list(root.glob("*.pid")), "preflight executed a gate")
+                    runner = None
+                    try:
+                        runner = subprocess.Popen(
+                            [sys.executable, str(root / "run_tests.py"), *argv],
+                            cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True,
+                        )
+                        pid_paths = [root / name for name in
+                                     ("leader.pid", "worker1.pid", "worker0.pid")]
+                        deadline = time.monotonic() + 5
+                        while not all(p.exists() and p.read_text() for p in pid_paths):
+                            self.assertIsNone(runner.poll(), "runner exited before fixture ready")
+                            self.assertLess(time.monotonic(), deadline, "fixture did not start")
+                            time.sleep(0.01)
+                        pids = [int(p.read_text()) for p in pid_paths]
+                        started = time.monotonic()
+                        # Signal only the outer runner, not its isolated child group.
+                        runner.send_signal(number)
+                        stdout, stderr = runner.communicate(timeout=8)
+                        self.assertLess(time.monotonic() - started, 8)
+                        self.assertNotEqual(runner.returncode, 0, stdout + stderr)
+                        if number != signal.SIGINT:
+                            self.assertEqual(runner.returncode, 128 + number)
+                        self.assertIn(f"GATE INTERRUPTED: {first}", stderr)
+                        self.assertNotIn("PASSED", stdout + stderr)
+                        self.assertNotIn("GATE TIMED OUT", stderr)
+                        self.assertNotIn(f"=== {later} ===", stdout)
+                        self.assertFalse((root / (later + ".sentinel")).exists())
+                        for names in self.SUITES.values():
+                            for name in names:
+                                if name not in suites[inventory]:
+                                    self.assertNotIn(f"=== {name} ===", stdout)
+                        def active(pid):
+                            try:
+                                state = Path(f"/proc/{pid}/stat").read_text().rsplit(
+                                    ")", 1)[1].split()[0]
+                                return state not in ("Z", "X")
+                            except FileNotFoundError:
+                                return False
+                        deadline = time.monotonic() + 1
+                        while any(active(pid) for pid in pids) and time.monotonic() < deadline:
+                            time.sleep(0.01)
+                        self.assertFalse(any(active(pid) for pid in pids), "work remains live")
+                        self.assertFalse(list(root.glob("*.finished")))
+                        if kind != "script":
+                            receipt_path = Path((root / "receipt.path").read_text())
+                            self.assertFalse(receipt_path.parent.exists())
+                    finally:
+                        # Acceptance must clean up even with an unfixed runner,
+                        # an assertion failure, or descendants holding pipes open.
+                        leader = root / "leader.pid"
+                        if leader.exists() and leader.read_text():
+                            try:
+                                os.killpg(int(leader.read_text()), signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                        for path in root.glob("worker*.pid"):
+                            if path.read_text():
+                                try:
+                                    os.kill(int(path.read_text()), signal.SIGKILL)
+                                except ProcessLookupError:
+                                    pass
+                        if runner is not None:
+                            if runner.poll() is None:
+                                os.killpg(runner.pid, signal.SIGKILL)
+                            runner.communicate(timeout=5)
+                        receipt_file = root / "receipt.path"
+                        if receipt_file.exists():
+                            shutil.rmtree(Path(receipt_file.read_text()).parent,
+                                          ignore_errors=True)
 
     def test_real_api_import_and_loading_timeouts_preserve_failure_order_and_continue(self):
         api_gates = ("api/tests/test_initiative.py",

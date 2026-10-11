@@ -15,6 +15,7 @@ from api.lore_authority import (
 )
 from api.main import _lore_context_for_turn, _stage_engine_lore_state
 from api.session_manager import SessionManager
+from api.tests.test_lore_authority import entity, verified_registry
 
 
 def bound_lore_state() -> CampaignLoreState:
@@ -34,6 +35,77 @@ def bound_lore_state() -> CampaignLoreState:
 
 
 class LoreEngineIntegrationTests(unittest.TestCase):
+    def test_scene_place_is_kept_and_non_place_falls_back(self):
+        registry = verified_registry(
+            entities=[
+                entity("city:test", "Test City", entity_type="CITY"),
+                entity("npc:test", "Test Person", entity_type="CANONICAL_NPC"),
+            ]
+        )
+        state = CampaignLoreState.from_mapping({
+            "binding_status": "BOUND",
+            "setting_profile": "TEST_SETTING",
+            "world_id": "world:test",
+            "epoch_id": "epoch:test",
+            "region_id": "region:test",
+            "current_location_entity_id": "city:test",
+            "player_known_fact_ids": [],
+            "npc_known_fact_ids": {},
+            "campaign_overrides": [],
+            "procedural_entity_refs": [],
+            "lore_discoveries": [],
+        })
+        record = SimpleNamespace(lore_authority=state)
+        session = SimpleNamespace(
+            world_state={"location": "room", "npcs": [], "quests": []}
+        )
+
+        city_packet = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "city:test"},
+            registry,
+        )
+        self.assertEqual(
+            city_packet["diagnostics"]["current_location_entity_id"],
+            "city:test",
+        )
+        self.assertEqual(city_packet["diagnostics"]["campaign_year"], 1501)
+
+        person_packet = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "npc:test"},
+            registry,
+        )
+        self.assertEqual(
+            person_packet["diagnostics"]["current_location_entity_id"],
+            "city:test",
+        )
+
+        world = session.world_state
+        world["canonical_start_time"] = {
+            "year": 1368,
+            "month": "Mirtul",
+            "day": 1,
+            "hour": 9,
+            "minute": 0,
+        }
+        campaign_time.initialize(world)
+        dated = _lore_context_for_turn(
+            record,
+            session,
+            "Etrafıma bakıyorum.",
+            None,
+            {"lore_location_id": "city:test"},
+            registry,
+        )
+        self.assertEqual(dated["diagnostics"]["campaign_year"], 1368)
+
     def test_unbound_session_does_not_receive_setting_canon(self):
         _, record = SessionManager().create()
 
@@ -464,7 +536,7 @@ class LoreEngineIntegrationTests(unittest.TestCase):
                 region_context,
                 region_world_state,
             ),
-            "The North is distinct from the Sword Coast.",
+            "The North is distinct from the Sword Coast in the book’s regional grouping.",
         )
         self.assertIsNone(
             game._supported_lore_question_response(
@@ -1233,6 +1305,90 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         self.assertEqual(session.world_state, expected_world_state)
         narration_model.assert_not_called()
         intent_model.assert_not_called()
+
+
+class Turn29RulershipQueryDeterministicTests(unittest.TestCase):
+    """Turn 29 regression: Turkish inflected ruler queries must resolve
+    deterministically from verified lore facts, 0 model calls, no fallback."""
+
+    def _neverwinter_lore_context(self):
+        context = game._empty_lore_authority_context()
+        context["sections"]["official_forgotten_realms_lore"] = [
+            {
+                "fact_id": "fr:fact:dagult_neverember_current_lord",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "current_lord_id",
+                "object_id_or_value": "fr:person:dagult_neverember",
+                "notes": "Dagult Neverember is the current Lord of Neverwinter.",
+            },
+            {
+                "fact_id": "fr:fact:neverwinter_known_as_city_of_skilled_hands",
+                "subject_id": "fr:city:neverwinter",
+                "predicate": "known_as",
+                "object_id_or_value": "City of Skilled Hands",
+                "notes": "Neverwinter is known as the City of Skilled Hands.",
+            },
+        ]
+        context["sections"]["verified_entities"] = [
+            {"entity_id": "fr:city:neverwinter", "canonical_name": "Neverwinter", "aliases": []},
+            {"entity_id": "fr:person:dagult_neverember", "canonical_name": "Dagult Neverember", "aliases": ["Dagult"]},
+        ]
+        context["diagnostics"] = {
+            "query_intents": ["current_ruler"],
+            "current_location_entity_id": "fr:city:neverwinter",
+            "selected_fact_count": 2,
+            "selected_fact_ids": [
+                "fr:fact:dagult_neverember_current_lord",
+                "fr:fact:neverwinter_known_as_city_of_skilled_hands",
+            ],
+        }
+        return context
+
+    def test_turkish_ruler_question_answered_from_loaded_lore(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        for question in (
+            "Bu \u015fehrin h\u00fck\u00fcmdar\u0131 kim?",
+            "Bu \u015fehrin h\u00fck\u00fcmdar\u0131 kimdir?",
+        ):
+            with self.subTest(question=question):
+                response = game._supported_lore_question_response(question, context, world_state)
+                self.assertIsNotNone(response, f"Expected verified lore answer for: {question!r}")
+                self.assertIn("Dagult Neverember", response)
+
+    def test_answered_from_loaded_lore_is_system_deterministic(self):
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_from_loaded_lore",
+            "success": True,
+            "state_changes": [],
+        }
+        deterministic_statuses = (
+            "invalid_target", "limit_reached", "unsupported",
+            "explicitly_declined", "unsupported_combat_action",
+            "player_unconscious", "unverified", "clarification",
+            "answered_from_npc_memory", "answered_from_campaign_state",
+            "answered_from_loaded_lore",
+        )
+        self.assertIn(action_result["status"], deterministic_statuses)
+
+    def test_unregistered_ruler_question_returns_none(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        response = game._supported_lore_question_response(
+            "Waterdeep'in h\u00fck\u00fcmdar\u0131 kim?", context, world_state
+        )
+        self.assertIsNone(response)
+
+    def test_english_ruler_question_also_resolves(self):
+        context = self._neverwinter_lore_context()
+        world_state = {"locations": {}, "npcs": [], "features": []}
+        response = game._supported_lore_question_response(
+            "Who rules Neverwinter?", context, world_state
+        )
+        self.assertIsNotNone(response, "Expected verified lore answer for English ruler question")
+        self.assertIn("Dagult Neverember", response)
+
 
 if __name__ == "__main__":
     unittest.main()

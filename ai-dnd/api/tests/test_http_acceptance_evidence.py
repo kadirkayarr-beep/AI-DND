@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import importlib.util
 import io
+import os
 import json
 from pathlib import Path
 import signal
@@ -239,6 +240,7 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertEqual(record["campaign_id"], "offline-signal-fixture")
         return process, record
 
+    @unittest.skipIf(os.name == "nt", "Requires POSIX process signal semantics")
     def test_sigterm_has_end_time_and_actual_exit_status(self):
         process, record = self.signal_fixture(signal.SIGTERM)
         self.assertEqual(process.returncode, 143, process.stderr)
@@ -246,6 +248,7 @@ sys.exit(owner.run("http://offline.invalid", "http://offline.invalid",
         self.assertEqual(record["exit_status"], process.returncode)
         self.assertIsNotNone(record["ended_at"])
 
+    @unittest.skipIf(os.name == "nt", "Requires POSIX process signal semantics")
     def test_hard_kill_leaves_identifiable_incomplete_record_never_pass(self):
         process, record = self.signal_fixture(signal.SIGKILL)
         self.assertEqual(process.returncode, -signal.SIGKILL)

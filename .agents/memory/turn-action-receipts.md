@@ -61,15 +61,15 @@ timestamp boundary.
 resume separately, then capture the store immediately before replay and verify
 replay itself does not write.
 
-Distinguish retry after failed persistence from replay of a committed receipt.
-The former must reproduce gameplay and restore RNG, but need not reuse generated
-identities for history entries that never committed.
+Distinguish retry or competing speculative execution from replay of a committed
+receipt. Uncommitted attempts must reproduce gameplay and restore RNG on failure,
+but need not reuse generated identities for attack resolutions or history entries.
 
 **Why:** Requiring full response equality with an uncommitted attempt incorrectly
 treats newly generated history identities as a gameplay rollback failure.
 
 **How to apply:** Compare mechanical outcomes and narration across failed-save
-retry; require exact accepted-response equality only once a receipt has committed
+retry or independent duplicate attempts; require exact accepted-response equality only once a receipt has committed
 (apart from the current session ID after reopening).
 
 Persistence-race rendezvous should capture runtime-only state, without incidental
@@ -126,3 +126,15 @@ not prove that the corrected request can execute.
 **How to apply:** Exercise rejection followed by corrected acceptance under the
 same ID, and verify exactly one mechanical execution and the first durable
 receipt. Do not impose accepted-receipt payload immutability before acceptance.
+
+For evicted SQL receipts, classify a changed request as a conflict only after
+the store successfully decodes the saved response; unreadable receipt JSON
+retains the storage-unavailable failure.
+
+**Why:** The request hash cannot be checked through the receipt lookup when
+decoding that row fails, and changing the error would alter established
+unreadable-storage behavior.
+
+**How to apply:** Keep the original request hash intact, assert failed retries
+do not invoke gameplay or write state, repair only the response column, then
+verify changed-request conflict and exact original replay.

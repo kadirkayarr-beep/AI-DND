@@ -93,6 +93,27 @@ class CombatV2Turns(unittest.TestCase):
         self.assertEqual(result["combat"]["target_id"], self.npc["id"])
         self.assert_snapshot(result)
 
+    def test_explicit_named_attack_bypasses_model_intent(self):
+        self.npc["name"] = "Orin"
+        with (
+            patch.object(game, "parse_player_intent", side_effect=AssertionError("Attack must bypass model intent")),
+            patch.object(game, "ask_dungeon_master", side_effect=AssertionError("Attack must not use narrator model")),
+            self.rolls((20, 15), (20, 5), (20, 1), (20, 1)),
+        ):
+            result = self.session.run_player_turn("orine saldırıyorum", [])["action_result"]
+        self.assertEqual(result["action"], "attack")
+        self.assertTrue(result["combat_started"])
+        self.assertEqual(result["target_id"], self.npc["id"])
+
+    def test_longsword_is_the_sword_used_for_an_attack(self):
+        self.world["inventory"] = ["Uzun Kılıç"]
+        with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
+            result = self.turn()
+        self.assertNotEqual(result.get("outcome"), "no_weapon")
+        self.assertTrue(result["combat_started"])
+        self.assertEqual(result["combat"]["target_id"], self.npc["id"])
+        self.assert_snapshot(result)
+
     def test_initiative_player_higher(self):
         with self.rolls((20, 15), (20, 5), (20, 1), (20, 1)):
             result = self.turn()

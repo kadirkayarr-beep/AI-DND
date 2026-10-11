@@ -1,5 +1,6 @@
 """Focused #08 tests: real engine transitions and temporary campaign stores."""
 import copy
+from contextlib import closing
 import unittest
 from unittest.mock import patch
 
@@ -226,7 +227,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         again = await self.http.delete(f"/api/game/campaigns/{a['campaign_id']}")
         self.assertFalse(again.json()["deleted"])
         import sqlite3
-        with sqlite3.connect(self.store.path) as connection:
+        with closing(sqlite3.connect(self.store.path)) as connection:
             for table in ("campaign_history", "campaign_combat_history", "campaign_turn_actions"):
                 self.assertEqual(connection.execute(
                     f"SELECT count(*) FROM {table} WHERE campaign_id=?", (a["campaign_id"],)
@@ -717,9 +718,30 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 field, modes=("IRONMAN",), retry_corrected_context=True,
             )
 
+    async def test_normal_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("NORMAL",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
+    async def test_permadeath_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("PERMADEATH",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
+    async def test_ironman_rejected_fatal_death_save_accepts_corrected_context_after_reopen(self):
+        for field in ("combat_id", "combat_round", "combat_turn_index"):
+            await self._assert_first_fatal_death_save_rejects_stale_context(
+                field, modes=("IRONMAN",), retry_corrected_context=True,
+                reopen_before_retry=True,
+            )
+
     async def _assert_first_fatal_death_save_rejects_stale_context(
         self, stale_field, *, modes=("NORMAL", "PERMADEATH", "IRONMAN"),
-        retry_corrected_context=False,
+        retry_corrected_context=False, reopen_before_retry=False,
     ):
         import uuid
 
@@ -827,20 +849,77 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                         {key for key in request if request[key] != corrected[key]},
                         {stale_field},
                     )
-                    await self._assert_corrected_fatal_death_save_executes_once(
-                        a, record, corrected, mode, checkpoint,
-                    )
+                    if reopen_before_retry:
+                        await self._assert_rejected_fatal_death_save_reopens(
+                            a, record, corrected, mode, checkpoint, before,
+                        )
+                    else:
+                        await self._assert_corrected_fatal_death_save_executes_once(
+                            a, record, corrected, mode, checkpoint,
+                        )
+
+    async def _assert_rejected_fatal_death_save_reopens(
+        self, campaign, original_record, request, mode, checkpoint, before,
+    ):
+        import httpx
+
+        store = CampaignStore(self.store.path)
+        # Before resume can update metadata, independently read the exact save.
+        self.assertEqual(store.get_campaign(campaign["campaign_id"]),
+                         before["stored_campaign"])
+        self.assertIsNone(store.get_turn_action(
+            campaign["campaign_id"], request["action_id"],
+        ))
+        manager = SessionManager(campaign_store=store)
+        app = campaign_fixtures.create_app(
+            session_manager=manager, ollama_adapter=None,
+        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(
+                f"/api/game/campaigns/{campaign['campaign_id']}/resume",
+            )
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            self.assertNotEqual(session_id, campaign["session_id"])
+            record = manager.get(session_id)
+            s = record.game_session
+            self.assertIsNot(record, original_record)
+            self.assertIsNot(s, original_record.game_session)
+            self.assertEqual(s.serialize_game_state(), before["engine"])
+            self.assertEqual(s.rng.getstate(), before["rng"])
+            self.assertEqual(record.journal, before["journal"])
+            self.assertEqual(record.narrative_memory, before["narrative_memory"])
+            self.assertEqual(record.lore_authority.to_dict(), before["lore_authority"])
+            self.assertEqual(record.combat_history, before["combat_history"])
+            self.assertEqual(record.turn_action_receipts, before["receipts"])
+            # Resume may refresh timestamps, but not saved gameplay or history.
+            stored = store.get_campaign(campaign["campaign_id"])
+            for field in ("payload", "history", "combat_history"):
+                self.assertEqual(getattr(stored, field),
+                                 getattr(before["stored_campaign"], field), field)
+            self.assertNotIn(request["action_id"], record.turn_action_receipts)
+            self.assertIsNone(store.get_turn_action(
+                campaign["campaign_id"], request["action_id"],
+            ))
+            await self._assert_corrected_fatal_death_save_executes_once(
+                {**campaign, "session_id": session_id},
+                record, request, mode, checkpoint, store=store, http=http,
+            )
 
     async def _assert_corrected_fatal_death_save_executes_once(
-        self, campaign, record, request, mode, checkpoint,
+        self, campaign, record, request, mode, checkpoint, *, store=None, http=None,
     ):
         import random
 
+        store = self.store if store is None else store
+        http = self.http if http is None else http
         s = record.game_session
         expected_rng = random.Random()
         expected_rng.setstate(s.rng.getstate())
         expected_roll = expected_rng.randint(2, 9)
-        before = self.store.get_campaign(campaign["campaign_id"])
+        before = store.get_campaign(campaign["campaign_id"])
         # Keep the engine's explicit API parameters visible to signature-based
         # dispatch while counting calls through the real implementation.
         real_turn = s.run_player_turn
@@ -858,9 +937,9 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             "game._resolve_enemy_turns_until_player",
             side_effect=AssertionError("Fatal save must stop the enemy scheduler"),
         ) as scheduler, patch.object(
-            self.store, "save_campaign", wraps=self.store.save_campaign,
+            store, "save_campaign", wraps=store.save_campaign,
         ) as save:
-            accepted = await self.http.post(
+            accepted = await http.post(
                 f"/api/game/sessions/{campaign['session_id']}/turn", json=request,
             )
             self.assertEqual(accepted.status_code, 200, accepted.text)
@@ -909,16 +988,16 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("post-checkpoint reward", s.world_state["inventory"])
             self.assertEqual(s.world_state["campaign_time"]["elapsed_seconds"], 18)
 
-        committed = self.store.get_campaign(campaign["campaign_id"])
+        committed = store.get_campaign(campaign["campaign_id"])
         self.assertEqual(committed.payload["engine_save"], s.serialize_game_state())
         self.assertEqual(len(committed.history), len(before.history) + 1)
         self.assertEqual(len(committed.combat_history), len(before.combat_history) + 1)
-        receipt = self.store.get_turn_action(campaign["campaign_id"], request["action_id"])
+        receipt = store.get_turn_action(campaign["campaign_id"], request["action_id"])
         self.assertIsNotNone(receipt)
         self.assertEqual(receipt["response"], response)
         # A new store owner confirms the first accepted receipt is durable.
         self.assertEqual(
-            CampaignStore(self.store.path).get_turn_action(
+            CampaignStore(store.path).get_turn_action(
                 campaign["campaign_id"], request["action_id"],
             ),
             receipt,
@@ -1207,6 +1286,205 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                             ),
                             receipt,
                         )
+
+    async def test_rejected_natural_twenty_revival_accepts_corrected_context_after_reopen(self):
+        for stale_field in ("combat_id", "combat_round", "combat_turn_index"):
+            with self.subTest(stale_field=stale_field):
+                await self._assert_rejected_revival_reopens(stale_field)
+
+    async def _assert_rejected_revival_reopens(self, stale_field):
+        import uuid
+        import random
+        import httpx
+        import action_economy as ae
+
+        a = await self.create_campaign()
+        record = self.manager.get(a["session_id"])
+        s = record.game_session
+        s.ensure_death_state()["mode"] = "PERMADEATH"
+        self.manager.autosave_turn(record, "Look for the map.", "The search continues.")
+        death_fixtures.start_test_combat(s)
+        s._apply_player_damage(s.character["current_hp"], took_damage=True)
+        s.ensure_death_state().update(successes=1, failures=1)
+        combat = s.ensure_combat_state()
+        self.assertTrue(combat["active"])
+        self.assertEqual(combat["current_actor_id"], "player")
+        self.assertEqual(s.character["current_hp"], 0)
+        self.assertEqual(s.world_state["player_combat_status"], "unconscious")
+        self.manager.save_campaign(a["campaign_id"])
+        self.app.state.ollama_adapter = None
+        request = {
+            "message": "Ölüm kurtarmasını bekliyorum.",
+            "action_id": str(uuid.uuid4()),
+            "combat_id": combat["combat_id"],
+            "combat_round": combat["round"],
+            "combat_turn_index": combat["current_turn_index"],
+        }
+        valid_context = request[stale_field]
+        request[stale_field] = (
+            str(uuid.uuid4()) if stale_field == "combat_id" else valid_context + 1
+        )
+
+        def snapshot():
+            return copy.deepcopy({
+                "engine": s.serialize_game_state(),
+                "rng": s.rng.getstate(),
+                "messages": s.messages,
+                "world_metadata": s.world_metadata,
+                "journal": record.journal,
+                "narrative_memory": record.narrative_memory,
+                "lore_authority": record.lore_authority.to_dict(),
+                "combat_history": record.combat_history,
+                "receipts": record.turn_action_receipts,
+                "stored_campaign": self.store.get_campaign(a["campaign_id"]),
+            })
+
+        before = snapshot()
+        self.assertTrue(before["stored_campaign"].history)
+        self.assertNotIn(request["action_id"], record.turn_action_receipts)
+        self.assertIsNone(self.store.get_turn_action(a["campaign_id"], request["action_id"]))
+        with patch.object(
+            s, "run_player_turn",
+            side_effect=AssertionError("Stale revival must not run the engine"),
+        ) as engine, patch(
+            "game.roll_d20", side_effect=lambda: s.rng.randint(20, 20),
+        ) as die, patch.object(
+            s.rng, "randint", wraps=s.rng.randint,
+        ) as rng_roll, patch(
+            "game.heal_player",
+            side_effect=AssertionError("Stale revival must not heal"),
+        ) as healing, patch.object(
+            self.store, "save_campaign",
+            side_effect=AssertionError("Stale revival must not save"),
+        ) as save:
+            rejected = await self.http.post(
+                f"/api/game/sessions/{a['session_id']}/turn", json=request,
+            )
+            self.assertEqual(rejected.status_code, 409, rejected.text)
+            self.assertEqual(rejected.json(), {"detail": {
+                "code": "stale_combat",
+                "message": "Combat or turn context is stale.",
+            }})
+            for forbidden in (engine, die, rng_roll, healing, save):
+                forbidden.assert_not_called()
+        self.assertEqual(snapshot(), before)
+        self.assertNotIn(request["action_id"], record.turn_action_receipts)
+        self.assertIsNone(self.store.get_turn_action(a["campaign_id"], request["action_id"]))
+
+        # No request has been accepted: reopen all owners before correcting
+        # only the precondition, without changing the unused action identity.
+        store = CampaignStore(self.store.path)
+        self.assertEqual(store.get_campaign(a["campaign_id"]), before["stored_campaign"])
+        self.assertIsNone(store.get_turn_action(a["campaign_id"], request["action_id"]))
+        manager = SessionManager(campaign_store=store)
+        app = campaign_fixtures.create_app(session_manager=manager, ollama_adapter=None)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://testserver",
+        ) as http:
+            resumed = await http.post(f"/api/game/campaigns/{a['campaign_id']}/resume")
+            self.assertEqual(resumed.status_code, 200, resumed.text)
+            session_id = resumed.json()["session_id"]
+            self.assertNotEqual(session_id, a["session_id"])
+            restored_record = manager.get(session_id)
+            restored = restored_record.game_session
+            self.assertIsNot(restored_record, record)
+            self.assertIsNot(restored, s)
+            self.assertEqual(restored.serialize_game_state(), before["engine"])
+            self.assertEqual(restored.rng.getstate(), before["rng"])
+            self.assertEqual(restored_record.journal, before["journal"])
+            self.assertEqual(restored_record.narrative_memory, before["narrative_memory"])
+            self.assertEqual(restored_record.lore_authority.to_dict(), before["lore_authority"])
+            self.assertEqual(restored_record.combat_history, before["combat_history"])
+            self.assertEqual(restored_record.turn_action_receipts, before["receipts"])
+            stored_before = store.get_campaign(a["campaign_id"])
+            for field in ("payload", "history", "combat_history"):
+                self.assertEqual(getattr(stored_before, field),
+                                 getattr(before["stored_campaign"], field), field)
+            self.assertNotIn(request["action_id"], restored_record.turn_action_receipts)
+            self.assertIsNone(store.get_turn_action(a["campaign_id"], request["action_id"]))
+            corrected = {**request, stale_field: valid_context}
+            self.assertEqual(
+                {key for key in request if request[key] != corrected[key]}, {stale_field},
+            )
+            before_combat = copy.deepcopy(restored.ensure_combat_state())
+            before_economy = copy.deepcopy(ae.ensure(restored))
+            expected_rng = random.Random()
+            expected_rng.setstate(before["rng"])
+            self.assertEqual(expected_rng.randint(20, 20), 20)
+            real_turn = restored.run_player_turn
+            calls = []
+
+            def counted_turn(message, *, action_id=None, session_id=None, scene_plan=None):
+                calls.append((message, action_id, session_id))
+                return real_turn(
+                    message, action_id=action_id, session_id=session_id, scene_plan=scene_plan,
+                )
+
+            with patch.object(restored, "run_player_turn", new=counted_turn), patch(
+                "game.roll_d20", side_effect=lambda: restored.rng.randint(20, 20),
+            ) as die, patch(
+                "game.heal_player", wraps=game.heal_player,
+            ) as healing, patch(
+                "game.resolve_enemy_attack",
+                side_effect=AssertionError("Revival must not start enemy attacks"),
+            ) as enemy_attack, patch(
+                "game.advance_combat_turn",
+                side_effect=AssertionError("Revival must preserve initiative"),
+            ) as advance, patch(
+                "game._mark_combat_action_used",
+                side_effect=AssertionError("Revival must not consume an action"),
+            ) as consume, patch.object(
+                store, "save_campaign", wraps=store.save_campaign,
+            ) as save:
+                accepted = await http.post(
+                    f"/api/game/sessions/{session_id}/turn", json=corrected,
+                )
+                self.assertEqual(accepted.status_code, 200, accepted.text)
+                self.assertEqual(calls, [(request["message"], request["action_id"], session_id)])
+                die.assert_called_once_with()
+                healing.assert_called_once_with(1)
+                save.assert_called_once()
+                for forbidden in (enemy_attack, advance, consume):
+                    forbidden.assert_not_called()
+
+            response = accepted.json()
+            result = response["combat_result"]
+            self.assertEqual(response["action_id"], request["action_id"])
+            self.assertEqual(result["action"], "death_save")
+            self.assertEqual(result["outcome"], "revived")
+            self.assertTrue(result["success"])
+            self.assertEqual(result["death_save"]["roll"], 20)
+            self.assertTrue(result["death_save"]["prone"])
+            self.assertEqual(result["enemy_actions"], [])
+            self.assertIsNone(result["enemy_action"])
+            self.assertFalse(result["combat_ended"])
+            self.assertEqual(restored.character["current_hp"], 1)
+            self.assertEqual(restored.world_state["player_combat_status"], "active")
+            death = restored.ensure_death_state()
+            self.assertTrue(death["prone"])
+            self.assertFalse(death["dead"])
+            self.assertFalse(death["stable"])
+            self.assertEqual((death["successes"], death["failures"]), (0, 0))
+            for key in ("active", "current_actor_id", "initiative_order",
+                        "initiative_results", "round", "current_turn_index", "actions_used"):
+                self.assertEqual(restored.ensure_combat_state()[key], before_combat[key], key)
+            self.assertEqual(ae.ensure(restored), before_economy)
+            self.assertEqual(restored.rng.getstate(), expected_rng.getstate())
+            self.assertNotEqual(restored.rng.getstate(), before["rng"])
+            committed = store.get_campaign(a["campaign_id"])
+            self.assertEqual(committed.payload["engine_save"], restored.serialize_game_state())
+            self.assertEqual(committed.history[:-1], stored_before.history)
+            self.assertEqual(len(committed.history), len(stored_before.history) + 1)
+            self.assertEqual(committed.combat_history[:-1], stored_before.combat_history)
+            self.assertEqual(len(committed.combat_history), len(stored_before.combat_history) + 1)
+            receipt = store.get_turn_action(a["campaign_id"], request["action_id"])
+            self.assertIsNotNone(receipt)
+            self.assertEqual(receipt["response"], response)
+            self.assertEqual(manager.get_turn_action(restored_record, request["action_id"]), receipt)
+            self.assertEqual(
+                CampaignStore(store.path).get_turn_action(a["campaign_id"], request["action_id"]),
+                receipt,
+            )
 
     async def test_natural_twenty_revival_on_http_replay_after_reopen(self):
         import uuid

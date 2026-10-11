@@ -652,6 +652,8 @@ def resolve_task(session, text, budget):
 def resolve_pending(session, normalized):
     """Player chooses; events only identify reality and a canonical combat target."""
     world = session.world_state
+    if world.get("player_combat_status") == "unconscious":
+        return None
     pending = [e for e in pending_events(world) if e.get("decision_status") == "PENDING"]
     if not pending:
         return None
@@ -840,6 +842,10 @@ def public_expedition(session, *, snapshot=None):
             actions.append({"label": "İzi yeniden aramayı sürdür", "message": "/travel reacquire"})
         import exploration
         for gate in exploration.visible_doors(world):
+            # Legacy doors may have no addressable identity. Keep their saved
+            # facts, but never fabricate an unlock command (or a new identity).
+            if not isinstance(gate.get("id"), str) or not gate["id"].strip():
+                continue
             if gate.get("location") == world["location"] and not gate.get("hidden", False):
                 if gate.get("locked"):
                     actions.append({"label": gate["name"] + " · kilidi aç",

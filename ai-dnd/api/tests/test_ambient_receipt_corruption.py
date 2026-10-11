@@ -48,8 +48,15 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
     async def check_reopened_receipt(
         self, mutate=None, legacy=None, conflict=None, *, legacy_projection=None,
         malformed_hash=None, complete_response_identities=None,
-        complete_response_reason_code=None,
+        complete_response_reason_code=None, complete_response_state_extension=None,
     ):
+        if complete_response_state_extension is not None:
+            self.assertIsNone(legacy)
+            self.assertIsNone(legacy_projection)
+            self.assertIsNone(mutate)
+            self.assertIsNone(malformed_hash)
+            self.assertIsNone(complete_response_identities)
+            self.assertIsNone(complete_response_reason_code)
         if complete_response_reason_code is not None:
             self.assertIsNone(legacy)
             self.assertIsNone(legacy_projection)
@@ -136,6 +143,19 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                     damaged["ambient_event_response"], strict=True,
                 )
                 self.assertNotIn("legacy_ambient_result", damaged)
+            if complete_response_state_extension is not None:
+                self.assertIn("ambient_event_response", damaged)
+                self.assertNotIn("legacy_ambient_result", damaged)
+                state = damaged["ambient_event_response"]["state"]
+                self.assertNotIn("unexpected_detail", state)
+                state["unexpected_detail"] = copy.deepcopy(complete_response_state_extension)
+                validated = AmbientEventCommandResult.model_validate(
+                    damaged["ambient_event_response"], strict=True,
+                )
+                self.assertEqual(validated.state, state)
+                unchanged = copy.deepcopy(damaged)
+                del unchanged["ambient_event_response"]["state"]["unexpected_detail"]
+                self.assertEqual(unchanged, receipt["response"])
             if mutate is not None:
                 mutate(damaged)
             self.assertEqual(damaged["action_id"], command["action_id"])
@@ -199,7 +219,8 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 if legacy == "valid":
                     self.assertEqual(reserved["response"], damaged)
                 if (complete_response_identities is not None
-                        or complete_response_reason_code is not None):
+                        or complete_response_reason_code is not None
+                        or complete_response_state_extension is not None):
                     self.assertEqual(reserved["response"], damaged)
                     self.assertIn("ambient_event_response", reserved["response"])
                     self.assertNotIn("legacy_ambient_result", reserved["response"])
@@ -419,6 +440,61 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_saved_event_reply_retains_already_applied_projection(self):
         await self.check_reopened_receipt()
+
+    async def test_custom_nested_state_preserves_replay_and_conflicts_after_resume(self):
+        # Unlike extra response/result fields, state is intentionally open.
+        # Only this nested detail changes in the complete accepted SQL receipt.
+        detail = {
+            "source": "custom_state",
+            "nested": {"entries": [{"label": "retained", "value": 7}, None],
+                       "enabled": True},
+        }
+        for conflict in (None, "action", "event"):
+            with self.subTest(conflict=conflict):
+                await self.check_reopened_receipt(
+                    complete_response_state_extension=detail, conflict=conflict,
+                )
+
+    async def test_unexpected_complete_response_fields_fail_safely_and_preserve_conflicts_after_resume(self):
+        for path in (
+            ("ambient_event_response",),
+            ("ambient_event_response", "result"),
+        ):
+            for conflict in (None, "action", "event"):
+                with self.subTest(path=path, conflict=conflict):
+                    def add_unexpected_field(response):
+                        original = copy.deepcopy(response)
+                        self.assertIn("ambient_event_response", response)
+                        self.assertNotIn("legacy_ambient_result", response)
+                        AmbientEventCommandResult.model_validate(
+                            response["ambient_event_response"], strict=True,
+                        )
+                        parent = response
+                        for field in path:
+                            parent = parent[field]
+                        parent["unexpected_detail"] = {"source": "corrupt_receipt"}
+                        # Keep the complete accepted reply intact except for
+                        # one extra field, outside the intentionally open state.
+                        # The helper writes it directly via SQL before reopening.
+                        with self.assertRaises(ValidationError) as invalid:
+                            AmbientEventCommandResult.model_validate(
+                                response["ambient_event_response"], strict=True,
+                            )
+                        self.assertEqual(
+                            [(error["loc"], error["type"])
+                             for error in invalid.exception.errors()],
+                            [(path[1:] + ("unexpected_detail",), "extra_forbidden")],
+                        )
+                        unchanged = copy.deepcopy(response)
+                        parent = unchanged
+                        for field in path:
+                            parent = parent[field]
+                        del parent["unexpected_detail"]
+                        self.assertEqual(unchanged, original)
+
+                    await self.check_reopened_receipt(
+                        add_unexpected_field, conflict=conflict,
+                    )
 
     async def test_overlength_complete_response_reason_codes_fail_safely_and_preserve_conflicts_after_resume(self):
         for length in (65, 128):

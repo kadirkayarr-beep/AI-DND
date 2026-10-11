@@ -32,6 +32,11 @@ MAX_CONTEXT_BYTES = 12 * 1024
 MAX_CANDIDATES = 400
 MAX_FACTS_PER_SUBJECT = 6
 MAX_OVERVIEW_FACTS_PER_SUBJECT = 4
+DEFAULT_CAMPAIGN_YEAR = 1501
+_CURRENT_EPOCH_SCOPE = "CURRENT_AT_1501_DR"
+_STATIC_SCOPE = "STATIC_SETTING_FACT"
+_HISTORICAL_SCOPE = "HISTORICAL_DATE_UNSPECIFIED"
+_YEAR_IN_TEXT = re.compile(r"(?<!\d)(\d{4})(?!\d)")
 
 _QUERY_STOP_WORDS = {
     "a", "an", "and", "are", "as", "at", "be", "but", "by", "do", "for",
@@ -46,6 +51,9 @@ _QUERY_SYNONYMS = {
     "queen": {"lord"},
     "monarch": {"lord"},
     "ruler": {"lord"},
+    "rulers": {"lord"},
+    "leader": {"lord"},
+    "leaders": {"lord"},
     "kingdom": {"realm"},
     "kraliçe": {"lord"},
     "kral": {"lord"},
@@ -53,6 +61,14 @@ _QUERY_SYNONYMS = {
     "hükümdarı": {"lord"},
     "hukumdar": {"lord"},
     "hukumdari": {"lord"},
+    "hükümdari": {"lord"},
+    "hukumdarı": {"lord"},
+    "lordu": {"lord"},
+    "yönetici": {"lord"},
+    "yonetici": {"lord"},
+    "yöneticisi": {"lord"},
+    "yoneticisi": {"lord"},
+    "lideri": {"lord"},
     "route": {"road"},
     "safety": {"safe"},
     "distance": {"miles", "kilometers", "km"},
@@ -104,6 +120,11 @@ _CURRENT_LOCATION_REFERENCE_RE = re.compile(
     re.IGNORECASE,
 )
 _CURRENT_RULER_PREDICATES = frozenset({"current_lord", "current_lord_id"})
+_RULERSHIP_QUERY_RE = re.compile(
+    r"\b(?:lord\w*|ruler\w*|rule\w*|monarch\w*|king\w*|queen\w*|leader\w*|govern\w*|"
+    r"h[üu]k[üu]mdar\w*|y[öo]netici\w*|lider\w*|kral\w*|krali[cç]e\w*)\b",
+    re.IGNORECASE,
+)
 _OVERVIEW_PREDICATE_PRIORITY = {
     "known_as": 0,
     "known_for": 1,
@@ -141,6 +162,8 @@ def _query_intents(value: str | None) -> frozenset[str]:
         and _QUESTION_SIGNAL_RE.search(text)
     ):
         intents.add("current_ruler")
+    if _RULERSHIP_QUERY_RE.search(text):
+        intents.add("rulership")
     return frozenset(intents)
 
 
@@ -198,6 +221,7 @@ def _authorized_source(source: SourceManifest) -> bool:
     return (
         source.source_tier is not SourceTier.TIER_5_PROCEDURAL
         and source.source_tier is not SourceTier.TEST_FIXTURE
+        and source.source_tier is not SourceTier.OWNER_APPROVED_CONTINUITY
         and source.authority_status.casefold() == "verified"
         and source.owner_access_status.casefold() == "authorized"
     )
@@ -538,6 +562,7 @@ class LoreRegistry:
         include_dm_secrets: bool = False,
         max_facts: int = MAX_RETRIEVED_FACTS,
         max_bytes: int = MAX_CONTEXT_BYTES,
+        campaign_year: int = DEFAULT_CAMPAIGN_YEAR,
     ) -> dict[str, Any]:
         if not 1 <= max_facts <= MAX_RETRIEVED_FACTS:
             raise ValueError("max_facts is outside the supported range.")
@@ -589,6 +614,10 @@ class LoreRegistry:
             force: bool = False,
             allow_intent_match: bool = False,
         ) -> None:
+            if not fact_is_current(fact, campaign_year):
+                return
+            if _public_freeze_fact_blocked(fact):
+                return
             if not ruler_fact_in_scope(fact):
                 return
             relevance = self._fact_relevance_score(fact, query_terms)
@@ -780,6 +809,7 @@ class LoreRegistry:
             if fact_id in self._facts
             and self._facts[fact_id].subject_id in relevant_subjects
             and self._facts[fact_id].visibility is not VisibilityScope.DM_SECRET
+            and fact_is_current(self._facts[fact_id], campaign_year)
         ]
         relevant_overrides = [
             item.to_dict()
@@ -796,6 +826,24 @@ class LoreRegistry:
             for entity_id in all_context_ids
             if entity_id not in self._entities
         )[:32]
+        unknown_rows = [
+            {
+                "entity_id": entity_id,
+                "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
+            }
+            for entity_id in unknown_ids
+        ]
+        if not official and query_intents:
+            subject = current_location_id
+            if subject is None and mentioned_ids:
+                subject = sorted(mentioned_ids)[0]
+            if subject is None:
+                subject = "unspecified"
+            if not any(row["entity_id"] == subject for row in unknown_rows):
+                unknown_rows.append({
+                    "entity_id": subject,
+                    "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
+                })
         relevant_entity_ids = set(geography_ids | all_context_ids)
         for _, fact in selected:
             relevant_entity_ids.add(fact.subject_id)
@@ -830,13 +878,7 @@ class LoreRegistry:
                 "npc_known_lore": npc_known_facts,
                 "procedural_local_content": relevant_procedural,
                 "verified_entities": verified_entities,
-                "unknown_or_unloaded": [
-                    {
-                        "entity_id": entity_id,
-                        "status": ResolutionStatus.UNKNOWN_UNLOADED.value,
-                    }
-                    for entity_id in unknown_ids
-                ],
+                "unknown_or_unloaded": unknown_rows,
             },
             "diagnostics": {
                 "registry_fact_count": self.fact_count,
@@ -846,6 +888,7 @@ class LoreRegistry:
                 ],
                 "query_intents": sorted(query_intents),
                 "current_location_entity_id": current_location_id,
+                "campaign_year": campaign_year,
                 "withheld_secret_count": withheld_secret_count,
                 "unresolved_conflicts": unresolved_conflicts,
                 "coverage_status": (
@@ -927,6 +970,15 @@ class LoreRegistry:
             "distinct_relation" in intents
             and predicate == "distinct_from_region"
         ):
+            score += 2
+        if "rulership" in intents and predicate in {
+            "current_lord_id",
+            "current_lord",
+            "ruler_id",
+            "ruler",
+            "leader_id",
+            "leader",
+        }:
             score += 2
         return score
 
@@ -1072,6 +1124,16 @@ def _validate_provenance(
     if allow_test_fixtures and review_status is ReviewStatus.TEST_ONLY:
         if source.source_tier is not SourceTier.TEST_FIXTURE:
             raise ValueError(f"{label} test provenance is invalid.")
+    if (
+        authority_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+        or source.source_tier is SourceTier.OWNER_APPROVED_CONTINUITY
+    ):
+        raise ValueError(f"{label} cannot use owner continuity as official provenance.")
+    if source.source_tier is not authority_tier:
+        raise ValueError(f"{label} authority tier does not match its source.")
+    if allow_test_fixtures and review_status is ReviewStatus.TEST_ONLY:
+        if source.source_tier is not SourceTier.TEST_FIXTURE:
+            raise ValueError(f"{label} test provenance is invalid.")
         return
     if review_status is not ReviewStatus.VERIFIED_CANON:
         raise ValueError(f"{label} is not reviewed as verified canon.")
@@ -1145,10 +1207,11 @@ def _trim_packet(packet: dict[str, Any], max_bytes: int) -> None:
 
 
 def default_lore_registry() -> LoreRegistry:
-    """Return the intentionally empty production registry.
+    """Return an empty registry for fixtures that have not loaded a pack.
 
-    No authorized official source pack is present in the project. Keeping this
-    registry empty is safer than treating model recall as provenance.
+    Deprecated for new callers. Production answers use ``PRODUCTION_REGISTRY``
+    or ``registry_for_pack``. An explicit ``LoreRegistry.empty()`` is the
+    fixture form. This helper stays only so older tests keep that empty path.
     """
     return LoreRegistry.empty()
 
@@ -1160,6 +1223,81 @@ def resolve_entity(
     region_scope: str | None = None,
 ) -> EntityResolution:
     return registry.resolve_entity(name_or_id, region_scope=region_scope)
+
+
+def _year_bound(value: str | None) -> int | None:
+    if not isinstance(value, str):
+        return None
+    match = _YEAR_IN_TEXT.search(value)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+_FREEZE_GUARD: tuple[frozenset[str], frozenset[str]] | None = None
+
+
+def _freeze_guard() -> tuple[frozenset[str], frozenset[str]]:
+    """Pinned corpus ids and restricted ids. A failed load excludes nothing."""
+    global _FREEZE_GUARD
+    if _FREEZE_GUARD is None:
+        from .freeze_admission import load_freeze_evidence
+
+        evidence = load_freeze_evidence()
+        if evidence.integrity_errors:
+            _FREEZE_GUARD = (frozenset(), frozenset())
+        else:
+            _FREEZE_GUARD = (frozenset(evidence.records), frozenset(evidence.restricted_ids))
+    return _FREEZE_GUARD
+
+
+def _freeze_scope_required(fact_id: str) -> bool:
+    """Unscoped corpus ids are not current 1501 facts."""
+    return fact_id in _freeze_guard()[0]
+
+
+def _public_freeze_fact_blocked(fact: LoreFact) -> bool:
+    """Restricted ids and the excluded Castle Ward inference stay out of packets."""
+    from .freeze_admission import EXCLUDED_CASTLE_WARD_INFERENCE
+
+    if fact.fact_id in _freeze_guard()[1] and fact.visibility not in {
+        VisibilityScope.DM_SECRET,
+        VisibilityScope.DISCOVERABLE_SECRET,
+    }:
+        return True
+    value = fact.object_id_or_value
+    return (
+        fact.fact_id == "WD22-F-015"
+        and isinstance(value, str)
+        and EXCLUDED_CASTLE_WARD_INFERENCE in value
+    )
+
+
+def fact_is_current(fact: LoreFact, campaign_year: int) -> bool:
+    """Whether a verified fact is current at a campaign DR year.
+
+    Unscoped facts stay eligible so existing fixtures keep working.
+    A historical scope is never a current answer. A 1501 scope matches
+    only that year. An explicit year range excludes everything outside it.
+    """
+    if type(campaign_year) is not int:
+        raise ValueError("campaign_year must be an integer DR year.")
+    start = _year_bound(fact.valid_from)
+    end = _year_bound(fact.valid_until)
+    if start is not None and campaign_year < start:
+        return False
+    if end is not None and campaign_year > end:
+        return False
+    scope = fact.temporal_scope
+    if scope is None or scope == _STATIC_SCOPE:
+        if scope is None and _freeze_scope_required(fact.fact_id):
+            return False
+        return True
+    if scope == _CURRENT_EPOCH_SCOPE:
+        return campaign_year == DEFAULT_CAMPAIGN_YEAR
+    if scope == _HISTORICAL_SCOPE:
+        return False
+    return False
 
 
 def retrieve_lore_context(

@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import game
 import action_economy as ae
+import equipment_economy
 import weapon_attack as attack
 from weapon_catalog import WEAPONS, lookup
 from combat_lifecycle import CombatRequestError
@@ -1900,6 +1901,33 @@ class WeaponTests(unittest.TestCase):
                                       "resistances": [], "armor_class": 1, "current_hp": 0}]}
         s.merge_world_updates(s.validate_world_updates(candidate))
         self.assertEqual((s.world_state, s.character), before)
+
+    def test_starting_held_sword_survives_materialize_for_named_and_pronoun_attacks(self):
+        """Regression: item_* migration must not break an already-held starting sword."""
+        s, n = ready()
+        self.assertEqual(s.world_state["equipment"]["main_hand"], "longsword")
+        equipment_economy.materialize(s.world_state)
+        sword = next(i for i in s.world_state["inventory"] if i["name"] == "Kılıç")
+        self.assertEqual(s.world_state["equipment"]["main_hand"], sword["item_id"])
+        for text in ("Ona kılıcımla saldırıyorum.", "Ona saldırıyorum."):
+            with self.subTest(text=text):
+                identity, choice = attack.natural_choice(s, text)
+                self.assertEqual(identity, "longsword")
+                self.assertNotIn("draw", choice)
+                result = resolve(s, n, identity, choice, rolls=(12,))
+                self.assertEqual(result["weapon_id"], "longsword")
+                self.assertEqual(s.world_state["equipment"]["main_hand"], sword["item_id"])
+
+    def test_unheld_inventory_sword_still_rejects_named_attack_without_draw(self):
+        s, n = ready()
+        s.world_state["equipment"] = {"main_hand": None, "off_hand": None}
+        equipment_economy.materialize(s.world_state)
+        self.assertIsNone(s.world_state["equipment"]["main_hand"])
+        before = copy.deepcopy((s.world_state, s.character, s.rng.getstate()))
+        with self.assertRaises(CombatRequestError) as raised:
+            attack.resolve(s, "player", n["id"], "longsword", {})
+        self.assertEqual(raised.exception.code, "weapon_not_held")
+        self.assertEqual((s.world_state, s.character, s.rng.getstate()), before)
 
     def test_natural_language_choices_no_stats_from_prose(self):
         s, n = armed("Dagger")

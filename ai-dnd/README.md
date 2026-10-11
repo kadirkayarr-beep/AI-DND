@@ -2,7 +2,24 @@
 
 AI-DND is a Turkish-language terminal D&D game.
 
-## Run
+## Player path
+
+The campaign UI talks to the FastAPI adapter, not the Node `artifacts/api-server`.
+
+```powershell
+# From the repository root (Desktop\AI - DND)
+.\start_local.ps1
+```
+
+Default local ports: FastAPI `:8008`, Ollama `:11434`, experience Vite (see the script).
+Set `OLLAMA_HOST` (and `OLLAMA_PROXY_TOKEN` if the proxy requires it). Optional
+`AI_DND_CAMPAIGN_DB` points at a sqlite file. Required model: `qwen3:8b`.
+Check `GET http://127.0.0.1:11434/api/tags` and `GET http://127.0.0.1:8008/api/game/health`.
+Do not use interactive `ollama run` for this path.
+
+Product UI: `artifacts/ai-dnd-experience`. `artifacts/ai-dnd-web` is session-only.
+
+## Run (terminal)
 
 From the repository root:
 
@@ -46,10 +63,25 @@ world/narration references. Plain `exec` dictionaries are not a character-state
 input: use `create_session()`, edit `session.character`, and call session-bound
 helpers instead.
 Loading preserves the top-level character/world/history containers; nested
-world records may be replaced. Saves remain version 1; random-generator state
-and chat messages are not included in that format.
+world records may be replaced. Engine JSON saves use format version 5.
+Versions 1 through 4 still load. Versions 1 through 3 migrate to an empty
+spell list and zero remaining slots. Versions 1 through 4 migrate to 0 XP
+and keep their existing level and hit points. Corrupt or unsupported
+versions are rejected. Terminal JSON saves do
+not include the random generator or chat messages. Campaign SQLite saves are
+a separate store: they include RNG, journal, lore, narrative memory, and
+bounded combat history.
 
 ## Verify
+
+Daily (Windows): UTF-8 is required or emoji in pipeline tests fail.
+
+```powershell
+.\dev.ps1
+.\dev.ps1 -List
+```
+
+Equivalent:
 
 ```bash
 python ai-dnd/run_tests.py
@@ -77,11 +109,32 @@ number of seconds (fractions are allowed):
 python ai-dnd/run_tests.py --gate-timeout 600
 ```
 
-A timeout kills and waits for the direct child, reports `GATE TIMED OUT` with its
-name and limit, and marks that gate failed even if it wrote a completion receipt.
-Later gates still run; the final failure list stays in inventory order. This is
-a per-gate deadline, not a whole-suite deadline. It does not terminate descendants
-spawned by a gate. Listing and source-only preflight do not execute child gates.
+On the supported POSIX runtime, each gate starts in a separate session/process
+group. A timeout sends `SIGKILL` to that whole group (the direct child and its
+inherited-group descendants, including grandchildren), then waits up to **5
+seconds** to reap the direct child. It reports `GATE TIMED OUT` with the gate's
+name and limit and marks that gate failed even if it wrote a completion receipt.
+If the child cannot be reaped within that cleanup limit, `GATE CLEANUP FAILED`
+is also reported; cleanup never waits indefinitely. Offline copied-runner tests
+on Linux verify sleeping descendants, including ones ignoring `SIGTERM`, have
+no live work left before the later gate runs for scripts, API import/loading
+hooks, and prototype selection. Orphan zombies are left for their adopting
+parent to reap; descendants deliberately leaving the group are outside this
+guarantee. Later gates still run; the final failure list stays in inventory order.
+This is a per-gate deadline, not a whole-suite deadline. Listing and source-only
+preflight do not execute child gates.
+
+Runner interruption is verified separately from timeout behavior. During an
+active gate, Ctrl+C (`SIGINT`/`KeyboardInterrupt`), `SIGTERM`, and `SIGHUP` stop
+the active gate's entire inherited process group with `SIGKILL` and bound the
+direct-child reap to the same **5 seconds**. Repeated catchable signals cannot
+interrupt that cleanup. The runner then exits nonzero without starting later
+gates or reporting suite success, even if an API gate wrote a completion receipt
+early. Offline Linux copied-runner fixtures verify scripts in default/explicit
+release and prototype selections, plus API import, loading, and execution,
+including grandchildren ignoring termination signals. This does not cover
+uncatchable termination of the runner (`SIGKILL`), machine loss, or descendants
+that deliberately detach from the gate's group.
 
 The retired `test_combat_v2.py` and `test_combat_v2_fixed.py` are historical
 prototype diagnostics, **not release gates**. Their obsolete fixture assumptions
@@ -98,6 +151,20 @@ python ai-dnd/run_tests.py --suite prototype --list
 Listing only shows the selected inventory; it does not certify a passing run.
 Prototype results cannot certify or block the default release selection.
 
+Full API discover and live 30-turn smokes are **not** the daily gate:
+
+```powershell
+.\dev.ps1 -ApiDiscover
+```
+
+POSIX signal tests skip on Windows. Run them under WSL on a native Linux filesystem copy; a Windows worktree `.git` pointer is not resolvable under `/mnt/c`.
+
+The runner covers the portable deterministic gates, including both historical
+V2 commands. `test_combat_v2.py` contains 15 turn-pipeline scenarios with fresh
+sessions, scripted initiative/attack/damage dice, and scoped model stubs.
+`test_combat_v2_fixed.py` is a compatibility entry point to that same suite,
+not an additional set of scenarios. The authoritative V2 suite remains separate.
+Initiative precedes attacks; a surviving exchange advances one round per command.
 Live tests are separate:
 
 ```bash

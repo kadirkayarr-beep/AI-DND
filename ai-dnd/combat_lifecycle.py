@@ -17,7 +17,7 @@ def is_attack_decision(session, message):
     return (session._has_explicit_attack_verb(message)
             and not session._is_explicitly_negated_attack(message)
             and not re.search(r"\b(?:tehdit|gozdagi|varsay|saldirsam)\w*\b", text)
-            and not text.rstrip().endswith("?"))
+            and not str(message).rstrip().endswith("?"))
 
 
 def validate_request(session, message, target_id=None, *, combat_id=None,

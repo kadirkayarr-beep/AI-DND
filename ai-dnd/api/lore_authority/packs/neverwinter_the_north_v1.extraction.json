@@ -48,6 +48,21 @@
         "notes": "Setting anchor used by the campaign binding model."
       },
       {
+        "entity_id": "fr:epoch:1501_dr",
+        "entity_type": "HISTORICAL_EVENT",
+        "canonical_name": "1501 DR",
+        "aliases": ["Year of the Shining Mythal"],
+        "setting": "Forgotten Realms",
+        "region_scope": null,
+        "source_id": "SOURCE_FR_HEROES_2025",
+        "source_reference": "PDF p.59 — Realms Timeline",
+        "authority_tier": "TIER_2_OFFICIAL_5E",
+        "review_status": "UNREVIEWED_EXTRACTED",
+        "valid_from": null,
+        "valid_until": null,
+        "notes": "Present epoch. Year-name spelling is Mythal, checked against the Heroes of Faerûn timeline."
+      },
+      {
         "entity_id": "fr:region:the_north",
         "entity_type": "REGION",
         "canonical_name": "The North",
@@ -337,7 +352,7 @@
         "fact_id": "fr:fact:present_year_name",
         "subject_id": "fr:world:forgotten_realms",
         "predicate": "current_year_name",
-        "object_id_or_value": "Year of the Shining Mythral",
+        "object_id_or_value": "Year of the Shining Mythal",
         "claim_type": "OBJECTIVE_CANON_FACT",
         "authority_tier": "TIER_2_OFFICIAL_5E",
         "source_id": "SOURCE_FR_HEROES_2025",
@@ -346,7 +361,7 @@
         "valid_until": null,
         "visibility": "COMMON_KNOWLEDGE",
         "region_scope": null,
-        "notes": "",
+        "notes": "Spelling decision: Heroes of Faerûn timeline says Mythal. Mythral was a transcription error and is not current.",
         "reality_layer": "OFFICIAL_SETTING_CANON",
         "review_status": "UNREVIEWED_EXTRACTED",
         "temporal_scope": "CURRENT_AT_1501_DR"

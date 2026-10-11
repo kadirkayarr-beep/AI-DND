@@ -1,0 +1,274 @@
+# AI-DND — COMPLETE SEVEN SELECTED CANCELLED PLAN REQUIREMENTS
+
+Work in the existing Replit AI-DND environment.
+
+This is one coordinated assignment covering exactly these seven plans:
+
+- #25 — Preserve explicit-session messages and RNG during a successful default save.
+- #216 — Preserve readied movement and combat geometry after an HTTP save failure.
+- #228 — Preserve NPC-specific name knowledge in continuity-only recall after reopening.
+- #300 — Reject a saved personal-answer retry when only the target NPC changes.
+- #340 — Verify dungeon controls through a reproducible real browser flow.
+- #60 — Connect bounded Monster Combat to genuine production-owned encounter data.
+- #76 — Implement bounded authoritative armor/shield equip and unequip behavior.
+
+Do not omit any of these requirements. If a requirement is already satisfied, demonstrate that with exact current-source implementation and test evidence rather than implementing it again.
+
+All other cancelled/draft plans are outside this assignment. Plan #436 is explicitly excluded.
+
+Do not commit, push, merge, reset, publish, deploy, switch branches, create a branch/worktree, or start PRE-#04 Wave 3.
+
+## 1. Establish the actual source and preserve existing work
+
+Inspect and record:
+
+- Repository path, current branch, exact HEAD and working-tree status.
+- Existing uncommitted changes and applicable project instructions.
+- Current architecture/handoff documents.
+- Existing test runners, fixtures, browser tools and relevant installed skills.
+
+Do not assume that earlier Windows/Work test results certify this Replit checkout. Do not copy, pull or overwrite unrelated repair work to make the sources match.
+
+Preserve existing changes. Identify which files this assignment will affect before editing.
+
+For each of the seven plans, record:
+
+1. The existing owner and implementation path.
+2. Existing coverage that addresses the exact requirement.
+3. The remaining gap, if any.
+4. The smallest proposed change and what must remain unchanged.
+
+This prompt authorizes the seven bounded tasks within existing ownership. Continue with routine implementation choices without repeatedly asking for approval. If a task requires a new architectural owner, unavailable authoritative source material, a breaking persistence change or an unsupported mechanical interface, stop that affected portion, explain the concrete boundary and continue independent work.
+
+## 2. Architectural requirements
+
+Maintain these invariants throughout:
+
+PYTHON DECIDES GAME REALITY.
+LORE AUTHORITY DECIDES SETTING REALITY.
+CAMPAIGN EVENTS CREATE CAMPAIGN CANON.
+QWEN UNDERSTANDS INTENT AND NARRATES VERIFIED OUTCOMES.
+FRONTEND PRESENTS REALITY.
+
+Preserve:
+
+- Maximum two model calls per player turn.
+- Deterministic fallback after rejected narration, with no model retry.
+- Save compatibility, session isolation and stable canonical entity IDs.
+- Existing request hashing, conflict precedence, receipts, replay and rollback.
+- Existing inventory, equipment, combat, action-economy, campaign-time and persistence owners.
+- Player-safe NPC identity projection and explicit identity-learning rules.
+- Existing user campaigns and saves.
+
+Do not create a parallel intent, inventory, economy, combat, geometry, pathfinding or persistence system. Model prose and frontend state must never author mechanics.
+
+Use uploaded current D&D/Forgotten Realms sources or existing reviewed source records for relevant mechanical and setting facts. Do not resolve rules or construct statblocks from model recollection.
+
+## 3. Complete the five verification requirements
+
+For test-only tasks, change production behavior only if a focused reproduction demonstrates a real mismatch. Keep fixtures representative of existing contracts, and preserve existing assertions.
+
+### #25 — Successful default-save isolation
+
+Relevant starting point: `ai-dnd/test_sessions.py`.
+
+Extend the existing successful module-level `game.save_game(path)` isolation test.
+
+- Prepare two explicit sessions with distinct message histories.
+- Advance their session-owned RNGs before taking baselines.
+- Hold references to messages and RNG objects, alongside existing protected references.
+- Capture message contents, RNG states and existing complete state baselines.
+- Perform the successful default save.
+- Verify that both explicit sessions retain the same objects, contents and RNG states.
+- Preserve existing save-content and world/character/narration assertions.
+- Restore any default-session state modified by the fixture in reliable cleanup.
+
+Do not substitute an explicit session’s save method for the module-level default-save path.
+
+### #216 — Readied movement save-failure rollback
+
+Relevant starting point: `ai-dnd/api/tests/test_action_economy_reactions.py`.
+
+Use the real interrupted-reaction fixture with `response_kind="move"` and supported pending enemy attacks.
+
+- Resolve a legal readied movement through the real HTTP/engine path.
+- Inject a nonfatal failure at the existing campaign-save boundary after speculative resolution.
+- Verify complete runtime and persisted rollback, including:
+  - Pair geometry and player-distance mirrors.
+  - Movement grants/usage and reaction resources.
+  - Opportunity and pending continuation.
+  - HP, initiative, RNG, histories and receipts.
+- Ensure the failed request creates no durable accepted receipt.
+- Remove the failure and retry the identical action ID and command.
+- Verify movement and range-dependent enemy continuation happen exactly once.
+- Reopen through fresh store/session owners.
+- Replay the accepted request with no mechanics, RNG consumption or campaign writes.
+
+Retain the existing attack-reaction failure coverage. Do not mock successful movement or enemy outcomes into existence.
+
+### #228 — Continuity-only name recall after reopening
+
+Relevant owners include `game.py`, narrative memory and campaign API tests.
+
+- Persist a legitimate player name disclosure to NPC A, bound to A’s stable ID.
+- Ensure NPC B has not received that disclosure.
+- Prepare the saved fixture so A’s direct canonical disclosure memory is absent while legitimate player-originated continuity evidence remains.
+- Reopen through fresh `CampaignStore` and `SessionManager` owners.
+- Verify A can recall the name through its own supported continuity fallback.
+- Verify B cannot inherit the name or produce a response attributed to A.
+- Verify model-generated narration cannot become disclosure evidence.
+- Preserve unrelated state and current player-safe NPC identity rules.
+
+Do not pass this test by restoring A’s direct disclosure memory; that would avoid the requested fallback-only boundary.
+
+### #300 — Target-only conflict on saved personal-answer retry
+
+Relevant starting point: `ai-dnd/api/tests/test_campaign_api.py`.
+
+- Accept a supported personal question directed to local NPC A using a real action ID.
+- Preserve its original receipt and resulting state.
+- Reopen with fresh store/session owners.
+- Retry the same action ID and question, changing only `target_id` to local NPC B.
+- Require the existing action-ID conflict result before another engine turn or save.
+- Verify unchanged persisted data, runtime, RNG, histories, profiles, conversation flags and original receipt.
+- Verify an unchanged request still replays the accepted original response without another turn.
+
+Do not change hashing or conflict semantics merely to make the test pass.
+
+### #340 — Reproducible dungeon browser acceptance
+
+Use a dedicated temporary campaign store and real Python engine/API.
+
+Prepare a seeded campaign or a saved fixture produced through legitimate canonical engine actions. Use existing browser tools and fixtures where practical.
+
+Verify:
+
+- Searching exposes only appropriate local hidden entities.
+- Two visible doors require their exact supported targets.
+- Trap disarm, bypass and trigger controls display actual Python outcomes.
+- Hazard controls reflect supported canonical actions.
+- The lever releases the blocked path.
+- Traversal changes the canonical location.
+- Save/reopen preserves door and trap states.
+- Desktop and phone layouts remain usable.
+- Ordinary command input remains accessible.
+- Internal command IDs do not appear as player-facing labels.
+
+Do not change production dice, forge frontend GameState, fake successful gameplay responses, bypass transition guards, reset encounter bindings or touch user campaigns.
+
+If a browser failure exposes a real in-scope UI defect, reproduce it first and make the smallest fix. Do not expand this into a UI redesign.
+
+## 4. Complete the two bounded feature requirements
+
+Implement these incrementally after identifying existing owners. Test their integration before the final browser acceptance where relevant.
+
+### #60 — Production-owned Monster Combat data
+
+Inspect existing perception, movement/route, encounter, monster capability and combat owners.
+
+The requirement is genuine production data integration. Explicit test fixtures alone do not satisfy it.
+
+- Identify actual production sources for encounter NPCs, distances, visibility and legal movement/escape options.
+- Connect existing interfaces only to facts those owners genuinely provide.
+- Bind at least one selected, verified Monster Manual statblock through the existing authoritative definition/encounter path.
+- Retain source identity for the reviewed definition.
+- Leave abilities unavailable when their mechanical owner is absent.
+- Verify at least one supported encounter through HTTP:
+  - Target selection.
+  - Legal movement or escape.
+  - Resource consumption.
+  - Save/resume and receipt replay.
+- Clearly distinguish fixture coverage from production-path coverage.
+
+Do not invent distance, line of sight, coordinates, routes or monster abilities to satisfy the test.
+
+If a required production data owner is genuinely absent, document the smallest missing interface and its intended owner. Do not create a new geometry/pathfinding system or report the feature complete.
+
+### #76 — Authoritative armor/shield equip and unequip
+
+Inspect `equipment_economy.py`, derived armor rules, inventory references, campaign time, combat/action economy and persistence before editing.
+
+Implement a narrow flow using the existing owners.
+
+- Validate real possession and item identity.
+- Apply verified proficiency consequences and other supported restrictions.
+- Resolve AC through the existing authoritative rule owner.
+- Apply supported armor/shield don/doff time or action costs through existing time/action owners.
+- Keep equipped references and actual possession consistent.
+- Preserve historical saves and supported equipment representations.
+- Integrate atomically with existing autosave and action receipts.
+- Verify:
+  - Relevant AC changes.
+  - Time/resource costs.
+  - Invalid and unsupported changes fail safely.
+  - Failed saves restore equipment, AC, time, resources, RNG and receipts.
+  - Successful retries apply once.
+  - Resume and replay preserve the accepted result without repeated costs.
+  - The frontend displays only authoritative results.
+
+Do not interpret proficiency as an invented blanket prohibition. Follow the verified applicable rule and existing supported mechanics.
+
+Keep unsupported combat-time or other equipment situations fail-closed until their existing owners can resolve them. Do not bypass the current safety guard broadly.
+
+Crafting, encumbrance, magic-item pricing and broad trade catalogs remain outside scope.
+
+## 5. Keep execution and validation efficient
+
+Avoid repeated repository exploration and unnecessary broad test runs.
+
+- Inspect shared files once and reuse that understanding.
+- Prefer extending existing fixtures and tests over duplicating suites.
+- Keep meaningful cases focused; do not generate combinatorial variations.
+- After each coherent group, run its directly affected tests.
+- Once implementation is stable, freeze source edits and run the final broader checks.
+- If a later change invalidates earlier evidence, rerun the affected selection.
+- Use existing relevant skills/tools. Do not install unrelated plugins or dependencies.
+- Prefer scoped offline model adapters for deterministic tests.
+- Do not launch expensive broad real-Qwen smoke runs unless a selected requirement needs them.
+- Label mocked-model, real HTTP, real browser and real-model evidence accurately.
+
+Do not optimize the unrelated contract suite or implement other draft plans as incidental scope.
+
+## 6. Final validation
+
+On the final unchanged source, run the current supported equivalents of:
+
+- Focused coverage for all seven requirements.
+- Session/default-save tests.
+- Reaction, NPC memory/personal answer and request-conflict subsets.
+- Inventory/equipment, campaign-time and relevant combat subsets.
+- Monster perception/capability/encounter integration tests.
+- Campaign persistence, replay/idempotency and rollback coverage.
+- The previously relevant PRE-#04 Wave 1+2 matrix, adapted to the actual current source.
+- Gameplay API suite.
+- Deterministic release gates.
+- Frontend tests and typecheck.
+- The reproducible desktop/mobile browser acceptance.
+
+Do not copy historical counts or assume every current selection has the same count as an older report. Report actual collected/executed counts, failures, errors, skips and exit statuses.
+
+Use realistic execution limits for known slow suites. A timeout, incomplete run or source change during a run is not PASS evidence. Preserve failure evidence; do not weaken assertions or production validation to obtain a green result.
+
+## 7. Final review and report
+
+Review the full final diff, changed/untracked files, branch and HEAD.
+
+For each plan — #25, #216, #228, #300, #340, #60 and #76 — provide:
+
+- Status: IMPLEMENTED AND VERIFIED, ALREADY SATISFIED AND VERIFIED, or BLOCKED.
+- Exact requirement satisfied or remaining.
+- Changed files.
+- Concrete evidence and actual test counts.
+- Any source, runtime or mechanical limitation.
+
+Include:
+
+- Exact source identity and source stability during validation.
+- Separate offline, production-path HTTP and browser evidence.
+- Confirmation of model-call/no-retry, save compatibility and session-isolation constraints.
+- Confirmation that no user campaigns were altered.
+- Final GO/NOGO for this assignment.
+
+Do not mark the whole assignment GO if a selected requirement remains blocked.
+
+Finish all independent authorized work, retain reviewable changes and evidence, then stop. Do not commit, push, merge, deploy or start Wave 3.

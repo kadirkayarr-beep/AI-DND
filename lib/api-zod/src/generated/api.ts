@@ -165,6 +165,10 @@ export const createGameSessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createGameSessionResponseStateCharacterOriginMax = 240;
 
+export const createGameSessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createGameSessionResponseStateCharacterXpMin = 0;
+
 export const createGameSessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -227,6 +231,9 @@ export const createGameSessionResponseStateQuestOffersItemObjectivesItemDescript
 export const createGameSessionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const createGameSessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const createGameSessionResponseStateKnownFactionsItemStandingMin = -5;
+export const createGameSessionResponseStateKnownFactionsItemStandingMax = 5;
 
 
 
@@ -386,6 +393,14 @@ export const CreateGameSessionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createGameSessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createGameSessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createGameSessionResponseStateWorldTimeOfDayDefault),
@@ -504,7 +519,11 @@ export const CreateGameSessionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createGameSessionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createGameSessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -682,7 +701,59 @@ export const CreateGameSessionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createGameSessionResponseStateKnownFactionsItemStandingMin).max(createGameSessionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -834,6 +905,10 @@ export const getGameSessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getGameSessionStateResponseCharacterOriginMax = 240;
 
+export const getGameSessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getGameSessionStateResponseCharacterXpMin = 0;
+
 export const getGameSessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 
@@ -896,6 +971,9 @@ export const getGameSessionStateResponseQuestOffersItemObjectivesItemDescription
 export const getGameSessionStateResponseQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const getGameSessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const getGameSessionStateResponseKnownFactionsItemStandingMin = -5;
+export const getGameSessionStateResponseKnownFactionsItemStandingMax = 5;
 
 
 
@@ -1053,6 +1131,14 @@ export const GetGameSessionStateResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getGameSessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getGameSessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getGameSessionStateResponseWorldTimeOfDayDefault),
@@ -1171,7 +1257,11 @@ export const GetGameSessionStateResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getGameSessionStateResponseCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getGameSessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -1349,7 +1439,59 @@ export const GetGameSessionStateResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getGameSessionStateResponseKnownFactionsItemStandingMin).max(getGameSessionStateResponseKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -1508,6 +1650,10 @@ export const resolveSpeciesTraitActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveSpeciesTraitActionResponseStateCharacterOriginMax = 240;
 
+export const resolveSpeciesTraitActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveSpeciesTraitActionResponseStateCharacterXpMin = 0;
+
 export const resolveSpeciesTraitActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -1570,6 +1716,9 @@ export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItem
 export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const resolveSpeciesTraitActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax = 5;
 
 export const resolveSpeciesTraitActionResponseResultMessageMax = 500;
 
@@ -1732,6 +1881,14 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveSpeciesTraitActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionResponseStateWorldTimeOfDayDefault),
@@ -1850,7 +2007,11 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveSpeciesTraitActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -2028,7 +2189,59 @@ export const ResolveSpeciesTraitActionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -2194,6 +2407,10 @@ export const resolveSpeciesTraitActionCompatResponseStateCharacterSpeedFtMin = 0
 
 export const resolveSpeciesTraitActionCompatResponseStateCharacterOriginMax = 240;
 
+export const resolveSpeciesTraitActionCompatResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveSpeciesTraitActionCompatResponseStateCharacterXpMin = 0;
+
 export const resolveSpeciesTraitActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -2256,6 +2473,9 @@ export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectiv
 export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const resolveSpeciesTraitActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax = 5;
 
 export const resolveSpeciesTraitActionCompatResponseResultMessageMax = 500;
 
@@ -2418,6 +2638,14 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveSpeciesTraitActionCompatResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveSpeciesTraitActionCompatResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveSpeciesTraitActionCompatResponseStateWorldTimeOfDayDefault),
@@ -2536,7 +2764,11 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -2714,7 +2946,59 @@ export const ResolveSpeciesTraitActionCompatResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMin).max(resolveSpeciesTraitActionCompatResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "action": zod.string(),
@@ -2777,6 +3061,7 @@ export const PlayGameTurnBody = zod.object({
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playGameTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playGameTurnBodyMessageMax),
+  "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playGameTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playGameTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
@@ -2921,6 +3206,10 @@ export const playGameTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playGameTurnResponseStateCharacterOriginMax = 240;
 
+export const playGameTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const playGameTurnResponseStateCharacterXpMin = 0;
+
 export const playGameTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -2983,6 +3272,9 @@ export const playGameTurnResponseStateQuestOffersItemObjectivesItemDescriptionMa
 export const playGameTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const playGameTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const playGameTurnResponseStateKnownFactionsItemStandingMin = -5;
+export const playGameTurnResponseStateKnownFactionsItemStandingMax = 5;
 
 export const playGameTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
@@ -3117,6 +3409,13 @@ export const playGameTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
 export const playGameTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playGameTurnResponseQuestOutcomesItemTurnIndexMin = 0;
+
+export const playGameTurnResponseLevelUpOnePreviousLevelMax = 4;
+
+export const playGameTurnResponseLevelUpOneNewLevelMax = 4;
+
+
+export const playGameTurnResponseLevelUpOneHitPointsGainedMin = 0;
 
 
 
@@ -3278,6 +3577,14 @@ export const PlayGameTurnResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(playGameTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playGameTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playGameTurnResponseStateWorldTimeOfDayDefault),
@@ -3396,7 +3703,11 @@ export const PlayGameTurnResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(playGameTurnResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(playGameTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -3574,7 +3885,59 @@ export const PlayGameTurnResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(playGameTurnResponseStateKnownFactionsItemStandingMin).max(playGameTurnResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -3638,6 +4001,13 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -3825,6 +4195,13 @@ export const PlayGameTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -3974,7 +4351,13 @@ export const PlayGameTurnResponse = zod.object({
   "objective_id": zod.string().max(playGameTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
   "source_event_id": zod.string().max(playGameTurnResponseQuestOutcomesItemSourceEventIdMax),
   "turn_index": zod.number().int().min(playGameTurnResponseQuestOutcomesItemTurnIndexMin)
-}))
+})),
+  "level_up": zod.union([zod.object({
+  "previous_level": zod.number().int().min(1).max(playGameTurnResponseLevelUpOnePreviousLevelMax),
+  "new_level": zod.number().int().min(1).max(playGameTurnResponseLevelUpOneNewLevelMax),
+  "xp_gained": zod.number().int().min(1),
+  "hit_points_gained": zod.number().int().min(playGameTurnResponseLevelUpOneHitPointsGainedMin)
+}),zod.null()]).describe('Server-owned experience award for this turn. Null when the turn granted no experience.')
 })
 
 
@@ -4130,6 +4513,10 @@ export const acceptGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const acceptGameQuestResponseStateCharacterOriginMax = 240;
 
+export const acceptGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const acceptGameQuestResponseStateCharacterXpMin = 0;
+
 export const acceptGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -4192,6 +4579,9 @@ export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemDescriptio
 export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const acceptGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const acceptGameQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const acceptGameQuestResponseStateKnownFactionsItemStandingMax = 5;
 
 export const acceptGameQuestResponseQuestQuestIdMax = 120;
 
@@ -4377,6 +4767,14 @@ export const AcceptGameQuestResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(acceptGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(acceptGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(acceptGameQuestResponseStateWorldTimeOfDayDefault),
@@ -4495,7 +4893,11 @@ export const AcceptGameQuestResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(acceptGameQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(acceptGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -4673,7 +5075,59 @@ export const AcceptGameQuestResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(acceptGameQuestResponseStateKnownFactionsItemStandingMin).max(acceptGameQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(acceptGameQuestResponseQuestQuestIdMax),
@@ -4852,6 +5306,10 @@ export const cancelGameQuestResponseStateCharacterSpeedFtMin = 0;
 
 export const cancelGameQuestResponseStateCharacterOriginMax = 240;
 
+export const cancelGameQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const cancelGameQuestResponseStateCharacterXpMin = 0;
+
 export const cancelGameQuestResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -4914,6 +5372,9 @@ export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemDescriptio
 export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const cancelGameQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const cancelGameQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const cancelGameQuestResponseStateKnownFactionsItemStandingMax = 5;
 
 export const cancelGameQuestResponseQuestQuestIdMax = 120;
 
@@ -5099,6 +5560,14 @@ export const CancelGameQuestResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(cancelGameQuestResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(cancelGameQuestResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(cancelGameQuestResponseStateWorldTimeOfDayDefault),
@@ -5217,7 +5686,11 @@ export const CancelGameQuestResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(cancelGameQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(cancelGameQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -5395,7 +5868,59 @@ export const CancelGameQuestResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(cancelGameQuestResponseStateKnownFactionsItemStandingMin).max(cancelGameQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "quest": zod.object({
   "quest_id": zod.string().max(cancelGameQuestResponseQuestQuestIdMax),
@@ -5582,6 +6107,10 @@ export const resolveAmbientEventActionResponseStateCharacterSpeedFtMin = 0;
 
 export const resolveAmbientEventActionResponseStateCharacterOriginMax = 240;
 
+export const resolveAmbientEventActionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveAmbientEventActionResponseStateCharacterXpMin = 0;
+
 export const resolveAmbientEventActionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -5644,6 +6173,9 @@ export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItem
 export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const resolveAmbientEventActionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax = 5;
 
 export const resolveAmbientEventActionResponseResultEventInstanceIdMax = 96;
 
@@ -5810,6 +6342,14 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resolveAmbientEventActionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveAmbientEventActionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveAmbientEventActionResponseStateWorldTimeOfDayDefault),
@@ -5928,7 +6468,11 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveAmbientEventActionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -6106,7 +6650,59 @@ export const ResolveAmbientEventActionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMin).max(resolveAmbientEventActionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "result": zod.object({
   "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionResponseResultEventInstanceIdMax),
@@ -6413,6 +7009,10 @@ export const createCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createCampaignResponseStateCharacterOriginMax = 240;
 
+export const createCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createCampaignResponseStateCharacterXpMin = 0;
+
 export const createCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -6475,6 +7075,9 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemDescription
 export const createCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const createCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const createCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -6693,6 +7296,14 @@ export const CreateCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createCampaignResponseStateWorldTimeOfDayDefault),
@@ -6811,7 +7422,11 @@ export const CreateCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -6989,7 +7604,59 @@ export const CreateCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createCampaignResponseStateKnownFactionsItemStandingMin).max(createCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -7061,6 +7728,13 @@ export const CreateCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -7347,6 +8021,10 @@ export const getCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getCampaignResponseStateCharacterOriginMax = 240;
 
+export const getCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getCampaignResponseStateCharacterXpMin = 0;
+
 export const getCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -7409,6 +8087,9 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemDescriptionMax
 export const getCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const getCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const getCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -7637,6 +8318,14 @@ export const GetCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getCampaignResponseStateWorldTimeOfDayDefault),
@@ -7755,7 +8444,11 @@ export const GetCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -7933,7 +8626,59 @@ export const GetCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getCampaignResponseStateKnownFactionsItemStandingMin).max(getCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -8005,6 +8750,13 @@ export const GetCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -8278,6 +9030,10 @@ export const resumeCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resumeCampaignResponseStateCharacterXpMin = 0;
+
 export const resumeCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -8340,6 +9096,9 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemDescription
 export const resumeCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resumeCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const resumeCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -8558,6 +9317,14 @@ export const ResumeCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resumeCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeCampaignResponseStateWorldTimeOfDayDefault),
@@ -8676,7 +9443,11 @@ export const ResumeCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resumeCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resumeCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -8854,7 +9625,59 @@ export const ResumeCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resumeCampaignResponseStateKnownFactionsItemStandingMin).max(resumeCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -8926,6 +9749,13 @@ export const ResumeCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -9301,6 +10131,10 @@ export const createLegacySessionResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacySessionResponseStateCharacterOriginMax = 240;
 
+export const createLegacySessionResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createLegacySessionResponseStateCharacterXpMin = 0;
+
 export const createLegacySessionResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -9363,6 +10197,9 @@ export const createLegacySessionResponseStateQuestOffersItemObjectivesItemDescri
 export const createLegacySessionResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const createLegacySessionResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const createLegacySessionResponseStateKnownFactionsItemStandingMin = -5;
+export const createLegacySessionResponseStateKnownFactionsItemStandingMax = 5;
 
 
 
@@ -9522,6 +10359,14 @@ export const CreateLegacySessionResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createLegacySessionResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacySessionResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacySessionResponseStateWorldTimeOfDayDefault),
@@ -9640,7 +10485,11 @@ export const CreateLegacySessionResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createLegacySessionResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createLegacySessionResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -9818,7 +10667,59 @@ export const CreateLegacySessionResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createLegacySessionResponseStateKnownFactionsItemStandingMin).max(createLegacySessionResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 })
 
@@ -9971,6 +10872,10 @@ export const getLegacySessionStateResponseCharacterSpeedFtMin = 0;
 
 export const getLegacySessionStateResponseCharacterOriginMax = 240;
 
+export const getLegacySessionStateResponseCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getLegacySessionStateResponseCharacterXpMin = 0;
+
 export const getLegacySessionStateResponseSpellcastingOneSlotsMinOne = 0;
 
 
@@ -10033,6 +10938,9 @@ export const getLegacySessionStateResponseQuestOffersItemObjectivesItemDescripti
 export const getLegacySessionStateResponseQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const getLegacySessionStateResponseQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const getLegacySessionStateResponseKnownFactionsItemStandingMin = -5;
+export const getLegacySessionStateResponseKnownFactionsItemStandingMax = 5;
 
 
 
@@ -10190,6 +11098,14 @@ export const GetLegacySessionStateResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getLegacySessionStateResponseSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacySessionStateResponseWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacySessionStateResponseWorldTimeOfDayDefault),
@@ -10308,7 +11224,11 @@ export const GetLegacySessionStateResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getLegacySessionStateResponseCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getLegacySessionStateResponseCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -10486,7 +11406,59 @@ export const GetLegacySessionStateResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getLegacySessionStateResponseKnownFactionsItemStandingMin).max(getLegacySessionStateResponseKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.')
 
 
@@ -10544,6 +11516,7 @@ export const PlayLegacyTurnBody = zod.object({
   "combat_round": zod.number().int().min(1).nullish(),
   "combat_turn_index": zod.number().int().min(playLegacyTurnBodyCombatTurnIndexMin).nullish(),
   "message": zod.string().min(1).max(playLegacyTurnBodyMessageMax),
+  "interaction_mode": zod.union([zod.literal('say'),zod.literal('do'),zod.literal('ask_dm'),zod.literal(null)]).nullish(),
   "target_id": zod.string().min(1).max(playLegacyTurnBodyTargetIdMax).nullish(),
   "action_id": zod.string().uuid().regex(playLegacyTurnBodyActionIdRegExp).nullish()
 }).describe('The message must contain at least one non-whitespace character.')
@@ -10688,6 +11661,10 @@ export const playLegacyTurnResponseStateCharacterSpeedFtMin = 0;
 
 export const playLegacyTurnResponseStateCharacterOriginMax = 240;
 
+export const playLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const playLegacyTurnResponseStateCharacterXpMin = 0;
+
 export const playLegacyTurnResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -10750,6 +11727,9 @@ export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemDescription
 export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const playLegacyTurnResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const playLegacyTurnResponseStateKnownFactionsItemStandingMin = -5;
+export const playLegacyTurnResponseStateKnownFactionsItemStandingMax = 5;
 
 export const playLegacyTurnResponseCombatResultOneAttackRollsItemMax = 20;
 
@@ -10884,6 +11864,13 @@ export const playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax = 120;
 export const playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax = 300;
 
 export const playLegacyTurnResponseQuestOutcomesItemTurnIndexMin = 0;
+
+export const playLegacyTurnResponseLevelUpOnePreviousLevelMax = 4;
+
+export const playLegacyTurnResponseLevelUpOneNewLevelMax = 4;
+
+
+export const playLegacyTurnResponseLevelUpOneHitPointsGainedMin = 0;
 
 
 
@@ -11045,6 +12032,14 @@ export const PlayLegacyTurnResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(playLegacyTurnResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(playLegacyTurnResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(playLegacyTurnResponseStateWorldTimeOfDayDefault),
@@ -11163,7 +12158,11 @@ export const PlayLegacyTurnResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(playLegacyTurnResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(playLegacyTurnResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -11341,7 +12340,59 @@ export const PlayLegacyTurnResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(playLegacyTurnResponseStateKnownFactionsItemStandingMin).max(playLegacyTurnResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "combat_result": zod.union([zod.object({
   "economy_steps": zod.array(zod.record(zod.string(), zod.unknown())).nullish(),
@@ -11405,6 +12456,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -11592,6 +12650,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -11741,7 +12806,13 @@ export const PlayLegacyTurnResponse = zod.object({
   "objective_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemObjectiveIdMax).nullable(),
   "source_event_id": zod.string().max(playLegacyTurnResponseQuestOutcomesItemSourceEventIdMax),
   "turn_index": zod.number().int().min(playLegacyTurnResponseQuestOutcomesItemTurnIndexMin)
-}))
+})),
+  "level_up": zod.union([zod.object({
+  "previous_level": zod.number().int().min(1).max(playLegacyTurnResponseLevelUpOnePreviousLevelMax),
+  "new_level": zod.number().int().min(1).max(playLegacyTurnResponseLevelUpOneNewLevelMax),
+  "xp_gained": zod.number().int().min(1),
+  "hit_points_gained": zod.number().int().min(playLegacyTurnResponseLevelUpOneHitPointsGainedMin)
+}),zod.null()]).describe('Server-owned experience award for this turn. Null when the turn granted no experience.')
 })
 
 
@@ -11976,6 +13047,10 @@ export const createLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const createLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const createLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const createLegacyCampaignResponseStateCharacterXpMin = 0;
+
 export const createLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -12038,6 +13113,9 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescr
 export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const createLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const createLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -12256,6 +13334,14 @@ export const CreateLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(createLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(createLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(createLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -12374,7 +13460,11 @@ export const CreateLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(createLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(createLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -12552,7 +13642,59 @@ export const CreateLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(createLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(createLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -12624,6 +13766,13 @@ export const CreateLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -12912,6 +14061,10 @@ export const getLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const getLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const getLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const getLegacyCampaignResponseStateCharacterXpMin = 0;
+
 export const getLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -12974,6 +14127,9 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescript
 export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const getLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const getLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -13202,6 +14358,14 @@ export const GetLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(getLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(getLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(getLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -13320,7 +14484,11 @@ export const GetLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(getLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(getLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -13498,7 +14666,59 @@ export const GetLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(getLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(getLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -13570,6 +14790,13 @@ export const GetLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
@@ -13844,6 +15071,10 @@ export const resumeLegacyCampaignResponseStateCharacterSpeedFtMin = 0;
 
 export const resumeLegacyCampaignResponseStateCharacterOriginMax = 240;
 
+export const resumeLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resumeLegacyCampaignResponseStateCharacterXpMin = 0;
+
 export const resumeLegacyCampaignResponseStateSpellcastingOneSlotsMinOne = 0;
 
 
@@ -13906,6 +15137,9 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemDescr
 export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
 
 export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
+export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -14124,6 +15358,14 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "promoted_npc_id": zod.union([zod.string(),zod.null()])
 })).max(resumeLegacyCampaignResponseStateSceneOneReferentsMax)
 }),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
   "world": zod.object({
   "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resumeLegacyCampaignResponseStateWorldEnvironmentDefault),
   "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resumeLegacyCampaignResponseStateWorldTimeOfDayDefault),
@@ -14242,7 +15484,11 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "proficiency_bonus": zod.number().int(),
   "max_hp": zod.number().int(),
   "current_hp": zod.number().int(),
-  "armor_class": zod.number().int()
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resumeLegacyCampaignResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resumeLegacyCampaignResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
 }),
   "spellcasting": zod.union([zod.object({
   "cantrips": zod.array(zod.string()),
@@ -14420,7 +15666,59 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "summary": zod.string(),
   "turn": zod.number().int()
 }))
-}).optional()
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin).max(resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
   "player_message": zod.string(),
@@ -14492,6 +15790,13 @@ export const ResumeLegacyCampaignResponse = zod.object({
   "rolled_back": zod.boolean(),
   "terminal": zod.boolean()
 }),zod.null()]).optional(),
+  "spell": zod.string().nullish(),
+  "casting_ability": zod.string().nullish(),
+  "attack_or_save": zod.string().nullish(),
+  "save_roll": zod.number().int().nullish(),
+  "save_dc": zod.number().int().nullish(),
+  "healing": zod.number().int().nullish(),
+  "slot_spent": zod.boolean().nullish(),
   "combat_started": zod.boolean().nullish(),
   "combat_ended": zod.boolean().nullish(),
   "end_reason": zod.string().nullish(),
