@@ -1463,6 +1463,7 @@ world_state = {
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
 SAVE_FORMAT_VERSION = 3
+_SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5)
 
 
 GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
@@ -1600,7 +1601,8 @@ def initialize_species_trait_state(giant_ancestry=None):
 
 
 def _player_state_for_save():
-    return {
+    character = _session().character
+    saved = {
         "name": _session().character["name"],
         "race": _session().character["race"],
         "species": _session().character.get(
@@ -1635,6 +1637,22 @@ def _player_state_for_save():
         "armor_class": _session().character["armor_class"],
         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
+    # Preserve legacy v4/v5 spell and feat mechanics when resaving that format.
+    # New v3 campaigns keep their existing, frozen save contract.
+    if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
+        import spells
+        spell_fields = spells.empty_spell_state()
+        for field in ("cantrips", "spells", "spell_slots_remaining"):
+            if field in character:
+                spell_fields[field] = copy.deepcopy(character[field])
+        spells.validate_saved_spell_fields(spell_fields)
+        saved.update(spell_fields)
+        if "origin_feat" in character:
+            feat = character["origin_feat"]
+            if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
+                raise ValueError("Origin feat state is invalid.")
+            saved["origin_feat"] = feat
+    return saved
 
 
 def serialize_game_state():
@@ -1644,7 +1662,7 @@ def serialize_game_state():
     living_world.ensure_scene_state(world_state)
     return {
         "format": "ai-dnd-save",
-        "version": SAVE_FORMAT_VERSION,
+        "version": getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION),
         "player": copy.deepcopy(_player_state_for_save()),
         "world_state": copy.deepcopy(world_state),
         "recent_dm_narrations": list(recent_dm_narrations),
@@ -1778,7 +1796,7 @@ def _validate_save_payload(payload):
     if payload.get("format") != "ai-dnd-save":
         raise ValueError("Bu dosya AI-DND kayıt dosyası değil.")
     version = payload.get("version")
-    if version not in (1, 2, SAVE_FORMAT_VERSION):
+    if version not in _SUPPORTED_SAVE_VERSIONS:
         raise ValueError("Bu kayıt sürümü desteklenmiyor.")
 
     player = payload.get("player")
@@ -1849,8 +1867,14 @@ def _validate_save_payload(payload):
         "quests" not in saved_world or "quest_processed_event_ids" not in saved_world
     ):
         raise ValueError("Kayıt görev alanlarını içermiyor.")
-    if version == SAVE_FORMAT_VERSION:
+    if version >= 3:
         _validate_combat_v3_payload(saved_world.get("combat"))
+    if version >= 4:
+        import spells
+        spells.validate_saved_spell_fields(player)
+    if version >= 5:
+        import xp
+        xp.validate_saved_advancement(player, saved_world)
     if not isinstance(player["proficient_skills"], list):
         raise ValueError("Kayıt yetenek listesi geçersiz.")
     species_bonus_skills = player.get("species_bonus_skills", [])
@@ -2105,6 +2129,7 @@ def save_game(path):
 
 def load_game(path):
     """Validate and restore a JSON snapshot without executing arbitrary code."""
+    previous_format = getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION)
     recent_dm_narrations = _session().recent_dm_narrations
     world_state = _session().world_state
     source = Path(path).expanduser()
@@ -2152,6 +2177,20 @@ def load_game(path):
             character[field] = int(player[field])
         if "xp" in player:
             character["xp"] = player["xp"]
+        if payload["version"] >= 4:
+            character["cantrips"] = list(player["cantrips"])
+            character["spells"] = list(player["spells"])
+            character["spell_slots_remaining"] = {
+                "1": int(player["spell_slots_remaining"]["1"])
+            }
+        else:
+            character["cantrips"] = []
+            character["spells"] = []
+            character["spell_slots_remaining"] = {"1": 0}
+        if isinstance(player.get("origin_feat"), str) and player["origin_feat"].strip():
+            character["origin_feat"] = player["origin_feat"]
+        else:
+            character.pop("origin_feat", None)
         character["proficient_skills"] = list(player["proficient_skills"])
         character["expertise_skills"] = list(
             player.get("expertise_skills", [])
@@ -2177,8 +2216,12 @@ def load_game(path):
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
         _normalize_ground_items()
         ensure_combat_state()
+        _session()._persisted_engine_format = (
+            payload["version"] if payload["version"] >= 4 else SAVE_FORMAT_VERSION
+        )
         return serialize_game_state()
     except Exception:
+        _session()._persisted_engine_format = previous_format
         world_state.clear()
         world_state.update(previous_world)
         character.clear()
