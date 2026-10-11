@@ -412,9 +412,11 @@ class SessionManager:
                 # Explicit resume replaces a stale cache with accepted durable truth.
                 record.journal = restore_stored_campaign(record.game_session, stored)
                 record.turn_action_receipts.clear()
+            engine_version = stored.payload.get("engine_save", {}).get("version")
             needs_migration = (
-                stored.payload.get("engine_save", {}).get("version")
-                != game.SAVE_FORMAT_VERSION
+                engine_version not in (
+                    game.SAVE_FORMAT_VERSION, *game._PRESERVED_SAVE_VERSIONS
+                )
                 or "campaign_id"
                 not in stored.payload.get("engine_save", {})
                 .get("world_state", {})
@@ -427,6 +429,28 @@ class SessionManager:
                 or "narrative_memory" not in stored.payload
                 or "lore_authority" not in stored.payload
             )
+            # #region agent log
+            try:
+                import time
+                from pathlib import Path as _DebugPath
+                _debug_path = _DebugPath(__file__).resolve().parents[2] / "debug-c188f4.log"
+                with _debug_path.open("a", encoding="utf-8") as _debug_handle:
+                    _debug_handle.write(json.dumps({
+                        "sessionId": "c188f4",
+                        "runId": "post-fix",
+                        "hypothesisId": "C",
+                        "location": "session_manager.py:resume_campaign",
+                        "message": "resume migration decision",
+                        "data": {
+                            "engine_version": engine_version,
+                            "needs_migration": needs_migration,
+                            "revision": stored.metadata.get("revision"),
+                        },
+                        "timestamp": int(time.time() * 1000),
+                    }, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+            # #endregion
             record.lore_authority = CampaignLoreState.from_mapping(
                 stored.payload.get("lore_authority")
             )

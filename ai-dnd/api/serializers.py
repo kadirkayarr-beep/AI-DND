@@ -218,6 +218,44 @@ def _project_fields(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
     }
 
 
+_LIVE_SPELL_PROJECTION_FIELDS = ("cantrips", "spells", "spell_slots_remaining")
+
+
+def _validated_live_spell_field(field: str, value: Any) -> Any:
+    """Return a detached copy when one allowlisted spell field matches the save contract."""
+    import spells
+
+    probe = spells.empty_spell_state()
+    probe[field] = copy.deepcopy(value)
+    try:
+        spells.validate_saved_spell_fields(probe)
+    except (TypeError, ValueError):
+        return None
+    return probe[field]
+
+
+def _overlay_live_spell_fields(
+    character: dict[str, Any],
+    session: Any,
+    saved_player: Mapping[str, Any],
+) -> None:
+    """Show live spell state when a v3 snapshot omits those fields.
+
+    Fields already stored on a v4 or v5 snapshot stay as saved. Invalid live
+    values are left out. No other character keys are copied.
+    """
+    live = getattr(session, "character", None)
+    if not isinstance(live, Mapping):
+        return
+    for field in _LIVE_SPELL_PROJECTION_FIELDS:
+        if field in saved_player or field not in live:
+            continue
+        accepted = _validated_live_spell_field(field, live[field])
+        if accepted is None:
+            continue
+        character[field] = accepted
+
+
 def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
@@ -568,6 +606,8 @@ def serialize_session_state(
         getattr(session, "world_metadata", None),
     )
     character = _project_fields(player, _PLAYER_FIELDS)
+    if isinstance(player, Mapping):
+        _overlay_live_spell_fields(character, session, player)
     expertise_skills = player.get("expertise_skills")
     character["expertise_skills"] = (
         list(expertise_skills)
