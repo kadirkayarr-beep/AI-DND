@@ -70,7 +70,7 @@ class Lore1501IntegrationTests(unittest.TestCase):
         self.assertEqual(_DATABASE_SCHEMA_VERSION, 5)
         import game
 
-        self.assertEqual(game.SAVE_FORMAT_VERSION, 3)
+        self.assertEqual(game.SAVE_FORMAT_VERSION, 4)
         indexed = {row["pack_id"]: row["coverage_status"] for row in load_pack_index()}
         self.assertEqual(indexed["fr:pack:the_north:neverwinter:v1"], "VERIFIED_PARTIAL")
         self.assertEqual(indexed["fr:pack:waterdeep:v1"], "INCOMPLETE")

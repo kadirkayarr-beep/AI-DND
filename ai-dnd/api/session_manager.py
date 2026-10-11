@@ -412,9 +412,11 @@ class SessionManager:
                 # Explicit resume replaces a stale cache with accepted durable truth.
                 record.journal = restore_stored_campaign(record.game_session, stored)
                 record.turn_action_receipts.clear()
+            engine_version = stored.payload.get("engine_save", {}).get("version")
+            # Versions 1–5 stay as stored. A v3 campaign is not rewritten as v4
+            # merely because the current default for a new campaign is v4.
             needs_migration = (
-                stored.payload.get("engine_save", {}).get("version")
-                != game.SAVE_FORMAT_VERSION
+                engine_version not in game._SUPPORTED_SAVE_VERSIONS
                 or "campaign_id"
                 not in stored.payload.get("engine_save", {})
                 .get("world_state", {})

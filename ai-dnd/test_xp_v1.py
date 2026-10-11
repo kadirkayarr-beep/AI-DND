@@ -217,7 +217,12 @@ class ExperienceAwardTests(unittest.TestCase):
         self.session.character["current_hp"] = 0
         self.session.world_state["player_combat_status"] = "unconscious"
         ended = self.session._combat_end_if_decided()
-        self.assertEqual(ended["reason"], "player_defeated")
+        self.assertIsNone(ended)
+        self.assertTrue(self.session.world_state["combat"]["active"])
+        self.assertNotEqual(
+            self.session.world_state["combat"].get("end_reason"),
+            "player_defeated",
+        )
         self.assertEqual(self.session.character["xp"], 0)
 
     def test_a_creature_without_a_server_reward_pays_nothing(self):
@@ -331,9 +336,12 @@ class ExperienceAwardTests(unittest.TestCase):
             path = Path(directory) / "xp.json"
             self.session.save_game(path)
             payload = json.loads(path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["version"], 5)
+            self.assertEqual(payload["version"], 4)
             self.assertEqual(payload["player"]["xp"], 300)
             self.assertEqual(payload["player"]["level"], 2)
+            self.assertEqual(payload["player"]["cantrips"], [])
+            self.assertEqual(payload["player"]["spell_slots_remaining"], {"1": 2})
+            self.assertEqual(payload["player"]["origin_feat"], "Tough")
             self.session.character["xp"] = 0
             self.session.character["level"] = 1
             self.session.load_game(path)
@@ -382,7 +390,7 @@ class ExperienceAwardTests(unittest.TestCase):
                 self.assertEqual(self.session.character["level"], saved_level)
                 self.assertEqual(self.session.character["max_hp"], saved_hp)
                 self.assertEqual(self.session.character["current_hp"], saved_current)
-                self.assertEqual(self.session.world_state["xp_awarded_event_ids"], [])
+                self.assertEqual(self.session.world_state.get("xp_awarded_event_ids", []), [])
 
             forged = copy.deepcopy(payload)
             forged["version"] = 4
@@ -390,21 +398,190 @@ class ExperienceAwardTests(unittest.TestCase):
             forged["player"]["level"] = 1
             path.write_text(json.dumps(forged), encoding="utf-8")
             self.session.load_game(path)
-            self.assertEqual(self.session.character["xp"], 0)
+            self.assertEqual(self.session.character["xp"], 6500)
             self.assertEqual(self.session.character["level"], 1)
+            self.assertEqual(self.session._persisted_engine_format, 4)
 
             broken = copy.deepcopy(payload)
+            broken["version"] = 5
             broken["player"]["xp"] = 0
             broken["player"]["level"] = 4
             path.write_text(json.dumps(broken), encoding="utf-8")
             with self.assertRaises(ValueError):
                 self.session.load_game(path)
+            self.assertEqual(self.session.character["xp"], 6500)
+            self.assertEqual(self.session.character["level"], 1)
             broken["version"] = 6
             broken["player"]["xp"] = 300
             broken["player"]["level"] = 2
             path.write_text(json.dumps(broken), encoding="utf-8")
             with self.assertRaises(ValueError):
                 self.session.load_game(path)
+
+    def test_v3_award_survives_restart_without_a_format_change(self):
+        self.session._persisted_engine_format = 3
+        _enemy(self.session, 300)
+        ended = _defeat(self.session)
+        self.assertEqual(ended["reason"], "target_defeated")
+        self.assertEqual(self.session.character["xp"], 300)
+        self.assertEqual(self.session.character["level"], 2)
+        max_hp = self.session.character["max_hp"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "v3-xp.json"
+            self.session.save_game(path)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["version"], 3)
+            self.assertEqual(payload["player"]["xp"], 300)
+            self.assertEqual(payload["player"]["level"], 2)
+            self.assertEqual(payload["player"]["max_hp"], max_hp)
+            self.assertNotIn("spell_slots_remaining", payload["player"])
+            self.assertNotIn("origin_feat", payload["player"])
+            restarted = game.create_session(seed=11)
+            restarted.load_game(path)
+        self.assertEqual(restarted.character["xp"], 300)
+        self.assertEqual(restarted.character["level"], 2)
+        self.assertEqual(restarted.character["max_hp"], max_hp)
+        self.assertEqual(
+            restarted.world_state["xp_awarded_event_ids"],
+            ["combat:3:npc_test"],
+        )
+        self.assertIsNone(
+            xp.apply_xp(
+                restarted.character,
+                restarted.world_state,
+                300,
+                "combat:3:npc_test",
+            )
+        )
+        self.assertEqual(self.session.character["xp"], 300)
+        self.assertEqual(restarted._persisted_engine_format, 3)
+        with tempfile.TemporaryDirectory() as directory:
+            again = Path(directory) / "v3-again.json"
+            restarted.save_game(again)
+            rewritten = json.loads(again.read_text(encoding="utf-8"))
+        self.assertEqual(rewritten["version"], 3)
+        self.assertEqual(rewritten["player"]["xp"], 300)
+        self.assertNotIn("cantrips", rewritten["player"])
+
+    def test_fresh_v4_save_restores_slots_feat_and_advancement(self):
+        self.session.character["cantrips"] = ["Fire Bolt"]
+        self.session.character["spells"] = ["Magic Missile"]
+        self.session.character["spell_slots_remaining"] = {"1": 1}
+        self.session.character["origin_feat"] = "Tough"
+        _enemy(self.session, 300)
+        _defeat(self.session)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fresh-v4.json"
+            self.session.save_game(path)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["version"], 4)
+            self.assertEqual(payload["player"]["spell_slots_remaining"], {"1": 1})
+            self.assertEqual(payload["player"]["origin_feat"], "Tough")
+            self.assertEqual(payload["player"]["xp"], 300)
+            restarted = game.create_session(seed=12)
+            restarted.character["xp"] = 50
+            restarted.character["spell_slots_remaining"] = {"1": 9}
+            restarted.load_game(path)
+        self.assertEqual(restarted._persisted_engine_format, 4)
+        self.assertEqual(restarted.character["cantrips"], ["Fire Bolt"])
+        self.assertEqual(restarted.character["spells"], ["Magic Missile"])
+        self.assertEqual(restarted.character["spell_slots_remaining"], {"1": 1})
+        self.assertEqual(restarted.character["origin_feat"], "Tough")
+        self.assertEqual(restarted.character["xp"], 300)
+        self.assertEqual(restarted.character["level"], 2)
+        self.assertEqual(
+            restarted.world_state["xp_awarded_event_ids"],
+            ["combat:3:npc_test"],
+        )
+
+    def test_missing_xp_does_not_keep_another_sessions_total(self):
+        self.session._persisted_engine_format = 3
+        level = self.session.character["level"]
+        max_hp = self.session.character["max_hp"]
+        current_hp = self.session.character["current_hp"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "no-xp.json"
+            self.session.save_game(path)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["version"], 3)
+            payload["player"].pop("xp")
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            donor = game.create_session(seed=13)
+            _character(donor)
+            donor.character["xp"] = 777
+            other = game.create_session(seed=14)
+            _character(other)
+            other.character["xp"] = 400
+            donor.load_game(path)
+            self.assertEqual(donor.character["xp"], 0)
+            self.assertEqual(donor.character["level"], level)
+            self.assertEqual(donor.character["max_hp"], max_hp)
+            self.assertEqual(donor.character["current_hp"], current_hp)
+            self.assertEqual(other.character["xp"], 400)
+
+    def test_combat_and_quest_awards_merge_and_roll_back(self):
+        snapshot = self.session._capture_runtime_snapshot()
+        _enemy(self.session, 300)
+        _defeat(self.session)
+        definition = {
+            "quest_id": "quest.both",
+            "title": "Road",
+            "description": "Walk to the forest.",
+            "objectives": [{
+                "objective_id": "visit",
+                "description": "Visit the forest",
+                "type": "visit_location",
+                "target": "forest",
+            }],
+            "xp": 600,
+        }
+        with patch.object(quest_catalog, "CATALOG", (definition,)):
+            self.session.accept_quest("quest.both")
+            before = copy.deepcopy(self.session.world_state)
+            self.session.world_state["location"] = "forest"
+            self.session.evaluate_quest_events(before, {"action": "travel"})
+        self.assertEqual(self.session.character["xp"], 900)
+        self.assertEqual(self.session.character["level"], 3)
+        self.assertEqual(self.session.character["max_hp"], 28)
+        self.assertEqual(self.session.character["current_hp"], 21)
+        published = {"action": "attack"}
+        self.session._publish_level_up(published)
+        self.assertEqual(
+            published["level_up"],
+            {
+                "previous_level": 1,
+                "new_level": 3,
+                "xp_gained": 900,
+                "hit_points_gained": 16,
+            },
+        )
+        self.assertIsNone(self.session._xp_level_up)
+        again = {"action": "attack"}
+        self.session._publish_level_up(again)
+        self.assertNotIn("level_up", again)
+        self.assertIsNone(
+            xp.apply_xp(
+                self.session.character,
+                self.session.world_state,
+                300,
+                "combat:3:npc_test",
+            )
+        )
+        self.assertIsNone(
+            xp.apply_xp(
+                self.session.character,
+                self.session.world_state,
+                600,
+                "quest:quest.both",
+            )
+        )
+        self.session._restore_runtime_snapshot(snapshot)
+        self.assertEqual(self.session.character["xp"], 0)
+        self.assertEqual(self.session.character["level"], 1)
+        self.assertEqual(self.session.character["max_hp"], 12)
+        self.assertEqual(self.session.character["current_hp"], 5)
+        self.assertEqual(self.session.world_state["xp_awarded_event_ids"], [])
+        self.assertIsNone(self.session._xp_level_up)
 
 
 if __name__ == "__main__":

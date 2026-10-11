@@ -1462,7 +1462,7 @@ world_state = {
     "quest_processed_event_ids": [],
 }
 INITIAL_WORLD_STATE = copy.deepcopy(world_state)
-SAVE_FORMAT_VERSION = 3
+SAVE_FORMAT_VERSION = 4
 _SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5)
 
 
@@ -1637,8 +1637,8 @@ def _player_state_for_save():
         "armor_class": _session().character["armor_class"],
         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
     }
-    # Preserve legacy v4/v5 spell and feat mechanics when resaving that format.
-    # New v3 campaigns keep their existing, frozen save contract.
+    # Formats 4 and 5 store spell lists, slots, and an origin feat.
+    # A loaded v1–v3 campaign keeps that version and does not gain these fields on save.
     if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
         import spells
         spell_fields = spells.empty_spell_state()
@@ -2177,6 +2177,9 @@ def load_game(path):
             character[field] = int(player[field])
         if "xp" in player:
             character["xp"] = player["xp"]
+        else:
+            # No stored total exists to keep. Do not reuse XP left on this session.
+            character["xp"] = 0
         if payload["version"] >= 4:
             character["cantrips"] = list(player["cantrips"])
             character["spells"] = list(player["spells"])
@@ -2216,9 +2219,9 @@ def load_game(path):
         recent_dm_narrations.extend(payload.get("recent_dm_narrations", []))
         _normalize_ground_items()
         ensure_combat_state()
-        _session()._persisted_engine_format = (
-            payload["version"] if payload["version"] >= 4 else SAVE_FORMAT_VERSION
-        )
+        # Keep the file's own version. The current default is v4, and a v1–v3
+        # file must still be written back as that same version.
+        _session()._persisted_engine_format = payload["version"]
         return serialize_game_state()
     except Exception:
         _session()._persisted_engine_format = previous_format
@@ -4469,6 +4472,15 @@ def end_combat(reason="combat_ended"):
     combat = ensure_combat_state()
     if not combat["active"]:
         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
+    if reason == "target_defeated":
+        import xp
+        awarded = xp.award_defeated_combat(
+            combat,
+            _session().world_state,
+            _session().character,
+        )
+        if awarded is not None:
+            _session()._remember_xp_award(awarded)
     identity = combat["combat_id"]
     combat.clear()
     combat.update(_combat_defaults(end_reason=reason))
@@ -11639,6 +11651,8 @@ def run_player_turn(
         interaction_adventure.consume(
             _session(), result.get("action_result", {}), before, player_input
         )
+    if isinstance(result, dict) and isinstance(action_result, dict):
+        _session()._publish_level_up(action_result)
     return result
 
 
@@ -13474,6 +13488,32 @@ class GameSession:
         # world state and are never returned in the player-facing turn payload.
         self.last_narration_safety = None
         self.narration_safety_history = []
+        self._xp_level_up = None
+        self._persisted_engine_format = SAVE_FORMAT_VERSION
+
+    def _remember_xp_award(self, summary):
+        """Fold another award into the single announcement for this turn."""
+        if not isinstance(summary, dict):
+            return
+        pending = self._xp_level_up
+        if not isinstance(pending, dict):
+            self._xp_level_up = copy.deepcopy(summary)
+            return
+        self._xp_level_up = {
+            "previous_level": pending["previous_level"],
+            "new_level": summary["new_level"],
+            "xp_gained": pending["xp_gained"] + summary["xp_gained"],
+            "hit_points_gained": pending["hit_points_gained"] + summary["hit_points_gained"],
+        }
+
+    def _publish_level_up(self, result):
+        """Move one pending level-up onto a turn result, then forget it."""
+        pending = self._xp_level_up
+        if not isinstance(result, dict) or not isinstance(pending, dict):
+            return result
+        result["level_up"] = copy.deepcopy(pending)
+        self._xp_level_up = None
+        return result
 
     def __getattr__(self, name):
         helper = _ENGINE_NAMESPACE.get(name)
@@ -13489,6 +13529,7 @@ class GameSession:
             "recent_dm_narrations": copy.deepcopy(self.recent_dm_narrations),
             "messages": copy.deepcopy(self.messages),
             "rng_state": self.rng.getstate(),
+            "xp_level_up": copy.deepcopy(self._xp_level_up),
         }
 
     def _restore_runtime_snapshot(self, snapshot):
@@ -13507,6 +13548,7 @@ class GameSession:
         self.world_state.update(restored["world_state"])
         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
         self.messages[:] = restored["messages"]
+        self._xp_level_up = restored.get("xp_level_up")
 
     def resolve_ambient_event_action(
         self,
@@ -13795,6 +13837,12 @@ class GameSession:
                     if all(item.get("status") == "completed"
                            for item in quest["objectives"]):
                         quest["status"] = "completed"
+                        import xp
+                        summary = xp.award_completed_quest(
+                            world, self.character, quest["quest_id"]
+                        )
+                        if summary is not None:
+                            self._remember_xp_award(summary)
                         transitions.append(self._quest_transition(
                             "completed", quest["quest_id"], None, source_id, turn
                         ))

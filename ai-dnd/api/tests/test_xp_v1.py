@@ -61,7 +61,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = no_award
         missed = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "Saldır"},
+            json={"message": "Bekle"},
         )
         self.assertEqual(missed.status_code, 200, missed.text)
         self.assertIsNone(missed.json()["level_up"])
@@ -86,7 +86,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         session.run_player_turn = awarded
         gained = await self.http.post(
             f"/api/sessions/{session_id}/turn",
-            json={"message": "Saldır"},
+            json={"message": "Bekle"},
         )
         self.assertEqual(gained.status_code, 200, gained.text)
         self.assertEqual(

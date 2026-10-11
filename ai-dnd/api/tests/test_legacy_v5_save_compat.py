@@ -27,7 +27,7 @@ class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
             _, _, record, _ = manager.create_campaign("Legacy fixture")
             session = record.game_session
             initial = session.serialize_game_state()
-            self.assertEqual(initial["version"], 3)
+            self.assertEqual(initial["version"], 4)
 
             legacy = copy.deepcopy(initial)
             legacy["version"] = 5
@@ -57,7 +57,7 @@ class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
 
             # Session-local version provenance; no leak into fresh campaigns.
             _, _, fresh, _ = manager.create_campaign("New fixture")
-            self.assertEqual(fresh.game_session.serialize_game_state()["version"], 3)
+            self.assertEqual(fresh.game_session.serialize_game_state()["version"], 4)
 
     def test_invalid_v5_spell_record_rejected(self):
         with tempfile.TemporaryDirectory() as td:
