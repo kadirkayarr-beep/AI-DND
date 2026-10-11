@@ -2,11 +2,13 @@
 
 ## Canonical copy
 
-- Folder: `C:\Users\Kadir\Desktop\AI - DND`
-- Branch: `recovery/a1-freeze-288f5de`
+- Primary Windows development workspace: `C:\Users\Kadir\Desktop\AI - DND`
+- Shared active development branch for Cursor and Replit: `dev/ai-dnd` (upstream `origin/dev/ai-dnd`; GitHub `kadirkayarr-beep/AI-DND`)
+- `main` is the stable integration branch. Promotion requires validation and explicit owner approval.
+- `recovery/a1-freeze-288f5de` and previous Phase 8 worktrees (`AI-DND-phase8`, `AI-DND-phase8-expansion`) are historical, not the active development base.
 - Other Desktop trees (`AI-DND-pre04-wave3`, `AI-DND-pre04-repair`, `AI-DND old`, …) are read-only archives. Do not delete them unless the user names the folder.
-- Two chats must not write the same folder at once.
-- Do not merge to `main` unless the user asks.
+- Two chats must not write the same folder at once. Neither Cursor nor Replit may overwrite the other's uncommitted work.
+- Exchange changes only from the same verified `dev/ai-dnd` commit. GitHub synchronization is controlled; do not force-push, reset, or otherwise destructively sync.
 
 ## Canonical docs
 
@@ -22,9 +24,11 @@ Read these first:
 
 ## Branches (no merge implied)
 
-- `recovery/a1-freeze-288f5de` — product tree: stability, Spells V1, XP V1
-- `repair/pre04-wave3-conversation-ux` — Wave3 conversation UX (other folder)
-- `main` — behind; not the daily base
+- `dev/ai-dnd` — shared active development branch for Cursor and Replit
+- `main` — stable integration target; promote only after validation and explicit owner approval
+- `recovery/a1-freeze-288f5de` — historical freeze line (stability, Spells V1, XP V1); not the active base
+- `repair/pre04-wave3-conversation-ux` — historical Wave3 conversation UX (other folder)
+- Phase 8 worktrees — historical; not the active development base
 
 ## How to run
 

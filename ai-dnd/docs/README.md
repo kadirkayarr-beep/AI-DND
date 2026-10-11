@@ -2,6 +2,14 @@
 
 Bu dizin, **mimari ve geliştirme** belgeleri içindir. Oyuncu arayüzü veya oyun gerçeği kaynağı değildir. Başlıklar tarihsel durumları değiştirmez.
 
+## Aktif çalışma alanı
+
+- Birincil Windows geliştirme alanı: `C:\Users\Kadir\Desktop\AI - DND`
+- Cursor ve Replit için ortak aktif geliştirme dalı: `dev/ai-dnd` (upstream `origin/dev/ai-dnd`; GitHub `kadirkayarr-beep/AI-DND`)
+- Kararlı entegrasyon dalı: `main`. Terfi doğrulama ve açık owner onayı ister.
+- `recovery/a1-freeze-288f5de` ile önceki Phase 8 worktree'leri (`AI-DND-phase8`, `AI-DND-phase8-expansion`) tarihseldir; aktif geliştirme tabanı değildir.
+- Değişim aynı doğrulanmış `dev/ai-dnd` commit'inden yapılır. GitHub eşitlemesi kontrollüdür; zorlayıcı veya yıkıcı eşitleme yapılmaz. Cursor ve Replit birbirinin kaydedilmemiş işinin üzerine yazmaz.
+
 ## Aktif başvuru noktaları
 
 | Konu | Belge |
@@ -25,6 +33,6 @@ Bu dizin, **mimari ve geliştirme** belgeleri içindir. Oyuncu arayüzü veya oy
 
 ### İlgili ayrı dosyalar
 
-Master Handoff v3 ve v2'nin masaüstündeki bağımsız referans kopyaları artık `Desktop/Belgeler/Proje_Notlari/AI-DND_Handoff/` altında tutulur. Aktif Git çalışma ağacı `AI-DND-phase8-expansion` klasöründedir. Ayrı worktree'ler veya yedekler arşivleme sırasında taşınmamıştır.
+Master Handoff v3 ve v2'nin masaüstündeki bağımsız referans kopyaları `Desktop/Belgeler/Proje_Notlari/AI-DND_Handoff/` altında tutulur. Arşivleme sırasında Git çalışma ağacı `AI-DND-phase8-expansion` klasöründeydi. Ayrı worktree'ler veya yedekler arşivleme sırasında taşınmamıştır.
 
 **Not:** Bu düzenleme dokümantasyon gezinimini kolaylaştırır; testlerin tekrar geçtiği, yeni uygulama izni verildiği veya bir şehrin aktive edildiği anlamına gelmez.
