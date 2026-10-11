@@ -3440,7 +3440,16 @@ class SessionTests(unittest.TestCase):
                             game.create_session(seed=29))
                 enemies = [self.npc(session) for session in sessions]
                 records = []
-                manager = SessionManager()
+                # The production hook stores campaign-owned attempts in the
+                # campaign database. An empty manager is not a supported caller.
+                checkpoint_dir = tempfile.TemporaryDirectory()
+                self.addCleanup(checkpoint_dir.cleanup)
+                from api.persistence.campaign_store import CampaignStore
+                manager = SessionManager(
+                    campaign_store=CampaignStore(
+                        Path(checkpoint_dir.name) / f"checkpoint-{rejected_index}.sqlite3"
+                    )
+                )
                 for index, (session, enemy) in enumerate(zip(sessions, enemies)):
                     session.character.update(
                         species="Orc", race="Orc", proficiency_bonus=2,

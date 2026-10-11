@@ -1,4 +1,7 @@
-"""Spells V1: Python owns the cast, the slot, and the hit points."""
+"""Spells V1 persistence, plus the spell_scope contract for casts.
+
+Casts are resolved by spell_scope. execute_intent does not own a second resolver.
+"""
 
 import copy
 import json
@@ -8,7 +11,9 @@ import unittest
 from unittest.mock import patch
 
 import game
+import spell_scope
 import spells
+from api.tests.test_spell_scope import caster
 
 
 def _character(session, class_name, *, cantrips=(), known=(), slots=2, level=1,
@@ -72,151 +77,141 @@ class SpellCastTests(unittest.TestCase):
         }
         self.world["npcs"].append(self.npc)
 
-    def rolls(self, *expected):
-        remaining = iter(expected)
-
-        def randint(low, high):
-            roll = next(remaining, None)
-            self.assertIsNotNone(roll, f"Unexpected d{high} roll")
-            sides, value = roll
-            self.assertEqual((low, high), (1, sides))
-            self.assertTrue(low <= value <= high)
-            return value
-
-        return patch.object(self.session.rng, "randint", side_effect=randint), remaining
-
-    def cast(self, text, *dice, target_id=None):
-        patcher, remaining = self.rolls(*dice)
-        with patcher:
-            result = self.session.execute_intent(
-                {"intent": "cast"},
-                text,
-                target_id=target_id,
-            )
-        self.assertIsNone(next(remaining, None), "Unused scripted dice")
-        return result
-
     def test_fire_bolt_hits_and_cantrip_spends_no_slot(self):
-        _character(self.session, "Wizard", cantrips=["Fire Bolt"], slots=0)
-        result = self.cast(
-            "I cast Fire Bolt at Sentinel",
-            (20, 15), (20, 5), (20, 10), (10, 4), (20, 1),
-        )
-        self.assertEqual(result["outcome"], "hit")
+        session, enemy = caster(cls="Wizard")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", return_value=12), patch.object(session.rng, "randint", return_value=4):
+            result = spell_scope.cast(session, "Fire Bolt", enemy["id"])
+        self.assertTrue(result["hit"])
         self.assertEqual(result["damage"], 4)
-        self.assertEqual(result["attack_bonus"], 5)
-        self.assertFalse(result["slot_spent"])
-        self.assertEqual(self.npc["current_hp"], 26)
-        self.assertEqual(spells.remaining_slots(self.session.character), 0)
-        self.assertTrue(result["combat_started"])
+        self.assertEqual(result["spell_attack_modifier"], 5)
+        self.assertEqual(result["slot_level"], 0)
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"], {"1": 2})
+        self.assertEqual(enemy["current_hp"], before_hp - 4)
 
     def test_fire_bolt_miss_and_critical(self):
-        _character(self.session, "Wizard", cantrips=["Fire Bolt"], slots=2)
-        missed = self.cast(
-            "I cast Fire Bolt at Sentinel",
-            (20, 15), (20, 5), (20, 1), (20, 1),
-        )
-        self.assertEqual(missed["outcome"], "miss")
-        self.assertEqual(self.npc["current_hp"], 30)
-        self.assertEqual(spells.remaining_slots(self.session.character), 2)
-        self.session.end_combat()
-        self.npc["current_hp"] = 30
-        self.npc["combat_status"] = "active"
-        critical = self.cast(
-            "Ateş oku büyüsü yapıyorum Sentinel",
-            (20, 15), (20, 5), (20, 20), (10, 4), (10, 3), (20, 1),
-        )
-        self.assertEqual(critical["outcome"], "critical_hit")
-        self.assertEqual(critical["damage"], 7)
-        self.assertEqual(self.npc["current_hp"], 23)
+        session, enemy = caster(cls="Wizard")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", return_value=1):
+            missed = spell_scope.cast(session, "Fire Bolt", enemy["id"])
+        self.assertFalse(missed["hit"])
+        self.assertEqual(missed["resolution"]["outcome"], "MISS")
+        self.assertEqual(missed["damage"], 0)
+        self.assertEqual(enemy["current_hp"], before_hp)
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
+        session, enemy = caster(cls="Wizard")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", return_value=20), patch.object(session.rng, "randint", return_value=4):
+            critical = spell_scope.cast(session, "Fire Bolt", enemy["id"])
+        self.assertTrue(critical["hit"])
+        self.assertEqual(critical["resolution"]["outcome"], "CRITICAL_HIT")
+        self.assertEqual(critical["damage"], 8)
+        self.assertEqual(enemy["current_hp"], before_hp - 8)
 
     def test_sacred_flame_save_and_failure(self):
-        _character(self.session, "Cleric", cantrips=["Sacred Flame"])
-        saved = self.cast(
-            "I cast Sacred Flame at Sentinel",
-            (20, 15), (20, 5), (20, 18), (20, 1),
-        )
-        self.assertEqual(saved["outcome"], "saved")
-        self.assertEqual(saved["save_dc"], 13)
+        session, enemy = caster(cls="Cleric")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", return_value=20):
+            saved = spell_scope.cast(session, "Sacred Flame", enemy["id"])
+        self.assertFalse(saved["hit"])
+        self.assertEqual(saved["spell_save_dc"], 13)
         self.assertEqual(saved["damage"], 0)
-        self.assertEqual(self.npc["current_hp"], 30)
-        self.session.end_combat()
-        failed = self.cast(
-            "Kutsal alev büyüsü yapıyorum Sentinel",
-            (20, 15), (20, 5), (20, 10), (8, 5), (20, 1),
-        )
-        self.assertEqual(failed["outcome"], "failed_save")
+        self.assertEqual(enemy["current_hp"], before_hp)
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"], {"1": 2})
+
+        session, enemy = caster(cls="Cleric")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", return_value=1), patch.object(session.rng, "randint", return_value=5):
+            failed = spell_scope.cast(session, "Sacred Flame", enemy["id"])
+        self.assertTrue(failed["hit"])
+        self.assertEqual(failed["resolution"]["outcome"], "FAILURE")
         self.assertEqual(failed["damage"], 5)
-        self.assertEqual(self.npc["current_hp"], 25)
-        self.assertFalse(failed["slot_spent"])
+        self.assertEqual(enemy["current_hp"], before_hp - 5)
+        self.assertEqual(failed["slot_level"], 0)
 
     def test_magic_missile_spends_a_slot_on_an_automatic_hit(self):
-        _character(self.session, "Sorcerer", known=["Magic Missile"], slots=2)
-        result = self.cast(
-            "I cast Magic Missile at Sentinel",
-            (20, 15), (20, 5), (4, 1), (4, 2), (4, 3), (20, 1),
-        )
-        self.assertEqual(result["outcome"], "automatic_hit")
+        session, enemy = caster(cls="Sorcerer")
+        before_hp = enemy["current_hp"]
+        with patch("game.roll_d20", side_effect=AssertionError("No attack roll")), patch.object(
+            session.rng, "randint", return_value=2
+        ):
+            result = spell_scope.cast(session, "Magic Missile", enemy["id"])
+        self.assertEqual(result["darts"], [3, 3, 3])
+        self.assertTrue(result["hit"])
         self.assertEqual(result["damage"], 9)
-        self.assertTrue(result["slot_spent"])
-        self.assertEqual(spells.remaining_slots(self.session.character), 1)
-        self.assertEqual(self.npc["current_hp"], 21)
+        self.assertEqual(result["slot_level"], 1)
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"], {"1": 1})
+        self.assertEqual(enemy["current_hp"], before_hp - 9)
 
     def test_empty_slot_rejects_without_mutation(self):
-        _character(self.session, "Wizard", known=["Magic Missile"], slots=0)
-        before = self.session.serialize_game_state()
-        result = self.cast("I cast Magic Missile at Sentinel")
-        self.assertEqual(result["outcome"], "no_slot")
-        self.assertFalse(result["slot_spent"])
-        self.assertFalse(self.world["combat"]["active"])
-        self.assertEqual(self.npc["current_hp"], 30)
+        session, enemy = caster(cls="Sorcerer")
+        session.world_state["spellcasting_v1"]["slots"]["1"] = 0
+        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character), session.rng.getstate())
+        with self.assertRaises(ValueError):
+            spell_scope.cast(session, "Magic Missile", enemy["id"])
         self.assertEqual(
-            self.session.serialize_game_state()["player"]["spell_slots_remaining"],
-            before["player"]["spell_slots_remaining"],
+            (session.world_state, session.character, session.rng.getstate()),
+            before,
         )
 
-    def test_cure_wounds_heals_self_and_does_not_start_combat(self):
-        _character(self.session, "Cleric", known=["Cure Wounds"], slots=1, wisdom_mod=3)
-        result = self.cast("I cast Cure Wounds on myself", (8, 2), (8, 3))
-        self.assertEqual(result["outcome"], "healed")
-        self.assertEqual(result["healing"], 8)
-        self.assertEqual(self.session.character["current_hp"], 18)
-        self.assertTrue(result["slot_spent"])
-        self.assertFalse(self.world["combat"]["active"])
-        self.assertEqual(spells.remaining_slots(self.session.character), 0)
+    def test_cure_wounds_heals_during_combat_and_refuses_to_open_combat(self):
+        session, _enemy = caster(cls="Bard")
+        session.end_combat("test")
+        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character), session.rng.getstate())
+        with self.assertRaises(ValueError):
+            spell_scope.cast(session, "Cure Wounds", "player")
+        self.assertEqual((session.world_state, session.character, session.rng.getstate()), before)
+
+        session, _enemy = caster(cls="Bard")
+        session.character["current_hp"] = 1
+        with patch.object(session.rng, "randint", return_value=8):
+            result = spell_scope.cast(session, "Cure Wounds", "player")
+        self.assertEqual(result["rolled_healing"], 19)
+        self.assertEqual(result["healing"], session.character["max_hp"] - 1)
+        self.assertEqual(session.character["current_hp"], session.character["max_hp"])
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"]["1"], 1)
+        self.assertTrue(session.world_state["combat"]["active"])
 
     def test_rejections_do_not_spend_or_change_hp(self):
-        _character(self.session, "Fighter", cantrips=["Fire Bolt"], slots=2)
-        wrong_class = self.cast("I cast Fire Bolt at Sentinel")
-        self.assertEqual(wrong_class["outcome"], "invalid_class")
-        _character(self.session, "Wizard", cantrips=[], known=["Shield"], slots=2)
-        unknown = self.cast("I cast Fire Bolt at Sentinel")
-        self.assertEqual(unknown["outcome"], "not_known")
-        unsupported = self.cast("I cast Shield")
-        self.assertEqual(unsupported["outcome"], "unsupported")
-        _character(self.session, "Wizard", cantrips=["Fire Bolt"], slots=2, level=0)
-        low_level = self.cast("I cast Fire Bolt at Sentinel")
-        self.assertEqual(low_level["outcome"], "invalid_level")
-        missing = self.cast("büyü yapıyorum")
-        self.assertEqual(missing["outcome"], "unknown_spell")
-        self.assertEqual(self.npc["current_hp"], 30)
-        self.assertEqual(self.session.character["current_hp"], 10)
-        self.assertFalse(self.world["combat"]["active"])
+        session, enemy = caster(cls="Wizard")
+        session.world_state["spellcasting_v1"]["cantrips"] = []
+        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character), enemy["current_hp"])
+        with self.assertRaises(ValueError):
+            spell_scope.cast(session, "Fire Bolt", enemy["id"])
+        self.assertEqual(
+            (session.world_state, session.character, enemy["current_hp"]),
+            before,
+        )
+        with self.assertRaises(ValueError):
+            spell_scope.cast(session, "Sleep", enemy["id"])
+        self.assertEqual(enemy["current_hp"], before[2])
+
+        session, enemy = caster(cls="Wizard")
+        session.character["level"] = 0
+        before = (copy.deepcopy(session.world_state), copy.deepcopy(session.character), enemy["current_hp"])
+        with self.assertRaises(ValueError):
+            spell_scope.cast(session, "Fire Bolt", enemy["id"])
+        self.assertEqual(
+            (session.world_state, session.character, enemy["current_hp"]),
+            before,
+        )
+        with self.assertRaises(ValueError):
+            spell_scope.natural_command("büyü yapıyorum", enemy["id"])
+        self.assertEqual(session.character["current_hp"], before[1]["current_hp"])
 
     def test_model_cannot_relabel_a_cast_or_author_damage(self):
-        _character(self.session, "Wizard", cantrips=["Fire Bolt"], slots=2)
-        with patch.object(game, "parse_player_intent", side_effect=AssertionError("model")):
-            intent = self.session.validate_intent(
-                self.session.normalize_intent({"intent": "attack"}, "I cast Fire Bolt at Sentinel"),
-                "I cast Fire Bolt at Sentinel",
-            )
-        self.assertEqual(intent["intent"], "cast")
-        result = self.cast(
-            "I cast Fire Bolt at Sentinel",
-            (20, 15), (20, 5), (20, 10), (10, 4), (20, 1),
-        )
-        self.assertEqual(result["damage"], 4)
-        self.assertEqual(self.npc["current_hp"], 26)
+        session, enemy = caster(cls="Wizard")
+        before_hp = enemy["current_hp"]
+        with patch.object(game, "parse_player_intent", side_effect=AssertionError("model")), patch(
+            "game.roll_d20", return_value=12
+        ), patch.object(session.rng, "randint", return_value=4):
+            result = session.run_player_turn("I cast Fire Bolt", target_id=enemy["id"])
+        spell_result = result["action_result"]["economy_steps"][0]["result"]
+        self.assertEqual(spell_result["spell_id"], "Fire Bolt")
+        self.assertEqual(spell_result["damage"], 4)
+        self.assertEqual(enemy["current_hp"], before_hp - 4)
+        self.assertEqual(result["model_calls"], 0)
 
     def test_save_load_and_legacy_migration(self):
         _character(self.session, "Wizard", cantrips=["Fire Bolt"], known=["Magic Missile"], slots=2)
@@ -248,15 +243,12 @@ class SpellCastTests(unittest.TestCase):
                 self.assertEqual(spells.remaining_slots(self.session.character), 0)
 
     def test_sessions_do_not_share_slots(self):
-        _character(self.session, "Wizard", known=["Magic Missile"], slots=2)
-        other = game.create_session(seed=9)
-        _character(other, "Wizard", known=["Magic Missile"], slots=2)
-        self.cast(
-            "I cast Magic Missile at Sentinel",
-            (20, 15), (20, 5), (4, 1), (4, 1), (4, 1), (20, 1),
-        )
-        self.assertEqual(spells.remaining_slots(self.session.character), 1)
-        self.assertEqual(spells.remaining_slots(other.character), 2)
+        session, enemy = caster(cls="Sorcerer")
+        other, _other_enemy = caster(cls="Sorcerer")
+        with patch.object(session.rng, "randint", return_value=2):
+            spell_scope.cast(session, "Magic Missile", enemy["id"])
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"], {"1": 1})
+        self.assertEqual(other.world_state["spellcasting_v1"]["slots"], {"1": 2})
 
 
 if __name__ == "__main__":
