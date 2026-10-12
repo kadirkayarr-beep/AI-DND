@@ -2,27 +2,43 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
 import hashlib
 import inspect
 import json
 import logging
 import os
+
+import game
 from dataclasses import replace
 from typing import Any
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
-import game
+from api.auth import (
+    AuthenticationError,
+    FailClosedAuthenticator,
+    OidcAuthenticator,
+    Principal,
+    SESSION_COOKIE,
+    authenticate,
+    bind_principal,
+    clear_session_cookie,
+    request_marker_present,
+    reset_principal,
+    select_authenticator,
+)
 import campaign_time
 import combat_lifecycle
 import scheduled_events
 import living_world
 import adventure.projection as adventure_projection
+from api.clerk_auth import ClerkAuthenticator
 from api.campaign_journal import (
     append_ambient_event_outcome,
     update_campaign_journal,
@@ -62,7 +78,7 @@ from api.persistence.campaign_models import (
     CampaignStorageError,
     CampaignStaleError,
 )
-from api.persistence.campaign_store import CampaignStore
+from api.persistence.campaign_store import StartupCampaignStore
 from api.dnd_2024_rules import get_character_creation_catalog
 from api.schemas import (
     CharacterCreationOptions,
@@ -401,8 +417,9 @@ def create_app(
     *,
     session_manager: SessionManager | None = None,
     ollama_adapter: AuthenticatedOllamaAdapter | None | object = _UNSET,
+    authenticator: object = _UNSET,
 ) -> FastAPI:
-    manager = session_manager or SessionManager(campaign_store=CampaignStore())
+    manager = session_manager or SessionManager(campaign_store=StartupCampaignStore())
     adapter = (
         AuthenticatedOllamaAdapter.from_environment()
         if ollama_adapter is _UNSET
@@ -418,7 +435,50 @@ def create_app(
         description="Thin HTTP adapter for the canonical Python AI-DND engine.",
     )
     application.state.session_manager = manager
+    if authenticator is _UNSET:
+        authenticator = select_authenticator(os.environ)
+    application.state.authenticator = authenticator
     application.state.ollama_adapter = adapter
+
+    @application.middleware("http")
+    async def require_verified_principal(request: Any, call_next: Any) -> Any:
+        path = request.url.path
+        if not path.startswith("/api") or path in _PUBLIC_API_PATHS:
+            return await call_next(request)
+        verifier = application.state.authenticator
+        try:
+            if type(verifier) is OidcAuthenticator:
+                if (
+                    request.method in {"POST", "PUT", "PATCH", "DELETE"}
+                    and not request_marker_present(request.headers)
+                ):
+                    raise AuthenticationError("Authentication failed.")
+                principal = verifier.authenticate(request.cookies.get(SESSION_COOKIE))
+            elif type(verifier) is ClerkAuthenticator:
+                # Verification and JWKS refresh run off the event loop. The
+                # cache still allows only one in-flight fetch.
+                principal = await asyncio.to_thread(
+                    verifier.authenticate_asgi,
+                    tuple(request.scope.get("headers", ())),
+                    tuple(request.cookies.items()),
+                )
+            else:
+                principal = authenticate(verifier)
+        except AuthenticationError:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "detail": {
+                        "code": "authentication_required",
+                        "message": "Kimlik doğrulaması gerekli.",
+                    },
+                },
+            )
+        token = bind_principal(principal)
+        try:
+            return await call_next(request)
+        finally:
+            reset_principal(token)
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(
@@ -528,6 +588,23 @@ def create_app(
     def health(response: Response) -> HealthResponse:
         response.headers["X-AI-DND-Instance"] = str(os.getpid())
         return HealthResponse()
+
+    @application.post("/api/logout", status_code=204)
+    @application.post("/api/game/logout", status_code=204)
+    def logout(request: Request) -> Response:
+        # This clears the legacy OIDC cookie only. A Clerk bearer token is not
+        # revoked and remains valid until its own exp.
+        if not request_marker_present(request.headers):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "authentication_required",
+                    "message": "Kimlik doğrulaması gerekli.",
+                },
+            )
+        response = Response(status_code=204)
+        clear_session_cookie(response, secure=request.url.scheme == "https")
+        return response
 
     @application.get(
         "/api/game/character-options",
@@ -1461,11 +1538,19 @@ def create_app(
         "/api/game/sessions/{session_id}/quests/{quest_id}/accept",
         response_model=QuestCommandResult,
     )
+    @application.post(
+        "/api/sessions/{session_id}/quests/{quest_id}/accept",
+        response_model=QuestCommandResult,
+    )
     def accept_quest(session_id: str, quest_id: str) -> dict[str, Any]:
         return _quest_command(session_id, quest_id, "accept")
 
     @application.post(
         "/api/game/sessions/{session_id}/quests/{quest_id}/cancel",
+        response_model=QuestCommandResult,
+    )
+    @application.post(
+        "/api/sessions/{session_id}/quests/{quest_id}/cancel",
         response_model=QuestCommandResult,
     )
     def cancel_quest(session_id: str, quest_id: str) -> dict[str, Any]:
@@ -1587,6 +1672,11 @@ def create_app(
 
     @application.post(
         "/api/game/sessions/{session_id}/ambient-events/"
+        "{event_instance_id}/actions",
+        response_model=AmbientEventCommandResult,
+    )
+    @application.post(
+        "/api/sessions/{session_id}/ambient-events/"
         "{event_instance_id}/actions",
         response_model=AmbientEventCommandResult,
     )
@@ -1800,4 +1890,18 @@ def create_app(
     return application
 
 
-app = create_app()
+_PUBLIC_API_PATHS = frozenset({
+    "/api/health",
+    "/api/game/health",
+    "/api/character-options",
+    "/api/game/character-options",
+    "/api/character-creation-catalog",
+    "/api/game/character-creation-catalog",
+    "/api/campaign-start-options",
+    "/api/game/campaign-start-options",
+    "/api/logout",
+    "/api/game/logout",
+})
+
+
+app = None if os.environ.get("AI_DND_DISABLE_DEFAULT_APP") == "1" else create_app()

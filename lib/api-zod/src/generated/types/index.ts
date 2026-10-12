@@ -28,6 +28,7 @@ export * from './ambientEventResultStatus';
 export * from './apiErrorDetail';
 export * from './apiErrorDetailCode';
 export * from './apiErrorResponse';
+export * from './authenticationRequiredResponse';
 export * from './campaignAdventureCard';
 export * from './campaignAdventureJournal';
 export * from './campaignCreateInput';

@@ -23,6 +23,7 @@ import type {
   AmbientEventActionInput,
   AmbientEventCommandResult,
   ApiErrorResponse,
+  AuthenticationRequiredResponse,
   CampaignCreateInput,
   CampaignCreateValidationErrorResponse,
   CampaignDeleteResult,
@@ -175,7 +176,7 @@ export const createGameSession = async ( options?: Parameters<typeof customFetch
 
 export const getCreateGameSessionMutationKey = () => ['createGameSession'] as const;
 
-export const getCreateGameSessionMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateGameSessionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGameSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createGameSession>>, TError,void, TContext> => {
 
@@ -204,13 +205,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateGameSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createGameSession>>>
 
-    export type CreateGameSessionMutationError = ErrorType<unknown>
+    export type CreateGameSessionMutationError = ErrorType<AuthenticationRequiredResponse>
 
 
     /**
  * @summary Create a new isolated game session
  */
-export const useCreateGameSession = <TError = ErrorType<unknown>,
+export const useCreateGameSession = <TError = ErrorType<AuthenticationRequiredResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGameSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createGameSession>>,
@@ -254,7 +255,7 @@ export const getGetGameSessionStateQueryKey = (sessionId: string,) => {
     }
 
 
-export const getGetGameSessionStateQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionState>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetGameSessionStateQueryOptions = <TData = Awaited<ReturnType<typeof getGameSessionState>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -273,14 +274,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetGameSessionStateQueryResult = NonNullable<Awaited<ReturnType<typeof getGameSessionState>>>
-export type GetGameSessionStateQueryError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+export type GetGameSessionStateQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
 
 
 /**
  * @summary Read the canonical public state for a game session
  */
 
-export function useGetGameSessionState<TData = Awaited<ReturnType<typeof getGameSessionState>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(
+export function useGetGameSessionState<TData = Awaited<ReturnType<typeof getGameSessionState>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
  sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGameSessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -341,7 +342,7 @@ return customFetch<SpeciesTraitCommandResult>(getResolveSpeciesTraitActionUrl(se
 
 export const getResolveSpeciesTraitActionMutationKey = () => ['resolveSpeciesTraitAction'] as const;
 
-export const getResolveSpeciesTraitActionMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getResolveSpeciesTraitActionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext> => {
 
@@ -370,13 +371,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ResolveSpeciesTraitActionMutationResult = NonNullable<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>>
     export type ResolveSpeciesTraitActionMutationBody = BodyType<SpeciesTraitActionInput>
-    export type ResolveSpeciesTraitActionMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveSpeciesTraitActionMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ResolveSpeciesTraitActionMutationVariables = {sessionId: string;data: BodyType<SpeciesTraitActionInput>}
 
     /**
  * @summary Resolve one server-authoritative species trait action
  */
-export const useResolveSpeciesTraitAction = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useResolveSpeciesTraitAction = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitAction>>, TError,ResolveSpeciesTraitActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resolveSpeciesTraitAction>>,
@@ -431,7 +432,7 @@ return customFetch<SpeciesTraitCommandResult>(getResolveSpeciesTraitActionCompat
 
 export const getResolveSpeciesTraitActionCompatMutationKey = () => ['resolveSpeciesTraitActionCompat'] as const;
 
-export const getResolveSpeciesTraitActionCompatMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getResolveSpeciesTraitActionCompatMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext> => {
 
@@ -460,13 +461,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ResolveSpeciesTraitActionCompatMutationResult = NonNullable<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>>
     export type ResolveSpeciesTraitActionCompatMutationBody = BodyType<SpeciesTraitActionInput>
-    export type ResolveSpeciesTraitActionCompatMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveSpeciesTraitActionCompatMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ResolveSpeciesTraitActionCompatMutationVariables = {sessionId: string;data: BodyType<SpeciesTraitActionInput>}
 
     /**
  * @summary Legacy server-authoritative species action alias
  */
-export const useResolveSpeciesTraitActionCompat = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useResolveSpeciesTraitActionCompat = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>, TError,ResolveSpeciesTraitActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resolveSpeciesTraitActionCompat>>,
@@ -520,7 +521,7 @@ return customFetch<GameTurnResult>(getPlayGameTurnUrl(sessionId),
 
 export const getPlayGameTurnMutationKey = () => ['playGameTurn'] as const;
 
-export const getPlayGameTurnMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getPlayGameTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playGameTurn>>, TError,PlayGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof playGameTurn>>, TError,PlayGameTurnMutationVariables, TContext> => {
 
@@ -549,13 +550,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type PlayGameTurnMutationResult = NonNullable<Awaited<ReturnType<typeof playGameTurn>>>
     export type PlayGameTurnMutationBody = BodyType<GameTurnInput>
-    export type PlayGameTurnMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type PlayGameTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type PlayGameTurnMutationVariables = {sessionId: string;data: BodyType<GameTurnInput>}
 
     /**
  * @summary Submit one player message to the Python game engine
  */
-export const usePlayGameTurn = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const usePlayGameTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playGameTurn>>, TError,PlayGameTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof playGameTurn>>,
@@ -596,7 +597,7 @@ export const acceptGameQuest = async (sessionId: string,
 
 export const getAcceptGameQuestMutationKey = () => ['acceptGameQuest'] as const;
 
-export const getAcceptGameQuestMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+export const getAcceptGameQuestMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext> => {
 
@@ -625,13 +626,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type AcceptGameQuestMutationResult = NonNullable<Awaited<ReturnType<typeof acceptGameQuest>>>
 
-    export type AcceptGameQuestMutationError = ErrorType<ApiErrorResponse>
+    export type AcceptGameQuestMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
     export type AcceptGameQuestMutationVariables = {sessionId: string;questId: string}
 
     /**
  * @summary Explicitly accept a server-owned quest offer
  */
-export const useAcceptGameQuest = <TError = ErrorType<ApiErrorResponse>,
+export const useAcceptGameQuest = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptGameQuest>>, TError,AcceptGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof acceptGameQuest>>,
@@ -672,7 +673,7 @@ export const cancelGameQuest = async (sessionId: string,
 
 export const getCancelGameQuestMutationKey = () => ['cancelGameQuest'] as const;
 
-export const getCancelGameQuestMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+export const getCancelGameQuestMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext> => {
 
@@ -701,13 +702,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CancelGameQuestMutationResult = NonNullable<Awaited<ReturnType<typeof cancelGameQuest>>>
 
-    export type CancelGameQuestMutationError = ErrorType<ApiErrorResponse>
+    export type CancelGameQuestMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
     export type CancelGameQuestMutationVariables = {sessionId: string;questId: string}
 
     /**
  * @summary Explicitly cancel an accepted quest
  */
-export const useCancelGameQuest = <TError = ErrorType<ApiErrorResponse>,
+export const useCancelGameQuest = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelGameQuest>>, TError,CancelGameQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof cancelGameQuest>>,
@@ -763,7 +764,7 @@ return customFetch<AmbientEventCommandResult>(getResolveAmbientEventActionUrl(se
 
 export const getResolveAmbientEventActionMutationKey = () => ['resolveAmbientEventAction'] as const;
 
-export const getResolveAmbientEventActionMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getResolveAmbientEventActionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext> => {
 
@@ -792,13 +793,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ResolveAmbientEventActionMutationResult = NonNullable<Awaited<ReturnType<typeof resolveAmbientEventAction>>>
     export type ResolveAmbientEventActionMutationBody = BodyType<AmbientEventActionInput>
-    export type ResolveAmbientEventActionMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveAmbientEventActionMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ResolveAmbientEventActionMutationVariables = {sessionId: string;eventInstanceId: string;data: BodyType<AmbientEventActionInput>}
 
     /**
  * @summary Resolve one validated action against an active ambient event
  */
-export const useResolveAmbientEventAction = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useResolveAmbientEventAction = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventAction>>, TError,ResolveAmbientEventActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resolveAmbientEventAction>>,
@@ -807,6 +808,400 @@ export const useResolveAmbientEventAction = <TError = ErrorType<ApiErrorResponse
         TContext
       > => {
       return useMutation(getResolveAmbientEventActionMutationOptions(options));
+    }
+
+export const getAcceptLegacyQuestUrl = (sessionId: string,
+    questId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/quests/${questId}/accept`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/quests/{quest_id}/accept.
+ * @summary Legacy quest accept alias
+ */
+export const acceptLegacyQuest = async (sessionId: string,
+    questId: string, options?: Parameters<typeof customFetch>[1]): Promise<QuestCommandResult> => {
+
+  return customFetch<QuestCommandResult>(getAcceptLegacyQuestUrl(sessionId,questId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcceptLegacyQuestMutationKey = () => ['acceptLegacyQuest'] as const;
+
+export const getAcceptLegacyQuestMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptLegacyQuest>>, TError,AcceptLegacyQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptLegacyQuest>>, TError,AcceptLegacyQuestMutationVariables, TContext> => {
+
+const mutationKey = getAcceptLegacyQuestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptLegacyQuest>>, AcceptLegacyQuestMutationVariables> = (props) => {
+          const {sessionId,questId} = props ?? {};
+
+          return  acceptLegacyQuest(sessionId,questId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptLegacyQuestMutationResult = NonNullable<Awaited<ReturnType<typeof acceptLegacyQuest>>>
+
+    export type AcceptLegacyQuestMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
+    export type AcceptLegacyQuestMutationVariables = {sessionId: string;questId: string}
+
+    /**
+ * @summary Legacy quest accept alias
+ */
+export const useAcceptLegacyQuest = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptLegacyQuest>>, TError,AcceptLegacyQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptLegacyQuest>>,
+        TError,
+        AcceptLegacyQuestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAcceptLegacyQuestMutationOptions(options));
+    }
+
+export const getCancelLegacyQuestUrl = (sessionId: string,
+    questId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/quests/${questId}/cancel`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/quests/{quest_id}/cancel.
+ * @summary Legacy quest cancel alias
+ */
+export const cancelLegacyQuest = async (sessionId: string,
+    questId: string, options?: Parameters<typeof customFetch>[1]): Promise<QuestCommandResult> => {
+
+  return customFetch<QuestCommandResult>(getCancelLegacyQuestUrl(sessionId,questId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelLegacyQuestMutationKey = () => ['cancelLegacyQuest'] as const;
+
+export const getCancelLegacyQuestMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLegacyQuest>>, TError,CancelLegacyQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelLegacyQuest>>, TError,CancelLegacyQuestMutationVariables, TContext> => {
+
+const mutationKey = getCancelLegacyQuestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelLegacyQuest>>, CancelLegacyQuestMutationVariables> = (props) => {
+          const {sessionId,questId} = props ?? {};
+
+          return  cancelLegacyQuest(sessionId,questId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelLegacyQuestMutationResult = NonNullable<Awaited<ReturnType<typeof cancelLegacyQuest>>>
+
+    export type CancelLegacyQuestMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
+    export type CancelLegacyQuestMutationVariables = {sessionId: string;questId: string}
+
+    /**
+ * @summary Legacy quest cancel alias
+ */
+export const useCancelLegacyQuest = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelLegacyQuest>>, TError,CancelLegacyQuestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelLegacyQuest>>,
+        TError,
+        CancelLegacyQuestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelLegacyQuestMutationOptions(options));
+    }
+
+export const getResolveAmbientEventActionCompatUrl = (sessionId: string,
+    eventInstanceId: string,) => {
+
+
+
+
+  return `/api/sessions/${sessionId}/ambient-events/${eventInstanceId}/actions`
+}
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/ambient-events/{event_instance_id}/actions.
+ * @summary Legacy ambient event action alias
+ */
+export const resolveAmbientEventActionCompat = async (sessionId: string,
+    eventInstanceId: string,
+    ambientEventActionInput: AmbientEventActionInput, options?: Parameters<typeof customFetch>[1]): Promise<AmbientEventCommandResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AmbientEventCommandResult>(getResolveAmbientEventActionCompatUrl(sessionId,eventInstanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(ambientEventActionInput)
+  }
+);}
+
+
+
+
+
+export const getResolveAmbientEventActionCompatMutationKey = () => ['resolveAmbientEventActionCompat'] as const;
+
+export const getResolveAmbientEventActionCompatMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>, TError,ResolveAmbientEventActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>, TError,ResolveAmbientEventActionCompatMutationVariables, TContext> => {
+
+const mutationKey = getResolveAmbientEventActionCompatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>, ResolveAmbientEventActionCompatMutationVariables> = (props) => {
+          const {sessionId,eventInstanceId,data} = props ?? {};
+
+          return  resolveAmbientEventActionCompat(sessionId,eventInstanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveAmbientEventActionCompatMutationResult = NonNullable<Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>>
+    export type ResolveAmbientEventActionCompatMutationBody = BodyType<AmbientEventActionInput>
+    export type ResolveAmbientEventActionCompatMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResolveAmbientEventActionCompatMutationVariables = {sessionId: string;eventInstanceId: string;data: BodyType<AmbientEventActionInput>}
+
+    /**
+ * @summary Legacy ambient event action alias
+ */
+export const useResolveAmbientEventActionCompat = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>, TError,ResolveAmbientEventActionCompatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveAmbientEventActionCompat>>,
+        TError,
+        ResolveAmbientEventActionCompatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveAmbientEventActionCompatMutationOptions(options));
+    }
+
+export const getLogoutGameUrl = () => {
+
+
+
+
+  return `/api/game/logout`
+}
+
+/**
+ * @summary Clear the HttpOnly session cookie
+ */
+export const logoutGame = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLogoutGameUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutGameMutationKey = () => ['logoutGame'] as const;
+
+export const getLogoutGameMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutGame>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutGame>>, TError,void, TContext> => {
+
+const mutationKey = getLogoutGameMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutGame>>, void> = () => {
+
+
+          return  logoutGame(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutGameMutationResult = NonNullable<Awaited<ReturnType<typeof logoutGame>>>
+
+    export type LogoutGameMutationError = ErrorType<AuthenticationRequiredResponse>
+
+
+    /**
+ * @summary Clear the HttpOnly session cookie
+ */
+export const useLogoutGame = <TError = ErrorType<AuthenticationRequiredResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutGame>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logoutGame>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutGameMutationOptions(options));
+    }
+
+export const getLogoutLegacyUrl = () => {
+
+
+
+
+  return `/api/logout`
+}
+
+/**
+ * @summary Legacy session cookie logout alias
+ */
+export const logoutLegacy = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getLogoutLegacyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLogoutLegacyMutationKey = () => ['logoutLegacy'] as const;
+
+export const getLogoutLegacyMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutLegacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logoutLegacy>>, TError,void, TContext> => {
+
+const mutationKey = getLogoutLegacyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutLegacy>>, void> = () => {
+
+
+          return  logoutLegacy(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogoutLegacyMutationResult = NonNullable<Awaited<ReturnType<typeof logoutLegacy>>>
+
+    export type LogoutLegacyMutationError = ErrorType<AuthenticationRequiredResponse>
+
+
+    /**
+ * @summary Legacy session cookie logout alias
+ */
+export const useLogoutLegacy = <TError = ErrorType<AuthenticationRequiredResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutLegacy>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logoutLegacy>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLogoutLegacyMutationOptions(options));
     }
 
 export const getGetCampaignStartOptionsUrl = () => {
@@ -1073,7 +1468,7 @@ export const getGetCampaignsQueryKey = () => {
     }
 
 
-export const getGetCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<ApiErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1092,14 +1487,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetCampaignsQueryResult = NonNullable<Awaited<ReturnType<typeof getCampaigns>>>
-export type GetCampaignsQueryError = ErrorType<ApiErrorResponse>
+export type GetCampaignsQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
 
 
 /**
  * @summary List safe campaign metadata
  */
 
-export function useGetCampaigns<TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<ApiErrorResponse>>(
+export function useGetCampaigns<TData = Awaited<ReturnType<typeof getCampaigns>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1159,7 +1554,7 @@ return customFetch<CampaignSession>(getCreateCampaignUrl(),
 
 export const getCreateCampaignMutationKey = () => ['createCampaign'] as const;
 
-export const getCreateCampaignMutationOptions = <TError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>,
+export const getCreateCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext> => {
 
@@ -1188,13 +1583,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof createCampaign>>>
     export type CreateCampaignMutationBody = BodyType<CampaignCreateInput>
-    export type CreateCampaignMutationError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>
+    export type CreateCampaignMutationError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>
     export type CreateCampaignMutationVariables = {data: BodyType<CampaignCreateInput>}
 
     /**
  * @summary Create a campaign with an initial server-owned save
  */
-export const useCreateCampaign = <TError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>,
+export const useCreateCampaign = <TError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCampaign>>, TError,CreateCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createCampaign>>,
@@ -1233,7 +1628,7 @@ export const deleteCampaign = async (campaignId: string, options?: Parameters<ty
 
 export const getDeleteCampaignMutationKey = () => ['deleteCampaign'] as const;
 
-export const getDeleteCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+export const getDeleteCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext> => {
 
@@ -1262,13 +1657,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCampaign>>>
 
-    export type DeleteCampaignMutationError = ErrorType<ApiErrorResponse>
+    export type DeleteCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
     export type DeleteCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Permanently delete a selected campaign and revoke its active session
  */
-export const useDeleteCampaign = <TError = ErrorType<ApiErrorResponse>,
+export const useDeleteCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCampaign>>, TError,DeleteCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteCampaign>>,
@@ -1312,7 +1707,7 @@ export const getGetCampaignQueryKey = (campaignId: string,) => {
     }
 
 
-export const getGetCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1331,14 +1726,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetCampaignQueryResult = NonNullable<Awaited<ReturnType<typeof getCampaign>>>
-export type GetCampaignQueryError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+export type GetCampaignQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
 
 
 /**
  * @summary Read safe metadata, canonical UI state, and saved history
  */
 
-export function useGetCampaign<TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(
+export function useGetCampaign<TData = Awaited<ReturnType<typeof getCampaign>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
  campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1384,7 +1779,7 @@ export const resumeCampaign = async (campaignId: string, options?: Parameters<ty
 
 export const getResumeCampaignMutationKey = () => ['resumeCampaign'] as const;
 
-export const getResumeCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getResumeCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext> => {
 
@@ -1413,13 +1808,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ResumeCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof resumeCampaign>>>
 
-    export type ResumeCampaignMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResumeCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ResumeCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Restore a campaign into a current runtime session
  */
-export const useResumeCampaign = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useResumeCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeCampaign>>, TError,ResumeCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resumeCampaign>>,
@@ -1458,7 +1853,7 @@ export const saveCampaign = async (campaignId: string, options?: Parameters<type
 
 export const getSaveCampaignMutationKey = () => ['saveCampaign'] as const;
 
-export const getSaveCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getSaveCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext> => {
 
@@ -1487,13 +1882,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SaveCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof saveCampaign>>>
 
-    export type SaveCampaignMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type SaveCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type SaveCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Save the current server-side campaign session
  */
-export const useSaveCampaign = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useSaveCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveCampaign>>, TError,SaveCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof saveCampaign>>,
@@ -1845,7 +2240,7 @@ export const createLegacySession = async ( options?: Parameters<typeof customFet
 
 export const getCreateLegacySessionMutationKey = () => ['createLegacySession'] as const;
 
-export const getCreateLegacySessionMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateLegacySessionMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacySession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createLegacySession>>, TError,void, TContext> => {
 
@@ -1874,13 +2269,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateLegacySessionMutationResult = NonNullable<Awaited<ReturnType<typeof createLegacySession>>>
 
-    export type CreateLegacySessionMutationError = ErrorType<unknown>
+    export type CreateLegacySessionMutationError = ErrorType<AuthenticationRequiredResponse>
 
 
     /**
  * @summary Legacy session-creation alias
  */
-export const useCreateLegacySession = <TError = ErrorType<unknown>,
+export const useCreateLegacySession = <TError = ErrorType<AuthenticationRequiredResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacySession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createLegacySession>>,
@@ -1925,7 +2320,7 @@ export const getGetLegacySessionStateQueryKey = (sessionId: string,) => {
     }
 
 
-export const getGetLegacySessionStateQueryOptions = <TData = Awaited<ReturnType<typeof getLegacySessionState>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLegacySessionStateQueryOptions = <TData = Awaited<ReturnType<typeof getLegacySessionState>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1944,14 +2339,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLegacySessionStateQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacySessionState>>>
-export type GetLegacySessionStateQueryError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+export type GetLegacySessionStateQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
 
 
 /**
  * @summary Legacy session-state alias
  */
 
-export function useGetLegacySessionState<TData = Awaited<ReturnType<typeof getLegacySessionState>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(
+export function useGetLegacySessionState<TData = Awaited<ReturnType<typeof getLegacySessionState>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
  sessionId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacySessionState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -2013,7 +2408,7 @@ return customFetch<GameTurnResult>(getPlayLegacyTurnUrl(sessionId),
 
 export const getPlayLegacyTurnMutationKey = () => ['playLegacyTurn'] as const;
 
-export const getPlayLegacyTurnMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getPlayLegacyTurnMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playLegacyTurn>>, TError,PlayLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof playLegacyTurn>>, TError,PlayLegacyTurnMutationVariables, TContext> => {
 
@@ -2042,13 +2437,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type PlayLegacyTurnMutationResult = NonNullable<Awaited<ReturnType<typeof playLegacyTurn>>>
     export type PlayLegacyTurnMutationBody = BodyType<GameTurnInput>
-    export type PlayLegacyTurnMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type PlayLegacyTurnMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type PlayLegacyTurnMutationVariables = {sessionId: string;data: BodyType<GameTurnInput>}
 
     /**
  * @summary Legacy player-turn alias
  */
-export const usePlayLegacyTurn = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const usePlayLegacyTurn = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playLegacyTurn>>, TError,PlayLegacyTurnMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof playLegacyTurn>>,
@@ -2093,7 +2488,7 @@ export const getGetLegacyCampaignsQueryKey = () => {
     }
 
 
-export const getGetLegacyCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCampaigns>>, TError = ErrorType<ApiErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLegacyCampaignsQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCampaigns>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2112,14 +2507,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLegacyCampaignsQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacyCampaigns>>>
-export type GetLegacyCampaignsQueryError = ErrorType<ApiErrorResponse>
+export type GetLegacyCampaignsQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
 
 
 /**
  * @summary Legacy campaign-list alias
  */
 
-export function useGetLegacyCampaigns<TData = Awaited<ReturnType<typeof getLegacyCampaigns>>, TError = ErrorType<ApiErrorResponse>>(
+export function useGetLegacyCampaigns<TData = Awaited<ReturnType<typeof getLegacyCampaigns>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaigns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -2180,7 +2575,7 @@ return customFetch<CampaignSession>(getCreateLegacyCampaignUrl(),
 
 export const getCreateLegacyCampaignMutationKey = () => ['createLegacyCampaign'] as const;
 
-export const getCreateLegacyCampaignMutationOptions = <TError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>,
+export const getCreateLegacyCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyCampaign>>, TError,CreateLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createLegacyCampaign>>, TError,CreateLegacyCampaignMutationVariables, TContext> => {
 
@@ -2209,13 +2604,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateLegacyCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof createLegacyCampaign>>>
     export type CreateLegacyCampaignMutationBody = BodyType<CampaignCreateInput>
-    export type CreateLegacyCampaignMutationError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>
+    export type CreateLegacyCampaignMutationError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>
     export type CreateLegacyCampaignMutationVariables = {data: BodyType<CampaignCreateInput>}
 
     /**
  * @summary Legacy campaign-creation alias
  */
-export const useCreateLegacyCampaign = <TError = ErrorType<CampaignCreateValidationErrorResponse | ApiErrorResponse>,
+export const useCreateLegacyCampaign = <TError = ErrorType<AuthenticationRequiredResponse | CampaignCreateValidationErrorResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLegacyCampaign>>, TError,CreateLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createLegacyCampaign>>,
@@ -2255,7 +2650,7 @@ export const deleteLegacyCampaign = async (campaignId: string, options?: Paramet
 
 export const getDeleteLegacyCampaignMutationKey = () => ['deleteLegacyCampaign'] as const;
 
-export const getDeleteLegacyCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse>,
+export const getDeleteLegacyCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext> => {
 
@@ -2284,13 +2679,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteLegacyCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLegacyCampaign>>>
 
-    export type DeleteLegacyCampaignMutationError = ErrorType<ApiErrorResponse>
+    export type DeleteLegacyCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>
     export type DeleteLegacyCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Legacy campaign-deletion alias
  */
-export const useDeleteLegacyCampaign = <TError = ErrorType<ApiErrorResponse>,
+export const useDeleteLegacyCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLegacyCampaign>>, TError,DeleteLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteLegacyCampaign>>,
@@ -2335,7 +2730,7 @@ export const getGetLegacyCampaignQueryKey = (campaignId: string,) => {
     }
 
 
-export const getGetLegacyCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCampaign>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetLegacyCampaignQueryOptions = <TData = Awaited<ReturnType<typeof getLegacyCampaign>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2354,14 +2749,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLegacyCampaignQueryResult = NonNullable<Awaited<ReturnType<typeof getLegacyCampaign>>>
-export type GetLegacyCampaignQueryError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+export type GetLegacyCampaignQueryError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
 
 
 /**
  * @summary Legacy campaign-detail alias
  */
 
-export function useGetLegacyCampaign<TData = Awaited<ReturnType<typeof getLegacyCampaign>>, TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>>(
+export function useGetLegacyCampaign<TData = Awaited<ReturnType<typeof getLegacyCampaign>>, TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>>(
  campaignId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLegacyCampaign>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -2408,7 +2803,7 @@ export const resumeLegacyCampaign = async (campaignId: string, options?: Paramet
 
 export const getResumeLegacyCampaignMutationKey = () => ['resumeLegacyCampaign'] as const;
 
-export const getResumeLegacyCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getResumeLegacyCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeLegacyCampaign>>, TError,ResumeLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof resumeLegacyCampaign>>, TError,ResumeLegacyCampaignMutationVariables, TContext> => {
 
@@ -2437,13 +2832,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ResumeLegacyCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof resumeLegacyCampaign>>>
 
-    export type ResumeLegacyCampaignMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type ResumeLegacyCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type ResumeLegacyCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Legacy campaign-resume alias
  */
-export const useResumeLegacyCampaign = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useResumeLegacyCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resumeLegacyCampaign>>, TError,ResumeLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resumeLegacyCampaign>>,
@@ -2483,7 +2878,7 @@ export const saveLegacyCampaign = async (campaignId: string, options?: Parameter
 
 export const getSaveLegacyCampaignMutationKey = () => ['saveLegacyCampaign'] as const;
 
-export const getSaveLegacyCampaignMutationOptions = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const getSaveLegacyCampaignMutationOptions = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLegacyCampaign>>, TError,SaveLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof saveLegacyCampaign>>, TError,SaveLegacyCampaignMutationVariables, TContext> => {
 
@@ -2512,13 +2907,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SaveLegacyCampaignMutationResult = NonNullable<Awaited<ReturnType<typeof saveLegacyCampaign>>>
 
-    export type SaveLegacyCampaignMutationError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>
+    export type SaveLegacyCampaignMutationError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>
     export type SaveLegacyCampaignMutationVariables = {campaignId: string}
 
     /**
  * @summary Legacy campaign-save alias
  */
-export const useSaveLegacyCampaign = <TError = ErrorType<ApiErrorResponse | RequestValidationErrorResponse>,
+export const useSaveLegacyCampaign = <TError = ErrorType<AuthenticationRequiredResponse | ApiErrorResponse | RequestValidationErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveLegacyCampaign>>, TError,SaveLegacyCampaignMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof saveLegacyCampaign>>,

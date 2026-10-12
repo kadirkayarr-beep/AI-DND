@@ -6716,6 +6716,2375 @@ export const ResolveAmbientEventActionResponse = zod.object({
 
 
 /**
+ * Compatibility alias for /game/sessions/{session_id}/quests/{quest_id}/accept.
+ * @summary Legacy quest accept alias
+ */
+export const acceptLegacyQuestPathQuestIdMax = 120;
+
+
+
+export const AcceptLegacyQuestParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "quest_id": zod.coerce.string().max(acceptLegacyQuestPathQuestIdMax)
+})
+
+export const acceptLegacyQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
+export const acceptLegacyQuestResponseStateCampaignTimeOneHourMin = 0;
+export const acceptLegacyQuestResponseStateCampaignTimeOneHourMax = 23;
+
+export const acceptLegacyQuestResponseStateCampaignTimeOneMinuteMin = 0;
+export const acceptLegacyQuestResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const acceptLegacyQuestResponseStateCampaignTimeOneSecondMin = 0;
+export const acceptLegacyQuestResponseStateCampaignTimeOneSecondMax = 59;
+
+export const acceptLegacyQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+export const acceptLegacyQuestResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
+export const acceptLegacyQuestResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const acceptLegacyQuestResponseStateJourneyOneRemainingSecondsMin = 0;
+
+
+
+export const acceptLegacyQuestResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const acceptLegacyQuestResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const acceptLegacyQuestResponseStateExpeditionExhaustionMin = 0;
+export const acceptLegacyQuestResponseStateExpeditionExhaustionMax = 6;
+
+export const acceptLegacyQuestResponseStateExpeditionTrackingSecondsMin = 0;
+
+
+export const acceptLegacyQuestResponseStateSceneOneVisitRevisionMin = 0;
+
+export const acceptLegacyQuestResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const acceptLegacyQuestResponseStateSceneOneNpcsMax = 12;
+
+export const acceptLegacyQuestResponseStateSceneOneFeaturesMax = 24;
+
+export const acceptLegacyQuestResponseStateSceneOneReferentsMax = 6;
+
+export const acceptLegacyQuestResponseStateWorldEnvironmentDefault = `unknown`;
+export const acceptLegacyQuestResponseStateWorldTimeOfDayDefault = `day`;
+export const acceptLegacyQuestResponseStateWorldWeatherDefault = `clear`;
+export const acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const acceptLegacyQuestResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalKnownNpcsMax = 500;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalNotableEventsMax = 200;
+
+export const acceptLegacyQuestResponseStateJournalQuestsItemTitleMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const acceptLegacyQuestResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const acceptLegacyQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptLegacyQuestResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const acceptLegacyQuestResponseStateJournalQuestsMax = 100;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterSpeedFtMin = 0;
+
+export const acceptLegacyQuestResponseStateCharacterOriginMax = 240;
+
+export const acceptLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const acceptLegacyQuestResponseStateCharacterXpMin = 0;
+
+export const acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const acceptLegacyQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const acceptLegacyQuestResponseStateDeathStateSuccessesMin = 0;
+export const acceptLegacyQuestResponseStateDeathStateSuccessesMax = 3;
+
+export const acceptLegacyQuestResponseStateDeathStateFailuresMin = 0;
+export const acceptLegacyQuestResponseStateDeathStateFailuresMax = 3;
+
+export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
+export const acceptLegacyQuestResponseStateTurnIndexMin = 0;
+
+export const acceptLegacyQuestResponseStateQuestsItemQuestIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestsItemTitleMax = 160;
+
+export const acceptLegacyQuestResponseStateQuestsItemDescriptionMax = 2000;
+
+export const acceptLegacyQuestResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptLegacyQuestResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const acceptLegacyQuestResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemTitleMax = 160;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const acceptLegacyQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const acceptLegacyQuestResponseStateKnownFactionsItemStandingMax = 5;
+
+export const acceptLegacyQuestResponseQuestQuestIdMax = 120;
+
+export const acceptLegacyQuestResponseQuestTitleMax = 160;
+
+export const acceptLegacyQuestResponseQuestDescriptionMax = 2000;
+
+export const acceptLegacyQuestResponseQuestGiverNpcIdMax = 120;
+
+export const acceptLegacyQuestResponseQuestObjectivesItemObjectiveIdMax = 120;
+
+export const acceptLegacyQuestResponseQuestObjectivesItemDescriptionMax = 1000;
+
+export const acceptLegacyQuestResponseQuestObjectivesItemProgressMin = 0;
+
+export const acceptLegacyQuestResponseQuestObjectivesItemRequiredCountMax = 1000;
+
+export const acceptLegacyQuestResponseOutcomeOneEventIdMax = 300;
+
+export const acceptLegacyQuestResponseOutcomeOneQuestIdMax = 120;
+
+export const acceptLegacyQuestResponseOutcomeOneObjectiveIdMax = 120;
+
+export const acceptLegacyQuestResponseOutcomeOneSourceEventIdMax = 300;
+
+export const acceptLegacyQuestResponseOutcomeOneTurnIndexMin = 0;
+
+
+
+export const AcceptLegacyQuestResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(acceptLegacyQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string().nullable(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(acceptLegacyQuestResponseStateCampaignTimeOneHourMin).max(acceptLegacyQuestResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(acceptLegacyQuestResponseStateCampaignTimeOneMinuteMin).max(acceptLegacyQuestResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(acceptLegacyQuestResponseStateCampaignTimeOneSecondMin).max(acceptLegacyQuestResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(acceptLegacyQuestResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
+  "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(acceptLegacyQuestResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(acceptLegacyQuestResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(acceptLegacyQuestResponseStateJourneyOneRemainingSecondsMin).optional(),
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(acceptLegacyQuestResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(acceptLegacyQuestResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(acceptLegacyQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(acceptLegacyQuestResponseStateExpeditionExhaustionMin).max(acceptLegacyQuestResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(acceptLegacyQuestResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(acceptLegacyQuestResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(acceptLegacyQuestResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(acceptLegacyQuestResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(acceptLegacyQuestResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(acceptLegacyQuestResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(acceptLegacyQuestResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(acceptLegacyQuestResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(acceptLegacyQuestResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(acceptLegacyQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(acceptLegacyQuestResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(acceptLegacyQuestResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(acceptLegacyQuestResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(acceptLegacyQuestResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(acceptLegacyQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(acceptLegacyQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(acceptLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(acceptLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(acceptLegacyQuestResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(acceptLegacyQuestResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(acceptLegacyQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(acceptLegacyQuestResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(acceptLegacyQuestResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(acceptLegacyQuestResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptLegacyQuestResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(acceptLegacyQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(acceptLegacyQuestResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(acceptLegacyQuestResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(acceptLegacyQuestResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "expertise_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(acceptLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(acceptLegacyQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
+}),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(acceptLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(acceptLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
+  "combat_id": zod.string().nullish(),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(acceptLegacyQuestResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(acceptLegacyQuestResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(acceptLegacyQuestResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(acceptLegacyQuestResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(acceptLegacyQuestResponseStateDeathStateSuccessesMin).max(acceptLegacyQuestResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(acceptLegacyQuestResponseStateDeathStateFailuresMin).max(acceptLegacyQuestResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin).max(acceptLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
+  "turn_index": zod.number().int().min(acceptLegacyQuestResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(acceptLegacyQuestResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(acceptLegacyQuestResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(acceptLegacyQuestResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptLegacyQuestResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptLegacyQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptLegacyQuestResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(acceptLegacyQuestResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(acceptLegacyQuestResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(acceptLegacyQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "adventure": zod.object({
+  "threads": zod.array(zod.object({
+  "thread_id": zod.string(),
+  "title": zod.string(),
+  "origin": zod.enum(['player', 'local_proposal', 'legacy_quest']),
+  "status": zod.enum(['discovered', 'offered', 'active', 'progressing', 'reframed', 'succeeded', 'failed', 'abandoned', 'expired']),
+  "location_id": zod.string(),
+  "npc_id": zod.string().nullable(),
+  "allegiance_id": zod.string().nullable(),
+  "deadline": zod.number().int().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string(),
+  "description": zod.string(),
+  "optional": zod.boolean(),
+  "status": zod.enum(['active', 'completed'])
+}))
+})),
+  "commitments": zod.array(zod.object({
+  "commitment_id": zod.string(),
+  "npc_id": zod.string(),
+  "quote": zod.string(),
+  "thread_id": zod.string().nullable(),
+  "kind": zod.enum(['promise', 'conditional', 'debt']),
+  "status": zod.enum(['open', 'fulfilled', 'broken'])
+})),
+  "plan": zod.union([zod.object({
+  "plan_id": zod.string(),
+  "goal": zod.string(),
+  "status": zod.enum(['awaiting_confirmation', 'paused', 'completed', 'abandoned']),
+  "cursor": zod.number().int(),
+  "location_id": zod.string(),
+  "steps": zod.array(zod.object({
+  "quote": zod.string(),
+  "precondition": zod.string(),
+  "depends_on": zod.number().int().nullable(),
+  "interruption": zod.enum(['player_confirmation'])
+}))
+}),zod.null()]),
+  "recent_events": zod.array(zod.object({
+  "event_id": zod.string(),
+  "summary": zod.string(),
+  "turn": zod.number().int()
+}))
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(acceptLegacyQuestResponseStateKnownFactionsItemStandingMin).max(acceptLegacyQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+}).describe('Public state projection produced by the API serializers.'),
+  "quest": zod.object({
+  "quest_id": zod.string().max(acceptLegacyQuestResponseQuestQuestIdMax),
+  "title": zod.string().max(acceptLegacyQuestResponseQuestTitleMax),
+  "description": zod.string().max(acceptLegacyQuestResponseQuestDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(acceptLegacyQuestResponseQuestGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(acceptLegacyQuestResponseQuestObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(acceptLegacyQuestResponseQuestObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(acceptLegacyQuestResponseQuestObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(acceptLegacyQuestResponseQuestObjectivesItemRequiredCountMax)
+}))
+}),
+  "outcome": zod.union([zod.object({
+  "event_id": zod.string().max(acceptLegacyQuestResponseOutcomeOneEventIdMax),
+  "quest_id": zod.string().max(acceptLegacyQuestResponseOutcomeOneQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(acceptLegacyQuestResponseOutcomeOneObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(acceptLegacyQuestResponseOutcomeOneSourceEventIdMax),
+  "turn_index": zod.number().int().min(acceptLegacyQuestResponseOutcomeOneTurnIndexMin)
+}),zod.null()])
+})
+
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/quests/{quest_id}/cancel.
+ * @summary Legacy quest cancel alias
+ */
+export const cancelLegacyQuestPathQuestIdMax = 120;
+
+
+
+export const CancelLegacyQuestParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "quest_id": zod.coerce.string().max(cancelLegacyQuestPathQuestIdMax)
+})
+
+export const cancelLegacyQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
+export const cancelLegacyQuestResponseStateCampaignTimeOneHourMin = 0;
+export const cancelLegacyQuestResponseStateCampaignTimeOneHourMax = 23;
+
+export const cancelLegacyQuestResponseStateCampaignTimeOneMinuteMin = 0;
+export const cancelLegacyQuestResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const cancelLegacyQuestResponseStateCampaignTimeOneSecondMin = 0;
+export const cancelLegacyQuestResponseStateCampaignTimeOneSecondMax = 59;
+
+export const cancelLegacyQuestResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+export const cancelLegacyQuestResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
+export const cancelLegacyQuestResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const cancelLegacyQuestResponseStateJourneyOneRemainingSecondsMin = 0;
+
+
+
+export const cancelLegacyQuestResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const cancelLegacyQuestResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const cancelLegacyQuestResponseStateExpeditionExhaustionMin = 0;
+export const cancelLegacyQuestResponseStateExpeditionExhaustionMax = 6;
+
+export const cancelLegacyQuestResponseStateExpeditionTrackingSecondsMin = 0;
+
+
+export const cancelLegacyQuestResponseStateSceneOneVisitRevisionMin = 0;
+
+export const cancelLegacyQuestResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const cancelLegacyQuestResponseStateSceneOneNpcsMax = 12;
+
+export const cancelLegacyQuestResponseStateSceneOneFeaturesMax = 24;
+
+export const cancelLegacyQuestResponseStateSceneOneReferentsMax = 6;
+
+export const cancelLegacyQuestResponseStateWorldEnvironmentDefault = `unknown`;
+export const cancelLegacyQuestResponseStateWorldTimeOfDayDefault = `day`;
+export const cancelLegacyQuestResponseStateWorldWeatherDefault = `clear`;
+export const cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const cancelLegacyQuestResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalKnownNpcsMax = 500;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalNotableEventsMax = 200;
+
+export const cancelLegacyQuestResponseStateJournalQuestsItemTitleMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const cancelLegacyQuestResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const cancelLegacyQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelLegacyQuestResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const cancelLegacyQuestResponseStateJournalQuestsMax = 100;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterSpeedFtMin = 0;
+
+export const cancelLegacyQuestResponseStateCharacterOriginMax = 240;
+
+export const cancelLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const cancelLegacyQuestResponseStateCharacterXpMin = 0;
+
+export const cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const cancelLegacyQuestResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const cancelLegacyQuestResponseStateDeathStateSuccessesMin = 0;
+export const cancelLegacyQuestResponseStateDeathStateSuccessesMax = 3;
+
+export const cancelLegacyQuestResponseStateDeathStateFailuresMin = 0;
+export const cancelLegacyQuestResponseStateDeathStateFailuresMax = 3;
+
+export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
+export const cancelLegacyQuestResponseStateTurnIndexMin = 0;
+
+export const cancelLegacyQuestResponseStateQuestsItemQuestIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestsItemTitleMax = 160;
+
+export const cancelLegacyQuestResponseStateQuestsItemDescriptionMax = 2000;
+
+export const cancelLegacyQuestResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelLegacyQuestResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const cancelLegacyQuestResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemTitleMax = 160;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const cancelLegacyQuestResponseStateKnownFactionsItemStandingMin = -5;
+export const cancelLegacyQuestResponseStateKnownFactionsItemStandingMax = 5;
+
+export const cancelLegacyQuestResponseQuestQuestIdMax = 120;
+
+export const cancelLegacyQuestResponseQuestTitleMax = 160;
+
+export const cancelLegacyQuestResponseQuestDescriptionMax = 2000;
+
+export const cancelLegacyQuestResponseQuestGiverNpcIdMax = 120;
+
+export const cancelLegacyQuestResponseQuestObjectivesItemObjectiveIdMax = 120;
+
+export const cancelLegacyQuestResponseQuestObjectivesItemDescriptionMax = 1000;
+
+export const cancelLegacyQuestResponseQuestObjectivesItemProgressMin = 0;
+
+export const cancelLegacyQuestResponseQuestObjectivesItemRequiredCountMax = 1000;
+
+export const cancelLegacyQuestResponseOutcomeOneEventIdMax = 300;
+
+export const cancelLegacyQuestResponseOutcomeOneQuestIdMax = 120;
+
+export const cancelLegacyQuestResponseOutcomeOneObjectiveIdMax = 120;
+
+export const cancelLegacyQuestResponseOutcomeOneSourceEventIdMax = 300;
+
+export const cancelLegacyQuestResponseOutcomeOneTurnIndexMin = 0;
+
+
+
+export const CancelLegacyQuestResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(cancelLegacyQuestResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string().nullable(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(cancelLegacyQuestResponseStateCampaignTimeOneHourMin).max(cancelLegacyQuestResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(cancelLegacyQuestResponseStateCampaignTimeOneMinuteMin).max(cancelLegacyQuestResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(cancelLegacyQuestResponseStateCampaignTimeOneSecondMin).max(cancelLegacyQuestResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(cancelLegacyQuestResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
+  "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(cancelLegacyQuestResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(cancelLegacyQuestResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(cancelLegacyQuestResponseStateJourneyOneRemainingSecondsMin).optional(),
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(cancelLegacyQuestResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(cancelLegacyQuestResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(cancelLegacyQuestResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(cancelLegacyQuestResponseStateExpeditionExhaustionMin).max(cancelLegacyQuestResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(cancelLegacyQuestResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(cancelLegacyQuestResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(cancelLegacyQuestResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(cancelLegacyQuestResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(cancelLegacyQuestResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(cancelLegacyQuestResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(cancelLegacyQuestResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(cancelLegacyQuestResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(cancelLegacyQuestResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(cancelLegacyQuestResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(cancelLegacyQuestResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(cancelLegacyQuestResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(cancelLegacyQuestResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(cancelLegacyQuestResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(cancelLegacyQuestResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(cancelLegacyQuestResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(cancelLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(cancelLegacyQuestResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(cancelLegacyQuestResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(cancelLegacyQuestResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(cancelLegacyQuestResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(cancelLegacyQuestResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(cancelLegacyQuestResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(cancelLegacyQuestResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelLegacyQuestResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(cancelLegacyQuestResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(cancelLegacyQuestResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(cancelLegacyQuestResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(cancelLegacyQuestResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "expertise_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(cancelLegacyQuestResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(cancelLegacyQuestResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
+}),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(cancelLegacyQuestResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMin).max(cancelLegacyQuestResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
+  "combat_id": zod.string().nullish(),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(cancelLegacyQuestResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(cancelLegacyQuestResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(cancelLegacyQuestResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(cancelLegacyQuestResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(cancelLegacyQuestResponseStateDeathStateSuccessesMin).max(cancelLegacyQuestResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(cancelLegacyQuestResponseStateDeathStateFailuresMin).max(cancelLegacyQuestResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMin).max(cancelLegacyQuestResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
+  "turn_index": zod.number().int().min(cancelLegacyQuestResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(cancelLegacyQuestResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(cancelLegacyQuestResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(cancelLegacyQuestResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelLegacyQuestResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelLegacyQuestResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelLegacyQuestResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(cancelLegacyQuestResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(cancelLegacyQuestResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(cancelLegacyQuestResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "adventure": zod.object({
+  "threads": zod.array(zod.object({
+  "thread_id": zod.string(),
+  "title": zod.string(),
+  "origin": zod.enum(['player', 'local_proposal', 'legacy_quest']),
+  "status": zod.enum(['discovered', 'offered', 'active', 'progressing', 'reframed', 'succeeded', 'failed', 'abandoned', 'expired']),
+  "location_id": zod.string(),
+  "npc_id": zod.string().nullable(),
+  "allegiance_id": zod.string().nullable(),
+  "deadline": zod.number().int().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string(),
+  "description": zod.string(),
+  "optional": zod.boolean(),
+  "status": zod.enum(['active', 'completed'])
+}))
+})),
+  "commitments": zod.array(zod.object({
+  "commitment_id": zod.string(),
+  "npc_id": zod.string(),
+  "quote": zod.string(),
+  "thread_id": zod.string().nullable(),
+  "kind": zod.enum(['promise', 'conditional', 'debt']),
+  "status": zod.enum(['open', 'fulfilled', 'broken'])
+})),
+  "plan": zod.union([zod.object({
+  "plan_id": zod.string(),
+  "goal": zod.string(),
+  "status": zod.enum(['awaiting_confirmation', 'paused', 'completed', 'abandoned']),
+  "cursor": zod.number().int(),
+  "location_id": zod.string(),
+  "steps": zod.array(zod.object({
+  "quote": zod.string(),
+  "precondition": zod.string(),
+  "depends_on": zod.number().int().nullable(),
+  "interruption": zod.enum(['player_confirmation'])
+}))
+}),zod.null()]),
+  "recent_events": zod.array(zod.object({
+  "event_id": zod.string(),
+  "summary": zod.string(),
+  "turn": zod.number().int()
+}))
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(cancelLegacyQuestResponseStateKnownFactionsItemStandingMin).max(cancelLegacyQuestResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+}).describe('Public state projection produced by the API serializers.'),
+  "quest": zod.object({
+  "quest_id": zod.string().max(cancelLegacyQuestResponseQuestQuestIdMax),
+  "title": zod.string().max(cancelLegacyQuestResponseQuestTitleMax),
+  "description": zod.string().max(cancelLegacyQuestResponseQuestDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(cancelLegacyQuestResponseQuestGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(cancelLegacyQuestResponseQuestObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(cancelLegacyQuestResponseQuestObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(cancelLegacyQuestResponseQuestObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(cancelLegacyQuestResponseQuestObjectivesItemRequiredCountMax)
+}))
+}),
+  "outcome": zod.union([zod.object({
+  "event_id": zod.string().max(cancelLegacyQuestResponseOutcomeOneEventIdMax),
+  "quest_id": zod.string().max(cancelLegacyQuestResponseOutcomeOneQuestIdMax),
+  "transition": zod.enum(['accepted', 'objective_progress', 'objective_completed', 'completed', 'cancelled']),
+  "objective_id": zod.string().max(cancelLegacyQuestResponseOutcomeOneObjectiveIdMax).nullable(),
+  "source_event_id": zod.string().max(cancelLegacyQuestResponseOutcomeOneSourceEventIdMax),
+  "turn_index": zod.number().int().min(cancelLegacyQuestResponseOutcomeOneTurnIndexMin)
+}),zod.null()])
+})
+
+
+/**
+ * Compatibility alias for /game/sessions/{session_id}/ambient-events/{event_instance_id}/actions.
+ * @summary Legacy ambient event action alias
+ */
+export const resolveAmbientEventActionCompatPathEventInstanceIdMax = 96;
+
+
+
+export const ResolveAmbientEventActionCompatParams = zod.object({
+  "session_id": zod.coerce.string().uuid(),
+  "event_instance_id": zod.coerce.string().uuid().max(resolveAmbientEventActionCompatPathEventInstanceIdMax)
+})
+
+export const resolveAmbientEventActionCompatBodyActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+
+
+export const ResolveAmbientEventActionCompatBody = zod.object({
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionCompatBodyActionIdRegExp),
+  "action": zod.enum(['interact', 'observe'])
+})
+
+export const resolveAmbientEventActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneHourMin = 0;
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneHourMax = 23;
+
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneMinuteMin = 0;
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneMinuteMax = 59;
+
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneSecondMin = 0;
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneSecondMax = 59;
+
+export const resolveAmbientEventActionCompatResponseStateCampaignTimeOneDayIndexMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateJourneyOneCurrentStageSpentSecondsMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateJourneyOneDistanceMilesMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateJourneyOneRemainingSecondsMin = 0;
+
+
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionWalkingSecondsMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionHoursBeyondEightMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax = 20;
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsMax = 2;
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax = 20;
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionExhaustionMin = 0;
+export const resolveAmbientEventActionCompatResponseStateExpeditionExhaustionMax = 6;
+
+export const resolveAmbientEventActionCompatResponseStateExpeditionTrackingSecondsMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateSceneOneVisitRevisionMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateSceneOneActivityRevisionMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateSceneOneNpcsMax = 12;
+
+export const resolveAmbientEventActionCompatResponseStateSceneOneFeaturesMax = 24;
+
+export const resolveAmbientEventActionCompatResponseStateSceneOneReferentsMax = 6;
+
+export const resolveAmbientEventActionCompatResponseStateWorldEnvironmentDefault = `unknown`;
+export const resolveAmbientEventActionCompatResponseStateWorldTimeOfDayDefault = `day`;
+export const resolveAmbientEventActionCompatResponseStateWorldWeatherDefault = `clear`;
+export const resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemLocationIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemNameMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsMax = 500;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemNpcIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemNameMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemRoleMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemFirstMetTurnMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastSeenTurnMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalKnownNpcsMax = 500;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemTurnIndexMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemSummaryMax = 240;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemLocationIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemLocationNameMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemRelatedNpcIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemRelatedItemMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax = 96;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalNotableEventsMax = 200;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemTitleMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemGiverNpcIdMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsItemObjectivesMax = 100;
+
+export const resolveAmbientEventActionCompatResponseStateJournalQuestsMax = 100;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpeedFtMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterOriginMax = 240;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterSpellSlotsRemainingMinOne = 0;
+
+export const resolveAmbientEventActionCompatResponseStateCharacterXpMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin = 3;
+export const resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemIdMax = 128;
+
+export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemNameMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemCurrentHpMin = 0;
+
+
+export const resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemArmorClassMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateDeathStateSuccessesMin = 0;
+export const resolveAmbientEventActionCompatResponseStateDeathStateSuccessesMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateDeathStateFailuresMin = 0;
+export const resolveAmbientEventActionCompatResponseStateDeathStateFailuresMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneRollMax = 20;
+
+export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMin = 0;
+export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMin = 0;
+export const resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax = 3;
+
+export const resolveAmbientEventActionCompatResponseStateTurnIndexMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemQuestIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemTitleMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemGiverNpcIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemProgressMin = 0;
+
+export const resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemQuestIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemTitleMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemDescriptionMax = 2000;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemGiverNpcIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemObjectiveIdMax = 120;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemDescriptionMax = 1000;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemTargetMax = 160;
+
+export const resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax = 1000;
+
+export const resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMin = -5;
+export const resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMax = 5;
+
+export const resolveAmbientEventActionCompatResponseResultEventInstanceIdMax = 96;
+
+export const resolveAmbientEventActionCompatResponseResultActionIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
+export const resolveAmbientEventActionCompatResponseResultReasonCodeMax = 64;
+
+export const resolveAmbientEventActionCompatResponseResultTransitionIdMax = 160;
+
+
+
+export const ResolveAmbientEventActionCompatResponse = zod.object({
+  "session_id": zod.string().uuid(),
+  "state": zod.object({
+  "exploration": zod.union([zod.object({
+  "catalog_id": zod.string(),
+  "pace": zod.enum(['fast', 'normal', 'slow']),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']),
+  "routes": zod.array(zod.object({
+  "id": zod.string(),
+  "origin": zod.string(),
+  "destination": zod.string(),
+  "name": zod.string(),
+  "distance_miles": zod.number().gt(resolveAmbientEventActionCompatResponseStateExplorationOneRoutesItemDistanceMilesExclusiveMin),
+  "duration_seconds": zod.number().int().min(1).nullable(),
+  "blocked": zod.boolean()
+})),
+  "exits": zod.array(zod.object({
+  "id": zod.string(),
+  "destination": zod.string().nullable(),
+  "name": zod.string(),
+  "state": zod.enum(['open', 'closed', 'locked', 'blocked']),
+  "door_id": zod.string().nullable()
+})),
+  "obstacles": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "state": zod.enum(['active', 'detected', 'disarmed', 'bypassed', 'triggered', 'neutralized'])
+})),
+  "discoveries": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).describe('Observable Python-owned local adventure state. Catalog possibilities are not campaign history.'),zod.null()]).optional(),
+  "campaign_time": zod.union([zod.object({
+  "year": zod.number().int(),
+  "month": zod.string(),
+  "day": zod.number().int(),
+  "hour": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCampaignTimeOneHourMin).max(resolveAmbientEventActionCompatResponseStateCampaignTimeOneHourMax),
+  "minute": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCampaignTimeOneMinuteMin).max(resolveAmbientEventActionCompatResponseStateCampaignTimeOneMinuteMax),
+  "second": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCampaignTimeOneSecondMin).max(resolveAmbientEventActionCompatResponseStateCampaignTimeOneSecondMax),
+  "day_index": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCampaignTimeOneDayIndexMin),
+  "calendar": zod.enum(['Harptos']),
+  "local_convention": zod.string(),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']),
+  "display": zod.string(),
+  "detail": zod.string()
+}),zod.null()]),
+  "known_scheduled_events": zod.array(zod.object({
+  "summary": zod.string(),
+  "window_start": zod.number().int(),
+  "window_end": zod.number().int(),
+  "status": zod.enum(['PENDING', 'OCCURRED', 'EXPIRED'])
+})),
+  "pending_event_decisions": zod.array(zod.object({
+  "summary": zod.string(),
+  "forced": zod.boolean(),
+  "in_combat": zod.boolean(),
+  "can_fight": zod.boolean()
+})),
+  "journey": zod.union([zod.object({
+  "current_stage": zod.object({
+  "start": zod.string().nullable(),
+  "end": zod.string().nullable(),
+  "terrain": zod.string(),
+  "weather": zod.string(),
+  "distance_miles": zod.number().nullable(),
+  "duration_seconds": zod.number().int().min(1),
+  "spent_seconds": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJourneyOneCurrentStageSpentSecondsMin),
+  "challenge": zod.string().nullable()
+}).optional(),
+  "origin": zod.string().optional(),
+  "pace": zod.enum(['fast', 'normal', 'slow']).optional(),
+  "distance_miles": zod.number().min(resolveAmbientEventActionCompatResponseStateJourneyOneDistanceMilesMin).optional(),
+  "duration_seconds": zod.number().int().min(1).optional(),
+  "remaining_seconds": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJourneyOneRemainingSecondsMin).optional(),
+  "destination": zod.string(),
+  "status": zod.enum(['TRAVELLING', 'INTERRUPTED', 'STOPPED', 'ARRIVED']),
+  "stage": zod.number().int().min(1),
+  "stage_count": zod.number().int().min(1),
+  "encounter": zod.string().nullable()
+}),zod.null()]),
+  "expedition": zod.object({
+  "walking_seconds": zod.number().int().min(resolveAmbientEventActionCompatResponseStateExpeditionWalkingSecondsMin),
+  "hours_beyond_eight": zod.number().int().min(resolveAmbientEventActionCompatResponseStateExpeditionHoursBeyondEightMin),
+  "extended_travel_saves": zod.array(zod.object({
+  "dc": zod.number().int().min(1),
+  "raw_rolls": zod.array(zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsItemMax)).min(1).max(resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemRawRollsMax),
+  "selected_roll": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateExpeditionExtendedTravelSavesItemSelectedRollMax),
+  "total": zod.number().int(),
+  "total_modifier": zod.number().int(),
+  "outcome": zod.enum(['SUCCESS', 'FAILURE']),
+  "modifier_breakdown": zod.object({
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int(),
+  "circumstantial_modifier": zod.number().int()
+})
+})).optional().describe('Python-resolved extended-travel CON saves for the current calendar day; never client rolls.'),
+  "exhaustion": zod.number().int().min(resolveAmbientEventActionCompatResponseStateExpeditionExhaustionMin).max(resolveAmbientEventActionCompatResponseStateExpeditionExhaustionMax),
+  "supplies_enabled": zod.boolean(),
+  "tracking_status": zod.string().nullable(),
+  "tracking_seconds": zod.number().int().min(resolveAmbientEventActionCompatResponseStateExpeditionTrackingSecondsMin),
+  "tracking_required_seconds": zod.number().int().min(1),
+  "actions": zod.array(zod.object({
+  "label": zod.string(),
+  "message": zod.string()
+}))
+}).optional(),
+  "location": zod.string(),
+  "scene": zod.union([zod.object({
+  "id": zod.string(),
+  "location_id": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "visit_revision": zod.number().int().min(resolveAmbientEventActionCompatResponseStateSceneOneVisitRevisionMin),
+  "activity_revision": zod.number().int().min(resolveAmbientEventActionCompatResponseStateSceneOneActivityRevisionMin),
+  "last_activity": zod.union([zod.string(),zod.null()]),
+  "ambient_event": zod.union([zod.object({
+  "event_id": zod.string(),
+  "instance_id": zod.string().uuid(),
+  "variation_id": zod.string(),
+  "event_type": zod.enum(['GREEN', 'BLUE']),
+  "repeat_group": zod.string(),
+  "count": zod.number().int().min(1)
+}),zod.null()]),
+  "opening": zod.union([zod.string(),zod.null()]).optional(),
+  "player_position": zod.object({
+  "location_id": zod.string(),
+  "kind": zod.string(),
+  "target_id": zod.union([zod.string(),zod.null()])
+}),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "appearance": zod.string()
+})).max(resolveAmbientEventActionCompatResponseStateSceneOneNpcsMax),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})).max(resolveAmbientEventActionCompatResponseStateSceneOneFeaturesMax),
+  "referents": zod.array(zod.object({
+  "id": zod.string(),
+  "event_instance_id": zod.union([zod.string().uuid(),zod.null()]),
+  "kind": zod.union([zod.string(),zod.null()]),
+  "description": zod.string(),
+  "source_turn": zod.union([zod.number().int(),zod.null()]),
+  "lifecycle": zod.enum(['presented', 'promoted']),
+  "promoted_npc_id": zod.union([zod.string(),zod.null()])
+})).max(resolveAmbientEventActionCompatResponseStateSceneOneReferentsMax)
+}),zod.null()]),
+  "conversation": zod.object({
+  "active": zod.boolean(),
+  "interlocutor": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string().nullish()
+}),zod.null()])
+}),
+  "world": zod.object({
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']).default(resolveAmbientEventActionCompatResponseStateWorldEnvironmentDefault),
+  "time_of_day": zod.enum(['dawn', 'day', 'evening', 'night']).default(resolveAmbientEventActionCompatResponseStateWorldTimeOfDayDefault),
+  "weather": zod.enum(['clear', 'rain', 'fog', 'snow', 'storm', 'unknown']).default(resolveAmbientEventActionCompatResponseStateWorldWeatherDefault)
+}).describe('Python-owned atmosphere metadata; never supplied by the browser. Environment falls back to unknown when location data cannot be matched; time_of_day and weather default to day and clear when metadata is absent.'),
+  "journal": zod.object({
+  "schema_version": zod.literal(1),
+  "discovered_locations": zod.array(zod.object({
+  "location_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemLocationIdMax),
+  "name": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemNameMax),
+  "environment": zod.enum(['tavern', 'forest', 'city', 'village', 'road', 'wilderness', 'dungeon', 'cave', 'castle', 'temple', 'ruins', 'unknown']),
+  "first_discovered_at": zod.coerce.date(),
+  "last_visited_at": zod.coerce.date(),
+  "first_discovered_turn": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemFirstDiscoveredTurnMin),
+  "last_visited_turn": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsItemLastVisitedTurnMin),
+  "visit_count": zod.number().int().min(1)
+})).max(resolveAmbientEventActionCompatResponseStateJournalDiscoveredLocationsMax),
+  "known_npcs": zod.array(zod.object({
+  "npc_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemNpcIdMax),
+  "name": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemNameMax),
+  "role": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemRoleMax).nullable(),
+  "first_met_at": zod.coerce.date(),
+  "last_seen_at": zod.coerce.date(),
+  "first_met_turn": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemFirstMetTurnMin),
+  "last_seen_turn": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastSeenTurnMin),
+  "last_known_location_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationIdMax).nullable(),
+  "last_known_location": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsItemLastKnownLocationMax).nullable()
+})).max(resolveAmbientEventActionCompatResponseStateJournalKnownNpcsMax),
+  "notable_events": zod.array(zod.object({
+  "event_id": zod.string().uuid(),
+  "event_type": zod.enum(['location_discovered', 'npc_met', 'combat_started', 'combat_ended', 'enemy_defeated', 'player_unconscious', 'item_gained', 'item_lost', 'ambient_event_outcome', 'adventure_event']),
+  "created_at": zod.coerce.date(),
+  "turn_index": zod.number().int().min(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemTurnIndexMin),
+  "summary": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemSummaryMax),
+  "location_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemLocationIdMax).nullable(),
+  "location_name": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemLocationNameMax).nullable(),
+  "related_npc_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemRelatedNpcIdMax).nullable(),
+  "related_item": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemRelatedItemMax).nullable(),
+  "event_result": zod.union([zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneActionIdRegExp),
+  "action": zod.enum(['interact']),
+  "status": zod.enum(['APPLIED']),
+  "reason_code": zod.enum(['referent_promoted']),
+  "transition_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsItemEventResultOneTransitionIdMax)
+}),zod.null()]).optional()
+})).max(resolveAmbientEventActionCompatResponseStateJournalNotableEventsMax),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().uuid(),
+  "title": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalQuestsItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalQuestsItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().uuid(),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateJournalQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'failed', 'cancelled'])
+})).max(resolveAmbientEventActionCompatResponseStateJournalQuestsItemObjectivesMax),
+  "created_at": zod.coerce.date(),
+  "updated_at": zod.coerce.date(),
+  "completed_at": zod.coerce.date().nullable()
+})).max(resolveAmbientEventActionCompatResponseStateJournalQuestsMax)
+}).describe('Python-owned discoveries, encounters, deterministic events, and canonical quest ledger.'),
+  "locations": zod.record(zod.string(), zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "description": zod.string(),
+  "parent_location_id": zod.union([zod.string(),zod.null()]),
+  "exit_location_id": zod.union([zod.string(),zod.null()])
+})),
+  "character": zod.object({
+  "name": zod.string(),
+  "race": zod.string(),
+  "species": zod.string().optional(),
+  "giant_ancestry": zod.union([zod.literal('cloud'),zod.literal('fire'),zod.literal('frost'),zod.literal('hill'),zod.literal('stone'),zod.literal('storm'),zod.literal(null)]).nullish(),
+  "species_trait_state": zod.union([zod.object({
+  "healing_hands_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneHealingHandsUsesRemainingMin),
+  "celestial_revelation_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationUsesRemainingMin),
+  "active_celestial_form": zod.union([zod.literal('heavenly_wings'),zod.literal('inner_radiance'),zod.literal('necrotic_shroud'),zod.literal(null)]).nullable(),
+  "celestial_revelation_turns_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialRevelationTurnsRemainingMin),
+  "celestial_damage_used_turn": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneCelestialDamageUsedTurnMin).nullable(),
+  "giant_ancestry_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneGiantAncestryUsesRemainingMin),
+  "giant_ancestry_armed": zod.boolean(),
+  "large_form_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormUsesRemainingMin),
+  "large_form_turns_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneLargeFormTurnsRemainingMin),
+  "adrenaline_rush_uses_remaining": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneAdrenalineRushUsesRemainingMin),
+  "relentless_endurance_available": zod.boolean(),
+  "temporary_hit_points": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneTemporaryHitPointsMin),
+  "bonus_action_used_round": zod.number().int().min(1).nullable(),
+  "movement_budget_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOneMovementBudgetFtMin),
+  "movement_effect": zod.union([zod.record(zod.string(), zod.unknown()),zod.null()]),
+  "player_turn_counter": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeciesTraitStateOnePlayerTurnCounterMin)
+}),zod.null()]).optional(),
+  "speed_ft": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpeedFtMin).optional(),
+  "class": zod.string(),
+  "background": zod.string().nullish(),
+  "alignment": zod.string().nullish(),
+  "origin": zod.string().max(resolveAmbientEventActionCompatResponseStateCharacterOriginMax).nullish(),
+  "appearance": zod.string().nullish(),
+  "personality": zod.string().nullish(),
+  "backstory": zod.string().nullish(),
+  "strength": zod.number().int(),
+  "dexterity": zod.number().int(),
+  "constitution": zod.number().int(),
+  "intelligence": zod.number().int(),
+  "wisdom": zod.number().int(),
+  "charisma": zod.number().int(),
+  "proficient_skills": zod.array(zod.string()),
+  "expertise_skills": zod.array(zod.string()),
+  "origin_feat": zod.string().nullish(),
+  "species_bonus_feat": zod.string().nullish(),
+  "species_bonus_skills": zod.array(zod.string()).optional(),
+  "origin_feats": zod.array(zod.string()).optional(),
+  "level": zod.number().int(),
+  "proficiency_bonus": zod.number().int(),
+  "max_hp": zod.number().int(),
+  "current_hp": zod.number().int(),
+  "armor_class": zod.number().int(),
+  "cantrips": zod.array(zod.string()),
+  "spells": zod.array(zod.string()),
+  "spell_slots_remaining": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterSpellSlotsRemainingMinOne)),
+  "xp": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCharacterXpMin).describe('Server-owned experience total. Experience past level 4 is kept and does not raise the level.')
+}),
+  "spellcasting": zod.union([zod.object({
+  "cantrips": zod.array(zod.string()),
+  "prepared": zod.array(zod.string()),
+  "slots": zod.record(zod.string(), zod.number().int().min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotsMinOne)),
+  "slot_turn": zod.union([zod.array(zod.union([zod.string(),zod.number().int().min(1)])).min(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMin).max(resolveAmbientEventActionCompatResponseStateSpellcastingOneSlotTurnOneMax),zod.null()]).describe('Existing marker [combat_id, round, turn_index], or null; not evidence that a cast is currently legal.')
+}).describe('Authoritative lists, remaining slots and last slot-use marker. No values are inferred from character creation or class.'),zod.null()]).optional().describe('Optional read-only projection of existing Python spell state; absence/null grants no spell access. This is not a cast-legality decision.'),
+  "inventory": zod.array(zod.string()),
+  "npcs": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "location": zod.string(),
+  "appearance": zod.string().nullable(),
+  "relationship": zod.string().nullable(),
+  "tags": zod.array(zod.string()).optional(),
+  "shop_id": zod.string().nullish(),
+  "max_hp": zod.number().int().nullable(),
+  "current_hp": zod.number().int().nullable(),
+  "armor_class": zod.number().int().nullable(),
+  "combat_status": zod.string().nullable()
+})),
+  "shops": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "location": zod.string(),
+  "tags": zod.array(zod.string()),
+  "shopkeeper_id": zod.string()
+})),
+  "features": zod.array(zod.object({
+  "id": zod.string(),
+  "location": zod.string(),
+  "name": zod.string(),
+  "description": zod.string()
+})),
+  "doors": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "location": zod.string(),
+  "description": zod.string(),
+  "open": zod.boolean(),
+  "locked": zod.boolean(),
+  "broken": zod.boolean()
+})),
+  "combat": zod.object({
+  "action_economy": zod.record(zod.string(), zod.unknown()).nullish(),
+  "combat_id": zod.string().nullish(),
+  "active": zod.boolean(),
+  "status": zod.enum(['active', 'ended', 'death_resolution']),
+  "round": zod.number().int(),
+  "initiative_order": zod.array(zod.string()),
+  "current_turn_index": zod.number().int(),
+  "current_actor_id": zod.string().nullable(),
+  "turn_owner": zod.string().nullable(),
+  "participants": zod.array(zod.string()),
+  "participant_records": zod.array(zod.object({
+  "id": zod.string().min(1).max(resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemIdMax),
+  "kind": zod.enum(['player', 'npc']),
+  "name": zod.string().min(1).max(resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemNameMax),
+  "current_hp": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemCurrentHpMin),
+  "max_hp": zod.number().int().min(1),
+  "armor_class": zod.number().int().min(resolveAmbientEventActionCompatResponseStateCombatParticipantRecordsItemArmorClassMin),
+  "status": zod.string(),
+  "primary_action_available": zod.boolean(),
+  "is_current_actor": zod.boolean()
+})),
+  "target_id": zod.string().nullable(),
+  "end_reason": zod.string().nullable()
+}).describe('Allowlisted public projection of Python-owned combat scheduler state.'),
+  "death_state": zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "status": zod.enum(['active', 'unconscious', 'stable', 'dead']),
+  "successes": zod.number().int().min(resolveAmbientEventActionCompatResponseStateDeathStateSuccessesMin).max(resolveAmbientEventActionCompatResponseStateDeathStateSuccessesMax),
+  "failures": zod.number().int().min(resolveAmbientEventActionCompatResponseStateDeathStateFailuresMin).max(resolveAmbientEventActionCompatResponseStateDeathStateFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "terminal": zod.boolean(),
+  "prone": zod.boolean(),
+  "last_death_save": zod.union([zod.object({
+  "roll": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneRollMax),
+  "outcome": zod.enum(['success', 'failure', 'natural_1', 'stable', 'revived', 'dead', 'rolled_back']),
+  "successes": zod.number().int().min(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMin).max(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneSuccessesMax),
+  "failures": zod.number().int().min(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMin).max(resolveAmbientEventActionCompatResponseStateDeathStateLastDeathSaveOneFailuresMax),
+  "stable": zod.boolean(),
+  "dead": zod.boolean(),
+  "prone": zod.boolean(),
+  "action_id": zod.string().uuid().nullish(),
+  "resolution_id": zod.string().nullish(),
+  "death_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),zod.null()]).optional(),
+  "last_resolution": zod.union([zod.object({
+  "mode": zod.enum(['NORMAL', 'PERMADEATH', 'IRONMAN']),
+  "outcome": zod.enum(['rolled_back', 'dead']),
+  "cause": zod.enum(['massive_damage', 'failed_death_saves']),
+  "rolled_back": zod.boolean(),
+  "terminal": zod.boolean()
+}),zod.null()]).optional()
+}),
+  "player_combat_status": zod.enum(['active', 'unconscious', 'dead']),
+  "turn_index": zod.number().int().min(resolveAmbientEventActionCompatResponseStateTurnIndexMin),
+  "quests": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemQuestIdMax),
+  "title": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemDescriptionMax),
+  "status": zod.enum(['accepted', 'completed', 'cancelled']),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemDescriptionMax),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "progress": zod.number().int().min(resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemProgressMin),
+  "required_count": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateQuestsItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "quest_offers": zod.array(zod.object({
+  "quest_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemQuestIdMax),
+  "title": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemTitleMax),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemDescriptionMax),
+  "giver_npc_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemGiverNpcIdMax).nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemObjectiveIdMax),
+  "description": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemDescriptionMax),
+  "kind": zod.enum(['visit_location', 'defeat_entity', 'acquire_item']),
+  "target": zod.string().max(resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemTargetMax),
+  "required_count": zod.number().int().min(1).max(resolveAmbientEventActionCompatResponseStateQuestOffersItemObjectivesItemRequiredCountMax)
+}))
+})),
+  "adventure": zod.object({
+  "threads": zod.array(zod.object({
+  "thread_id": zod.string(),
+  "title": zod.string(),
+  "origin": zod.enum(['player', 'local_proposal', 'legacy_quest']),
+  "status": zod.enum(['discovered', 'offered', 'active', 'progressing', 'reframed', 'succeeded', 'failed', 'abandoned', 'expired']),
+  "location_id": zod.string(),
+  "npc_id": zod.string().nullable(),
+  "allegiance_id": zod.string().nullable(),
+  "deadline": zod.number().int().nullable(),
+  "objectives": zod.array(zod.object({
+  "objective_id": zod.string(),
+  "description": zod.string(),
+  "optional": zod.boolean(),
+  "status": zod.enum(['active', 'completed'])
+}))
+})),
+  "commitments": zod.array(zod.object({
+  "commitment_id": zod.string(),
+  "npc_id": zod.string(),
+  "quote": zod.string(),
+  "thread_id": zod.string().nullable(),
+  "kind": zod.enum(['promise', 'conditional', 'debt']),
+  "status": zod.enum(['open', 'fulfilled', 'broken'])
+})),
+  "plan": zod.union([zod.object({
+  "plan_id": zod.string(),
+  "goal": zod.string(),
+  "status": zod.enum(['awaiting_confirmation', 'paused', 'completed', 'abandoned']),
+  "cursor": zod.number().int(),
+  "location_id": zod.string(),
+  "steps": zod.array(zod.object({
+  "quote": zod.string(),
+  "precondition": zod.string(),
+  "depends_on": zod.number().int().nullable(),
+  "interruption": zod.enum(['player_confirmation'])
+}))
+}),zod.null()]),
+  "recent_events": zod.array(zod.object({
+  "event_id": zod.string(),
+  "summary": zod.string(),
+  "turn": zod.number().int()
+}))
+}).optional(),
+  "campaign_adventures": zod.object({
+  "rumors": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "active": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "completed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "failed": zod.array(zod.object({
+  "title": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "label": zod.string().optional(),
+  "text": zod.string().optional(),
+  "objectives": zod.array(zod.string()).optional()
+})),
+  "timeline": zod.array(zod.string()),
+  "affordances": zod.array(zod.string())
+}),
+  "known_lore": zod.array(zod.object({
+  "fact_id": zod.string(),
+  "title": zod.string(),
+  "text": zod.string()
+})),
+  "known_factions": zod.array(zod.object({
+  "faction_id": zod.string(),
+  "title": zod.string(),
+  "standing": zod.number().int().min(resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMin).max(resolveAmbientEventActionCompatResponseStateKnownFactionsItemStandingMax),
+  "local_presence": zod.boolean()
+})),
+  "scene_incidents": zod.array(zod.object({
+  "ref": zod.string(),
+  "summary": zod.string(),
+  "facts": zod.array(zod.string()),
+  "people": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "place": zod.union([zod.string(),zod.null()]),
+  "affordances": zod.array(zod.string())
+})).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
+}).describe('Public state projection produced by the API serializers.'),
+  "result": zod.object({
+  "event_instance_id": zod.string().uuid().max(resolveAmbientEventActionCompatResponseResultEventInstanceIdMax),
+  "action_id": zod.string().uuid().regex(resolveAmbientEventActionCompatResponseResultActionIdRegExp),
+  "status": zod.enum(['APPLIED', 'REJECTED', 'NO_EFFECT', 'ALREADY_APPLIED']),
+  "reason_code": zod.string().max(resolveAmbientEventActionCompatResponseResultReasonCodeMax).nullable(),
+  "transition_id": zod.string().max(resolveAmbientEventActionCompatResponseResultTransitionIdMax).nullable(),
+  "canonical_event_id": zod.string().uuid().nullable()
+})
+})
+
+
+/**
+ * @summary Clear the HttpOnly session cookie
+ */
+export const LogoutGameResponse = zod.void()
+
+
+/**
+ * @summary Legacy session cookie logout alias
+ */
+export const LogoutLegacyResponse = zod.void()
+
+
+/**
  * @summary List campaign starts from installed verified setting packs
  */
 export const GetCampaignStartOptionsResponse = zod.object({

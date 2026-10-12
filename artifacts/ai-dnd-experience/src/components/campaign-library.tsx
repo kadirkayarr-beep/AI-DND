@@ -17,6 +17,12 @@ import { getGetCampaignsQueryKey, useDeleteCampaign } from '@workspace/api-clien
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+function statusOf(error: unknown) {
+  if (!error || typeof error !== 'object') return undefined;
+  const candidate = error as { status?: number };
+  return candidate.status;
+}
+
 function formatPlayedAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Zaman bilinmiyor';
@@ -113,8 +119,8 @@ export function CampaignLibrary({
           ) : error ? (
             <div className="dnd-card dnd-texture p-7" data-testid="campaign-list-error">
               <div className="relative z-10">
-                <div className="flex items-center gap-2 text-[#dca49b]"><AlertTriangle size={16} /> Kayıt defteri açılamadı.</div>
-                <p className="dnd-serif mt-3 text-lg text-[#a99a80]">Dungeon Master’a şu anda ulaşılamıyor.</p>
+                <div className="flex items-center gap-2 text-[#dca49b]"><AlertTriangle size={16} /> {statusOf(error) === 401 ? 'Kimlik doğrulaması gerekli.' : 'Kayıt defteri açılamadı.'}</div>
+                <p className="dnd-serif mt-3 text-lg text-[#a99a80]">{statusOf(error) === 401 ? 'Oturum doğrulanmadan maceralar açılmaz.' : 'Dungeon Master’a şu anda ulaşılamıyor.'}</p>
                 <button className="dnd-button secondary mt-5" type="button" onClick={onRetry} data-testid="button-retry-campaigns">
                   <RefreshCw size={14} /> Yeniden dene
                 </button>

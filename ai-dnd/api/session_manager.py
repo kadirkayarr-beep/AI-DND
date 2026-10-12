@@ -15,6 +15,7 @@ import game
 import incidents.hooks as incident_hooks
 from incidents.attempts import SqliteAttemptStore
 
+from api.auth import AuthenticationError, Principal, current_principal
 from api.campaign_journal import (
     create_initial_campaign_journal,
     empty_campaign_journal,
@@ -67,6 +68,8 @@ class ManagedSession:
         default_factory=CampaignLoreState.legacy_unbound
     )
     turn_action_receipts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    owner_issuer: str = ""
+    owner_subject: str = ""
     revoked: bool = False
     usable: bool = True
 
@@ -97,12 +100,45 @@ class SessionManager:
             session_id = str(uuid.uuid4())
         return session_id
 
-    def create(self) -> tuple[str, ManagedSession]:
+    def _resolve_principal(self, principal: Principal | None = None) -> Principal:
+        """Explicit principal, then this request, then a test store binding."""
+        resolved = principal if type(principal) is Principal else None
+        if resolved is None:
+            active = current_principal()
+            if type(active) is Principal:
+                resolved = active
+        store = self._campaign_store
+        if resolved is None and store is not None and type(getattr(store, "bound_principal", None)) is Principal:
+            resolved = store.bound_principal
+        if type(resolved) is not Principal:
+            raise AuthenticationError("No server authenticator is configured.")
+        return resolved
+
+    @staticmethod
+    def _owned_by(record: ManagedSession, principal: Principal) -> bool:
+        return (
+            record.owner_issuer == principal.issuer
+            and record.owner_subject == principal.subject
+        )
+
+    @staticmethod
+    def _sealed_principal(record: ManagedSession) -> Principal:
+        try:
+            return Principal(record.owner_issuer, record.owner_subject)
+        except (AuthenticationError, ValueError):
+            raise AuthenticationError("No server authenticator is configured.") from None
+
+    def create(self, principal: Principal | None = None) -> tuple[str, ManagedSession]:
+        owner = self._resolve_principal(principal)
         session = self._session_factory()
         set_session_world_metadata(session)
         with self._registry_lock:
             session_id = self._new_session_id_locked()
-            record = ManagedSession(game_session=session)
+            record = ManagedSession(
+                game_session=session,
+                owner_issuer=owner.issuer,
+                owner_subject=owner.subject,
+            )
             self._sessions[session_id] = record
         return session_id, record
 
@@ -112,9 +148,11 @@ class SessionManager:
         character: dict[str, Any] | None = None,
         campaign_start: dict[str, str] | None = None,
         death_mode: str = "NORMAL",
+        principal: Principal | None = None,
     ) -> tuple[str, str, ManagedSession, dict[str, Any]]:
         if death_mode not in game.DEATH_MODES:
             raise ValueError("Campaign death mode is invalid.")
+        owner = self._resolve_principal(principal)
         store = self._require_campaign_store()
         session = self._session_factory()
         if character is not None:
@@ -176,6 +214,7 @@ class SessionManager:
             journal=journal,
             narrative_memory=narrative_memory,
             lore_authority=lore_authority,
+            principal=owner,
         )
         with self._registry_lock:
             session_id = self._new_session_id_locked()
@@ -185,6 +224,8 @@ class SessionManager:
                 journal=journal,
                 narrative_memory=narrative_memory,
                 lore_authority=lore_authority,
+                owner_issuer=owner.issuer,
+                owner_subject=owner.subject,
             )
             self._sessions[session_id] = record
             self._campaign_sessions[campaign_id] = session_id
@@ -299,33 +340,46 @@ class SessionManager:
         locations[entity.entity_id] = canonical_location
         world_state["location"] = entity.entity_id
 
-    def get(self, session_id: str) -> ManagedSession:
+    def get(self, session_id: str, principal: Principal | None = None) -> ManagedSession:
+        owner = self._resolve_principal(principal)
         with self._registry_lock:
             record = self._sessions.get(session_id)
-        if record is None or record.revoked:
+        if record is None or record.revoked or not self._owned_by(record, owner):
             raise UnknownSessionError(session_id)
-        if record.campaign_id is not None and not self._require_campaign_store().campaign_exists(record.campaign_id):
+        if record.campaign_id is not None and not self._require_campaign_store().campaign_exists(
+            record.campaign_id, principal=owner
+        ):
             record.revoked = True
+            with self._registry_lock:
+                self._sessions.pop(session_id, None)
+                if self._campaign_sessions.get(record.campaign_id) == session_id:
+                    self._campaign_sessions.pop(record.campaign_id, None)
             raise UnknownSessionError(session_id)
         return record
 
-    def delete_campaign(self, campaign_id: str) -> dict[str, Any]:
+    def delete_campaign(
+        self,
+        campaign_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any]:
+        owner = self._resolve_principal(principal)
         store = self._require_campaign_store()
         with self._registry_lock:
             records = [(sid, r) for sid, r in self._sessions.items()
-                       if r.campaign_id == campaign_id]
+                       if r.campaign_id == campaign_id and self._owned_by(r, owner)]
         # A campaign has one active session in this manager. Never hold registry
         # lock while waiting for a turn; turn paths may themselves consult it.
         from contextlib import ExitStack
         with ExitStack() as locks:
             for _, record in sorted(records):
                 locks.enter_context(record.turn_lock)
-            deleted = store.delete_campaign(campaign_id)
-            with self._registry_lock:
-                for sid, record in records:
-                    record.revoked = True
-                    self._sessions.pop(sid, None)
-                self._campaign_sessions.pop(campaign_id, None)
+            deleted = store.delete_campaign(campaign_id, principal=owner)
+            if deleted:
+                with self._registry_lock:
+                    for sid, record in records:
+                        record.revoked = True
+                        self._sessions.pop(sid, None)
+                    self._campaign_sessions.pop(campaign_id, None)
         return {"campaign_id": campaign_id, "deleted": deleted}
 
     def list_campaigns(self) -> list[dict[str, Any]]:
@@ -349,6 +403,7 @@ class SessionManager:
     def resume_campaign(
         self,
         campaign_id: str,
+        principal: Principal | None = None,
     ) -> tuple[
         str,
         ManagedSession,
@@ -356,13 +411,17 @@ class SessionManager:
         list[dict[str, str]],
         dict[str, Any],
     ]:
+        owner = self._resolve_principal(principal)
         store = self._require_campaign_store()
 
         with self._registry_lock:
             active_id = self._campaign_sessions.get(campaign_id)
             record = self._sessions.get(active_id) if active_id else None
+            if record is not None and (record.revoked or not self._owned_by(record, owner)):
+                record = None
+                active_id = None
         if record is None:
-            stored = store.get_campaign(campaign_id)
+            stored = store.get_campaign(campaign_id, principal=owner)
             session = self._session_factory()
             journal = restore_stored_campaign(session, stored)
             lore_authority = CampaignLoreState.from_mapping(
@@ -384,6 +443,8 @@ class SessionManager:
                             )
                         ),
                         lore_authority=lore_authority,
+                        owner_issuer=owner.issuer,
+                        owner_subject=owner.subject,
                     )
                     self._sessions[session_id] = record
                     self._campaign_sessions[campaign_id] = session_id
@@ -405,7 +466,7 @@ class SessionManager:
         )
         self._attach_death_checkpoint_hooks(record)
         with record.turn_lock:
-            stored = store.get_campaign(campaign_id)
+            stored = store.get_campaign(campaign_id, principal=owner)
             if getattr(record.game_session, "_campaign_persistence_version", None) != (
                 campaign_id, stored.metadata["revision"]
             ):
@@ -454,9 +515,10 @@ class SessionManager:
                     journal=record.journal,
                     narrative_memory=record.narrative_memory,
                     lore_authority=record.lore_authority,
+                    principal=owner,
                 )
-                stored = store.get_campaign(campaign_id)
-            metadata = store.mark_played(campaign_id)
+                stored = store.get_campaign(campaign_id, principal=owner)
+            metadata = store.mark_played(campaign_id, principal=owner)
             state = serialize_session_state(
                 record.game_session,
                 record.journal,
@@ -465,11 +527,18 @@ class SessionManager:
             record.combat_history = copy.deepcopy(stored.combat_history)
         return session_id, record, metadata, stored.history, state
 
-    def save_campaign(self, campaign_id: str) -> dict[str, Any]:
+    def save_campaign(
+        self,
+        campaign_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any]:
+        owner = self._resolve_principal(principal)
         store = self._require_campaign_store()
         with self._registry_lock:
             session_id = self._campaign_sessions.get(campaign_id)
             record = self._sessions.get(session_id) if session_id else None
+        if record is not None and not self._owned_by(record, owner):
+            raise CampaignNotFoundError("Campaign not found.")
         if record is None:
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
@@ -483,6 +552,7 @@ class SessionManager:
                 journal=record.journal,
                 narrative_memory=record.narrative_memory,
                 lore_authority=record.lore_authority,
+                principal=owner,
             )
 
     def save_campaign_locked(
@@ -502,6 +572,7 @@ class SessionManager:
             narrative_memory=record.narrative_memory,
             lore_authority=record.lore_authority,
             turn_action_receipt=turn_action_receipt,
+            principal=self._sealed_principal(record),
         )
 
     def autosave_turn(
@@ -550,6 +621,7 @@ class SessionManager:
             lore_authority=record.lore_authority,
             turn_action_receipt=turn_action_receipt,
             emergence_attempt=incident_hooks.take_pending(record.game_session),
+            principal=self._sealed_principal(record),
         )
         record.narrative_memory = candidate_memory
         self._remember_combat_entry(record, combat_history_entry)
@@ -569,6 +641,7 @@ class SessionManager:
             receipt = self._require_campaign_store().get_turn_action(
                 record.campaign_id,
                 action_id,
+                principal=self._sealed_principal(record),
             )
             if receipt is not None:
                 return receipt
@@ -612,7 +685,11 @@ class SessionManager:
         if record.revoked:
             raise CampaignNotFoundError("Campaign session has been revoked.")
         if record.campaign_id is not None:
-            self._require_campaign_store().assert_current(record.campaign_id, record.game_session)
+            self._require_campaign_store().assert_current(
+                record.campaign_id,
+                record.game_session,
+                principal=self._sealed_principal(record),
+            )
 
     @staticmethod
     def _remember_combat_entry(

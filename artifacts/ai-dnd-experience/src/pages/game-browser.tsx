@@ -62,6 +62,8 @@ import {
   useResumeCampaign,
   useSaveCampaign,
 } from '@workspace/api-client-react';
+import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
+import { accountWriteAllowed } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
 import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
@@ -100,6 +102,7 @@ function friendlyError(error: unknown, fallback: string) {
   const combatMessage = combatErrorMessage(error);
   if (combatMessage) return combatMessage;
   const code = statusCode(error);
+  if (code === 401) return 'Kimlik doğrulaması gerekli.';
   if (code === 404) return 'Bu macera bulunamadı.';
   if (code === 422) return 'Bu söz şimdilik yankı bulmadı. 1–4000 karakter arasında yeniden dene.';
   if (code === 503) return 'Dünya şu an sessiz.';
@@ -1103,7 +1106,7 @@ export default function GameBrowser() {
       retry: false,
     },
   });
-  const playTurn = usePlayGameTurn();
+  const playTurn = usePlayGameTurn({ mutation: { retry: false } });
   const inFlightSessionsRef = useRef(new Set<string>());
   const [inFlightSessions, setInFlightSessions] = useState<Set<string>>(new Set());
   const turnSending = inFlightSessions.has(sessionId);
@@ -1225,10 +1228,12 @@ export default function GameBrowser() {
     deathMode: 'NORMAL' | 'PERMADEATH' | 'IRONMAN',
   ) => {
     setNotice(null);
+    const epoch = currentAuthEpoch();
     createCampaign.mutate({
       data: { character, campaign_start: campaignStart, death_mode: deathMode },
     }, {
       onSuccess: (created) => {
+        if (!accountWriteAllowed(epoch)) return;
         setCampaignId(created.campaign_id);
         window.localStorage.setItem(LAST_CAMPAIGN_KEY, created.campaign_id);
         queryClient.setQueryData(getGetGameSessionStateQueryKey(created.session_id), created.state);
@@ -1246,13 +1251,16 @@ export default function GameBrowser() {
         playGateSound('success');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
-      onError: (error) => setNotice({
+      onError: (error) => {
+        if (!accountWriteAllowed(epoch)) return;
+        setNotice({
         tone: 'error',
         title: 'Kampanya oluşturulamadı',
         detail: statusCode(error) === 422
           ? 'İsim, ırk ya da sınıfını yeniden gözden geçir.'
           : friendlyError(error, 'Dünya şu an yanıt vermiyor.'),
-      }),
+      });
+      },
     });
   };
 
@@ -1280,8 +1288,10 @@ export default function GameBrowser() {
   const handleResume = (selectedCampaignId: string) => {
     setNotice(null);
     setResumingCampaignId(selectedCampaignId);
+    const epoch = currentAuthEpoch();
     resumeCampaign.mutate({ campaignId: selectedCampaignId }, {
       onSuccess: (resumed) => {
+        if (!accountWriteAllowed(epoch)) return;
         const opening = resumed.state.scene?.opening;
         const transcript: TranscriptEntry[] = [
           ...(typeof opening === 'string' && opening.trim()
@@ -1310,6 +1320,7 @@ export default function GameBrowser() {
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       },
       onError: (error) => {
+        if (!accountWriteAllowed(epoch)) return;
         setResumingCampaignId(null);
         setNotice({ tone: 'error', title: 'Macera açılamadı', detail: friendlyError(error, 'Bu macera güvenli biçimde yüklenemedi.') });
       },
@@ -1409,6 +1420,7 @@ export default function GameBrowser() {
     pendingTurnRef.current = { signature, actionId };
     inFlightSessionsRef.current.add(sessionId);
     setInFlightSessions(new Set(inFlightSessionsRef.current));
+    const epoch = currentAuthEpoch();
     void playTurn.mutateAsync({
       sessionId,
       data: {
@@ -1420,6 +1432,7 @@ export default function GameBrowser() {
         ...(targetId ? { target_id: targetId } : {}),
       },
     }).then((result) => {
+        if (!accountWriteAllowed(epoch)) return;
         const stillVisible = activeSessionRef.current === sessionId;
         if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
         clearPendingTurnAction(actionScope, actionId);
@@ -1488,6 +1501,7 @@ export default function GameBrowser() {
         if (stillVisible) setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
       }, (error) => {
+        if (!accountWriteAllowed(epoch)) return;
         if (activeSessionRef.current !== sessionId) {
           if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
           return;

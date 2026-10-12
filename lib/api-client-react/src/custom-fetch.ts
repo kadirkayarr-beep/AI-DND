@@ -30,18 +30,135 @@ export function setBaseUrl(url: string | null): void {
 }
 
 /**
- * Register a getter that supplies a bearer auth token.  Before every fetch
- * the getter is invoked; when it returns a non-null string, an
- * `Authorization: Bearer <token>` header is attached to the request.
- *
- * Useful for Expo bundles making token-gated API calls.
- * Pass `null` to clear the getter.
- *
- * NOTE: This function should never be used in web applications where session
- * token cookies are automatically associated with API calls by the browser.
+ * Register a getter that supplies a fresh bearer token for protected
+ * same-origin AI-DND API calls. The getter is invoked per request.
+ * Returned values are not stored. Pass `null` to clear the getter.
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+const PUBLIC_API_PATHS = new Set([
+  "/api/health",
+  "/api/game/health",
+  "/api/character-options",
+  "/api/game/character-options",
+  "/api/character-creation-catalog",
+  "/api/game/character-creation-catalog",
+  "/api/campaign-start-options",
+  "/api/game/campaign-start-options",
+  "/api/logout",
+  "/api/game/logout",
+]);
+
+const CREDENTIAL_QUERY_KEYS = ["access_token", "token", "jwt", "id_token"];
+const RELATIVE_DESTINATION_BASE = "http://ai-dnd.local";
+const AUTHENTICATION_MESSAGE = "Oturum doğrulanmadan maceralar açılmaz.";
+const MAX_BEARER_TOKEN_LENGTH = 8192;
+
+export type ApiDestination = "public" | "protected" | "external" | "foreign-api";
+
+export class ApiRequestError extends Error {
+  readonly name = "ApiRequestError";
+  readonly status = 401;
+  readonly code: "authentication_required" | "authentication_changed" | "unapproved_destination";
+
+  constructor(code: ApiRequestError["code"]) {
+    super(code === "unapproved_destination" ? "Bu istek gönderilmedi." : AUTHENTICATION_MESSAGE);
+    this.code = code;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+let authEpoch = 0;
+let authAbort = new AbortController();
+
+export function currentAuthEpoch(): number {
+  return authEpoch;
+}
+
+export function rotateAuthEpoch(): number {
+  authEpoch += 1;
+  authAbort.abort();
+  authAbort = new AbortController();
+  return authEpoch;
+}
+
+function pageOrigin(): string | null {
+  const origin = globalThis.window?.location?.origin;
+  return typeof origin === "string" && origin.length > 0 ? origin : null;
+}
+
+export function classifyApiDestination(url: string): ApiDestination {
+  let parsed: URL;
+  let relative = false;
+  try {
+    if (url.startsWith("/") && !url.startsWith("//")) {
+      parsed = new URL(url, RELATIVE_DESTINATION_BASE);
+      relative = true;
+    } else {
+      parsed = new URL(url);
+    }
+  } catch {
+    return "external";
+  }
+  const path = parsed.pathname.replace(/\/+$/, "") || "/";
+  const isApi = path === "/api" || path.startsWith("/api/");
+  if (!isApi) return "external";
+  if (!relative) {
+    const origin = pageOrigin();
+    if (!origin || parsed.origin !== origin) return "foreign-api";
+  }
+  return PUBLIC_API_PATHS.has(path) ? "public" : "protected";
+}
+
+function stripCredentialQuery(url: string): string {
+  let parsed: URL;
+  let relative = false;
+  try {
+    if (url.startsWith("/") && !url.startsWith("//")) {
+      parsed = new URL(url, RELATIVE_DESTINATION_BASE);
+      relative = true;
+    } else {
+      parsed = new URL(url);
+    }
+  } catch {
+    return url;
+  }
+  for (const key of CREDENTIAL_QUERY_KEYS) parsed.searchParams.delete(key);
+  parsed.hash = "";
+  if (relative) return `${parsed.pathname}${parsed.search}`;
+  return parsed.toString();
+}
+
+function usableBearerToken(token: string | null): token is string {
+  return typeof token === "string"
+    && token.length > 0
+    && token.length <= MAX_BEARER_TOKEN_LENGTH
+    && !/\s/.test(token);
+}
+
+async function readBearerToken(): Promise<string | null> {
+  if (!_authTokenGetter) return null;
+  try {
+    const token = await _authTokenGetter();
+    return usableBearerToken(token) ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+function combineSignals(authSignal: AbortSignal, callerSignal: AbortSignal | null | undefined): AbortSignal {
+  if (!callerSignal) return authSignal;
+  if (typeof AbortSignal.any === "function") return AbortSignal.any([authSignal, callerSignal]);
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (authSignal.aborted || callerSignal.aborted) controller.abort();
+  else {
+    authSignal.addEventListener("abort", abort, { once: true });
+    callerSignal.addEventListener("abort", abort, { once: true });
+  }
+  return controller.signal;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -349,23 +466,84 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
-    }
+  const destinationUrl = stripCredentialQuery(resolveUrl(input));
+  const destination = classifyApiDestination(destinationUrl);
+  headers.delete("authorization");
+
+  let credentials: RequestCredentials = init.credentials ?? "include";
+  let redirectMode: RequestRedirect | undefined = init.redirect;
+  let signal: AbortSignal | null | undefined = init.signal;
+  const epoch = authEpoch;
+  const epochSignal = authAbort.signal;
+
+  if (destination === "foreign-api") {
+    throw new ApiRequestError("unapproved_destination");
   }
 
-  const requestInfo = { method, url: resolveUrl(input) };
+  if (destination === "external") {
+    headers.delete("cookie");
+    credentials = "omit";
+    redirectMode = "error";
+  }
 
-  const response = await fetch(input, { ...init, method, headers });
+  if (destination === "protected") {
+    if (epoch !== authEpoch || epochSignal.aborted) {
+      throw new ApiRequestError("authentication_changed");
+    }
+    const token = await readBearerToken();
+    if (epoch !== authEpoch || epochSignal.aborted) {
+      throw new ApiRequestError("authentication_changed");
+    }
+    if (!token) throw new ApiRequestError("authentication_required");
+    headers.delete("cookie");
+    headers.set("Authorization", `Bearer ${token}`);
+    credentials = "omit";
+    redirectMode = "error";
+    signal = combineSignals(epochSignal, init.signal);
+  }
+
+  if (
+    (destination === "public" || destination === "protected")
+    && ["POST", "PUT", "PATCH", "DELETE"].includes(method)
+    && !headers.has("x-ai-dnd-request")
+  ) {
+    headers.set("X-AI-DND-Request", "1");
+  }
+
+  const requestInfo = { method, url: destinationUrl };
+  const fetchInput: RequestInfo | URL = typeof input === "string" || isUrl(input)
+    ? destinationUrl
+    : new Request(destinationUrl, input);
+
+  let response: Response;
+  try {
+    response = await fetch(fetchInput, {
+      ...init,
+      method,
+      headers,
+      credentials,
+      redirect: redirectMode,
+      signal,
+    });
+  } catch (error) {
+    if (destination === "protected" && (epoch !== authEpoch || epochSignal.aborted)) {
+      throw new ApiRequestError("authentication_changed");
+    }
+    throw error;
+  }
+
+  if (destination === "protected" && epoch !== authEpoch) {
+    throw new ApiRequestError("authentication_changed");
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const body = (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  if (destination === "protected" && epoch !== authEpoch) {
+    throw new ApiRequestError("authentication_changed");
+  }
+  return body;
 }

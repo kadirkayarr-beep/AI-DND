@@ -1,62 +1,105 @@
-"""Release security gate: probe anonymous campaign access in a TEMPORARY app.
+"""Release security gate: anonymous HTTP must not read or change a campaign.
 
-Never touches the configured campaign database or sends HTTP requests to
-Replit/live deployments. Exit code 1 means DO NOT publish.
+The fixture is created through the store as a synthetic owner. The HTTP app
+stays fail-closed. This never opens the live campaign database.
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import tempfile
+import uuid
 from pathlib import Path
+
+os.environ["AI_DND_DISABLE_DEFAULT_APP"] = "1"
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import game
 import httpx
 
+from api.auth import FailClosedAuthenticator
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.auth_fixture import PLAYER_A
+
+
+_LIVE = (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
+
+
+def _temporary_store(directory: str) -> CampaignStore:
+    path = (Path(directory) / "isolated_campaigns.sqlite3").resolve()
+    if path == _LIVE:
+        raise RuntimeError("Refusing to use the live campaign database.")
+    return CampaignStore(path)
 
 
 async def probe() -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="ai-dnd-security-gate-") as directory:
-        store = CampaignStore(Path(directory) / "isolated_campaigns.sqlite3")
+        store = _temporary_store(directory)
+        session = game.create_session()
+        campaign_id = str(uuid.uuid4())
+        store.create_campaign(campaign_id, "Gate", session, principal=PLAYER_A)
         manager = SessionManager(campaign_store=store)
-        app = create_app(session_manager=manager, ollama_adapter=None)
+        session_id, record, *_ = manager.resume_campaign(campaign_id, principal=PLAYER_A)
+        hp = record.game_session.character["current_hp"]
+        app = create_app(
+            session_manager=manager,
+            ollama_adapter=None,
+            authenticator=FailClosedAuthenticator(),
+        )
+        prefixes = ("/api", "/api/game")
+        requests = []
+        for prefix in prefixes:
+            requests.extend([
+                ("POST", f"{prefix}/campaigns", {}),
+                ("GET", f"{prefix}/campaigns", None),
+                ("GET", f"{prefix}/campaigns/{campaign_id}", None),
+                ("POST", f"{prefix}/campaigns/{campaign_id}/resume", None),
+                ("POST", f"{prefix}/campaigns/{campaign_id}/save", None),
+                ("DELETE", f"{prefix}/campaigns/{campaign_id}", None),
+                ("POST", f"{prefix}/sessions/{session_id}/turn", {"message": "Bekle."}),
+            ])
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://isolated-testserver",
         ) as client:
-            created = await client.post("/api/game/campaigns", json={})
-            if created.status_code != 200:
-                return {
-                    "status": "INCONCLUSIVE",
-                    "reason": "temporary_fixture_creation_failed",
-                    "fixture_status": created.status_code,
-                    "release_ready": False,
-                }
-            campaign_id = created.json()["campaign_id"]
-            listing = await client.get("/api/game/campaigns")
-            detail = await client.get(f"/api/game/campaigns/{campaign_id}")
-            deletion = await client.delete(f"/api/game/campaigns/{campaign_id}")
-            exposed = any(response.status_code == 200 for response in (
-                listing, detail, deletion,
-            ))
-            return {
-                "status": "FAIL" if exposed else "PASS",
-                "scope": "temporary_in_memory_http_transport_temporary_sqlite",
-                "anonymous_list_http": listing.status_code,
-                "anonymous_read_http": detail.status_code,
-                "anonymous_delete_http": deletion.status_code,
-                "release_ready": not exposed,
-            }
+            results = []
+            for method, path, body in requests:
+                response = await client.request(
+                    method,
+                    path,
+                    json=body,
+                    headers={
+                        "Authorization": "Bearer client-token",
+                        "X-Replit-User-Id": "spoofed",
+                    },
+                )
+                results.append({
+                    "method": method,
+                    "path": path,
+                    "status": response.status_code,
+                })
+        exposed = any(item["status"] == 200 for item in results)
+        still_owned = store.campaign_exists(campaign_id, principal=PLAYER_A)
+        unchanged = record.game_session.character["current_hp"] == hp
+        passed = not exposed and still_owned and unchanged
+        return {
+            "status": "PASS" if passed else "FAIL",
+            "scope": "temporary_sqlite_anonymous_http",
+            "results": results,
+            "campaign_still_owned": still_owned,
+            "turn_did_not_change_hp": unchanged,
+            "release_ready": False,
+        }
 
 
 if __name__ == "__main__":
     result = asyncio.run(probe())
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    sys.exit(0 if result["release_ready"] else 1)
+    sys.exit(0 if result["status"] == "PASS" else 1)

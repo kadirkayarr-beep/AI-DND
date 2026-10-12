@@ -2266,6 +2266,7 @@ export const ApiErrorDetailCode = {
   campaign_storage_unavailable: 'campaign_storage_unavailable',
   campaign_error: 'campaign_error',
   invalid_character: 'invalid_character',
+  authentication_required: 'authentication_required',
   unknown_session: 'unknown_session',
   ollama_unavailable: 'ollama_unavailable',
   model_unavailable: 'model_unavailable',
@@ -2291,6 +2292,11 @@ export interface RequestValidationIssue {
 export interface RequestValidationError {
   detail: RequestValidationIssue[];
 }
+
+/**
+ * The request has no server-verified principal.
+ */
+export type AuthenticationRequiredResponse = ApiErrorResponse;
 
 /**
  * Request fields or path parameters failed FastAPI validation.

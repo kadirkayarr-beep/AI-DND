@@ -9,11 +9,13 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import threading
 import uuid
 from typing import Any, Iterator
 
 import game
 
+from api.auth import AuthenticationError, Principal, current_principal
 from api.campaign_journal import empty_campaign_journal
 from api.lore_authority.models import CampaignLoreState
 from api.persistence.campaign_models import (
@@ -36,7 +38,7 @@ from api.persistence.campaign_validation import (
 )
 
 
-_DATABASE_SCHEMA_VERSION = 5
+_DATABASE_SCHEMA_VERSION = 6
 MAX_COMBAT_HISTORY_ENTRIES = 50
 
 # Operational generation receipts. Not campaign canon. The primary key is the
@@ -90,6 +92,9 @@ def _is_uuid4(campaign_id: str) -> bool:
     return parsed.version == 4 and str(parsed) == campaign_id.lower()
 
 
+_SCHEMA_MIGRATION_ENV = "AI_DND_ALLOW_SCHEMA_MIGRATION"
+
+
 def default_campaign_db_path() -> Path:
     configured = os.environ.get("AI_DND_CAMPAIGN_DB")
     if configured:
@@ -100,10 +105,42 @@ def default_campaign_db_path() -> Path:
     return (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3")
 
 
+def _read_user_version(path: Path) -> int | None:
+    """Read schema version without creating a file or changing journal mode."""
+    if not path.exists():
+        return None
+    try:
+        connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+    except sqlite3.Error:
+        raise CampaignStorageError("Campaign database could not be opened safely.") from None
+    try:
+        row = connection.execute("PRAGMA user_version").fetchone()
+        return int(row[0])
+    except (sqlite3.Error, TypeError, ValueError):
+        raise CampaignStorageError("Campaign database could not be opened safely.") from None
+    finally:
+        connection.close()
+
+
+_OWNED_SQL = (
+    "ownership_state = 'owned' AND owner_issuer = ? AND owner_subject = ?"
+)
+
+
 class CampaignStore:
     """Stores canonical engine saves and safe campaign metadata transactionally."""
 
-    def __init__(self, path: str | Path | None = None):
+    def __init__(
+        self,
+        path: str | Path | None = None,
+        *,
+        bound_principal: Principal | None = None,
+        allow_schema_migration: bool = False,
+    ):
+        if bound_principal is not None and type(bound_principal) is not Principal:
+            raise AuthenticationError("No server authenticator is configured.")
+        self.bound_principal = bound_principal
+        self._allow_schema_migration = allow_schema_migration is True
         self.path = Path(path).expanduser().resolve() if path else default_campaign_db_path()
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,6 +175,19 @@ class CampaignStore:
             connection.close()
 
     def _initialize(self) -> None:
+        existing = _read_user_version(self.path)
+        if existing is not None and existing > _DATABASE_SCHEMA_VERSION:
+            raise CampaignStorageError(
+                "Campaign database version is newer than this server supports."
+            )
+        if (
+            existing is not None
+            and existing < _DATABASE_SCHEMA_VERSION
+            and not self._allow_schema_migration
+        ):
+            raise CampaignStorageError(
+                "Campaign database schema requires explicit migration approval."
+            )
         connection = self._connect()
         try:
             connection.execute("PRAGMA journal_mode = WAL")
@@ -250,6 +300,35 @@ class CampaignStore:
                 except Exception:
                     connection.rollback()
                     raise
+                current_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+            if current_version == 5:
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    # Re-read after taking the write lock. Another opener may
+                    # already have added the columns. Never assign an owner.
+                    if int(connection.execute("PRAGMA user_version").fetchone()[0]) == 5:
+                        columns = {
+                            row["name"]
+                            for row in connection.execute("PRAGMA table_info(campaigns)")
+                        }
+                        if "owner_issuer" not in columns:
+                            connection.execute(
+                                "ALTER TABLE campaigns ADD COLUMN owner_issuer TEXT"
+                            )
+                        if "owner_subject" not in columns:
+                            connection.execute(
+                                "ALTER TABLE campaigns ADD COLUMN owner_subject TEXT"
+                            )
+                        if "ownership_state" not in columns:
+                            connection.execute(
+                                "ALTER TABLE campaigns ADD COLUMN ownership_state "
+                                "TEXT NOT NULL DEFAULT 'unowned'"
+                            )
+                        connection.execute("PRAGMA user_version = 6")
+                    connection.commit()
+                except Exception:
+                    connection.rollback()
+                    raise
             self._validate_schema(connection)
             # Reserve identities that old event APIs kept in canonical journals.
             # Do this before a later bounded journal trim can discard provenance.
@@ -282,6 +361,7 @@ class CampaignStore:
             "campaign_version", "save_version", "engine_hash", "character_name",
             "character_race", "character_class", "character_level", "location",
             "payload_json", "revision",
+            "owner_issuer", "owner_subject", "ownership_state",
         }
         columns = {
             str(row["name"])
@@ -401,15 +481,31 @@ class CampaignStore:
         if not _is_uuid4(campaign_id):
             raise CampaignNotFoundError("Campaign not found.")
 
+    def _owner_pair(self, principal: Principal | None) -> tuple[str, str]:
+        """Explicit principal, then this request, then a test store binding."""
+        resolved = principal if type(principal) is Principal else None
+        if resolved is None:
+            active = current_principal()
+            if type(active) is Principal:
+                resolved = active
+        if resolved is None and type(self.bound_principal) is Principal:
+            resolved = self.bound_principal
+        if type(resolved) is not Principal:
+            raise AuthenticationError("No server authenticator is configured.")
+        return resolved.issuer, resolved.subject
+
     def assert_current(self, campaign_id: str, session: Any,
-                       connection: sqlite3.Connection | None = None) -> None:
+                       connection: sqlite3.Connection | None = None,
+                       principal: Principal | None = None) -> None:
         """Check the server-owned load token, again inside the write transaction."""
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         own_connection = connection is None
         connection = connection or self._connect()
         try:
             row = connection.execute(
-                "SELECT revision FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                f"SELECT revision FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                (campaign_id, issuer, subject),
             ).fetchone()
             if row is None:
                 raise CampaignNotFoundError("Campaign not found.")
@@ -431,6 +527,7 @@ class CampaignStore:
         journal: dict[str, Any] | None = None,
         narrative_memory: dict[str, Any] | None = None,
         lore_authority: CampaignLoreState | dict[str, Any] | None = None,
+        principal: Principal | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
         payload = serialize_campaign_payload(
@@ -452,6 +549,7 @@ class CampaignStore:
             allow_nan=False,
         )
         details = self._engine_metadata(payload)
+        issuer, subject = self._owner_pair(principal)
         now = _now()
         try:
             with self._transaction() as connection:
@@ -461,8 +559,8 @@ class CampaignStore:
                         campaign_id, name, created_at, updated_at, last_played_at,
                         campaign_version, save_version, engine_hash, character_name,
                         character_race, character_class, character_level, location,
-                        payload_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        payload_json, owner_issuer, owner_subject, ownership_state
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'owned')
                     """,
                     (
                         campaign_id, safe_name, now, now, now,
@@ -470,11 +568,12 @@ class CampaignStore:
                         self._engine_hash(), details["character_name"],
                         details["character_race"], details["character_class"],
                         details["character_level"], details["location"], payload_json,
+                        issuer, subject,
                     ),
                 )
                 row = connection.execute(
-                    "SELECT * FROM campaigns WHERE campaign_id = ?",
-                    (campaign_id,),
+                    f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (campaign_id, issuer, subject),
                 ).fetchone()
                 metadata = self._metadata(row)
             session._campaign_persistence_version = (campaign_id, metadata["revision"])
@@ -499,10 +598,12 @@ class CampaignStore:
         lore_authority: CampaignLoreState | dict[str, Any] | None = None,
         turn_action_receipt: dict[str, Any] | None = None,
         emergence_attempt: dict[str, Any] | None = None,
+        principal: Principal | None = None,
     ) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         if journal is None or narrative_memory is None or lore_authority is None:
-            current = self.get_campaign(campaign_id)
+            current = self.get_campaign(campaign_id, principal=principal)
             if journal is None:
                 journal = current.payload.get("journal", empty_campaign_journal())
             if narrative_memory is None:
@@ -561,12 +662,12 @@ class CampaignStore:
         try:
             with self._transaction() as connection:
                 existing = connection.execute(
-                    "SELECT name FROM campaigns WHERE campaign_id = ?",
-                    (campaign_id,),
+                    f"SELECT name FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (campaign_id, issuer, subject),
                 ).fetchone()
                 if existing is None:
                     raise CampaignNotFoundError("Campaign not found.")
-                self.assert_current(campaign_id, session, connection)
+                self.assert_current(campaign_id, session, connection, principal)
                 if turn_action_receipt is not None:
                     prior_action = connection.execute(
                         """
@@ -587,16 +688,19 @@ class CampaignStore:
                         character_name = ?, character_race = ?, character_class = ?,
                         character_level = ?, location = ?, payload_json = ?,
                         revision = revision + 1
-                    WHERE campaign_id = ?
+                    WHERE campaign_id = ? AND ownership_state = 'owned'
+                        AND owner_issuer = ? AND owner_subject = ?
                     """,
                     (
                         now, now, CAMPAIGN_FORMAT_VERSION, details["save_version"],
                         self._engine_hash(), details["character_name"],
                         details["character_race"], details["character_class"],
                         details["character_level"], details["location"], payload_json,
-                        campaign_id,
+                        campaign_id, issuer, subject,
                     ),
                 )
+                if connection.execute("SELECT changes()").fetchone()[0] != 1:
+                    raise CampaignNotFoundError("Campaign not found.")
                 if turn_entry is not None:
                     next_sequence = int(
                         connection.execute(
@@ -712,6 +816,12 @@ class CampaignStore:
                       gate_outcome=None, rejection_reason=None, model_call_count=0)
         try:
             with self._transaction() as connection:
+                owned = connection.execute(
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (row["campaign_id"], *self._owner_pair(None)),
+                ).fetchone()
+                if owned is None:
+                    raise CampaignNotFoundError("Campaign not found.")
                 try:
                     connection.execute(
                         f"INSERT INTO campaign_emergence_attempts ({', '.join(_EMERGENCE_ATTEMPT_COLUMNS)}) "
@@ -744,8 +854,15 @@ class CampaignStore:
         if fields.get("status") in _EMERGENCE_TERMINAL:
             fields = dict(fields, completed_at=_now())
         assignments = ", ".join(f"{key} = ?" for key in fields)
+        issuer, subject = self._owner_pair(None)
         try:
             with self._transaction() as connection:
+                owned = connection.execute(
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (campaign_id, issuer, subject),
+                ).fetchone()
+                if owned is None:
+                    raise CampaignNotFoundError("Campaign not found.")
                 cursor = connection.execute(
                     f"UPDATE campaign_emergence_attempts SET {assignments} "
                     f"WHERE campaign_id = ? AND trigger_id = ? AND owner_token = ? "
@@ -773,11 +890,19 @@ class CampaignStore:
 
     def get_emergence_attempt(self, campaign_id: str, trigger_id: str) -> dict[str, Any] | None:
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(None)
         connection = self._connect()
         try:
             return self._attempt_row(connection.execute(
-                "SELECT * FROM campaign_emergence_attempts WHERE campaign_id = ? AND trigger_id = ?",
-                (campaign_id, trigger_id),
+                """
+                SELECT attempts.*
+                FROM campaign_emergence_attempts AS attempts
+                JOIN campaigns ON campaigns.campaign_id = attempts.campaign_id
+                WHERE attempts.campaign_id = ? AND attempts.trigger_id = ?
+                  AND campaigns.ownership_state = 'owned'
+                  AND campaigns.owner_issuer = ? AND campaigns.owner_subject = ?
+                """,
+                (campaign_id, trigger_id, issuer, subject),
             ).fetchone())
         except sqlite3.Error:
             raise CampaignStorageError("Emergence attempt could not be read.") from None
@@ -787,8 +912,15 @@ class CampaignStore:
     def compact_emergence_attempts(self, campaign_id: str) -> int:
         """Drop raw proposal bytes on terminal rows. Keys and hashes stay."""
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(None)
         try:
             with self._transaction() as connection:
+                owned = connection.execute(
+                    f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (campaign_id, issuer, subject),
+                ).fetchone()
+                if owned is None:
+                    raise CampaignNotFoundError("Campaign not found.")
                 cursor = connection.execute(
                     f"UPDATE campaign_emergence_attempts SET proposal_json = NULL "
                     f"WHERE campaign_id = ? AND proposal_json IS NOT NULL AND proposal_hash IS NOT NULL "
@@ -803,19 +935,25 @@ class CampaignStore:
         self,
         campaign_id: str,
         action_id: str,
+        principal: Principal | None = None,
     ) -> dict[str, Any] | None:
         self._validate_campaign_id(campaign_id)
         if not _is_uuid4(action_id):
             raise CampaignValidationError("Turn action ID is invalid.")
+        issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
             row = connection.execute(
                 """
-                SELECT request_hash, response_json
-                FROM campaign_turn_actions
-                WHERE campaign_id = ? AND action_id = ?
+                SELECT actions.request_hash, actions.response_json
+                FROM campaign_turn_actions AS actions
+                JOIN campaigns ON campaigns.campaign_id = actions.campaign_id
+                WHERE actions.campaign_id = ? AND actions.action_id = ?
+                  AND campaigns.ownership_state = 'owned'
+                  AND campaigns.owner_issuer = ?
+                  AND campaigns.owner_subject = ?
                 """,
-                (campaign_id, action_id),
+                (campaign_id, action_id, issuer, subject),
             ).fetchone()
             if row is None:
                 return None
@@ -838,14 +976,15 @@ class CampaignStore:
         finally:
             connection.close()
 
-    def mark_played(self, campaign_id: str) -> dict[str, Any]:
+    def mark_played(self, campaign_id: str, principal: Principal | None = None) -> dict[str, Any]:
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         now = _now()
         try:
             with self._transaction() as connection:
                 cursor = connection.execute(
-                    "UPDATE campaigns SET last_played_at = ? WHERE campaign_id = ?",
-                    (now, campaign_id),
+                    f"UPDATE campaigns SET last_played_at = ? WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (now, campaign_id, issuer, subject),
                 )
                 if cursor.rowcount != 1:
                     raise CampaignNotFoundError("Campaign not found.")
@@ -859,14 +998,17 @@ class CampaignStore:
         except sqlite3.Error:
             raise CampaignStorageError("Campaign could not be opened safely.") from None
 
-    def list_campaigns(self) -> list[dict[str, Any]]:
+    def list_campaigns(self, principal: Principal | None = None) -> list[dict[str, Any]]:
+        issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
             rows = connection.execute(
-                """
+                f"""
                 SELECT * FROM campaigns
+                WHERE {_OWNED_SQL}
                 ORDER BY last_played_at DESC, created_at DESC
-                """
+                """,
+                (issuer, subject),
             ).fetchall()
             return [self._metadata(row) for row in rows]
         except sqlite3.Error:
@@ -874,39 +1016,44 @@ class CampaignStore:
         finally:
             connection.close()
 
-    def campaign_exists(self, campaign_id: str) -> bool:
+    def campaign_exists(self, campaign_id: str, principal: Principal | None = None) -> bool:
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
             return connection.execute(
-                "SELECT 1 FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                f"SELECT 1 FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                (campaign_id, issuer, subject),
             ).fetchone() is not None
         except sqlite3.Error:
             raise CampaignStorageError("Campaign availability could not be checked.") from None
         finally:
             connection.close()
 
-    def delete_campaign(self, campaign_id: str) -> bool:
+    def delete_campaign(self, campaign_id: str, principal: Principal | None = None) -> bool:
         """Atomic registry delete; existing FK cascades own history and receipts."""
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         try:
             with self._transaction() as connection:
                 cursor = connection.execute(
-                    "DELETE FROM campaigns WHERE campaign_id = ?", (campaign_id,)
+                    f"DELETE FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                    (campaign_id, issuer, subject),
                 )
                 return cursor.rowcount == 1
         except sqlite3.Error:
             raise CampaignStorageError("Campaign could not be deleted safely.") from None
 
-    def get_campaign(self, campaign_id: str) -> StoredCampaign:
+    def get_campaign(self, campaign_id: str, principal: Principal | None = None) -> StoredCampaign:
         self._validate_campaign_id(campaign_id)
+        issuer, subject = self._owner_pair(principal)
         connection = self._connect()
         try:
             # Payload and dependent history must come from one committed snapshot.
             connection.execute("BEGIN")
             row = connection.execute(
-                "SELECT * FROM campaigns WHERE campaign_id = ?",
-                (campaign_id,),
+                f"SELECT * FROM campaigns WHERE campaign_id = ? AND {_OWNED_SQL}",
+                (campaign_id, issuer, subject),
             ).fetchone()
             if row is None:
                 raise CampaignNotFoundError("Campaign not found.")
@@ -986,9 +1133,41 @@ class CampaignStore:
                 history=history,
                 combat_history=combat_history,
             )
-        except (CampaignNotFoundError, CampaignCorruptError):
+        except (CampaignNotFoundError, CampaignCorruptError, AuthenticationError):
             raise
         except sqlite3.Error:
             raise CampaignStorageError("Campaign could not be loaded safely.") from None
         finally:
             connection.close()
+
+
+class StartupCampaignStore:
+    """Opens configured storage on first use.
+
+    Importing the API does not construct a CampaignStore. A missing
+    AI_DND_CAMPAIGN_DB setting fails closed. An older schema is not
+    upgraded unless AI_DND_ALLOW_SCHEMA_MIGRATION=1.
+    """
+
+    def __init__(self) -> None:
+        self._store: CampaignStore | None = None
+        self._lock = threading.Lock()
+        self.bound_principal = None
+
+    def _open(self) -> CampaignStore:
+        if self._store is not None:
+            return self._store
+        with self._lock:
+            if self._store is not None:
+                return self._store
+            configured = os.environ.get("AI_DND_CAMPAIGN_DB", "")
+            if type(configured) is not str or configured.strip() == "":
+                raise CampaignStorageError("Campaign database is not configured.")
+            self._store = CampaignStore(
+                configured,
+                allow_schema_migration=os.environ.get(_SCHEMA_MIGRATION_ENV) == "1",
+            )
+            return self._store
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._open(), name)
