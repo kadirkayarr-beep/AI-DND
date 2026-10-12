@@ -254,6 +254,15 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
     normalized = normalize_text(value)
     if re.search(r"\b(?:mi|miydi|miydim|musun|musunuz|daha once|once)\b", normalized):
         return None
+    # A first-clause introduction may be followed by a question in one turn.
+    # Require a capitalized name and a sentence boundary to avoid interpreting
+    # ordinary 'ben ...' statements as identity disclosures.
+    introduction = re.match(
+        r"^\s*[Bb]en\s+([A-ZÇĞİÖŞÜ][a-zçğıöşü'’-]{1,})\s*[.!;,]\s+",
+        value,
+    )
+    if introduction:
+        return introduction.group(1)
     name_pattern = r"([A-Za-zÇĞİÖŞÜçğıöşü][A-Za-zÇĞİÖŞÜçğıöşü'’-]{1,})"
     patterns = (
         rf"\b(?:benim\s+)?(?:adım|ismim)\s+{name_pattern}\b",

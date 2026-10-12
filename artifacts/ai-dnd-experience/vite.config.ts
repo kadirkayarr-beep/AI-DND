@@ -19,6 +19,19 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+// Local development must not expose the unauthenticated campaign API to LAN.
+// Replit needs a public listener, but only explicitly known hostnames are trusted.
+const replitRuntime = process.env.REPL_ID !== undefined;
+const listenHost = replitRuntime ? '0.0.0.0' : '127.0.0.1';
+const allowedHosts = Array.from(new Set([
+  'localhost',
+  '127.0.0.1',
+  process.env.REPLIT_DEV_DOMAIN,
+  process.env.REPLIT_APP_DOMAIN,
+  ...(process.env.REPLIT_DOMAINS || '').split(','),
+  ...(process.env.AI_DND_ALLOWED_HOSTS || '').split(','),
+].filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim())));
+
 const basePath = process.env.BASE_PATH;
 
 if (!basePath) {
@@ -67,8 +80,8 @@ export default defineConfig({
   server: {
     port,
     strictPort: true,
-    host: '0.0.0.0',
-    allowedHosts: true,
+    host: listenHost,
+    allowedHosts,
     fs: {
       strict: true,
     },
@@ -81,7 +94,7 @@ export default defineConfig({
   },
   preview: {
     port,
-    host: '0.0.0.0',
-    allowedHosts: true,
+    host: listenHost,
+    allowedHosts,
   },
 });

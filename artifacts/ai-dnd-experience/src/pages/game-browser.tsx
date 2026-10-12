@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
 import { mergeCombatHistory } from '@/lib/combat-history';
+import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract';
 import { ExplorationControls } from '@/components/exploration-controls';
 import { explorationInputLabel } from '@/lib/exploration-input';
 import {
@@ -96,6 +97,8 @@ function statusCode(error: unknown) {
 }
 
 function friendlyError(error: unknown, fallback: string) {
+  const combatMessage = combatErrorMessage(error);
+  if (combatMessage) return combatMessage;
   const code = statusCode(error);
   if (code === 404) return 'Bu macera bulunamadı.';
   if (code === 422) return 'Bu söz şimdilik yankı bulmadı. 1–4000 karakter arasında yeniden dene.';
@@ -1455,7 +1458,7 @@ export default function GameBrowser() {
           } else {
             setCombatEndNotice(null);
           }
-          if (combatResult.outcome !== 'enemy_turn_resolved' || combatResult.combat_ended) {
+          if (!retainCombatTarget(combatTargetId, result.state.combat, Boolean(combatResult.combat_ended))) {
             setCombatTargetId('');
           }
         } else if (stillVisible) {

@@ -6152,6 +6152,17 @@ def update_world_state_from_player(player_input):
     return result
 
 
+def _explicit_sword_drop(player_input):
+    """Only an unambiguous present-tense sword drop bypasses model intent."""
+    if not isinstance(player_input, str):
+        return False
+    return re.fullmatch(
+        r"\s*(?:kılıcımı|kılıcı|kılıç)\s+(?:yere\s+)?"
+        r"(?:bırakıyorum|koyuyorum|atıyorum)\s*[.!]?\s*",
+        player_input.casefold(),
+    ) is not None
+
+
 def update_inventory_from_player(player_input):
     """Move the explicitly named sword using Python-owned inventory state."""
     world_state = _session().world_state
@@ -12856,6 +12867,21 @@ def _run_player_turn_internal(
             is_final=True,
         )
 
+    # Concrete possession changes outrank an abstract 'abandon' proposal.
+    # Restrict this bypass to unambiguous present-tense commands; all other
+    # equipment operations remain with the existing Python inventory owner.
+    if (interaction_mode not in {"say", "ask_dm"}
+            and target_id is None and not combat["active"]
+            and _explicit_sword_drop(player_input)):
+        action_result = execute_intent({"intent": "inventory"}, player_input)
+        return finish_turn(
+            action_result,
+            action_result.get("direct_response") or _fallback_for_action_result(
+                player_input, action_result
+            ),
+            is_final=True,
+        )
+
     interaction_hint = (None if interaction_mode == "ask_dm"
                         else interaction_adventure.hint(player_input, npc_target))
     if interaction_hint and not combat["active"]:
@@ -13064,6 +13090,12 @@ def _run_player_turn_internal(
                 f'{npc_name}, “Memnun oldum, {safe_name}. '
                 'Adını hatırlayacağım,” diye yanıt verir.'
             )
+            # A single utterance may introduce the player AND ask who the
+            # addressee is. Both answers come from verified Python state.
+            if _detect_query_type(player_input, npc_target) == "npc_identity":
+                identity_reply = _handle_query(player_input, "npc_identity", npc_target)
+                if identity_reply:
+                    narration += " " + identity_reply
             action_result = {
                 "action": "dialogue",
                 "status": "player_name_disclosed",
@@ -13419,7 +13451,12 @@ def _run_player_turn_internal(
     narration = action_result.get("direct_response") or _fallback_for_action_result(
         player_input, action_result
     )
-    return finish_turn(action_result, narration, quest_transitions)
+    # An inventory transaction has already been resolved by Python. Do not
+    # let a separate narrator reverse its direction or invent another transfer.
+    return finish_turn(
+        action_result, narration, quest_transitions,
+        is_final=action_result.get("action") == "inventory",
+    )
 
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent / "saves" / "adventure.json"

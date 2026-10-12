@@ -7,6 +7,7 @@ threshold is kept and does not open Tier 2.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any, Mapping
 
@@ -17,7 +18,7 @@ MAX_LEVEL = 4
 PROFICIENCY_BONUS = 2
 MAX_GRANT = 100_000
 MAX_STORED_XP = 1_000_000_000
-MAX_AWARD_IDS = 500
+MAX_AWARD_IDS = 10_000  # Bounded long-campaign receipts; old save IDs remain valid.
 
 # Character Advancement table, levels 1–4. Level 5 (6,500 XP, proficiency +3)
 # is the start of Tier 2 and is intentionally not applied.
@@ -193,6 +194,9 @@ def award_defeated_combat(combat: Mapping[str, Any], world: dict[str, Any], char
     if type(turn) is not int or turn < 0:
         turn = 0
     event_id = f"combat:{turn}:{','.join(sorted(rewarded))}"
+    if len(event_id) > 187:  # The existing receipt validator allows 180 chars after 'combat:'.
+        digest = hashlib.sha256(event_id.encode("utf-8")).hexdigest()
+        event_id = f"combat:sha256:{digest}"
     return apply_xp(character, world, total, event_id)
 
 

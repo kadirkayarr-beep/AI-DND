@@ -13,6 +13,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import living_world
+import equipment_economy
 
 KEY = "interaction_adventure_v1"
 ACTIVE = {"discovered", "offered", "active", "progressing", "reframed"}
@@ -909,6 +910,43 @@ def accept_candidate(world, state, candidate):
     return thread
 
 
+def _newly_acquired(world, before_world, target):
+    """Use the existing equipment owner's labels for legacy and instance items."""
+    after = equipment_economy.labels(world.get("inventory", []))
+    before = equipment_economy.labels(before_world.get("inventory", []))
+    return after.count(target) > before.count(target)
+
+
+_VERIFIED_OUT_OF_COMBAT = frozenset({"unconscious", "defeated", "dead"})
+
+
+def _defeated(npc):
+    """A defeat goal follows Python's verified out-of-combat status.
+
+    Current combat_status wins. Old saves that only stored the legacy status
+    field still count. Zero HP does not invent a defeat while a status says
+    the NPC is active.
+    """
+    if not isinstance(npc, dict):
+        return False
+    combat_status = npc.get("combat_status")
+    if isinstance(combat_status, str):
+        return combat_status in _VERIFIED_OUT_OF_COMBAT
+    legacy_status = npc.get("status")
+    if isinstance(legacy_status, str):
+        return legacy_status in _VERIFIED_OUT_OF_COMBAT
+    current_hp = npc.get("current_hp", 1)
+    return type(current_hp) is int and current_hp <= 0
+
+
+def _newly_defeated(world, before_world, target):
+    before = next((n for n in before_world.get("npcs", [])
+                   if n.get("id") == target), None)
+    after = next((n for n in world.get("npcs", [])
+                  if n.get("id") == target), None)
+    return before is not None and after is not None and not _defeated(before) and _defeated(after)
+
+
 def consume(session, action_result, before_world, player_input=""):
     """Consume resolved evidence/time once, inside the existing turn transaction."""
     world = session.world_state
@@ -942,13 +980,8 @@ def consume(session, action_result, before_world, player_input=""):
                     or (kind == "talk" and action_result.get("action") == "dialogue"
                         and action_result.get("npc_id") == target
                         and action_result.get("success") is True)
-                    or (kind == "acquire" and target in world.get("inventory", [])
-                        and target not in before_world.get("inventory", []))
-                    or (kind == "defeat" and any(
-                        n.get("id") == target and n.get("status") in {"dead", "defeated"}
-                        for n in world.get("npcs", [])) and not any(
-                        n.get("id") == target and n.get("status") in {"dead", "defeated"}
-                        for n in before_world.get("npcs", [])))
+                    or (kind == "acquire" and _newly_acquired(world, before_world, target))
+                    or (kind == "defeat" and _newly_defeated(world, before_world, target))
                     or (kind == "fact" and target in known_evidence(world)
                         and target not in known_evidence(before_world))
                 )
