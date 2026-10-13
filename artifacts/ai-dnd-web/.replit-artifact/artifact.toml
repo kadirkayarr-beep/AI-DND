@@ -33,7 +33,7 @@ paths = [ "/api/game", "/api/health", "/api/character-options", "/api/sessions",
 localPort = 8008
 
 [services.development]
-run = "cd ../../ai-dnd && python -m uvicorn api.main:app --host 0.0.0.0 --port \u0024{PORT:-8008}"
+run = "cd ../../ai-dnd && env -u VIRTUAL_ENV UV_PROJECT_ENVIRONMENT=/home/runner/workspace/.venv uv run --frozen --no-sync python -m uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8008}"
 
 [services.production.build]
 args = [ "uv", "sync", "--frozen", "--no-dev" ]

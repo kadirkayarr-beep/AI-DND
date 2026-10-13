@@ -4,8 +4,10 @@ import asyncio
 from contextlib import closing, ExitStack
 from datetime import datetime, timedelta
 from functools import wraps
+from pathlib import Path
 import threading
 import sqlite3
+import tempfile
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -16,19 +18,39 @@ import bounded_encounter
 import httpx
 from api.main import create_app, TurnResponse
 
+from api.auth import FixedAuthenticator
 from api.persistence.campaign_store import CampaignStore, MAX_COMBAT_HISTORY_ENTRIES
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_spell_scope as spells
 from api.tests import test_campaign_time as clocks
 from api.tests.test_action_economy_reactions import interrupted, assert_continuation
+from api.tests.auth_fixture import TEST_PLAYER
 import json
 from api.persistence.campaign_models import CampaignError, CampaignStaleError
 from api import campaign_journal
 
 
 class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
-    asyncSetUp = fixtures.CampaignApiTests.asyncSetUp
+    async def asyncSetUp(self):
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.store = CampaignStore(
+            Path(self.temporary_directory.name) / "campaigns.sqlite3",
+            bound_principal=TEST_PLAYER,
+        )
+        self.manager = SessionManager(campaign_store=self.store)
+        adapter = fixtures.AuthenticatedOllamaAdapter(fixtures.FakeOllamaClient())
+        self.enterContext(adapter.engine_binding())
+        self.app = create_app(
+            session_manager=self.manager,
+            ollama_adapter=adapter,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        self.http = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=self.app),
+            base_url="http://testserver",
+        )
+
     asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
     create_campaign = fixtures.CampaignApiTests.create_campaign
     install_test_ambient_event = fixtures.CampaignApiTests.install_test_ambient_event
@@ -538,9 +560,13 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(committed[-1].history), 1)
         self.assertEqual(len(committed[-1].combat_history), 1)
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(
+            session_manager=fresh,
+            ollama_adapter=None,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")

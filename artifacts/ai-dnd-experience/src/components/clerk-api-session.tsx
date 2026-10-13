@@ -1,7 +1,11 @@
 import { useAuth } from "@clerk/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, type ReactNode } from "react";
-import { rotateAuthEpoch, setAuthTokenGetter } from "@workspace/api-client-react/custom-fetch";
+import {
+  rotateAuthEpoch,
+  setAuthTokenGetter,
+  setProtectedRequestCredentials,
+} from "@workspace/api-client-react/custom-fetch";
 import {
   clerkSessionIdentity,
   clearAccountBrowserState,
@@ -62,6 +66,8 @@ export default function ClerkApiSession({ children }: { children: ReactNode }) {
   const activeGeneration = generation.current;
   const activeClient = boundary.current?.client ?? null;
 
+  setProtectedRequestCredentials(identity ? "include" : "omit");
+
   useEffect(() => {
     return () => {
       if (!activeClient) return;
@@ -70,6 +76,7 @@ export default function ClerkApiSession({ children }: { children: ReactNode }) {
       clearAccountBrowserState();
       if (generation.current === activeGeneration) {
         setAuthTokenGetter(null);
+        setProtectedRequestCredentials("omit");
         rotateAuthEpoch();
         boundary.current = null;
       }

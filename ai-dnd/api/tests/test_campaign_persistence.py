@@ -13,6 +13,7 @@ import unittest
 import uuid
 from unittest.mock import patch
 
+from api.auth import Principal
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -26,6 +27,11 @@ from api.persistence.campaign_models import (
 )
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+
+TEST_PRINCIPAL = Principal(
+    issuer="https://tests.invalid/ai-dnd",
+    subject="campaign-persistence-tests",
+)
 
 
 def combat_entry(turn_index=0, result_overrides=None):
@@ -47,7 +53,10 @@ class CampaignPersistenceTests(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.database_path = Path(self.temporary_directory.name) / "campaigns.sqlite3"
-        self.store = CampaignStore(self.database_path)
+        self.store = CampaignStore(
+            self.database_path,
+            bound_principal=TEST_PRINCIPAL,
+        )
         self.manager = SessionManager(campaign_store=self.store)
 
     def tearDown(self):
@@ -124,7 +133,10 @@ class CampaignPersistenceTests(unittest.TestCase):
         ).combat_history
 
         restarted_manager = SessionManager(
-            campaign_store=CampaignStore(self.database_path)
+            campaign_store=CampaignStore(
+                self.database_path,
+                bound_principal=TEST_PRINCIPAL,
+            )
         )
         resumed_session_id, resumed, resumed_metadata, history, _ = (
             restarted_manager.resume_campaign(campaign_id)
@@ -447,7 +459,10 @@ class CampaignPersistenceTests(unittest.TestCase):
         ):
             campaign_id, _, _, _ = self.create_campaign("Played later")
             restarted = SessionManager(
-                campaign_store=CampaignStore(self.database_path)
+                campaign_store=CampaignStore(
+                    self.database_path,
+                    bound_principal=TEST_PRINCIPAL,
+                )
             )
             _, _, metadata, _, _ = restarted.resume_campaign(campaign_id)
 

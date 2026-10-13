@@ -258,7 +258,8 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
     # Require a capitalized name and a sentence boundary to avoid interpreting
     # ordinary 'ben ...' statements as identity disclosures.
     introduction = re.match(
-        r"^\s*[Bb]en\s+([A-ZÇĞİÖŞÜ][a-zçğıöşü'’-]{1,})\s*[.!;,]\s+",
+        r"^\s*(?:(?:[Ss]elam|[Mm]erhaba)\s*[,!]\s*)?"
+        r"[Bb]en\s+([A-ZÇĞİÖŞÜ][a-zçğıöşü'’-]{1,})\s*[.!;,]\s+",
         value,
     )
     if introduction:
@@ -272,6 +273,14 @@ def explicit_player_name_disclosure(value: Any) -> str | None:
     for pattern in patterns:
         match = re.search(pattern, value, re.IGNORECASE)
         if match:
+            if re.match(
+                r"""^\s*(?:[,;:]\s*)?["'“”‘’]?\s*(?:[,;:]\s*)?"""
+                r"""(?:diye\s+)?(?:dedi|demiş|söyledi|söylemiş|"""
+                r"""anlattı|anlatmış|aktardı|konuştu)\b""",
+                value[match.end():],
+                re.IGNORECASE,
+            ):
+                continue
             name = match.group(1).strip("'’-")
             normalized_name = normalize_text(name)
             if normalized_name in {"ne", "nedir"}:

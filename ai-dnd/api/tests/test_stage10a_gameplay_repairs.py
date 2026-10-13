@@ -6,7 +6,10 @@ from unittest.mock import patch
 import combat_lifecycle
 import game
 import quest_catalog
-from local_dialogue import quest_availability_question
+from local_dialogue import (
+    explicit_player_name_disclosure,
+    quest_availability_question,
+)
 
 
 DISCLOSURE = "Benim adım Arven. Kendimi sana tanıtıyorum; lütfen bunu hatırla."
@@ -48,6 +51,99 @@ def procedural_taverns(world):
 
 
 class DisclosurePrecedenceTests(unittest.TestCase):
+    def test_player_name_disclosure_requires_direct_self_introduction(self):
+        cases = (
+            ("Ben Astrid", "Astrid"),
+            ("Ben Astrid. Merhaba.", "Astrid"),
+            (
+                "Selam, ben Rhea. Senin adın ne, burada ne iş yaparsın?",
+                "Rhea",
+            ),
+            ("Marek benim adım Rhea dedi.", None),
+            ("Marek, ‘Benim adım Rhea,’ dedi.", None),
+            ("Benim adım ne?", None),
+        )
+        for text, expected in cases:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    explicit_player_name_disclosure(text),
+                    expected,
+                )
+
+    def test_greeting_disclosure_is_saved_only_to_the_selected_npc(self):
+        session = city_session()
+        place_npc(session, "npc_001", "Mira")
+        place_npc(session, "npc_002", "Evan")
+        text = "Selam, ben Rhea. Senin adın ne, burada ne iş yaparsın?"
+        with patch(
+            "game.ollama.chat",
+            side_effect=AssertionError("unexpected model call"),
+        ) as model_chat:
+            result = session.run_player_turn(text, target_id="npc_001")
+        model_chat.assert_not_called()
+        self.assertEqual(
+            result["action_result"]["status"],
+            "player_name_disclosed",
+        )
+        self.assertIn("Rhea", result["narration"])
+        speaker = next(
+            npc for npc in session.world_state["npcs"]
+            if npc["id"] == "npc_001"
+        )
+        other = next(
+            npc for npc in session.world_state["npcs"]
+            if npc["id"] == "npc_002"
+        )
+        player_entries = [
+            entry for entry in speaker["memory"]
+            if entry.get("speaker") == "player"
+        ]
+        self.assertEqual(len(player_entries), 1)
+        self.assertEqual(player_entries[0]["text"], text)
+        self.assertEqual(other["memory"], [])
+        self.assertEqual(
+            result["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+
+    def test_reported_introductions_are_not_recalled_as_player_names(self):
+        session = city_session()
+        place_npc(session, "npc_001", "Mira")
+        place_npc(session, "npc_002", "Evan")
+        target = next(
+            npc for npc in session.world_state["npcs"]
+            if npc["id"] == "npc_001"
+        )
+        other = next(
+            npc for npc in session.world_state["npcs"]
+            if npc["id"] == "npc_002"
+        )
+        reported_speech = (
+            "Marek benim adım Rhea dedi.",
+            "Marek, ‘Benim adım Rhea,’ dedi.",
+        )
+        for text in reported_speech:
+            game.record_npc_interaction(
+                target,
+                "Mira dinler.",
+                text,
+                target,
+            )
+        self.assertEqual(target["memory"], [])
+        self.assertEqual(other["memory"], [])
+        self.assertIsNone(
+            game._historical_player_name_from_npc_memory(
+                target,
+                "Adımı hatırlıyor musun?",
+            )
+        )
+        self.assertIsNone(
+            game._historical_player_name_from_npc_memory(
+                other,
+                "Adımı hatırlıyor musun?",
+            )
+        )
+
     def test_exact_disclosure_is_acknowledged_once_without_a_model_call(self):
         session = city_session()
         place_npc(session, "npc_001", "Mira")

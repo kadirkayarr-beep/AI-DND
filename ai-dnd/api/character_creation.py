@@ -6,6 +6,7 @@ from typing import Any
 
 import game
 import spells as spell_rules
+from weapon_catalog import lookup as lookup_weapon
 from api.dnd_2024_rules import (
     ABILITY_KEYS,
     BACKGROUND_DEFINITIONS,
@@ -28,6 +29,10 @@ from api.dnd_2024_rules import (
     validate_ability_scores,
     validate_background_bonuses,
 )
+
+_FIGHTER_PACKAGE_C_WEAPON_LABELS = {
+    "Büyük Kılıç (Greatsword)": "Greatsword",
+}
 
 
 def _detect_armor_and_shield(equipment_choices: list[str] | None) -> tuple[str | None, bool]:
@@ -688,10 +693,29 @@ def configure_character(
     # Other legacy class/background packages are not source-certified currency.
     # Transfer verified starting equipment to canonical gameplay inventory
     gameplay_items = list(equipment_choices)
+    if character_class == "Fighter" and equipment_package == "C":
+        gameplay_items = [
+            _FIGHTER_PACKAGE_C_WEAPON_LABELS.get(item, item)
+            for item in gameplay_items
+        ]
     if starting_gp is not None:
         gameplay_items.remove(coin_label)
     if hasattr(session, "world_state") and isinstance(session.world_state, dict):
         session.world_state["inventory"] = gameplay_items
+        if character_class == "Fighter" and equipment_package == "C":
+            hands = session.world_state.get("equipment")
+            if isinstance(hands, dict) and set(hands) == {"main_hand", "off_hand"}:
+                owned_weapon_ids = {
+                    weapon["weapon_id"]
+                    for item in gameplay_items
+                    if isinstance(item, str)
+                    for weapon in [lookup_weapon(item)]
+                    if weapon is not None
+                }
+                for hand, held in hands.items():
+                    held_weapon = lookup_weapon(held)
+                    if held_weapon and held_weapon["weapon_id"] not in owned_weapon_ids:
+                        hands[hand] = None
         if starting_gp is not None:
             session.world_state.setdefault("currency", {})["player"] = starting_gp * 100
         session.world_state["starting_equipment_source"] = "PHB2024-background-v1"

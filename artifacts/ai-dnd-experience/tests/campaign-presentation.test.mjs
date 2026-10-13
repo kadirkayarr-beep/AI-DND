@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 process.env.PORT ||= '4180';
 process.env.BASE_PATH ||= '/';
 delete process.env.REPL_ID;
-let vite, helpers, renderContext, renderDate, renderLibrary, renderAdventure;
+let vite, helpers, renderContext, renderDate, renderLibrary, renderAdventure, renderTranscript;
 before(async () => {
   const { createServer } = await import('vite');
   vite = await createServer({ configFile: path.join(process.cwd(), 'vite.config.ts'),
@@ -15,12 +15,16 @@ before(async () => {
   const { CampaignContextPanel, CampaignDate } = await vite.ssrLoadModule('/src/components/campaign-context-panel.tsx');
   const { CampaignLibrary } = await vite.ssrLoadModule('/src/components/campaign-library.tsx');
   const { AdventureJournalSection } = await vite.ssrLoadModule('/src/components/adventure-journal-section.tsx');
+  const { Transcript } = await vite.ssrLoadModule('/src/components/campaign-transcript.tsx');
   const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
   renderContext = (state) => renderToStaticMarkup(React.createElement(CampaignContextPanel, { state }));
   renderDate = (state) => renderToStaticMarkup(React.createElement(CampaignDate, { state }));
   renderAdventure = (adventure) => renderToStaticMarkup(React.createElement(AdventureJournalSection, { adventure }));
+  renderTranscript = (entries) => renderToStaticMarkup(React.createElement(Transcript, {
+    entries, scrollRef: React.createRef(), onScroll: () => {},
+  }));
   renderLibrary = (campaigns) => renderToStaticMarkup(React.createElement(QueryClientProvider, { client: new QueryClient() },
     React.createElement(CampaignLibrary, { campaigns, loading: false, resuming: false, resumingCampaignId: null, notice: null })));
 });
@@ -96,6 +100,50 @@ test('world panel excludes unrelated locations and NPCs without changing state',
   assert.match(html, /Kuzgun Hanı|Sema/);
   assert.doesNotMatch(html, /Uzak kale|Uzak kişi|Sahnede gösterilmemiş kişi/);
   assert.equal(JSON.stringify(data), before);
+});
+test('sanitized same-campaign P01 history renders both narrations with canonical location and clock', async () => {
+  const capture = JSON.parse(await readFile(new URL(
+    '../../../.local/evidence/F03/20261010T192142Z/P01/field-paths.json',
+    import.meta.url,
+  ), 'utf8'));
+  assert.equal(capture.phase, 'F03-P01');
+  assert.equal(capture.gate, 'PASS');
+  assert.equal(capture.constraints.campaigns_created, 1);
+  assert.equal(capture.constraints.accepted_turns, 2);
+  assert.ok(capture.source.campaign_id_sha256);
+
+  const saved = capture.steps.find((step) =>
+    step.name === 'read_only_saved_campaign_history_get' && step.history_length === 2);
+  const turns = capture.steps.filter((step) => step.name === 'native_turn');
+  assert.ok(saved);
+  assert.equal(turns.length, 2);
+  const history = saved.response_sanitized.history;
+  const stateSnapshot = saved.response_sanitized.state;
+  const lastTurnNarration = turns.at(-1).response_sanitized.narration;
+  assert.equal(history.at(-1).narration, lastTurnNarration);
+  assert.equal(stateSnapshot.location, 'fr:city:neverwinter');
+  assert.equal(stateSnapshot.locations[stateSnapshot.location].name, 'Neverwinter');
+  assert.deepEqual(
+    [stateSnapshot.campaign_time.day, stateSnapshot.campaign_time.month,
+      stateSnapshot.campaign_time.year, stateSnapshot.campaign_time.hour,
+      stateSnapshot.campaign_time.minute],
+    [1, 'Mirtul', 1501, 9, 0],
+  );
+
+  const entries = history.flatMap((entry) => [
+    { kind: 'player', text: entry.player_message },
+    { kind: 'narration', text: entry.narration },
+  ]);
+  const transcriptHtml = renderTranscript(entries);
+  for (const entry of history) assert.ok(transcriptHtml.includes(entry.narration));
+  assert.match(transcriptHtml, /data-testid="transcript-narration-1"/);
+  assert.match(transcriptHtml, /data-testid="transcript-narration-3"/);
+  assert.match(transcriptHtml, /aria-label="Hikâye akışı"/);
+  assert.match(renderTranscript([]), /data-testid="empty-transcript"/);
+
+  const contextHtml = renderContext(stateSnapshot);
+  assert.match(contextHtml, /Neverwinter/);
+  assert.match(contextHtml, /1 Mirtul 1501 DR · 09:00/);
 });
 test('only accepted quests, actual combat actor and canonical condition are presented', () => {
   const data = state();

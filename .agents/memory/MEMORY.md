@@ -36,6 +36,7 @@
 - [Equipment source authority](equipment-source-authority.md) — Python-owned starting labels are not proof of 2024 rules accuracy; do not silently monetize disputed legacy wealth.
 - [Journal NPC reference boundary](journal-npc-reference-boundary.md) — native NPC events need same-turn canonical encounter evidence; engine success alone is not API readiness.
 - [Vite dependency preview](vite-dependency-preview.md) — missing optimized dev dependencies can blank the preview despite healthy source/API routes and a passing build.
+- [Live Vite gate verification](live-vite-gate-verification.md) — config-loader tests do not prove a running dev server substituted a feature gate; inspect its live HTML/module output too.
 - [Large source transport](large-source-transport.md) — use file-backed transport rather than large shell stdout for authoritative source contents.
 - [Source preflight boundaries](source-preflight-boundaries.md) — accidental definition-loss checks must stay separate from intentional runtime patch fixtures.
 - [API engine spy signatures](api-engine-spy-signatures.md) — preserve callable signatures when observing real turns; generic mocks can change API dispatch.
@@ -44,3 +45,4 @@
 - [Defaulted response requirements](defaulted-response-requirements.md) — response presence guarantees differ from Pydantic construction requirements for defaulted health fields.
 - [Git guard errors](git-guard-errors.md) — read-only Git inspections can hit the tool's index-lock guard; this is not proof of repository corruption.
 - [Runner process evidence](runner-process-evidence.md) — catchable exceptions do not cover abrupt child exits; keep source checks separate from completion evidence.
+- [Private preview and Clerk transport](private-preview-clerk-transport.md) — Replit's preview cookie authenticates the edge; keep Clerk Bearer auth for Python and strip cookies at Vite.

@@ -29,6 +29,7 @@ import living_world
 import local_dialogue
 import quest_catalog
 import api.main as main_module
+from api.auth import FixedAuthenticator
 from api.campaign_journal import create_initial_campaign_journal
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
@@ -40,6 +41,7 @@ from api.persistence.campaign_models import (
 )
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
+from api.tests.auth_fixture import TEST_PLAYER
 
 
 class FakeOllamaClient:
@@ -53,15 +55,26 @@ class FakeOllamaClient:
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
+        isolated_identity_test = self._testMethodName in {
+            "test_turn_action_replays_after_resume_and_rejects_reused_payload",
+            "test_failed_autosave_rolls_back_turn_and_keeps_last_good_save",
+        }
         self.store = CampaignStore(
-            Path(self.temporary_directory.name) / "campaigns.sqlite3"
+            Path(self.temporary_directory.name) / "campaigns.sqlite3",
+            **({"bound_principal": TEST_PLAYER} if isolated_identity_test else {}),
         )
         self.manager = SessionManager(campaign_store=self.store)
         adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
         self.enterContext(adapter.engine_binding())
+        app_options = (
+            {"authenticator": FixedAuthenticator(TEST_PLAYER)}
+            if isolated_identity_test
+            else {}
+        )
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=adapter,
+            **app_options,
         )
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),
@@ -270,7 +283,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(calls), 1)
 
         reloaded_manager = SessionManager(
-            campaign_store=CampaignStore(self.store.path)
+            campaign_store=CampaignStore(
+                self.store.path,
+                bound_principal=TEST_PLAYER,
+            )
         )
         resumed_id, _, _, _, _ = reloaded_manager.resume_campaign(
             created["campaign_id"]
@@ -278,6 +294,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         reloaded_app = create_app(
             session_manager=reloaded_manager,
             ollama_adapter=None,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
         )
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reloaded_app),

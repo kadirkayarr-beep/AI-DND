@@ -149,15 +149,54 @@ class SmokeSummaryTests(unittest.TestCase):
 
 
 class TurnIntegrityTests(unittest.TestCase):
-    def test_model_outage_does_not_write_world_state(self):
+    def test_model_outage_keeps_deterministic_dialogue_mechanics_safe(self):
         session = game.create_session(seed=4)
-        before = copy.deepcopy(session.world_state)
-        with patch("game.ollama.chat", side_effect=TimeoutError("timed out")):
+        before_world = copy.deepcopy(session.world_state)
+        before_character = copy.deepcopy(session.character)
+        before_rng = session.rng.getstate()
+        before_turn_index = before_world.get("flags", {}).get("turn_index", 0)
+
+        with patch(
+            "game.ollama.chat", side_effect=TimeoutError("timed out")
+        ) as chat:
             result = session.run_player_turn("merhaba")
-        self.assertEqual(result["action_result"]["status"], "infrastructure_failure")
-        self.assertEqual(result["action_result"]["infrastructure_code"], "intent_timeout")
-        self.assertEqual(session.world_state, before)
-        self.assertIn("narration", result)
+
+        action_result = result["action_result"]
+        self.assertEqual(action_result["action"], "dialogue")
+        self.assertEqual(action_result["status"], "resolved")
+        self.assertIs(action_result["success"], True)
+
+        narration = result.get("narration")
+        self.assertIsInstance(narration, str)
+        self.assertTrue(narration.strip())
+
+        evidence = result.get("_engine_event_evidence", {})
+        telemetry = evidence.get("telemetry", {})
+        self.assertEqual(telemetry.get("intent_model_calls"), 1)
+        self.assertEqual(telemetry.get("narration_model_calls"), 1)
+        self.assertLessEqual(telemetry.get("total_model_calls", 3), 2)
+        self.assertEqual(telemetry.get("narration_source"), "deterministic_fallback")
+        self.assertEqual(telemetry.get("fallback_reason"), "MODEL_UNAVAILABLE")
+        self.assertEqual(chat.call_count, 2)
+
+        self.assertEqual(session.character, before_character)
+        self.assertEqual(session.rng.getstate(), before_rng)
+        self.assertEqual(
+            session.world_state.get("flags", {}).get("turn_index"),
+            before_turn_index + 1,
+        )
+
+        # A recognized dialogue may append NPC/player conversation memory.
+        # It must not otherwise mutate canonical world state.
+        after_world = copy.deepcopy(session.world_state)
+        for world in (before_world, after_world):
+            flags = world.get("flags")
+            if isinstance(flags, dict):
+                flags.pop("turn_index", None)
+            for npc in world.get("npcs", []):
+                if isinstance(npc, dict):
+                    npc.pop("memory", None)
+        self.assertEqual(after_world, before_world)
 
     def test_malformed_intent_json_is_not_an_unknown_success(self):
         session = game.create_session(seed=5)
@@ -181,6 +220,178 @@ class TurnIntegrityTests(unittest.TestCase):
             result["action_result"].get("status"),
             "infrastructure_failure",
         )
+
+    def test_model_timeout_on_unknown_input_does_not_apply_mechanics(self):
+        session = game.create_session(seed=8)
+        before_world = copy.deepcopy(session.world_state)
+        before_character = copy.deepcopy(session.character)
+        before_hp = session.character.get("current_hp")
+        before_inventory = copy.deepcopy(session.character.get("inventory"))
+        before_location = before_world.get("location")
+        before_shops = copy.deepcopy(before_world.get("shops"))
+        before_quests = {
+            key: copy.deepcopy(value)
+            for key, value in before_world.items()
+            if "quest" in key.casefold()
+        }
+        before_rng = session.rng.getstate()
+        before_turn_index = before_world.get("flags", {}).get("turn_index", 0)
+
+        with patch(
+            "game.ollama.chat", side_effect=TimeoutError("timed out")
+        ) as chat:
+            result = session.run_player_turn("asdf qqq")
+
+        action_result = result["action_result"]
+        self.assertEqual(action_result.get("action"), "unknown")
+        self.assertIn(
+            action_result.get("status"),
+            {"resolved", "clarification", "no_effect"},
+        )
+        self.assertEqual(action_result.get("state_changes", []), [])
+        for key in (
+            "skill",
+            "dice",
+            "damage",
+            "item_result",
+            "quest_outcomes",
+            "travel_outcome",
+        ):
+            self.assertNotIn(key, action_result)
+
+        narration = result.get("narration")
+        self.assertIsInstance(narration, str)
+        self.assertTrue(narration.strip())
+        telemetry = result.get("_engine_event_evidence", {}).get("telemetry", {})
+        self.assertEqual(telemetry.get("intent_model_calls"), 1)
+        self.assertEqual(telemetry.get("narration_model_calls"), 1)
+        self.assertLessEqual(telemetry.get("total_model_calls", 3), 2)
+        self.assertEqual(telemetry.get("narration_source"), "deterministic_fallback")
+        self.assertEqual(telemetry.get("fallback_reason"), "MODEL_UNAVAILABLE")
+        self.assertEqual(chat.call_count, 2)
+
+        self.assertEqual(session.character, before_character)
+        self.assertEqual(session.character.get("current_hp"), before_hp)
+        self.assertEqual(session.character.get("inventory"), before_inventory)
+        self.assertEqual(session.rng.getstate(), before_rng)
+        self.assertEqual(session.world_state.get("location"), before_location)
+        self.assertEqual(session.world_state.get("shops"), before_shops)
+        self.assertEqual(
+            {
+                key: value
+                for key, value in session.world_state.items()
+                if "quest" in key.casefold()
+            },
+            before_quests,
+        )
+        self.assertEqual(
+            session.world_state.get("flags", {}).get("turn_index"),
+            before_turn_index + 1,
+        )
+
+        after_world = copy.deepcopy(session.world_state)
+        for world in (before_world, after_world):
+            flags = world.get("flags")
+            if isinstance(flags, dict):
+                flags.pop("turn_index", None)
+        self.assertEqual(after_world, before_world)
+
+    def test_narration_timeout_preserves_python_skill_check_result(self):
+        session = game.create_session(seed=1)
+        player_input = "I investigate signs that Neverwinter is rebuilding."
+        intent_response = {
+            "message": {
+                "content": (
+                    '{"intent":"investigation","action":"investigate",'
+                    '"target":{"type":"none","reference":""},'
+                    '"completion":"unclear","confidence":1.0,'
+                    '"interaction":{"operation":"none","quote":'
+                    '"I investigate signs that Neverwinter is rebuilding."}}'
+                )
+            }
+        }
+        session.initialize_species_trait_state()
+        before_world = copy.deepcopy(session.world_state)
+        before_character = copy.deepcopy(session.character)
+        before_hp = session.character.get("current_hp")
+        before_inventory = copy.deepcopy(session.character.get("inventory"))
+        before_world_inventory = copy.deepcopy(session.world_state.get("inventory"))
+        before_location = before_world.get("location")
+        before_shops = copy.deepcopy(before_world.get("shops"))
+        before_quests = {
+            key: copy.deepcopy(value)
+            for key, value in before_world.items()
+            if "quest" in key.casefold()
+        }
+        before_turn_index = before_world.get("flags", {}).get("turn_index", 0)
+
+        with patch(
+            "game.ollama.chat",
+            side_effect=[intent_response, TimeoutError("narration timeout")],
+        ) as chat, patch("game.roll_d20", wraps=game.roll_d20) as roll_d20:
+            result = session.run_player_turn(player_input)
+
+        action_result = result["action_result"]
+        self.assertEqual(action_result.get("action"), "skill_check")
+        self.assertEqual(action_result.get("skill"), "Investigation")
+        self.assertEqual(action_result.get("status"), "resolved")
+        self.assertIn(action_result.get("outcome"), {"success", "failure"})
+        self.assertIs(action_result.get("success"), action_result["outcome"] == "success")
+        self.assertEqual(roll_d20.call_count, 1)
+        self.assertIsInstance(action_result.get("dice"), int)
+        self.assertGreaterEqual(action_result["dice"], 1)
+        self.assertLessEqual(action_result["dice"], 20)
+        self.assertEqual(
+            action_result["dice"],
+            action_result["resolution"]["selected_roll"],
+        )
+        self.assertEqual(
+            action_result["outcome"],
+            action_result["resolution"]["outcome"].casefold(),
+        )
+
+        narration = result.get("narration")
+        self.assertIsInstance(narration, str)
+        expected_outcome_text = (
+            "başarılı" if action_result["outcome"] == "success" else "sonuç vermedi"
+        )
+        self.assertIn(expected_outcome_text, narration.casefold())
+
+        telemetry = result.get("_engine_event_evidence", {}).get("telemetry", {})
+        self.assertEqual(telemetry.get("intent_model_calls"), 1)
+        self.assertEqual(telemetry.get("narration_model_calls"), 1)
+        self.assertLessEqual(telemetry.get("total_model_calls", 3), 2)
+        self.assertEqual(telemetry.get("narration_source"), "deterministic_fallback")
+        self.assertEqual(telemetry.get("fallback_reason"), "MODEL_UNAVAILABLE")
+        self.assertEqual(chat.call_count, 2)
+
+        self.assertEqual(session.character, before_character)
+        self.assertEqual(session.character.get("current_hp"), before_hp)
+        self.assertEqual(session.character.get("inventory"), before_inventory)
+        self.assertEqual(session.world_state.get("inventory"), before_world_inventory)
+        self.assertEqual(session.world_state.get("location"), before_location)
+        self.assertEqual(session.world_state.get("shops"), before_shops)
+        self.assertEqual(
+            {
+                key: value
+                for key, value in session.world_state.items()
+                if "quest" in key.casefold()
+            },
+            before_quests,
+        )
+        self.assertEqual(
+            session.world_state.get("flags", {}).get("turn_index"),
+            before_turn_index + 1,
+        )
+        expected_world = copy.deepcopy(before_world)
+        expected_world["flags"]["turn_index"] = before_turn_index + 1
+        expected_categories = copy.deepcopy(
+            expected_world.get("adventure_recent_categories", [])
+        )
+        self.assertIsInstance(expected_categories, list)
+        expected_categories.append("investigation")
+        expected_world["adventure_recent_categories"] = expected_categories[-6:]
+        self.assertEqual(session.world_state, expected_world)
 
     def test_self_query_beats_active_npc_dialogue(self):
         session = game.create_session(seed=7)

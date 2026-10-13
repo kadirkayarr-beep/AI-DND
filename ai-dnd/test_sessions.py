@@ -1517,6 +1517,52 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(game.serialize_game_state(), self.default_before)
         self.assertEqual(game._DEFAULT_SESSION.rng.getstate(), rng_default)
 
+    def test_short_rest_does_not_restore_expended_sorcerer_spell_slot(self):
+        import spell_scope
+
+        session = self.a
+        session.world_state["location"] = "tavern"
+        session.character.update(
+            species="Human", race="Human", level=1, proficiency_bonus=2,
+            current_hp=13, max_hp=19, charisma=16,
+            cantrips=["Fire Bolt"],
+            spells=["Magic Missile", "Shield"],
+            **{"class": "Sorcerer"},
+        )
+        game.initialize_species_trait_state(session=session)
+        spell_scope.initialize(session)
+        spell_state = session.world_state["spellcasting_v1"]
+        self.assertEqual(spell_state["slots"], {"1": 2})
+        spell_state["slots"]["1"] = 1
+
+        game.ensure_campaign_clock(session=session)
+        game.ensure_death_state(session=session)
+        combat = game.ensure_combat_state(session=session)
+        self.assertFalse(combat["active"])
+        spell_state_before = copy.deepcopy(spell_state)
+        hp_before = session.character["current_hp"]
+        elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
+
+        result = game.resolve_species_trait_action(
+            "short_rest", session=session, elapsed_seconds=3600,
+        )
+
+        time_result = result["effects"]["time_result"]
+        elapsed_after = session.world_state["campaign_time"]["elapsed_seconds"]
+        self.assertEqual(result["action"], "short_rest")
+        self.assertFalse(time_result["interrupted"])
+        self.assertEqual(time_result["elapsed_seconds"], 3600)
+        self.assertEqual(elapsed_after, elapsed_before + 3600)
+        self.assertEqual(session.world_state["spellcasting_v1"], spell_state_before)
+        self.assertEqual(session.world_state["spellcasting_v1"]["slots"]["1"], 1)
+        self.assertEqual(session.character["current_hp"], hp_before)
+        print(
+            "LR00_SHORT_REST_SLOT_EVIDENCE "
+            f"slot_before=1 slot_after={session.world_state['spellcasting_v1']['slots']['1']} "
+            f"elapsed_before={elapsed_before} elapsed_after={elapsed_after} "
+            f"hp_before={hp_before} hp_after={session.character['current_hp']}"
+        )
+
     def test_overlapping_short_rests_recharge_only_their_own_orc(self):
         for first_index in (0, 1):
             with self.subTest(first_index=first_index):

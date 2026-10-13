@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -22,10 +23,13 @@ if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
 
 import game
+from api.auth import FixedAuthenticator
 from api.main import create_app
 from api.ollama_adapter import AuthenticatedOllamaAdapter
+from api.persistence.campaign_store import CampaignStore
 from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
+from api.tests.auth_fixture import TEST_PLAYER
 
 
 class FakeOllamaClient:
@@ -49,13 +53,31 @@ class FakeOllamaClient:
 
 class ApiContractTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.manager = SessionManager()
+        isolated_model_call_limit_test = (
+            self._testMethodName
+            == "test_model_call_limit_enforced_by_captured_calls_ignoring_telemetry_claim"
+        )
+        app_options = {}
+        if isolated_model_call_limit_test:
+            self.temporary_directory = tempfile.TemporaryDirectory(
+                prefix="ai-dnd-model-call-limit-"
+            )
+            self.addCleanup(self.temporary_directory.cleanup)
+            self.store = CampaignStore(
+                Path(self.temporary_directory.name) / "campaigns.sqlite3",
+                bound_principal=TEST_PLAYER,
+            )
+            self.manager = SessionManager(campaign_store=self.store)
+            app_options["authenticator"] = FixedAuthenticator(TEST_PLAYER)
+        else:
+            self.manager = SessionManager()
         self.fake_client = FakeOllamaClient()
         self.adapter = AuthenticatedOllamaAdapter(self.fake_client)
         self.enterContext(self.adapter.engine_binding())
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=self.adapter,
+            **app_options,
         )
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),

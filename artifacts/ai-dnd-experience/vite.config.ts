@@ -89,6 +89,19 @@ export default defineConfig({
       '/api': {
         target: process.env.AI_DND_API_ORIGIN || 'http://127.0.0.1:8008',
         changeOrigin: true,
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyReq) => {
+            // Replit's private-preview cookie authenticates the edge only.
+            // The Python API uses Clerk Bearer auth and must not receive cookies.
+            proxyReq.removeHeader('cookie');
+            if (
+              port === 22886 &&
+              process.env.AI_DND_F03_P03_STRIP_REPLIT_ID === '1'
+            ) {
+              proxyReq.removeHeader('x-replit-user-id');
+            }
+          });
+        },
       },
     },
   },

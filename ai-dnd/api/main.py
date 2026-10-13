@@ -33,6 +33,7 @@ from api.auth import (
     reset_principal,
     select_authenticator,
 )
+from api.auth_diagnostics import enabled_for_request, safe_failure_category
 import campaign_time
 import combat_lifecycle
 import scheduled_events
@@ -464,7 +465,16 @@ def create_app(
                 )
             else:
                 principal = authenticate(verifier)
-        except AuthenticationError:
+        except AuthenticationError as error:
+            if enabled_for_request(
+                os.environ.get("AI_DND_AUTH_DIAGNOSTICS"),
+                os.environ.get("AI_DND_AUTH_MODE"),
+                request.scope.get("server"),
+            ):
+                _logger.warning(
+                    "isolated_auth_rejected category=%s",
+                    safe_failure_category(getattr(error, "diagnostic_category", None)),
+                )
             return JSONResponse(
                 status_code=401,
                 content={

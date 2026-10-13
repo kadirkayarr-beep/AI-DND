@@ -9,6 +9,7 @@ import {
   rotateAuthEpoch,
   setAuthTokenGetter,
   setBaseUrl,
+  setProtectedRequestCredentials,
 } from '@workspace/api-client-react/custom-fetch';
 import {
   accountWriteAllowed,
@@ -60,6 +61,7 @@ function jsonResponse(body = { ok: true }, status = 200) {
 afterEach(() => {
   setAuthTokenGetter(null);
   setBaseUrl(null);
+  setProtectedRequestCredentials('omit');
   globalThis.fetch = originalFetch;
   if (originalWindow === undefined) delete globalThis.window;
   else globalThis.window = originalWindow;
@@ -96,6 +98,24 @@ test('a fresh Clerk token is attached only to an approved same-origin API reques
   const body = await customFetch('/api/campaigns?access_token=sekret&ok=1', { method: 'POST', body: '{}' });
   assert.deepEqual(body, { campaigns: [] });
   assert.equal(calls, 1);
+});
+
+test('the isolated preview can include same-origin gate credentials without forwarding cookies to the API', async () => {
+  installWindow('https://test-app.replit.dev:3003');
+  const testBearer = 'test-only-bearer-value';
+  setProtectedRequestCredentials('include');
+  setAuthTokenGetter(async () => testBearer);
+  globalThis.fetch = async (input, init) => {
+    const headers = new Headers(init.headers);
+    assert.equal(String(input), '/api/game/campaigns');
+    assert.equal(init.credentials, 'include');
+    assert.equal(init.redirect, 'error');
+    assert.equal(headers.get('authorization'), `Bearer ${testBearer}`);
+    assert.equal(headers.get('cookie'), null);
+    return jsonResponse([]);
+  };
+
+  assert.deepEqual(await customFetch('/api/game/campaigns'), []);
 });
 
 test('public catalogs and unexpected destinations do not receive a bearer token', async () => {

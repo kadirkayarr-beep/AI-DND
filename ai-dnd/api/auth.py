@@ -33,6 +33,15 @@ _OIDC_ENV = (
 class AuthenticationError(Exception):
     """No server-verified principal is available."""
 
+    def __init__(
+        self,
+        message: str = "",
+        *,
+        diagnostic_category: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.diagnostic_category = diagnostic_category
+
 
 @dataclass(frozen=True)
 class Principal:

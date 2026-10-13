@@ -49,7 +49,12 @@ from urllib.parse import urlsplit
 import jwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
-from jwt.exceptions import InvalidSignatureError, InvalidTokenError
+from jwt.exceptions import (
+    InvalidAudienceError,
+    InvalidIssuerError,
+    InvalidSignatureError,
+    InvalidTokenError,
+)
 
 from api.auth import AuthenticationError, Principal
 from api.clerk_jwks import ClerkJwksCache, PinnedHttpsJwksTransport, jwks_url_for
@@ -125,14 +130,20 @@ class ClerkSessionVerifier:
     def verify(self, token: str, *, now: float | None = None) -> Principal:
         """Return the verified principal. Every failure is authentication failure."""
         if type(token) is not str or token == "" or len(token) > _MAX_TOKEN_CHARACTERS:
-            raise AuthenticationError("Authentication failed.")
-        header = _untrusted_header(token)
+            raise AuthenticationError("Authentication failed.", diagnostic_category="token_format_rejected")
+        try:
+            header = _untrusted_header(token)
+        except AuthenticationError:
+            raise AuthenticationError("Authentication failed.", diagnostic_category="token_header_rejected") from None
         current = time.time() if now is None else now
         if type(current) is not int and type(current) is not float:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="verifier_clock_rejected")
         if current != current or current in (float("inf"), float("-inf")):
-            raise AuthenticationError("Authentication failed.")
-        key = self._keys.key_for(header["kid"], now=float(current))
+            raise AuthenticationError("Authentication failed.", diagnostic_category="verifier_clock_rejected")
+        try:
+            key = self._keys.key_for(header["kid"], now=float(current))
+        except Exception:
+            raise AuthenticationError("Authentication failed.", diagnostic_category="jwks_key_rejected") from None
         options = {
             "verify_signature": True,
             "verify_exp": False,
@@ -162,29 +173,36 @@ class ClerkSessionVerifier:
                     options=options,
                 )
         except InvalidSignatureError:
-            raise AuthenticationError("Authentication failed.") from None
+            raise AuthenticationError("Authentication failed.", diagnostic_category="signature_rejected") from None
+        except InvalidIssuerError:
+            raise AuthenticationError("Authentication failed.", diagnostic_category="issuer_rejected") from None
+        except InvalidAudienceError:
+            raise AuthenticationError("Authentication failed.", diagnostic_category="audience_rejected") from None
         except InvalidTokenError:
-            raise AuthenticationError("Authentication failed.") from None
+            raise AuthenticationError("Authentication failed.", diagnostic_category="jwt_claims_rejected") from None
         if type(claims) is not dict:
-            raise AuthenticationError("Authentication failed.")
-        _require_session_claims(
-            claims,
-            issuer=self._issuer,
-            authorized_parties=self._authorized_parties,
-            audience=self._audience,
-            now=float(current),
-            clock_skew_seconds=self._clock_skew_seconds,
-        )
+            raise AuthenticationError("Authentication failed.", diagnostic_category="jwt_claims_rejected")
+        try:
+            _require_session_claims(
+                claims,
+                issuer=self._issuer,
+                authorized_parties=self._authorized_parties,
+                audience=self._audience,
+                now=float(current),
+                clock_skew_seconds=self._clock_skew_seconds,
+            )
+        except AuthenticationError:
+            raise
         try:
             return Principal(self._issuer, claims["sub"])
         except (AuthenticationError, ValueError):
-            raise AuthenticationError("Authentication failed.") from None
+            raise AuthenticationError("Authentication failed.", diagnostic_category="subject_rejected") from None
 
 
 def _untrusted_header(token: str) -> dict[str, str]:
     parts = token.split(".")
     if len(parts) != 3 or any(part == "" for part in parts):
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="token_format_rejected")
     try:
         header = json.loads(_b64url_decode(parts[0]))
     except (ValueError, json.JSONDecodeError):
@@ -211,41 +229,41 @@ def _require_session_claims(
     clock_skew_seconds: int,
 ) -> None:
     if claims.get("iss") != issuer:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="issuer_rejected")
     for name in ("exp", "iat", "nbf"):
         if type(claims.get(name)) is not int:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="token_time_rejected")
     exp = claims["exp"]
     iat = claims["iat"]
     nbf = claims["nbf"]
     if type(exp) is not int or type(iat) is not int or type(nbf) is not int:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="token_time_rejected")
     if iat > exp or nbf > exp or exp - iat > MAX_TOKEN_LIFETIME_SECONDS:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="token_time_rejected")
     if exp <= (now - clock_skew_seconds):
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="token_time_rejected")
     if nbf > (now + clock_skew_seconds) or iat > (now + clock_skew_seconds):
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="token_time_rejected")
     azp = claims.get("azp")
     if type(azp) is not str or azp not in authorized_parties:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="authorized_party_rejected")
     sid = claims.get("sid")
     if type(sid) is not str or sid == "" or sid.strip() != sid or len(sid) > 512:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="session_claim_rejected")
     _require_session_status(claims)
     if audience is None:
         if "aud" in claims and claims.get("aud") not in (None, ""):
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="audience_rejected")
         return
     if claims.get("aud") != audience:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="audience_rejected")
 
 
 def _require_session_status(claims: dict[str, object]) -> None:
     if "sts" not in claims:
         return
     if claims.get("sts") != "active":
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="session_status_rejected")
 
 
 class _StaticKeySource:
@@ -414,11 +432,20 @@ class ClerkAuthenticator:
         """Return the principal for one bearer token. Failures stay anonymous."""
         try:
             token = _bearer_token(headers, cookies)
+        except AuthenticationError as error:
+            raise AuthenticationError(
+                "Authentication failed.",
+                diagnostic_category=error.diagnostic_category or "bearer_parse_rejected",
+            ) from None
+        try:
             return self._verifier.verify(token)
         except AuthenticationError:
             raise
         except Exception:
-            raise AuthenticationError("Authentication failed.") from None
+            raise AuthenticationError(
+                "Authentication failed.",
+                diagnostic_category="verifier_internal_failure",
+            ) from None
 
 
 def clerk_authenticator_from_environ(environ: Mapping[str, str]) -> ClerkAuthenticator:
@@ -485,42 +512,44 @@ def _bearer_token(
     cookies: tuple[tuple[str, str], ...] | list[tuple[str, str]],
 ) -> str:
     if type(headers) not in (tuple, list) or type(cookies) not in (tuple, list):
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="header_shape_rejected")
     authorizations: list[bytes] = []
     for item in headers:
         if type(item) is not tuple or len(item) != 2:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="header_shape_rejected")
         name, value = item
         if type(name) is not bytes or type(value) is not bytes:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="header_shape_rejected")
         lowered = name.lower()
         if lowered == b"authorization":
             authorizations.append(value)
         elif lowered in _IDENTITY_HEADERS:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="identity_header_rejected")
         elif lowered == b"cookie" and _cookie_names_session(value):
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="legacy_session_cookie_rejected")
     for item in cookies:
         if type(item) is not tuple or len(item) != 2 or type(item[0]) is not str:
-            raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="header_shape_rejected")
         if item[0].lower() == _SESSION_COOKIE_NAME:
-            raise AuthenticationError("Authentication failed.")
-    if len(authorizations) != 1:
-        raise AuthenticationError("Authentication failed.")
+            raise AuthenticationError("Authentication failed.", diagnostic_category="legacy_session_cookie_rejected")
+    if not authorizations:
+        raise AuthenticationError("Authentication failed.", diagnostic_category="authorization_header_missing")
+    if len(authorizations) > 1:
+        raise AuthenticationError("Authentication failed.", diagnostic_category="authorization_header_multiple")
     raw = authorizations[0]
     if len(raw) > len(_BEARER_PREFIX) + _MAX_TOKEN_CHARACTERS:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="bearer_format_rejected")
     try:
         text = raw.decode("ascii")
     except UnicodeError:
-        raise AuthenticationError("Authentication failed.") from None
-    if not text.startswith(_BEARER_PREFIX) or " " in text[len(_BEARER_PREFIX):]:
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="bearer_format_rejected") from None
+    if not text.startswith(_BEARER_PREFIX):
+        raise AuthenticationError("Authentication failed.", diagnostic_category="authorization_scheme_rejected")
     token = text[len(_BEARER_PREFIX):]
-    if token == "" or len(token) > _MAX_TOKEN_CHARACTERS:
-        raise AuthenticationError("Authentication failed.")
+    if token == "" or len(token) > _MAX_TOKEN_CHARACTERS or " " in token:
+        raise AuthenticationError("Authentication failed.", diagnostic_category="bearer_format_rejected")
     if any(ord(character) < 33 or ord(character) == 127 for character in token):
-        raise AuthenticationError("Authentication failed.")
+        raise AuthenticationError("Authentication failed.", diagnostic_category="bearer_format_rejected")
     return token
 
 

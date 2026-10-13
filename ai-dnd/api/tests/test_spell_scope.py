@@ -139,6 +139,33 @@ class SpellEngineTests(unittest.TestCase):
         self.assertEqual(dice.call_args_list, [call(1, 8)] * 2)
         self.assertEqual(s.world_state["spellcasting_v1"]["slots"]["1"], 1)
 
+    def test_no_slot_cast_rejection_is_atomic(self):
+        s, enemy = caster(cls="Sorcerer")
+        spell_state = s.world_state["spellcasting_v1"]
+        self.assertIn("Magic Missile", spell_state["prepared"])
+        self.assertEqual(spell_state["slots"], {"1": 2})
+
+        spell_state["slots"]["1"] = 0
+        before_world_state = copy.deepcopy(s.world_state)
+        before_character = copy.deepcopy(s.character)
+        before_spell_state = copy.deepcopy(spell_state)
+        before_rng = s.rng.getstate()
+
+        with self.assertRaises(ValueError) as raised:
+            spell_scope.cast(s, "Magic Missile", enemy["id"])
+
+        self.assertEqual(raised.exception.code, "spell_slot_unavailable")
+        self.assertEqual(s.world_state, before_world_state)
+        self.assertEqual(s.character, before_character)
+        self.assertEqual(s.world_state["spellcasting_v1"], before_spell_state)
+        self.assertEqual(s.rng.getstate(), before_rng)
+        print(
+            "F10_BASE_AC002_NO_SLOT "
+            "error=spell_slot_unavailable; "
+            "level1_slots=0->0; world_state=unchanged; "
+            "character=unchanged; spell_state=unchanged; rng=unchanged"
+        )
+
     def test_rejections_are_atomic(self):
         cases = (
             ("unsupported", "Sleep", "enemy", None), ("unprepared", "Magic Missile", "enemy", None),

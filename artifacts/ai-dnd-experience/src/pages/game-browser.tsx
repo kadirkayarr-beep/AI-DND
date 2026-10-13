@@ -66,11 +66,11 @@ import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { accountWriteAllowed } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
-import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState, SkillCheckResult } from '@workspace/api-client-react';
+import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
 import { CharacterCreationScreen } from '@/components/character-creation-screen';
-import { SkillCheckResultCard } from '@/components/skill-check-result';
 import { ActionEconomyPanel } from '@/components/action-economy-panel';
 import { SpellcastingPanel } from '@/components/spellcasting-panel';
 import { CampaignContextPanel, CampaignDate } from '@/components/campaign-context-panel';
@@ -88,7 +88,6 @@ const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
 
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
-type TranscriptEntry = { kind: 'player' | 'narration'; text: string; skillCheckResult?: SkillCheckResult };
 type Drawer = 'character' | 'world' | null;
 type WorldTab = 'world' | 'npcs' | 'journal' | 'combat';
 
@@ -514,11 +513,6 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
       </div>
     </aside>
   );
-}
-
-function Transcript({ entries, scrollRef, onScroll }: { entries: TranscriptEntry[]; scrollRef: RefObject<HTMLDivElement | null>; onScroll: () => void }) {
-  if (!entries.length) return <div className="empty-line mt-4" data-testid="empty-transcript">İlk hamleni yaz. Dünya seçiminin ardından karşılık verecek.</div>;
-  return <div className="transcript-scroll" ref={scrollRef} onScroll={onScroll} data-testid="transcript-scroll" tabIndex={0} aria-label="Hikâye akışı"><div className="mt-2" data-testid="transcript-local">{entries.map((entry, index) => entry.kind === 'player' ? <div className="player-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-player-${index}`}><div className="player-label"><MessageCircle size={12} /> Sen</div>{entry.text}</div> : <div className="story-entry" key={`${entry.kind}-${index}`} data-testid={`transcript-narration-${index}`}><p className="story-text">{entry.text}</p>{entry.skillCheckResult && <SkillCheckResultCard result={entry.skillCheckResult} />}</div>)}</div><div className="reader-note">Sahne, kişiler ve öykü notları sağ panelde</div></div>;
 }
 
 function StoryColumn({

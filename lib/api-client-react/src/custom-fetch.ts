@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _protectedRequestCredentials: "omit" | "include" = "omit";
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -36,6 +37,17 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Opt a single app runtime into same-origin browser credentials for protected
+ * requests. Defaults to omit; the isolated Replit-preview app opts in so the
+ * outer preview gate can authenticate before Vite strips cookies upstream.
+ */
+export function setProtectedRequestCredentials(
+  credentials: "omit" | "include",
+): void {
+  _protectedRequestCredentials = credentials;
 }
 
 const PUBLIC_API_PATHS = new Set([
@@ -497,7 +509,7 @@ export async function customFetch<T = unknown>(
     if (!token) throw new ApiRequestError("authentication_required");
     headers.delete("cookie");
     headers.set("Authorization", `Bearer ${token}`);
-    credentials = "omit";
+    credentials = init.credentials ?? _protectedRequestCredentials;
     redirectMode = "error";
     signal = combineSignals(epochSignal, init.signal);
   }

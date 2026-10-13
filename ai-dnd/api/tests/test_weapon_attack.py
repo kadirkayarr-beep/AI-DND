@@ -12,6 +12,7 @@ import game
 import action_economy as ae
 import equipment_economy
 import weapon_attack as attack
+from api.character_creation import configure_character
 from weapon_catalog import WEAPONS, lookup
 from combat_lifecycle import CombatRequestError
 from api.tests.test_combat_lifecycle import ready, CombatLifecycleApiTests
@@ -1928,6 +1929,74 @@ class WeaponTests(unittest.TestCase):
             attack.resolve(s, "player", n["id"], "longsword", {})
         self.assertEqual(raised.exception.code, "weapon_not_held")
         self.assertEqual((s.world_state, s.character, s.rng.getstate()), before)
+
+    def test_new_fighter_package_c_greatsword_identity_and_draw(self):
+        s = game.GameSession(seed=20261012)
+        configure_character(
+            s,
+            mode="custom",
+            name="LR00 package C",
+            species="Dwarf",
+            character_class="Fighter",
+            background="Soldier",
+            alignment="Neutral Good",
+            ability_score_method="standard_array",
+            ability_scores={
+                "strength": 15, "constitution": 14, "dexterity": 13,
+                "wisdom": 12, "intelligence": 10, "charisma": 8,
+            },
+            background_ability_bonuses={"strength": 2, "constitution": 1},
+            proficient_skills=["Athletics", "Intimidation", "Perception", "Survival"],
+            equipment_package="C",
+            background_equipment_option="A",
+            fighting_style="Defense",
+            languages=["Common", "Dwarvish", "Elvish"],
+        )
+
+        self.assertIn("Büyük Kılıç (Greatsword)", s.character["equipment_choices"])
+        equipment_economy.materialize(s.world_state)
+        greatsword = next(
+            item for item in s.world_state["inventory"]
+            if item.get("weapon_id") == "greatsword"
+        )
+        self.assertEqual(lookup(greatsword["weapon_id"])["name"], "Greatsword")
+        self.assertIsNone(s.world_state["equipment"]["main_hand"])
+        self.assertIsNone(s.world_state["equipment"]["off_hand"])
+
+        s.world_state["location"] = "tavern"
+        npc = s.create_npc_from_ai({
+            "name": "Package C probe target", "role": "Guard", "location": "tavern",
+        })
+        npc.update(
+            current_hp=40, max_hp=40, armor_class=20, hostile=True, distance_ft=5,
+        )
+        s.world_state.setdefault("monster_perception", {})[npc["id"]] = {
+            "player": {"visible": True},
+        }
+        with patch("game.roll_initiative_player", return_value=20), patch(
+            "game.roll_initiative", return_value=1
+        ):
+            s.start_combat(npc)
+
+        before = copy.deepcopy((s.world_state, s.character, s.rng.getstate()))
+        with self.assertRaises(CombatRequestError) as raised:
+            attack.prepare(s, "player", npc["id"], "greatsword")
+        self.assertEqual(raised.exception.code, "weapon_not_held")
+        self.assertEqual((s.world_state, s.character, s.rng.getstate()), before)
+
+        prepared = attack.prepare(
+            s, "player", npc["id"], "greatsword", {"draw": True},
+        )
+        self.assertEqual(prepared["weapon"]["weapon_id"], "greatsword")
+        self.assertEqual(prepared["weapon"]["instance_id"], greatsword["item_id"])
+        self.assertEqual(
+            prepared["weapon"]["equipment_after"]["main_hand"],
+            greatsword["item_id"],
+        )
+        self.assertEqual(
+            (s.world_state, s.character, s.rng.getstate()), before,
+            "prepare is a preview; the selected draw is committed only by resolution",
+        )
 
     def test_natural_language_choices_no_stats_from_prose(self):
         s, n = armed("Dagger")
