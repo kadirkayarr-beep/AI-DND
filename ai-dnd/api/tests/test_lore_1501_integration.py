@@ -67,7 +67,7 @@ class Lore1501IntegrationTests(unittest.TestCase):
             self.assertEqual(_sha(PACKS / name), expected)
         self.assertEqual(LORE_PAYLOAD_VERSION, 2)
         self.assertEqual(CAMPAIGN_FORMAT_VERSION, 1)
-        self.assertEqual(_DATABASE_SCHEMA_VERSION, 5)
+        self.assertEqual(_DATABASE_SCHEMA_VERSION, 6)
         import game
 
         self.assertEqual(game.SAVE_FORMAT_VERSION, 4)

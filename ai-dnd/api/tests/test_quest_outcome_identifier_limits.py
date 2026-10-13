@@ -21,6 +21,8 @@ from api.serializers import serialize_session_state
 from api.session_manager import SessionManager
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 SPEC_PATH = Path(__file__).resolve().parents[3] / "lib/api-spec/openapi.yaml"
 OUTCOME_SCHEMA = yaml.safe_load(SPEC_PATH.read_text())["components"]["schemas"]["QuestOutcome"]
 QUEST_ID = "quest." + "q" * 114
@@ -228,7 +230,7 @@ class QuestOutcomeIdentifierApiTests(OutcomeAssertions, unittest.IsolatedAsyncio
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(
                 session_manager=self.manager, ollama_adapter=adapter,
-            )),
+            authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://testserver",
         )
 

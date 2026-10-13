@@ -1,0 +1,571 @@
+diff --git a/ai-dnd/api/serializers.py b/ai-dnd/api/serializers.py
+index b62db7b..0b7dfb9 100644
+--- a/ai-dnd/api/serializers.py
++++ b/ai-dnd/api/serializers.py
+@@ -216,10 +216,48 @@ def _project_fields(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
+         for field in fields
+         if field in value
+     }
+ 
+ 
++_LIVE_SPELL_PROJECTION_FIELDS = ("cantrips", "spells", "spell_slots_remaining")
++
++
++def _validated_live_spell_field(field: str, value: Any) -> Any:
++    """Return a detached copy when one allowlisted spell field matches the save contract."""
++    import spells
++
++    probe = spells.empty_spell_state()
++    probe[field] = copy.deepcopy(value)
++    try:
++        spells.validate_saved_spell_fields(probe)
++    except (TypeError, ValueError):
++        return None
++    return probe[field]
++
++
++def _overlay_live_spell_fields(
++    character: dict[str, Any],
++    session: Any,
++    saved_player: Mapping[str, Any],
++) -> None:
++    """Show live spell state when a v3 snapshot omits those fields.
++
++    Fields already stored on a v4 or v5 snapshot stay as saved. Invalid live
++    values are left out. No other character keys are copied.
++    """
++    live = getattr(session, "character", None)
++    if not isinstance(live, Mapping):
++        return
++    for field in _LIVE_SPELL_PROJECTION_FIELDS:
++        if field in saved_player or field not in live:
++            continue
++        accepted = _validated_live_spell_field(field, live[field])
++        if accepted is None:
++            continue
++        character[field] = accepted
++
++
+ def _project_list(value: Any, fields: tuple[str, ...]) -> list[dict[str, Any]]:
+     if not isinstance(value, list):
+         return []
+     return [
+         projected
+@@ -566,10 +604,12 @@ def serialize_session_state(
+     world_metadata = world_metadata_for_state(
+         world,
+         getattr(session, "world_metadata", None),
+     )
+     character = _project_fields(player, _PLAYER_FIELDS)
++    if isinstance(player, Mapping):
++        _overlay_live_spell_fields(character, session, player)
+     expertise_skills = player.get("expertise_skills")
+     character["expertise_skills"] = (
+         list(expertise_skills)
+         if isinstance(expertise_skills, (list, tuple))
+         else []
+
+diff --git a/ai-dnd/api/session_manager.py b/ai-dnd/api/session_manager.py
+index 56fbb72..dc73218 100644
+--- a/ai-dnd/api/session_manager.py
++++ b/ai-dnd/api/session_manager.py
+@@ -410,13 +410,15 @@ class SessionManager:
+                 campaign_id, stored.metadata["revision"]
+             ):
+                 # Explicit resume replaces a stale cache with accepted durable truth.
+                 record.journal = restore_stored_campaign(record.game_session, stored)
+                 record.turn_action_receipts.clear()
++            engine_version = stored.payload.get("engine_save", {}).get("version")
+             needs_migration = (
+-                stored.payload.get("engine_save", {}).get("version")
+-                != game.SAVE_FORMAT_VERSION
++                engine_version not in (
++                    game.SAVE_FORMAT_VERSION, *game._PRESERVED_SAVE_VERSIONS
++                )
+                 or "campaign_id"
+                 not in stored.payload.get("engine_save", {})
+                 .get("world_state", {})
+                 or "death_state"
+                 not in stored.payload.get("engine_save", {})
+@@ -425,10 +427,32 @@ class SessionManager:
+                 "world_metadata" not in stored.payload
+                 or "journal" not in stored.payload
+                 or "narrative_memory" not in stored.payload
+                 or "lore_authority" not in stored.payload
+             )
++            # #region agent log
++            try:
++                import time
++                from pathlib import Path as _DebugPath
++                _debug_path = _DebugPath(__file__).resolve().parents[2] / "debug-c188f4.log"
++                with _debug_path.open("a", encoding="utf-8") as _debug_handle:
++                    _debug_handle.write(json.dumps({
++                        "sessionId": "c188f4",
++                        "runId": "post-fix",
++                        "hypothesisId": "C",
++                        "location": "session_manager.py:resume_campaign",
++                        "message": "resume migration decision",
++                        "data": {
++                            "engine_version": engine_version,
++                            "needs_migration": needs_migration,
++                            "revision": stored.metadata.get("revision"),
++                        },
++                        "timestamp": int(time.time() * 1000),
++                    }, ensure_ascii=False) + "\n")
++            except Exception:
++                pass
++            # #endregion
+             record.lore_authority = CampaignLoreState.from_mapping(
+                 stored.payload.get("lore_authority")
+             )
+             record.narrative_memory = validate_narrative_memory(
+                 stored.payload.get(
+
+diff --git a/ai-dnd/api/tests/test_spells_v1.py b/ai-dnd/api/tests/test_spells_v1.py
+index 97d1b88..766595b 100644
+--- a/ai-dnd/api/tests/test_spells_v1.py
++++ b/ai-dnd/api/tests/test_spells_v1.py
+@@ -71,10 +71,44 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
+         self.assertEqual(restored["character"]["current_hp"], before["character"]["current_hp"])
+         self.assertEqual(
+             restored["character"]["spell_slots_remaining"],
+             before["character"]["spell_slots_remaining"],
+         )
++        saved = session.serialize_game_state()
++        self.assertEqual(saved["version"], 3)
++        for field in ("cantrips", "spells", "spell_slots_remaining"):
++            self.assertNotIn(field, saved["player"])
++
++    def test_v3_projection_reads_live_spell_fields_only(self):
++        import game
++
++        first = game.create_session(seed=3)
++        second = game.create_session(seed=4)
++        first.character["cantrips"] = ["Fire Bolt"]
++        first.character["spells"] = ["Magic Missile"]
++        first.character["spell_slots_remaining"] = {"1": 2}
++        first.character["secret_prompt"] = "must not be returned"
++        projected = serialize_session_state(first)
++        self.assertEqual(projected["character"]["cantrips"], ["Fire Bolt"])
++        self.assertEqual(projected["character"]["spells"], ["Magic Missile"])
++        self.assertEqual(projected["character"]["spell_slots_remaining"], {"1": 2})
++        self.assertNotIn("secret_prompt", projected["character"])
++        projected["character"]["spell_slots_remaining"]["1"] = 0
++        self.assertEqual(first.character["spell_slots_remaining"], {"1": 2})
++        saved = first.serialize_game_state()
++        self.assertEqual(saved["version"], 3)
++        self.assertNotIn("spell_slots_remaining", saved["player"])
++        other = serialize_session_state(second)
++        self.assertNotEqual(
++            other["character"].get("spell_slots_remaining"),
++            {"1": 2},
++        )
++        first.character["spell_slots_remaining"] = {"9": 4}
++        self.assertNotIn(
++            "spell_slots_remaining",
++            serialize_session_state(first)["character"],
++        )
+ 
+     def test_cast_result_projects_spell_fields_and_hides_private_state(self):
+         projected = serialize_combat_result(
+             {
+                 "action": "cast",
+
+diff --git a/ai-dnd/game.py b/ai-dnd/game.py
+index c781a99..fa206da 100644
+--- a/ai-dnd/game.py
++++ b/ai-dnd/game.py
+@@ -1462,10 +1462,32 @@ world_state = {
+     "quest_processed_event_ids": [],
+ }
+ INITIAL_WORLD_STATE = copy.deepcopy(world_state)
+ SAVE_FORMAT_VERSION = 3
+ _SUPPORTED_SAVE_VERSIONS = (1, 2, 3, 4, 5)
++_PRESERVED_SAVE_VERSIONS = (4, 5)
++
++
++def _agent_debug_log(location, message, data, hypothesis_id):
++    # #region agent log
++    try:
++        import time
++        path = Path(__file__).resolve().parents[1] / "debug-c188f4.log"
++        payload = {
++            "sessionId": "c188f4",
++            "runId": "post-fix",
++            "hypothesisId": hypothesis_id,
++            "location": location,
++            "message": message,
++            "data": data,
++            "timestamp": int(time.time() * 1000),
++        }
++        with path.open("a", encoding="utf-8") as handle:
++            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
++    except Exception:
++        pass
++    # #endregion
+ 
+ 
+ GIANT_ANCESTRY_IDS = ("cloud", "fire", "frost", "hill", "stone", "storm")
+ CELESTIAL_REVELATION_FORMS = (
+     "heavenly_wings",
+@@ -1598,12 +1620,112 @@ def initialize_species_trait_state(giant_ancestry=None):
+         species, proficiency_bonus
+     )
+     return copy.deepcopy(character["species_trait_state"])
+ 
+ 
+-def _player_state_for_save():
++def _engine_save_version():
++    """Keep untouched campaigns on v3, and write v5 once experience is owned."""
++    session = _session()
++    persisted = getattr(session, "_persisted_engine_format", SAVE_FORMAT_VERSION)
++    xp_value = session.character.get("xp", 0)
++    award_ids = session.world_state.get("xp_awarded_event_ids")
++    has_advancement = (
++        type(xp_value) is int and xp_value > 0
++    ) or (isinstance(award_ids, list) and len(award_ids) > 0)
++    if persisted >= 5 or has_advancement:
++        version = 5
++    elif persisted in _PRESERVED_SAVE_VERSIONS:
++        version = persisted
++    else:
++        version = SAVE_FORMAT_VERSION
++    _agent_debug_log(
++        "game.py:_engine_save_version",
++        "selected engine save version",
++        {
++            "persisted": persisted,
++            "xp": xp_value if type(xp_value) is int else None,
++            "award_count": len(award_ids) if isinstance(award_ids, list) else None,
++            "version": version,
++        },
++        "B",
++    )
++    return version
++
++
++def _stored_engine_format():
++    stored = getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION)
++    if type(stored) is not int or stored not in _SUPPORTED_SAVE_VERSIONS:
++        return SAVE_FORMAT_VERSION
++    return stored
++
++
++def _character_needs_spell_save(character):
++    """True when live spell or origin-feat state cannot survive a v3 load."""
++    if not isinstance(character, dict):
++        return False
++    import spells
++    fields = spells.empty_spell_state()
++    for key in ("cantrips", "spells", "spell_slots_remaining"):
++        if key in character:
++            fields[key] = copy.deepcopy(character[key])
++    try:
++        spells.validate_saved_spell_fields(fields)
++    except (TypeError, ValueError):
++        return False
++    feat = character.get("origin_feat")
++    has_feat = isinstance(feat, str) and bool(feat.strip()) and len(feat) <= 40
++    has_spells = bool(
++        fields["cantrips"] or fields["spells"] or fields["spell_slots_remaining"]["1"]
++    )
++    return has_feat or has_spells
++
++
++def _character_needs_xp_save(character, world):
++    """True when progression matches the validated v5 contract."""
++    if not isinstance(character, dict) or not isinstance(world, dict):
++        return False
++    xp_value = character.get("xp", 0)
++    level = character.get("level", 1)
++    ids = world.get("xp_awarded_event_ids")
++    progressed = (
++        (type(xp_value) is int and not isinstance(xp_value, bool) and xp_value > 0)
++        or (type(level) is int and not isinstance(level, bool) and level > 1)
++        or (isinstance(ids, list) and len(ids) > 0)
++    )
++    if not progressed:
++        return False
++    import xp as xp_rules
++    probe_player = {
++        "xp": xp_value if type(xp_value) is int and not isinstance(xp_value, bool) else 0,
++        "level": level if type(level) is int and not isinstance(level, bool) else 1,
++        "proficiency_bonus": character.get("proficiency_bonus", xp_rules.PROFICIENCY_BONUS),
++    }
++    probe_world = {
++        "xp_awarded_event_ids": list(ids) if isinstance(ids, list) else []
++    }
++    try:
++        xp_rules.validate_saved_advancement(probe_player, probe_world)
++    except (TypeError, ValueError):
++        return False
++    return True
++
++
++def _engine_save_format():
++    """Keep v3 for untouched sessions. Promote only state v3 cannot reload."""
++    required = _stored_engine_format()
+     character = _session().character
++    if required < 4 and _character_needs_spell_save(character):
++        required = 4
++    if required < 5 and _character_needs_xp_save(character, _session().world_state):
++        required = 5
++    return required
++
++
++def _player_state_for_save(save_format=None):
++    character = _session().character
++    if save_format is None:
++        save_format = _engine_save_format()
+     saved = {
+         "name": _session().character["name"],
+         "race": _session().character["race"],
+         "species": _session().character.get(
+             "species", _session().character["race"]
+@@ -1635,36 +1757,46 @@ def _player_state_for_save():
+         "max_hp": _session().character["max_hp"],
+         "current_hp": _session().character["current_hp"],
+         "armor_class": _session().character["armor_class"],
+         "xp": _session().character.get("xp", 0) if type(_session().character.get("xp", 0)) is int and _session().character.get("xp", 0) >= 0 else 0,
+     }
+-    # Preserve legacy v4/v5 spell and feat mechanics when resaving that format.
+-    # New v3 campaigns keep their existing, frozen save contract.
+-    if getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION) >= 4:
+-        import spells
+-        spell_fields = spells.empty_spell_state()
+-        for field in ("cantrips", "spells", "spell_slots_remaining"):
+-            if field in character:
+-                spell_fields[field] = copy.deepcopy(character[field])
+-        spells.validate_saved_spell_fields(spell_fields)
+-        saved.update(spell_fields)
+-        if "origin_feat" in character:
+-            feat = character["origin_feat"]
+-            if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
+-                raise ValueError("Origin feat state is invalid.")
+-            saved["origin_feat"] = feat
++    # Current saves keep the known spell list. Versions 1–3 that omit these
++    # keys still migrate to an empty list on load.
++    import spells
++    spell_fields = spells.empty_spell_state()
++    for field in ("cantrips", "spells", "spell_slots_remaining"):
++        if field in character:
++            spell_fields[field] = copy.deepcopy(character[field])
++    spells.validate_saved_spell_fields(spell_fields)
++    saved.update(spell_fields)
++    if "origin_feat" in character:
++        feat = character["origin_feat"]
++        if not isinstance(feat, str) or not feat.strip() or len(feat) > 40:
++            raise ValueError("Origin feat state is invalid.")
++        saved["origin_feat"] = feat
++    _agent_debug_log(
++        "game.py:_player_state_for_save",
++        "spell fields included in save",
++        {
++            "cantrips": list(saved.get("cantrips", [])),
++            "spells": list(saved.get("spells", [])),
++            "slots": saved.get("spell_slots_remaining"),
++            "origin_feat": saved.get("origin_feat"),
++        },
++        "A",
++    )
+     return saved
+ 
+ 
+ def serialize_game_state():
+     """Return a JSON-safe, versioned snapshot of the complete game session."""
+     recent_dm_narrations = _session().recent_dm_narrations
+     world_state = _session().world_state
+     living_world.ensure_scene_state(world_state)
+     return {
+         "format": "ai-dnd-save",
+-        "version": getattr(_session(), "_persisted_engine_format", SAVE_FORMAT_VERSION),
++        "version": _engine_save_version(),
+         "player": copy.deepcopy(_player_state_for_save()),
+         "world_state": copy.deepcopy(world_state),
+         "recent_dm_narrations": list(recent_dm_narrations),
+     }
+ 
+@@ -2122,10 +2254,11 @@ def save_game(path):
+             os.fsync(handle.fileno())
+         temporary.replace(destination)
+     finally:
+         if temporary is not None:
+             temporary.unlink(missing_ok=True)
++    _session()._persisted_engine_format = payload["version"]
+     return destination
+ 
+ 
+ def load_game(path):
+     """Validate and restore a JSON snapshot without executing arbitrary code."""
+@@ -2173,22 +2306,42 @@ def load_game(path):
+         )
+         for field in ("strength", "dexterity", "constitution", "intelligence",
+                       "wisdom", "charisma", "level", "proficiency_bonus",
+                       "max_hp", "current_hp", "armor_class"):
+             character[field] = int(player[field])
+-        if "xp" in player:
++        if payload["version"] >= 5:
+             character["xp"] = player["xp"]
+-        if payload["version"] >= 4:
++        else:
++            # Versions 1–4 keep level and hit points, and drop stored experience.
++            character["xp"] = 0
++            world_state["xp_awarded_event_ids"] = []
++        spell_keys = ("cantrips", "spells", "spell_slots_remaining")
++        if any(key in player for key in spell_keys):
++            import spells
++            spells.validate_saved_spell_fields(player)
+             character["cantrips"] = list(player["cantrips"])
+             character["spells"] = list(player["spells"])
+             character["spell_slots_remaining"] = {
+                 "1": int(player["spell_slots_remaining"]["1"])
+             }
+         else:
+             character["cantrips"] = []
+             character["spells"] = []
+             character["spell_slots_remaining"] = {"1": 0}
++        _agent_debug_log(
++            "game.py:load_game",
++            "restored spells and experience",
++            {
++                "version": payload["version"],
++                "xp": character.get("xp"),
++                "cantrips": list(character.get("cantrips", [])),
++                "slots": character.get("spell_slots_remaining"),
++                "origin_feat": player.get("origin_feat"),
++                "award_count": len(world_state.get("xp_awarded_event_ids", [])),
++            },
++            "A",
++        )
+         if isinstance(player.get("origin_feat"), str) and player["origin_feat"].strip():
+             character["origin_feat"] = player["origin_feat"]
+         else:
+             character.pop("origin_feat", None)
+         character["proficient_skills"] = list(player["proficient_skills"])
+@@ -4467,10 +4620,32 @@ def _apply_attack_damage_to_player(damage, critical, hit):
+ def end_combat(reason="combat_ended"):
+     """Clear the encounter idempotently; HP and incapacitation are unchanged."""
+     combat = ensure_combat_state()
+     if not combat["active"]:
+         return {"combat_ended": True, "reason": combat.get("end_reason"), "combat_id": combat.get("combat_id")}
++    awarded = None
++    if reason == "target_defeated":
++        import xp
++        awarded = xp.award_defeated_combat(
++            combat,
++            _session().world_state,
++            _session().character,
++        )
++        if awarded is not None:
++            _session()._xp_level_up = awarded
++    _agent_debug_log(
++        "game.py:end_combat",
++        "combat end experience award",
++        {
++            "reason": reason,
++            "participant_count": len(combat.get("participants", []))
++            if isinstance(combat.get("participants"), list) else None,
++            "awarded": awarded is not None,
++            "xp": _session().character.get("xp"),
++        },
++        "D",
++    )
+     identity = combat["combat_id"]
+     combat.clear()
+     combat.update(_combat_defaults(end_reason=reason))
+     combat["combat_id"] = identity
+     if "attack_effects" in _session().world_state:
+@@ -11637,10 +11812,12 @@ def run_player_turn(
+     # and outcomes here without altering their mechanics or call budget.
+     if not result.pop("_interaction_consumed", False):
+         interaction_adventure.consume(
+             _session(), result.get("action_result", {}), before, player_input
+         )
++    if isinstance(result, dict) and isinstance(action_result, dict):
++        _session()._publish_level_up(action_result)
+     return result
+ 
+ 
+ def _dispatch_player_turn(
+     player_input, messages=None, target_id=None, scene_plan=None,
+@@ -13472,10 +13649,19 @@ class GameSession:
+         self.lore_authority_context = None
+         # Ephemeral diagnostics only; these are deliberately outside canonical
+         # world state and are never returned in the player-facing turn payload.
+         self.last_narration_safety = None
+         self.narration_safety_history = []
++        self._xp_level_up = None
++
++    def _publish_level_up(self, result):
++        """Move one pending level-up onto a turn result, then forget it."""
++        pending = self._xp_level_up
++        if not isinstance(result, dict) or not isinstance(pending, dict):
++            return
++        result["level_up"] = copy.deepcopy(pending)
++        self._xp_level_up = None
+ 
+     def __getattr__(self, name):
+         helper = _ENGINE_NAMESPACE.get(name)
+         if callable(helper) and getattr(helper, "_session_bound", False):
+             return functools.partial(helper, session=self)
+@@ -13487,10 +13673,11 @@ class GameSession:
+             "character": copy.deepcopy(self.character),
+             "world_state": copy.deepcopy(self.world_state),
+             "recent_dm_narrations": copy.deepcopy(self.recent_dm_narrations),
+             "messages": copy.deepcopy(self.messages),
+             "rng_state": self.rng.getstate(),
++            "xp_level_up": copy.deepcopy(self._xp_level_up),
+         }
+ 
+     def _restore_runtime_snapshot(self, snapshot):
+         """Restore a trusted in-process capture exactly, without save migrations.
+ 
+@@ -13505,10 +13692,11 @@ class GameSession:
+         self.character.update(restored["character"])
+         self.world_state.clear()
+         self.world_state.update(restored["world_state"])
+         self.recent_dm_narrations[:] = restored["recent_dm_narrations"]
+         self.messages[:] = restored["messages"]
++        self._xp_level_up = restored.get("xp_level_up")
+ 
+     def resolve_ambient_event_action(
+         self,
+         event_instance_id: str,
+         action_id: str,
+@@ -13728,10 +13916,19 @@ class GameSession:
+             "objective_id": objective_id,
+             "source_event_id": source_id,
+             "turn_index": turn,
+         }
+ 
++    def _publish_level_up(self, result):
++        """Attach one pending experience summary, then drop it."""
++        summary = getattr(self, "_xp_level_up", None)
++        if not isinstance(result, dict) or not isinstance(summary, dict):
++            return result
++        result["level_up"] = dict(summary)
++        self._xp_level_up = None
++        return result
++
+     def evaluate_quest_events(self, before_world, action_result):
+         """Consume only canonical before/after evidence; never narration."""
+         if not isinstance(action_result, dict):
+             return []
+         world = self.world_state
+@@ -13793,10 +13990,16 @@ class GameSession:
+                         objective["objective_id"], source_id, turn
+                     ))
+                     if all(item.get("status") == "completed"
+                            for item in quest["objectives"]):
+                         quest["status"] = "completed"
++                        import xp
++                        summary = xp.award_completed_quest(
++                            world, self.character, quest["quest_id"]
++                        )
++                        if summary is not None:
++                            self._xp_level_up = summary
+                         transitions.append(self._quest_transition(
+                             "completed", quest["quest_id"], None, source_id, turn
+                         ))
+             if event_matched:
+                 processed.append(source_id)

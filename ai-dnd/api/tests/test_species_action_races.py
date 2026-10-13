@@ -19,6 +19,8 @@ from api.tests import test_campaign_api as fixtures
 from api.tests.test_combat_lifecycle import ready
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = fixtures.CampaignApiTests.asyncSetUp
     asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
@@ -174,10 +176,10 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.get_turn_action(campaign_id, command["action_id"]), receipt)
 
         await assert_replay(self.http, self.manager, self.store, sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager)),
+            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://healing-reopen",
         ) as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -322,10 +324,10 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.get_turn_action(campaign_id, command["action_id"]), receipt)
 
         await assert_replay(self.http, self.manager, self.store, sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager)),
+            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://large-form-reopen",
         ) as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -500,10 +502,10 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.get_turn_action(campaign_id, command["action_id"]), receipt)
 
         await assert_replay(self.http, self.manager, self.store, sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager)),
+            transport=httpx.ASGITransport(app=create_app(session_manager=reopened_manager, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://combat-large-form-reopen",
         ) as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -532,7 +534,7 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
         self.manager.save_campaign(campaign_id)
 
         # Neither contender shares a manager, store or runtime with the creator.
-        stores = [CampaignStore(self.store.path) for _ in range(2)]
+        stores = [CampaignStore(self.store.path, bound_principal=TEST_PLAYER) for _ in range(2)]
         managers = [SessionManager(campaign_store=store) for store in stores]
         ids = [manager.resume_campaign(campaign_id)[0] for manager in managers]
         records = [manager.get(sid) for manager, sid in zip(managers, ids)]
@@ -554,7 +556,7 @@ class SpeciesActionRaceTests(unittest.IsolatedAsyncioTestCase):
         prefix = "/api/sessions" if compat else "/api/game/sessions"
         urls = [f"{prefix}/{sid}/species-actions" for sid in ids]
         clients = [httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=create_app(session_manager=manager)),
+            transport=httpx.ASGITransport(app=create_app(session_manager=manager, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://species-race",
         ) for manager in managers]
         arrived, release = threading.Event(), threading.Event()

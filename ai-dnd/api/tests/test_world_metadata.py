@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+
+
 import json
 import sqlite3
 import tempfile
@@ -14,6 +16,8 @@ from api.ollama_adapter import (
     MODEL_NAME,
     canonical_world_metadata_context,
 )
+from api.auth import FixedAuthenticator, bind_principal, reset_principal
+from api.tests.auth_fixture import TEST_PLAYER
 from api.persistence.campaign_store import CampaignStore
 from api.schemas import CampaignCreateRequest, TurnRequest
 from api.serializers import serialize_session_state
@@ -54,7 +58,11 @@ class CapturingOllamaClient:
 class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
     def test_new_session_exposes_supported_defaults(self):
         manager = SessionManager()
-        _, record = manager.create()
+        token = bind_principal(TEST_PLAYER)
+        try:
+            _, record = manager.create()
+        finally:
+            reset_principal(token)
 
         state = serialize_session_state(record.game_session)
 
@@ -142,7 +150,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_api_state_exposes_canonical_world_and_rejects_forged_fields(self):
         manager = SessionManager()
-        app = create_app(session_manager=manager, ollama_adapter=None)
+        app = create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://testserver",
@@ -221,7 +229,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
     def test_metadata_survives_campaign_save_and_new_manager_resume(self):
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "campaigns.sqlite3"
-            store = CampaignStore(database_path)
+            store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             campaign_id, _, record, _ = manager.create_campaign("Metadata test")
             record.game_session.world_state["location"] = "forest"
@@ -232,7 +240,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             }
             manager.save_campaign(campaign_id)
 
-            restarted = SessionManager(campaign_store=CampaignStore(database_path))
+            restarted = SessionManager(campaign_store=CampaignStore(database_path, bound_principal=TEST_PLAYER))
             _, resumed, _, _, state = restarted.resume_campaign(campaign_id)
 
             expected = {
@@ -246,7 +254,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
     def test_two_campaigns_keep_world_metadata_isolated(self):
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "campaigns.sqlite3"
-            store = CampaignStore(database_path)
+            store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             first_id, _, first, _ = manager.create_campaign("First")
             second_id, _, second, _ = manager.create_campaign("Second")
@@ -265,7 +273,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             manager.save_campaign(first_id)
             manager.save_campaign(second_id)
 
-            restarted = SessionManager(campaign_store=CampaignStore(database_path))
+            restarted = SessionManager(campaign_store=CampaignStore(database_path, bound_principal=TEST_PLAYER))
             _, resumed_first, _, _, _ = restarted.resume_campaign(first_id)
             _, resumed_second, _, _, _ = restarted.resume_campaign(second_id)
 
@@ -277,7 +285,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
     def test_legacy_campaign_is_backfilled_on_resume(self):
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "campaigns.sqlite3"
-            store = CampaignStore(database_path)
+            store = CampaignStore(database_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             campaign_id, _, record, _ = manager.create_campaign("Legacy")
             record.game_session.world_state["location"] = "tavern"
@@ -300,7 +308,7 @@ class WorldMetadataTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 connection.close()
 
-            restarted = SessionManager(campaign_store=CampaignStore(database_path))
+            restarted = SessionManager(campaign_store=CampaignStore(database_path, bound_principal=TEST_PLAYER))
             _, resumed, _, _, state = restarted.resume_campaign(campaign_id)
 
             self.assertEqual(

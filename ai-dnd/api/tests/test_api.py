@@ -57,7 +57,7 @@ class ApiContractTests(unittest.IsolatedAsyncioTestCase):
             self._testMethodName
             == "test_model_call_limit_enforced_by_captured_calls_ignoring_telemetry_claim"
         )
-        app_options = {}
+        app_options = {"authenticator": FixedAuthenticator(TEST_PLAYER)}
         if isolated_model_call_limit_test:
             self.temporary_directory = tempfile.TemporaryDirectory(
                 prefix="ai-dnd-model-call-limit-"

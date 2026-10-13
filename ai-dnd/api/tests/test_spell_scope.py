@@ -18,6 +18,8 @@ import game
 import spell_scope
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 def caster(session=None, cls="Sorcerer"):
     s = session or fixtures.make_session()
     s.character.update({"class": cls, "level": 1, "proficiency_bonus": 2,
@@ -303,12 +305,12 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual((d20.call_count, damage.call_count), calls)
                     self.assertEqual((s.serialize_game_state(), s.rng.getstate(), self.store.get_campaign(a["campaign_id"])), before)
                 self.assertEqual((other.serialize_game_state(), other.rng.getstate()), isolated)
-                manager = SessionManager(campaign_store=CampaignStore(self.store.path))
+                manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
                 sid, record, *_ = manager.resume_campaign(a["campaign_id"])
                 restored = record.game_session
                 self.assertEqual(restored.world_state["spellcasting_v1"], s.world_state["spellcasting_v1"])
                 self.assertEqual(restored.rng.getstate(), s.rng.getstate())
-                restarted_app = create_app(session_manager=manager)
+                restarted_app = create_app(session_manager=manager, authenticator=FixedAuthenticator(TEST_PLAYER))
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=restarted_app), base_url="http://testserver") as restarted_http:
                     replay = await restarted_http.post(f"/api/game/sessions/{sid}/turn", json=request)
                 self.assertEqual(replay.status_code, 200, replay.text)

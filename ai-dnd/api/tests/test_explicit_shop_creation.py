@@ -17,6 +17,8 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 from api.tests.live_neverwinter_canon_smoke import START_SELECTION
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 REQUEST = "Bu kampanya için burada küçük bir yerel dükkân ve onu işleten tek bir dükkâncı oluştur."
 
 
@@ -82,14 +84,14 @@ class ShopCreationTests(unittest.TestCase):
 class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="ai-dnd-shop-transaction-")
-        self.store = CampaignStore(Path(self.temp.name) / "campaigns.sqlite3")
+        self.store = CampaignStore(Path(self.temp.name) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
         self.model = Mock()
         self.model.list.return_value = {"models": [{"model": "qwen3:8b"}]}
         self.model.chat.return_value = {"message": {"content": "{}"}}
         adapter = AuthenticatedOllamaAdapter(self.model)
         self.enterContext(adapter.engine_binding())
-        self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(session_manager=self.manager, ollama_adapter=adapter)), base_url="http://testserver")
+        self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(session_manager=self.manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))), base_url="http://testserver")
         response = await self.http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})
         self.assertEqual(response.status_code, 200, response.text)
         self.created = response.json()
@@ -120,14 +122,14 @@ class ShopTransactionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(protected(world), before)
         self.assertEqual(other_session.serialize_game_state(), other_before)
         persisted = copy.deepcopy(world)
-        reopened = SessionManager(campaign_store=CampaignStore(self.store.path))
+        reopened = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         resumed_id, *_ = reopened.resume_campaign(self.created["campaign_id"])
         resumed = reopened.get(resumed_id)
         self.assertEqual(resumed.game_session.world_state, persisted)
         receipt = reopened.get_turn_action(resumed, body["action_id"])
         self.assertEqual(receipt["response"], created.json())
         adapter = AuthenticatedOllamaAdapter(self.model)
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(session_manager=reopened, ollama_adapter=adapter)), base_url="http://testserver") as http:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(session_manager=reopened, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))), base_url="http://testserver") as http:
             replay_after_restart = await http.post(f"/api/game/sessions/{resumed_id}/turn", json=body)
         self.assertEqual(replay_after_restart.status_code, 200, replay_after_restart.text)
         expected = created.json()

@@ -1,4 +1,5 @@
 import os
+from api.tests.auth_fixture import TEST_PLAYER
 """Offline contracts for independent adventures and the legacy default adapter."""
 import ast
 from concurrent.futures import ThreadPoolExecutor
@@ -3494,7 +3495,7 @@ class SessionTests(unittest.TestCase):
                 manager = SessionManager(
                     campaign_store=CampaignStore(
                         Path(checkpoint_dir.name) / f"checkpoint-{rejected_index}.sqlite3"
-                    )
+                    , bound_principal=TEST_PLAYER)
                 )
                 for index, (session, enemy) in enumerate(zip(sessions, enemies)):
                     session.character.update(

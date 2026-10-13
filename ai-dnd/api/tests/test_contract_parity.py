@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
@@ -27,7 +28,8 @@ from api.campaign_journal import (
     empty_campaign_journal,
     validate_campaign_journal,
 )
-from api.main import app
+from api.auth import FixedAuthenticator
+from api.main import app, create_app
 from api.schemas import (
     CampaignCreateRequest,
     CampaignDetailResponse,
@@ -73,6 +75,9 @@ from api.serializers import (
     serialize_combat_result,
     serialize_session_state,
 )
+from api.persistence.campaign_store import CampaignStore
+from api.session_manager import SessionManager
+from api.tests.auth_fixture import TEST_PLAYER
 from api.world_metadata import (
     DEFAULT_TIME_OF_DAY,
     DEFAULT_WEATHER,
@@ -91,6 +96,16 @@ SPEC_TEXT = OPENAPI_PATH.read_text(encoding="utf-8")
 
 _SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 _SAFE_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
+
+
+class _DuplicateKeyLoaderMixin:
+    """Reject duplicate keys instead of silently hiding contract declarations."""
+
+    def construct_mapping(self, node, deep=False):
+        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
+        if len(keys) != len(set(keys)):
+            raise AssertionError("OpenAPI contains duplicate mapping keys")
+        return super().construct_mapping(node, deep=deep)
 
 
 class _ContractLoader(_DuplicateKeyLoaderMixin, _SAFE_LOADER):
@@ -828,7 +843,7 @@ class ContractParityTests(unittest.TestCase):
         }
         documented_routes = _route_inventory(SPEC)
         self.assertEqual(runtime_routes, documented_routes)
-        self.assertEqual(len(documented_routes), 31)
+        self.assertEqual(len(documented_routes), 36)
 
         alias_pairs = (
             ("GET", "/api/game/health", "/api/health"),
@@ -856,16 +871,16 @@ class ContractParityTests(unittest.TestCase):
         self.assertEqual(len(operation_ids), len(set(operation_ids)))
 
         status_expectations = {
-            ("/game/sessions/{session_id}/state", "get"): {"200", "404", "422"},
+            ("/game/sessions/{session_id}/state", "get"): {"200", "401", "404", "422"},
             ("/game/sessions/{session_id}/turn", "post"): {
-                "200", "404", "409", "422", "500", "503"
+                "200", "401", "404", "409", "422", "500", "503"
             },
-            ("/game/campaigns", "post"): {"200", "422", "500", "503"},
+            ("/game/campaigns", "post"): {"200", "401", "422", "500", "503"},
             ("/game/campaigns/{campaign_id}", "get"): {
-                "200", "404", "409", "422", "500", "503"
+                "200", "401", "404", "409", "422", "500", "503"
             },
-            ("/game/campaigns/{campaign_id}", "delete"): {"200", "503"},
-            ("/campaigns/{campaign_id}", "delete"): {"200", "503"},
+            ("/game/campaigns/{campaign_id}", "delete"): {"200", "401", "503"},
+            ("/campaigns/{campaign_id}", "delete"): {"200", "401", "503"},
         }
         for (path, method), expected in status_expectations.items():
             with self.subTest(path=path, method=method):
@@ -1797,12 +1812,31 @@ class ContractParityTests(unittest.TestCase):
             {
                 "campaign_not_found", "campaign_unavailable", "campaign_not_active",
                 "campaign_storage_unavailable", "campaign_error",
-                "invalid_character", "unknown_session", "ollama_unavailable",
+                "invalid_character", "authentication_required", "unknown_session", "ollama_unavailable",
                 "model_unavailable", "engine_error", "journal_error",
             },
         )
 
-        client = TestClient(app)
+        anonymous = TestClient(app)
+        denied = anonymous.post(
+            "/api/game/sessions/not-a-uuid/turn",
+            json={"message": "   "},
+        )
+        self.assertEqual(denied.status_code, 401)
+        self.assertEqual(denied.json()["detail"]["code"], "authentication_required")
+
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        store = CampaignStore(Path(directory.name) / "contract.sqlite3")
+        live = Path(__file__).resolve().parents[2] / "saves" / "campaigns.sqlite3"
+        if store.path.resolve() == live.resolve():
+            raise RuntimeError("Refusing to use the live campaign database.")
+        authenticated = create_app(
+            session_manager=SessionManager(campaign_store=store),
+            ollama_adapter=None,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        client = TestClient(authenticated)
         validation = client.post(
             "/api/game/sessions/not-a-uuid/turn",
             json={"message": "   "},
@@ -6004,14 +6038,6 @@ components: {schemas: {Example: {type: object, required: [combat_id], additional
                     )
                     self.assertIn(f"{schema_name}.{diagnostic}", failure)
         self.assertEqual(_schema(schema_name), original)
-class _DuplicateKeyLoaderMixin:
-    """Reject duplicate keys instead of silently hiding contract declarations."""
-
-    def construct_mapping(self, node, deep=False):
-        keys = [self.construct_object(key, deep=deep) for key, _ in node.value]
-        if len(keys) != len(set(keys)):
-            raise AssertionError("OpenAPI contains duplicate mapping keys")
-        return super().construct_mapping(node, deep=deep)
 def _published_schema_objects():
     for name in SPEC["components"]["schemas"]:
         yield from _nested_schema_objects(_schema(name), name)

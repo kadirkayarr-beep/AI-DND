@@ -14,6 +14,8 @@ from api.session_manager import SessionManager
 from api.tests.test_bounded_encounter import NativeBase
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class DungeonTests(NativeBase):
     def state(self):
         return copy.deepcopy((self.session.serialize_game_state(),
@@ -84,8 +86,8 @@ class DungeonTests(NativeBase):
             **body, "message": "/dungeon exit hall_entry"})
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(self.state(), before)
-        manager = SessionManager(campaign_store=CampaignStore(self.path))
-        with TestClient(create_app(session_manager=manager, ollama_adapter=None)) as client:
+        manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        with TestClient(create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))) as client:
             resumed = client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume")
             self.assertEqual(resumed.status_code, 200, resumed.text)
             sid = resumed.json()["session_id"]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import gc
 import json
 import sqlite3
@@ -13,6 +14,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def bound_lore_state() -> CampaignLoreState:
     return CampaignLoreState.from_mapping(
         {
@@ -37,7 +39,7 @@ class CampaignLorePersistenceTests(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.database_path = Path(self.temporary_directory.name) / "campaigns.sqlite3"
-        self.store = CampaignStore(self.database_path)
+        self.store = CampaignStore(self.database_path, bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
 
     def tearDown(self):
@@ -67,7 +69,7 @@ class CampaignLorePersistenceTests(unittest.TestCase):
         self.manager.save_campaign(campaign_id)
 
         restarted_manager = SessionManager(
-            campaign_store=CampaignStore(self.database_path)
+            campaign_store=CampaignStore(self.database_path, bound_principal=TEST_PLAYER)
         )
         _, resumed_record, _, _, _ = restarted_manager.resume_campaign(campaign_id)
 
@@ -112,10 +114,10 @@ class CampaignLorePersistenceTests(unittest.TestCase):
             connection.close()
 
         restarted_manager = SessionManager(
-            campaign_store=CampaignStore(self.database_path)
+            campaign_store=CampaignStore(self.database_path, bound_principal=TEST_PLAYER)
         )
         _, resumed_record, _, _, _ = restarted_manager.resume_campaign(campaign_id)
-        migrated = CampaignStore(self.database_path).get_campaign(campaign_id)
+        migrated = CampaignStore(self.database_path, bound_principal=TEST_PLAYER).get_campaign(campaign_id)
 
         self.assertEqual(
             resumed_record.lore_authority.binding_status,

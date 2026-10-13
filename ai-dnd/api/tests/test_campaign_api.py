@@ -55,22 +55,14 @@ class FakeOllamaClient:
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
-        isolated_identity_test = self._testMethodName in {
-            "test_turn_action_replays_after_resume_and_rejects_reused_payload",
-            "test_failed_autosave_rolls_back_turn_and_keeps_last_good_save",
-        }
         self.store = CampaignStore(
             Path(self.temporary_directory.name) / "campaigns.sqlite3",
-            **({"bound_principal": TEST_PLAYER} if isolated_identity_test else {}),
+            bound_principal=TEST_PLAYER,
         )
         self.manager = SessionManager(campaign_store=self.store)
         adapter = AuthenticatedOllamaAdapter(FakeOllamaClient())
         self.enterContext(adapter.engine_binding())
-        app_options = (
-            {"authenticator": FixedAuthenticator(TEST_PLAYER)}
-            if isolated_identity_test
-            else {}
-        )
+        app_options = {"authenticator": FixedAuthenticator(TEST_PLAYER)}
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=adapter,
@@ -105,7 +97,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(created["state"]["death_state"]["mode"], mode)
 
                 resumed_manager = SessionManager(
-                    campaign_store=CampaignStore(self.store.path)
+                    campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 )
                 resumed_id, _, _, _, _ = resumed_manager.resume_campaign(
                     created["campaign_id"]
@@ -186,7 +178,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(encoded)
 
         resumed_manager = SessionManager(
-            campaign_store=CampaignStore(self.store.path)
+            campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         )
         resumed_id, resumed_record, _, _, _ = resumed_manager.resume_campaign(
             created["campaign_id"]
@@ -465,11 +457,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # Reopen before discovery as well as after it: no original in-memory
         # scene or manager may be needed to continue this sequence.
-        reloaded_manager = SessionManager(campaign_store=CampaignStore(self.store.path))
+        reloaded_manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         reloaded_app = create_app(
             session_manager=reloaded_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reloaded_app),
             base_url="http://testserver",
@@ -501,11 +493,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(world["scene_state"]["scenes"][city_id], scene)
         saved_state = copy.deepcopy(loaded.serialize_game_state())
 
-        restarted_manager = SessionManager(campaign_store=CampaignStore(self.store.path))
+        restarted_manager = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         restarted_app = create_app(
             session_manager=restarted_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=restarted_app),
             base_url="http://testserver",
@@ -675,12 +667,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # A new manager must retain the observation without any unsaved venue,
         # scene changes, journal entries, history, or failed discovery receipt.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -858,12 +850,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.store.get_turn_action(campaign_id, discovery_body["action_id"])
         )
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -1070,12 +1062,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     }
                 return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(DeclinedTavernOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         declined_body = {
             # The supported negative suffix used by the living-world regression
             # also bypasses game.py's is_tavern_search gate.
@@ -1142,12 +1134,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(persisted.history[-1]["narration"], non_search_narration)
 
         # Reload the new non-search turn, without issuing any receipt replay.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",
@@ -1217,13 +1209,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "action_id": str(uuid.uuid4()),
         }
         self.assertNotEqual(question_body["action_id"], discovery_body["action_id"])
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             # This question is deterministic; unexpected model calls fail offline.
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -1290,12 +1282,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(question_receipt["response"], question.json())
 
         # Reload the accepted question without reissuing its action ID.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",
@@ -1398,12 +1390,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # A new manager/store must restore the venue and its visit, not
         # reconstruct a second local tavern when the player exits.
-        reloaded_store = CampaignStore(self.store.path)
+        reloaded_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reloaded_manager = SessionManager(campaign_store=reloaded_store)
         reloaded_app = create_app(
             session_manager=reloaded_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reloaded_app),
             base_url="http://testserver",
@@ -1562,12 +1554,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
             # Independently reopening after the failure must see the city exit,
             # with no uncommitted second visit, history entry, or action receipt.
-            failed_resume_store = CampaignStore(self.store.path)
+            failed_resume_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
             failed_resume_manager = SessionManager(campaign_store=failed_resume_store)
             failed_resume_app = create_app(
                 session_manager=failed_resume_manager,
                 ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-            )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
             async with httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=failed_resume_app),
                 base_url="http://testserver",
@@ -1650,12 +1642,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(reloaded_store.get_campaign(campaign_id).history), 4)
 
         # Another fresh manager must restore the second visit from disk.
-        revisited_store = CampaignStore(self.store.path)
+        revisited_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         revisited_manager = SessionManager(campaign_store=revisited_store)
         revisited_app = create_app(
             session_manager=revisited_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=revisited_app),
             base_url="http://testserver",
@@ -1729,12 +1721,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     (campaign_id,),
                 ).fetchall()
 
-        stale_store = CampaignStore(self.store.path)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         stale_manager = SessionManager(campaign_store=stale_store)
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=stale_app),
             base_url="http://testserver",
@@ -1887,12 +1879,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         old_saved = self.store.get_campaign(campaign_id)
         old_receipt = self.store.get_turn_action(campaign_id, old_body["action_id"])
 
-        stale_store = CampaignStore(self.store.path)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         stale_manager = SessionManager(campaign_store=stale_store)
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=stale_app),
             base_url="http://testserver",
@@ -2076,14 +2068,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         receipts = {}
         narrations = []
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             # The real engine answers this deterministically. Any model call
             # fails offline rather than supplying a scripted identity answer.
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -2167,7 +2159,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # Reopen again without sending either action: both accepted questions,
         # their narration and the unchanged local identities must be durable.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         _, final_record, _, final_history, _ = final_manager.resume_campaign(campaign_id)
         self.assertIsNot(final_record.game_session, session)
@@ -2685,13 +2677,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(requests[0]["action_id"], requests[1]["action_id"])
         receipts = {}
         narrations = []
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             # Unexpected model calls fail offline rather than inventing lore.
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -2794,12 +2786,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # A second fresh HTTP resume must restore both accepted answers and
         # their lore binding without issuing either action again.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",
@@ -3006,7 +2998,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         restarted_app = create_app(
             session_manager=restarted_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=restarted_app),
             base_url="http://testserver",
@@ -4041,7 +4033,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         reloaded_app = create_app(
             session_manager=reloaded_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         reloaded_http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reloaded_app),
             base_url="http://testserver",
@@ -4478,12 +4470,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(tavern_id, city_id)
 
         # Resume the real, persisted venue before injecting an exit save failure.
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(campaign_store=store)
         app = create_app(
             session_manager=manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://testserver"
         ) as http:
@@ -4570,12 +4562,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(store.get_turn_action(campaign_id, exit_body["action_id"]))
 
             # A separate manager must still restore the tavern, not the failed exit.
-            fresh_store = CampaignStore(self.store.path)
+            fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
             fresh_manager = SessionManager(campaign_store=fresh_store)
             fresh_app = create_app(
                 session_manager=fresh_manager,
                 ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-            )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
             async with httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=fresh_app),
                 base_url="http://testserver",
@@ -4663,18 +4655,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
-        active_store = CampaignStore(self.store.path)
-        stale_store = CampaignStore(self.store.path)
+        active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
         stale_manager = SessionManager(campaign_store=stale_store)
         active_app = create_app(
             session_manager=active_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with (
             httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=active_app),
@@ -4833,18 +4825,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     "ORDER BY action_id", (campaign_id,),
                 ).fetchall()
 
-        active_store = CampaignStore(self.store.path)
-        stale_store = CampaignStore(self.store.path)
+        active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
         stale_manager = SessionManager(campaign_store=stale_store)
         active_app = create_app(
             session_manager=active_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with (
             httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=active_app),
@@ -5025,18 +5017,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(created_response.status_code, 200, created_response.text)
         campaign_id = created_response.json()["campaign_id"]
-        active_store = CampaignStore(self.store.path)
-        stale_store = CampaignStore(self.store.path)
+        active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
         stale_manager = SessionManager(campaign_store=stale_store)
         active_app = create_app(
             session_manager=active_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with (
             httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=active_app),
@@ -5577,18 +5569,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
-        winner_store = CampaignStore(self.store.path)
-        loser_store = CampaignStore(self.store.path)
+        winner_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        loser_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         winner_manager = SessionManager(campaign_store=winner_store)
         loser_manager = SessionManager(campaign_store=loser_store)
         winner_app = create_app(
             session_manager=winner_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         loser_app = create_app(
             session_manager=loser_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
 
         def receipt_rows():
             with closing(sqlite3.connect(self.store.path)) as connection:
@@ -6453,18 +6445,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(created.status_code, 200, created.text)
         campaign_id = created.json()["campaign_id"]
         resume_url = f"/api/game/campaigns/{campaign_id}/resume"
-        active_store = CampaignStore(self.store.path)
-        recovered_store = CampaignStore(self.store.path)
+        active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        recovered_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
         recovered_manager = SessionManager(campaign_store=recovered_store)
         active_app = create_app(
             session_manager=active_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         recovered_app = create_app(
             session_manager=recovered_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
 
         def receipt_rows():
             with closing(sqlite3.connect(self.store.path)) as connection:
@@ -7196,12 +7188,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         committed = await search(
             self.http, self.manager, self.store, created["session_id"], requests[0]
         )
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -7222,7 +7214,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )
 
         # A second reopen verifies the paraphrases are durable independent turns.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_id, _, _, _, _ = final_manager.resume_campaign(campaign_id)
         final_record = final_manager.get(final_id)
@@ -7324,12 +7316,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     }
                 return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(DeclinedSearchOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         declined_body = {
             "message": "Bir tüccar aramıyorum.",
             "action_id": str(uuid.uuid4()),
@@ -7428,7 +7420,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # Another fresh load checks the non-search history and result persisted;
         # no replay or additional action is sent here.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_id, final_record, _, _, _ = final_manager.resume_campaign(campaign_id)
         self.assertEqual(
@@ -7581,12 +7573,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsNone(self.store.get_turn_action(campaign_id, body["action_id"]))
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -7683,12 +7675,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # A second fresh manager proves the recovered discovery and receipt
         # actually persisted, and replay after reopening cannot create duplicates.
-        restarted_store = CampaignStore(self.store.path)
+        restarted_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         restarted_manager = SessionManager(campaign_store=restarted_store)
         restarted_app = create_app(
             session_manager=restarted_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=restarted_app),
             base_url="http://testserver",
@@ -7894,12 +7886,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.store.get_turn_action(campaign_id, discovery_body["action_id"])
         )
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8057,18 +8049,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
-        active_store = CampaignStore(self.store.path)
-        stale_store = CampaignStore(self.store.path)
+        active_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        stale_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         active_manager = SessionManager(campaign_store=active_store)
         stale_manager = SessionManager(campaign_store=stale_store)
         active_app = create_app(
             session_manager=active_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         stale_app = create_app(
             session_manager=stale_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with (
             httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=active_app),
@@ -8230,12 +8222,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             for entry in saved_claims[npc_a["id"]]
         ))
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8361,12 +8353,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(original_receipt["response"], original_answer.json())
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8506,12 +8498,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         receipts = {}
         narrations = []
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8615,12 +8607,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # A second fresh reload must retain all accepted answers and identities,
         # without using the previous SessionManager's objects or receipt cache.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",
@@ -8703,12 +8695,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             f'“{selected_npc["personal_profile"]["occupation"]}” diye yanıt verir.'
         )
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8781,12 +8773,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         # Fresh persistence and session objects must retain the selected
         # conversation, both saved profiles, the answer, and the action receipt.
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",
@@ -8844,12 +8836,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         )
         body = {"message": "Mesleğin nedir?", "action_id": str(uuid.uuid4())}
         self.assertEqual(local_dialogue.personal_question_kind(body["message"]), "occupation")
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = create_app(
             session_manager=reopened_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -8924,12 +8916,12 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             receipt = copy.deepcopy(reopened_store.get_turn_action(campaign_id, body["action_id"]))
             self.assertEqual(receipt["response"], turn)
 
-        final_store = CampaignStore(self.store.path)
+        final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         final_manager = SessionManager(campaign_store=final_store)
         final_app = create_app(
             session_manager=final_manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=final_app),
             base_url="http://testserver",

@@ -26,6 +26,8 @@ from api.tests.live_playable_living_world_v1_1_smoke import (
     SmokeFailure,
     apply_smoke_summary,
 )
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 
 
 def _intent_json(intent="unknown"):
@@ -740,7 +742,7 @@ class ApiRecoveryTests(unittest.IsolatedAsyncioTestCase):
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),
             base_url="http://testserver",

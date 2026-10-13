@@ -219,7 +219,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         self.assertEqual(stored.payload["narrative_memory"], memory)
         self.assertNotIn("narrative_memory", stored.payload["engine_save"])
 
-        restarted_store = CampaignStore(self.store.path)
+        restarted_store = CampaignStore(self.store.path, bound_principal=TEST_PRINCIPAL)
         restarted_manager = SessionManager(campaign_store=restarted_store)
         _, resumed_record, _, _, _ = restarted_manager.resume_campaign(campaign_id)
         self.assertEqual(resumed_record.narrative_memory, memory)
@@ -235,7 +235,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         first_record.game_session.character["current_hp"] = 5
         self.manager.save_campaign(first_id)
 
-        restarted = SessionManager(campaign_store=CampaignStore(self.database_path))
+        restarted = SessionManager(campaign_store=CampaignStore(self.database_path, bound_principal=TEST_PRINCIPAL))
         _, first_resumed, _, _, _ = restarted.resume_campaign(first_id)
         _, second_resumed, _, _, _ = restarted.resume_campaign(second_id)
         self.assertIn("Only first", first_resumed.game_session.world_state["inventory"])
@@ -347,7 +347,11 @@ class CampaignPersistenceTests(unittest.TestCase):
         finally:
             connection.close()
 
-        migrated_store = CampaignStore(self.database_path)
+        migrated_store = CampaignStore(
+            self.database_path,
+            bound_principal=TEST_PRINCIPAL,
+            allow_schema_migration=True,
+        )
         stored = migrated_store.get_campaign(campaign_id)
         connection = sqlite3.connect(self.database_path)
         try:
@@ -357,7 +361,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         finally:
             connection.close()
 
-        self.assertEqual(database_version, 5)
+        self.assertEqual(database_version, 6)
         self.assertEqual(stored.combat_history, [])
         self.assertEqual(stored.metadata["name"], "Legacy campaign")
 
@@ -388,7 +392,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         )
 
         restarted_manager = SessionManager(
-            campaign_store=CampaignStore(self.database_path)
+            campaign_store=CampaignStore(self.database_path, bound_principal=TEST_PRINCIPAL)
         )
         _, resumed, _, _, _ = restarted_manager.resume_campaign(first_id)
         self.assertEqual(resumed.combat_history, stored.combat_history)
@@ -411,7 +415,7 @@ class CampaignPersistenceTests(unittest.TestCase):
         )
 
         restarted_manager = SessionManager(
-            campaign_store=CampaignStore(self.database_path)
+            campaign_store=CampaignStore(self.database_path, bound_principal=TEST_PRINCIPAL)
         )
         _, resumed, _, _, _ = restarted_manager.resume_campaign(campaign_id)
         self.assertEqual(resumed.combat_history, [completed_entry])

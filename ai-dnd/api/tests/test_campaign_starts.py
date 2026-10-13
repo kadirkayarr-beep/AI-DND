@@ -13,6 +13,8 @@ from api.lore_authority import (
     BindingStatus,
     ReviewStatus,
 )
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 from api.main import create_app
 from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
@@ -99,12 +101,12 @@ class CampaignStartApiTests(unittest.IsolatedAsyncioTestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.store = CampaignStore(
             Path(self.temporary_directory.name) / "campaigns.sqlite3"
-        )
+        , bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),
             base_url="http://testserver",

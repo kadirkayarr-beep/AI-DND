@@ -24,6 +24,7 @@ from api.dnd_2024_rules import (
     validate_ability_scores,
     validate_background_bonuses,
 )
+from api.tests.auth_fixture import TEST_PLAYER
 from api.persistence.campaign_validation import (
     restore_campaign_session,
     serialize_campaign_payload,
@@ -1571,7 +1572,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test_campaign.sqlite3"
-            store = CampaignStore(db_path)
+            store = CampaignStore(db_path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
 
             char_input = {
@@ -1620,7 +1621,7 @@ class CharacterCreation2024Tests(unittest.TestCase):
             self.assertEqual(record.game_session.character["armor_class"], 19)
 
             # Restart session manager from the same SQLite database
-            restarted_manager = SessionManager(campaign_store=CampaignStore(db_path))
+            restarted_manager = SessionManager(campaign_store=CampaignStore(db_path, bound_principal=TEST_PLAYER))
             resumed_session_id, resumed_record, resumed_meta, _, _ = restarted_manager.resume_campaign(campaign_id)
 
             # Assert inventory survived the real database round-trip
@@ -1632,4 +1633,3 @@ class CharacterCreation2024Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

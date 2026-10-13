@@ -18,6 +18,8 @@ from api.tests import test_exploration_package as baseline
 from fastapi.testclient import TestClient
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class CloseoutTests(NativeBase):
     canonical = baseline.ExplorationPackageTests.canonical
     arrive = baseline.ExplorationPackageTests.arrive
@@ -139,8 +141,8 @@ class CloseoutTests(NativeBase):
 
     def test_changed_request_conflicts_and_stale_manager_cannot_overwrite(self):
         self.call("/explore begin")
-        manager = SessionManager(campaign_store=CampaignStore(self.path))
-        with TestClient(create_app(session_manager=manager, ollama_adapter=None)) as client:
+        manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        with TestClient(create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))) as client:
             resumed = client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume").json()
             stale_sid = resumed["session_id"]
             body, reply = self.call("/travel pace fast")

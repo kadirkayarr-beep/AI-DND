@@ -19,6 +19,7 @@ from api.tests import test_monster_combat as monsters
 from api.tests import test_spell_scope as spells
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 class CombatMatrixEngineTests(unittest.TestCase):
     def test_spell_lethal_damage_preserves_surviving_opponent_and_cursor(self):
         s, victim = spells.caster(clocks.scene())
@@ -147,7 +148,7 @@ class CombatMatrixApiTests(unittest.IsolatedAsyncioTestCase):
         snapshot = s.serialize_game_state()
         rng = s.rng.getstate()
         self.manager.save_campaign(a["campaign_id"])
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, record, *_ = fresh.resume_campaign(a["campaign_id"])
         resumed = record.game_session
         self.assertEqual(resumed.rng.getstate(), rng)

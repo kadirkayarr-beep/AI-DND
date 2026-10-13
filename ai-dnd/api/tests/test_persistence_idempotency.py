@@ -18,19 +18,19 @@ import bounded_encounter
 import httpx
 from api.main import create_app, TurnResponse
 
-from api.auth import FixedAuthenticator
 from api.persistence.campaign_store import CampaignStore, MAX_COMBAT_HISTORY_ENTRIES
 from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 from api.tests import test_spell_scope as spells
 from api.tests import test_campaign_time as clocks
 from api.tests.test_action_economy_reactions import interrupted, assert_continuation
-from api.tests.auth_fixture import TEST_PLAYER
 import json
 from api.persistence.campaign_models import CampaignError, CampaignStaleError
 from api import campaign_journal
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -283,9 +283,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(damaged_receipt["response"], response)
             self.assertNotEqual(damaged_receipt["response"], accepted.json())
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -763,9 +763,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(self.snapshot(record), committed)
             self.assertEqual((session.messages, session.world_metadata), auxiliary_before)
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1240,8 +1240,8 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_independently_loaded_stale_save_cannot_overwrite_newer_truth(self):
         a = await self.create_campaign()
-        first = SessionManager(campaign_store=CampaignStore(self.store.path))
-        second = SessionManager(campaign_store=CampaignStore(self.store.path))
+        first = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
+        second = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, current, *_ = first.resume_campaign(a["campaign_id"])
         _, stale, *_ = second.resume_campaign(a["campaign_id"])
         current.game_session.character["current_hp"] -= 1
@@ -1269,9 +1269,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(other), isolated)
 
         # Discard the first response as if lost; reconstruct without the old object.
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         before = self.snapshot(restored)
         with patch("spell_scope.cast", side_effect=AssertionError("replayed mechanics")):
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
@@ -1346,9 +1346,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     original_receipt,
                 )
 
-                fresh_store = CampaignStore(self.store.path)
+                fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 fresh = SessionManager(campaign_store=fresh_store)
-                app = create_app(session_manager=fresh, ollama_adapter=None)
+                app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                             base_url="http://reload") as client:
                     resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1468,9 +1468,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     original_receipt,
                 )
 
-                fresh_store = CampaignStore(self.store.path)
+                fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 fresh = SessionManager(campaign_store=fresh_store)
-                app = create_app(session_manager=fresh, ollama_adapter=None)
+                app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                             base_url="http://reload") as client:
                     resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1687,9 +1687,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(saved_rows(), rows)
 
         await assert_replay(self.http, self.manager, self.store, record, created["session_id"])
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1833,9 +1833,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(saved_rows(store), rows)
 
         await assert_replay(self.http, self.manager, self.store, record, created["session_id"])
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1962,9 +1962,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         await assert_reader_isolation(
             self.http, self.manager, self.store, record, created["session_id"], "before_resume",
         )
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2010,9 +2010,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 committed = self.snapshot(record)
                 self.assertTrue(record.journal["notable_events"])
 
-                fresh_store = CampaignStore(self.store.path)
+                fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 fresh = SessionManager(campaign_store=fresh_store)
-                app = create_app(session_manager=fresh, ollama_adapter=None)
+                app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                             base_url="http://reload") as client:
                     resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2176,7 +2176,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.manager.get_turn_action(record, command["action_id"]),
                          original_receipt)
 
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         resume_time = (
             datetime.fromisoformat(committed[-1].metadata["last_played_at"])
             + timedelta(seconds=2)
@@ -2199,7 +2199,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(restored.game_session.rng.getstate(), session.rng.getstate())
         self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original_receipt)
         before = self.snapshot(restored)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         with patch("game.run_player_turn",
                    side_effect=AssertionError("replayed mechanics after reopen")), \
              patch.object(restored.game_session.rng, "randint",
@@ -2294,7 +2294,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.snapshot(other), isolated)
 
         if persisted:
-            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
             saved = committed[-1]
             resume_time = (
                 datetime.fromisoformat(saved.metadata["last_played_at"])
@@ -2328,7 +2328,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             committed = (*committed[:-1], reopened)
             self.assertEqual(fresh.get_turn_action(restored, command["action_id"]), original)
             before = self.snapshot(restored)
-            app = create_app(session_manager=fresh, ollama_adapter=None)
+            app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
             with patch("game.run_player_turn",
                        side_effect=AssertionError("replayed mechanics after reopen")), \
                  patch.object(restored.game_session.rng, "randint",
@@ -2454,7 +2454,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
         if persisted:
             self.assertEqual(self.store.get_campaign(a["campaign_id"]), stored)
-            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
             _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
             self.assertIsNot(restored.game_session, record.game_session)
             self.assertEqual(restored.combat_history, [original])
@@ -2581,7 +2581,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(stored.combat_history, record.combat_history)
             self.assertEqual(stored.combat_history[0], original)
             self.assertEqual(len(stored.history), 2)
-            fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+            fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
             _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
             self.assertIsNot(restored.game_session, session)
             before_observation = self.snapshot(restored)
@@ -2689,7 +2689,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(evicted_ids.isdisjoint(surviving_ids))
         self.assertEqual(len(surviving_ids), MAX_COMBAT_HISTORY_ENTRIES)
 
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, restored, *_ = fresh.resume_campaign(a["campaign_id"])
         self.assertIsNot(restored.game_session, session)
         before_observation = self.snapshot(restored)
@@ -2882,7 +2882,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                                  original_receipt["request_hash"])
             self.assertEqual(self.snapshot(record), committed)
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
         self.assertNotEqual(sid, a["session_id"])
@@ -2926,7 +2926,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             retry_command["combat_action"]["steps"][0]["ability"] = "Fire Bolt"
             self.assertEqual(retry_command["action_id"], command["action_id"])
             self.assertNotEqual(retry_command["combat_action"], command["combat_action"])
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         with patch.object(restored.game_session, "run_player_turn",
                           side_effect=AssertionError("Evicted action executed again")) as engine, \
              patch("game.run_player_turn",
@@ -3015,7 +3015,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             (f"ambient-events/{uuid4()}/actions",
              {"action": "observe", "action_id": command["action_id"]}),
         ]
-        app = create_app(session_manager=manager, ollama_adapter=None)
+        app = create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://reload",
         ) as client:
@@ -3313,9 +3313,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         for table in ("campaign_history", "campaign_combat_history", "campaign_turn_actions"):
             self.assertEqual(len(committed_rows[table]), len(before_rows[table]) + 1)
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://reload",
         ) as client:
@@ -3538,9 +3538,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         for table in ("campaign_history", "campaign_combat_history"):
             self.assertEqual(committed_rows[table], before_rows[table])
 
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://reload") as client:
             resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -3652,7 +3652,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         with closing(self.store._connect()) as db:
             db.execute("DROP TRIGGER reject_combat_pruning")
 
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
         self.assertIsNot(restored.game_session, session)
         # Resume may update last-played metadata, but not history or RNG.
@@ -3664,7 +3664,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reopened.combat_history, accepted_entries)
         self.assertEqual(reopened.history, stored.history)
         self.assertEqual(reopened.payload, stored.payload)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                     base_url="http://testserver") as client:
             successful = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
@@ -3844,9 +3844,9 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(committed[-1].metadata["revision"],
                                      before[-1].metadata["revision"] + 1)
 
-                    fresh_store = CampaignStore(self.store.path)
+                    fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                     fresh = SessionManager(campaign_store=fresh_store)
-                    app = create_app(session_manager=fresh, ollama_adapter=None)
+                    app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                                 base_url="http://reload") as client:
                         resumed = await client.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -3903,7 +3903,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                     event_id = self.install_test_ambient_event(session)
                     self.manager.save_campaign(campaign_id)
 
-                    rest_store = CampaignStore(self.store.path)
+                    rest_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                     rest_manager = SessionManager(campaign_store=rest_store)
                     rest_sid, rest_record, *_ = rest_manager.resume_campaign(campaign_id)
                     managers = {"ambient": self.manager, "rest": rest_manager}
@@ -4100,7 +4100,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                             currentness.assert_not_called()
                             assert_retry_unchanged()
 
-                    app = create_app(session_manager=rest_manager, ollama_adapter=None)
+                    app = create_app(session_manager=rest_manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
                     async with httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=app), base_url="http://independent",
                     ) as rest_client:
@@ -4406,7 +4406,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             command = {"action": operation, "action_id": action_id}
             mechanic = "resolve_species_trait_action"
         self.manager.save_campaign(campaign_id)
-        second_store = CampaignStore(self.store.path)
+        second_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         second_manager = SessionManager(campaign_store=second_store)
         second_sid, second, *_ = second_manager.resume_campaign(campaign_id)
         records = (first, second)
@@ -4523,7 +4523,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         app = create_app(
             session_manager=second_manager,
             ollama_adapter=self.app.state.ollama_adapter if reaction else None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://duplicate",
         ) as second_client:
@@ -5011,7 +5011,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         seed.initialize_species_trait_state()
         seed.character["species_trait_state"]["adrenaline_rush_uses_remaining"] = 0
         self.manager.save_campaign(campaign_id)
-        stores = [CampaignStore(self.store.path) for _ in range(2)]
+        stores = [CampaignStore(self.store.path, bound_principal=TEST_PLAYER) for _ in range(2)]
         managers = [SessionManager(campaign_store=store) for store in stores]
         resumed = [manager.resume_campaign(campaign_id) for manager in managers]
         session_ids = [result[0] for result in resumed]
@@ -5091,7 +5091,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
                 httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=create_app(
                         session_manager=manager, ollama_adapter=None,
-                    )), base_url="http://rest-race",
+                    authenticator=FixedAuthenticator(TEST_PLAYER))), base_url="http://rest-race",
                 ) for manager in managers
             ]
             try:
@@ -5257,7 +5257,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         self.manager._session_factory = clocks.scene
         a = await self.create_campaign()
         record = self.manager.get(a["session_id"])
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, newer, *_ = fresh.resume_campaign(a["campaign_id"])
         newer.game_session.advance_campaign_time(600, "wait")
         fresh.save_campaign(a["campaign_id"])
@@ -5285,15 +5285,19 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             receipt = tuple(db.execute("SELECT * FROM campaign_turn_actions").fetchone())
             db.execute("ALTER TABLE campaigns DROP COLUMN revision")
             db.execute("PRAGMA user_version = 3")
-        upgraded = CampaignStore(self.store.path)
+        upgraded = CampaignStore(
+            self.store.path,
+            bound_principal=TEST_PLAYER,
+            allow_schema_migration=True,
+        )
         with closing(upgraded._connect()) as db:
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 5)
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 6)
             self.assertEqual(db.execute("SELECT payload_json FROM campaigns").fetchone()[0], payload)
             self.assertEqual(tuple(db.execute("SELECT * FROM campaign_turn_actions").fetchone()), receipt)
         fresh = SessionManager(campaign_store=upgraded)
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
         self.assertEqual(restored.game_session.rng.getstate(), self.manager.get(a["session_id"]).game_session.rng.getstate())
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://legacy") as client:
             replay = await client.post(f"/api/game/sessions/{sid}/turn", json=command)
         expected = original.json()
@@ -5302,7 +5306,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_deleted_campaign_revokes_independent_cached_copy_and_cannot_resurrect(self):
         a, b = await self.create_campaign(), await self.create_campaign()
-        other = SessionManager(campaign_store=CampaignStore(self.store.path))
+        other = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, stale, *_ = other.resume_campaign(a["campaign_id"])
         isolated = self.store.get_campaign(b["campaign_id"])
         self.assertTrue(self.manager.delete_campaign(a["campaign_id"])["deleted"])
@@ -5312,7 +5316,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(CampaignError):
             other.save_campaign_locked(stale)
         with self.assertRaises(CampaignError):
-            SessionManager(campaign_store=CampaignStore(self.store.path)).resume_campaign(a["campaign_id"])
+            SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER)).resume_campaign(a["campaign_id"])
         self.assertFalse(self.manager.delete_campaign(a["campaign_id"])["deleted"])
         self.assertEqual(self.store.get_campaign(b["campaign_id"]), isolated)
 
@@ -5440,11 +5444,11 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
             [fresh_id, fresh_id],
         )
         trimmed = self.snapshot(record)
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         fresh_manager = SessionManager(campaign_store=fresh_store)
         fresh_app = create_app(
             session_manager=fresh_manager, ollama_adapter=self.app.state.ollama_adapter,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=fresh_app), base_url="http://reopened",
         ) as client:
@@ -5491,7 +5495,7 @@ class PersistenceIdempotencyTests(unittest.IsolatedAsyncioTestCase):
         # still in the journal, so the ID must not become a new turn.
         with closing(self.store._connect()) as db:
             db.execute("DELETE FROM campaign_turn_actions WHERE action_id = ?", (action_id,))
-        CampaignStore(self.store.path)  # Startup imports known structured legacy identities.
+        CampaignStore(self.store.path, bound_principal=TEST_PLAYER)  # Startup imports known structured legacy identities.
         record.journal["notable_events"] = []  # Simulate the existing bounded journal trim.
         self.manager.save_campaign(a["campaign_id"])
         legacy_before = self.snapshot(record)

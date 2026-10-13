@@ -22,6 +22,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def armed(weapon="Longsword", *, mastery=False, distance=5):
     s, n = ready()
     s.character.update(current_hp=100, max_hp=100, strength=16, dexterity=14,
@@ -2149,7 +2150,7 @@ class WeaponPushPersistenceTests(unittest.TestCase):
                     f"{other['id']}|{n['id']}": {"distance_ft": 25},
                 }}
                 s.initialize_species_trait_state()
-                store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+                store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
                 campaign_id = str(uuid4())
                 s.world_state["campaign_id"] = campaign_id
                 store.create_campaign(campaign_id, "Push persistence", s)
@@ -2172,7 +2173,7 @@ class WeaponPushPersistenceTests(unittest.TestCase):
                 saved_rng = s.rng.getstate()
 
                 # New store, manager, and session: no retained live geometry.
-                reopened_store = CampaignStore(store.path)
+                reopened_store = CampaignStore(store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(campaign_store=reopened_store)
                 _, record, _, _, _ = manager.resume_campaign(campaign_id)
                 restored = record.game_session
@@ -2218,7 +2219,7 @@ class WeaponPushPersistenceTests(unittest.TestCase):
         }}
         with tempfile.TemporaryDirectory() as directory:
             s.initialize_species_trait_state()
-            store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+            store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             campaign_id = str(uuid4())
             s.world_state["campaign_id"] = campaign_id
             store.create_campaign(campaign_id, "NPC push persistence", s)
@@ -2236,7 +2237,7 @@ class WeaponPushPersistenceTests(unittest.TestCase):
                 if npc["id"] in mirrors}, mirrors)
 
             # Use entirely new persistence/session owners, not the live fixture.
-            reopened_store = CampaignStore(store.path)
+            reopened_store = CampaignStore(store.path, bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=reopened_store)
             _, record, _, _, _ = manager.resume_campaign(campaign_id)
             restored = record.game_session
@@ -2374,7 +2375,7 @@ class WeaponApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.json(), duplicate.json())
         self.assertEqual((s.world_state, s.character, s.rng.getstate()), before)
         self.assertEqual(s.world_state["ammunition"]["arrow"], 4)
-        restarted = SessionManager(campaign_store=CampaignStore(self.store.path))
+        restarted = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, restored, _, _, _ = restarted.resume_campaign(self.created["campaign_id"])
         self.assertEqual(restored.game_session.world_state["attack_results"], s.world_state["attack_results"])
         receipt = restarted.get_turn_action(restored, command["action_id"])

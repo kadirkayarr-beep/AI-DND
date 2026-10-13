@@ -23,6 +23,8 @@ from api.tests import test_campaign_time as v1
 from api.tests.test_campaign_time import scene, turn
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 def flag(key, value=True):
     return {"kind": "flag", "key": f"scheduled:{key}", "value": value}
 
@@ -410,10 +412,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], response)
 
         # Fresh owners must load depleted uses and the committed encounter from disk.
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -575,10 +577,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), receipt)
 
         await assert_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -705,10 +707,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         async with AsyncExitStack() as clients:
             # Each attempt must recover solely from disk, not the rolled-back owner.
             for attempt in range(2):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -905,10 +907,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         async with AsyncExitStack() as clients:
             # Fail with fresh owners, retry from disk, then reopen the commit.
             for attempt in range(3):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -1090,10 +1092,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         async with AsyncExitStack() as clients:
             # Reproduce the abort with fresh owners, retry from disk, and reopen.
             for attempt in range(3):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -1289,10 +1291,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             # Confirm rollback on disk, retry once from another fresh owner,
             # then reopen the committed recovery for an exact receipt replay.
             for attempt in range(3):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -1445,10 +1447,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.store.get_turn_action(campaign_id, request["action_id"])["response"],
                          response)
 
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -1585,10 +1587,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         async with AsyncExitStack() as clients:
             # The second failure and successful retry each use fresh disk owners.
             for attempt in range(2):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -1766,10 +1768,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         async with AsyncExitStack() as clients:
             # Fail again under fresh owners, then retry and reopen the commit.
             for attempt in range(3):
-                store = CampaignStore(self.store.path)
+                store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                 manager = SessionManager(session_factory=scene, campaign_store=store)
                 app = v1.create_app(session_manager=manager,
-                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                    ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
                 http = await clients.enter_async_context(httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app), base_url="http://test",
                 ))
@@ -1915,10 +1917,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         assert_interrupted(persisted["player"], persisted["world_state"])
 
         # Fresh owners prevent the original in-memory session from hiding save loss.
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2049,10 +2051,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(manager.get_turn_action(active_record, decision_request["action_id"]), decision_receipt)
 
         await assert_old_rest_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2224,10 +2226,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get_turn_action(record, action_id), receipt)
 
         await assert_old_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2387,10 +2389,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get_turn_action(active_record, action_id), receipt)
 
         await assert_historical_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2561,10 +2563,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(manager.get_turn_action(active_record, action_id), receipt)
 
         await assert_historical_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2713,10 +2715,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.get_turn_action(campaign_id, rest_request["action_id"]), rest_receipt)
 
         await assert_replay(self.http, self.manager, self.store, self.sid)
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2870,10 +2872,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), receipt)
             self.assertEqual(store.get_turn_action(campaign_id, rest_request["action_id"]), rest_receipt)
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -2908,10 +2910,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(receipt["response"], response)
             await assert_replay(http, manager, reopened_store, sid)
 
-        replay_store = CampaignStore(self.store.path)
+        replay_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
         replay_app = v1.create_app(session_manager=replay_manager,
-                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{campaign_id}/resume")
@@ -3060,10 +3062,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         receipt = copy.deepcopy(self.store.get_turn_action(campaign_id, request["action_id"]))
         self.assertEqual(receipt["response"], response)
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             with patch.object(events, "_occur", side_effect=AssertionError("Resume reapplied event effects")):
@@ -3329,10 +3331,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             for identity, prior in prior_receipts.items():
                 self.assertEqual(store.get_turn_action(campaign_id, identity), prior)
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             with patch.object(events, "_occur", side_effect=AssertionError("Resume reapplied event effects")):
@@ -3379,10 +3381,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(receipt["response"], response)
             await assert_replay(http, manager, reopened_store, sid)
 
-        replay_store = CampaignStore(self.store.path)
+        replay_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
         replay_app = v1.create_app(session_manager=replay_manager,
-                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
                                      base_url="http://test") as http:
             with patch.object(events, "_occur", side_effect=AssertionError("Reload reapplied event effects")):
@@ -3621,10 +3623,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(manager.get_turn_action(active_record, request["action_id"]), accepted_receipt)
             assert_prior_receipts(manager, store, active_record)
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             with patch.object(events, "_occur", side_effect=AssertionError("Resume reapplied event effects")):
@@ -3670,10 +3672,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             await assert_replay(http, manager, reopened_store, sid)
 
         # The accepted decision receipt must also replay from disk with fresh owners.
-        replay_store = CampaignStore(self.store.path)
+        replay_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
         replay_app = v1.create_app(session_manager=replay_manager,
-                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                                   ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with AsyncExitStack() as clients, \
                 httpx.AsyncClient(transport=httpx.ASGITransport(app=replay_app),
                                      base_url="http://test") as http:
@@ -3767,12 +3769,12 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
                     failed_manager = replay_manager
                     failed_store = replay_store
                     failed_sid = sid
-                    replay_store = CampaignStore(self.store.path)
+                    replay_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
                     replay_manager = SessionManager(session_factory=scene, campaign_store=replay_store)
                     retry_app = v1.create_app(
                         session_manager=replay_manager,
                         ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()),
-                    )
+                    authenticator=FixedAuthenticator(TEST_PLAYER))
                     http = await clients.enter_async_context(httpx.AsyncClient(
                         transport=httpx.ASGITransport(app=retry_app), base_url="http://test",
                     ))
@@ -3938,12 +3940,12 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
             recovered_record = reloaded_record
             recovered_snapshot = snapshot(recovered_record)
             recovered_sid = sid
-            final_store = CampaignStore(self.store.path)
+            final_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
             final_manager = SessionManager(session_factory=scene, campaign_store=final_store)
             final_app = v1.create_app(
                 session_manager=final_manager,
                 ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()),
-            )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=final_app),
                                          base_url="http://test") as http:
                 with patch.object(events, "_occur", side_effect=AssertionError("Final resume repeated occurrence")):
@@ -4059,10 +4061,10 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def assert_reloaded_return(self, request, response, saved_session):
         """Use a fresh store, manager and in-process API, never the live service."""
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=store)
         app = v1.create_app(session_manager=manager,
-                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()))
+                            ollama_adapter=v1.AuthenticatedOllamaAdapter(v1.NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             resumed = await http.post(f"/api/game/campaigns/{self.created['campaign_id']}/resume")
@@ -4183,7 +4185,7 @@ class EventEdgeApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.json()["state"]["pending_event_decisions"][0]["summary"], "Karar.")
         repeated = await self.http.post(path, json=request)
         self.assertEqual(first.json(), repeated.json())
-        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path))
+        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, record, _, _, _ = manager.resume_campaign(self.created["campaign_id"])
         self.assertEqual(record.game_session.world_state["active_task"]["spent_seconds"], 1440)
         self.assertEqual(events.pending_events(record.game_session.world_state)[0]["decision_status"], "PENDING")

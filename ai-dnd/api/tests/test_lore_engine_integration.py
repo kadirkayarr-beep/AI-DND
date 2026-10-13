@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import game
 import campaign_time
+from api.auth import bind_principal, reset_principal
 from api.lore_authority import (
     BindingStatus,
     CampaignLoreState,
@@ -15,6 +16,7 @@ from api.lore_authority import (
 )
 from api.main import _lore_context_for_turn, _stage_engine_lore_state
 from api.session_manager import SessionManager
+from api.tests.auth_fixture import TEST_PLAYER
 from api.tests.test_lore_authority import entity, verified_registry
 
 
@@ -107,7 +109,11 @@ class LoreEngineIntegrationTests(unittest.TestCase):
         self.assertEqual(dated["diagnostics"]["campaign_year"], 1368)
 
     def test_unbound_session_does_not_receive_setting_canon(self):
-        _, record = SessionManager().create()
+        token = bind_principal(TEST_PLAYER)
+        try:
+            _, record = SessionManager().create()
+        finally:
+            reset_principal(token)
 
         packet = _lore_context_for_turn(
             record,

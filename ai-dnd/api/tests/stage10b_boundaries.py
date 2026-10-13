@@ -15,6 +15,8 @@ from unittest.mock import patch
 
 import httpx
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -60,7 +62,7 @@ async def _observe_model_failures() -> dict:
         fake = FakeOllamaClient(chat_error=chat_error, content=content)
         adapter = AuthenticatedOllamaAdapter(fake)
         with adapter.engine_binding():
-            app = create_app(session_manager=SessionManager(), ollama_adapter=adapter)
+            app = create_app(session_manager=SessionManager(), ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as http:
                 session_id, before_state = await _campaign(http)
                 session = app.state.session_manager.get(session_id).game_session

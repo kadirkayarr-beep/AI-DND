@@ -18,6 +18,8 @@ from api.tests import test_campaign_api as fixtures
 from api.tests import test_persistence_idempotency as idempotency
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
     asyncSetUp = fixtures.CampaignApiTests.asyncSetUp
     asyncTearDown = fixtures.CampaignApiTests.asyncTearDown
@@ -166,13 +168,13 @@ class AmbientReceiptCorruptionTests(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(updated.rowcount, 1)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
-        fresh_store = CampaignStore(self.store.path)
+        fresh_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         if legacy != "imported" and malformed_hash is None:
             loaded = fresh_store.get_turn_action(campaign_id, command["action_id"])
             self.assertEqual(loaded["request_hash"], receipt["request_hash"])
             self.assertEqual(loaded["response"], damaged)
         fresh = SessionManager(campaign_store=fresh_store)
-        app = create_app(session_manager=fresh, ollama_adapter=None)
+        app = create_app(session_manager=fresh, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://reload",
         ) as client:

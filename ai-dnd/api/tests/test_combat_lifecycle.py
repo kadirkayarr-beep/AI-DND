@@ -16,6 +16,7 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.tests import test_campaign_time as v1
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 class ControlledModel(v1.NoModel):
     def __init__(self):
         self.calls = []
@@ -218,7 +219,7 @@ class CombatLifecycleApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.world_state, before)
         conflict = await self.post(dict(command, message="Farklı hamle."))
         self.assertEqual(conflict.status_code, 409)
-        restarted = SessionManager(session_factory=v1.scene, campaign_store=CampaignStore(self.store.path))
+        restarted = SessionManager(session_factory=v1.scene, campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, restored, _, _, _ = restarted.resume_campaign(self.created["campaign_id"])
         self.assertEqual(restored.game_session.world_state["combat"]["combat_id"], identity)
         self.assertEqual(restored.game_session.world_state["combat"]["round"], 2)

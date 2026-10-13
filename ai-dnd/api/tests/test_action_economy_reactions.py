@@ -15,6 +15,8 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.session_manager import SessionManager
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 def interrupted(session, response_kind="attack"):
     """The first enemy has already attacked; two supported attacks remain."""
     npcs = opponents(session)
@@ -271,7 +273,7 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(runtime(record), accepted)
         self.assertEqual(self.store.get_campaign(campaign_id), committed)
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         sid, restored, _, history, _ = manager.resume_campaign(campaign_id)
         self.assertEqual(runtime(restored), accepted)
@@ -279,7 +281,7 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(manager.get_turn_action(restored, command["action_id"]), receipt)
         # Resume can update metadata; compare replay with the post-resume store.
         reopened_before = reopened_store.get_campaign(campaign_id)
-        app = create_app(session_manager=manager, ollama_adapter=self.app.state.ollama_adapter)
+        app = create_app(session_manager=manager, ollama_adapter=self.app.state.ollama_adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test",
         ) as client:
@@ -321,7 +323,7 @@ class ReactionNarrationApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(replay.json(), body)
                 self.assertEqual((session.world_state, session.character, session.rng.getstate()), before)
                 manager = SessionManager(session_factory=scene,
-                                         campaign_store=CampaignStore(self.store.path))
+                                         campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
                 _, restored, _, _, _ = manager.resume_campaign(self.created["campaign_id"])
                 saved = manager.get_turn_action(restored, command["action_id"])["response"]
                 self.assertEqual(saved["narration"], body["narration"])

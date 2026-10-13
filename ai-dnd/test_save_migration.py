@@ -11,6 +11,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def _session():
     session = game.create_session(seed=4)
     session.character["xp"] = 300
@@ -107,7 +108,7 @@ class SaveMigrationTests(unittest.TestCase):
 
     def test_ordinary_campaign_resume_keeps_v3_and_v5(self):
         with tempfile.TemporaryDirectory() as directory:
-            store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+            store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             campaign_id, _, record, _ = manager.create_campaign("Historical")
             session = record.game_session

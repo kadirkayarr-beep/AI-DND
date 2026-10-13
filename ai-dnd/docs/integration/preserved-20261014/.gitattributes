@@ -1,0 +1,3 @@
+# Exact archival bytes and patch context whitespace are intentional.
+# Active source and tests retain normal whitespace checks.
+*.txt -text -whitespace
