@@ -7,6 +7,7 @@ process.env.BASE_PATH ||= '/';
 
 let vite;
 let renderCreationScreen;
+let renderSpellSelectionHeading;
 let React;
 let catalogNormalizer;
 let characterPreview;
@@ -128,6 +129,8 @@ before(async () => {
   defaultCatalog = catalogDefaults.DEFAULT_CATALOG;
   React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
+
+  renderSpellSelectionHeading = (props) => renderToStaticMarkup(React.createElement(component.SpellSelectionHeading, props));
 
   renderCreationScreen = (props = {}) => renderToStaticMarkup(
     React.createElement(component.CharacterCreationScreen, {
@@ -453,3 +456,35 @@ test('review step renders comprehensive summary including roleplay identity box'
   assert.ok(html.includes('Hikaye:'));
 });
 
+
+
+test('Wizard keeps six spellbook choices without claiming prepared or usable access', () => {
+  const requiredCount = mockCatalog.classes.Wizard.spells_count;
+  assert.equal(requiredCount, 6);
+  const html = renderSpellSelectionHeading({ characterClass: 'Wizard', selectedCount: 6, requiredCount });
+  assert.ok(html.includes('Büyü Kitabına Eklenen 1. Seviye Büyüler (6 / 6 Seçildi)'));
+  assert.ok(html.includes('büyü hazırlama ve 1. seviye büyü yapma henüz açık değil'));
+  assert.ok(!html.includes('1. Seviye Hazırlanan Büyüler'));
+  assert.ok(!html.includes('Büyü yuvası harcayarak yapılan güçlü büyüler.'));
+});
+
+test('Cleric and Druid selections explicitly confer no prepared or slot-casting access', () => {
+  for (const characterClass of ['Cleric', 'Druid']) {
+    const html = renderSpellSelectionHeading({ characterClass, selectedCount: 2, requiredCount: 2 });
+    assert.ok(html.includes('1. Seviye Büyü Seçimleri (2 / 2 Seçildi)'));
+    assert.ok(html.includes('hazırlanmış büyü sayılmaz'));
+    assert.ok(html.includes('yuva harcayarak kullanılamaz'));
+    assert.ok(!html.includes('1. Seviye Hazırlanan Büyüler'));
+    assert.ok(!html.includes('Büyü yuvası harcayarak yapılan güçlü büyüler.'));
+  }
+});
+
+test('other caster selection headings and counts retain their existing presentation', () => {
+  for (const characterClass of ['Sorcerer', 'Warlock', 'Bard', 'Paladin', 'Ranger']) {
+    const html = renderSpellSelectionHeading({ characterClass, selectedCount: 1, requiredCount: 2 });
+    assert.ok(html.includes('1. Seviye Hazırlanan Büyüler (1 / 2 Seçildi)'));
+    assert.ok(html.includes('Büyü yuvası harcayarak yapılan güçlü büyüler.'));
+    assert.ok(!html.includes('henüz açık değil'));
+    assert.ok(!html.includes('kullanılamaz'));
+  }
+});

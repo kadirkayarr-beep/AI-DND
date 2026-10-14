@@ -44,6 +44,26 @@ import './character-creation-screen.css';
 import { playGateSound, primeGateSound } from '@/lib/gate-sound';
 import './cinematic-gate.css';
 
+export function SpellSelectionHeading({ characterClass, selectedCount, requiredCount }: {
+  characterClass: string;
+  selectedCount: number;
+  requiredCount: number;
+}) {
+  const isSpellbook = characterClass === 'Wizard';
+  const preparationClosed = isSpellbook || characterClass === 'Cleric' || characterClass === 'Druid';
+  const title = isSpellbook ? 'Büyü Kitabına Eklenen 1. Seviye Büyüler'
+    : preparationClosed ? '1. Seviye Büyü Seçimleri' : '1. Seviye Hazırlanan Büyüler';
+  const description = isSpellbook
+    ? 'Bu seçimler büyü kitabına eklenir. Bu sürümde Wizard için büyü hazırlama ve 1. seviye büyü yapma henüz açık değil.'
+    : preparationClosed
+      ? 'Bu seçimler karakter kaydında saklanır; hazırlanmış büyü sayılmaz. Bu sürümde bu sınıfın 1. seviye büyüleri yuva harcayarak kullanılamaz.'
+      : 'Büyü yuvası harcayarak yapılan güçlü büyüler.';
+  return <div className="cc-sub-header" data-testid="spell-selection-heading">
+    <span className="cc-label">{title} ({selectedCount} / {requiredCount} Seçildi)</span>
+    <small>{description}</small>
+  </div>;
+}
+
 type Notice = { tone: 'error' | 'success' | 'warning'; title: string; detail: string };
 type DeathMode = 'NORMAL' | 'PERMADEATH' | 'IRONMAN';
 
@@ -1438,10 +1458,7 @@ export function CharacterCreationScreen({
 
                     {requiredSpellsCount > 0 && (
                       <div className="cc-sub-section">
-                        <div className="cc-sub-header">
-                          <span className="cc-label">1. Seviye Hazırlanan Büyüler ({selectedSpells.length} / {requiredSpellsCount} Seçildi)</span>
-                          <small>Büyü yuvası harcayarak yapılan güçlü büyüler.</small>
-                        </div>
+                        <SpellSelectionHeading characterClass={characterClass} selectedCount={selectedSpells.length} requiredCount={requiredSpellsCount} />
                         <div className="cc-checkbox-grid">
                           {((availableSpellsForClass.level_1 ?? []) as any[]).map((sp) => {
                             const spellId = getSpellOptionId(sp);
@@ -1783,7 +1800,7 @@ export function CharacterCreationScreen({
                 <div className="cc-step-header">
                   <div className="cc-label">Son Adım</div>
                   <h2 className="cc-step-title-text">Karakter Sayfasını İncele ve Başla</h2>
-                  <p className="cc-literary">Karakterinin tüm değerleri kurallara uygun olarak hazırlandı. Bilgileri gözden geçirip maceraya adım atabilirsin.</p>
+                  <p className="cc-literary">Seçimlerini ve bu sürümde kullanabileceğin özellikleri gözden geçirip maceraya adım atabilirsin.</p>
                 </div>
 
                 <div className="cc-death-mode">
@@ -1919,6 +1936,9 @@ export function CharacterCreationScreen({
                             <div className="cc-sheet-pills mt-2">
                               {selectedCantrips.map((c) => <span key={c} className="cc-pill cc-pill-blue">{c}</span>)}
                             </div>
+                          )}
+                          {selectedSpells.length > 0 && (characterClass === 'Wizard' || characterClass === 'Cleric' || characterClass === 'Druid') && (
+                            <SpellSelectionHeading characterClass={characterClass} selectedCount={selectedSpells.length} requiredCount={requiredSpellsCount} />
                           )}
                           {selectedSpells.length > 0 && (
                             <div className="cc-sheet-pills mt-2">

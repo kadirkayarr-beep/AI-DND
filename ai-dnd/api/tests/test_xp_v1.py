@@ -52,7 +52,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_turn_exposes_only_a_server_level_up(self):
         created = await self.http.post("/api/sessions")
         session_id = created.json()["session_id"]
-        session = self.manager.get(session_id).game_session
+        session = self.manager.get(session_id, principal=TEST_PLAYER).game_session
 
         def no_award(message):
             return {
