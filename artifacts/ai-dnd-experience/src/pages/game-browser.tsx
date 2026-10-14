@@ -86,6 +86,7 @@ import { getContextualActionSuggestions, getTurnInteractionMetadata, type Intera
 import citadelArtwork from '@assets/generated_images/ai-dnd-citadel-gate.jpg';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
+import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
 
 const LAST_CAMPAIGN_KEY = 'ai-dnd-last-selected-campaign-id';
 const TRANSCRIPT_KEY = 'ai-dnd-transcript-';
@@ -881,7 +882,9 @@ function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onCo
   const speciesCell = speciesPortraitCells[character.race.trim().toLowerCase()];
   const portraitCell = classCell ?? speciesCell;
   const portraitSheet = classCell !== undefined ? classPortraitSheet : speciesPortraitSheet;
-  const portraitStyle = portraitCell === undefined ? undefined : {
+  const portraitStyle = classCell === undefined && character.race.trim().toLowerCase() === 'half-elf'
+    ? { backgroundImage: `url("${halfElfPortrait}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : portraitCell === undefined ? undefined : {
     backgroundImage: `url("${portraitSheet}")`,
     backgroundPosition: `${(portraitCell % 4) * 100 / 3}% ${Math.floor(portraitCell / 4) * 50}%`,
   };

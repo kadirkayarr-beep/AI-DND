@@ -488,3 +488,28 @@ test('other caster selection headings and counts retain their existing presentat
     assert.ok(!html.includes('kullanılamaz'));
   }
 });
+
+
+test('Half-Elf uses its own portrait while other species keep atlas and unknown fallback', () => {
+  const html = renderCreationScreen({ initialStep: 'species', catalog: {
+    ...defaultCatalog,
+    races: { ...defaultCatalog.races, Unknown: { name_tr: 'Unknown portrait fixture' } },
+  } });
+  function portraitPrefix(label) {
+    const index = html.indexOf(label);
+    assert.ok(index >= 0, label);
+    const start = html.lastIndexOf('<div class="cc-choice-card', index);
+    assert.ok(start >= 0);
+    return html.slice(start, index);
+  }
+  const halfElf = portraitPrefix('Yarı-Elf (Half-Elf)');
+  assert.ok(halfElf.includes('ai-dnd-half-elf-portrait.png'));
+  assert.ok(halfElf.includes('background-size:cover'));
+  assert.ok(halfElf.includes('background-position:center'));
+  assert.ok(!halfElf.includes('cc-portrait-neutral'));
+  assert.ok(!halfElf.includes('ai-dnd-species-portraits.jpg'));
+  const elf = portraitPrefix(defaultCatalog.races.Elf.name_tr);
+  assert.ok(elf.includes('ai-dnd-species-portraits.jpg'));
+  assert.ok(!elf.includes('ai-dnd-half-elf-portrait.png'));
+  assert.ok(portraitPrefix('Unknown portrait fixture').includes('cc-portrait-neutral'));
+});

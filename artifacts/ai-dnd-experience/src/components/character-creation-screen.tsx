@@ -27,6 +27,7 @@ import type {
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
+import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
 import {
   getFightingStyleOptions,
   getClassSkillOptions,
@@ -893,6 +894,7 @@ export function CharacterCreationScreen({
                 <div className="cc-cards-grid cc-portrait-grid">
                   {catalog?.races && Object.entries(catalog.races as Record<string, any>).map(([raceKey, rc]) => {
                     const isSelected = species === raceKey;
+                    const isHalfElf = raceKey.trim().toLowerCase() === 'half-elf';
                     return (
                       <div
                         key={raceKey}
@@ -906,8 +908,10 @@ export function CharacterCreationScreen({
                         }}
                       >
                         <span
-                          className={`cc-portrait ${SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
-                          style={portraitStyle(speciesPortraitSheet, SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()])}
+                          className={`cc-portrait ${!isHalfElf && SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()] === undefined ? 'cc-portrait-neutral' : ''}`}
+                          style={isHalfElf
+                            ? { backgroundImage: `url("${halfElfPortrait}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                            : portraitStyle(speciesPortraitSheet, SPECIES_PORTRAIT_CELLS[raceKey.toLowerCase()])}
                           aria-hidden="true"
                         />
                         <div className="cc-card-top">
