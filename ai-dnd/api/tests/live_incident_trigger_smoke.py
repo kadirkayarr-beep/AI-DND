@@ -14,6 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
 START = {
@@ -66,7 +67,7 @@ def main():
         return _emit({"gate": 1, "final_gate_status": "BLOCKED", "reason": f"Ollama is unreachable: {error}"})
 
     directory = tempfile.TemporaryDirectory(prefix="ai-dnd-triggers-")
-    manager = SessionManager(campaign_store=CampaignStore(Path(directory.name) / "campaigns.sqlite3"))
+    manager = SessionManager(campaign_store=CampaignStore(Path(directory.name) / "campaigns.sqlite3", bound_principal=TEST_PLAYER))
     campaign_id, _, record, _ = manager.create_campaign("Trigger coverage", campaign_start=START)
     other_id, _, other, _ = manager.create_campaign("Trigger isolation", campaign_start=START)
     session = record.game_session

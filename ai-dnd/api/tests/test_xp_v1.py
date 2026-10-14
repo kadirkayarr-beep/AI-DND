@@ -11,6 +11,8 @@ from api.ollama_adapter import AuthenticatedOllamaAdapter
 from api.session_manager import SessionManager
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class FakeOllamaClient:
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
@@ -25,7 +27,7 @@ class ExperienceApiTests(unittest.IsolatedAsyncioTestCase):
         self.app = create_app(
             session_manager=self.manager,
             ollama_adapter=AuthenticatedOllamaAdapter(FakeOllamaClient()),
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=self.app),
             base_url="http://testserver",

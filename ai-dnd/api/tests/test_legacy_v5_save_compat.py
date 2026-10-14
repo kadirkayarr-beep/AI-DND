@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -23,7 +24,7 @@ from api.session_manager import SessionManager
 class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
     def test_legacy_v5_fields_survive_engine_round_trip(self):
         with tempfile.TemporaryDirectory() as td:
-            manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3"))
+            manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3", bound_principal=TEST_PLAYER))
             _, _, record, _ = manager.create_campaign("Legacy fixture")
             session = record.game_session
             initial = session.serialize_game_state()
@@ -61,7 +62,7 @@ class HistoricalV5SaveCompatibilityTests(unittest.TestCase):
 
     def test_invalid_v5_spell_record_rejected(self):
         with tempfile.TemporaryDirectory() as td:
-            manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3"))
+            manager = SessionManager(campaign_store=CampaignStore(Path(td) / "test.sqlite3", bound_principal=TEST_PLAYER))
             _, _, record, _ = manager.create_campaign("Corrupt fixture")
             legacy = copy.deepcopy(record.game_session.serialize_game_state())
             legacy["version"] = 5

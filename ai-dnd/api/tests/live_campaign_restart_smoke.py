@@ -21,6 +21,7 @@ import uuid
 import httpx
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -218,7 +219,7 @@ def run_smoke() -> dict[str, Any]:
                     f"{npc_name}, adım Arven. Kendimi sana tanıtıyorum.",
                 )
 
-                persisted_before_restart = CampaignStore(database_path).get_campaign(
+                persisted_before_restart = CampaignStore(database_path, bound_principal=TEST_PLAYER).get_campaign(
                     campaign_id
                 )
                 # Seed one safe synthetic result in this temporary smoke database.
@@ -247,13 +248,13 @@ def run_smoke() -> dict[str, Any]:
                     restored_session,
                     persisted_before_restart,
                 )
-                CampaignStore(database_path).save_campaign(
+                CampaignStore(database_path, bound_principal=TEST_PLAYER).save_campaign(
                     campaign_id,
                     restored_session,
                     journal=restored_journal,
                     combat_history_entry=combat_history_entry,
                 )
-                persisted_before_restart = CampaignStore(database_path).get_campaign(
+                persisted_before_restart = CampaignStore(database_path, bound_principal=TEST_PLAYER).get_campaign(
                     campaign_id
                 )
                 if persisted_before_restart.combat_history != [combat_history_entry]:
@@ -337,7 +338,7 @@ def run_smoke() -> dict[str, Any]:
                         "Structured combat history changed across API restart."
                     )
 
-                persisted_after_restart = CampaignStore(database_path).get_campaign(
+                persisted_after_restart = CampaignStore(database_path, bound_principal=TEST_PLAYER).get_campaign(
                     campaign_id
                 )
                 if persisted_after_restart.payload != saved_payload_before_restart:
@@ -388,7 +389,7 @@ def run_smoke() -> dict[str, Any]:
                     raise RuntimeError(
                         "A real Qwen narration populated the unsupported quest ledger."
                     )
-                updated_payload = CampaignStore(database_path).get_campaign(
+                updated_payload = CampaignStore(database_path, bound_principal=TEST_PLAYER).get_campaign(
                     campaign_id
                 ).payload
                 updated_npc = next(

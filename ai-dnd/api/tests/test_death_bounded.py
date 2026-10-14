@@ -13,6 +13,8 @@ import game
 import campaign_time
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class DeathBoundedTests(unittest.TestCase):
     def unconscious(self):
         s = death_fixtures.make_session()
@@ -232,7 +234,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(connection.execute(
                     f"SELECT count(*) FROM {table} WHERE campaign_id=?", (a["campaign_id"],)
                 ).fetchone()[0], 0)
-        restarted = SessionManager(campaign_store=CampaignStore(self.store.path))
+        restarted = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         self.assertEqual([c["campaign_id"] for c in restarted.list_campaigns()], [b["campaign_id"]])
         other = await self.http.get(f"/api/game/campaigns/{b['campaign_id']}")
         self.assertEqual(other.status_code, 200, other.text)
@@ -274,7 +276,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             s.stabilize_player()
         self.manager.save_campaign(a["campaign_id"])
         before = s.rng.getstate()
-        restarted = SessionManager(campaign_store=CampaignStore(self.store.path))
+        restarted = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, record, _, _, _ = restarted.resume_campaign(a["campaign_id"])
         self.assertEqual(record.game_session.rng.getstate(), before)
         self.assertEqual(record.game_session.ensure_death_state()["recovery"], s.ensure_death_state()["recovery"])
@@ -353,11 +355,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
         # A fresh store, manager, and HTTP app ensure replay is disk-backed,
         # not served from the original session's in-memory receipt cache.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = campaign_fixtures.create_app(
             session_manager=reopened_manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -478,11 +480,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(receipt)
         self.assertEqual(receipt["response"], first.json())
 
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = campaign_fixtures.create_app(
             session_manager=reopened_manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -615,11 +617,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], first.json())
 
         # Reconstruct every owner so replay must retrieve a durable receipt.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = campaign_fixtures.create_app(
             session_manager=reopened_manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -863,7 +865,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
     ):
         import httpx
 
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         # Before resume can update metadata, independently read the exact save.
         self.assertEqual(store.get_campaign(campaign["campaign_id"]),
                          before["stored_campaign"])
@@ -873,7 +875,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         manager = SessionManager(campaign_store=store)
         app = campaign_fixtures.create_app(
             session_manager=manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://testserver",
         ) as http:
@@ -997,7 +999,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], response)
         # A new store owner confirms the first accepted receipt is durable.
         self.assertEqual(
-            CampaignStore(store.path).get_turn_action(
+            CampaignStore(store.path, bound_principal=TEST_PLAYER).get_turn_action(
                 campaign["campaign_id"], request["action_id"],
             ),
             receipt,
@@ -1144,11 +1146,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], first.json())
 
         # New persistence, session and HTTP owners must use the accepted receipt.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = campaign_fixtures.create_app(
             session_manager=reopened_manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -1373,11 +1375,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
         # No request has been accepted: reopen all owners before correcting
         # only the precondition, without changing the unused action identity.
-        store = CampaignStore(self.store.path)
+        store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         self.assertEqual(store.get_campaign(a["campaign_id"]), before["stored_campaign"])
         self.assertIsNone(store.get_turn_action(a["campaign_id"], request["action_id"]))
         manager = SessionManager(campaign_store=store)
-        app = campaign_fixtures.create_app(session_manager=manager, ollama_adapter=None)
+        app = campaign_fixtures.create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://testserver",
         ) as http:
@@ -1482,7 +1484,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(receipt["response"], response)
             self.assertEqual(manager.get_turn_action(restored_record, request["action_id"]), receipt)
             self.assertEqual(
-                CampaignStore(store.path).get_turn_action(a["campaign_id"], request["action_id"]),
+                CampaignStore(store.path, bound_principal=TEST_PLAYER).get_turn_action(a["campaign_id"], request["action_id"]),
                 receipt,
             )
 
@@ -1554,11 +1556,11 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(receipt["response"], first.json())
 
         # Reconstruct every HTTP/persistence owner so replay uses the saved receipt.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         reopened_manager = SessionManager(campaign_store=reopened_store)
         reopened_app = campaign_fixtures.create_app(
             session_manager=reopened_manager, ollama_adapter=None,
-        )
+            authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=reopened_app),
             base_url="http://testserver",
@@ -1889,9 +1891,9 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
             from api.main import create_app
 
             original_record, original_session = record, s
-            self.store = CampaignStore(self.store.path)
+            self.store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
             self.manager = SessionManager(campaign_store=self.store)
-            self.app = create_app(session_manager=self.manager, ollama_adapter=None)
+            self.app = create_app(session_manager=self.manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))
             await self.http.aclose()
             self.http = httpx.AsyncClient(
                 transport=httpx.ASGITransport(app=self.app),
@@ -1985,7 +1987,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
 
             # Reopen from disk to prove that the successful retry persisted the
             # mode outcome, rather than only repairing the active session.
-            reopened = SessionManager(campaign_store=CampaignStore(self.store.path))
+            reopened = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
             _, restored, _, _, _ = reopened.resume_campaign(a["campaign_id"])
             self.assertEqual(restored.game_session.serialize_game_state(), s.serialize_game_state())
             self.assertEqual(restored.game_session.rng.getstate(), s.rng.getstate())
@@ -2043,7 +2045,7 @@ class SaveDeleteTests(unittest.IsolatedAsyncioTestCase):
                     self.manager.save_campaign(a["campaign_id"])
                     before_rng = s.rng.getstate()
                     before_death = copy.deepcopy(s.ensure_death_state())
-                    restarted = SessionManager(campaign_store=CampaignStore(self.store.path))
+                    restarted = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
                     _, record, _, _, _ = restarted.resume_campaign(a["campaign_id"])
                     self.assertEqual(record.game_session.rng.getstate(), before_rng)
                     self.assertEqual(record.game_session.ensure_death_state(), before_death)

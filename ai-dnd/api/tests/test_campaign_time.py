@@ -26,6 +26,8 @@ from api.serializers import serialize_session_state, serialize_skill_check_resul
 from api.session_manager import SessionManager
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 def scene():
     session = game.create_session(seed=11)
     session.commit_location_change("tavern")
@@ -244,11 +246,11 @@ class NoModel:
 class ClockApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.folder = tempfile.TemporaryDirectory()
-        self.store = CampaignStore(Path(self.folder.name) / "campaign.sqlite3")
+        self.store = CampaignStore(Path(self.folder.name) / "campaign.sqlite3", bound_principal=TEST_PLAYER)
         self.manager = SessionManager(session_factory=scene, campaign_store=self.store)
         adapter = AuthenticatedOllamaAdapter(NoModel())
         self.enterContext(adapter.engine_binding())
-        self.app = create_app(session_manager=self.manager, ollama_adapter=adapter)
+        self.app = create_app(session_manager=self.manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://test")
         created = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(created.status_code, 200, created.text)
@@ -276,7 +278,7 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.json()["state"]["campaign_time"]["hour"], 12)
         conflict = await self.http.post(path, json={**request, "message": "1 saat bekliyorum"})
         self.assertEqual(conflict.status_code, 409)
-        restarted = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path))
+        restarted = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, record, _, _, _ = restarted.resume_campaign(self.created["campaign_id"])
         self.assertEqual(clock.public_time(record.game_session.world_state)["hour"], 12)
         self.assertEqual(record.game_session.world_state["scheduled_events"][0]["status"], "OCCURRED")
@@ -424,10 +426,10 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
 
         await assert_replay(self.http, self.manager, self.store, self.sid)
         # A new store and manager must recover the committed recharge and receipt from disk.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = create_app(session_manager=manager,
-                         ollama_adapter=AuthenticatedOllamaAdapter(NoModel()))
+                         ollama_adapter=AuthenticatedOllamaAdapter(NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             # Force the metadata boundary instead of depending on wall-clock timing.
@@ -573,10 +575,10 @@ class ClockApiTests(unittest.IsolatedAsyncioTestCase):
 
         await assert_replay(self.http, self.manager, self.store, self.sid)
         # Reopen with fresh owners so memory cannot conceal a missing commit.
-        reopened_store = CampaignStore(self.store.path)
+        reopened_store = CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
         manager = SessionManager(session_factory=scene, campaign_store=reopened_store)
         app = create_app(session_manager=manager,
-                         ollama_adapter=AuthenticatedOllamaAdapter(NoModel()))
+                         ollama_adapter=AuthenticatedOllamaAdapter(NoModel()), authenticator=FixedAuthenticator(TEST_PLAYER))
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                      base_url="http://test") as http:
             # A real resume may cross a second even though no gameplay changes.

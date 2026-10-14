@@ -11,6 +11,7 @@ from api.persistence.campaign_store import CampaignStore
 from api.session_manager import SessionManager
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def opponents(session):
     """Three supported legacy Python NPC attacks, not Monster Manual imports."""
     npcs = []
@@ -199,7 +200,7 @@ class EndTurnNarrationApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(replay.json(), body)
                 self.assertEqual((session.world_state, session.character, session.rng.getstate()), before)
                 manager = SessionManager(session_factory=scene,
-                                         campaign_store=CampaignStore(self.store.path))
+                                         campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
                 _, restored, _, _, _ = manager.resume_campaign(self.created["campaign_id"])
                 saved = manager.get_turn_action(restored, command["action_id"])["response"]
                 self.assertEqual(saved["narration"], body["narration"])

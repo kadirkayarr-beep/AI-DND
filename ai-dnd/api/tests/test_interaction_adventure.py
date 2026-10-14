@@ -16,6 +16,8 @@ from api.session_manager import SessionManager
 from api.tests import test_campaign_api as fixtures
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 def npc(identity="gromm", name="Gromm", location="here"):
     return {
         "id": identity, "name": name, "role": "yerel işçi", "location": location,
@@ -493,13 +495,13 @@ class InteractionApiContracts(unittest.IsolatedAsyncioTestCase):
         promise = "Gromm'a söz veriyorum yardım edeceğim"
         response, calls = await self.post(a, promise, envelope("promise", promise))
         self.assertEqual(response.status_code, 200, response.text)
-        fresh = SessionManager(campaign_store=CampaignStore(self.store.path))
+        fresh = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         sid, restored, *_ = fresh.resume_campaign(a["campaign_id"])
         self.assertEqual(adventure.public(restored.game_session.world_state),
                          response.json()["state"]["adventure"])
         self.assertEqual(len(restored.game_session.world_state[adventure.KEY]["commitments"]), 1)
         client = httpx.AsyncClient(transport=httpx.ASGITransport(
-            app=create_app(session_manager=fresh, ollama_adapter=self.app.state.ollama_adapter)),
+            app=create_app(session_manager=fresh, ollama_adapter=self.app.state.ollama_adapter, authenticator=FixedAuthenticator(TEST_PLAYER))),
             base_url="http://testserver")
         try:
             with patch("game.ollama.chat", side_effect=AssertionError("Restart replay cannot call Qwen")):

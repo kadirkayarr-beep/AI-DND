@@ -18,6 +18,7 @@ from api.session_manager import SessionManager
 from api.tests.test_phase7_package import bound_state
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def _session():
     session = game.create_session(seed=11)
     session.world_state["location"] = "tavern"
@@ -328,7 +329,7 @@ class AdventureSessionTests(unittest.TestCase):
 
     def test_two_campaign_stores_do_not_share_adventures(self):
         with tempfile.TemporaryDirectory() as directory:
-            store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+            store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             first_id, _first_session, first, _meta = manager.create_campaign("Bir")
             second_id, _second_session, second, _meta = manager.create_campaign("İki")
@@ -349,7 +350,7 @@ class AdventureSessionTests(unittest.TestCase):
             play.traverse(first.game_session, "fork")
             manager.save_campaign(first_id)
             manager.save_campaign(second_id)
-            resumed = SessionManager(campaign_store=CampaignStore(store.path))
+            resumed = SessionManager(campaign_store=CampaignStore(store.path, bound_principal=TEST_PLAYER))
             _left_id, left, *_left_rest = resumed.resume_campaign(first_id)
             _right_id, right, *_right_rest = resumed.resume_campaign(second_id)
             self.assertTrue(any(item.get("record_kind") == "dynamic" for item in left.game_session.world_state["quests"]))

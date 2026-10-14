@@ -14,6 +14,8 @@ from api.tests.live_neverwinter_canon_smoke import (
     _start_api,
     _turn_action_status,
 )
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 
 
 class NeverwinterSmokeDiagnosticsTests(unittest.TestCase):
@@ -87,8 +89,8 @@ class NeverwinterShopHttpTests(unittest.IsolatedAsyncioTestCase):
         model.chat.side_effect = AssertionError("Deterministic shop turns must not call Qwen")
         adapter = AuthenticatedOllamaAdapter(model)
         with tempfile.TemporaryDirectory(prefix="ai-dnd-shop-http-") as temp:
-            manager = SessionManager(campaign_store=CampaignStore(Path(temp) / "campaigns.sqlite3"))
-            app = create_app(session_manager=manager, ollama_adapter=adapter)
+            manager = SessionManager(campaign_store=CampaignStore(Path(temp) / "campaigns.sqlite3", bound_principal=TEST_PLAYER))
+            app = create_app(session_manager=manager, ollama_adapter=adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
             with adapter.engine_binding():
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as http:
                     created = await http.post("/api/game/campaigns", json={"campaign_start": START_SELECTION})

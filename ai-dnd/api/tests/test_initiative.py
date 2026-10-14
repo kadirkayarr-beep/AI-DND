@@ -15,6 +15,7 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.session_manager import SessionManager
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def actors(configs=None, player=None):
     s = scene()
     s.world_state["npcs"] = []
@@ -722,7 +723,7 @@ class InitiativeApiTests(unittest.IsolatedAsyncioTestCase):
         command["combat_action"] = {"steps": [{"kind": "move", "distance_ft": 5}]}
         response = await self.post(command)
         self.assertEqual(response.status_code, 200, response.text)
-        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path))
+        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, restored, _, _, _ = manager.resume_campaign(self.created["campaign_id"])
         self.assertEqual(restored.game_session.world_state["combat"], s.world_state["combat"])
         self.assertEqual(manager.get_turn_action(restored, command["action_id"])["response"]["combat_result"], response.json()["combat_result"])

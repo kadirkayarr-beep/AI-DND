@@ -20,6 +20,7 @@ from incidents import arbiter, attempts, commit, envelope, gate, horizon, projec
 from incidents import state as emergence_state
 from incidents.proposal import MAX_PROPOSAL_BYTES
 
+from api.tests.auth_fixture import TEST_PLAYER
 PROFILE = {
     "profile_id": "test.tavern",
     "tier_ceiling": 3,
@@ -382,7 +383,7 @@ class SqliteClaimTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "campaigns.sqlite3"
-        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
         self.campaign_id, _, record, _ = self.manager.create_campaign("Claim race")
         self.world = record.game_session.world_state
         self.world["location"] = "tavern"
@@ -391,14 +392,14 @@ class SqliteClaimTests(unittest.TestCase):
         self.envelope = _envelope(self.world, campaign=self.campaign_id)
 
     def test_v5_table_and_concurrent_claim_has_one_winner(self):
-        with closing(CampaignStore(self.path)._connect()) as db:
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 5)
+        with closing(CampaignStore(self.path, bound_principal=TEST_PLAYER)._connect()) as db:
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 6)
         barrier = threading.Barrier(2)
         calls, outcomes = [], []
         lock = threading.Lock()
 
         def worker():
-            store = attempts.SqliteAttemptStore(CampaignStore(self.path))
+            store = attempts.SqliteAttemptStore(CampaignStore(self.path, bound_principal=TEST_PLAYER))
 
             def propose(packet):
                 with lock:
@@ -416,13 +417,13 @@ class SqliteClaimTests(unittest.TestCase):
             thread.join()
         self.assertEqual(len(calls), 1)
         self.assertEqual(sorted(outcomes), ["consumed", "ready"])
-        with closing(CampaignStore(self.path)._connect()) as db:
+        with closing(CampaignStore(self.path, bound_principal=TEST_PLAYER)._connect()) as db:
             count = db.execute("SELECT COUNT(*) FROM campaign_emergence_attempts").fetchone()[0]
         self.assertEqual(count, 1)
 
     def test_committed_incident_survives_save_and_resume_without_a_quest(self):
         result = attempts.run(
-            attempts.SqliteAttemptStore(CampaignStore(self.path)),
+            attempts.SqliteAttemptStore(CampaignStore(self.path, bound_principal=TEST_PLAYER)),
             campaign_id=self.campaign_id, envelope=self.envelope, world=self.world,
             propose=lambda packet: json.dumps(_proposal()), model_id="qwen3:8b",
         )
@@ -448,7 +449,7 @@ class SqliteClaimTests(unittest.TestCase):
         self.assertNotIn("kicked over", json.dumps(projection.scene_annotation(loaded), ensure_ascii=False))
 
     def test_accept_finishes_inside_save_and_failed_save_keeps_replay(self):
-        store = CampaignStore(self.path)
+        store = CampaignStore(self.path, bound_principal=TEST_PLAYER)
         sqlite_attempts = attempts.SqliteAttemptStore(store)
         result = attempts.run(sqlite_attempts, campaign_id=self.campaign_id, envelope=self.envelope,
                               world=self.world, propose=lambda packet: json.dumps(_proposal()),
@@ -466,7 +467,7 @@ class SqliteClaimTests(unittest.TestCase):
             store.save_campaign(self.campaign_id, record.game_session, emergence_attempt=pending)
 
     def test_compaction_keeps_tombstones_and_blocks_regeneration(self):
-        store = CampaignStore(self.path)
+        store = CampaignStore(self.path, bound_principal=TEST_PLAYER)
         sqlite_attempts = attempts.SqliteAttemptStore(store)
         attempts.run(sqlite_attempts, campaign_id=self.campaign_id, envelope=self.envelope,
                      world=self.world, propose=lambda packet: json.dumps(_proposal(premise="A new god.")),

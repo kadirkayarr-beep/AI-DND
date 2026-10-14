@@ -14,6 +14,7 @@ from api.tests import test_campaign_api as fixtures
 from api.tests.test_phase7_package import bound_state
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 class _FixedRandom(random.Random):
     def randint(self, a, b):
         return b
@@ -153,7 +154,7 @@ class AdventureReleaseTests(unittest.IsolatedAsyncioTestCase):
         from api.persistence.campaign_store import CampaignStore
         from api.session_manager import SessionManager
 
-        resumed = SessionManager(campaign_store=CampaignStore(self.store.path))
+        resumed = SessionManager(campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         resumed_id, restored, *_rest = resumed.resume_campaign(campaign["campaign_id"])
         self.assertEqual(self._reward_view(restored), after)
         self.assertNotEqual(resumed_id, "")

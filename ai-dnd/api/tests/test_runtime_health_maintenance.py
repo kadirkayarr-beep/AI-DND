@@ -22,10 +22,12 @@ from api.tests.test_lore_authority import entity, verified_registry
 from api.tests.test_lore_engine_integration import bound_lore_state
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class LegacyDoorResumeTests(unittest.TestCase):
     def test_locked_legacy_door_resumes_without_inventing_an_identity_or_action(self):
         with tempfile.TemporaryDirectory() as directory:
-            store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+            store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
             manager = SessionManager(campaign_store=store)
             cid, _, record, _ = manager.create_campaign("Legacy doors")
             session = record.game_session
@@ -40,7 +42,7 @@ class LegacyDoorResumeTests(unittest.TestCase):
             manager.save_campaign(cid)
             before = copy.deepcopy(session.serialize_game_state())
             rng_before = session.rng.getstate()
-            restarted = SessionManager(campaign_store=CampaignStore(store.path))
+            restarted = SessionManager(campaign_store=CampaignStore(store.path, bound_principal=TEST_PLAYER))
             _, resumed, _, _, _ = restarted.resume_campaign(cid)
             projected = serialize_session_state(resumed.game_session, resumed.journal)
             self.assertEqual(resumed.game_session.serialize_game_state(), before)
@@ -92,7 +94,7 @@ class CanonicalLocationTypeTests(unittest.TestCase):
 class CheckpointFailureRollbackTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         directory = self.enterContext(tempfile.TemporaryDirectory())
-        self.store = CampaignStore(Path(directory) / "campaigns.sqlite3")
+        self.store = CampaignStore(Path(directory) / "campaigns.sqlite3", bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
 
         class OfflineClient:
@@ -104,7 +106,7 @@ class CheckpointFailureRollbackTests(unittest.IsolatedAsyncioTestCase):
 
         self.adapter = AuthenticatedOllamaAdapter(OfflineClient())
         self.enterContext(self.adapter.engine_binding())
-        self.app = create_app(session_manager=self.manager, ollama_adapter=self.adapter)
+        self.app = create_app(session_manager=self.manager, ollama_adapter=self.adapter, authenticator=FixedAuthenticator(TEST_PLAYER))
         self.http = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app),
                                      base_url="http://testserver")
         self.addAsyncCleanup(self.http.aclose)

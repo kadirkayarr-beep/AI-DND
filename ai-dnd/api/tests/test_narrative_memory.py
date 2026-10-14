@@ -9,6 +9,7 @@ import sys
 import unittest
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
     sys.path.insert(0, str(AI_DND_DIR))
@@ -470,7 +471,7 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temp_dir.name) / "campaigns.sqlite3"
-        self.store = CampaignStore(self.db_path)
+        self.store = CampaignStore(self.db_path, bound_principal=TEST_PLAYER)
         self.manager = SessionManager(campaign_store=self.store)
 
     def tearDown(self):
@@ -584,7 +585,7 @@ class NpcMemoryIsolationAndSpeakerBindingTests(unittest.TestCase):
         self.manager.save_campaign(campaign_id)
 
         # Resume campaign in fresh manager
-        fresh_manager = SessionManager(campaign_store=CampaignStore(self.db_path))
+        fresh_manager = SessionManager(campaign_store=CampaignStore(self.db_path, bound_principal=TEST_PLAYER))
         _, resumed_record, _, _, _ = fresh_manager.resume_campaign(campaign_id)
         resumed_session = resumed_record.game_session
 

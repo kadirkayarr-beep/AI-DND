@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from api.tests.auth_fixture import TEST_PLAYER
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 MODEL_NAME = "qwen3:8b"
 START = {
@@ -51,7 +52,7 @@ def main():
         return _emit({"final_gate_status": "BLOCKED", "reason": f"Ollama is unreachable: {error}"})
 
     directory = tempfile.TemporaryDirectory(prefix="ai-dnd-continuity-")
-    manager = SessionManager(campaign_store=CampaignStore(Path(directory.name) / "campaigns.sqlite3"))
+    manager = SessionManager(campaign_store=CampaignStore(Path(directory.name) / "campaigns.sqlite3", bound_principal=TEST_PLAYER))
     campaign_id, _, record, _ = manager.create_campaign("Live continuity", campaign_start=START)
     session = record.game_session
     world = session.world_state

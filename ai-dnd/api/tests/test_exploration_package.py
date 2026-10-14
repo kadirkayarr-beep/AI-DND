@@ -16,6 +16,8 @@ from api.session_manager import SessionManager
 from api.tests.test_bounded_encounter import NativeBase
 
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 class ExplorationPackageTests(NativeBase):
     def canonical(self):
         return copy.deepcopy((self.session.serialize_game_state(), self.session.rng.getstate(), self.session.messages))
@@ -98,8 +100,8 @@ class ExplorationPackageTests(NativeBase):
         self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"] - before, 2700)
         self.assertEqual(self.client.post(f"/api/sessions/{self.sid}/turn", json=body).json(), reply)
         self.assertEqual(self.canonical(), canonical)
-        manager = SessionManager(campaign_store=CampaignStore(self.path))
-        with TestClient(create_app(session_manager=manager, ollama_adapter=None)) as client:
+        manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        with TestClient(create_app(session_manager=manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER))) as client:
             resumed = client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume").json()
             sid = resumed["session_id"]
             session = manager.get(sid).game_session
@@ -295,7 +297,7 @@ class ExplorationPackageTests(NativeBase):
         self.assertEqual(self.session.world_state["player_combat_status"], "unconscious")
         self.assertTrue(self.session.world_state["death_state"]["prone"])
         self.assertEqual(self.session.world_state["campaign_time"]["elapsed_seconds"] - before, 30)
-        manager = SessionManager(campaign_store=CampaignStore(self.path))
+        manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
         _, resumed, _, _, _ = manager.resume_campaign(self.campaign["campaign_id"])
         self.assertEqual(resumed.game_session.world_state["location"], catalog.ENTRY)
         self.assertEqual(resumed.game_session.character["current_hp"], 0)

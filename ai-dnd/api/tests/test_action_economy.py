@@ -17,6 +17,7 @@ from api.persistence.campaign_models import CampaignStorageError
 from api.tests.test_campaign_time import scene
 
 
+from api.tests.auth_fixture import TEST_PLAYER
 def step(session, *steps):
     return session.run_player_turn("Doğrulanmış eylem.", combat_action={"steps": list(steps)}, action_id=str(uuid4()))
 
@@ -478,7 +479,7 @@ class ActionEconomyApiTests(unittest.IsolatedAsyncioTestCase):
         command = self.command(session, npc, {"kind": "move", "distance_ft": 10})
         response = await self.post(command)
         self.assertEqual(response.status_code, 200, response.text)
-        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path))
+        manager = SessionManager(session_factory=scene, campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER))
         _, restored, _, _, _ = manager.resume_campaign(self.created["campaign_id"])
         self.assertEqual(restored.game_session.world_state["combat"]["turn_resources"],
                          session.world_state["combat"]["turn_resources"])

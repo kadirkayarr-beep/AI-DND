@@ -10,6 +10,8 @@ import tempfile
 import unittest
 from uuid import uuid4
 
+from api.auth import FixedAuthenticator
+from api.tests.auth_fixture import TEST_PLAYER
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -40,8 +42,8 @@ class NativeBase(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / "campaigns.sqlite3"
-        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
-        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None))
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER)))
         options = self.client.get("/api/campaign-start-options").json()["settings"][0]
         region = options["regions"][0]
         self.start = {
@@ -250,8 +252,8 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         response = self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/save")
         self.assertEqual(response.status_code, 200, response.text)
         # New manager/app reads the same production persistence owner.
-        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
-        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None))
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER)))
         response = self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume")
         self.assertEqual(response.status_code, 200, response.text)
         self.sid = response.json()["session_id"]
@@ -262,8 +264,8 @@ class HttpPersistenceAcceptanceTests(NativeBase):
         body, original = self.call("Turumu bitiriyorum", [{"kind": "end_turn"}])
         before = self.canonical()
         self.assertEqual(self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/save").status_code, 200)
-        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
-        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None))
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER)))
         self.sid = self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume").json()["session_id"]
         # LLM message buffers are intentionally ephemeral in the existing save
         # owner. Canonical state/RNG survive; replay must not modify the fresh
@@ -317,8 +319,8 @@ class MovementRegressionBase(NativeBase):
         self.assertEqual(self.client.post(
             f"/api/campaigns/{self.campaign['campaign_id']}/save"
         ).status_code, 200)
-        self.manager = SessionManager(campaign_store=CampaignStore(self.path))
-        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None))
+        self.manager = SessionManager(campaign_store=CampaignStore(self.path, bound_principal=TEST_PLAYER))
+        self.client = TestClient(create_app(session_manager=self.manager, ollama_adapter=None, authenticator=FixedAuthenticator(TEST_PLAYER)))
         response = self.client.post(f"/api/campaigns/{self.campaign['campaign_id']}/resume")
         self.assertEqual(response.status_code, 200, response.text)
         self.sid = response.json()["session_id"]
