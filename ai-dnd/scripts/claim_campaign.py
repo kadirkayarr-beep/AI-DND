@@ -1,0 +1,134 @@
+"""Assign one campaign to one verified issuer and subject.
+
+This tool is not an HTTP route and does not claim every unowned row.
+It refuses the live campaign database.
+"""
+from __future__ import annotations
+
+import argparse
+import sqlite3
+import sys
+import uuid
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import game
+from api.auth import Principal
+
+
+def live_database_path() -> Path:
+    return (Path(game.__file__).resolve().parent / "saves" / "campaigns.sqlite3").resolve()
+
+
+def claim_campaign(
+    database: Path,
+    campaign_id: str,
+    issuer: str,
+    subject: str,
+    *,
+    confirm_claim: bool,
+) -> None:
+    """Write only the three ownership columns for one campaign UUID."""
+    if confirm_claim is not True:
+        raise SystemExit("Refusing to claim a campaign without --confirm-claim.")
+    path = Path(database).expanduser().resolve()
+    if path == live_database_path():
+        raise SystemExit("Refusing to claim a campaign in the live database.")
+    try:
+        owner = Principal(issuer, subject)
+    except ValueError as error:
+        raise SystemExit("Issuer and subject must be exact server identity values.") from error
+    try:
+        parsed = uuid.UUID(campaign_id)
+    except ValueError as error:
+        raise SystemExit("Campaign id must be one UUID.") from error
+    if parsed.version != 4 or str(parsed) != campaign_id.lower():
+        raise SystemExit("Campaign id must be one UUID.")
+    if not path.is_file():
+        raise SystemExit("Campaign database was not found.")
+
+    connection = sqlite3.connect(path)
+    try:
+        connection.row_factory = sqlite3.Row
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(campaigns)").fetchall()
+        }
+        required = {"owner_issuer", "owner_subject", "ownership_state", "payload_json"}
+        if not required <= columns:
+            raise SystemExit("Campaign database has no ownership columns.")
+        before_payload = connection.execute(
+            "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
+            (campaign_id,),
+        ).fetchone()
+        if before_payload is None:
+            raise SystemExit("Campaign was not found.")
+        history = connection.execute(
+            "SELECT * FROM campaign_history WHERE campaign_id = ? ORDER BY rowid",
+            (campaign_id,),
+        ).fetchall()
+        receipts = connection.execute(
+            "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+            (campaign_id,),
+        ).fetchall()
+        connection.execute("BEGIN IMMEDIATE")
+        cursor = connection.execute(
+            """
+            UPDATE campaigns
+            SET ownership_state = 'owned', owner_issuer = ?, owner_subject = ?
+            WHERE campaign_id = ?
+            """,
+            (owner.issuer, owner.subject, campaign_id),
+        )
+        if cursor.rowcount != 1:
+            connection.execute("ROLLBACK")
+            raise SystemExit("Campaign was not found.")
+        after_payload = connection.execute(
+            "SELECT payload_json FROM campaigns WHERE campaign_id = ?",
+            (campaign_id,),
+        ).fetchone()
+        after_history = connection.execute(
+            "SELECT * FROM campaign_history WHERE campaign_id = ? ORDER BY rowid",
+            (campaign_id,),
+        ).fetchall()
+        after_receipts = connection.execute(
+            "SELECT * FROM campaign_turn_actions WHERE campaign_id = ? ORDER BY action_id",
+            (campaign_id,),
+        ).fetchall()
+        if (
+            after_payload["payload_json"] != before_payload["payload_json"]
+            or [tuple(row) for row in after_history] != [tuple(row) for row in history]
+            or [tuple(row) for row in after_receipts] != [tuple(row) for row in receipts]
+        ):
+            connection.execute("ROLLBACK")
+            raise SystemExit("Claim would have changed campaign history.")
+        connection.execute("COMMIT")
+    except sqlite3.Error as error:
+        raise SystemExit("Campaign claim failed.") from error
+    finally:
+        connection.close()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Claim one campaign for one principal.")
+    parser.add_argument("--database", required=True, type=Path)
+    parser.add_argument("--campaign-id", required=True)
+    parser.add_argument("--issuer", required=True)
+    parser.add_argument("--subject", required=True)
+    parser.add_argument("--confirm-claim", action="store_true")
+    args = parser.parse_args(argv)
+    claim_campaign(
+        args.database,
+        args.campaign_id,
+        args.issuer,
+        args.subject,
+        confirm_claim=args.confirm_claim,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

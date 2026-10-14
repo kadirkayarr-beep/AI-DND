@@ -1,0 +1,98 @@
+"""One-campaign claim writes only ownership columns. Temporary databases only."""
+from __future__ import annotations
+
+from pathlib import Path
+import sqlite3
+import tempfile
+import unittest
+import uuid
+
+import game
+from api.persistence.campaign_store import CampaignStore
+from api.tests.auth_fixture import PLAYER_A
+from scripts.claim_campaign import claim_campaign, live_database_path
+
+
+class ClaimCampaignTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.path = (Path(self.directory.name) / "campaigns.sqlite3").resolve()
+        self.assertNotEqual(self.path, live_database_path())
+        self.store = CampaignStore(self.path)
+        self.session = game.create_session(seed=1)
+        self.campaign_id = str(uuid.uuid4())
+        self.store.create_campaign(
+            self.campaign_id, "Claim", self.session, principal=PLAYER_A,
+        )
+        action_id = str(uuid.uuid4())
+        self.store.save_campaign(
+            self.campaign_id,
+            self.session,
+            turn_entry={"player_message": "Bekle.", "narration": "Sessizlik."},
+            turn_action_receipt={
+                "action_id": action_id,
+                "request_hash": "ab" * 32,
+                "response": {"action_id": action_id, "ok": True},
+            },
+            principal=PLAYER_A,
+        )
+
+    def _snapshot(self):
+        connection = sqlite3.connect(self.path)
+        try:
+            payload = connection.execute("SELECT payload_json FROM campaigns").fetchone()[0]
+            history = connection.execute(
+                "SELECT player_message, narration FROM campaign_history"
+            ).fetchall()
+            receipts = connection.execute(
+                "SELECT action_id, request_hash, response_json FROM campaign_turn_actions"
+            ).fetchall()
+            return payload, history, receipts
+        finally:
+            connection.close()
+
+    def test_confirm_claim_changes_only_owner_columns(self):
+        before = self._snapshot()
+        claim_campaign(
+            self.path,
+            self.campaign_id,
+            "target-issuer",
+            "target-subject",
+            confirm_claim=True,
+        )
+        self.assertEqual(self._snapshot(), before)
+        connection = sqlite3.connect(self.path)
+        try:
+            row = connection.execute(
+                "SELECT ownership_state, owner_issuer, owner_subject FROM campaigns"
+            ).fetchone()
+        finally:
+            connection.close()
+        self.assertEqual(row, ("owned", "target-issuer", "target-subject"))
+
+    def test_live_database_and_missing_confirmation_are_refused(self):
+        with self.assertRaises(SystemExit):
+            claim_campaign(
+                live_database_path(),
+                self.campaign_id,
+                "target-issuer",
+                "target-subject",
+                confirm_claim=True,
+            )
+        with self.assertRaises(SystemExit):
+            claim_campaign(
+                self.path,
+                self.campaign_id,
+                "target-issuer",
+                "target-subject",
+                confirm_claim=False,
+            )
+        connection = sqlite3.connect(self.path)
+        try:
+            row = connection.execute(
+                "SELECT owner_issuer, owner_subject FROM campaigns"
+            ).fetchone()
+        finally:
+            connection.close()
+        self.assertEqual(row, (PLAYER_A.issuer, PLAYER_A.subject))
