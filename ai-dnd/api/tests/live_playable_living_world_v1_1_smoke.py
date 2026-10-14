@@ -413,8 +413,9 @@ def run_smoke() -> dict[str, Any]:
             if expected_index >= len(EXPECTED_LABELS) or label != EXPECTED_LABELS[expected_index]:
                 raise SmokeFailure("The V1.1 action sequence shifted.")
 
-            turn = telemetry._turn(client, base, session_id, message, target_id)
-            source = telemetry._latest(audit_path)
+            turn, source = telemetry._turn_with_evidence(
+                client, base, session_id, message, target_id, report_root,
+                audit_path, last_state[0].get("turn_index", -1))
             action_result = source.get("action_result")
             state = source.get("state")
             safety = source.get("safety")
@@ -527,6 +528,7 @@ def run_smoke() -> dict[str, Any]:
                 "events": source.get("events", {}),
                 "model_calls": calls,
                 "observed_model_calls": observed_calls,
+                "diagnostic_evidence_complete": source.get("diagnostic_evidence_complete"),
                 "model_call_count_matches": calls == observed_calls,
                 "token_usage": source.get("token_usage", "unavailable"),
                 "safety": safety,
@@ -551,7 +553,8 @@ def run_smoke() -> dict[str, Any]:
                 f"{label}: request/action telemetry missing.",
             )
             _require(
-                type(calls) is int
+                source.get("diagnostic_evidence_complete") is True
+                and type(calls) is int
                 and type(observed_calls) is int
                 and calls == observed_calls
                 and 0 <= calls <= 2,
@@ -979,6 +982,7 @@ def run_smoke() -> dict[str, Any]:
                     error=EXPECTED_PENDING_ERROR_V11,
                 )
         except Exception as error:
+            telemetry._record_parent_failure(report_root, "harness", error)
             result.update(
                 status="BLOCKED / LIVE PLAYABILITY UNVERIFIED",
                 error=f"{type(error).__name__}: details redacted",
@@ -988,6 +992,8 @@ def run_smoke() -> dict[str, Any]:
                 telemetry._stop(process, handle)
 
     gaps: list[str] = []
+    if any(row.get("diagnostic_evidence_complete") is not True for row in evidence_rows):
+        gaps.append("diagnostic evidence incomplete")
     if len(evidence_rows) != len(EXPECTED_LABELS):
         gaps.append("30-turn action sequence incomplete")
     token_usage = [

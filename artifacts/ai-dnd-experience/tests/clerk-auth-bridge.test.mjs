@@ -315,3 +315,42 @@ test('the signed-in shell waits for Clerk and does not persist session tokens', 
   assert.doesNotMatch(session, /localStorage|sessionStorage|SECRET|console\./);
   assert.doesNotMatch(app, /new QueryClient/);
 });
+
+for (const baseUrl of ['/', '/ai-dnd-experience/']) {
+  test(`Clerk entrypoint keeps sign-in/sign-up fallbacks and sign-out at ${baseUrl}`, async () => {
+    const { transformWithEsbuild } = await import('vite');
+    const { runInNewContext } = await import('node:vm');
+    const source = await readFile(new URL('../src/main.tsx', import.meta.url), 'utf8');
+    const { code } = await transformWithEsbuild(source, 'main.tsx', {
+      loader: 'tsx', jsx: 'automatic', format: 'cjs',
+      define: {
+        'import.meta.env.BASE_URL': JSON.stringify(baseUrl),
+        'import.meta.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify('pk_test_synthetic'),
+      },
+    });
+    let rendered;
+    const provider = Symbol('ClerkProvider');
+    const jsx = (type, props) => ({ type, props });
+    runInNewContext(code, {
+      document: { getElementById: () => ({}) },
+      require(name) {
+        if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
+        if (name === 'react-dom/client') return { createRoot: () => ({ render: tree => { rendered = tree; } }) };
+        if (name === '@clerk/react') return { ClerkProvider: provider };
+        if (name === './App') return { default: Symbol('App') };
+        if (name === '@/components/error-boundary') return { ErrorBoundary: Symbol('ErrorBoundary') };
+        if (name === './index.css') return {};
+        throw new Error(`Unexpected entrypoint dependency: ${name}`);
+      },
+    });
+    const clerk = rendered.props.children;
+    assert.equal(clerk.type, provider);
+    assert.equal(clerk.props.signInFallbackRedirectUrl, baseUrl);
+    assert.equal(clerk.props.signUpFallbackRedirectUrl, baseUrl);
+    assert.equal(clerk.props.afterSignOutUrl, baseUrl);
+    // Fallbacks leave Clerk's existing valid return URL precedence intact.
+    for (const key of ['signInForceRedirectUrl', 'signUpForceRedirectUrl', 'redirectUrl', 'afterSignInUrl', 'afterSignUpUrl']) {
+      assert.equal(clerk.props[key], undefined);
+    }
+  });
+}

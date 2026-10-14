@@ -306,6 +306,14 @@ class PlayableLivingWorldReviewFinalizationTests(unittest.TestCase):
         with self.assertRaises(ReviewFinalizationError):
             self._finalize(approve=True)
 
+    def test_diagnostic_write_failure_cannot_receive_approval(self):
+        self.turns[0]["diagnostic_evidence_complete"] = False
+        self.summary["turns"][0]["diagnostic_evidence_complete"] = False
+        self._write_report()
+        with self.assertRaises(ReviewFinalizationError):
+            self._finalize(approve=True)
+        self.assertFalse((self.report_dir / ATTESTATION_FILENAME).exists())
+
     def test_failed_resume_comparison_is_rejected(self):
         self.resume["equal_memory"] = False
         self.summary["restart_memory_equal"] = False

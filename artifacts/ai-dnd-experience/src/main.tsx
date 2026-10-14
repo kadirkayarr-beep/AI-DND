@@ -16,7 +16,12 @@ createRoot(document.getElementById("root")!, {
 }).render(
   <ErrorBoundary>
     {clerkPublishableKey ? (
-      <ClerkProvider publishableKey={clerkPublishableKey} afterSignOutUrl="/">
+      <ClerkProvider
+        publishableKey={clerkPublishableKey}
+        signInFallbackRedirectUrl={import.meta.env.BASE_URL}
+        signUpFallbackRedirectUrl={import.meta.env.BASE_URL}
+        afterSignOutUrl={import.meta.env.BASE_URL}
+      >
         <App />
       </ClerkProvider>
     ) : (

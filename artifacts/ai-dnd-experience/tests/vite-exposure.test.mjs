@@ -15,6 +15,7 @@ test('local Vite and preview listen on loopback and disallow arbitrary hosts', a
       path.join(process.cwd(), 'vite.config.ts'),
     );
     assert.ok(loaded);
+    assert.equal(loaded.config.base, '/');
     assert.equal(loaded.config.server.host, '127.0.0.1');
     assert.equal(loaded.config.preview.host, '127.0.0.1');
     assert.notEqual(loaded.config.server.allowedHosts, true);
@@ -36,7 +37,7 @@ test('Replit keeps its required public listener but only trusts named hosts', as
     REPL_ID: process.env.REPL_ID, REPLIT_DEV_DOMAIN: process.env.REPLIT_DEV_DOMAIN,
   };
   process.env.PORT = '4193';
-  process.env.BASE_PATH = '/';
+  process.env.BASE_PATH = '/ai-dnd-experience/';
   process.env.REPL_ID = 'test-repl';
   process.env.REPLIT_DEV_DOMAIN = 'test-app.replit.dev';
   try {
@@ -45,6 +46,7 @@ test('Replit keeps its required public listener but only trusts named hosts', as
       { command: 'serve', mode: 'development' },
       path.join(process.cwd(), 'vite.config.ts'),
     );
+    assert.equal(loaded.config.base, '/ai-dnd-experience/');
     assert.equal(loaded.config.server.host, '0.0.0.0');
     assert.ok(loaded.config.server.allowedHosts.includes('test-app.replit.dev'));
     assert.notEqual(loaded.config.server.allowedHosts, true);

@@ -515,6 +515,7 @@ def _validate_objective_evidence(
             row.get("turn") != index
             or row.get("label") != expected_label
             or "failure" in row
+            or row.get("diagnostic_evidence_complete") is False
         ):
             raise ReviewFinalizationError(
                 "The smoke run contains a missing, shifted, or failed turn."

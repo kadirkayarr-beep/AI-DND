@@ -101,25 +101,20 @@ test('world panel excludes unrelated locations and NPCs without changing state',
   assert.doesNotMatch(html, /Uzak kale|Uzak kişi|Sahnede gösterilmemiş kişi/);
   assert.equal(JSON.stringify(data), before);
 });
-test('sanitized same-campaign P01 history renders both narrations with canonical location and clock', async () => {
-  const capture = JSON.parse(await readFile(new URL(
-    '../../../.local/evidence/F03/20261010T192142Z/P01/field-paths.json',
+// Historical F03 P01 provenance remains a separate open acceptance requirement.
+// This test-owned synthetic fixture proves rendering only, not live acceptance.
+test('test-owned synthetic campaign history renders both narrations with canonical location and clock', async () => {
+  const fixture = JSON.parse(await readFile(new URL(
+    './fixtures/campaign-presentation-history.synthetic.json',
     import.meta.url,
   ), 'utf8'));
-  assert.equal(capture.phase, 'F03-P01');
-  assert.equal(capture.gate, 'PASS');
-  assert.equal(capture.constraints.campaigns_created, 1);
-  assert.equal(capture.constraints.accepted_turns, 2);
-  assert.ok(capture.source.campaign_id_sha256);
-
-  const saved = capture.steps.find((step) =>
-    step.name === 'read_only_saved_campaign_history_get' && step.history_length === 2);
-  const turns = capture.steps.filter((step) => step.name === 'native_turn');
-  assert.ok(saved);
-  assert.equal(turns.length, 2);
-  const history = saved.response_sanitized.history;
-  const stateSnapshot = saved.response_sanitized.state;
-  const lastTurnNarration = turns.at(-1).response_sanitized.narration;
+  assert.equal(fixture.provenance, 'test-owned/synthetic');
+  const history = fixture.history;
+  assert.equal(history.length, 2);
+  assert.equal(fixture.turnResponses.length, 2);
+  assert.notEqual(history[0].narration, history[1].narration);
+  const stateSnapshot = { ...state(), ...fixture.state };
+  const lastTurnNarration = fixture.turnResponses.at(-1).narration;
   assert.equal(history.at(-1).narration, lastTurnNarration);
   assert.equal(stateSnapshot.location, 'fr:city:neverwinter');
   assert.equal(stateSnapshot.locations[stateSnapshot.location].name, 'Neverwinter');

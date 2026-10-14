@@ -1,0 +1,38 @@
+{
+  "provenance": "test-owned/synthetic",
+  "state": {
+    "location": "fr:city:neverwinter",
+    "locations": {
+      "fr:city:neverwinter": {
+        "id": "fr:city:neverwinter",
+        "name": "Neverwinter"
+      }
+    },
+    "scene": null,
+    "campaign_time": {
+      "day": 1,
+      "month": "Mirtul",
+      "year": 1501,
+      "hour": 9,
+      "minute": 0
+    }
+  },
+  "history": [
+    {
+      "player_message": "Etrafa bakıyorum.",
+      "narration": "Meydanda küçük bir çeşme görüyorsun."
+    },
+    {
+      "player_message": "Çeşmeye yaklaşıyorum.",
+      "narration": "Çeşmenin yanında suyun sesini duyuyorsun."
+    }
+  ],
+  "turnResponses": [
+    {
+      "narration": "Meydanda küçük bir çeşme görüyorsun."
+    },
+    {
+      "narration": "Çeşmenin yanında suyun sesini duyuyorsun."
+    }
+  ]
+}
