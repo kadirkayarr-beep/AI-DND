@@ -1604,7 +1604,7 @@ def create_app(
             lore_snapshot = record.lore_authority
 
             def restore_command():
-                _restore_session(session, snapshot)
+                _rollback_session(record, session, snapshot)
                 session.world_metadata = metadata_snapshot
                 record.journal = journal_snapshot
                 record.narrative_memory = memory_snapshot
@@ -1633,10 +1633,7 @@ def create_app(
                 )
                 return response_payload
             except ValueError as error:
-                try:
-                    restore_command()
-                except Exception:
-                    pass
+                restore_command()
                 raise HTTPException(
                     status_code=409,
                     detail={
@@ -1645,10 +1642,7 @@ def create_app(
                     },
                 ) from None
             except CampaignError as error:
-                try:
-                    restore_command()
-                except Exception:
-                    pass
+                restore_command()
                 if isinstance(error, CampaignStaleError):
                     # The winning receipt may only become visible at save time.
                     # Classify changed commands after rolling back speculative
@@ -1664,10 +1658,7 @@ def create_app(
                         }) from None
                 raise campaign_http_exception(error) from None
             except Exception:
-                try:
-                    restore_command()
-                except Exception:
-                    pass
+                restore_command()
                 raise
 
     @application.post(

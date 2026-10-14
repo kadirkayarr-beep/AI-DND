@@ -466,6 +466,8 @@ class SessionManager:
         )
         self._attach_death_checkpoint_hooks(record)
         with record.turn_lock:
+            if not record.usable:
+                raise CampaignNotActiveError("Campaign session is closed after failed restoration.")
             stored = store.get_campaign(campaign_id, principal=owner)
             if getattr(record.game_session, "_campaign_persistence_version", None) != (
                 campaign_id, stored.metadata["revision"]
@@ -542,6 +544,8 @@ class SessionManager:
         if record is None:
             raise CampaignNotActiveError("Campaign has no active session.")
         with record.turn_lock:
+            if not record.usable:
+                raise CampaignNotActiveError("Campaign session is closed after failed restoration.")
             set_session_world_metadata(
                 record.game_session,
                 getattr(record.game_session, "world_metadata", None),

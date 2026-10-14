@@ -6750,7 +6750,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                                 asyncio.create_task(active_http.post(active_url, json=competing_body)),
                             )
                             failed_lookup.assert_called_once_with(
-                                campaign_id, competing_body["action_id"],
+                                campaign_id, competing_body["action_id"], principal=TEST_PLAYER,
                             )
                             blocked_turn.assert_not_called()
                             blocked_save.assert_not_called()
