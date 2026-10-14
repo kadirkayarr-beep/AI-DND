@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { stableTurnActionId, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE } from '@/lib/action-reconciliation';
+import { useRef, useState } from 'react';
 import { playerAbilityMessage } from '@/lib/campaign-presentation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   getGetGameSessionStateQueryKey,
-  useResolveSpeciesTraitAction,
+  resolveSpeciesTraitAction,
+  getGameSessionState,
 } from '@workspace/api-client-react';
 import type {
   GameState,
   SpeciesTraitActionInput,
+  SpeciesTraitCommandResult,
 } from '@workspace/api-client-react';
 
 const ANCESTRIES = [
@@ -79,24 +82,28 @@ export function speciesEffectText(effect: Record<string, unknown>): string {
 export function SpeciesTraitControls({
   state,
   sessionId,
+  campaignId,
 }: {
   state: GameState;
   sessionId: string;
+  campaignId?: string;
 }) {
   const queryClient = useQueryClient();
   const [selectedForm, setSelectedForm] =
     useState<SpeciesTraitActionInput['form']>('heavenly_wings');
   const [selectedAncestry, setSelectedAncestry] =
     useState<SpeciesTraitActionInput['ancestry']>('cloud');
-  const action = useResolveSpeciesTraitAction({
-    mutation: {
-      onSuccess: (result) => {
-        queryClient.setQueryData(
-          getGetGameSessionStateQueryKey(sessionId),
-          result.state,
-        );
-      },
-    },
+  const lifetime = useActionLifetime(sessionId);
+  const busy = useRef(false);
+  const pendingRequest = useRef<SpeciesTraitActionInput | null>(null);
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<SpeciesTraitCommandResult | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
+  const scope = `species:${campaignId || sessionId}`;
+  const retryKey = `ai-dnd-turn-context:${scope}:retry`;
+  const [retryInput, setRetryInput] = useState<SpeciesTraitActionInput | null>(() => {
+    try { return JSON.parse(window.sessionStorage.getItem(retryKey) ?? 'null'); } catch { return null; }
   });
 
   const character = state.character;
@@ -108,10 +115,50 @@ export function SpeciesTraitControls({
     && state.combat.participant_records.find((item) => item.id === 'player')
       ?.primary_action_available === true
   );
-  const notBusy = !action.isPending;
+  const notBusy = !sending && !retryInput;
   const send = (data: SpeciesTraitActionInput) => {
-    action.reset();
-    action.mutate({ sessionId, data: { ...data, action_id: crypto.randomUUID() } });
+    if (busy.current) return;
+    const operation = lifetime.begin();
+    if (!operation) return;
+    const request = pendingRequest.current ?? { ...data, action_id: data.action_id ?? stableTurnActionId(scope, JSON.stringify(data)) };
+    pendingRequest.current = request;
+    try { window.sessionStorage.setItem(retryKey, JSON.stringify(request)); }
+    catch { setStorageUnavailable(true); }
+    setRetryInput(request);
+    busy.current = true;
+    setSending(true);
+    setFeedback(null);
+    setFailure(null);
+    let receiptReceived = false;
+    void resolveSpeciesTraitAction(sessionId, request, { signal: operation.signal }).then(async result => {
+      if (!operation.isCurrent()) return;
+      receiptReceived = true;
+      const stateKey = getGetGameSessionStateQueryKey(sessionId);
+      const fresh = await reconcileState(queryClient, stateKey, operation, signal => getGameSessionState(sessionId, { signal }));
+      if (!operation.isCurrent()) return;
+      queryClient.setQueryData(stateKey, fresh);
+      clearPendingTurnAction(scope, request.action_id!);
+      try { window.sessionStorage.removeItem(retryKey); } catch { /* storage may be unavailable */ }
+      pendingRequest.current = null;
+      setRetryInput(null);
+      setFeedback({ ...result, state: fresh });
+    }).catch((error: unknown) => {
+      if (!operation.isCurrent()) return;
+      const status = error && typeof error === 'object' ? (error as { status?: number }).status : undefined;
+      if (!receiptReceived && status !== undefined && [400, 409, 422].includes(status)) {
+        clearPendingTurnAction(scope, request.action_id!);
+        try { window.sessionStorage.removeItem(retryKey); } catch { /* no persisted retry */ }
+        pendingRequest.current = null;
+        setRetryInput(null);
+        setFailure('Bu seçim uygulanmadı. Durumunu kontrol edip başka bir seçim yapabilirsin.');
+      } else {
+        setFailure(RETRY_MESSAGE);
+      }
+    }).finally(() => {
+      busy.current = false;
+      if (operation.isCurrent()) setSending(false);
+      operation.close();
+    });
   };
   const ancestryLabel = ANCESTRIES.find(
     (ancestry) => ancestry.id === character.giant_ancestry,
@@ -297,19 +344,17 @@ export function SpeciesTraitControls({
         </button>
       </div>
 
-      {action.isPending && <p className="species-trait-feedback" role="status">Yeteneğinin etkisi belirleniyor…</p>}
-      {action.isError && (
-        <p className="species-trait-feedback species-trait-feedback-error" role="alert">
-          Yeteneğin kullanılamadı. Durumunu ve seçimini kontrol edip yeniden dene.
-        </p>
-      )}
-      {action.data && (
+      {sending && <p className="species-trait-feedback" role="status">Yeteneğinin etkisi belirleniyor…</p>}
+      {failure && <p className="species-trait-feedback species-trait-feedback-error" role="alert">{failure}</p>}
+      {storageUnavailable && <p role="status">Tarayıcı kaydı kullanılamıyor. Aynı işlem kimliği yalnız bu ekran açıkken korunur. Sonuç doğrulanana kadar sayfayı yenileme veya paneli kapatma; yeniden açılışta güvenli tekrar garanti edilemez.</p>}
+      {retryInput && <button type="button" disabled={sending} onClick={() => send(retryInput)} data-testid="species-action-retry">Kaydedilen işlemi yeniden dene</button>}
+      {feedback && (
         <div className="species-trait-feedback" data-testid="species-action-result" aria-live="polite">
-          <strong>{playerAbilityMessage(action.data.result.message)}</strong>
-          {import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1' && Object.keys(action.data.result.effects).filter((key) => key !== 'time_result').length > 0 && (
+          <strong>{playerAbilityMessage(feedback.result.message)}</strong>
+          {import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diagnostics') === '1' && Object.keys(feedback.result.effects).filter((key) => key !== 'time_result').length > 0 && (
             <details>
               <summary>Geliştirici tanılaması</summary>
-              <pre>{JSON.stringify(Object.fromEntries(Object.entries(action.data.result.effects).filter(([key]) => key !== 'time_result')), null, 2)}</pre>
+              <pre>{JSON.stringify(Object.fromEntries(Object.entries(feedback.result.effects).filter(([key]) => key !== 'time_result')), null, 2)}</pre>
             </details>
           )}
         </div>

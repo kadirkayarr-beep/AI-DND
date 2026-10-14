@@ -1,3 +1,4 @@
+import { stableTurnActionId, storedTurnContext, clearPendingTurnAction, reconcileState, useActionLifetime, RETRY_MESSAGE, ReconciliationError } from '@/lib/action-reconciliation';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
@@ -48,6 +49,7 @@ import {
   getGetCharacterCreationCatalogQueryKey,
   getGetGameHealthQueryKey,
   getGetGameSessionStateQueryKey,
+  getGameSessionState,
   useCreateCampaign,
   useGetGameHealth,
   useGetCampaigns,
@@ -57,7 +59,8 @@ import {
   useGetGameSessionState,
   useAcceptGameQuest,
   useCancelGameQuest,
-  usePlayGameTurn,
+  playGameTurn,
+  getCampaign,
   useResolveAmbientEventAction,
   useResumeCampaign,
   useSaveCampaign,
@@ -66,7 +69,7 @@ import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 import { accountWriteAllowed } from '@/lib/account-session';
 import { QuestJournalSection } from '@/components/quest-journal-section';
 import { AdventureJournalSection } from '@/components/adventure-journal-section';
-import type { AmbientEventActionInputAction, AmbientEventResult, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
+import type { AmbientEventActionInputAction, AmbientEventResult, CampaignDetail, CampaignHistoryEntry, CampaignStartSelection, CharacterCreateInput, GameCharacter, GameDoor, GameNpc, GameState } from '@workspace/api-client-react';
 import { Transcript, type TranscriptEntry } from '@/components/campaign-transcript';
 import { EnvironmentThemeProvider } from '@/components/environment-theme';
 import { CampaignLibrary } from '@/components/campaign-library';
@@ -465,7 +468,7 @@ function JournalPanel({ state, sessionId }: { state: GameState; sessionId: strin
   );
 }
 
-function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string }) {
+function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { state: GameState; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
   const tabs: { id: WorldTab; label: string }[] = [{ id: 'world', label: 'DÜNYA' }, { id: 'npcs', label: 'KİŞİLER' }, { id: 'journal', label: 'GÜNLÜK' }, { id: 'combat', label: 'ÇATIŞMA' }];
   const tabRefs = useRef<Partial<Record<WorldTab, HTMLButtonElement>>>({});
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -509,7 +512,7 @@ function WorldTabs({ state, activeTab, setActiveTab, combatEntries, sessionId }:
         {activeTab === 'world' && <><WorldPanel state={state} /><DetailsPanel state={state} /></>}
   {activeTab === 'npcs' && <PeoplePanel state={state} />}
          {activeTab === 'journal' && <JournalPanel state={state} sessionId={sessionId} />}
-        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} />}
+        {activeTab === 'combat' && <CombatPanel state={state} entries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
       </div>
     </aside>
   );
@@ -830,7 +833,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
   );
 }
 
-function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries, sessionId }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string }) {
+function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEntries, sessionId, campaignId }: { drawer: Drawer; state: GameState; onClose: () => void; activeTab: WorldTab; setActiveTab: (tab: WorldTab) => void; combatEntries: CombatLogEntry[]; sessionId: string; campaignId: string }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -861,7 +864,7 @@ function DrawerSheet({ drawer, state, onClose, activeTab, setActiveTab, combatEn
     };
   }, [drawer]);
   if (!drawer) return null;
-  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}</section></div>;
+  return <div className="drawer-backdrop" role="presentation" onClick={onClose}><section ref={dialogRef} className="drawer-sheet" role="dialog" aria-modal="true" aria-label={drawer === 'character' ? 'Karakter paneli' : 'Dünyanın çevresi'} tabIndex={-1} onClick={(event) => event.stopPropagation()}><div className="drawer-heading"><Kicker>{drawer === 'character' ? 'Yolcu' : 'Dünyanın çevresi'}</Kicker><button className="icon-button" type="button" aria-label="Paneli kapat" data-testid="button-close-drawer" onClick={onClose}><X size={16} /></button></div>{drawer === 'character' ? <><CharacterPanel character={state.character} /><SpellcastingPanel spellcasting={state.spellcasting} /><InventoryPanel items={state.inventory} /></> : <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}</section></div>;
 }
 
 function CharacterReveal({ state, onContinue, onBack }: { state: GameState; onContinue: () => void; onBack: () => void }) {
@@ -996,61 +999,6 @@ function StateSkeleton() {
   return <div className="state-column" data-testid="state-loading">{[1, 2].map((panel) => <div className="state-panel" key={panel}><div className="dnd-skeleton h-3 w-24" /><div className="dnd-skeleton mt-4 h-7 w-40" /><div className="dnd-skeleton mt-3 h-16 w-full" /><div className="dnd-skeleton mt-3 h-8 w-full" /></div>)}</div>;
 }
 
-function actionFingerprint(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-type CombatRequestContext = { combat_id?: string; combat_round?: number; combat_turn_index?: number };
-
-function stableTurnActionId(scope: string, signature: string, context: CombatRequestContext = {}) {
-  const storageKey = `ai-dnd-pending-turns:${scope}`;
-  const fingerprint = actionFingerprint(signature);
-  try {
-    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
-    const existing = pending[fingerprint];
-    if (typeof existing === 'string') return existing;
-    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
-    const actionId = window.crypto.randomUUID();
-    pending[fingerprint] = actionId;
-    window.sessionStorage.setItem(`ai-dnd-turn-context:${scope}:${actionId}`, JSON.stringify(context));
-    window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
-    return actionId;
-  } catch {
-    if (!window.crypto?.randomUUID) throw new Error('Secure UUID generation is unavailable.');
-    return window.crypto.randomUUID();
-  }
-}
-
-function storedTurnContext(scope: string, actionId: string): CombatRequestContext {
-  try {
-    return JSON.parse(window.sessionStorage.getItem(`ai-dnd-turn-context:${scope}:${actionId}`) ?? '{}');
-  } catch {
-    return {};
-  }
-}
-
-function clearPendingTurnAction(scope: string, actionId: string) {
-  const storageKey = `ai-dnd-pending-turns:${scope}`;
-  try {
-    window.sessionStorage.removeItem(`ai-dnd-turn-context:${scope}:${actionId}`);
-    const pending = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as Record<string, unknown>;
-    for (const [fingerprint, pendingId] of Object.entries(pending)) {
-      if (pendingId === actionId) delete pending[fingerprint];
-    }
-    if (Object.keys(pending).length) {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(pending));
-    } else {
-      window.sessionStorage.removeItem(storageKey);
-    }
-  } catch {
-    // The server receipt remains authoritative if browser storage is unavailable.
-  }
-}
-
 export default function GameBrowser() {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState('');
@@ -1100,9 +1048,10 @@ export default function GameBrowser() {
       retry: false,
     },
   });
-  const playTurn = usePlayGameTurn({ mutation: { retry: false } });
+  const turnLifetime = useActionLifetime(sessionId);
   const inFlightSessionsRef = useRef(new Set<string>());
   const [inFlightSessions, setInFlightSessions] = useState<Set<string>>(new Set());
+  useEffect(() => { setInFlightSessions(new Set(inFlightSessionsRef.current)); }, [sessionId]);
   const turnSending = inFlightSessions.has(sessionId);
   const pendingTurnRef = useRef<{ signature: string; actionId: string } | null>(null);
   const activeSessionRef = useRef(sessionId);
@@ -1398,6 +1347,8 @@ export default function GameBrowser() {
   ) => {
     const trimmed = text.trim();
     if (!sessionId || inFlightSessionsRef.current.has(sessionId) || trimmed.length < 1 || trimmed.length > 4000) return;
+    const operation = turnLifetime.begin();
+    if (!operation) return;
     setNotice(null);
     const metadata = getTurnInteractionMetadata(
       state, mode, conversationTargetId, combatTargetId, Boolean(combatAction),
@@ -1415,22 +1366,33 @@ export default function GameBrowser() {
     inFlightSessionsRef.current.add(sessionId);
     setInFlightSessions(new Set(inFlightSessionsRef.current));
     const epoch = currentAuthEpoch();
-    void playTurn.mutateAsync({
-      sessionId,
-      data: {
+    let receiptReceived = false;
+    void playGameTurn(sessionId, {
         message: trimmed,
         interaction_mode: metadata.interaction_mode,
         action_id: actionId,
         ...(combatAction ? { combat_action: combatAction } : {}),
         ...storedTurnContext(actionScope, actionId),
         ...(targetId ? { target_id: targetId } : {}),
-      },
-    }).then((result) => {
-        if (!accountWriteAllowed(epoch)) return;
+    }, { signal: operation.signal }).then(async (result) => {
+        if (!operation.isCurrent()) return;
+        receiptReceived = true;
+        const stateKey = getGetGameSessionStateQueryKey(sessionId);
+        const snapshot = await reconcileState<{ state: GameState; history: CampaignDetail['history'] | null; combat_history: CampaignDetail['combat_history'] | null }>(queryClient, stateKey, operation, (signal) =>
+          campaignId ? getCampaign(campaignId, { signal })
+            : getGameSessionState(sessionId, { signal }).then(state => ({ state, history: null, combat_history: null })));
+        if (!operation.isCurrent()) return;
+        result = { ...result, state: snapshot.state };
         const stillVisible = activeSessionRef.current === sessionId;
         if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
         clearPendingTurnAction(actionScope, actionId);
-        const next = [
+        const next: TranscriptEntry[] = snapshot.history ? [
+          ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
+          ...snapshot.history.flatMap(entry => [
+            { kind: 'player' as const, text: entry.player_message },
+            { kind: 'narration' as const, text: entry.narration },
+          ]),
+        ] : [
           ...entries,
           { kind: 'player' as const, text: trimmed },
           {
@@ -1446,7 +1408,9 @@ export default function GameBrowser() {
         );
         const combatResult = result.combat_result;
         const combatHistoryEntry = result.combat_history_entry;
-        if (stillVisible && combatHistoryEntry) {
+        if (stillVisible && snapshot.combat_history) {
+          setCombatEntries(mergeCombatHistory(snapshot.combat_history));
+        } else if (stillVisible && combatHistoryEntry) {
           setCombatEntries((current) => mergeCombatHistory(
             [combatHistoryEntry],
             current,
@@ -1494,21 +1458,22 @@ export default function GameBrowser() {
         }
         if (stillVisible) setMessage('');
         void queryClient.invalidateQueries({ queryKey: getGetCampaignsQueryKey() });
-      }, (error) => {
-        if (!accountWriteAllowed(epoch)) return;
+      }).catch((error) => {
+        if (!operation.isCurrent()) return;
         if (activeSessionRef.current !== sessionId) {
           if (pendingTurnRef.current?.actionId === actionId) pendingTurnRef.current = null;
           return;
         }
-        if ([400, 409, 422].includes(statusCode(error) ?? 0)) {
+        if (!receiptReceived && [400, 409, 422].includes(statusCode(error) ?? 0)) {
           pendingTurnRef.current = null;
           clearPendingTurnAction(actionScope, actionId);
           void queryClient.invalidateQueries({ queryKey: getGetGameSessionStateQueryKey(sessionId) });
         }
-        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
+        setNotice({ tone: 'error', title: statusCode(error) === 503 ? 'Dünya şu an sessiz' : 'Hamle sonuçlanamadı', detail: error instanceof ReconciliationError ? RETRY_MESSAGE : friendlyError(error, 'Bu hamleyi şu haliyle gerçekleştiremiyorsun.') });
       }).finally(() => {
         inFlightSessionsRef.current.delete(sessionId);
-        setInFlightSessions(new Set(inFlightSessionsRef.current));
+        if (operation.isCurrent()) setInFlightSessions(new Set(inFlightSessionsRef.current));
+        operation.close();
     });
   };
 
@@ -1598,11 +1563,11 @@ export default function GameBrowser() {
                 onAmbientAction={handleAmbientAction}
                 onRetryAmbientAction={retryAmbientAction}
               />
-              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />
+              <WorldTabs state={state} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />
             </>
           ) : <div className="empty-line" data-testid="empty-session-state">Bu günlük henüz bir durum döndürmedi.</div>}
         </main>
-        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} />}
+        {state && <DrawerSheet drawer={drawer} state={state} onClose={() => setDrawer(null)} activeTab={activeTab} setActiveTab={setActiveTab} combatEntries={combatEntries} sessionId={sessionId} campaignId={campaignId} />}
         <div className="dnd-shell pb-8 text-right font-mono text-[9px] tracking-[.1em] text-[#695b48]" data-testid="text-session-label">
           {sessionLabel} · sahnenin izleri yol boyunca korunur
           {campaignId && <div data-testid="text-campaign-id">Defter numarası: {campaignId}</div>}

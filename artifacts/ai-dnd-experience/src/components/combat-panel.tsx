@@ -441,10 +441,12 @@ export function CombatPanel({
   state,
   entries,
   sessionId,
+  campaignId,
 }: {
   state: GameState;
   entries: CombatLogEntry[];
   sessionId: string;
+  campaignId?: string;
 }) {
   const active = Boolean(state.combat.active);
   const latest = entries[entries.length - 1]?.result;
@@ -457,7 +459,7 @@ export function CombatPanel({
 
   return (
     <section className={`combat-panel ${active ? 'combat-panel-active' : ''}`} data-testid="panel-combat">
-      <SpeciesTraitControls state={state} sessionId={sessionId} />
+      <SpeciesTraitControls key={campaignId || sessionId} state={state} sessionId={sessionId} campaignId={campaignId} />
       <DeathRecoveryControls state={state} sessionId={sessionId} />
       <header className="combat-panel-header">
         <div>
