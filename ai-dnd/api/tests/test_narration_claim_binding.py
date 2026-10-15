@@ -240,6 +240,38 @@ class NarrationClaimBindingTests(unittest.TestCase):
         spoken = narration_claims.assess("Ne oldu, her şey yolunda olur.", alive)
         self.assertNotEqual(spoken.get("reason"), "COMBAT_RESULT_CONTRADICTION")
 
+    def test_received_damage_binds_without_the_word_sana(self):
+        facts = attack(enemy_actions=[{
+            "actor_name": "Goblin",
+            "outcome": "hit",
+            "damage": 9,
+        }])
+        stolen = narration_claims.assess(
+            "Goblin bir darbe alır: 4 hasar. 4 hasar alırsın.",
+            facts,
+        )
+        self.assertTrue(stolen["reject"], stolen)
+        self.assertEqual(stolen["reason"], "MECHANICAL_NUMBER")
+        own = narration_claims.assess(
+            "Goblin bir darbe alır: 4 hasar. 9 hasar alırsın.",
+            facts,
+        )
+        self.assertFalse(own["reject"], own)
+        for sentence in (
+            "Goblin bir darbe alır: 4 hasar. 4 puan hasar alırsın.",
+            "Goblin bir darbe alır: 4 hasar. Hasar 4 alırsın.",
+        ):
+            with self.subTest(sentence=sentence):
+                verdict = narration_claims.assess(sentence, facts)
+                self.assertTrue(verdict["reject"], verdict)
+                self.assertEqual(verdict["reason"], "MECHANICAL_NUMBER")
+        for sentence in (
+            "Goblin bir darbe alır: 4 hasar. 9 puan hasar alırsın.",
+            "Goblin bir darbe alır: 4 hasar. Hasar 9 alırsın.",
+        ):
+            with self.subTest(sentence=sentence):
+                self.assertFalse(narration_claims.assess(sentence, facts)["reject"])
+
     def test_checker_does_not_call_a_model_or_write_state(self):
         source = narration_claims.__loader__.get_source(narration_claims.__name__)
         self.assertNotIn("ollama", source)

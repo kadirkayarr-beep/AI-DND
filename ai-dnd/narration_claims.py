@@ -173,6 +173,10 @@ _NAMED_BLOW = re.compile(
     r"al(maz\w*|madi\w*|ir\w*|di\w*)?"
 )
 _NAMED_MISS = re.compile(r"\b([a-z0-9]+)(?:\s+i)?\s+iskala\w*")
+_RECIPIENT_HURT = re.compile(
+    r"(\d+)\s*(?:puan\s+)?hasar\s+alirsin\w*\b|"
+    r"\bhasar\s*(?:puan\s*)?(\d+)\s+alirsin\w*\b"
+)
 _STOP = frozenset({
     "bir", "kritik", "agir", "bu", "su", "o", "ve", "sonra", "hedef",
     "hedefi", "saldirin", "saldiri", "rakip", "rakibin", "karsi", "kisa",
@@ -356,7 +360,8 @@ def _target_hasar_numbers(region: str) -> list[int]:
         if kind != "hasar":
             continue
         before = region[max(0, match.start() - 24):match.start()]
-        if re.search(r"\bsana\b", before):
+        after = region[match.end():match.end() + 12]
+        if re.search(r"\bsana\b", before) or re.search(r"^\s+alirsin\b", after):
             continue
         numbers.append(int(match.group(1) or match.group(4)))
     return numbers
@@ -433,6 +438,12 @@ def _bind_clause(clause: str, exchanges: list) -> dict | None:
             critical_checked = True
             if not any(item.get("critical") for item in (fitting or landed)):
                 return _reject("COMBAT_RESULT_CONTRADICTION", "kritik")
+
+    received = [item for item in _player_received(exchanges) if _landed(item)]
+    for match in _RECIPIENT_HURT.finditer(clause):
+        number = int(match.group(1) or match.group(2))
+        if not any(item.get("damage") == number for item in received):
+            return _reject("MECHANICAL_NUMBER", match.group(0))
 
     miss = _NAMED_MISS.search(clause)
     if miss:
