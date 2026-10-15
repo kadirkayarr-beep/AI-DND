@@ -2300,6 +2300,25 @@ def _venue_door_for(location_id):
     return None
 
 
+def _venue_entry_door(world_state, origin, destination):
+    """Return the closed door belonging to this exact parent-to-venue entry."""
+    locations = world_state.get("locations", {})
+    target = locations.get(destination) if isinstance(locations, dict) else None
+    if (
+        not isinstance(target, dict)
+        or target.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
+        or target.get("parent_location_id") != origin
+    ):
+        return None
+    door_id = _venue_door_id(destination)
+    doors = world_state.get("doors", [])
+    door = next(
+        (item for item in doors if isinstance(item, dict) and item.get("id") == door_id),
+        None,
+    ) if isinstance(doors, list) else None
+    return door if isinstance(door, dict) and not door.get("open") else None
+
+
 def _current_door():
     world_state = _session().world_state
     return next(
@@ -5788,11 +5807,13 @@ def advance_campaign_time(seconds, reason, source=None, observation=None):
 def commit_location_change(location_id, turn_index=None):
     """Commit a location transition after Python has resolved its destination."""
     world_state = _session().world_state
+    previous_location = world_state.get("location")
+    if _venue_entry_door(world_state, previous_location, location_id):
+        return False
     import authored_dungeon
     authored_dungeon.require_transition(world_state, location_id)
     if location_id not in world_state.get("locations", {}):
         return False
-    previous_location = world_state.get("location")
     world_state["location"] = location_id
     ensure_campaign_clock()
     _ensure_location_entities(location_id)
@@ -10171,6 +10192,17 @@ def _commit_travel_action(action_result):
         return action_result.get("success") is True
     combat_was_active = ensure_combat_state()["active"]
     changed = commit_location_change(target_id)
+    if not changed and _venue_entry_door(
+        world_state, world_state.get("location"), target_id
+    ):
+        door = _venue_entry_door(world_state, world_state.get("location"), target_id)
+        action_result.update({
+            "success": False,
+            "status": "blocked",
+            "direct_response": f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
+            "state_changes": [],
+        })
+        return False
     if changed and combat_was_active:
         action_result.update(combat_ended=True, end_reason="location_changed", combat=_combat_snapshot())
     world_state.setdefault("flags", {})["pending_destination"] = None
@@ -10328,6 +10360,17 @@ def execute_intent(intent, player_input, npc_target=None, target_id=None):
                 result.update(timed)
                 return result
             changed = commit_location_change(target_id)
+            if not changed and _venue_entry_door(world_state, previous, target_id):
+                door = _venue_entry_door(world_state, previous, target_id)
+                result.update({
+                    "success": False,
+                    "status": "blocked",
+                    "direct_response": (
+                        f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin."
+                    ),
+                    "state_changes": [],
+                })
+                return result
             flags["pending_destination"] = None
             result.update({
                 "success": True,
@@ -11354,8 +11397,8 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             and candidate_record.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
             and candidate_record.get("parent_location_id") == current
         ):
-            venue_door = _venue_door_for(candidate)
-            if venue_door is not None and not venue_door.get("open"):
+            venue_door = _venue_entry_door(world_state, current, candidate)
+            if venue_door is not None:
                 direct = {
                     "action": "enter",
                     "status": "blocked",
@@ -11831,6 +11874,24 @@ def _adventure_check_reply(session, skill):
 
 def _adventure_travel_reply(session, destination):
     before = copy.deepcopy(session.world_state)
+    venue_door = _venue_entry_door(
+        session.world_state, session.world_state.get("location"), destination
+    )
+    if venue_door:
+        response = f"{venue_door.get('name', 'Kapı')} kapalı. İçeri geçemezsin."
+        return {
+            "messages": session.messages,
+            "narration": response,
+            "model_calls": 0,
+            "action_result": {
+                "action": "travel",
+                "success": False,
+                "status": "blocked",
+                "target_id": destination,
+                "state_changes": [],
+                "direct_response": response,
+            },
+        }
     commit_location_change(destination)
     flags = session.world_state.setdefault("flags", {})
     flags["turn_index"] = flags.get("turn_index", 0) + 1
