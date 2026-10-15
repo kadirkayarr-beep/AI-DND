@@ -6787,6 +6787,8 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     """Return a reason-coded safety decision without changing canonical state."""
     world_state = _session().world_state
     scene_type = _narration_scene_type(action_result)
+    attack_claims_assessed = False
+    attack_fact_packet = None
 
     def reject(reason_code, trigger_span=None):
         return {
@@ -6856,17 +6858,78 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
     if action_result.get("action") == "attack":
         # Same facts as the deterministic combat sentence, not the same words.
         import narration_claims
-        verdict = narration_claims.assess(
-            narration, _narration_fact_packet(action_result)
-        )
+        attack_fact_packet = _narration_fact_packet(action_result)
+        verdict = narration_claims.assess(narration, attack_fact_packet)
         if verdict["reject"]:
             return reject(
                 verdict["reason"] or "COMBAT_RESULT_CONTRADICTION",
                 verdict.get("span") or narration.strip()[:160],
             )
+        attack_claims_assessed = True
 
     text = narration.casefold()
     input_text = str(player_input).casefold()
+
+    def is_verified_attack_damage_claim(claim):
+        if not attack_claims_assessed or not isinstance(action_result, dict):
+            return False
+        amount_match = re.search(r"\b\d+\b", claim.group(0))
+        if not amount_match:
+            return False
+        amount = int(amount_match.group(0))
+        exchanges = (attack_fact_packet or {}).get("exchanges", [])
+        received = [
+            exchange for exchange in exchanges
+            if exchange.get("target") == "player"
+            and exchange.get("outcome") in ("hit", "critical_hit")
+            and exchange.get("damage") == amount
+        ]
+        if received and re.search(
+            r"\b\d+\s*(?:puan\s+)?hasar\s+alirsin\w*\b|"
+            r"\bhasar\s*(?:puan\s*)?\d+\s+alirsin\w*\b",
+            claim.group(0),
+        ):
+            return True
+
+        if (
+            action_result.get("action") != "attack"
+            or action_result.get("outcome") not in ("hit", "critical_hit")
+            or action_result.get("damage") != amount
+        ):
+            return False
+        target = str(
+            action_result.get("target_name") or action_result.get("target") or ""
+        ).strip()
+        if not target:
+            return False
+
+        clause_start = max(
+            text.rfind(mark, 0, claim.start()) for mark in ".!?"
+        ) + 1
+        clause_end = min(
+            (position for mark in ".!?"
+             if (position := text.find(mark, claim.end())) >= 0),
+            default=len(text),
+        )
+        clause = text[clause_start:clause_end]
+        damage_pattern = (
+            r"\b\d+\s*(?:puan\s+)?hasar\b.{0,25}"
+            r"\b(?:al\w*|ver\w*|uğra\w*)"
+        )
+        if len(list(re.finditer(damage_pattern, clause))) != 1:
+            return False
+
+        import narration_claims
+        folded_clause = narration_claims.fold(clause)
+        folded_target = narration_claims.fold(target)
+        folded_amount = str(amount)
+        bound_outgoing_pattern = (
+            rf"\b{re.escape(folded_target)}\b.{{0,48}}"
+            rf"\b(?:kritik\s+)?(?:bir\s+)?(?:agir\s+)?"
+            rf"(?:darbe|vurus)\s+al\w*.{{0,24}}"
+            rf"\b{folded_amount}\s*(?:puan\s+)?hasar\b.{{0,12}}\bal\w*"
+        )
+        return re.search(bound_outgoing_pattern, folded_clause) is not None
 
     if npc_target and isinstance(npc_target, dict) and npc_target.get("id"):
         target_name = str(npc_target.get("name", "")).strip()
@@ -6984,8 +7047,17 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
          r"\b(?:seviye atla\w*|level up|seviye\w* yüksel\w*)\b"),
     )
     for reason_code, pattern in pre_agency_claims:
-        claim = re.search(pattern, text)
-        if claim:
+        claims = (
+            list(re.finditer(pattern, text))
+            if reason_code == "CANONICAL_DAMAGE_CONTRADICTION"
+            else [re.search(pattern, text)]
+        )
+        for claim in filter(None, claims):
+            if (
+                reason_code == "CANONICAL_DAMAGE_CONTRADICTION"
+                and is_verified_attack_damage_claim(claim)
+            ):
+                continue
             return reject(reason_code, claim.group(0))
     if (action_outcome or _mechanical_outcome(player_input)) in (
         "failure", "critical_failure"
@@ -7335,8 +7407,17 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
          r"\b(?:yağmur|kar|fırtına|sis)\b"),
     )
     for reason_code, pattern in hard_claims:
-        claim = re.search(pattern, text)
-        if claim:
+        claims = (
+            list(re.finditer(pattern, text))
+            if reason_code == "CANONICAL_DAMAGE_CONTRADICTION"
+            else [re.search(pattern, text)]
+        )
+        for claim in filter(None, claims):
+            if (
+                reason_code == "CANONICAL_DAMAGE_CONTRADICTION"
+                and is_verified_attack_damage_claim(claim)
+            ):
+                continue
             return reject(reason_code, claim.group(0))
 
     quest_outcomes = action_result.get("quest_outcomes")

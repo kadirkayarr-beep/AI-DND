@@ -119,8 +119,10 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                     positive_telemetry = positive["_engine_event_evidence"]["telemetry"]
                     safety_decision = getattr(fixture.session, "last_narration_safety", {}) or {}
                     print("ATTACK_POSITIVE_CONTROL_DIAGNOSTIC " + json.dumps({
-                        "checkout_sha": "cdb522181b679684468488262f4024b999832fa3",
-                        "synthetic_model_text": positive_text,
+                        "synthetic_narration_text_at_boundary": positive_text,
+                        "provider_implementation": "ScriptedProvider",
+                        "real_model_calls": 0,
+                        "network_attempts": len(network),
                         "returned_narration": positive["narration"],
                         "output_relation": (
                             "verbatim" if positive["narration"] == positive_text else "modified"
@@ -342,6 +344,322 @@ class AttackNarrationApiIntegrationTests(unittest.IsolatedAsyncioTestCase):
                                 ),
                                 "unresolved incoming attack must fail the common claim check",
                             )
+                    self.assertEqual(network, [])
+
+    async def test_api_critical_vurus_damage_with_dodging_defender_is_accepted(self):
+        with tempfile.TemporaryDirectory(prefix="attack-vurus-dodge-api-") as temporary:
+            provider = ScriptedProvider([])
+            fixture = Fixture(Path(temporary) / "campaign.sqlite3", provider)
+            with no_network() as network, fixture.adapter.engine_binding():
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=fixture.build_app()),
+                    base_url="http://testserver",
+                    trust_env=False,
+                ) as client:
+                    await fixture.create(client)
+                    fixture.tavern()
+                    npc = {
+                        "id": "npc_enemy",
+                        "name": "Haydut",
+                        "role": "Guard",
+                        "location": "tavern",
+                        "relationship": "hostile",
+                        "hostile": True,
+                        "memory": [],
+                        "knowledge": [],
+                        "current_hp": 100,
+                        "max_hp": 100,
+                        "armor_class": 10,
+                        "combat_status": "active",
+                        "distance_ft": 5,
+                        "dexterity_mod": -5,
+                        "attack_bonus": 0,
+                        "damage_die": 4,
+                        "damage_dice": 1,
+                        "damage_modifier": 0,
+                    }
+                    fixture.session.world_state["npcs"] = [npc]
+                    fixture.session.rng.seed(5)
+                    game._living_world_prompt_context(session=fixture.session)
+                    fixture.session.start_combat(npc)
+                    fixture.session.rng.seed(5)
+                    fixture.save()
+                    combat = fixture.session.world_state["combat"]
+                    response = await fixture.turn(
+                        client,
+                        "Kılıçla saldırıyorum.",
+                        target_id=npc["id"],
+                        interaction_mode="do",
+                        combat_id=combat["combat_id"],
+                        combat_round=combat["round"],
+                        combat_turn_index=combat["current_turn_index"],
+                    )
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(provider.calls, [])
+                    native = fixture.engine_results[-1]
+                    action = native["action_result"]
+                    self.assertEqual(action["action"], "attack")
+                    self.assertEqual(action["outcome"], "critical_hit")
+                    self.assertGreater(action["damage"], 0)
+                    enemy_actions = action.get("enemy_actions") or [
+                        action.get("enemy_action")
+                    ]
+                    self.assertTrue(any(
+                        isinstance(enemy, dict) and enemy.get("outcome") == "dodge"
+                        for enemy in enemy_actions
+                    ), action)
+
+                    text = (
+                        f'{npc["name"]} kritik bir vuruş alır: '
+                        f'{action["damage"]} hasar. Rakibin savunmaya geçer.'
+                    )
+                    provider.scripts.append(narration(text))
+                    resolved = game.ResolvedTurn(
+                        action_result=copy.deepcopy(action),
+                        fallback_response=native["narration"],
+                        raw_result=copy.deepcopy(native),
+                        messages=fixture.session.messages,
+                        lore_context=game._empty_lore_authority_context(),
+                    )
+                    result = game._narrate_resolved_turn(
+                        resolved, "Kılıçla saldırıyorum.",
+                        fixture.session.messages, npc["id"],
+                    )
+                    telemetry = result["_engine_event_evidence"]["telemetry"]
+                    print("ATTACK_CRITICAL_VURUS_DIAGNOSTIC " + json.dumps({
+                        "synthetic_narration_at_boundary": text,
+                        "provider_implementation": "ScriptedProvider",
+                        "real_model_calls": 0,
+                        "authoritative_api_action_result": action,
+                        "returned_narration": result["narration"],
+                        "telemetry": telemetry,
+                        "network_attempts": len(network),
+                    }, ensure_ascii=False, sort_keys=True, default=str))
+                    self.assertEqual(result["narration"], text)
+                    self.assertEqual(telemetry["narration_validation_result"], "accepted")
+                    self.assertIsNone(telemetry["fallback_reason"])
+                    self.assertEqual(len(provider.calls), 1)
+                    self.assertEqual(network, [])
+
+    async def test_api_canonical_damage_phrase_with_dodging_defender_is_accepted(self):
+        with tempfile.TemporaryDirectory(prefix="attack-hasar-alir-dodge-api-") as temporary:
+            provider = ScriptedProvider([])
+            fixture = Fixture(Path(temporary) / "campaign.sqlite3", provider)
+            with no_network() as network, fixture.adapter.engine_binding():
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=fixture.build_app()),
+                    base_url="http://testserver",
+                    trust_env=False,
+                ) as client:
+                    await fixture.create(client)
+                    fixture.tavern()
+                    npc = {
+                        "id": "npc_enemy",
+                        "name": "Haydut",
+                        "role": "Guard",
+                        "location": "tavern",
+                        "relationship": "hostile",
+                        "hostile": True,
+                        "memory": [],
+                        "knowledge": [],
+                        "current_hp": 100,
+                        "max_hp": 100,
+                        "armor_class": 10,
+                        "combat_status": "active",
+                        "distance_ft": 5,
+                        "dexterity_mod": -5,
+                        "attack_bonus": 0,
+                        "damage_die": 4,
+                        "damage_dice": 1,
+                        "damage_modifier": 0,
+                    }
+                    fixture.session.world_state["npcs"] = [npc]
+                    fixture.session.rng.seed(5)
+                    game._living_world_prompt_context(session=fixture.session)
+                    fixture.session.start_combat(npc)
+                    fixture.session.rng.seed(5)
+                    fixture.save()
+                    combat = fixture.session.world_state["combat"]
+                    response = await fixture.turn(
+                        client,
+                        "Kılıçla saldırıyorum.",
+                        target_id=npc["id"],
+                        interaction_mode="do",
+                        combat_id=combat["combat_id"],
+                        combat_round=combat["round"],
+                        combat_turn_index=combat["current_turn_index"],
+                    )
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(provider.calls, [])
+                    native = fixture.engine_results[-1]
+                    action = native["action_result"]
+                    self.assertEqual(action["action"], "attack")
+                    self.assertEqual(action["outcome"], "critical_hit")
+                    self.assertGreater(action["damage"], 0)
+                    enemy_actions = action.get("enemy_actions") or [
+                        action.get("enemy_action")
+                    ]
+                    self.assertTrue(any(
+                        isinstance(enemy, dict) and enemy.get("outcome") == "dodge"
+                        for enemy in enemy_actions
+                    ), action)
+
+                    text = (
+                        f'{npc["name"]}, kritik bir darbe alır ve '
+                        f'{action["damage"]} hasar alır. Rakibin savunmaya geçer.'
+                    )
+                    provider.scripts.append(narration(text))
+                    resolved = game.ResolvedTurn(
+                        action_result=copy.deepcopy(action),
+                        fallback_response=native["narration"],
+                        raw_result=copy.deepcopy(native),
+                        messages=fixture.session.messages,
+                        lore_context=game._empty_lore_authority_context(),
+                    )
+                    result = game._narrate_resolved_turn(
+                        resolved, "Kılıçla saldırıyorum.",
+                        fixture.session.messages, npc["id"],
+                    )
+                    telemetry = result["_engine_event_evidence"]["telemetry"]
+                    fallback_safety = (
+                        getattr(fixture.session, "last_narration_safety", {}) or {}
+                    )
+                    print("ATTACK_CANONICAL_DAMAGE_DIAGNOSTIC " + json.dumps({
+                        "synthetic_narration_at_boundary": text,
+                        "provider_implementation": "ScriptedProvider",
+                        "real_model_calls": 0,
+                        "authoritative_api_action_result": action,
+                        "returned_narration": result["narration"],
+                        "candidate_safety_rejection": {
+                            "reason_code": telemetry["fallback_reason"],
+                            "validation_result": telemetry["narration_validation_result"],
+                        },
+                        "returned_fallback_safety": {
+                            key: fallback_safety.get(key)
+                            for key in ("handling", "reason_code", "trigger_span", "scene_type")
+                        },
+                        "telemetry": telemetry,
+                        "network_attempts": len(network),
+                    }, ensure_ascii=False, sort_keys=True, default=str))
+                    self.assertEqual(result["narration"], text)
+                    self.assertEqual(telemetry["narration_validation_result"], "accepted")
+                    self.assertIsNone(telemetry["fallback_reason"])
+                    self.assertEqual(len(provider.calls), 1)
+                    self.assertEqual(network, [])
+
+    async def test_api_rejects_unbound_extra_damage_claim_even_when_number_matches(self):
+        with tempfile.TemporaryDirectory(prefix="attack-extra-damage-api-") as temporary:
+            provider = ScriptedProvider([])
+            fixture = Fixture(Path(temporary) / "campaign.sqlite3", provider)
+            with no_network() as network, fixture.adapter.engine_binding():
+                async with httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=fixture.build_app()),
+                    base_url="http://testserver",
+                    trust_env=False,
+                ) as client:
+                    await fixture.create(client)
+                    fixture.tavern()
+                    npc = {
+                        "id": "npc_enemy",
+                        "name": "Haydut",
+                        "role": "Guard",
+                        "location": "tavern",
+                        "relationship": "hostile",
+                        "hostile": True,
+                        "memory": [],
+                        "knowledge": [],
+                        "current_hp": 100,
+                        "max_hp": 100,
+                        "armor_class": 10,
+                        "combat_status": "active",
+                        "distance_ft": 5,
+                        "dexterity_mod": -5,
+                        "attack_bonus": 0,
+                        "damage_die": 4,
+                        "damage_dice": 1,
+                        "damage_modifier": 0,
+                    }
+                    fixture.session.world_state["npcs"] = [npc]
+                    fixture.session.rng.seed(5)
+                    game._living_world_prompt_context(session=fixture.session)
+                    fixture.session.start_combat(npc)
+                    fixture.session.rng.seed(5)
+                    fixture.save()
+                    combat = fixture.session.world_state["combat"]
+                    response = await fixture.turn(
+                        client,
+                        "Kılıçla saldırıyorum.",
+                        target_id=npc["id"],
+                        interaction_mode="do",
+                        combat_id=combat["combat_id"],
+                        combat_round=combat["round"],
+                        combat_turn_index=combat["current_turn_index"],
+                    )
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(provider.calls, [])
+                    native = fixture.engine_results[-1]
+                    action = native["action_result"]
+                    self.assertEqual(action["action"], "attack")
+                    self.assertEqual(action["outcome"], "critical_hit")
+                    self.assertGreater(action["damage"], 0)
+                    enemy_actions = action.get("enemy_actions") or [
+                        action.get("enemy_action")
+                    ]
+                    self.assertTrue(any(
+                        isinstance(enemy, dict) and enemy.get("outcome") == "dodge"
+                        for enemy in enemy_actions
+                    ), action)
+
+                    valid_text = (
+                        f'{npc["name"]}, kritik bir darbe alır ve '
+                        f'{action["damage"]} hasar alır. Rakibin savunmaya geçer.'
+                    )
+                    text = f'{valid_text} Ben {action["damage"]} hasar alırım.'
+                    provider.scripts.append(narration(text))
+                    resolved = game.ResolvedTurn(
+                        action_result=copy.deepcopy(action),
+                        fallback_response=native["narration"],
+                        raw_result=copy.deepcopy(native),
+                        messages=fixture.session.messages,
+                        lore_context=game._empty_lore_authority_context(),
+                    )
+                    # Bind this direct safety-boundary call to its fixture;
+                    # the API request's active-session context has ended.
+                    # Clear only this fixture's prior API-turn narration so
+                    # repeat detection cannot mask the candidate safety result.
+                    fixture.session.recent_dm_narrations.clear()
+                    token = game._ACTIVE_SESSION.set(fixture.session)
+                    try:
+                        result = game._narrate_resolved_turn(
+                            resolved, "Kılıçla saldırıyorum.",
+                            fixture.session.messages, npc["id"],
+                        )
+                    finally:
+                        game._ACTIVE_SESSION.reset(token)
+                    telemetry = result["_engine_event_evidence"]["telemetry"]
+                    safety_decision = (
+                        getattr(fixture.session, "last_narration_safety", {}) or {}
+                    )
+                    print("ATTACK_UNBOUND_EXTRA_DAMAGE_DIAGNOSTIC " + json.dumps({
+                        "synthetic_narration_at_boundary": text,
+                        "provider_implementation": "ScriptedProvider",
+                        "real_model_calls": 0,
+                        "authoritative_api_action_result": action,
+                        "returned_narration": result["narration"],
+                        "production_safety_decision": {
+                            key: safety_decision.get(key)
+                            for key in ("handling", "reason_code", "trigger_span", "scene_type")
+                        },
+                        "telemetry": telemetry,
+                        "network_attempts": len(network),
+                    }, ensure_ascii=False, sort_keys=True, default=str))
+                    self.assertNotEqual(result["narration"], text)
+                    self.assertEqual(
+                        telemetry["fallback_reason"],
+                        "CANONICAL_DAMAGE_CONTRADICTION",
+                    )
+                    self.assertEqual(telemetry["narration_validation_result"], "python_fallback")
+                    self.assertEqual(len(provider.calls), 1)
                     self.assertEqual(network, [])
 
     async def test_attack_fallback_matches_api_result_for_hit_miss_critical_and_dead_name(self):

@@ -160,16 +160,19 @@ _CLOSED = re.compile(
     r"\b(?:kapi|kapisi|giris|kilit)\b.{0,40}\b(?:kilitli kal\w*|kapali kal\w*|acilmaz\w*|acilmadi\w*)\b|"
     r"\bkilitli\b"
 )
-_HIT = re.compile(r"\b(?:darbe|isabet eder\w*|isabet etti\w*)\b")
+_HIT = re.compile(r"\b(?:darbe|vurus|isabet eder\w*|isabet etti\w*)\b")
 _POSITIVE_HIT = re.compile(
-    r"\bdarbe\s+alir\w*\b|\bdarbe\s+aldi\w*\b|\bisabet eder\w*\b|\bisabet etti\w*\b"
+    r"\b(?:darbe|vurus)\s+alir\w*\b|\b(?:darbe|vurus)\s+aldi\w*\b|"
+    r"\bisabet eder\w*\b|\bisabet etti\w*\b"
 )
-_NEGATED_HIT = re.compile(r"\bdarbe\s+almaz\w*\b|\bdarbe\s+almadi\w*\b")
+_NEGATED_HIT = re.compile(
+    r"\b(?:darbe|vurus)\s+almaz\w*\b|\b(?:darbe|vurus)\s+almadi\w*\b"
+)
 _MISS = re.compile(r"\b(?:iskala\w*|isabet etmez)\b")
 _CRITICAL = re.compile(r"\bkritik\b")
 _DEATH = re.compile(r"\b(?:ölür|öldü|öldür\w*|yere düşer)\b")
 _NAMED_BLOW = re.compile(
-    r"\b([a-z0-9]+)\s+(?:(kritik)\s+)?(?:agir\s+)?(?:bir\s+)?darbe\s+"
+    r"\b([a-z0-9]+)\s+(?:(kritik)\s+)?(?:agir\s+)?(?:bir\s+)?(?:darbe|vurus)\s+"
     r"al(maz\w*|madi\w*|ir\w*|di\w*)?"
 )
 _NAMED_MISS = re.compile(r"\b([a-z0-9]+)(?:\s+i)?\s+iskala\w*")
@@ -387,8 +390,9 @@ def _bind_clause(clause: str, exchanges: list) -> dict | None:
     critical_checked = False
     for index, blow in enumerate(blows):
         previous = blows[index - 1].end() if index else 0
-        darbe_at = clause.find("darbe", blow.start())
-        window = clause[previous:darbe_at if darbe_at >= 0 else blow.end()]
+        impact = re.search(r"\b(?:darbe|vurus)\b", clause[blow.start():])
+        impact_at = blow.start() + impact.start() if impact else -1
+        window = clause[previous:impact_at if impact_at >= 0 else blow.end()]
         kind, subject = _subject_exchanges(window.split(), targets)
         suffix = blow.group(3) or ""
         negated = suffix.startswith("maz") or suffix.startswith("madi")
