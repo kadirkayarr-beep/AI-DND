@@ -144,6 +144,102 @@ class NarrationClaimBindingTests(unittest.TestCase):
         self.assertTrue(other["reject"], other)
         self.assertEqual(other["reason"], "COMBAT_RESULT_CONTRADICTION")
 
+    def test_named_enemy_actor_keeps_its_own_damage_and_critical(self):
+        facts = attack(enemy_actions=[
+            {"actor_name": "Goblin", "outcome": "critical_hit", "damage": 9},
+            {"actor_name": "Ork", "outcome": "hit", "damage": 2},
+        ])
+        mixed = narration_claims.assess(
+            "Goblin bir darbe alır. Ork sana kritik bir saldırıyla 9 hasar verir.",
+            facts,
+        )
+        self.assertTrue(mixed["reject"], mixed)
+        unnamed = attack(enemy_actions=[{
+            "outcome": "critical_hit",
+            "damage": 9,
+            "actor": "npc_goblin",
+        }])
+        borrowed = narration_claims.assess(
+            "Ork sana kritik bir saldırıyla 9 hasar verir.",
+            unnamed,
+        )
+        self.assertTrue(borrowed["reject"], borrowed)
+        bound = narration_claims.assess(
+            "Goblin bir darbe alır: 4 hasar. "
+            "Goblin sana kritik bir saldırıyla 9 hasar verir. "
+            "Ork sana 2 hasar verir.",
+            facts,
+        )
+        self.assertFalse(bound["reject"], bound)
+        generic = narration_claims.assess(
+            "Goblin bir darbe alır. "
+            "Rakibin kritik karşı saldırısı sana isabet eder; 9 hasar alırsın.",
+            unnamed,
+        )
+        self.assertFalse(generic["reject"], generic)
+
+    def test_every_blow_in_one_sentence_binds_to_its_own_subject(self):
+        facts = attack()
+        for sentence in (
+            "Goblin bir darbe alır ve Ork bir darbe alır.",
+            "Goblin bir darbe alır ama Goblin bir darbe almaz.",
+            "Ork bir darbe alır; Goblin izler.",
+        ):
+            with self.subTest(sentence=sentence):
+                verdict = narration_claims.assess(sentence, facts)
+                self.assertTrue(verdict["reject"], verdict)
+                self.assertEqual(verdict["reason"], "COMBAT_RESULT_CONTRADICTION")
+        for sentence in (
+            "Goblin bir darbe alır. Goblin izler.",
+            "Goblin bir darbe alır ve sendeleyerek durur.",
+            "Goblin sendeleyerek bir darbe alır.",
+        ):
+            with self.subTest(sentence=sentence):
+                self.assertFalse(narration_claims.assess(sentence, facts)["reject"])
+
+    def test_supported_damage_spellings_stay_on_the_named_target(self):
+        facts = attack(enemy_actions=[{
+            "actor_name": "Goblin",
+            "outcome": "hit",
+            "damage": 9,
+        }])
+        for sentence in (
+            "Goblin bir darbe alır: 9 puan hasar.",
+            "Goblin bir darbe alır: hasar 9.",
+        ):
+            with self.subTest(sentence=sentence):
+                verdict = narration_claims.assess(sentence, facts)
+                self.assertTrue(verdict["reject"], verdict)
+                self.assertIn(verdict["reason"], {"MECHANICAL_NUMBER", "COMBAT_RESULT_CONTRADICTION"})
+        for sentence in (
+            "Goblin bir darbe alır: 4 puan hasar.",
+            "Goblin bir darbe alır: hasar 4.",
+            "Goblin bir darbe alır: 4 hasar. Sana 9 puan hasar verir.",
+        ):
+            with self.subTest(sentence=sentence):
+                self.assertFalse(narration_claims.assess(sentence, facts)["reject"])
+
+    def test_multiword_target_fallback_agrees_with_its_packet(self):
+        facts = attack(target_name="Ork Savaşçısı", damage=4, target_status="dead")
+        sentence = narration_claims.fallback_sentence(facts)
+        self.assertEqual(
+            sentence,
+            "Ork Savaşçısı, bir darbe alır: 4 hasar. Ork Savaşçısı ölür.",
+        )
+        verdict = narration_claims.assess(sentence, facts)
+        self.assertFalse(verdict["reject"], verdict)
+        partial = narration_claims.assess("Ork Savaşçısı bir darbe alır. Ork ölür.", facts)
+        self.assertTrue(partial["reject"], partial)
+        self.assertEqual(partial["reason"], "COMBAT_RESULT_CONTRADICTION")
+        alive = attack(target_name="Ork Savaşçısı", damage=4)
+        ordinary = narration_claims.assess(
+            "Ork Savaşçısı bir darbe alır. Her şey yolunda olur.",
+            alive,
+        )
+        self.assertFalse(ordinary["reject"], ordinary)
+        spoken = narration_claims.assess("Ne oldu, her şey yolunda olur.", alive)
+        self.assertNotEqual(spoken.get("reason"), "COMBAT_RESULT_CONTRADICTION")
+
     def test_checker_does_not_call_a_model_or_write_state(self):
         source = narration_claims.__loader__.get_source(narration_claims.__name__)
         self.assertNotIn("ollama", source)

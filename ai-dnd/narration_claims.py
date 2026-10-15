@@ -34,6 +34,15 @@ def death_fold(text: str) -> str:
     return " ".join(value.split())
 
 
+def _enemy_actor_name(enemy: dict) -> str:
+    """A display name can support a named claim. An id cannot."""
+    for key in ("actor_name", "name"):
+        value = enemy.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 def _side_outcome(result: dict, enemies: list, outcomes: tuple[str, ...]) -> bool:
     if result.get("action") == "attack" and result.get("outcome") in outcomes:
         return True
@@ -82,7 +91,7 @@ def packet_from_result(
         if not isinstance(enemy, dict):
             continue
         exchanges.append({
-            "actor": enemy.get("actor_name") or enemy.get("name") or enemy.get("actor") or "rakip",
+            "actor": _enemy_actor_name(enemy),
             "target": "player",
             "outcome": enemy.get("outcome"),
             "damage": enemy.get("damage") if isinstance(enemy.get("damage"), int) else None,
@@ -164,14 +173,20 @@ _NAMED_BLOW = re.compile(
     r"al(maz\w*|madi\w*|ir\w*|di\w*)?"
 )
 _NAMED_MISS = re.compile(r"\b([a-z0-9]+)(?:\s+i)?\s+iskala\w*")
-_PLAYER_HURT = re.compile(r"\bsana\s+(\d+)\s+hasar\b|\b(\d+)\s+hasar\s+alirsin\b")
-_DEATH_NAMED = re.compile(
-    r"\b([a-z0-9]+)\s+(?:ölür|öldü|öldür\w*|yere\s+düşer)\b"
-)
 _STOP = frozenset({
     "bir", "kritik", "agir", "bu", "su", "o", "ve", "sonra", "hedef",
     "hedefi", "saldirin", "saldiri", "rakip", "rakibin", "karsi", "kisa",
-    "son", "ilk", "her", "sey",
+    "son", "ilk", "her", "sey", "ama", "ile",
+})
+_TRAILING = frozenset({"bir", "kritik", "agir", "ve", "ama", "ile"})
+_BRIDGE = frozenset({"sendeleyerek"})
+_GENERIC_BEFORE_SANA = _STOP | frozenset({
+    "saldiri", "saldirisi", "saldiriyla", "saldirisiyla", "vurus", "vurusu",
+    "vurusla", "hamle", "hamlesi",
+})
+_DEATH_NOISE = _STOP | _BRIDGE | frozenset({
+    "darbe", "alir", "aldi", "aliyor", "almaz", "almadi", "yere", "hasar",
+    "puan", "verir", "alirsin", "izler",
 })
 _NEGATION = re.compile(r"\bdegil\b")
 _DODGE = re.compile(r"\bsavunmaya gec")
@@ -271,17 +286,6 @@ def _targets_named(exchanges: list, name: str) -> list:
     ]
 
 
-def _mentioned_targets(clause: str, exchanges: list) -> list:
-    found = []
-    for exchange in exchanges:
-        target = fold(str(exchange.get("target") or ""))
-        if not target or target == "player":
-            continue
-        if re.search(rf"\b{re.escape(target)}\b", clause):
-            found.append(exchange)
-    return found
-
-
 def _player_received(exchanges: list) -> list:
     return [exchange for exchange in exchanges if exchange.get("target") == "player"]
 
@@ -290,58 +294,145 @@ def _player_dealt(exchanges: list) -> list:
     return [exchange for exchange in exchanges if exchange.get("actor") == "player"]
 
 
-def _uncovered_damage(clause: str) -> list[int]:
-    covers = [(match.start(), match.end()) for match in _PLAYER_HURT.finditer(clause)]
-    numbers = []
-    for match in re.finditer(r"\b(\d+)\s+hasar\b", clause):
-        if any(start <= match.start() < end for start, end in covers):
+def _catalog(exchanges: list, field: str, name_fold) -> list[tuple[str, dict]]:
+    catalog = []
+    for exchange in exchanges:
+        name = name_fold(str(exchange.get(field) or ""))
+        if not name or name in _STOP or name == "player":
             continue
-        numbers.append(int(match.group(1)))
+        catalog.append((name, exchange))
+    return catalog
+
+
+def _matching_tail(tokens: list[str], catalog: list[tuple[str, dict]]) -> list[dict]:
+    if not tokens:
+        return []
+    tail = " ".join(tokens)
+    best_len = -1
+    found: list[dict] = []
+    for name, exchange in catalog:
+        if tail == name or tail.endswith(" " + name):
+            if len(name) > best_len:
+                best_len = len(name)
+                found = [exchange]
+            elif len(name) == best_len:
+                found.append(exchange)
+    return found
+
+
+def _subject_exchanges(tokens: list[str], catalog: list[tuple[str, dict]]):
+    tokens = list(tokens)
+    while tokens and tokens[-1] in _TRAILING:
+        tokens.pop()
+    found = _matching_tail(tokens, catalog)
+    if found:
+        return "known", found
+    if tokens and tokens[-1] in _BRIDGE:
+        tokens.pop()
+        while tokens and tokens[-1] in _TRAILING:
+            tokens.pop()
+        found = _matching_tail(tokens, catalog)
+        if found:
+            return "known", found
+    if not tokens:
+        return "unnamed", []
+    return "unknown", tokens[-1]
+
+
+def _hasar_numbers(text: str) -> list[int]:
+    numbers = []
+    for match in _MECHANICAL_NUMBER.finditer(text):
+        kind = match.group(2) or match.group(3)
+        if kind != "hasar":
+            continue
+        numbers.append(int(match.group(1) or match.group(4)))
     return numbers
 
 
+def _target_hasar_numbers(region: str) -> list[int]:
+    numbers = []
+    for match in _MECHANICAL_NUMBER.finditer(region):
+        kind = match.group(2) or match.group(3)
+        if kind != "hasar":
+            continue
+        before = region[max(0, match.start() - 24):match.start()]
+        if re.search(r"\bsana\b", before):
+            continue
+        numbers.append(int(match.group(1) or match.group(4)))
+    return numbers
+
+
+def _damage_fits(exchanges: list[dict], numbers: list[int]) -> list[dict]:
+    if not numbers:
+        return exchanges
+    return [
+        exchange for exchange in exchanges
+        if all(number == exchange.get("damage") for number in numbers)
+    ]
+
+
 def _bind_clause(clause: str, exchanges: list) -> dict | None:
-    """Bind one clause to the exchange it names. A shared damage pool is not enough."""
-    blow = _NAMED_BLOW.search(clause)
-    if blow:
-        name = blow.group(1)
-        crit_word = blow.group(2)
+    """Bind every claim in the clause to its own subject. A nearby true name does not transfer."""
+    targets = _catalog(exchanges, "target", fold)
+    actors = _catalog(exchanges, "actor", fold)
+    blows = list(_NAMED_BLOW.finditer(clause))
+    critical_checked = False
+    for index, blow in enumerate(blows):
+        previous = blows[index - 1].end() if index else 0
+        darbe_at = clause.find("darbe", blow.start())
+        window = clause[previous:darbe_at if darbe_at >= 0 else blow.end()]
+        kind, subject = _subject_exchanges(window.split(), targets)
         suffix = blow.group(3) or ""
         negated = suffix.startswith("maz") or suffix.startswith("madi")
-        named = [] if name in _STOP else _targets_named(exchanges, name)
-        mentioned = _mentioned_targets(clause, exchanges)
-        if name not in _STOP and not named and not mentioned:
-            return _reject("COMBAT_RESULT_CONTRADICTION", name)
-        targets = named or mentioned
-        if targets:
-            if negated:
-                if not targets or any(_landed(item) for item in targets):
-                    return _reject("COMBAT_RESULT_CONTRADICTION", "darbe almaz")
-            else:
-                landed = [item for item in targets if _landed(item)]
-                if not landed:
-                    return _reject("COMBAT_RESULT_CONTRADICTION", name)
-                if crit_word and not any(item.get("critical") for item in landed):
+        crit_word = bool(blow.group(2))
+        next_start = blows[index + 1].start() if index + 1 < len(blows) else len(clause)
+        numbers = _target_hasar_numbers(clause[blow.end():next_start])
+        if kind == "unknown":
+            return _reject("COMBAT_RESULT_CONTRADICTION", str(subject))
+        if kind == "unnamed":
+            if negated and any(_landed(item) for item in _player_dealt(exchanges)):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "darbe almaz")
+            if not negated and not any(_landed(item) for item in exchanges):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "isabet")
+            if crit_word:
+                critical_checked = True
+                if not any(item.get("critical") for item in _player_dealt(exchanges)):
                     return _reject("COMBAT_RESULT_CONTRADICTION", "kritik")
-                numbers = _uncovered_damage(clause)
-                if numbers and not any(
-                    all(number == item.get("damage") for number in numbers)
-                    for item in landed
-                ):
-                    return _reject("MECHANICAL_NUMBER", f"{numbers[0]} hasar")
-        elif negated and any(_landed(item) for item in _player_dealt(exchanges)):
-            return _reject("COMBAT_RESULT_CONTRADICTION", "darbe almaz")
-        elif not negated and not any(_landed(item) for item in exchanges):
+            continue
+        if negated:
+            if any(_landed(item) for item in subject):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "darbe almaz")
+            continue
+        landed = [item for item in subject if _landed(item)]
+        if not landed:
             return _reject("COMBAT_RESULT_CONTRADICTION", "isabet")
+        if crit_word:
+            critical_checked = True
+            if not any(item.get("critical") for item in landed):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "kritik")
+        if numbers and not _damage_fits(landed, numbers):
+            return _reject("MECHANICAL_NUMBER", f"{numbers[0]} hasar")
 
-    for match in _PLAYER_HURT.finditer(clause):
-        number = int(match.group(1) or match.group(2))
-        if not any(item.get("damage") == number and _landed(item) for item in _player_received(exchanges)):
-            return _reject("MECHANICAL_NUMBER", match.group(0))
-
-    if re.search(r"\b(?:sana|seni)\b", clause) and _hit_present(clause):
-        if not any(_landed(item) for item in _player_received(exchanges)):
+    for match in re.finditer(r"\bsana\b", clause):
+        span = clause[max(0, match.start() - 48):match.end() + 64]
+        numbers = _hasar_numbers(clause[match.end():match.end() + 64])
+        if not (numbers or _CRITICAL.search(span) or _hit_present(span) or _MISS.search(span)):
+            continue
+        kind, subject = _actor_before_sana(clause[:match.start()].split(), actors)
+        if kind == "unknown":
+            return _reject("COMBAT_RESULT_CONTRADICTION", str(subject))
+        pool = subject if kind == "known" else _player_received(exchanges)
+        landed = [item for item in pool if _landed(item)]
+        if _hit_present(span) and not landed:
             return _reject("COMBAT_RESULT_CONTRADICTION", "isabet")
+        fitting = _damage_fits(landed, numbers)
+        if numbers and not fitting:
+            return _reject("MECHANICAL_NUMBER", f"{numbers[0]} hasar")
+        krit_scope = span if kind == "known" else clause
+        if _CRITICAL.search(krit_scope):
+            critical_checked = True
+            if not any(item.get("critical") for item in (fitting or landed)):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "kritik")
 
     miss = _NAMED_MISS.search(clause)
     if miss:
@@ -362,47 +453,49 @@ def _bind_clause(clause: str, exchanges: list) -> dict | None:
     if _hit_present(clause) and not any(_landed(item) for item in exchanges):
         return _reject("COMBAT_RESULT_CONTRADICTION", "isabet")
 
-    if _CRITICAL.search(clause):
-        named_crit = bool(blow and blow.group(2) and blow.group(1) not in _STOP)
-        player_side = re.search(r"\bsana\b|\balirsin\b|\brakip", clause)
-        if player_side and any(item.get("critical") for item in _player_received(exchanges)):
-            return None
-        if named_crit or any(item.get("critical") for item in _player_dealt(exchanges)):
-            return None
+    if _CRITICAL.search(clause) and not critical_checked:
         return _reject("COMBAT_RESULT_CONTRADICTION", "kritik")
     return None
 
 
+def _actor_before_sana(tokens: list[str], actors: list[tuple[str, dict]]):
+    tokens = list(tokens)
+    while tokens and tokens[-1] in _TRAILING:
+        tokens.pop()
+    found = _matching_tail(tokens, actors)
+    if found:
+        return "known", found
+    if not tokens or tokens[-1] in _GENERIC_BEFORE_SANA:
+        return "unnamed", []
+    return "unknown", tokens[-1]
+
+
 def _bind_death(narration: str, exchanges: list, facts: dict) -> dict | None:
+    catalog = _catalog(exchanges, "target", death_fold)
     for clause in _clauses(narration):
         folded = death_fold(clause)
-        if not _DEATH.search(folded):
-            continue
-        names = [
-            match.group(1) for match in _DEATH_NAMED.finditer(folded)
-            if match.group(1) not in _STOP
-        ]
-        if names:
-            for name in names:
-                targets = [
-                    item for item in exchanges
-                    if death_fold(str(item.get("target") or "")) == name
-                ]
-                if not any(item.get("dead") for item in targets):
+        previous = 0
+        for death in _DEATH.finditer(folded):
+            tokens = [
+                token for token in folded[previous:death.start()].split()
+                if not token.isdigit()
+            ]
+            while tokens and tokens[-1] in _DEATH_NOISE:
+                tokens.pop()
+            found = _matching_tail(tokens, catalog)
+            if not found and tokens and tokens[-1] in _BRIDGE:
+                tokens.pop()
+                while tokens and tokens[-1] in _DEATH_NOISE:
+                    tokens.pop()
+                found = _matching_tail(tokens, catalog)
+            if found:
+                if not any(item.get("dead") for item in found):
                     return _reject("COMBAT_RESULT_CONTRADICTION", "olum")
-            continue
-        mentioned = [
-            item for item in exchanges
-            if item.get("target") and re.search(
-                rf"\b{re.escape(death_fold(str(item.get('target') or '')))}\b", folded
-            )
-        ]
-        if mentioned:
-            if not any(item.get("dead") for item in mentioned):
+            elif tokens:
                 return _reject("COMBAT_RESULT_CONTRADICTION", "olum")
-            continue
-        if not facts.get("dead") and not any(item.get("dead") for item in exchanges):
-            return _reject("COMBAT_RESULT_CONTRADICTION", "olum")
+            elif not facts.get("dead") and not any(item.get("dead") for item in exchanges):
+                return _reject("COMBAT_RESULT_CONTRADICTION", "olum")
+            previous = death.end()
     return None
 
 
