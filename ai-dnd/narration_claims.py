@@ -210,6 +210,9 @@ _MECHANICAL_NUMBER = re.compile(
     r"\b(hasar|can|hp|dc|zar|altin|gp)\s*(?:puan\s*)?(\d+)"
 )
 _OTHER_TARGET = re.compile(r"\bbaska bir dusman\w*\b")
+_UNRESOLVED_PLAYER_ATTACK = re.compile(
+    r"\bsana\s+(?:karsi\s+)?saldir\w*\b"
+)
 
 
 def _door_polarity(folded: str) -> tuple[str | None, str]:
@@ -528,6 +531,18 @@ def assess(narration: str, packet: dict | None) -> dict[str, Any]:
     if _DODGE.search(folded) and not facts.get("dodge"):
         return _reject("COMBAT_RESULT_CONTRADICTION", "savunmaya gec")
     exchanges = [item for item in facts.get("exchanges") or [] if isinstance(item, dict)]
+    if _UNRESOLVED_PLAYER_ATTACK.search(folded):
+        incoming_attack = any(
+            fold(item.get("actor", "")) not in {"", "player", "sen"}
+            and fold(item.get("target", "")) in {"player", "sen"}
+            and item.get("outcome") in {"hit", "miss", "critical_hit"}
+            for item in exchanges
+        )
+        if not incoming_attack:
+            return _reject(
+                "COMBAT_RESULT_CONTRADICTION",
+                _UNRESOLVED_PLAYER_ATTACK.search(folded).group(0),
+            )
     if exchanges:
         for clause in _clauses(narration):
             bound = _bind_clause(fold(clause), exchanges)

@@ -6864,7 +6864,6 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
                 verdict["reason"] or "COMBAT_RESULT_CONTRADICTION",
                 verdict.get("span") or narration.strip()[:160],
             )
-        return accept()
 
     text = narration.casefold()
     input_text = str(player_input).casefold()
