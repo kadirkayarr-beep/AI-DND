@@ -44,6 +44,19 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 
 
+def unlock_venue_door(world_state, tavern_id):
+    """Open a door this test already discovered. Not a player turn."""
+    door_id = f"venue-door:{tavern_id}"
+    matches = [
+        door for door in world_state.get("doors", [])
+        if isinstance(door, dict) and door.get("id") == door_id
+    ]
+    if len(matches) != 1:
+        raise AssertionError(door_id)
+    matches[0]["locked"] = False
+    matches[0]["open"] = True
+
+
 class FakeOllamaClient:
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
@@ -1192,6 +1205,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(discovery_results[0]["status"], "found")
         self.assertTrue(discovery_results[0]["success"])
         tavern_id = discovery_results[0]["target_id"]
+        unlock_venue_door(original_session.world_state, tavern_id)
         entered = await self.http.post(
             turn_url,
             json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
@@ -1349,6 +1363,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(results[-1]["action"], "local_search")
             self.assertEqual(results[-1]["status"], "found")
             tavern_id = results[-1]["target_id"]
+            unlock_venue_door(session.world_state, tavern_id)
             self.assertEqual(search.json()["state"]["location"], city_id)
             city_visits = session.world_state["scene_state"]["scenes"][city_id][
                 "visit_revision"
@@ -4460,12 +4475,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -4646,12 +4672,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -4809,12 +4846,24 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        turn_url = f"/api/game/sessions/{created['session_id']}/turn"
+        searched = await self.http.post(
+            turn_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            turn_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -8040,12 +8089,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
