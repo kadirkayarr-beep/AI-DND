@@ -2,6 +2,10 @@
 
 From the repository root (also runnable from `ai-dnd/` as `python scripts/...`):
 
+For current operational status, branch identities, owners, and handoff requirements,
+use the [single operational handoff](../../docs/CURSOR_REPLIT_HANDOFF.md). This
+document is the technical reference for bounded verification and evidence scope.
+
 ```sh
 python ai-dnd/scripts/project_health_check.py
 python ai-dnd/scripts/final_gate.py
@@ -25,6 +29,39 @@ adds existing offline model-isolation/ceiling guards and evidence/tooling
 contracts, then runs the primary experience frontend's existing library
 typecheck, typecheck, test and build commands. It does not run discovery, the
 full repository suite or reconstruct the historical 643-test review.
+
+## Fixed selection contract
+
+The executable sources are the selection contract; do not maintain or copy a
+second hand-written list of tests here:
+
+- [`run_tests.py`](../run_tests.py) owns the release `TESTS` tuple. Its `--list`
+  output shows **25 gates**. That is the number of gate entries, not the number of
+  unique unittest cases; an entry may execute multiple tests.
+- [`development_checks.json`](../scripts/development_checks.json) owns the limited
+  Final Gate selection: its 10 `regression_selectors` plus the four configured
+  primary-experience frontend commands. It is not the full API-discovery package
+  or the whole repository test inventory.
+- The API discovery package (`dev.ps1 -ApiDiscover`, which runs unittest discovery
+  under `ai-dnd/api/tests`) is a separate, broader and log-noisy scope. Live model
+  acceptance (`python ai-dnd/acceptance_test.py`) is also separate and requires
+  the configured Ollama/Qwen runtime. Neither is implied by `--list`, the 25
+  release gates, or Final Gate.
+
+### Platform boundary
+
+In this version, [`run_tests.py`](../run_tests.py)'s `run_child_gate` rejects
+non-POSIX execution with `RuntimeError("Gate process-tree cleanup requires a POSIX runtime")`.
+Therefore actual execution of the release-gate runner requires POSIX, despite
+`dev.ps1` being presented as the Windows daily entry point. Listing is separate:
+`run_tests.py --list` returns before starting child gates, so `dev.ps1 -List` can
+list the selection on Windows without running it. `dev.ps1 -ApiDiscover` is a
+different discovery path; it is not evidence that the release gate runner's
+process-tree cleanup works on Windows.
+
+For historical and new run outcomes, use the [regression evidence authority](regression-evidence.md).
+Preserve historical PASS counts and failed/incomplete records as recorded; a
+new run cannot retroactively repair or certify them.
 
 Each command has a 300-second timeout. Vite's required offline build environment
 is set to `NODE_ENV=production`, `PORT=5099`, `BASE_PATH=/`; no server is started.
