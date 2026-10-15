@@ -336,6 +336,42 @@ def classify_scene_action(value: Any) -> str | None:
     return None
 
 
+def affirmative_scene_intent(value: Any, interaction_mode: str | None = None) -> tuple[str, str] | None:
+    """Return an affirmative action together with its own target-bearing clause.
+
+    A separate question or declined action must not suppress an explicit action
+    in the same turn. This guard does not itself dispatch or execute actions.
+    """
+    if not isinstance(value, str) or interaction_mode == "ask_dm":
+        return None
+    for clause in re.findall(r"[^.!?;,\n]+[.!?;,\n]?", value):
+        text = normalize_text(clause)
+        if "?" in clause or re.search(
+            r"\b(?:kim|ne|neler|nerede|hangi|neden|mi|mu|what|who|where|why)\b", text
+        ):
+            continue
+        if _NEGATIVE_RE.search(clause) or re.search(
+            r"\b(?:bak|gozlemle|yaklas|gir|cik|otur|bekle|kalk|incele|konus|sor|saldir|vur|seslen|selamla)"
+            r"(?:m[ui]yorum|ma|me|mayalim|meyelim)\b", text
+        ):
+            continue
+        if re.search(r"\b(?:incel\w*|gozden gecir\w*|inspect|examine)\b", text):
+            return "inspect", clause.strip()
+        action = classify_scene_action(clause)
+        if action and action != "presence":
+            return action, clause.strip()
+        if re.search(
+            r"\b(?:konus\w*|seslen\w*|selam\w*|sor\w*|saldir\w*|vur\w*|talk|speak|greet|attack)\b", text
+        ):
+            return "interact", clause.strip()
+    return None
+
+
+def affirmative_scene_action(value: Any, interaction_mode: str | None = None) -> str | None:
+    intent = affirmative_scene_intent(value, interaction_mode)
+    return intent[0] if intent else None
+
+
 def is_tavern_search(value: Any) -> bool:
     if (
         not isinstance(value, str)

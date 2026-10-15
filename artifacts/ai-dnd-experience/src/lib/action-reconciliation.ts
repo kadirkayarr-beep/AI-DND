@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { currentAuthEpoch } from '@workspace/api-client-react/custom-fetch';
 
-export const RETRY_MESSAGE = 'GÃ¼ncel durum doÄŸrulanamadÄ±. AynÄ± iÅŸlemi yeniden dene; kayÄ±tlÄ± iÅŸlem kimliÄŸi korunuyor.';
+export const RETRY_MESSAGE = 'Güncel durum doğrulanamadı. Aynı işlemi yeniden dene; kayıtlı işlem kimliği korunuyor.';
 export class ReconciliationError extends Error { constructor() { super(RETRY_MESSAGE); } }
 
 export function createActionLifetime() {

@@ -843,10 +843,37 @@ def _execute(session, command, action_id=None, session_id=None):
     if session.world_state["combat"]["active"]:
         session._sync_combat_participant_records(session.world_state["combat"])
     session.world_state["flags"]["turn_index"] = session.world_state["flags"].get("turn_index", 0) + 1
+    return {
+        "messages": session.messages,
+        "narration": resolved_narration(session, results),
+        "action_result": {"action": "action_economy", "status": "resolved", "success": True,
+                          "combat_id": combat_id, "economy_steps": results},
+        "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
+        "model_calls": 0,
+    }
+
+
+def resolved_narration(session, results):
+    """Read completed steps only; never resolve mechanics or rewrite history."""
+    import spell_scope
     narration_parts = []
     for step in results:
         if step["kind"] == "magic":
             narration_parts.append(spell_scope.narration(step["result"]))
+        elif step["kind"] == "move":
+            narration_parts.append(f"{step['distance_ft']} feet ilerlersin.")
+        elif step["kind"] == "dash":
+            added = step["movement_added_ft"]
+            narration_parts.append(
+                f"Bu tur {added} feet daha hareket edebilirsin." if added > 0
+                else "Bu hamle sana ek hareket sağlamaz."
+            )
+        elif step["kind"] == "ready":
+            narration_parts.append("Belirlediğin an için hazır bekliyorsun.")
+        elif step["kind"] == "attack":
+            narration_parts.append(session._combat_narration(step["result"]))
+        elif step["kind"] == "species":
+            narration_parts.append(step["result"].get("message", ""))
         elif step["kind"] in {"end_turn", "react", "decline_reaction"}:
             narration_parts.append(session._combat_narration({
                 "outcome": step["kind"],
@@ -857,11 +884,4 @@ def _execute(session, command, action_id=None, session_id=None):
                     "player_max_hp": session.character["max_hp"],
                 },
             }))
-    return {
-        "messages": session.messages,
-        "narration": " ".join(narration_parts) or "Python doğrulamasıyla hamle çözüldü.",
-        "action_result": {"action": "action_economy", "status": "resolved", "success": True,
-                          "combat_id": combat_id, "economy_steps": results},
-        "action_economy_result": {"combat_id": combat_id, "steps": results, "state": projection(session)},
-        "model_calls": 0,
-    }
+    return " ".join(part for part in narration_parts if part) or "Hamlenin sonucunu şu an gösteremiyorum."

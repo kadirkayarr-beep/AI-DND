@@ -5,8 +5,10 @@
  * AI-DND API contract. Prefer the /game/... route family for new clients. The matching /... paths are retained as legacy compatibility aliases.
  * OpenAPI spec version: 0.1.0
  */
+import type { SkillCheckResult } from './skillCheckResult';
 
 export interface CampaignHistoryEntry {
+  skill_check_result?: SkillCheckResult;
   player_message: string;
   narration: string;
   created_at: Date;

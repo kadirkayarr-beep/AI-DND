@@ -2,12 +2,12 @@ import type { SkillCheckResult } from '@workspace/api-client-react';
 import './skill-check-result.css';
 
 const ABILITY_ABBREVIATIONS: Record<SkillCheckResult['ability'], string> = {
-  strength: 'STR',
-  dexterity: 'DEX',
-  constitution: 'CON',
-  intelligence: 'INT',
-  wisdom: 'WIS',
-  charisma: 'CHA',
+  strength: 'KUV',
+  dexterity: 'ÇEV',
+  constitution: 'DAY',
+  intelligence: 'ZEK',
+  wisdom: 'BİL',
+  charisma: 'KAR',
 };
 
 const OUTCOME_LABELS: Record<SkillCheckResult['outcome'], string> = {
@@ -39,7 +39,7 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
     `D20 ${result.d20}`,
     ...(rollContext ? [rollContext] : []),
     `${ABILITY_ABBREVIATIONS[result.ability]} ${signed(result.ability_modifier)}`,
-    `PROF ${signed(result.proficiency_modifier)}`,
+    `Yeterlilik ${signed(result.proficiency_modifier)}`,
     `toplam ${result.total}`,
     `${DIFFICULTY_LABELS[result.difficulty]}, DC ${result.dc}`,
   ].join(', ');
@@ -66,11 +66,11 @@ export function SkillCheckResultCard({ result }: { result: SkillCheckResult }) {
           <dd>{signed(result.ability_modifier)}</dd>
         </div>
         <div>
-          <dt>PROF</dt>
+          <dt>Yeterlilik</dt>
           <dd>{signed(result.proficiency_modifier)}</dd>
         </div>
         <div className="skill-check-result__total">
-          <dt>TOTAL</dt>
+          <dt>Toplam</dt>
           <dd>{result.total}</dd>
         </div>
       </dl>

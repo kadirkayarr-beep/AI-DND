@@ -5,6 +5,7 @@ import { CombatPanel, type CombatLogEntry } from '@/components/combat-panel';
 import { mergeCombatHistory } from '@/lib/combat-history';
 import { combatErrorMessage, retainCombatTarget } from '@/lib/combat-ui-contract';
 import { ExplorationControls } from '@/components/exploration-controls';
+import { CourtyardHelp } from '@/components/courtyard-help';
 import { explorationInputLabel } from '@/lib/exploration-input';
 import {
   AmbientEventActionPanel,
@@ -643,6 +644,12 @@ function StoryColumn({
         ? { ...entry, text: explorationInputLabel(entry.text) } : entry)} scrollRef={scrollRef} onScroll={onScroll} />
       {notice && <div className="mt-5"><NoticeBanner notice={notice} /></div>}
       <div className="command-box">
+        <CourtyardHelp state={state} disabled={sending} onDraft={(text) => {
+          setInteractionMode('do');
+          setConversationTargetId('');
+          setMessage(text);
+          messageInputRef.current?.focus();
+        }} />
         <details className="data-row mb-3" open={!state.exploration} data-testid="exploration-disclosure">
           <summary className="cursor-pointer">Keşif ve yolculuk</summary>
           <div className="mt-3 overflow-y-auto" style={{ maxHeight: '35vh' }}>
@@ -827,7 +834,7 @@ function SessionHeader({ state, campaignId, onSave, saving, onReset, onDrawer, o
           <button className="drawer-trigger" type="button" aria-haspopup="dialog" data-testid="button-open-world" onClick={() => onDrawer('world')}><Menu size={14} /> Dünya</button>
           <div className="session-chip" data-testid="status-session"><span className="health-dot" /> <span className="hidden sm:inline">MACERA</span></div>
           <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onSave} disabled={saving} data-testid="button-save-campaign">{saving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} <span className="hidden sm:inline">Kaydet</span></button>
-          <button className="dnd-button secondary !min-h-[35px] !px-3 !text-[8px]" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Yeni</button>
+          <button className="dnd-button secondary !min-h-[35px] !px-3" type="button" onClick={onReset} data-testid="button-new-session"><Plus size={13} /> Ana ekrana dön</button>
         </div>
       </div>
     </header>
@@ -1082,6 +1089,9 @@ export default function GameBrowser() {
     setCombatEndNotice(null);
     setCombatTargetId('');
     if (!sessionId) { setEntries([]); return; }
+    // Persisted campaigns restore their transcript from the authenticated API.
+    // A local text-only cache must never replace a receipt-backed skill card.
+    if (campaignId) return;
     try {
       const stored = JSON.parse(window.localStorage.getItem(`${TRANSCRIPT_KEY}${sessionId}`) ?? '[]') as unknown;
       const restored = Array.isArray(stored) ? stored.flatMap((entry): TranscriptEntry[] => {
@@ -1092,7 +1102,7 @@ export default function GameBrowser() {
       }) : [];
       setEntries(restored);
     } catch { setEntries([]); }
-  }, [sessionId]);
+  }, [sessionId, campaignId]);
 
   useEffect(() => {
     if (!state) return;
@@ -1245,7 +1255,8 @@ export default function GameBrowser() {
             : []),
           ...resumed.history.flatMap((entry: CampaignHistoryEntry) => [
           { kind: 'player' as const, text: entry.player_message },
-          { kind: 'narration' as const, text: entry.narration },
+          { kind: 'narration' as const, text: entry.narration,
+            skillCheckResult: entry.skill_check_result ?? undefined },
           ]),
         ];
         setCampaignId(resumed.campaign_id);
@@ -1393,7 +1404,8 @@ export default function GameBrowser() {
           ...(snapshot.state.scene?.opening ? [{ kind: 'narration' as const, text: snapshot.state.scene.opening }] : []),
           ...snapshot.history.flatMap(entry => [
             { kind: 'player' as const, text: entry.player_message },
-            { kind: 'narration' as const, text: entry.narration },
+            { kind: 'narration' as const, text: entry.narration,
+            skillCheckResult: entry.skill_check_result ?? undefined },
           ]),
         ] : [
           ...entries,
@@ -1407,7 +1419,9 @@ export default function GameBrowser() {
         if (stillVisible) setEntries(next);
         window.localStorage.setItem(
           `${TRANSCRIPT_KEY}${sessionId}`,
-          JSON.stringify(next.map(({ kind, text }) => ({ kind, text }))),
+          JSON.stringify(next.map(({ kind, text, skillCheckResult }) => ({
+            kind, text, ...(skillCheckResult ? { skillCheckResult } : {}),
+          }))),
         );
         const combatResult = result.combat_result;
         const combatHistoryEntry = result.combat_history_entry;

@@ -20,7 +20,7 @@ _WEATHER_LINES = {
     "fog": "Sis, uzaktaki ayrıntıları yumuşatıp sesleri öne çıkarıyor.",
     "snow": "Kar, açıkta kalan yüzeylerde ince bir tabaka bırakmış.",
     "storm": "Fırtına rüzgârı sokakların ve yapıların arasından geçiyor.",
-    "unknown": "Havanın ayrıntıları henüz doğrulanmış değil.",
+    "unknown": "",
 }
 _BACKGROUND_NOTES = {
     "Acolyte": "İnanç ve hizmet, geçmişinin bir parçası.",
@@ -111,10 +111,7 @@ def initialize_campaign_opening(
         parts.append(background_note)
     origin = character.get("origin")
     if isinstance(origin, str) and origin.strip():
-        parts.append(
-            f"Kökenin {origin.strip()}; bu bilgiyi çevrendekilerden kimin "
-            "bildiği henüz belirlenmiş değil."
-        )
+        parts.append(f"Kökenin {origin.strip()}.")
     backstory = character.get("backstory")
     if isinstance(backstory, str) and backstory.strip():
         parts.append(
@@ -124,7 +121,7 @@ def initialize_campaign_opening(
     parts.append(
         "Burada sana dayatılmış bir görev yok; bir sonraki adım sana ait."
     )
-    text = " ".join(parts)
+    text = " ".join(part for part in parts if part)
     return living_world.set_scene_opening(
         world_state,
         location_id,

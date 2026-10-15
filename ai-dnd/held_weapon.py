@@ -113,7 +113,16 @@ def validate_saved(world: dict[str, Any]) -> None:
     matches = [item for item in inventory if _matches(item, held)]
     if not matches:
         return
-    if len(matches) != 1 or not _is_sword(matches[0]):
+    # Canonical equipment instances may hold any catalog weapon. Keep the
+    # legacy sword rule for strings and records without a catalog identity.
+    from weapon_catalog import lookup
+
+    canonical_weapon = (
+        len(matches) == 1
+        and isinstance(matches[0], dict)
+        and lookup(matches[0].get("weapon_id")) is not None
+    )
+    if len(matches) != 1 or not (_is_sword(matches[0]) or canonical_weapon):
         raise ValueError("Tutulan silah kaydı geçersiz.")
 
 

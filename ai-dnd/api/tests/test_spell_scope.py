@@ -298,6 +298,8 @@ class SpellApiTests(unittest.IsolatedAsyncioTestCase):
                 with patch("game.roll_d20", return_value=roll) as d20, patch.object(s.rng, "randint", wraps=s.rng.randint) as damage:
                     first = await self.http.post(url, json=request)
                     self.assertEqual(first.status_code, 200, first.text)
+                    public = first.json()["state"]
+                    self.assertEqual(public["character"]["spell_slots_remaining"], public["spellcasting"]["slots"])
                     calls = d20.call_count, damage.call_count
                     before = s.serialize_game_state(), s.rng.getstate(), self.store.get_campaign(a["campaign_id"])
                     retry = await self.http.post(url, json=request)

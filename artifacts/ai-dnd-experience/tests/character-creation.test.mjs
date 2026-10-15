@@ -171,11 +171,15 @@ test('character creation screen renders all 8 progression steps and navigation c
 
 test('presents genuine player choices for class, species, background, and alignment', () => {
   const html = renderCreationScreen();
-  assert.ok(html.includes('Savaşçı (Fighter)'));
-  assert.ok(html.includes('Büyücü (Wizard)'));
+  assert.ok(html.includes('>Savaşçı<'));
+  assert.ok(html.includes('>Sihirbaz<'));
+  assert.ok(!html.includes('Savaşçı (Fighter)'));
+  assert.ok(!html.includes('Büyücü (Wizard)'));
+  assert.ok(html.includes('value="Fighter"'));
+  assert.ok(html.includes('value="Wizard"'));
   assert.ok(html.includes('d10 Can Zarı'));
   assert.ok(html.includes('data-testid="button-mode-random"'));
-  assert.ok(html.includes('Rastgele Karakter Üret'));
+  assert.ok(html.includes('Rastgele Karakterle Macera Oluştur'));
 });
 
 test('species cards render API-shaped trait objects without passing objects to React', () => {
@@ -445,6 +449,12 @@ test('identity step exposes player-owned appearance, personality, and backstory 
   assert.ok(html.includes('data-testid="input-character-backstory"'));
   assert.ok(html.includes('-- Ahlaki Yönelim Seçiniz --'));
   assert.ok(html.includes('-- 1. Ek Dil Seçin --'));
+  assert.ok(html.includes('>Hukuka Bağlı İyi<'));
+  assert.ok(html.includes('value="Lawful Good"'));
+  assert.ok(!html.includes('(Lawful Good)'));
+  assert.ok(!html.includes('(Alignment)'));
+  assert.ok(!html.includes('(Appearance)'));
+  assert.ok(html.includes('>Dwarvish<'));
 });
 
 test('review step renders comprehensive summary including roleplay identity box', () => {
@@ -454,6 +464,8 @@ test('review step renders comprehensive summary including roleplay identity box'
   assert.ok(html.includes('Görünüş:'));
   assert.ok(html.includes('Kişilik:'));
   assert.ok(html.includes('Hikaye:'));
+  assert.ok(html.includes('>Ortak Dil<'));
+  assert.ok(!html.includes('>Common<'));
 });
 
 
@@ -464,6 +476,8 @@ test('Wizard keeps six spellbook choices without claiming prepared or usable acc
   const html = renderSpellSelectionHeading({ characterClass: 'Wizard', selectedCount: 6, requiredCount });
   assert.ok(html.includes('Büyü Kitabına Eklenen 1. Seviye Büyüler (6 / 6 Seçildi)'));
   assert.ok(html.includes('büyü hazırlama ve 1. seviye büyü yapma henüz açık değil'));
+  assert.ok(html.includes('Sihirbaz için'));
+  assert.ok(!html.includes('Wizard için'));
   assert.ok(!html.includes('1. Seviye Hazırlanan Büyüler'));
   assert.ok(!html.includes('Büyü yuvası harcayarak yapılan güçlü büyüler.'));
 });
@@ -512,4 +526,42 @@ test('Half-Elf uses its own portrait while other species keep atlas and unknown 
   assert.ok(elf.includes('ai-dnd-species-portraits.jpg'));
   assert.ok(!elf.includes('ai-dnd-half-elf-portrait.png'));
   assert.ok(portraitPrefix('Unknown portrait fixture').includes('cc-portrait-neutral'));
+});
+
+ test('random creation visibly explains immediate campaign saving, not preview', () => {
+  const html = renderCreationScreen();
+  assert.match(html, /Rastgele bir karakter seçilir ve yeni macera kaydedilir/);
+  assert.match(html, /aria-describedby="random-creation-help"/);
+  assert.doesNotMatch(html, /önizlemeye aç/);
+});
+
+test('class cards use shared presentation labels and keep class ids', () => {
+  const html = renderCreationScreen({
+    catalog: {
+      ...mockCatalog,
+      classes: {
+        ...mockCatalog.classes,
+        Rogue: { name_tr: 'Hırsız (Rogue)', hit_die: 8, primary_ability: 'dexterity', features: [], is_spellcaster: false },
+        Sorcerer: { name_tr: 'Büyücü (Sorcerer)', hit_die: 6, primary_ability: 'charisma', features: [], is_spellcaster: true },
+      },
+    },
+  });
+  assert.ok(html.includes('>Sihirbaz<'));
+  assert.ok(html.includes('>Düzenbaz<'));
+  assert.ok(html.includes('>Büyücü<'));
+  assert.ok(!html.includes('Büyücü (Wizard)'));
+  assert.ok(!html.includes('Hırsız (Rogue)'));
+  assert.ok(!html.includes('Büyücü (Sorcerer)'));
+  assert.ok(html.includes('value="Wizard"'));
+  assert.ok(html.includes('value="Rogue"'));
+  assert.ok(html.includes('value="Sorcerer"'));
+});
+
+test('background cards show existing Turkish skill names without translating unknown tools', () => {
+  const html = renderCreationScreen({ initialStep: 'background', catalog: defaultCatalog });
+  assert.ok(html.includes('Beceriler: Sezgi, Din'));
+  assert.ok(html.includes("Araç: Calligrapher&#x27;s Supplies") || html.includes("Araç: Calligrapher's Supplies"));
+  assert.ok(html.includes('Hüner: Magic Initiate (Cleric)'));
+  assert.ok(!html.includes('Origin Background'));
+  assert.ok(!html.includes('Beceriler: Insight, Religion'));
 });

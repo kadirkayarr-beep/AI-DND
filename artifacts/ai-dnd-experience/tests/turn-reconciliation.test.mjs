@@ -19,7 +19,7 @@ function storage() {
 }
 const current = { revision: 'newer-at-same-turn', turn_index: 3, combat: { active: true, combat_id: 'combat-a', round: 1, current_turn_index: 0 }, quests: [] };
 const old = { ...current, revision: 'receipt-snapshot' };
-function harness({ sessionStorage = storage(), transport, refresh = async () => current } = {}) {
+function harness({ sessionStorage = storage(), transport, refresh = async () => current, history = [{ player_message: 'Synthetic action', narration: 'Synthetic receipt' }] } = {}) {
  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
  const requests = [], shown = [], errors = [], setters = [];
  const life = createActionLifetime();
@@ -34,7 +34,7 @@ function harness({ sessionStorage = storage(), transport, refresh = async () => 
   playGameTurn: async (sessionId, data) => { const request = { sessionId, data }; requests.push(request); return transport ? transport(request) : { state: old, narration: 'Synthetic receipt' }; },
   queryClient: client, getGetGameSessionStateQueryKey: id => ['state', id],
   getGameSessionState: refresh,
-  getCampaign: async () => ({ state: await env.getGameSessionState(), history: [{ player_message: 'Synthetic action', narration: 'Synthetic receipt' }], combat_history: [] }),
+  getCampaign: async () => ({ state: await env.getGameSessionState(), history, combat_history: [] }),
   mergeCombatHistory: history => history,
   getGetCampaignsQueryKey: () => ['campaigns'], entries: [], TRANSCRIPT_KEY: 'transcript-',
   setEntries: v => shown.push(v), setCombatEntries() {}, setCombatEndNotice() {}, setCombatTargetId() {}, setConversationTargetId() {}, setMessage() {},
@@ -307,4 +307,167 @@ test('main storage throw and lost response retry reuse existing in-memory pendin
  assert.equal(h.requests[0].data.action_id,h.requests[1].data.action_id);
  assert.ok(h.env.pendingTurnRef.current);
  h.client.clear();
+});
+
+
+test('F03 synthetic real HTTP save rollback component recovery retry', {skip: !process.env.F03_FAULT_UI_CONFIG}, async () => {
+ const {writeFile} = await import('node:fs/promises');
+ const {join} = await import('node:path');
+ const {execFileSync} = await import('node:child_process');
+ const config=JSON.parse(await readFile(process.env.F03_FAULT_UI_CONFIG,'utf8'));
+ const control=stage=>writeFile(join(config.folder,'control.json'),JSON.stringify({mode:'normal',stage}));
+ const request=async(path,body)=>{
+  const response=await fetch(config.url+path,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{});
+  const result=await response.json();
+  if(!response.ok) throw Object.assign(new Error('Synthetic API fault'),{status:response.status,detail:result.detail});
+  return result;
+ };
+ const refresh=()=>request(`/api/sessions/${config.sid}/state`);
+ const before=await refresh();
+ const first=speciesHarness({refresh});
+ first.client.setQueryData(['state','session-a'],before);
+ let failedStatus, accepted, sent;
+ const transport=h=>async(_,body)=>{
+  h.requests.push(body); sent=body;
+  try {accepted=await request(`/api/game/sessions/${config.sid}/species-actions`,body);return accepted;}
+  catch(error){failedStatus=error.status;throw error;}
+ };
+ const send=async(h,body)=>{
+  globalThis.window=h.env.window;h.env.send(body);
+  const deadline=Date.now()+15000;
+  while(h.env.busy.current && Date.now()<deadline) await new Promise(r=>setTimeout(r,10));
+  assert.equal(h.env.busy.current,false,'real HTTP component request settled');
+ };
+ first.env.resolveSpeciesTraitAction=transport(first);
+ await control('ui-save-failed');
+ await send(first,{action:config.action});
+ assert.equal(failedStatus,503);
+ assert.deepEqual(first.client.getQueryData(['state','session-a']),before);
+ assert.ok(first.setters.some(([name,value])=>name==='failure' && value));
+ assert.ok(!first.setters.some(([name,value])=>name==='feedback' && value));
+ assert.ok(first.store.getItem('ai-dnd-pending-turns:species:campaign-a'));
+ execFileSync(config.python,['-B','-c',"import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); c.execute('DROP TRIGGER synthetic_f03_receipt'); c.close()",join(config.folder,'campaigns.sqlite3')]);
+ // A new component lifetime restores retry input from the same storage.
+ const retry=speciesHarness({store:first.store,refresh});
+ retry.env.resolveSpeciesTraitAction=transport(retry);
+ assert.equal(retry.env.restoredRetry.action,config.action);
+ await control('ui-retry');
+ await send(retry,retry.env.restoredRetry);
+ assert.equal(retry.requests[0].action_id,first.requests[0].action_id);
+ assert.ok(accepted);
+ assert.deepEqual(retry.client.getQueryData(['state','session-a']),await refresh());
+ assert.equal(retry.store.getItem('ai-dnd-pending-turns:species:campaign-a'),null);
+ assert.equal(retry.store.getItem('ai-dnd-turn-context:species:campaign-a:retry'),null);
+ assert.ok(retry.setters.some(([name,value])=>name==='feedback' && value));
+ await writeFile(join(config.folder,'ui-result.json'),JSON.stringify({synthetic:true,real_browser:false,failed_status:failedStatus,retry_status:200,request:sent,response:accepted,same_id:true,cache_recovered:true}));
+ first.client.clear();retry.client.clear();
+});
+
+
+// Synthetic render/effect boundary: execute the production hook, including its
+// synchronous renderedScope guard. Transport intentionally ignores abort signals.
+async function renderedLifetimeHarness() {
+ const helperSource=await readFile(new URL('../src/lib/action-reconciliation.ts',import.meta.url),'utf8');
+ const helperAst=ts.createSourceFile('helper.ts',helperSource,ts.ScriptTarget.Latest,true);
+ const hook=helperAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='useActionLifetime');
+ const refs=[];let index=0,setup;
+ const env={createActionLifetime,useRef:value=>refs[index++]??(refs[index-1]={current:value}),useEffect:fn=>{setup=fn;},exports:{}};
+ vm.runInNewContext(ts.transpileModule(hook.getText(helperAst),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,env);
+ const render=scope=>{index=0;return env.exports.useActionLifetime(scope);};
+ const lifetime=render('session-a');const cleanup=setup();
+ return {lifetime,render,cleanup};
+}
+
+for(const boundary of ['mutation-response','authoritative-read']) {
+ for(const outcome of ['success','error']) {
+  test(`F03 AC005 synthetic B render before uncancelled A ${boundary} ${outcome}`,async()=>{
+   const delayed=deferred();const lifecycle=await renderedLifetimeHarness();
+   const h=harness();let requestSignal,readSignal,reads=0,delivered=false;
+   const aState={...current,character:{current_hp:1},revision:'late-A'};
+   const aReceipt={state:aState,narration:'Synthetic A narration',combat_history_entry:{id:'A-combat'}};
+   const aSnapshot={state:aState,history:[{player_message:'A action',narration:'Synthetic A narration'}],combat_history:[{id:'A-combat'}]};
+   h.env.turnLifetime=lifecycle.lifetime;
+   h.env.playGameTurn=async(id,data,options)=>{
+    h.requests.push({sessionId:id,data});requestSignal=options.signal;
+    if(boundary==='mutation-response') {try{return await delayed.promise;}finally{delivered=true;}}
+    return aReceipt;
+   };
+   h.env.getCampaign=async(id,options)=>{
+    reads++;readSignal=options.signal;
+    if(boundary==='authoritative-read') {try{return await delayed.promise;}finally{delivered=true;}}
+    return aSnapshot;
+   };
+   globalThis.window=h.env.window;h.env.submit('Synthetic A action');
+   for(let i=0;i<10 && (boundary==='authoritative-read' && reads===0);i++) await new Promise(r=>setImmediate(r));
+   assert.equal(h.requests.length,1);
+   if(boundary==='authoritative-read') assert.equal(reads,1);
+   const bState={...current,character:{current_hp:17},revision:'B-authoritative'};
+   const bHistory=[{kind:'narration',text:'Synthetic B narration'}];
+   const bCombat=[{id:'B-combat'}];
+   h.client.setQueryData(['state','session-b'],bState);
+   h.client.setQueryData(['campaign','campaign-b'],{state:bState,history:bHistory,combat_history:bCombat});
+   h.env.window.localStorage.setItem('transcript-session-b',JSON.stringify(bHistory));
+   h.env.activeSessionRef.current='session-b';
+   lifecycle.render('session-b'); // Real render guard updates before effect cleanup.
+   const cacheBefore=structuredClone(h.client.getQueryData(['state','session-b']));
+   const detailBefore=structuredClone(h.client.getQueryData(['campaign','campaign-b']));
+   const storageBefore=[...h.env.window.localStorage.values];
+   h.setters.length=0;h.shown.length=0;
+   assert.equal(requestSignal.aborted,false,'response arrives before cleanup abort');
+   if(readSignal) assert.equal(readSignal.aborted,false);
+   if(outcome==='success') delayed.resolve(boundary==='mutation-response'?aReceipt:aSnapshot);
+   else delayed.reject(Object.assign(new Error('Synthetic late A error'),{status:503}));
+   for(let i=0;i<20 && h.env.inFlightSessionsRef.current.size;i++) await new Promise(r=>setImmediate(r));
+   assert.equal(delivered,true,'transport delivered despite B render');
+   assert.equal(h.env.inFlightSessionsRef.current.size,0);
+   assert.deepEqual(h.client.getQueryData(['state','session-b']),cacheBefore);
+   assert.deepEqual(h.client.getQueryData(['campaign','campaign-b']),detailBefore);
+   assert.equal(h.client.getQueryData(['state','session-b']).character.current_hp,17);
+   assert.deepEqual([...h.env.window.localStorage.values],storageBefore);
+   assert.equal(h.shown.length,0);assert.equal(h.setters.length,0);
+   assert.equal(h.client.getQueryData(['state','session-a']).revision,current.revision);
+   assert.ok(h.sessionStorage.getItem('ai-dnd-pending-turns:campaign-a'));
+   if(boundary==='mutation-response') assert.equal(reads,0,'stale mutation cannot initiate reconciliation');
+   lifecycle.cleanup();h.life.dispose();h.client.clear();
+  });
+ }
+}
+
+test('real submitTurn keeps server skill_check_result when reconciling saved campaign history', async () => {
+ const skill = {skill:'Stealth', ability:'dexterity', d20:2, ability_modifier:4,
+  proficiency_modifier:4, total_modifier:8, total:10, dc:15, outcome:'failure',
+  difficulty:'medium', proficient:true};
+ const history = [{player_message:'Köşede gizlenmeye çalışıyorum.',
+  narration:'Gizlenme girişimin başarısız olur.', skill_check_result:skill}];
+ const h = harness({ history, transport:async () => ({
+  state:old, narration:history[0].narration, skill_check_result:skill
+ }) });
+ await h.run();
+ assert.deepEqual(h.shown.at(-1).at(-1).skillCheckResult, skill,
+  'real submit/reconciliation must pass the persisted result to Transcript and SkillCheckResultCard');
+ assert.deepEqual(JSON.parse(h.env.window.localStorage.getItem('transcript-session-a')).at(-1).skillCheckResult, skill,
+  'the resume-friendly transcript cache must not drop the real skill result');
+ h.client.clear();
+});
+
+test('resume history cannot be overwritten by stale local text cache on session-id change', () => {
+ const effect=component.body.statements.find(node =>
+  ts.isExpressionStatement(node) && node.getText(ast).startsWith('useEffect(')
+  && node.getText(ast).includes('setEntries(restored)'));
+ assert.ok(effect, 'real GameBrowser restore effect exists');
+ const js=ts.transpileModule(
+  'globalThis.restoreTranscript = '+effect.expression.arguments[0].getText(ast)+';',
+  {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}
+ ).outputText;
+ const changes=[];
+ const ctx={
+  sessionId:'session-resumed',campaignId:'campaign-authoritative',
+  TRANSCRIPT_KEY:'ai-dnd-transcript-',
+  window:{localStorage:{getItem:()=>JSON.stringify([{kind:'player',text:'Stale local copy'}])}},
+  setEntries:v=>changes.push(v), setCombatEndNotice:()=>{}, setCombatTargetId:()=>{},
+ };
+ vm.runInNewContext(js,ctx);
+ ctx.restoreTranscript();
+ assert.equal(changes.length,0,
+  'resumed canonical campaign history must not be overwritten with a text-only cache');
 });

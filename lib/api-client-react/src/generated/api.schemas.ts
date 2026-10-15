@@ -2235,6 +2235,7 @@ export interface CampaignSummary {
 }
 
 export interface CampaignHistoryEntry {
+  skill_check_result?: SkillCheckResult;
   player_message: string;
   narration: string;
   created_at: string;

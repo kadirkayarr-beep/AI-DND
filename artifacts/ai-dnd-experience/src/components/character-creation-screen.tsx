@@ -25,6 +25,7 @@ import type {
   CharacterCreationCatalogResponse,
 } from '@workspace/api-client-react';
 import { DEFAULT_CATALOG } from '@/lib/character-catalog-defaults';
+import { classLabel } from '@/lib/campaign-presentation';
 import classPortraitSheet from '@assets/generated_images/ai-dnd-class-portraits.jpg';
 import speciesPortraitSheet from '@assets/generated_images/ai-dnd-species-portraits.jpg';
 import halfElfPortrait from '@assets/generated_images/ai-dnd-half-elf-portrait.png';
@@ -55,7 +56,7 @@ export function SpellSelectionHeading({ characterClass, selectedCount, requiredC
   const title = isSpellbook ? 'Büyü Kitabına Eklenen 1. Seviye Büyüler'
     : preparationClosed ? '1. Seviye Büyü Seçimleri' : '1. Seviye Hazırlanan Büyüler';
   const description = isSpellbook
-    ? 'Bu seçimler büyü kitabına eklenir. Bu sürümde Wizard için büyü hazırlama ve 1. seviye büyü yapma henüz açık değil.'
+    ? 'Bu seçimler büyü kitabına eklenir. Bu sürümde Sihirbaz için büyü hazırlama ve 1. seviye büyü yapma henüz açık değil.'
     : preparationClosed
       ? 'Bu seçimler karakter kaydında saklanır; hazırlanmış büyü sayılmaz. Bu sürümde bu sınıfın 1. seviye büyüleri yuva harcayarak kullanılamaz.'
       : 'Büyü yuvası harcayarak yapılan güçlü büyüler.';
@@ -101,6 +102,36 @@ const ABILITY_NAMES_TR: Record<AbilityKey, { short: string; full: string }> = {
   wisdom: { short: 'BİL', full: 'Bilgelik (Wisdom)' },
   charisma: { short: 'KAR', full: 'Karizma (Charisma)' },
 };
+
+const ALIGNMENT_LABELS: Record<string, string> = {
+  'Lawful Good': 'Hukuka Bağlı İyi',
+  'Neutral Good': 'Tarafsız İyi',
+  'Chaotic Good': 'Kaotik İyi',
+  'Lawful Neutral': 'Hukuka Bağlı Tarafsız',
+  'True Neutral': 'Gerçek Tarafsız',
+  'Chaotic Neutral': 'Kaotik Tarafsız',
+  'Lawful Evil': 'Hukuka Bağlı Kötü',
+  'Neutral Evil': 'Tarafsız Kötü',
+  'Chaotic Evil': 'Kaotik Kötü',
+};
+
+const EXTRA_LANGUAGE_IDS = ['Dwarvish', 'Elvish', 'Draconic', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc', 'Common Sign Language'] as const;
+
+function presentedClassName(classKey: string, nameTr?: string) {
+  const shared = classLabel(classKey);
+  if (shared !== classKey) return shared;
+  return nameTr?.trim() || classKey;
+}
+
+function namedCatalogLabel(catalogSection: unknown, id: string): string {
+  if (!catalogSection || typeof catalogSection !== 'object') return id;
+  const entry = (catalogSection as Record<string, { name_tr?: unknown }>)[id];
+  return typeof entry?.name_tr === 'string' && entry.name_tr.trim() ? entry.name_tr : id;
+}
+
+function languageLabel(id: string) {
+  return id === 'Common' ? 'Ortak Dil' : id;
+}
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
 
@@ -623,7 +654,7 @@ export function CharacterCreationScreen({
       }
       case 'identity': {
         if (!name.trim()) return 'Karakterine bir isim vermelisin.';
-        if (!alignment) return 'Ahlaki yönelim (alignment) seçmelisin.';
+        if (!alignment) return 'Ahlaki yönelim seçmelisin.';
         if (!selectedLanguages[0] || !selectedLanguages[1] || selectedLanguages[0] === selectedLanguages[1]) {
           return 'Birbirinden farklı 2 ek dil seçmelisin.';
         }
@@ -772,10 +803,11 @@ export function CharacterCreationScreen({
                 className="cc-random-btn"
                 onClick={handleRandomizeCharacter}
                 data-testid="button-mode-random"
-                title="Tüm değerleri zarlarla doldurup önizlemeye aç"
+                aria-describedby="random-creation-help"
               >
-                <Dice5 size={14} /> Rastgele Karakter Üret
+                <Dice5 size={14} /> Rastgele Karakterle Macera Oluştur
               </button>
+              <p id="random-creation-help">Rastgele bir karakter seçilir ve yeni macera kaydedilir.</p>
             </div>
           </div>
 
@@ -828,7 +860,7 @@ export function CharacterCreationScreen({
                           aria-hidden="true"
                         />
                         <div className="cc-card-top">
-                          <span className="cc-card-title">{cls.name_tr ?? clsKey}</span>
+                          <span className="cc-card-title">{presentedClassName(clsKey, cls.name_tr)}</span>
                           <span className="cc-badge">d{cls.hit_die} Can Zarı</span>
                         </div>
                         <p className="cc-card-desc">{cls.desc}</p>
@@ -850,8 +882,8 @@ export function CharacterCreationScreen({
               <section className="cc-step-panel">
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 2</div>
-                  <h2 className="cc-step-title-text">Geçmişini Seç (Origin Background)</h2>
-                  <p className="cc-literary">Geçmişin; kazandığın 2 beceriyi, köken hünerini (Origin Feat) ve nitelik bonusu alabileceğin 3 alanı belirler.</p>
+                  <h2 className="cc-step-title-text">Geçmişini Seç</h2>
+                  <p className="cc-literary">Geçmişin; kazandığın 2 beceriyi, köken hünerini ve nitelik bonusu alabileceğin 3 alanı belirler.</p>
                 </div>
 
                 <div className="cc-cards-grid">
@@ -865,11 +897,11 @@ export function CharacterCreationScreen({
                       >
                         <div className="cc-card-top">
                           <span className="cc-card-title">{bg.name_tr ?? bgKey}</span>
-                          <span className="cc-badge cc-badge-gold">Hüner: {bg.origin_feat}</span>
+                          <span className="cc-badge cc-badge-gold">Hüner: {bg.origin_feat ? namedCatalogLabel(catalog?.origin_feats, bg.origin_feat) : ''}</span>
                         </div>
                         <p className="cc-card-desc">{bg.desc}</p>
                         <div className="cc-card-features">
-                          <span className="cc-feature-tag">Beceriler: {bg.skills?.join(', ')}</span>
+                          <span className="cc-feature-tag">Beceriler: {(bg.skills as string[] | undefined)?.map((skill: string) => namedCatalogLabel(catalog?.skills, skill)).join(', ')}</span>
                           <span className="cc-feature-tag">Araç: {bg.tool}</span>
                           <span className="cc-feature-tag">
                             Bonus Alanları: {bg.ability_bonuses_options?.map((k: AbilityKey) => ABILITY_NAMES_TR[k]?.short).join(' / ')}
@@ -887,7 +919,7 @@ export function CharacterCreationScreen({
               <section className="cc-step-panel">
                 <div className="cc-step-header">
                   <div className="cc-label">Adım 3</div>
-                  <h2 className="cc-step-title-text">Türünü Seç (Species)</h2>
+                  <h2 className="cc-step-title-text">Türünü Seç</h2>
                   <p className="cc-literary">Türün hareket hızını, duyularını ve doğuştan gelen ırksal özelliklerini belirler.</p>
                 </div>
 
@@ -1266,7 +1298,7 @@ export function CharacterCreationScreen({
                               );
                             }}
                           />
-                          <span>{skillName}</span>
+                          <span>{namedCatalogLabel(catalog?.skills, skillName)}</span>
                           {isFromBg && <small className="cc-tag-sub">Geçmişten</small>}
                           {isSpeciesSelected && <small className="cc-tag-sub">Türden</small>}
                         </label>
@@ -1317,7 +1349,7 @@ export function CharacterCreationScreen({
                                   );
                                 }}
                               />
-                              <span>{skillName}</span>
+                              <span>{namedCatalogLabel(catalog?.skills, skillName)}</span>
                               {isFromBg && <small className="cc-tag-sub">Geçmişten</small>}
                               {isFromClass && <small className="cc-tag-sub">Sınıftan</small>}
                             </label>
@@ -1344,7 +1376,7 @@ export function CharacterCreationScreen({
                   <div className="cc-sub-section" data-testid="section-expertise-skills">
                     <div className="cc-sub-header">
                       <span className="cc-label">
-                        Uzmanlık (Expertise) ({selectedExpertiseSkills.length} / {requiredExpertiseCount} Seçildi)
+                        Uzmanlık ({selectedExpertiseSkills.length} / {requiredExpertiseCount} Seçildi)
                       </span>
                       <small>
                         Yalnızca usta olduğun becerilerden seç. Bu becerilerde ustalık bonusun iki katına çıkar.
@@ -1376,7 +1408,7 @@ export function CharacterCreationScreen({
                                 );
                               }}
                             />
-                            <span>{skillName}</span>
+                            <span>{namedCatalogLabel(catalog?.skills, skillName)}</span>
                           </label>
                         );
                       })}
@@ -1388,7 +1420,7 @@ export function CharacterCreationScreen({
                 {characterClass === 'Fighter' && (
                   <div className="cc-sub-section">
                     <div className="cc-sub-header">
-                      <span className="cc-label">Dövüş Tarzı (Fighting Style)</span>
+                      <span className="cc-label">Dövüş Tarzı</span>
                       <small>Savaşçının uzmanlaştığı taktik duruşu seç.</small>
                     </div>
                     {fightingStyleOptions.length > 0 ? (
@@ -1550,14 +1582,14 @@ export function CharacterCreationScreen({
                       onClick={() => setBackgroundEquipmentOption('B')}
                     >
                       <div className="cc-card-top">
-                        <span className="cc-card-title">Seçenek B: 50 Altın (50 GP)</span>
+                        <span className="cc-card-title">Seçenek B: 50 Altın</span>
                       </div>
                       <p className="cc-card-desc">Paket yerine serbest harcama için 50 Altın nakit para ile başla.</p>
                     </div>
                   </div>
                   {background === 'Artisan' && (
                     <label className="cc-label">
-                      Artisan's Tools seçimi
+                      Araç seçimi
                       <select value={artisanTool} onChange={(event) => setArtisanTool(event.target.value)}>
                         {(backgroundData?.tool_options ?? ["Smith's Tools"]).map((tool: string) => (
                           <option key={tool} value={tool}>{tool}</option>
@@ -1598,7 +1630,7 @@ export function CharacterCreationScreen({
 
                   {/* Alignment field */}
                   <label className="cc-field">
-                    <span className="cc-label">Ahlaki Yönelim (Alignment)</span>
+                    <span className="cc-label">Ahlaki Yönelim</span>
                     <span className="cc-select-wrap">
                       <select
                         className="cc-input cc-literary"
@@ -1606,18 +1638,8 @@ export function CharacterCreationScreen({
                         onChange={(e) => setAlignment(e.target.value)}
                       >
                         <option value="">-- Ahlaki Yönelim Seçiniz --</option>
-                        {[
-                          { id: 'Lawful Good', name: 'Hukuka Bağlı İyi (Lawful Good)' },
-                          { id: 'Neutral Good', name: 'Tarafsız İyi (Neutral Good)' },
-                          { id: 'Chaotic Good', name: 'Kaotik İyi (Chaotic Good)' },
-                          { id: 'Lawful Neutral', name: 'Hukuka Bağlı Tarafsız (Lawful Neutral)' },
-                          { id: 'True Neutral', name: 'Gerçek Tarafsız (True Neutral)' },
-                          { id: 'Chaotic Neutral', name: 'Kaotik Tarafsız (Chaotic Neutral)' },
-                          { id: 'Lawful Evil', name: 'Hukuka Bağlı Kötü (Lawful Evil)' },
-                          { id: 'Neutral Evil', name: 'Tarafsız Kötü (Neutral Evil)' },
-                          { id: 'Chaotic Evil', name: 'Kaotik Kötü (Chaotic Evil)' },
-                        ].map((al) => (
-                          <option key={al.id} value={al.id}>{al.name}</option>
+                        {Object.entries(ALIGNMENT_LABELS).map(([id, label]) => (
+                          <option key={id} value={id}>{label}</option>
                         ))}
                       </select>
                       <ChevronDown size={14} aria-hidden="true" />
@@ -1639,8 +1661,8 @@ export function CharacterCreationScreen({
                         }}
                       >
                         <option value="">-- 1. Ek Dil Seçin --</option>
-                        {['Dwarvish', 'Elvish', 'Draconic', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc', 'Common Sign Language'].map((l) => (
-                          <option key={l} value={l}>{l}</option>
+                        {EXTRA_LANGUAGE_IDS.map((l) => (
+                          <option key={l} value={l}>{languageLabel(l)}</option>
                         ))}
                       </select>
                       <ChevronDown size={14} aria-hidden="true" />
@@ -1657,8 +1679,8 @@ export function CharacterCreationScreen({
                         }}
                       >
                         <option value="">-- 2. Ek Dil Seçin --</option>
-                        {['Elvish', 'Dwarvish', 'Draconic', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc', 'Common Sign Language'].map((l) => (
-                          <option key={l} value={l}>{l}</option>
+                        {EXTRA_LANGUAGE_IDS.map((l) => (
+                          <option key={`second-${l}`} value={l}>{languageLabel(l)}</option>
                         ))}
                       </select>
                       <ChevronDown size={14} aria-hidden="true" />
@@ -1679,7 +1701,7 @@ export function CharacterCreationScreen({
                   </label>
 
                   <label className="cc-field cc-field-full">
-                    <span className="cc-label">Görünüş (Appearance) - İsteğe Bağlı</span>
+                    <span className="cc-label">Görünüş - İsteğe Bağlı</span>
                     <textarea
                       className="cc-textarea cc-literary"
                       value={appearance}
@@ -1692,7 +1714,7 @@ export function CharacterCreationScreen({
                   </label>
 
                   <label className="cc-field cc-field-full">
-                    <span className="cc-label">Kişilik Özellikleri &amp; İdealler (Personality) - İsteğe Bağlı</span>
+                    <span className="cc-label">Kişilik Özellikleri ve İdealler - İsteğe Bağlı</span>
                     <textarea
                       className="cc-textarea cc-literary"
                       value={personality}
@@ -1705,7 +1727,7 @@ export function CharacterCreationScreen({
                   </label>
 
                   <label className="cc-field cc-field-full">
-                    <span className="cc-label">Arka Plan Hikayesi (Backstory) - İsteğe Bağlı</span>
+                    <span className="cc-label">Arka Plan Hikâyesi - İsteğe Bağlı</span>
                     <textarea
                       className="cc-textarea cc-literary"
                       value={backstory}
@@ -1834,12 +1856,12 @@ export function CharacterCreationScreen({
                     <div>
                       <h2 className="cc-sheet-name">{name || 'İsimsiz Kahraman'}</h2>
                       <div className="cc-sheet-subtitle">
-                        {speciesData?.name_tr ?? species} · {classData?.name_tr ?? characterClass} · Seviye 1
+                        {speciesData?.name_tr ?? species} · {characterClass ? presentedClassName(characterClass, classData?.name_tr) : ''} · Seviye 1
                       </div>
                       <div className="cc-sheet-meta">
                         <span>Geçmiş: <strong>{backgroundData?.name_tr ?? background}</strong></span>
-                        <span>Yönelim: <strong>{alignment}</strong></span>
-                        <span>Diller: <strong>{['Common', ...selectedLanguages].join(', ')}</strong></span>
+                        <span>Yönelim: <strong>{alignment ? (ALIGNMENT_LABELS[alignment] ?? alignment) : ''}</strong></span>
+                        <span>Diller: <strong>{['Common', ...selectedLanguages.filter(Boolean)].map(languageLabel).join(', ')}</strong></span>
                         <span>Konum: <strong>{selectedLocation?.name ?? 'Bilinmeyen'}</strong></span>
                       </div>
                     </div>
@@ -1885,7 +1907,7 @@ export function CharacterCreationScreen({
                       <div className="cc-sheet-sec-title">Usta Olunan Beceriler</div>
                       <div className="cc-sheet-pills">
                         {derivedStats.allSkills.map((sk) => (
-                          <span key={sk} className="cc-pill">{sk}</span>
+                          <span key={sk} className="cc-pill">{namedCatalogLabel(catalog?.skills, sk)}</span>
                         ))}
                       </div>
                       {selectedSpeciesSkills.length > 0 && (
@@ -1893,17 +1915,17 @@ export function CharacterCreationScreen({
                           <div className="cc-sheet-sec-title mt-4">Tür Becerileri</div>
                           <div className="cc-sheet-pills" data-testid="review-species-bonus-skills">
                             {selectedSpeciesSkills.map((skill) => (
-                              <span key={skill} className="cc-pill">{skill}</span>
+                              <span key={skill} className="cc-pill">{namedCatalogLabel(catalog?.skills, skill)}</span>
                             ))}
                           </div>
                         </>
                       )}
                       {selectedExpertiseSkills.length > 0 && (
                         <>
-                          <div className="cc-sheet-sec-title mt-4">Uzmanlık (Expertise)</div>
+                          <div className="cc-sheet-sec-title mt-4">Uzmanlık</div>
                           <div className="cc-sheet-pills" data-testid="review-expertise-skills">
                             {selectedExpertiseSkills.map((skill) => (
-                              <span key={skill} className="cc-pill cc-pill-gold">{skill}</span>
+                              <span key={skill} className="cc-pill cc-pill-gold">{namedCatalogLabel(catalog?.skills, skill)}</span>
                             ))}
                           </div>
                         </>
@@ -1912,7 +1934,7 @@ export function CharacterCreationScreen({
                       <div className="cc-sheet-sec-title mt-4">Hünerler & Sınıf Özellikleri</div>
                       <div className="cc-sheet-pills">
                         <span className="cc-pill cc-pill-gold" data-testid="review-background-origin-feat">
-                          Geçmiş Hüneri: {backgroundData?.origin_feat ?? 'Seçilmedi'}
+                          Geçmiş Hüneri: {backgroundData?.origin_feat ? namedCatalogLabel(catalog?.origin_feats, backgroundData.origin_feat) : 'Seçilmedi'}
                         </span>
                         {speciesBonusFeat && (
                           <span className="cc-pill cc-pill-gold" data-testid="review-species-bonus-feat">
@@ -1920,7 +1942,7 @@ export function CharacterCreationScreen({
                           </span>
                         )}
                         {characterClass === 'Fighter' && (
-                          <span className="cc-pill cc-pill-gold">Dövüş Tarzı: {fightingStyle}</span>
+                          <span className="cc-pill cc-pill-gold">Dövüş Tarzı: {fightingStyleOptions.find((style) => style.id === fightingStyle)?.label ?? fightingStyle}</span>
                         )}
                         {classData?.features?.map((f: string) => (
                           <span key={f} className="cc-pill">{f}</span>
@@ -1992,7 +2014,7 @@ export function CharacterCreationScreen({
                 <div className="cc-label">Seçilenler</div>
                 <h2 className="cc-summary-title">Karakter özeti</h2>
                 <dl className="cc-summary-list">
-                  <div><dt>Sınıf</dt><dd>{classData?.name_tr ?? 'Seçilmedi'}</dd></div>
+                  <div><dt>Sınıf</dt><dd>{characterClass ? presentedClassName(characterClass, classData?.name_tr) : 'Seçilmedi'}</dd></div>
                   <div><dt>Geçmiş</dt><dd>{backgroundData?.name_tr ?? 'Seçilmedi'}</dd></div>
                   <div><dt>Tür</dt><dd>{speciesData?.name_tr ?? 'Seçilmedi'}</dd></div>
                   {name.trim() && <div><dt>Ad</dt><dd>{name.trim()}</dd></div>}

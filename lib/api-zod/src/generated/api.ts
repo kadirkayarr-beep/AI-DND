@@ -9448,6 +9448,19 @@ export const createCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 export const createCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const createCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const createCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const createCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const createCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const createCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const createCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
+
 export const createCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -10028,6 +10041,25 @@ export const CreateCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(createCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(createCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(createCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(createCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(createCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(createCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(createCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -10459,6 +10491,19 @@ export const getCampaignResponseStateQuestOffersItemObjectivesItemRequiredCountM
 
 export const getCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
+export const getCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const getCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const getCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const getCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const getCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const getCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const getCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
 
 export const getCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -11050,6 +11095,25 @@ export const GetCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(getCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(getCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(getCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(getCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(getCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(getCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(getCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -11468,6 +11532,19 @@ export const resumeCampaignResponseStateQuestOffersItemObjectivesItemRequiredCou
 
 export const resumeCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const resumeCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const resumeCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
 
 export const resumeCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -12049,6 +12126,25 @@ export const ResumeCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(resumeCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(resumeCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(resumeCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(resumeCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -15486,6 +15582,19 @@ export const createLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const createLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
 
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const createLegacyCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
+
 export const createLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const createLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
 
@@ -16066,6 +16175,25 @@ export const CreateLegacyCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(createLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(createLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(createLegacyCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -16499,6 +16627,19 @@ export const getLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequired
 
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const getLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const getLegacyCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
 
 export const getLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const getLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -17090,6 +17231,25 @@ export const GetLegacyCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(getLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(getLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(getLegacyCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()
@@ -17509,6 +17669,19 @@ export const resumeLegacyCampaignResponseStateQuestOffersItemObjectivesItemRequi
 
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMin = -5;
 export const resumeLegacyCampaignResponseStateKnownFactionsItemStandingMax = 5;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax = 40;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20Max = 20;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax = 20;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin = 2;
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax = 2;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin = 0;
+
+export const resumeLegacyCampaignResponseHistoryItemSkillCheckResultDcMax = 30;
 
 export const resumeLegacyCampaignResponseCombatHistoryItemEventIdRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$');
 export const resumeLegacyCampaignResponseCombatHistoryItemTurnIndexMin = 0;
@@ -18090,6 +18263,25 @@ export const ResumeLegacyCampaignResponse = zod.object({
 })).optional().describe('Optional player-safe annotation of noticed local incidents. Not a quest, objective, or reward preview.')
 }).describe('Public state projection produced by the API serializers.'),
   "history": zod.array(zod.object({
+  "skill_check_result": zod.object({
+  "skill": zod.string().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultSkillMax),
+  "ability": zod.enum(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']),
+  "d20": zod.number().int().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20Max),
+  "d20_rolls": zod.array(zod.number().int().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsItemMax)).min(resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMin).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultD20RollsMax).optional(),
+  "advantage": zod.boolean().optional(),
+  "disadvantage": zod.boolean().optional(),
+  "proficient": zod.boolean(),
+  "expertise": zod.boolean().optional(),
+  "ability_modifier": zod.number().int(),
+  "proficiency_modifier": zod.number().int().min(resumeLegacyCampaignResponseHistoryItemSkillCheckResultProficiencyModifierMin),
+  "total_modifier": zod.number().int(),
+  "total": zod.number().int(),
+  "difficulty": zod.enum(['easy', 'medium', 'hard', 'very_hard', 'extreme']),
+  "dc": zod.number().int().min(1).max(resumeLegacyCampaignResponseHistoryItemSkillCheckResultDcMax),
+  "outcome": zod.enum(['success', 'failure']),
+  "action_id": zod.string().uuid().optional(),
+  "resolution_id": zod.string().nullish()
+}).optional(),
   "player_message": zod.string(),
   "narration": zod.string(),
   "created_at": zod.coerce.date()

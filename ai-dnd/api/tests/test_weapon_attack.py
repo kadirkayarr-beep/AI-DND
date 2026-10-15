@@ -2255,15 +2255,37 @@ class WeaponPushPersistenceTests(unittest.TestCase):
             self.assertEqual(attack.pair(restored, target_id, actor_id),
                              {"distance_ft": 15})
 
-            # Snapshot every session attribute after loader normalization,
-            # including ephemeral fields and RNG, not just saved geometry.
+            # Preserve every session/adapter/store attribute by value, while
+            # checking runtime owner identity separately: deepcopy creates new
+            # SqliteAttemptStore/CampaignStore handles with identity equality.
+            attempt_store = restored.emergence_store
+            self.assertIs(attempt_store._store, reopened_store)
+
             def snapshot():
-                return copy.deepcopy({
-                    key: value.getstate() if key == "rng" else value
-                    for key, value in vars(restored).items()})
+                self.assertIs(restored.emergence_store, attempt_store)
+                self.assertIs(attempt_store._store, reopened_store)
+                attributes = dict(vars(restored))
+                attributes["rng"] = restored.rng.getstate()
+                attributes["emergence_store"] = {
+                    key: dict(vars(value)) if key == "_store" else value
+                    for key, value in vars(attempt_store).items()}
+                return copy.deepcopy(attributes)
+
+            def attempt_records():
+                # Read through the same store owner; capture every persisted
+                # attempt column, including statuses and proposal contents.
+                connection = reopened_store._connect()
+                try:
+                    return [dict(row) for row in connection.execute(
+                        "SELECT * FROM campaign_emergence_attempts "
+                        "WHERE campaign_id = ? ORDER BY trigger_id",
+                        (campaign_id,)).fetchall()]
+                finally:
+                    connection.close()
 
             restored.serialize_game_state()
             before = snapshot()
+            attempts_before = attempt_records()
             persisted_before = copy.deepcopy(reopened_store.get_campaign(campaign_id))
             with patch.object(restored.rng, "randint",
                               side_effect=AssertionError("blocked push rolled")):
@@ -2272,6 +2294,7 @@ class WeaponPushPersistenceTests(unittest.TestCase):
                 "kind": "push", "applied": False,
                 "reason": "position_unresolved_or_blocked"})
             self.assertEqual(snapshot(), before)
+            self.assertEqual(attempt_records(), attempts_before)
             self.assertEqual(reopened_store.get_campaign(campaign_id), persisted_before)
 
     def test_npc_push_player_corridor_stays_invalidated_after_campaign_reopen(self):

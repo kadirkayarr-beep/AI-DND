@@ -667,6 +667,10 @@ class CampaignHistoryEntry(BaseModel):
     player_message: str
     narration: str
     created_at: str
+    # Derived from an accepted immutable turn receipt; not a new save field.
+    skill_check_result: SkillCheckResult | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class CampaignDetailResponse(BaseModel):

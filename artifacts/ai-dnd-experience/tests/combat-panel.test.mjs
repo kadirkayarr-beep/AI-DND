@@ -372,6 +372,15 @@ test('the existing skill result card renders all four newly routed skills', () =
     assert.match(html, /data-testid="skill-check-result"/);
     assert.ok(html.includes(skill), `accessible label should include ${skill}`);
     assert.ok(html.includes(skill.toLocaleUpperCase('tr-TR')), `card should display ${skill}`);
+    const abilityLabels = { strength: 'KUV', dexterity: 'ÇEV', constitution: 'DAY', intelligence: 'ZEK', wisdom: 'BİL', charisma: 'KAR' };
+    assert.ok(html.includes(`<dt>${abilityLabels[ability]}</dt>`));
+    assert.ok(html.includes('<dt>Yeterlilik</dt>'));
+    assert.ok(html.includes('<dt>Toplam</dt>'));
+    assert.ok(html.includes('>13<'));
+    assert.ok(html.includes('Orta · DC 15'));
+    assert.ok(!html.includes('<dt>PROF</dt>'));
+    assert.ok(!html.includes('<dt>TOTAL</dt>'));
+    assert.ok(!html.includes('<dt>STR</dt>'));
   }
 });
 

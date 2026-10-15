@@ -116,10 +116,10 @@ def natural_command(message, target_id):
 
 def narration(result):
     if result["spell_id"] == "Cure Wounds":
-        return f"Cure Wounds çözüldü; {result['healing']} can yenilendi."
+        return f"Cure Wounds ile {result['healing']} canın yenilenir."
     if not result["hit"]:
-        return f"{result['spell_id']} çözüldü; hedef hasar almadı."
-    return f"{result['spell_id']} çözüldü; {result['target_id']} {result['damage']} hasar aldı."
+        return f"{result['spell_id']} hedefe hasar vermez."
+    return f"{result['spell_id']} hedefe {result['damage']} hasar verir."
 
 
 def explicit_request(message, command=None):

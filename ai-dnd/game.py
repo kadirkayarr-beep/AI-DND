@@ -908,6 +908,47 @@ def _is_local_place_question(player_input):
     ))
 
 
+def _unverified_past_event_assertion(player_input):
+    """An attributed past narrative is not an accepted campaign event."""
+    if not isinstance(player_input, str):
+        return False
+    text = _normalize_turkish_typos(player_input)
+    # Questions, denials and future intentions do not assert an accomplished event.
+    if "?" in player_input or re.search(
+        r"\b(?:degil|olmadi|almadim|yapmadim|olacagim|alacagim|yapacagim)\b",
+        text,
+    ):
+        return False
+    attributed_past = re.search(
+        r"\b(?:onceki|gecmis|daha once|evvelki)\b.{0,90}"
+        r"\b(?:anlati\w*|hikaye\w*|yazi\w*|metin\w*)\b",
+        text,
+    )
+    reported_as_fact = re.search(
+        r"\b(?:yaz\w*|soyle\w*|anlat\w*|bahset\w*)\b",
+        text,
+    )
+    past_claim = re.search(
+        r"\b(?:oldu\w*|aldi\w*|kazandi\w*|verdi\w*|basladi\w*)\b",
+        text,
+    )
+    explicit_past = re.search(
+        r"\b(?:daha once|gecmiste)\b.{0,100}"
+        r"\b(?:oldu\w*|aldi\w*|kazandi\w*|verdi\w*)\b",
+        text,
+    )
+    return bool((attributed_past and reported_as_fact and past_claim) or explicit_past)
+
+
+def _claimed_completed_outcome(player_input):
+    if not isinstance(player_input, str):
+        return False
+    text = _normalize_turkish_typos(player_input)
+    if "?" in player_input or re.search(r"\b(?:degil|olmadim|almadim|olacagim|alacagim)\b", text):
+        return False
+    return bool(re.search(r"\b(?:oldum|aldim|kazandim|kabul ettim|tamamladim)\b", text))
+
+
 def is_npc_historical_claim(player_input):
     """Identify claims about prior NPC speech or past disclosures so they cannot create world facts."""
     if not isinstance(player_input, str):
@@ -5103,6 +5144,8 @@ def record_npc_interaction(npc, npc_reply, player_input, npc_target=None):
     
     if not npc or not npc_reply or (not is_dialogue and not has_active_npc):
         return
+    if _unverified_past_event_assertion(player_input):
+        return
     
     # Initialize memory as list if not exists
     entries = npc.setdefault("memory", [])
@@ -5227,7 +5270,13 @@ def npc_memory_supporting_entry(npc, player_input):
             speaker = "unknown"
             memory_text = entry
         
-        if speaker not in search_speakers:
+        # Past-event truth requires independently accepted event provenance;
+        # neither a player utterance, NPC repetition nor legacy text provides it.
+        if _unverified_past_event_assertion(player_input) or _claimed_completed_outcome(player_input):
+            # No trusted campaign-event lookup is wired here. Metadata on an
+            # NPC memory entry cannot independently prove a past event.
+            continue
+        elif speaker not in search_speakers or speaker == "unknown":
             continue
             
         memory_folded = memory_text.casefold()
@@ -6698,6 +6747,34 @@ def _narration_safety_decision(narration, player_input, npc_target=None, action_
 
     if not isinstance(narration, str) or not narration.strip():
         return reject("EMPTY_NARRATION")
+
+    # A greeting does not authorize reopening a disputed past conversation.
+    # Evaluate the NPC's actual quoted reply, not keywords anywhere in the
+    # scene (a gesture or narrator's description is not NPC speech).
+    greeting_only = scene_type == "conversation" and bool(re.fullmatch(
+        r"(?:merhaba|selam|selamlar|gunaydin|iyi gunler|iyi aksamlar)",
+        _normalize_turkish_typos(player_input),
+    ))
+    if greeting_only:
+        for quoted in re.findall(r"['\"“‘]([^'\"”’]{3,220})['\"”’]", narration):
+            spoken = _normalize_turkish_typos(quoted)
+            if (
+                re.search(r"\b(?:gormedim|duymadim|hatirlamiyorum|"
+                          r"hatirlamadim|soylemedim|konusmadik)\b", spoken)
+                and not re.search(r"\b(?:merhaba|selam|gunaydin|"
+                                  r"hos geldin\w*|iyi gunler|iyi aksamlar)\b", spoken)
+            ):
+                return reject("UNRELATED_GREETING_REPLY", quoted)
+
+        # Editorial summaries of a scene are not in-world NPC responses.
+        meta = re.search(
+            r"\bbu\s+(?:kisa\s+)?(?:etkilesim|konusma|sahne)\b"
+            r".{0,130}\b(?:orneg\w*|yansitir\w*)\b",
+            _normalize_turkish_typos(narration),
+        )
+        if meta:
+            return reject("META_NARRATOR_COMMENTARY", meta.group(0))
+
     for npc in world_state.get("npcs", []):
         if not isinstance(npc, dict):
             continue
@@ -9231,6 +9308,27 @@ def ask_dungeon_master(
     )
 
 
+def _resolved_skill_result_narration(result):
+    """Describe only the already resolved Python check, with no added consequences."""
+    if not isinstance(result, dict) or result.get("action") != "skill_check" or result.get("status") != "resolved":
+        return None
+    outcome = result.get("outcome")
+    if outcome not in ("success", "failure"):
+        return None
+    prefix = {
+        "Stealth": "Gizlenme girişimin",
+        "Perception": "Dikkatini topladığın kontrol",
+        "Investigation": "İnceleme girişimin",
+        "Athletics": "Fiziksel çaban",
+        "Acrobatics": "Akrobatik girişimin",
+        "Persuasion": "İkna girişimin",
+        "Deception": "Kandırma girişimin",
+        "Survival": "İz sürme girişimin",
+        "Sleight of Hand": "El becerisi girişimin",
+    }.get(result.get("skill"), "Yetenek kontrolün")
+    return f"{prefix} {'başarılı' if outcome == 'success' else 'başarısız'} olur."
+
+
 def _fallback_for_action_result(player_input, action_result=None, npc_target=None):
     world_state = _session().world_state
     result = action_result if isinstance(action_result, dict) else {}
@@ -9269,6 +9367,10 @@ def _fallback_for_action_result(player_input, action_result=None, npc_target=Non
     if result.get("direct_response"):
         return str(result["direct_response"])
     if action == "skill_check":
+        if result.get("status") == "resolved" and result.get("target_type") != "door":
+            grounded = _resolved_skill_result_narration(result)
+            if grounded:
+                return grounded
         skill = result.get("skill", "kontrol")
         outcome = result.get("outcome", "failure")
         door = _current_door()
@@ -9464,7 +9566,35 @@ def finalize_narration(
 
     if fallback_reason_code == "UNVERIFIED_LORE_CLAIM":
         import resolved_presentation
-        narration = resolved_presentation.lore_rejected_action(action_result, getattr(_session(), "lore_authority_context", None)) or _unverified_lore_response(player_input, npc_target)
+        narration = resolved_presentation.lore_rejected_action(
+            action_result, getattr(_session(), "lore_authority_context", None)
+        )
+        if not narration and (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "skill_check"
+            and action_result.get("status") == "resolved"
+        ):
+            # Reject unsupported lore, not the Python-verified check outcome.
+            # Existing door resolution already owns its specific outcome.
+            narration = _fallback_for_action_result(player_input, action_result, npc_target)
+        if not narration and (
+            isinstance(action_result, dict)
+            and action_result.get("action") == "dialogue"
+            and action_result.get("status") == "answered_smalltalk"
+            and re.fullmatch(
+                r"(?:merhaba|selam|selamlar|gunaydin|iyi gunler|iyi aksamlar)",
+                _normalize_turkish_typos(player_input),
+            )
+        ):
+            # Reject invented lore, not the player's valid greeting intent.
+            # Use only the resolved, present NPC; do not infer an NPC reply.
+            narration = (
+                f"{living_world.public_npc_name(npc_target)} selamına karşılık verir."
+                if isinstance(npc_target, dict)
+                else "Selam veriyorsun."
+            )
+        if not narration:
+            narration = _unverified_lore_response(player_input, npc_target)
         handling = "python_fallback"
     elif fallback_reason_code:
         narration = fallback_for_turn(default_response=narration)
@@ -10580,7 +10710,7 @@ def _turkish_genitive_form(name):
     return f"{value}'{suffix}"
 
 
-def _ensure_local_merchant(location_id):
+def _ensure_local_merchant(location_id, *, create=True):
     world_state = _session().world_state
     existing = next(
         (
@@ -10601,6 +10731,8 @@ def _ensure_local_merchant(location_id):
             None,
         )
         return existing, shop
+    if not create:
+        return None, None
     local_merchants = [
         npc for npc in world_state.get("npcs", [])
         if isinstance(npc, dict)
@@ -10954,7 +11086,11 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
 
     current = world_state.get("location")
     ensure_campaign_clock()
-    action = living_world.classify_scene_action(player_input)
+    scene_intent = living_world.affirmative_scene_intent(player_input, interaction_mode)
+    # Keep action authority and target resolution in the same clause. A question
+    # or declined verb elsewhere in the turn cannot authorize another actor.
+    action_input = scene_intent[1] if scene_intent else player_input
+    action = scene_intent[0] if scene_intent else living_world.classify_scene_action(player_input)
     if interaction_mode == "say":
         action = None
     elif interaction_mode == "ask_dm" and action not in {"presence", "look"}:
@@ -10963,14 +11099,14 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         action is None
         and interaction_mode not in {"say", "ask_dm"}
         and not world_state.get("combat", {}).get("active")
-        and _names_current_local_exit(player_input)
+        and _names_current_local_exit(action_input)
     ):
         action = "exit"
     inspect_action = bool(
         interaction_mode not in {"say", "ask_dm"}
-        and isinstance(player_input, str)
-        and re.search(r"(?:incel\w*|gözden geçir\w*|inspect|examine)", player_input, re.IGNORECASE)
-        and not re.search(r"(?:perception|investigation|algı kontrolü|araştırma kontrolü)", player_input, re.IGNORECASE)
+        and isinstance(action_input, str)
+        and re.search(r"(?:incel\w*|gözden geçir\w*|inspect|examine)", action_input, re.IGNORECASE)
+        and not re.search(r"(?:perception|investigation|algı kontrolü|araştırma kontrolü)", action_input, re.IGNORECASE)
     )
     if inspect_action:
         action = "inspect"
@@ -11044,6 +11180,9 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 "procedural_entity_ids_before": procedural_before}
     if (
         scene_attention
+        and action in {"look", "wait", "enter", "exit", "sit", "stand", "approach", "inspect"}
+        and interaction_mode not in {"say", "ask_dm"}
+        and scene_intent
         and not (merchant_search and any(
             isinstance(shop, dict) and shop.get("location") == current
             for shop in world_state.get("shops", [])
@@ -11088,7 +11227,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         and current in world_state.get("locations", {})
         and merchant_search
     ):
-        merchant, shop = _ensure_local_merchant(current)
+        merchant, shop = _ensure_local_merchant(current, create=False)
         if merchant and shop:
             _set_scene_active_npc(merchant, turn_index)
             direct = {
@@ -11222,7 +11361,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
 
     if not combat.get("active") and not direct:
         ref_resolution = living_world.resolve_scene_referent(
-            world_state, str(player_input), turn_index
+            world_state, str(action_input), turn_index
         )
         referent = ref_resolution.get("referent")
         if ref_resolution["status"] == "expired":
@@ -11237,7 +11376,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                 ),
             }
         elif ref_resolution["status"] == "ambiguous":
-            if _has_explicit_attack_verb(player_input):
+            if _has_explicit_attack_verb(action_input):
                 direct = {
                     "action": "attack",
                     "status": "clarification",
@@ -11255,7 +11394,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "direct_response": "Birden fazla kişi bu tarife uyuyor. Hangisini kastettiğini biraz daha tarif eder misin?",
                 }
         elif ref_resolution["status"] in ("found", "promoted") and referent:
-            if _is_scene_referent_activity_observation(player_input):
+            if _is_scene_referent_activity_observation(action_input):
                 description = referent.get("description")
                 direct = {
                     "action": "explore",
@@ -11270,7 +11409,10 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                         else "Belirgin bir değişiklik fark etmiyorsun."
                     ),
                 }
-            else:
+            elif scene_intent and (
+                action == "approach" or _has_explicit_attack_verb(action_input)
+                or re.search(r"\b(?:konus\w*|seslen\w*|selam\w*|sor\w*|talk|speak|greet)\b", _normalize_turkish_typos(str(action_input)))
+            ):
                 resolved_npc = _promote_scene_referent(referent, current)
                 if resolved_npc:
                     _set_scene_active_npc(resolved_npc, turn_index)
@@ -11286,7 +11428,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     world_subject_question = (
         True if interaction_mode == "ask_dm"
         else False if interaction_mode == "say"
-        else local_dialogue.is_world_subject_question(player_input)
+        else local_dialogue.is_world_subject_question(action_input)
     )
     if (
         not combat.get("active")
@@ -11295,7 +11437,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         and action != "look"
         and not world_subject_question
         # A character-sheet question has no NPC subject to disambiguate.
-        and not known_character_answer(player_input)
+        and not known_character_answer(action_input)
     ):
         if target_id is not None:
             resolved_npc = next(
@@ -11313,12 +11455,12 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             }
         if resolved_npc is None and not direct:
             npc_resolution = resolve_npc_reference(
-                player_input, **({"force_dialogue": True} if interaction_mode == "say" else {})
+                action_input, **({"force_dialogue": True} if interaction_mode == "say" else {})
             )
             if npc_resolution.get("status") == "ambiguous":
                 if (
                     interaction_mode not in {"say", "ask_dm"}
-                    and _has_explicit_attack_verb(player_input)
+                    and _has_explicit_attack_verb(action_input)
                 ):
                     direct = {
                         "action": "attack",
@@ -11397,7 +11539,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     ),
                 }
         elif action == "sit":
-            features = _scene_feature_match(player_input, current)
+            features = _scene_feature_match(action_input, current)
             seats = [
                 feature for feature in location_features(current)
                 if isinstance(feature, dict)
@@ -11466,7 +11608,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             features = (
                 [selected_feature]
                 if selected_feature is not None
-                else _scene_feature_match(player_input, current)
+                else _scene_feature_match(action_input, current)
             )
             if len(features) == 1:
                 direct = {
@@ -13247,12 +13389,8 @@ def _run_player_turn_internal(
             npc_memory_supporting_entry(claimed_npc, player_input)
             if claimed_npc else None
         )
-        if not supported_entry and claimed_npc:
-            claim_kw = _claim_keywords(player_input)
-            for k in claimed_npc.get("knowledge", []):
-                if claim_kw & _claim_keywords(str(k)):
-                    supported_entry = str(k)
-                    break
+        # Unattributed NPC knowledge cannot independently verify past dialogue.
+        # Only the speaker-aware memory path may support this response.
         if supported_entry and claimed_npc:
             quote = re.search(r'["\u201c](.*?)["\u201d]', str(supported_entry))
             if quote:
@@ -13363,12 +13501,36 @@ def _run_player_turn_internal(
                 target_id=target_id,
             )
             text = raw_intent["narration"]
-            if (raw_intent.get("world_updates") or raw_intent.get("lore_claims")
+            empty_model_narration = not text.strip()
+            # An unverified story about past events is not event provenance.
+            # If model prose echoes the disputed details, use the existing
+            # world-safe NPC reply; a neutral model reply may still be accepted.
+            unverified_history_echo = (
+                not empty_model_narration
+                and _unverified_past_event_assertion(player_input)
+                and bool(_claim_keywords(text) & _claim_keywords(player_input))
+            )
+            if (unverified_history_echo or raw_intent.get("world_updates")
+                    or raw_intent.get("lore_claims")
                     or not interaction_adventure.safe_narration(text)):
                 text = interaction_adventure.immersive_unknown(npc_target)
             text = finalize_narration(
-                text, player_input, npc_target, action_result
+                text, player_input, npc_target, action_result,
+                fallback_reason_code=(
+                    "UNVERIFIED_PLAYER_CLAIM_ECHO"
+                    if unverified_history_echo else None
+                ),
             )
+            if empty_model_narration or unverified_history_echo:
+                narration_source = "deterministic_fallback"
+                return finish_turn(
+                    action_result, text, is_final=True,
+                    safety_reason_code=(
+                        "EMPTY_NARRATION" if empty_model_narration
+                        else "UNVERIFIED_PLAYER_CLAIM_ECHO"
+                    ),
+                    safety_handling="python_fallback",
+                )
             return finish_turn(action_result, text, is_final=True)
         validated_intent = {"intent": "dialogue"}
     else:

@@ -3168,6 +3168,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        skill_check_result:
+          $ref: "#/components/schemas/SkillCheckResult"
         player_message:
           type: string
         narration:

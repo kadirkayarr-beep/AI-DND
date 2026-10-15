@@ -608,6 +608,10 @@ def serialize_session_state(
     character = _project_fields(player, _PLAYER_FIELDS)
     if isinstance(player, Mapping):
         _overlay_live_spell_fields(character, session, player)
+    # Native casting owns remaining slots. The legacy character field remains
+    # a compatibility projection, not a second pool or a save migration.
+    if world.get("spellcasting_v1") is not None:
+        character["spell_slots_remaining"] = copy.deepcopy(world["spellcasting_v1"]["slots"])
     expertise_skills = player.get("expertise_skills")
     character["expertise_skills"] = (
         list(expertise_skills)

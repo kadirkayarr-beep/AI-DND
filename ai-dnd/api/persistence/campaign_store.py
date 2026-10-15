@@ -1076,16 +1076,71 @@ class CampaignStore:
                         raise CampaignCorruptError("Campaign metadata is inconsistent.")
                 history_rows = connection.execute(
                     """
-                    SELECT player_message, narration, created_at
+                    SELECT sequence, player_message, narration, created_at
                     FROM campaign_history WHERE campaign_id = ?
                     ORDER BY sequence ASC
                     """,
                     (campaign_id,),
                 ).fetchall()
                 history = [
-                    validate_history_entry(dict(history_row))
+                    validate_history_entry({
+                        "player_message": history_row["player_message"],
+                        "narration": history_row["narration"],
+                        "created_at": history_row["created_at"],
+                    })
                     for history_row in history_rows
                 ]
+                # Read-only projection of already committed, Python-validated skill
+                # outcomes. Do not change the strict campaign_history save format.
+                # Bind by BOTH resolved turn number and accepted narration; never
+                # attach a receipt to unrelated or ambiguous older history.
+                from api.schemas import SkillCheckResult
+                skill_rows = connection.execute(
+                    """
+                    SELECT action_id, request_hash, response_json
+                    FROM campaign_turn_actions
+                    WHERE campaign_id = ?
+                    ORDER BY rowid ASC
+                    """,
+                    (campaign_id,),
+                ).fetchall()
+                accepted = {}
+                ambiguous = set()
+                existing = {
+                    history_row["sequence"]: history_row
+                    for history_row in history_rows
+                }
+                for receipt_row in skill_rows:
+                    try:
+                        # Only the committed receipt for this campaign/turn may
+                        # annotate history; a different or damaged identity is
+                        # not evidence for a player-visible skill result.
+                        request_hash = receipt_row["request_hash"]
+                        if (not isinstance(request_hash, str)
+                                or len(request_hash) != 64
+                                or any(c not in "0123456789abcdef" for c in request_hash)):
+                            continue
+                        receipt = json.loads(str(receipt_row["response_json"]))
+                        if not isinstance(receipt, dict) or receipt.get("action_id") != receipt_row["action_id"]:
+                            continue
+                        skill = receipt.get("skill_check_result")
+                        if not isinstance(skill, dict) or skill.get("action_id") != receipt_row["action_id"]:
+                            continue
+                        state = receipt.get("state")
+                        turn_number = state.get("turn_index") if isinstance(state, dict) else None
+                        matched_history_row = existing.get(turn_number) if type(turn_number) is int else None
+                        if matched_history_row is None or receipt.get("narration") != matched_history_row["narration"]:
+                            continue
+                        validated = SkillCheckResult.model_validate(skill).model_dump(exclude_none=True)
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        continue
+                    if turn_number in accepted:
+                        ambiguous.add(turn_number)
+                    else:
+                        accepted[turn_number] = validated
+                for index, history_row in enumerate(history_rows):
+                    if history_row["sequence"] in accepted and history_row["sequence"] not in ambiguous:
+                        history[index]["skill_check_result"] = accepted[history_row["sequence"]]
                 combat_rows = connection.execute(
                     """
                     SELECT sequence, event_id, turn_index, result_json, created_at

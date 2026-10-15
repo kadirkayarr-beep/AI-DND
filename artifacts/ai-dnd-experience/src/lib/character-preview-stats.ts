@@ -111,6 +111,15 @@ export function calculateCharacterPreviewStats(input: {
   const constitutionModifier = modifier(input.abilityScores.constitution);
   const wisdomModifier = modifier(input.abilityScores.wisdom);
 
+  const hasShield = shieldTokens.some((token) =>
+    equipmentText.includes(token.toLowerCase()),
+  );
+  // The API catalog is authoritative. Older/default preview catalogs lack this
+  // field; retain the same level-one class training used by the Python catalog.
+  const shieldTrained = Array.isArray(classData.armor_proficiencies)
+    ? asStringList(classData.armor_proficiencies).includes('Shields')
+    : ['Barbarian', 'Cleric', 'Druid', 'Fighter', 'Paladin', 'Ranger'].includes(input.characterClass);
+
   let ac = 10 + dexterityModifier;
   if (armorWorn) {
     ac = Number(armorRule.base_ac);
@@ -124,14 +133,11 @@ export function calculateCharacterPreviewStats(input: {
     }
   } else if (input.characterClass === 'Barbarian') {
     ac = 10 + dexterityModifier + constitutionModifier;
-  } else if (input.characterClass === 'Monk') {
+  } else if (input.characterClass === 'Monk' && !hasShield) {
     ac = 10 + dexterityModifier + wisdomModifier;
   }
 
-  const hasShield = shieldTokens.some((token) =>
-    equipmentText.includes(token.toLowerCase()),
-  );
-  if (hasShield) ac += 2;
+  if (hasShield && shieldTrained) ac += 2;
   if (input.fightingStyle === 'Defense' && armorWorn) ac += 1;
 
   const featCatalog = asRecord(input.originFeats);

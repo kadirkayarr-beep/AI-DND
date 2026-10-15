@@ -316,7 +316,9 @@ BACKGROUND_DEFINITIONS = {
         "skills": ["Acrobatics", "Perception"],
         "tool": "Navigator's Tools",
         "feat": "Tavern Brawler",
-        "equipment": ["Denizci Pusulası", "İpek Halat (15 metre)", "Uğurlu Deniz Kabuğu", "15 Altın"],
+        # PHB 2024 p.184; new creation only, never migrate historical possessions.
+        "equipment": ["Dagger", "Navigator's Tools", "Rope", "Traveler's Clothes", "20 GP"],
+        "starting_gp": 20,
     },
     "Scribe": {
         "name_tr": "Katip (Scribe)",
@@ -325,7 +327,9 @@ BACKGROUND_DEFINITIONS = {
         "skills": ["Investigation", "Perception"],
         "tool": "Calligrapher's Supplies",
         "feat": "Skilled",
-        "equipment": ["Hattat Aletleri", "Kayıt Defteri", "Mumlu Damga Seti", "20 Altın"],
+        # PHB 2024 p.184; quantities remain explicit starting-package labels.
+        "equipment": ["Calligrapher's Supplies", "Fine Clothes", "Lamp", "Oil (3 flasks)", "Parchment (12 sheets)", "23 GP"],
+        "starting_gp": 23,
     },
     "Soldier": {
         "name_tr": "Asker (Soldier)",
@@ -1204,12 +1208,14 @@ def calculate_derived_stats(
             ac += min(armor_rule["max_dexterity_bonus"], dex_mod)
     elif character_class == "Barbarian":
         ac = 10 + dex_mod + con_mod
-    elif character_class == "Monk":
+    elif character_class == "Monk" and not has_shield:
         ac = 10 + dex_mod + wis_mod
     else:
         ac = 10 + dex_mod
 
-    if has_shield:
+    # PHB 2024 p.219: possession alone does not grant the shield AC benefit.
+    # This is the level-one creation calculator; extra feature grants are absent.
+    if has_shield and "Shields" in cls_def.get("armor_proficiencies", []):
         ac += 2
 
     if fighting_style == "Defense" and armor_worn:

@@ -87,6 +87,8 @@ def binding(session):
 
 
 def native_request(session, message, combat_action):
+    import combat_lifecycle
+
     if command(message):
         return True
     state = session.world_state.get("bounded_encounter")
@@ -94,7 +96,8 @@ def native_request(session, message, combat_action):
                 and state.get("version") == 1
                 and state.get("location_id") == session.world_state.get("location")
                 and session.world_state.get("combat", {}).get("active")
-                and combat_action is not None)
+                and (combat_action is not None
+                     or combat_lifecycle.is_attack_decision(session, message)))
 
 
 def _npc(session, state):
@@ -229,7 +232,7 @@ def resolve_command(session, message, *, player_message=None):
         if session.world_state.get("combat", {}).get("active"):
             raise CombatRequestError("combat_travel", "Cannot enter a courtyard during combat.", 400)
         if state:
-            return _reply(session, message, "Bu karşılaşma zaten gerçekleşti; NPC ve kaynaklar sıfırlanmadı.",
+            return _reply(session, message, "Bu karşılaşmaya daha önce girdin.",
                           "scenario_already_materialized", npc_id=state["npc_id"])
         # This is an explicit opt-in local scene, not a global campaign rewrite.
         location = session.world_state["location"]
@@ -270,8 +273,7 @@ def resolve_command(session, message, *, player_message=None):
         session.world_state["scene_state"]["player_position"]["bounded_node_id"] = "courtyard_entry"
         refresh(session)
         return _reply(session, message,
-                      f"Açık avludasın. {living_world.public_npc_name(npc)} 60 feet ötede sopa taşıyor. "
-                      "Çatışma başlamadı; başlatmayı seçersen «Avlu çatışmasını başlat» yaz.",
+                      f"Açık avlunun öte yanında, senden 60 feet uzakta {living_world.public_npc_name(npc)} sopa taşıyor.",
                       "scenario_enter", npc_id=npc["id"], scenario_id=SCENARIO_ID)
     if not state or state["location_id"] != session.world_state.get("location"):
         raise CombatRequestError("scenario_unavailable", "Enter the bounded courtyard first.", 400)
@@ -284,7 +286,7 @@ def resolve_command(session, message, *, player_message=None):
     # Do not create a scheduler: use the existing player-selected combat owner.
     session.start_combat(npc)
     enemies = session._resolve_enemy_turns_until_player()
-    narration = "Seçiminle çatışma başladı; sıra inisiyatife göre belirlendi."
+    narration = "Çatışma başlar."
     narration += "".join(visible_dash_narration(session, enemy) for enemy in enemies)
     return _reply(session, message, narration,
                   "action_economy", outcome="combat_started", combat_started=True,
