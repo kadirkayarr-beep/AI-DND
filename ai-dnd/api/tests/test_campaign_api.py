@@ -18,6 +18,8 @@ from unittest.mock import patch
 
 import httpx
 
+import adventure.templates as adventure_templates
+import adventure.transitions as adventure_transitions
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -1695,6 +1697,256 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             second.world_state["campaign_time"]["elapsed_seconds"],
             before_second,
         )
+
+    async def test_locked_sibling_venue_blocks_http_and_direct_entry_paths(self):
+        cases = (
+            ("location ID", "venue-id"),
+            ("venue name", "venue-name"),
+            ("direct engine entry", "direct-entry"),
+            ("HTTP continuation", "continuation"),
+        )
+        for label, path in cases:
+            with self.subTest(path=label):
+                city_id, session_id, session, turn_url, source_id, source_door = (
+                    await create_city_with_locked_tavern(self)
+                )
+                source_door["locked"] = False
+                source_door["open"] = True
+                entered = await self.http.post(
+                    turn_url,
+                    json={
+                        "message": "Enter the tavern.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+                self.assertEqual(entered.status_code, 200, entered.text)
+                self.assertEqual(entered.json()["state"]["location"], source_id)
+
+                target_id = "sibling_venue_02"
+                target_name = (
+                    "Taverna Kardeş"
+                    if path == "direct-entry"
+                    else "Kilitli İkinci Mekân"
+                )
+                if path == "direct-entry":
+                    source_location = session.world_state["locations"][source_id]
+                    source_location["aliases"] = [
+                        alias for alias in source_location.get("aliases", [])
+                        if str(alias).casefold() not in {"tavern", "taverna"}
+                    ]
+                target = copy.deepcopy(session.world_state["locations"][source_id])
+                target.update({
+                    "id": target_id,
+                    "name": target_name,
+                    "aliases": (
+                        [target_id, "taverna", "taverna kardeş"]
+                        if path == "direct-entry"
+                        else [target_id, "kilitli ikinci mekân"]
+                    ),
+                    "parent_location_id": city_id,
+                    "exit_location_id": city_id,
+                })
+                session.world_state["locations"][target_id] = target
+                target_door = {
+                    **copy.deepcopy(source_door),
+                    "id": f"venue-door:{target_id}",
+                    "name": "Kilitli Kardeş Han Kapısı",
+                    "location": city_id,
+                    "open": False,
+                    "locked": True,
+                }
+                session.world_state["doors"].append(target_door)
+                self.assertEqual(target["parent_location_id"], city_id)
+                self.assertEqual(
+                    session.world_state["locations"][source_id]["parent_location_id"],
+                    city_id,
+                )
+                self.assertTrue(source_door["open"])
+                self.assertTrue(target_door["locked"])
+                self.assertIs(
+                    game._venue_entry_door(
+                        session.world_state,
+                        source_id,
+                        target_id,
+                    ),
+                    target_door,
+                )
+                self.assertIsNone(
+                    game._venue_entry_door(
+                        session.world_state,
+                        source_id,
+                        source_id,
+                    )
+                )
+                messages = {
+                    "venue-id": f"{target_id} konumuna gidiyorum.",
+                    "venue-name": f"{target_name} konumuna gidiyorum.",
+                    "direct-entry": "Taverna'ya gidiyorum.",
+                    "continuation": "Yolculuğa devam ediyorum.",
+                }
+                continuation_before_world = None
+                continuation_before_rng = None
+                continuation_after_world = None
+                continuation_after_rng = None
+                http_after_world = None
+                http_after_rng = None
+                if path == "continuation":
+                    session.world_state["journey"] = {
+                        "origin": source_id,
+                        "destination": target_id,
+                        "stages": [300],
+                        "stage_index": 0,
+                        "stage_spent_seconds": 150,
+                        "stage_checked": True,
+                        "status": "INTERRUPTED",
+                        "encounter": None,
+                        "recent_patterns": [],
+                    }
+                results = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_turn(*args, **kwargs):
+                    quest = None
+                    if path == "direct-entry":
+                        npc_ids = [
+                            npc.get("id")
+                            for npc in session.world_state.get("npcs", [])
+                            if isinstance(npc, dict)
+                            and isinstance(npc.get("id"), str)
+                        ]
+                        self.assertTrue(npc_ids)
+                        quest = adventure_templates.instantiate(
+                            "BOUNTY",
+                            quest_id="adv.sibling-venue-test",
+                            turn=1,
+                            opportunity_key="opportunity:sibling-venue-test",
+                            creation_evidence="event:sibling-venue-test",
+                            bindings=adventure_templates.prepared_bindings(
+                                source_npc_id=npc_ids[0],
+                                target_npc_id=npc_ids[-1],
+                                location_ids=[city_id],
+                            ),
+                            rumor="Synthetic route fixture for the HTTP regression.",
+                        )
+                        quest = adventure_transitions.transition(
+                            quest, "DISCOVERED", 1
+                        )
+                        quest = adventure_transitions.transition(
+                            quest, "ACTIVE", 2
+                        )
+                        session.world_state["quests"].append(quest)
+                    try:
+                        result = real_turn(*args, **kwargs)
+                    finally:
+                        if quest is not None:
+                            session.world_state["quests"].remove(quest)
+                    results.append(copy.deepcopy(result["action_result"]))
+                    return result
+
+                def capture_continue(target_session):
+                    nonlocal continuation_before_world, continuation_before_rng
+                    nonlocal continuation_after_world, continuation_after_rng
+                    if path == "continuation" and continuation_before_world is None:
+                        continuation_before_world = copy.deepcopy(
+                            target_session.world_state
+                        )
+                        continuation_before_rng = copy.deepcopy(
+                            target_session.rng.getstate()
+                        )
+                    result = real_continue(target_session)
+                    if path == "continuation":
+                        continuation_after_world = copy.deepcopy(
+                            target_session.world_state
+                        )
+                        continuation_after_rng = copy.deepcopy(
+                            target_session.rng.getstate()
+                        )
+                    return result
+
+                real_continue = timed_gameplay.continue_travel
+                body = {
+                    "message": messages[path],
+                    "action_id": str(uuid.uuid4()),
+                }
+                with (
+                    patch.object(session, "run_player_turn", new=capture_turn),
+                    patch.object(
+                        timed_gameplay,
+                        "continue_travel",
+                        new=capture_continue,
+                    ),
+                    patch("timed_gameplay.travel_dice", return_value=(None, {})),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(
+                            intent="travel",
+                            target_reference=target_id,
+                        ),
+                    ),
+                ):
+                    response = await self.http.post(turn_url, json=body)
+
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(
+                    results[-1]["status"],
+                    "blocked",
+                    f"path={path} result={results[-1]!r}",
+                )
+                self.assertEqual(
+                    response.json()["state"]["location"],
+                    source_id,
+                )
+                if path == "continuation":
+                    self.assertEqual(
+                        continuation_after_world,
+                        continuation_before_world,
+                        msg="blocked continuation mutated canonical world state",
+                    )
+                    self.assertEqual(
+                        continuation_after_rng,
+                        continuation_before_rng,
+                    )
+                    for key in ("location", "journey", "campaign_time"):
+                        self.assertEqual(
+                            session.world_state.get(key),
+                            continuation_before_world.get(key),
+                            msg=f"blocked HTTP continuation changed {key}",
+                        )
+                    http_after_world = copy.deepcopy(session.world_state)
+                    http_after_rng = copy.deepcopy(session.rng.getstate())
+                    first_result_count = len(results)
+                    replay = await self.http.post(turn_url, json=body)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(replay.json(), response.json())
+                    self.assertEqual(len(results), first_result_count)
+                    self.assertEqual(
+                        session.world_state,
+                        http_after_world,
+                    )
+                    self.assertEqual(
+                        session.rng.getstate(),
+                        http_after_rng,
+                    )
+                    campaign_id = self.manager.get(session_id).campaign_id
+                    resumed_manager = SessionManager(
+                        campaign_store=CampaignStore(
+                            self.store.path,
+                            bound_principal=TEST_PLAYER,
+                        )
+                    )
+                    _, resumed, _, _, _ = resumed_manager.resume_campaign(
+                        campaign_id
+                    )
+                    self.assertEqual(
+                        resumed.game_session.world_state,
+                        http_after_world,
+                    )
+                    self.assertEqual(
+                        resumed.game_session.rng.getstate(),
+                        http_after_rng,
+                    )
 
     async def test_discovered_tavern_visit_city_return_and_revisit_survive_resume(self):
         city_id = "fr:city:neverwinter"

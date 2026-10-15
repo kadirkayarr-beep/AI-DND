@@ -2301,13 +2301,13 @@ def _venue_door_for(location_id):
 
 
 def _venue_entry_door(world_state, origin, destination):
-    """Return the closed door belonging to this exact parent-to-venue entry."""
+    """Return a closed registered venue door for any incoming route."""
     locations = world_state.get("locations", {})
     target = locations.get(destination) if isinstance(locations, dict) else None
     if (
         not isinstance(target, dict)
         or target.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
-        or target.get("parent_location_id") != origin
+        or origin == destination
     ):
         return None
     door_id = _venue_door_id(destination)
