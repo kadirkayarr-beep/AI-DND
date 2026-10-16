@@ -393,6 +393,31 @@ def _text_outside_quotes(value: str) -> str:
     )
 
 
+def affirmative_structure_inspection(value: Any, interaction_mode: str | None = None) -> bool:
+    """Ground local-detail inspection in an unquoted first-person current action."""
+    if not isinstance(value, str) or interaction_mode in {"say", "ask_dm"}:
+        return False
+    bare = _text_outside_quotes(value)
+    text = normalize_text(bare)
+    if (
+        not text
+        or "?" in bare
+        or re.search(r"\b(?:if|when|unless|provided|eger|sayet|maybe|perhaps|might|could)\b", text)
+        or re.search(r"\b(?:demiyorum|soylemiyorum|iddia etmiyorum|i do not say|i am not saying)\b", text)
+    ):
+        return False
+    english = re.search(
+        r"\bI\s+(?:am\s+)?(?:inspect|inspecting|examine|examining)\b",
+        bare,
+        re.IGNORECASE,
+    )
+    turkish = re.search(
+        r"\b(?:inceliyorum|arastiriyorum|gozlemliyorum|bakiyorum|gozden\s+geciriyorum)\b",
+        text,
+    )
+    return bool(english or turkish)
+
+
 def _declines_venue_search(value: str) -> bool:
     if _NEGATIVE_RE.search(value):
         return True
