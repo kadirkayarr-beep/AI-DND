@@ -436,17 +436,81 @@ def _obstacle_action(session, message, kind, identity, operation):
     return _reply(session, message, text, check.pop("action", "obstacle_interaction"), time_result=advancement, damage_result=damage, **check)
 
 
-def _natural_venue_door_action(session, message):
-    if not isinstance(message, str) or "?" in message or session is None:
-        return None
-    import campaign_time
-    text = campaign_time.normalize(message)
+_APOSTROPHE_FOLD = str.maketrans({
+    "\u2019": "'",
+    "\u2018": "'",
+    "\u02bc": "'",
+    "\u00b4": "'",
+    "`": "'",
+})
+_EN_AFFIRMATIVE = re.compile(
+    r"\s*i\s+(?:am\s+|do\s+)?(?P<verb>breaking|unlocking|break|unlock)"
+    r"\s+(?:(?:the|my|a|an)\s+)?$"
+)
+_EN_OTHER_OBJECT_TAIL = re.compile(
+    r"\s+(?:after|before|while)\s+(?:i\s+)?(?:am\s+|do\s+)?"
+    r"(?:unlocking|breaking|opening|unlock|break|open)\s+"
+    r"(?:(?:my|the|a|an)\s+)?(?P<object>[a-z0-9']+)"
+    r"(?:\s+[a-z0-9']+){0,3}\s*"
+)
+_TR_BREAK = re.compile(
+    r"\s+(?:omzumla\s+zorlayarak\s+)?"
+    r"(?:kiriyorum|kirmayi\s+deniyorum|kirmaya\s+calisiyorum)\b"
+)
+_TR_UNLOCK = re.compile(
+    r"\s+(?:kilitli\.\s*)?(?:iceri\s+girebilmek\s+icin\s+)?"
+    r"kilid(?:i|ini)\s+ac(?:iyorum|mayi\s+deniyorum|maya\s+calisiyorum)\b"
+)
+
+
+def _strip_quoted_spans(text):
     for opening, closing in (('"', '"'), ("'", "'"), ("“", "”"), ("‘", "’")):
         text = re.sub(
             re.escape(opening) + r".*?" + re.escape(closing),
             " ",
             text,
         )
+    return text
+
+
+def _clause_end(text, end):
+    sentence_end = len(text)
+    for punctuation in ".!?;":
+        boundary = text.find(punctuation, end)
+        if boundary != -1:
+            sentence_end = min(sentence_end, boundary)
+    return sentence_end
+
+
+def _english_operation(prefix):
+    match = _EN_AFFIRMATIVE.fullmatch(prefix)
+    if match is None:
+        return None
+    verb = match.group("verb")
+    if verb.startswith("break"):
+        return "break"
+    if verb.startswith("unlock"):
+        return "unlock"
+    return None
+
+
+def _tail_keeps_operation(tail, door_id, door_name):
+    if re.fullmatch(r"\s*", tail):
+        return True
+    if _EN_OTHER_OBJECT_TAIL.fullmatch(tail) is None:
+        return False
+    if door_id and door_id in tail:
+        return False
+    if door_name and door_name in tail:
+        return False
+    return True
+
+
+def _natural_venue_door_action(session, message):
+    if not isinstance(message, str) or "?" in message or session is None:
+        return None
+    import campaign_time
+    text = _strip_quoted_spans(campaign_time.normalize(message)).translate(_APOSTROPHE_FOLD)
     world = session.world_state
     candidates = [
         door for door in world.get("doors", [])
@@ -456,31 +520,16 @@ def _natural_venue_door_action(session, message):
         and door.get("location") == world.get("location")
         and not door.get("hidden", False)
     ]
-
-    operation_patterns = (
-        ("break", "en", re.compile(r"\b(?:break|breaking)\b")),
-        ("unlock", "en", re.compile(r"\b(?:unlock|unlocking)\b")),
-        ("break", "tr", re.compile(
-            r"\b(?:kiriyorum|kirmayi\s+deniyorum|kirmaya\s+calisiyorum)\b"
-        )),
-        ("unlock", "tr", re.compile(
-            r"\bkilid(?:i|ini)\s+ac(?:iyorum|mayi\s+deniyorum|maya\s+calisiyorum)\b"
-        )),
-    )
-    rejected_context = re.compile(
-        r"\b(?:not|never|don't|doesn't|didn't|do\s+not|does\s+not|did\s+not|"
-        r"tried|attempted|was|were|had|yesterday|last\s+\w+|tell|told|say|said|demiyorum)\b"
-    )
-    other_lock_targets = re.compile(r"\b(?:chest|box|sandik|sandigim|kutu)\b")
     resolved = set()
 
     for door in candidates:
         reference_patterns = [
             re.compile(r"(?<![\w:-])" + re.escape(door["id"]) + r"(?![\w:-])")
         ]
+        normalized_name = ""
         name = door.get("name")
         if isinstance(name, str) and name.strip():
-            normalized_name = campaign_time.normalize(name).strip()
+            normalized_name = campaign_time.normalize(name).strip().translate(_APOSTROPHE_FOLD)
             name_pattern = r"\s+".join(
                 re.escape(part) for part in normalized_name.split()
             )
@@ -496,42 +545,28 @@ def _natural_venue_door_action(session, message):
         if not references:
             continue
 
-        for operation, language, pattern in operation_patterns:
-            for verb in pattern.finditer(text):
-                clause_start = max(
-                    text.rfind(".", 0, verb.start()),
-                    text.rfind("!", 0, verb.start()),
-                    text.rfind("?", 0, verb.start()),
-                    text.rfind(";", 0, verb.start()),
-                ) + 1
-                sentence_end = len(text)
-                for punctuation in ".!?;":
-                    boundary = text.find(punctuation, verb.end())
-                    if boundary != -1:
-                        sentence_end = min(sentence_end, boundary)
-                if rejected_context.search(text[clause_start:sentence_end]):
+        for reference in references:
+            clause_start = max(
+                text.rfind(".", 0, reference.start()),
+                text.rfind("!", 0, reference.start()),
+                text.rfind("?", 0, reference.start()),
+                text.rfind(";", 0, reference.start()),
+            ) + 1
+            operation = _english_operation(text[clause_start:reference.start()])
+            if operation is not None:
+                sentence_end = _clause_end(text, reference.end())
+                tail = text[reference.end():sentence_end]
+                if _tail_keeps_operation(tail, door["id"], normalized_name):
+                    resolved.add((door["id"], operation))
+            remainder = text[reference.end():]
+            for pattern, operation in ((_TR_BREAK, "break"), (_TR_UNLOCK, "unlock")):
+                verb = pattern.match(remainder)
+                if verb is None:
                     continue
-                for reference in references:
-                    if verb.end() <= reference.start():
-                        gap = text[verb.end():reference.start()]
-                        if re.fullmatch(r"\s+(?:(?:the|my|a|an)\s+)?", gap):
-                            resolved.add((door["id"], operation))
-                    elif language == "tr" and reference.end() <= verb.start():
-                        gap = text[reference.end():verb.start()]
-                        if operation == "break":
-                            if re.fullmatch(
-                                r"\s+(?:omzumla\s+zorlayarak\s+)?",
-                                gap,
-                            ):
-                                resolved.add((door["id"], operation))
-                        elif (
-                            re.fullmatch(
-                                r"\s+(?:(?:kilitli\.\s*)?(?:iceri girebilmek icin\s*)?)",
-                                gap,
-                            )
-                            and not other_lock_targets.search(gap)
-                        ):
-                            resolved.add((door["id"], operation))
+                verb_end = reference.end() + verb.end()
+                tail = text[verb_end:_clause_end(text, verb_end)]
+                if re.fullmatch(r"\s*", tail):
+                    resolved.add((door["id"], operation))
 
     return next(iter(resolved)) if len(resolved) == 1 else None
 

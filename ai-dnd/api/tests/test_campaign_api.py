@@ -1802,6 +1802,15 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "Eski Han Kapısını inceliyorum ve bir dalı kırıyorum.",
             "Kael Hanı Kapısını kırmayı deniyorum demiyorum.",
             "Kael Hanı Kapısını incelerken bir dalı kırıyorum.",
+            "I don’t break Old Inn Door.",
+            "I won't break Old Inn Door.",
+            "I used to break Old Inn Door.",
+            "Kael Hanı Kapısını kırıyorum demedim.",
+            "I won’t unlock Old Inn Door.",
+            "I used to unlock Old Inn Door.",
+            "Kael Hanı Kapısını kilidini açmayı deniyorum demedim.",
+            "I break a branch beside Old Inn Door.",
+            "People say I break Old Inn Door.",
         )
 
         def entity_ids(world, key):
@@ -2014,6 +2023,90 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(long_door["broken"])
         self.assertTrue(long_door["open"])
         self.assertFalse(long_door["locked"])
+
+    async def test_natural_venue_door_api_accepts_plain_english_break_and_unlock(self):
+        network_block = patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        )
+        with network_block:
+            _, _, break_session, break_url, _, break_door = await create_city_with_locked_tavern(self)
+        break_door.update({
+            "name": "Old Inn Door",
+            "description": "Old Inn Door",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        break_attempts = []
+        real_break = break_session.run_player_turn
+
+        @wraps(real_break)
+        def capture_break(*args, **kwargs):
+            result = real_break(*args, **kwargs)
+            break_attempts.append(copy.deepcopy(result.get("action_result")))
+            return result
+
+        with (
+            network_block,
+            patch("game.roll_d20", return_value=20),
+            patch.object(break_session, "run_player_turn", new=capture_break),
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(intent="narrative"),
+            ),
+        ):
+            broken = await self.http.post(
+                break_url,
+                json={"message": "I break Old Inn Door.", "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(broken.status_code, 200, broken.text)
+        self.assertEqual(len(break_attempts), 1)
+        self.assertEqual(break_attempts[0]["action"], "skill_check")
+        self.assertEqual(break_attempts[0]["skill"], "Athletics")
+        self.assertTrue(break_door["broken"])
+        self.assertTrue(break_door["open"])
+        self.assertFalse(break_door["locked"])
+
+        with network_block:
+            _, _, unlock_session, unlock_url, _, unlock_door = await create_city_with_locked_tavern(self)
+        unlock_door.update({
+            "name": "Old Inn Door",
+            "description": "Old Inn Door",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        before_world = copy.deepcopy(unlock_session.world_state)
+        before_rng = unlock_session.rng.getstate()
+        unlock_attempts = []
+        real_unlock = unlock_session.run_player_turn
+
+        @wraps(real_unlock)
+        def capture_unlock(*args, **kwargs):
+            result = real_unlock(*args, **kwargs)
+            unlock_attempts.append(copy.deepcopy(result.get("action_result")))
+            return result
+
+        with (
+            network_block,
+            patch.object(unlock_session, "run_player_turn", new=capture_unlock),
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(intent="narrative"),
+            ),
+        ):
+            locked = await self.http.post(
+                unlock_url,
+                json={"message": "I unlock Old Inn Door.", "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(locked.status_code, 400, locked.text)
+        self.assertEqual(locked.json()["detail"]["code"], "thieves_tools_required")
+        self.assertEqual(unlock_attempts, [])
+        self.assertEqual(unlock_session.world_state, before_world)
+        self.assertEqual(unlock_session.rng.getstate(), before_rng)
 
     async def test_venue_gate_targets_legacy_routes_and_campaigns_independently(self):
         city_id, first_id, first, first_url, first_venue_id, first_door = (
