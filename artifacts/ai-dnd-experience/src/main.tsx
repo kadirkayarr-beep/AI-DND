@@ -3,10 +3,12 @@ import { createRoot } from "react-dom/client";
 
 import App from "./App";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { clerkReturnUrl } from "@/lib/clerk-return-url";
 
 import "./index.css";
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkReturn = clerkReturnUrl(import.meta.env.BASE_URL, window.location.href);
 
 createRoot(document.getElementById("root")!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.
@@ -18,9 +20,11 @@ createRoot(document.getElementById("root")!, {
     {clerkPublishableKey ? (
       <ClerkProvider
         publishableKey={clerkPublishableKey}
-        signInFallbackRedirectUrl={import.meta.env.BASE_URL}
-        signUpFallbackRedirectUrl={import.meta.env.BASE_URL}
-        afterSignOutUrl={import.meta.env.BASE_URL}
+        signInFallbackRedirectUrl={clerkReturn}
+        signUpFallbackRedirectUrl={clerkReturn}
+        signInForceRedirectUrl={clerkReturn}
+        signUpForceRedirectUrl={clerkReturn}
+        afterSignOutUrl={clerkReturn}
       >
         <App />
       </ClerkProvider>

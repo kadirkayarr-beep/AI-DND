@@ -309,6 +309,8 @@ test('the signed-in shell waits for Clerk and does not persist session tokens', 
   assert.match(access, /ClerkLoading/);
   assert.match(access, /Kapılar açılıyor\.\.\./);
   assert.match(access, /Macera seni bekliyor\./);
+  assert.match(access, /SignInButton mode="modal" fallbackRedirectUrl=\{returnUrl\} forceRedirectUrl=\{returnUrl\}/);
+  assert.match(access, /SignUpButton mode="modal" fallbackRedirectUrl=\{returnUrl\} forceRedirectUrl=\{returnUrl\}/);
   assert.match(access, /<ClerkApiSession>/);
   assert.match(session, /getToken/);
   assert.match(session, /Kapılar açılıyor\.\.\./);
@@ -316,11 +318,34 @@ test('the signed-in shell waits for Clerk and does not persist session tokens', 
   assert.doesNotMatch(app, /new QueryClient/);
 });
 
+function viteSuggestedPath(base, requestUrl) {
+  const pathname = requestUrl.split('?')[0];
+  if (pathname.startsWith(base)) return null;
+  const withSlash = requestUrl.endsWith('/') ? requestUrl : `${requestUrl}/`;
+  if (withSlash === base) return base;
+  const left = base.endsWith('/') ? base.slice(0, -1) : base;
+  const right = requestUrl.startsWith('/') ? requestUrl : `/${requestUrl}`;
+  return left + right;
+}
+
+test('a handshake query on the slashless base makes Vite suggest a doubled path', () => {
+  const base = '/ai-dnd-experience/';
+  const suggested = viteSuggestedPath(base, '/ai-dnd-experience?__clerk_db_jwt=redacted');
+  assert.equal(suggested.split('?')[0], '/ai-dnd-experience/ai-dnd-experience');
+  assert.equal(viteSuggestedPath(base, '/ai-dnd-experience/?__clerk_db_jwt=redacted'), null);
+});
+
 for (const baseUrl of ['/', '/ai-dnd-experience/']) {
   test(`Clerk entrypoint keeps sign-in/sign-up fallbacks and sign-out at ${baseUrl}`, async () => {
     const { transformWithEsbuild } = await import('vite');
     const { runInNewContext } = await import('node:vm');
-    const source = await readFile(new URL('../src/main.tsx', import.meta.url), 'utf8');
+    const [source, helperSource] = await Promise.all([
+      readFile(new URL('../src/main.tsx', import.meta.url), 'utf8'),
+      readFile(new URL('../src/lib/clerk-return-url.ts', import.meta.url), 'utf8'),
+    ]);
+    const helper = await transformWithEsbuild(helperSource, 'clerk-return-url.ts', {
+      loader: 'ts', format: 'cjs',
+    });
     const { code } = await transformWithEsbuild(source, 'main.tsx', {
       loader: 'tsx', jsx: 'automatic', format: 'cjs',
       define: {
@@ -331,7 +356,18 @@ for (const baseUrl of ['/', '/ai-dnd-experience/']) {
     let rendered;
     const provider = Symbol('ClerkProvider');
     const jsx = (type, props) => ({ type, props });
+    const pageUrl = 'http://127.0.0.1:22785/ai-dnd-experience/already?redirect_url=https://evil.example/phish&__clerk_db_jwt=redacted#handoff';
+    const helperModule = { exports: {} };
+    runInNewContext(helper.code, {
+      URL,
+      exports: helperModule.exports,
+      module: helperModule,
+      require() { throw new Error('helper has no dependencies'); },
+    });
+    const clerkReturnUrl = helperModule.exports.clerkReturnUrl;
+    const expected = clerkReturnUrl(baseUrl, pageUrl);
     runInNewContext(code, {
+      window: { location: { href: pageUrl } },
       document: { getElementById: () => ({}) },
       require(name) {
         if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
@@ -339,17 +375,28 @@ for (const baseUrl of ['/', '/ai-dnd-experience/']) {
         if (name === '@clerk/react') return { ClerkProvider: provider };
         if (name === './App') return { default: Symbol('App') };
         if (name === '@/components/error-boundary') return { ErrorBoundary: Symbol('ErrorBoundary') };
+        if (name === '@/lib/clerk-return-url') return helperModule.exports;
         if (name === './index.css') return {};
         throw new Error(`Unexpected entrypoint dependency: ${name}`);
       },
     });
     const clerk = rendered.props.children;
     assert.equal(clerk.type, provider);
-    assert.equal(clerk.props.signInFallbackRedirectUrl, baseUrl);
-    assert.equal(clerk.props.signUpFallbackRedirectUrl, baseUrl);
-    assert.equal(clerk.props.afterSignOutUrl, baseUrl);
-    // Fallbacks leave Clerk's existing valid return URL precedence intact.
-    for (const key of ['signInForceRedirectUrl', 'signUpForceRedirectUrl', 'redirectUrl', 'afterSignInUrl', 'afterSignUpUrl']) {
+    assert.equal(expected, new URL(baseUrl, 'http://127.0.0.1:22785').href);
+    assert.equal((expected.match(/ai-dnd-experience/g) || []).length, baseUrl.includes('ai-dnd-experience') ? 1 : 0);
+    assert.equal(clerk.props.signInFallbackRedirectUrl, expected);
+    assert.equal(clerk.props.signUpFallbackRedirectUrl, expected);
+    assert.equal(clerk.props.afterSignOutUrl, expected);
+    const parsed = new URL(expected);
+    assert.equal(parsed.origin, 'http://127.0.0.1:22785');
+    assert.equal(parsed.pathname, baseUrl);
+    assert.equal(parsed.search, '');
+    assert.equal(parsed.hash, '');
+    assert.equal(parsed.href.includes('evil.example'), false);
+    assert.equal(parsed.href.includes('redirect_url'), false);
+    assert.equal(clerk.props.signInForceRedirectUrl, expected);
+    assert.equal(clerk.props.signUpForceRedirectUrl, expected);
+    for (const key of ['redirectUrl', 'afterSignInUrl', 'afterSignUpUrl']) {
       assert.equal(clerk.props[key], undefined);
     }
   });
