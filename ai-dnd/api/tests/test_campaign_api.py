@@ -18,6 +18,8 @@ from unittest.mock import patch
 
 import httpx
 
+import adventure.templates as adventure_templates
+import adventure.transitions as adventure_transitions
 
 AI_DND_DIR = Path(__file__).resolve().parents[2]
 if str(AI_DND_DIR) not in sys.path:
@@ -26,6 +28,7 @@ if str(AI_DND_DIR) not in sys.path:
 import game
 import campaign_time
 import living_world
+import timed_gameplay
 import local_dialogue
 import quest_catalog
 import api.main as main_module
@@ -44,12 +47,95 @@ from api.session_manager import SessionManager
 from api.tests.auth_fixture import TEST_PLAYER
 
 
+def unlock_venue_door(world_state, tavern_id):
+    """Open a door this test already discovered. Not a player turn."""
+    door_id = f"venue-door:{tavern_id}"
+    matches = [
+        door for door in world_state.get("doors", [])
+        if isinstance(door, dict) and door.get("id") == door_id
+    ]
+    if len(matches) != 1:
+        raise AssertionError(door_id)
+    matches[0]["locked"] = False
+    matches[0]["open"] = True
+
+
+async def create_city_with_locked_tavern(test_case):
+    city_id = "fr:city:neverwinter"
+    created = await test_case.http.post(
+        "/api/game/campaigns",
+        json={"campaign_start": {
+            "setting_id": "forgotten_realms",
+            "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+            "region_id": "fr:region:the_north",
+            "starting_location_id": city_id,
+        }},
+    )
+    test_case.assertEqual(created.status_code, 200, created.text)
+    session_id = created.json()["session_id"]
+    session = test_case.manager.get(session_id).game_session
+    turn_url = f"/api/game/sessions/{session_id}/turn"
+    discovered = await test_case.http.post(
+        turn_url,
+        json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+    )
+    test_case.assertEqual(discovered.status_code, 200, discovered.text)
+    taverns = [
+        identity for identity, location in session.world_state["locations"].items()
+        if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        and location.get("parent_location_id") == city_id
+    ]
+    test_case.assertEqual(len(taverns), 1)
+    tavern_id = taverns[0]
+    door = next(
+        item for item in session.world_state["doors"]
+        if item.get("id") == f"venue-door:{tavern_id}"
+    )
+    test_case.assertTrue(door["locked"])
+    test_case.assertFalse(door["open"])
+    return city_id, session_id, session, turn_url, tavern_id, door
+
+
 class FakeOllamaClient:
     def list(self):
         return {"models": [{"model": "qwen3:8b"}]}
 
     def chat(self, *args, **kwargs):
         raise AssertionError("Campaign API tests must not call a real model.")
+
+
+class ControlledVenueOllamaClient(FakeOllamaClient):
+    """Synthetic intent and narration responses scoped to venue HTTP tests."""
+
+    def __init__(self, intent, target_reference=""):
+        self.intent = intent
+        self.target_reference = target_reference
+
+    def chat(self, *args, **kwargs):
+        schema = kwargs.get("format", {})
+        properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
+        if "intent" in properties:
+            packet = {
+                "intent": self.intent,
+                "action": "travel" if self.intent == "travel" else "narrative",
+                "target": {
+                    "type": "location" if self.intent == "travel" else "none",
+                    "reference": self.target_reference,
+                },
+                "completion": "completed",
+                "confidence": 1.0,
+            }
+        else:
+            packet = {
+                "narration": (
+                    "Yolculuk tamamlandı."
+                    if self.intent == "travel"
+                    else "Kapı açıldı; bulunduğun yer değişmedi."
+                ),
+                "world_updates": {},
+                "lore_claims": [],
+            }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
@@ -403,6 +489,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?",
             "Buralarda bir tücaar var mı?",
+            "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.",
+            "Buralarda bir tücaar var mı?",
         ]
         requests = [
             {"message": message, "action_id": str(uuid.uuid4())}
@@ -411,10 +499,45 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         turns = []
         engine_results = []
 
-        async def execute_and_replay(http, session_id, game_session, body, index):
+        def merchant_state_snapshot(game_session):
+            world = game_session.world_state
+            scene_state = world.get("scene_state", {})
+            return copy.deepcopy({
+                "npcs": world.get("npcs", []),
+                "shops": world.get("shops", []),
+                "locations": world.get("locations", {}),
+                "doors": world.get("doors", []),
+                "features": world.get("features", []),
+                "inventory": world.get("inventory"),
+                "currency": world.get("currency"),
+                "quests": world.get("quests"),
+                "quest_offers": world.get("quest_offers"),
+                "item_rewards": world.get("item_rewards"),
+                "quest_processed_event_ids": world.get("quest_processed_event_ids"),
+                "world_events": world.get("events"),
+                "scheduled_events": world.get("scheduled_events"),
+                "scene_state": scene_state,
+                "rng": game_session.rng.getstate(),
+            })
+
+        async def execute_and_replay(
+            http,
+            session_id,
+            game_session,
+            body,
+            index,
+            *,
+            expected_action,
+            expected_status,
+            expected_success=True,
+            assert_read_only=False,
+        ):
             # Observe the real engine boundary: TurnResponse deliberately exposes
             # narration/state rather than the living-world action_result.
             real_turn = game_session.run_player_turn
+            state_before = (
+                merchant_state_snapshot(game_session) if assert_read_only else None
+            )
 
             @wraps(real_turn)
             def capture_turn(*args, **kwargs):
@@ -431,10 +554,15 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(turn["narration"].strip())
                 self.assertEqual(turn["state"]["location"], city_id)
                 result = engine_results[-1]
-                self.assertEqual(result["action"], "explore" if index == 0 else "local_search")
-                self.assertEqual(result["status"], "observed" if index == 0 else "found")
-                self.assertTrue(result["success"])
+                self.assertEqual(result["action"], expected_action)
+                self.assertEqual(result["status"], expected_status)
+                self.assertEqual(result["success"], expected_success)
                 self.assertTrue(result["direct_response"].strip())
+                if assert_read_only:
+                    self.assertEqual(result["state_changes"], [])
+                    self.assertEqual(
+                        merchant_state_snapshot(game_session), state_before
+                    )
                 before_replay = copy.deepcopy(game_session.serialize_game_state())
                 replay = await http.post(url, json=body)
                 self.assertEqual(replay.status_code, 200, replay.text)
@@ -448,7 +576,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             turns.append(turn)
 
         await execute_and_replay(
-            self.http, created["session_id"], session, requests[0], 0
+            self.http,
+            created["session_id"],
+            session,
+            requests[0],
+            0,
+            expected_action="explore",
+            expected_status="observed",
         )
         scene = copy.deepcopy(session.world_state["scene_state"]["scenes"][city_id])
         self.assertEqual(scene["kind"], "city")
@@ -473,8 +607,39 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(resumed.json()["state"], turns[0]["state"])
             session_id = resumed.json()["session_id"]
             loaded = reloaded_manager.get(session_id).game_session
-            for index in (1, 2):
-                await execute_and_replay(http, session_id, loaded, requests[index], index)
+            await execute_and_replay(
+                http, session_id, loaded, requests[1], 1,
+                expected_action="local_search", expected_status="found",
+            )
+            self.assertEqual(loaded.world_state.get("shops", []), [])
+            self.assertFalse(any(
+                npc.get("location") == city_id
+                and game._is_shopkeeper_role(npc.get("role"))
+                for npc in loaded.world_state.get("npcs", [])
+                if isinstance(npc, dict)
+            ))
+            await execute_and_replay(
+                http, session_id, loaded, requests[2], 2,
+                expected_action="local_search",
+                expected_status="unavailable",
+                expected_success=False,
+                assert_read_only=True,
+            )
+            await execute_and_replay(
+                http, session_id, loaded, requests[3], 3,
+                expected_action="shop_setup", expected_status="created",
+            )
+            created_shop = engine_results[3]["shop_id"]
+            created_shopkeeper = engine_results[3]["shopkeeper_id"]
+            self.assertEqual(len(loaded.world_state["shops"]), 1)
+            self.assertEqual(loaded.world_state["shops"][0]["id"], created_shop)
+            self.assertEqual(
+                loaded.world_state["shops"][0]["shopkeeper_id"], created_shopkeeper
+            )
+            await execute_and_replay(
+                http, session_id, loaded, requests[4], 4,
+                expected_action="local_search", expected_status="found",
+            )
 
         world = loaded.world_state
         tavern_id = engine_results[1]["target_id"]
@@ -484,9 +649,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tavern["exit_location_id"], city_id)
         self.assertEqual(len(world["shops"]), 1)
         shop = world["shops"][0]
-        self.assertEqual(shop["id"], engine_results[2]["shop_id"])
+        self.assertEqual(shop["id"], engine_results[4]["shop_id"])
         self.assertEqual(shop["location"], city_id)
-        self.assertEqual(shop["shopkeeper_id"], engine_results[2]["target_id"])
+        self.assertEqual(shop["shopkeeper_id"], engine_results[4]["target_id"])
         shopkeeper = next(npc for npc in world["npcs"] if npc["id"] == shop["shopkeeper_id"])
         self.assertEqual(shopkeeper["location"], city_id)
         self.assertEqual(world["location"], city_id)
@@ -526,7 +691,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )
                     self.assertEqual(reopened.serialize_game_state(), saved_state)
             self.assertEqual(
-                len(self.store.get_campaign(created["campaign_id"]).history), 3
+                len(self.store.get_campaign(created["campaign_id"]).history),
+                len(requests),
             )
 
     async def test_failed_tavern_discovery_is_rolled_back_and_retry_commits_once(self):
@@ -548,6 +714,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(created["session_id"])
         session = record.game_session
         url = f"/api/game/sessions/{created['session_id']}/turn"
+        materialization_body = {
+            "message": "Etrafıma bakıyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        materialized = await self.http.post(url, json=materialization_body)
+        self.assertEqual(materialized.status_code, 200, materialized.text)
+        self.assertEqual(materialized.json()["state"]["location"], city_id)
+        self.assertTrue(
+            session.world_state["scene_state"]["scenes"][city_id]["materialized"]
+        )
         observation_body = {
             "message": "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "action_id": str(uuid.uuid4()),
@@ -570,6 +746,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(observation_results[0]["action"], "explore")
         self.assertEqual(observation_results[0]["status"], "observed")
         self.assertTrue(observation_results[0]["success"])
+        self.assertEqual(observation_results[0]["state_changes"], [])
         self.assertNotEqual(observed.json()["state"], created["state"])
         self.assertTrue(record.journal["notable_events"])
         self.assertIn(
@@ -601,9 +778,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             before_save["world_state"]["scene_state"]["scenes"][city_id]["materialized"]
         )
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(
-            before_campaign.history[0]["player_message"], observation_body["message"]
+            before_campaign.history[0]["player_message"],
+            materialization_body["message"],
+        )
+        self.assertEqual(
+            before_campaign.history[1]["player_message"], observation_body["message"]
         )
         self.assertEqual(before_campaign.payload["engine_save"], before_save)
         self.assertEqual(before_campaign.payload["journal"], before_journal)
@@ -739,7 +920,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         committed_campaign = self.store.get_campaign(campaign_id)
         self.assertEqual(committed_campaign.payload["engine_save"], committed_save)
         self.assertEqual(committed_campaign.payload["journal"], committed_journal)
-        self.assertEqual(len(committed_campaign.history), 2)
+        self.assertEqual(len(committed_campaign.history), 3)
         self.assertEqual(committed_campaign.history[:-1], before_campaign.history)
         self.assertEqual(
             self.manager.get_turn_action(record, observation_body["action_id"]),
@@ -1192,6 +1373,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(discovery_results[0]["status"], "found")
         self.assertTrue(discovery_results[0]["success"])
         tavern_id = discovery_results[0]["target_id"]
+        unlock_venue_door(original_session.world_state, tavern_id)
         entered = await self.http.post(
             turn_url,
             json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
@@ -1305,6 +1487,562 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             question_receipt,
         )
 
+    async def test_locked_venue_blocks_timed_travel_by_location_id(self):
+        city_id = "fr:city:neverwinter"
+        created = await self.http.post(
+            "/api/game/campaigns",
+            json={
+                "campaign_start": {
+                    "setting_id": "forgotten_realms",
+                    "region_pack_id": "fr:pack:the_north:neverwinter:v1",
+                    "region_id": "fr:region:the_north",
+                    "starting_location_id": city_id,
+                },
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        session_id = created.json()["session_id"]
+        session = self.manager.get(session_id).game_session
+        turn_url = f"/api/game/sessions/{session_id}/turn"
+        discovered = await self.http.post(
+            turn_url,
+            json={
+                "message": "Yakınlarda bir taverna arıyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(discovered.status_code, 200, discovered.text)
+        venues = [
+            (identity, location)
+            for identity, location in session.world_state["locations"].items()
+            if isinstance(location, dict)
+            and location.get("scene_kind") == "tavern"
+            and location.get("parent_location_id") == city_id
+        ]
+        self.assertEqual(len(venues), 1)
+        venue_id, venue = venues[0]
+        door_id = f"venue-door:{venue_id}"
+        door = next(item for item in session.world_state["doors"] if item.get("id") == door_id)
+        self.assertTrue(door["locked"])
+        self.assertFalse(door["open"])
+        elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
+
+        action_results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            action_results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        travel_body = {
+            "message": f"{venue_id} konumuna gidiyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with (
+            patch.object(session, "run_player_turn", new=capture_turn),
+            patch("timed_gameplay.travel_dice", return_value=(None, {})),
+        ):
+            response = await self.http.post(
+                turn_url,
+                json=travel_body,
+            )
+            repeated = await self.http.post(turn_url, json=travel_body)
+            named = await self.http.post(
+                turn_url,
+                json={
+                    "message": f"{venue['name']} konumuna gidiyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(repeated.status_code, 200, repeated.text)
+        self.assertEqual(repeated.json(), response.json())
+        self.assertEqual(named.status_code, 200, named.text)
+        self.assertEqual(action_results[-1]["action"], "travel")
+        self.assertEqual(action_results[-1]["status"], "blocked")
+        self.assertFalse(action_results[-1]["success"])
+        self.assertEqual(action_results[-2]["status"], "blocked")
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(
+            session.world_state["campaign_time"]["elapsed_seconds"],
+            elapsed_before,
+        )
+        self.assertEqual(response.json()["state"]["location"], city_id)
+
+        before_journey = {
+            "origin": city_id,
+            "destination": venue_id,
+            "stages": [300],
+            "stage_index": 0,
+            "stage_spent_seconds": 150,
+            "stage_checked": True,
+            "status": "INTERRUPTED",
+            "encounter": None,
+            "recent_patterns": [],
+        }
+        session.world_state["journey"] = copy.deepcopy(before_journey)
+        journey_snapshot = copy.deepcopy(session.world_state["journey"])
+        elapsed_before_continue = session.world_state["campaign_time"]["elapsed_seconds"]
+        first_continue = timed_gameplay.continue_travel(session)
+        after_first_continue = copy.deepcopy(session.world_state)
+        second_continue = timed_gameplay.continue_travel(session)
+        self.assertEqual(first_continue["status"], "blocked")
+        self.assertEqual(second_continue["status"], "blocked")
+        self.assertEqual(session.world_state["journey"], journey_snapshot)
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(
+            session.world_state["campaign_time"]["elapsed_seconds"],
+            elapsed_before_continue,
+        )
+        self.assertEqual(after_first_continue, session.world_state)
+
+    async def test_venue_door_opening_direct_entry_and_exit(self):
+        city_id, session_id, session, turn_url, venue_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            blocked = await self.http.post(
+                turn_url,
+                json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(blocked.status_code, 200, blocked.text)
+            self.assertEqual(results[-1]["status"], "blocked")
+            self.assertEqual(blocked.json()["state"]["location"], city_id)
+
+            # The test opens a known door without introducing a lock-picking rule.
+            door["locked"] = False
+            with patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(intent="narrative"),
+            ):
+                opened = await self.http.post(
+                    turn_url,
+                    json={"message": "Kapıyı açıyorum.", "action_id": str(uuid.uuid4())},
+                )
+            self.assertEqual(opened.status_code, 200, opened.text)
+            self.assertTrue(door["open"])
+            self.assertEqual(opened.json()["state"]["location"], city_id)
+
+            entered = await self.http.post(
+                turn_url,
+                json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(entered.status_code, 200, entered.text)
+            self.assertEqual(results[-1]["status"], "completed")
+            self.assertEqual(entered.json()["state"]["location"], venue_id)
+
+            exited = await self.http.post(
+                turn_url,
+                json={
+                    "message": "Tavernadan dışarı çıkıyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+            self.assertEqual(exited.status_code, 200, exited.text)
+            self.assertEqual(exited.json()["state"]["location"], city_id)
+
+    async def test_venue_gate_targets_legacy_routes_and_campaigns_independently(self):
+        city_id, first_id, first, first_url, first_venue_id, first_door = (
+            await create_city_with_locked_tavern(self)
+        )
+        other_city_id, second_id, second, second_url, second_campaign_venue_id, second_campaign_door = (
+            await create_city_with_locked_tavern(self)
+        )
+        self.assertEqual(city_id, other_city_id)
+
+        second_venue = copy.deepcopy(first.world_state["locations"][first_venue_id])
+        second_venue_id = "venue:second-test-tavern"
+        second_venue.update({
+            "id": second_venue_id,
+            "name": "İkinci Han",
+            "aliases": ["ikinci han", "second inn"],
+            "parent_location_id": city_id,
+            "exit_location_id": city_id,
+        })
+        first.world_state["locations"][second_venue_id] = second_venue
+        second_venue_door = {
+            **copy.deepcopy(first_door),
+            "id": f"venue-door:{second_venue_id}",
+            "name": "İkinci Han Kapısı",
+            "location": city_id,
+            "open": False,
+            "locked": True,
+        }
+        first.world_state["doors"].append(second_venue_door)
+        first_door["open"] = True
+        first_door["locked"] = False
+
+        with patch("timed_gameplay.travel_dice", return_value=(None, {})):
+            first_entry = await self.http.post(
+                first_url,
+                json={
+                    "message": f"{first_venue_id} konumuna gidiyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(first_entry.status_code, 200, first_entry.text)
+        self.assertEqual(first_entry.json()["state"]["location"], first_venue_id)
+        self.assertTrue(second_venue_door["locked"])
+
+        exit_response = await self.http.post(
+            first_url,
+            json={
+                "message": "Tavernadan dışarı çıkıyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(exit_response.status_code, 200, exit_response.text)
+        self.assertEqual(exit_response.json()["state"]["location"], city_id)
+
+        legacy_id = "venue:legacy-test-tavern"
+        first.world_state["locations"][first_venue_id]["aliases"] = [
+            alias
+            for alias in first.world_state["locations"][first_venue_id].get("aliases", [])
+            if alias.casefold() != "tavern"
+        ]
+        legacy = copy.deepcopy(second_venue)
+        legacy.update({
+            "id": legacy_id,
+            "name": "Eski Han",
+            "aliases": [*legacy.get("aliases", []), legacy_id],
+        })
+        first.world_state["locations"][legacy_id] = legacy
+        first.world_state["locations"][city_id]["travel_routes"] = {
+            "side-forest": [300],
+            legacy_id: [300],
+        }
+        first.world_state["locations"]["side-forest"] = {
+            "id": "side-forest",
+            "name": "Yan Orman",
+            "aliases": ["side-forest"],
+            "region_id": "fr:region:the_north",
+        }
+        with (
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(
+                    intent="travel",
+                    target_reference=legacy_id,
+                ),
+            ),
+            patch("timed_gameplay.travel_dice", return_value=(None, {})),
+        ):
+            legacy_entry = await self.http.post(
+                first_url,
+                json={
+                    "message": f"{legacy_id} konumuna gidiyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(legacy_entry.status_code, 200, legacy_entry.text)
+        self.assertEqual(legacy_entry.json()["state"]["location"], legacy_id)
+
+        # A legacy child with no matching venue-door record remains traversable.
+        first.world_state["location"] = city_id
+        first.world_state["locations"][city_id]["travel_routes"] = {
+            "side-forest": [300],
+        }
+        with (
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(
+                    intent="travel",
+                    target_reference="side-forest",
+                ),
+            ),
+            patch("timed_gameplay.travel_dice", return_value=(None, {})),
+        ):
+            unrelated = await self.http.post(
+                first_url,
+                json={
+                    "message": "side-forest konumuna gidiyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(unrelated.status_code, 200, unrelated.text)
+        self.assertEqual(unrelated.json()["state"]["location"], "side-forest")
+
+        before_second = second.world_state["campaign_time"]["elapsed_seconds"]
+        blocked_second = await self.http.post(
+            second_url,
+            json={
+                "message": f"{second_campaign_venue_id} konumuna gidiyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(blocked_second.status_code, 200, blocked_second.text)
+        self.assertEqual(blocked_second.json()["state"]["location"], city_id)
+        self.assertEqual(second.world_state["location"], city_id)
+        self.assertEqual(
+            second.world_state["campaign_time"]["elapsed_seconds"],
+            before_second,
+        )
+
+    async def test_locked_sibling_venue_blocks_http_and_direct_entry_paths(self):
+        cases = (
+            ("location ID", "venue-id"),
+            ("venue name", "venue-name"),
+            ("direct engine entry", "direct-entry"),
+            ("HTTP continuation", "continuation"),
+        )
+        for label, path in cases:
+            with self.subTest(path=label):
+                city_id, session_id, session, turn_url, source_id, source_door = (
+                    await create_city_with_locked_tavern(self)
+                )
+                source_door["locked"] = False
+                source_door["open"] = True
+                entered = await self.http.post(
+                    turn_url,
+                    json={
+                        "message": "Enter the tavern.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+                self.assertEqual(entered.status_code, 200, entered.text)
+                self.assertEqual(entered.json()["state"]["location"], source_id)
+
+                target_id = "sibling_venue_02"
+                target_name = (
+                    "Taverna Kardeş"
+                    if path == "direct-entry"
+                    else "Kilitli İkinci Mekân"
+                )
+                if path == "direct-entry":
+                    source_location = session.world_state["locations"][source_id]
+                    source_location["aliases"] = [
+                        alias for alias in source_location.get("aliases", [])
+                        if str(alias).casefold() not in {"tavern", "taverna"}
+                    ]
+                target = copy.deepcopy(session.world_state["locations"][source_id])
+                target.update({
+                    "id": target_id,
+                    "name": target_name,
+                    "aliases": (
+                        [target_id, "taverna", "taverna kardeş"]
+                        if path == "direct-entry"
+                        else [target_id, "kilitli ikinci mekân"]
+                    ),
+                    "parent_location_id": city_id,
+                    "exit_location_id": city_id,
+                })
+                session.world_state["locations"][target_id] = target
+                target_door = {
+                    **copy.deepcopy(source_door),
+                    "id": f"venue-door:{target_id}",
+                    "name": "Kilitli Kardeş Han Kapısı",
+                    "location": city_id,
+                    "open": False,
+                    "locked": True,
+                }
+                session.world_state["doors"].append(target_door)
+                self.assertEqual(target["parent_location_id"], city_id)
+                self.assertEqual(
+                    session.world_state["locations"][source_id]["parent_location_id"],
+                    city_id,
+                )
+                self.assertTrue(source_door["open"])
+                self.assertTrue(target_door["locked"])
+                self.assertIs(
+                    game._venue_entry_door(
+                        session.world_state,
+                        source_id,
+                        target_id,
+                    ),
+                    target_door,
+                )
+                self.assertIsNone(
+                    game._venue_entry_door(
+                        session.world_state,
+                        source_id,
+                        source_id,
+                    )
+                )
+                messages = {
+                    "venue-id": f"{target_id} konumuna gidiyorum.",
+                    "venue-name": f"{target_name} konumuna gidiyorum.",
+                    "direct-entry": "Taverna'ya gidiyorum.",
+                    "continuation": "Yolculuğa devam ediyorum.",
+                }
+                continuation_before_world = None
+                continuation_before_rng = None
+                continuation_after_world = None
+                continuation_after_rng = None
+                http_after_world = None
+                http_after_rng = None
+                if path == "continuation":
+                    session.world_state["journey"] = {
+                        "origin": source_id,
+                        "destination": target_id,
+                        "stages": [300],
+                        "stage_index": 0,
+                        "stage_spent_seconds": 150,
+                        "stage_checked": True,
+                        "status": "INTERRUPTED",
+                        "encounter": None,
+                        "recent_patterns": [],
+                    }
+                results = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_turn(*args, **kwargs):
+                    quest = None
+                    if path == "direct-entry":
+                        npc_ids = [
+                            npc.get("id")
+                            for npc in session.world_state.get("npcs", [])
+                            if isinstance(npc, dict)
+                            and isinstance(npc.get("id"), str)
+                        ]
+                        self.assertTrue(npc_ids)
+                        quest = adventure_templates.instantiate(
+                            "BOUNTY",
+                            quest_id="adv.sibling-venue-test",
+                            turn=1,
+                            opportunity_key="opportunity:sibling-venue-test",
+                            creation_evidence="event:sibling-venue-test",
+                            bindings=adventure_templates.prepared_bindings(
+                                source_npc_id=npc_ids[0],
+                                target_npc_id=npc_ids[-1],
+                                location_ids=[city_id],
+                            ),
+                            rumor="Synthetic route fixture for the HTTP regression.",
+                        )
+                        quest = adventure_transitions.transition(
+                            quest, "DISCOVERED", 1
+                        )
+                        quest = adventure_transitions.transition(
+                            quest, "ACTIVE", 2
+                        )
+                        session.world_state["quests"].append(quest)
+                    try:
+                        result = real_turn(*args, **kwargs)
+                    finally:
+                        if quest is not None:
+                            session.world_state["quests"].remove(quest)
+                    results.append(copy.deepcopy(result["action_result"]))
+                    return result
+
+                def capture_continue(target_session):
+                    nonlocal continuation_before_world, continuation_before_rng
+                    nonlocal continuation_after_world, continuation_after_rng
+                    if path == "continuation" and continuation_before_world is None:
+                        continuation_before_world = copy.deepcopy(
+                            target_session.world_state
+                        )
+                        continuation_before_rng = copy.deepcopy(
+                            target_session.rng.getstate()
+                        )
+                    result = real_continue(target_session)
+                    if path == "continuation":
+                        continuation_after_world = copy.deepcopy(
+                            target_session.world_state
+                        )
+                        continuation_after_rng = copy.deepcopy(
+                            target_session.rng.getstate()
+                        )
+                    return result
+
+                real_continue = timed_gameplay.continue_travel
+                body = {
+                    "message": messages[path],
+                    "action_id": str(uuid.uuid4()),
+                }
+                with (
+                    patch.object(session, "run_player_turn", new=capture_turn),
+                    patch.object(
+                        timed_gameplay,
+                        "continue_travel",
+                        new=capture_continue,
+                    ),
+                    patch("timed_gameplay.travel_dice", return_value=(None, {})),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(
+                            intent="travel",
+                            target_reference=target_id,
+                        ),
+                    ),
+                ):
+                    response = await self.http.post(turn_url, json=body)
+
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(
+                    results[-1]["status"],
+                    "blocked",
+                    f"path={path} result={results[-1]!r}",
+                )
+                self.assertEqual(
+                    response.json()["state"]["location"],
+                    source_id,
+                )
+                if path == "continuation":
+                    self.assertEqual(
+                        continuation_after_world,
+                        continuation_before_world,
+                        msg="blocked continuation mutated canonical world state",
+                    )
+                    self.assertEqual(
+                        continuation_after_rng,
+                        continuation_before_rng,
+                    )
+                    for key in ("location", "journey", "campaign_time"):
+                        self.assertEqual(
+                            session.world_state.get(key),
+                            continuation_before_world.get(key),
+                            msg=f"blocked HTTP continuation changed {key}",
+                        )
+                    http_after_world = copy.deepcopy(session.world_state)
+                    http_after_rng = copy.deepcopy(session.rng.getstate())
+                    first_result_count = len(results)
+                    replay = await self.http.post(turn_url, json=body)
+                    self.assertEqual(replay.status_code, 200, replay.text)
+                    self.assertEqual(replay.json(), response.json())
+                    self.assertEqual(len(results), first_result_count)
+                    self.assertEqual(
+                        session.world_state,
+                        http_after_world,
+                    )
+                    self.assertEqual(
+                        session.rng.getstate(),
+                        http_after_rng,
+                    )
+                    campaign_id = self.manager.get(session_id).campaign_id
+                    resumed_manager = SessionManager(
+                        campaign_store=CampaignStore(
+                            self.store.path,
+                            bound_principal=TEST_PLAYER,
+                        )
+                    )
+                    _, resumed, _, _, _ = resumed_manager.resume_campaign(
+                        campaign_id
+                    )
+                    self.assertEqual(
+                        resumed.game_session.world_state,
+                        http_after_world,
+                    )
+                    self.assertEqual(
+                        resumed.game_session.rng.getstate(),
+                        http_after_rng,
+                    )
+
     async def test_discovered_tavern_visit_city_return_and_revisit_survive_resume(self):
         city_id = "fr:city:neverwinter"
         response = await self.http.post(
@@ -1349,6 +2087,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(results[-1]["action"], "local_search")
             self.assertEqual(results[-1]["status"], "found")
             tavern_id = results[-1]["target_id"]
+            unlock_venue_door(session.world_state, tavern_id)
             self.assertEqual(search.json()["state"]["location"], city_id)
             city_visits = session.world_state["scene_state"]["scenes"][city_id][
                 "visit_revision"
@@ -1407,6 +2146,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             loaded = reloaded_manager.get(session_id).game_session
             self.assertEqual(loaded.serialize_game_state(), entered_save)
             resumed_world = loaded.world_state
+            city_visits_after_entry = resumed_world["scene_state"]["scenes"][city_id][
+                "visit_revision"
+            ]
+            self.assertEqual(city_visits_after_entry, city_visits + 1)
             self.assertEqual(resumed_world["locations"][tavern_id], tavern)
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
@@ -1449,7 +2192,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             exited_save = copy.deepcopy(loaded.serialize_game_state())
             self.assertEqual(
@@ -1537,7 +2280,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             self.assertEqual(exited_record.journal, exited_journal)
             self.assertEqual(exited_record.narrative_memory, exited_memory)
@@ -1612,7 +2355,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             revisited_save = copy.deepcopy(loaded.serialize_game_state())
             self.assertEqual(
@@ -4460,12 +5203,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -4646,12 +5400,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -4809,12 +5574,24 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(created_response.status_code, 200, created_response.text)
         created = created_response.json()
         campaign_id = created["campaign_id"]
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                f"/api/game/sessions/{created['session_id']}/turn",
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        turn_url = f"/api/game/sessions/{created['session_id']}/turn"
+        searched = await self.http.post(
+            turn_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            turn_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 
@@ -8040,12 +8817,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         created = created_response.json()
         campaign_id = created["campaign_id"]
         initial_url = f"/api/game/sessions/{created['session_id']}/turn"
-        for message in ("Yakınlarda bir taverna arıyorum.", "Enter the tavern."):
-            entered = await self.http.post(
-                initial_url,
-                json={"message": message, "action_id": str(uuid.uuid4())},
-            )
-            self.assertEqual(entered.status_code, 200, entered.text)
+        searched = await self.http.post(
+            initial_url,
+            json={"message": "Yakınlarda bir taverna arıyorum.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(searched.status_code, 200, searched.text)
+        setup_world = self.manager.get(created["session_id"]).game_session.world_state
+        tavern_ids = [
+            location_id for location_id, location in setup_world["locations"].items()
+            if isinstance(location, dict) and location.get("scene_kind") == "tavern"
+        ]
+        self.assertEqual(len(tavern_ids), 1)
+        unlock_venue_door(setup_world, tavern_ids[0])
+        entered = await self.http.post(
+            initial_url,
+            json={"message": "Enter the tavern.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(entered.status_code, 200, entered.text)
         tavern_id = entered.json()["state"]["location"]
         self.assertNotEqual(tavern_id, city_id)
 

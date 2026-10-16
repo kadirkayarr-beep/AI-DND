@@ -275,7 +275,20 @@ class FrozenNarratorFaultTests(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(after['engine_save']['world_state'], during[1]['engine_save']['world_state'])
                         self.assertEqual(after['rng'], during[1]['rng'])
                         self.assertNotEqual(response.json()['narration'], bad)
-                        self.assertIn('açılır' if expected_success else 'kapalı', response.json()['narration'])
+                        if expected_success:
+                            self.assertIn('açılır', response.json()['narration'])
+                        else:
+                            self.assertIn(
+                                response.json()['narration'],
+                                (
+                                    'Girişim başarısız olur; Han Kapısı kapalı kalır.',
+                                    'Han Kapısı kilitli kalır.',
+                                ),
+                            )
+                            self.assertIs(
+                                after['engine_save']['world_state']['doors'][0]['locked'],
+                                True,
+                            )
                         telemetry = result['_engine_event_evidence']['telemetry']
                         self.assertEqual(telemetry['narration_source'], 'deterministic_fallback')
                         self.assertEqual(telemetry['narration_validation_result'], 'python_fallback')

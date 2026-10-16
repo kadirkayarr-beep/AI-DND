@@ -17,8 +17,40 @@ import development_checks as owner
 from development_archive import Archive
 
 
+CI_PROVENANCE_ENV_KEYS = (
+    "GITHUB_SHA",
+    "GITHUB_WORKFLOW",
+    "GITHUB_RUN_ID",
+    "GITHUB_RUN_ATTEMPT",
+    "GITHUB_EVENT_NAME",
+    "GITHUB_JOB",
+)
+
+
+@contextlib.contextmanager
+def isolated_fixture_ci_provenance():
+    original = {
+        key: os.environ[key]
+        for key in CI_PROVENANCE_ENV_KEYS
+        if key in os.environ
+    }
+    for key in CI_PROVENANCE_ENV_KEYS:
+        os.environ.pop(key, None)
+    try:
+        yield
+    finally:
+        for key in CI_PROVENANCE_ENV_KEYS:
+            os.environ.pop(key, None)
+        os.environ.update(original)
+
+
 class DevelopmentToolingTests(unittest.TestCase):
     def setUp(self):
+        self.ci_environment_scope = isolated_fixture_ci_provenance()
+        self.ci_environment_scope.__enter__()
+        self.addCleanup(
+            self.ci_environment_scope.__exit__, None, None, None
+        )
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.repo = Path(self.temporary.name)
@@ -110,6 +142,61 @@ class DevelopmentToolingTests(unittest.TestCase):
         rows = owner.structural_checks(self.config, state, self.repo,
                                        ci={"GITHUB_SHA": "0" * 40, "GITHUB_RUN_ID": "fixture"})
         self.assertEqual(owner.exit_code(rows), 1)
+
+    def test_foreign_ci_fixture_health_succeeds_and_restores_environment(self):
+        foreign_ci = {
+            "GITHUB_SHA": "f" * 40,
+            "GITHUB_WORKFLOW": "foreign-workflow",
+            "GITHUB_RUN_ID": "987654321",
+            "GITHUB_RUN_ATTEMPT": "3",
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_JOB": "foreign-job",
+        }
+        with patch.dict(os.environ, foreign_ci):
+            original_environment = dict(os.environ)
+            with isolated_fixture_ci_provenance():
+                self.assertTrue(
+                    all(key not in os.environ for key in CI_PROVENANCE_ENV_KEYS)
+                )
+                code, records = self.invoke()
+                self.assertEqual(code, 0, records[-1])
+                self.assertEqual(records[-1]["ci_identity"], {})
+                completion = next(
+                    row for row in records[-1]["checks"]
+                    if row["name"] == "GitHub Actions completion"
+                )
+                self.assertEqual(completion["status"], "NOT RUN")
+            self.assertEqual(dict(os.environ), original_environment)
+
+    def test_foreign_ci_fixture_exception_restores_environment(self):
+        foreign_ci = {
+            "GITHUB_SHA": "e" * 40,
+            "GITHUB_WORKFLOW": "exception-workflow",
+            "GITHUB_RUN_ID": "123456789",
+            "GITHUB_RUN_ATTEMPT": "2",
+            "GITHUB_EVENT_NAME": "workflow_dispatch",
+            "GITHUB_JOB": "exception-job",
+        }
+        with patch.dict(os.environ, foreign_ci):
+            original_environment = dict(os.environ)
+            non_ci_environment = {
+                key: value for key, value in original_environment.items()
+                if key not in CI_PROVENANCE_ENV_KEYS
+            }
+            with self.assertRaisesRegex(RuntimeError, "fixture sentinel"):
+                with isolated_fixture_ci_provenance():
+                    self.assertTrue(
+                        all(key not in os.environ for key in CI_PROVENANCE_ENV_KEYS)
+                    )
+                    self.assertEqual(
+                        {
+                            key: value for key, value in os.environ.items()
+                            if key not in CI_PROVENANCE_ENV_KEYS
+                        },
+                        non_ci_environment,
+                    )
+                    raise RuntimeError("fixture sentinel")
+            self.assertEqual(dict(os.environ), original_environment)
 
     def test_missing_required_infrastructure_is_failure(self):
         (self.repo / "ai-dnd/docs/regression-evidence.md").unlink()

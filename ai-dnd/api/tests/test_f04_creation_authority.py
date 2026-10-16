@@ -23,6 +23,9 @@ def stable(s):
     w=s.world_state
     scene=w.get('scene_state',{})
     return copy.deepcopy({'npcs':w.get('npcs',[]),'shops':w.get('shops',[]),'inventory':w.get('inventory'),
+        'locations':w.get('locations',{}),'doors':w.get('doors',[]),'features':w.get('features',[]),
+        'materialized_scenes':{key:value for key,value in scene.get('scenes',{}).items()
+                               if isinstance(value,dict) and value.get('materialized')},
         'rng':s.rng.getstate(),'events':scene.get('ambient_event_history',[]),'counts':scene.get('ambient_event_counts',{}),
         'currency':w.get('currency'),'quests':w.get('quests'),'processed_quest_events':w.get('quest_processed_event_ids'),
         'world_events':w.get('events'),'scheduled_events':w.get('scheduled_events')})
@@ -37,7 +40,20 @@ class CreationAuthorityTests(unittest.TestCase):
         self.assertEqual(result['action_result']['status'],'unavailable')
 
     def test_passive_planning_does_not_materialize_scene(self):
+        adversarial = (
+            "Etrafımda neler var diye bakarken kim olduğunu merak edip "
+            "çevreyi gözlemliyorum."
+        )
+        self.assertIsNone(living_world.affirmative_scene_intent(adversarial))
+        quoted_report = 'Önceki anlatıda "etrafımda neler var gözlemliyorum" yazıyordu.'
+        denied_report = "Etrafımda neler var gözlemliyorum demedim."
+        for message in (quoted_report, denied_report):
+            with self.subTest(message=message):
+                self.assertIsNone(living_world.affirmative_scene_intent(message))
         cases=[('Burada kim var?',None),('Etrafımda neler var?',None),('Tüccar var mı?',None),
+            (adversarial,None),
+            (quoted_report,None),(denied_report,None),
+            ('Daha önce etrafımda neler olduğunu gözlemlemiştim.',None),
             ('Muhafız nerede?',None),('Yolcu hakkında ne biliyorum?',None),
             ('Muhafıza yaklaşmıyorum.',None),('Etrafıma bakmıyorum.',None),
             ('Etrafıma bakma.',None),('Bir tüccar aramıyorum.',None),
@@ -50,8 +66,12 @@ class CreationAuthorityTests(unittest.TestCase):
 
     def test_explicit_observation_still_materializes_real_scene(self):
         s=city_session()
+        observation = "Şehirde dolanırken etrafımda neler var gözlemliyorum."
+        intent = living_world.affirmative_scene_intent(observation)
+        self.assertIsNotNone(intent)
+        self.assertEqual(intent[0], "look")
         with patch('game.ollama.chat',side_effect=AssertionError('no inference')) as model:
-            s.run_player_turn('Etrafıma bakıyorum.')
+            s.run_player_turn(observation)
         self.assertEqual(model.call_count,0)
         self.assertGreaterEqual(len(s.world_state['npcs']),2)
         self.assertTrue(s.world_state['scene_state']['scenes']['fr:city:neverwinter']['materialized'])

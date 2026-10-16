@@ -1096,6 +1096,20 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(tavern["parent_location_id"], self.root_location)
         self.assertEqual(tavern["exit_location_id"], self.root_location)
         self.assertEqual(tavern["reality_layer"], "PROCEDURAL_LOCAL_FICTION")
+        self.assertIn("kapalı ve kilitli", search["direct_result"]["direct_response"])
+        self.world["flags"]["turn_index"] += 1
+
+        blocked = self.session.plan_living_world_turn("Enter the tavern.")
+        self.assertEqual(blocked["direct_result"]["status"], "blocked")
+        self.assertEqual(self.world["location"], self.root_location)
+        door = next(
+            item for item in self.world["doors"]
+            if item.get("id") == f"venue-door:{tavern_id}"
+        )
+        self.assertTrue(door["locked"])
+        self.assertFalse(door["open"])
+        door["locked"] = False
+        door["open"] = True
         self.world["flags"]["turn_index"] += 1
 
         enter = self.session.plan_living_world_turn("Enter the tavern.")
@@ -1140,6 +1154,12 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertEqual(tavern["parent_location_id"], self.root_location)
         self.assertEqual(self.world["location"], self.root_location)
         phrase = f"{tavern['name']} içine giriyorum."
+        door = next(
+            item for item in self.world["doors"]
+            if item.get("id") == f"venue-door:{tavern_id}"
+        )
+        door["locked"] = False
+        door["open"] = True
 
         with patch("game.ollama.chat", side_effect=AssertionError("model")):
             entered = self.session.run_player_turn(phrase)
@@ -1875,6 +1895,12 @@ class PlayableLivingWorldTests(unittest.TestCase):
             "Yakınlarda bir taverna arıyorum."
         )
         tavern_id = search["direct_result"]["target_id"]
+        door = next(
+            item for item in self.world["doors"]
+            if item.get("id") == f"venue-door:{tavern_id}"
+        )
+        door["locked"] = False
+        door["open"] = True
         self.world["flags"]["turn_index"] += 1
         enter = self.session.plan_living_world_turn(
             "Taverna içine giriyorum."
@@ -1895,6 +1921,91 @@ class PlayableLivingWorldTests(unittest.TestCase):
         )
         self.assertEqual(repeated["direct_result"]["target_id"], tavern_id)
         self.assertEqual(self.world["location"], tavern_id)
+
+    def _force_athletics(self, roll):
+        self.session.character["modifiers"]["strength"] = 0
+        self.session.character["proficient_skills"] = []
+        self.session.character["proficiency_bonus"] = 2
+        self.session.rng.randint = lambda _a, _b: roll
+
+    def test_new_tavern_door_opens_or_stays_locked_and_reloads(self):
+        search = self.session.plan_living_world_turn("Yakınlarda bir taverna arıyorum.")
+        tavern_id = search["direct_result"]["target_id"]
+        again = self.session.plan_living_world_turn("Yakınlarda bir taverna arıyorum.")
+        self.assertEqual(again["direct_result"]["target_id"], tavern_id)
+        doors = [
+            door for door in self.world["doors"]
+            if door.get("id") == game._venue_door_id(tavern_id)
+        ]
+        self.assertEqual(len(doors), 1)
+        self.assertTrue(doors[0]["locked"])
+        self.assertFalse(doors[0]["open"])
+        self.assertEqual(doors[0]["location"], self.root_location)
+
+        self._force_athletics(1)
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            failed = self.session.run_player_turn("Kapıyı açmaya çalışıyorum.")
+        self.assertEqual(failed["action_result"]["outcome"], "failure")
+        self.assertFalse(doors[0]["open"])
+        self.assertEqual(self.world["location"], self.root_location)
+        self.assertIn("kilitli kalır", failed["narration"])
+        failed_telemetry = failed["_engine_event_evidence"]["telemetry"]
+        self.assertLessEqual(failed_telemetry["total_model_calls"], 2)
+        self.assertEqual(failed_telemetry["narration_model_calls"], 1)
+        self.assertEqual(failed_telemetry["narration_source"], "deterministic_fallback")
+
+        self._force_athletics(19)
+        rejected = "Kapı kilitli kalır."
+        calls = {"count": 0}
+
+        def contradict(_model=None, **_kwargs):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise AssertionError("intent")
+            return {"message": {"content": json.dumps({
+                "valid_response": True,
+                "narration": rejected,
+                "lore_claims": [],
+                "world_updates": {},
+            })}}
+
+        with patch("game.ollama.chat", side_effect=contradict):
+            opened = self.session.run_player_turn("Kapıyı açmaya çalışıyorum.")
+        self.assertEqual(opened["action_result"]["outcome"], "success")
+        self.assertTrue(doors[0]["open"])
+        self.assertFalse(doors[0]["locked"])
+        self.assertEqual(self.world["location"], self.root_location)
+        self.assertIn("açılır", opened["narration"])
+        self.assertNotIn(rejected, opened["narration"])
+        self.assertNotIn(rejected, self.session.recent_dm_narrations)
+        self.assertEqual(len(doors), 1)
+        opened_telemetry = opened["_engine_event_evidence"]["telemetry"]
+        self.assertEqual(opened_telemetry["narration_source"], "deterministic_fallback")
+        self.assertLessEqual(opened_telemetry["total_model_calls"], 2)
+        self.assertEqual(opened_telemetry["narration_model_calls"], 1)
+
+        entered = self.session.plan_living_world_turn("Enter the tavern.")
+        self.assertEqual(entered["direct_result"]["status"], "completed")
+        self.assertEqual(self.world["location"], tavern_id)
+
+        import tempfile
+        from pathlib import Path
+        path = Path(tempfile.mkdtemp()) / "venue-door.json"
+        self.session.save_game(path)
+        loaded = game.create_session(seed=99)
+        loaded.load_game(path)
+        loaded_door = next(
+            door for door in loaded.world_state["doors"]
+            if door.get("id") == game._venue_door_id(tavern_id)
+        )
+        self.assertTrue(loaded_door["open"])
+        self.assertFalse(loaded_door["locked"])
+        self.assertEqual(loaded.world_state["location"], tavern_id)
+        other = game.create_session(seed=3)
+        self.assertFalse(any(
+            isinstance(door, dict) and door.get("id") == loaded_door["id"]
+            for door in other.world_state.get("doors", [])
+        ))
 
 
 if __name__ == "__main__":

@@ -369,10 +369,26 @@ def _result(action, text, advancement=None, **extra):
     return result
 
 
+def _venue_entry_door(world, origin, destination):
+    import game
+    return game._venue_entry_door(world, origin, destination)
+
+
+def _blocked_venue_result(door):
+    return _result(
+        "travel",
+        f"{door.get('name', 'Kapı')} kapalı. İçeri geçemezsin.",
+        status="blocked",
+        success=False,
+    )
+
+
 def route_stages(world, destination, pace=None, session=None):
     origin = world.get("location")
     if destination == origin:
         return []
+    if _venue_entry_door(world, origin, destination):
+        return None
     import exploration
     if not exploration.route_allowed(world, origin, destination):
         return None
@@ -416,6 +432,9 @@ def start_travel(session, destination):
         exploration._busy(session, journey=True, movement=True)
     if session.ensure_combat_state()["active"]:
         return _result("travel", "Çatışma sırasında bu yolculuğa başlayamazsın.", status="unsupported", success=False)
+    venue_door = _venue_entry_door(world, world.get("location"), destination)
+    if venue_door:
+        return _blocked_venue_result(venue_door)
     stages = route_stages(world, destination, session=session)
     if stages is None:
         if world.get("blocked_travel_routes", {}).get(world.get("location"), {}).get(destination, False):
@@ -543,6 +562,11 @@ def continue_travel(session):
     if exploration.active(world):
         exploration._busy(session, journey=True, movement=True)
     journey = world["journey"]
+    venue_door = _venue_entry_door(
+        world, journey.get("origin"), journey.get("destination")
+    )
+    if venue_door:
+        return _blocked_venue_result(venue_door)
     journey["status"] = "TRAVELLING"
     journey["encounter"] = None
     seconds = journey["stages"][journey["stage_index"]]
@@ -583,7 +607,15 @@ def continue_travel(session):
         journey["stage_checked"] = bool(journey.get("returning"))
         return _result("travel", "Yolun bu kısmını tamamladın. Devam etmek veya durmak sana kalmış.", advance, status="stage_completed", travel_dice=dice)
     destination = journey["destination"]
-    session.commit_location_change(destination)
+    venue_door = _venue_entry_door(world, journey.get("origin"), destination)
+    if venue_door:
+        journey["status"] = "INTERRUPTED"
+        return _blocked_venue_result(venue_door)
+    if not session.commit_location_change(destination):
+        venue_door = _venue_entry_door(world, journey.get("origin"), destination)
+        if venue_door:
+            journey["status"] = "INTERRUPTED"
+            return _blocked_venue_result(venue_door)
     journey["status"] = "ARRIVED"
     now = world["campaign_time"]["elapsed_seconds"]
     known = process_events(world, now, now, observation={"kind": "arrival", "location_id": destination})

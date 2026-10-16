@@ -346,9 +346,17 @@ def affirmative_scene_intent(value: Any, interaction_mode: str | None = None) ->
         return None
     for clause in re.findall(r"[^.!?;,\n]+[.!?;,\n]?", value):
         text = normalize_text(clause)
-        if "?" in clause or re.search(
-            r"\b(?:kim|ne|neler|nerede|hangi|neden|mi|mu|what|who|where|why)\b", text
-        ):
+        question_words = re.findall(
+            r"\b(?:kim|ne|neler|nerede|hangi|neden|mi|mu|what|who|where|why)\b",
+            text,
+        )
+        observation_clause = text.rstrip(" \t.!?;,")
+        embedded_observation = bool(
+            re.search(r"\bneler\s+var\b.*\bgozlemliyorum$", observation_clause)
+            and all(word == "neler" for word in question_words)
+            and not re.search(r"""["'“”‘’]""", clause)
+        )
+        if "?" in clause or (question_words and not embedded_observation):
             continue
         if _NEGATIVE_RE.search(clause) or re.search(
             r"\b(?:bak|gozlemle|yaklas|gir|cik|otur|bekle|kalk|incele|konus|sor|saldir|vur|seslen|selamla)"

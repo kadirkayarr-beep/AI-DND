@@ -391,19 +391,23 @@ class NarrativeSafetyCalibrationTests(unittest.TestCase):
             player_input="Goblin'e saldırıyorum.",
             action_result=result,
         )["unsafe"])
-        for narration in (
+        self.assertFalse(self.decide(
+            "Goblin ağır bir darbe alır.",
+            player_input="Goblin'e saldırıyorum.",
+            action_result=result,
+        )["unsafe"])
+        other_target = self.decide(
             "Kılıcın başka bir düşmana isabet eder.",
+            player_input="Goblin'e saldırıyorum.",
+            action_result=result,
+        )
+        self.assertEqual(other_target["reason_code"], "COMBAT_RESULT_CONTRADICTION")
+        wrong_damage = self.decide(
             "Goblin 40 hasar alır ve yere düşer.",
-        ):
-            with self.subTest(narration=narration):
-                decision = self.decide(
-                    narration,
-                    player_input="Goblin'e saldırıyorum.",
-                    action_result=result,
-                )
-                self.assertEqual(
-                    decision["reason_code"], "COMBAT_RESULT_CONTRADICTION"
-                )
+            player_input="Goblin'e saldırıyorum.",
+            action_result=result,
+        )
+        self.assertEqual(wrong_damage["reason_code"], "MECHANICAL_NUMBER")
 
     def test_memory_contradiction_is_replaced_and_reason_is_internal(self):
         self.gromm["memory"] = [
