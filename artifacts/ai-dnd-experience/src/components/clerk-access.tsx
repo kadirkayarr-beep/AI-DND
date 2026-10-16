@@ -8,6 +8,9 @@ import {
 } from "@clerk/react";
 import type { ReactNode } from "react";
 import ClerkApiSession from "@/components/clerk-api-session";
+import { clerkReturnUrl } from "@/lib/clerk-return-url";
+
+const returnUrl = clerkReturnUrl(import.meta.env.BASE_URL, window.location.href);
 
 export default function ClerkAccess({ children }: { children: ReactNode }) {
   return (
@@ -90,7 +93,7 @@ export default function ClerkAccess({ children }: { children: ReactNode }) {
                   gap: 12,
                 }}
               >
-                <SignInButton mode="modal">
+                <SignInButton mode="modal" fallbackRedirectUrl={returnUrl} forceRedirectUrl={returnUrl}>
                   <button
                     type="button"
                     style={{
@@ -105,7 +108,7 @@ export default function ClerkAccess({ children }: { children: ReactNode }) {
                     Giriş Yap
                   </button>
                 </SignInButton>
-                <SignUpButton mode="modal">
+                <SignUpButton mode="modal" fallbackRedirectUrl={returnUrl} forceRedirectUrl={returnUrl}>
                   <button
                     type="button"
                     style={{
