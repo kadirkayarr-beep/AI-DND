@@ -489,6 +489,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "Yakınlarda oturup bir şeyler içebileceğim bir yer var mı?",
             "Buralarda bir tücaar var mı?",
+            "Bu kampanya için burada yerel bir dükkân ve tüccar oluştur.",
+            "Buralarda bir tücaar var mı?",
         ]
         requests = [
             {"message": message, "action_id": str(uuid.uuid4())}
@@ -497,10 +499,45 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         turns = []
         engine_results = []
 
-        async def execute_and_replay(http, session_id, game_session, body, index):
+        def merchant_state_snapshot(game_session):
+            world = game_session.world_state
+            scene_state = world.get("scene_state", {})
+            return copy.deepcopy({
+                "npcs": world.get("npcs", []),
+                "shops": world.get("shops", []),
+                "locations": world.get("locations", {}),
+                "doors": world.get("doors", []),
+                "features": world.get("features", []),
+                "inventory": world.get("inventory"),
+                "currency": world.get("currency"),
+                "quests": world.get("quests"),
+                "quest_offers": world.get("quest_offers"),
+                "item_rewards": world.get("item_rewards"),
+                "quest_processed_event_ids": world.get("quest_processed_event_ids"),
+                "world_events": world.get("events"),
+                "scheduled_events": world.get("scheduled_events"),
+                "scene_state": scene_state,
+                "rng": game_session.rng.getstate(),
+            })
+
+        async def execute_and_replay(
+            http,
+            session_id,
+            game_session,
+            body,
+            index,
+            *,
+            expected_action,
+            expected_status,
+            expected_success=True,
+            assert_read_only=False,
+        ):
             # Observe the real engine boundary: TurnResponse deliberately exposes
             # narration/state rather than the living-world action_result.
             real_turn = game_session.run_player_turn
+            state_before = (
+                merchant_state_snapshot(game_session) if assert_read_only else None
+            )
 
             @wraps(real_turn)
             def capture_turn(*args, **kwargs):
@@ -517,10 +554,15 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(turn["narration"].strip())
                 self.assertEqual(turn["state"]["location"], city_id)
                 result = engine_results[-1]
-                self.assertEqual(result["action"], "explore" if index == 0 else "local_search")
-                self.assertEqual(result["status"], "observed" if index == 0 else "found")
-                self.assertTrue(result["success"])
+                self.assertEqual(result["action"], expected_action)
+                self.assertEqual(result["status"], expected_status)
+                self.assertEqual(result["success"], expected_success)
                 self.assertTrue(result["direct_response"].strip())
+                if assert_read_only:
+                    self.assertEqual(result["state_changes"], [])
+                    self.assertEqual(
+                        merchant_state_snapshot(game_session), state_before
+                    )
                 before_replay = copy.deepcopy(game_session.serialize_game_state())
                 replay = await http.post(url, json=body)
                 self.assertEqual(replay.status_code, 200, replay.text)
@@ -534,7 +576,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             turns.append(turn)
 
         await execute_and_replay(
-            self.http, created["session_id"], session, requests[0], 0
+            self.http,
+            created["session_id"],
+            session,
+            requests[0],
+            0,
+            expected_action="explore",
+            expected_status="observed",
         )
         scene = copy.deepcopy(session.world_state["scene_state"]["scenes"][city_id])
         self.assertEqual(scene["kind"], "city")
@@ -559,8 +607,39 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(resumed.json()["state"], turns[0]["state"])
             session_id = resumed.json()["session_id"]
             loaded = reloaded_manager.get(session_id).game_session
-            for index in (1, 2):
-                await execute_and_replay(http, session_id, loaded, requests[index], index)
+            await execute_and_replay(
+                http, session_id, loaded, requests[1], 1,
+                expected_action="local_search", expected_status="found",
+            )
+            self.assertEqual(loaded.world_state.get("shops", []), [])
+            self.assertFalse(any(
+                npc.get("location") == city_id
+                and game._is_shopkeeper_role(npc.get("role"))
+                for npc in loaded.world_state.get("npcs", [])
+                if isinstance(npc, dict)
+            ))
+            await execute_and_replay(
+                http, session_id, loaded, requests[2], 2,
+                expected_action="local_search",
+                expected_status="unavailable",
+                expected_success=False,
+                assert_read_only=True,
+            )
+            await execute_and_replay(
+                http, session_id, loaded, requests[3], 3,
+                expected_action="shop_setup", expected_status="created",
+            )
+            created_shop = engine_results[3]["shop_id"]
+            created_shopkeeper = engine_results[3]["shopkeeper_id"]
+            self.assertEqual(len(loaded.world_state["shops"]), 1)
+            self.assertEqual(loaded.world_state["shops"][0]["id"], created_shop)
+            self.assertEqual(
+                loaded.world_state["shops"][0]["shopkeeper_id"], created_shopkeeper
+            )
+            await execute_and_replay(
+                http, session_id, loaded, requests[4], 4,
+                expected_action="local_search", expected_status="found",
+            )
 
         world = loaded.world_state
         tavern_id = engine_results[1]["target_id"]
@@ -570,9 +649,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tavern["exit_location_id"], city_id)
         self.assertEqual(len(world["shops"]), 1)
         shop = world["shops"][0]
-        self.assertEqual(shop["id"], engine_results[2]["shop_id"])
+        self.assertEqual(shop["id"], engine_results[4]["shop_id"])
         self.assertEqual(shop["location"], city_id)
-        self.assertEqual(shop["shopkeeper_id"], engine_results[2]["target_id"])
+        self.assertEqual(shop["shopkeeper_id"], engine_results[4]["target_id"])
         shopkeeper = next(npc for npc in world["npcs"] if npc["id"] == shop["shopkeeper_id"])
         self.assertEqual(shopkeeper["location"], city_id)
         self.assertEqual(world["location"], city_id)
@@ -612,7 +691,8 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     )
                     self.assertEqual(reopened.serialize_game_state(), saved_state)
             self.assertEqual(
-                len(self.store.get_campaign(created["campaign_id"]).history), 3
+                len(self.store.get_campaign(created["campaign_id"]).history),
+                len(requests),
             )
 
     async def test_failed_tavern_discovery_is_rolled_back_and_retry_commits_once(self):
@@ -634,6 +714,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         record = self.manager.get(created["session_id"])
         session = record.game_session
         url = f"/api/game/sessions/{created['session_id']}/turn"
+        materialization_body = {
+            "message": "Etrafıma bakıyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        materialized = await self.http.post(url, json=materialization_body)
+        self.assertEqual(materialized.status_code, 200, materialized.text)
+        self.assertEqual(materialized.json()["state"]["location"], city_id)
+        self.assertTrue(
+            session.world_state["scene_state"]["scenes"][city_id]["materialized"]
+        )
         observation_body = {
             "message": "Şehirde dolanırken etrafımda neler var gözlemliyorum.",
             "action_id": str(uuid.uuid4()),
@@ -656,6 +746,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(observation_results[0]["action"], "explore")
         self.assertEqual(observation_results[0]["status"], "observed")
         self.assertTrue(observation_results[0]["success"])
+        self.assertEqual(observation_results[0]["state_changes"], [])
         self.assertNotEqual(observed.json()["state"], created["state"])
         self.assertTrue(record.journal["notable_events"])
         self.assertIn(
@@ -687,9 +778,13 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(
             before_save["world_state"]["scene_state"]["scenes"][city_id]["materialized"]
         )
-        self.assertEqual(len(before_campaign.history), 1)
+        self.assertEqual(len(before_campaign.history), 2)
         self.assertEqual(
-            before_campaign.history[0]["player_message"], observation_body["message"]
+            before_campaign.history[0]["player_message"],
+            materialization_body["message"],
+        )
+        self.assertEqual(
+            before_campaign.history[1]["player_message"], observation_body["message"]
         )
         self.assertEqual(before_campaign.payload["engine_save"], before_save)
         self.assertEqual(before_campaign.payload["journal"], before_journal)
@@ -825,7 +920,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         committed_campaign = self.store.get_campaign(campaign_id)
         self.assertEqual(committed_campaign.payload["engine_save"], committed_save)
         self.assertEqual(committed_campaign.payload["journal"], committed_journal)
-        self.assertEqual(len(committed_campaign.history), 2)
+        self.assertEqual(len(committed_campaign.history), 3)
         self.assertEqual(committed_campaign.history[:-1], before_campaign.history)
         self.assertEqual(
             self.manager.get_turn_action(record, observation_body["action_id"]),
@@ -2051,6 +2146,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             loaded = reloaded_manager.get(session_id).game_session
             self.assertEqual(loaded.serialize_game_state(), entered_save)
             resumed_world = loaded.world_state
+            city_visits_after_entry = resumed_world["scene_state"]["scenes"][city_id][
+                "visit_revision"
+            ]
+            self.assertEqual(city_visits_after_entry, city_visits + 1)
             self.assertEqual(resumed_world["locations"][tavern_id], tavern)
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][tavern_id]["visit_revision"],
@@ -2093,7 +2192,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             exited_save = copy.deepcopy(loaded.serialize_game_state())
             self.assertEqual(
@@ -2181,7 +2280,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             self.assertEqual(exited_record.journal, exited_journal)
             self.assertEqual(exited_record.narrative_memory, exited_memory)
@@ -2256,7 +2355,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )
             self.assertEqual(
                 resumed_world["scene_state"]["scenes"][city_id]["visit_revision"],
-                city_visits + 1,
+                city_visits_after_entry + 1,
             )
             revisited_save = copy.deepcopy(loaded.serialize_game_state())
             self.assertEqual(
