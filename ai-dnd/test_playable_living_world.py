@@ -1191,6 +1191,130 @@ class PlayableLivingWorldTests(unittest.TestCase):
         self.assertFalse(living_world.is_tavern_search("Kael Hanı kapısını gözlemliyorum."))
         self.assertEqual(living_world.classify_scene_action("Etrafıma bakıyorum."), "look")
 
+    def test_building_detail_inquiry_does_not_start_a_new_tavern_search(self):
+        sentence = "hanın olduğu binayı araştırıyorum açık pencere varmı bakıyorum"
+        self.assertFalse(living_world.is_tavern_search(sentence))
+        self.assertTrue(living_world.is_anchored_structure_inquiry(sentence))
+        self.assertTrue(living_world.is_tavern_search("Yakınlarda bir taverna arıyorum."))
+        self.assertTrue(
+            living_world.is_tavern_search("Yakınlarda oturup dinlenecek bir han arıyorum.")
+        )
+        self.assertTrue(living_world.is_tavern_search("Yakınlarda han binası var mı?"))
+        self.assertFalse(living_world.is_tavern_search("Han binasını araştırmıyorum."))
+        self.assertFalse(
+            living_world.is_tavern_search(
+                "Muhafıza, 'hanın olduğu binayı araştırıyorum' diyorum."
+            )
+        )
+        self.assertFalse(living_world.is_tavern_search("Şu sandığı araştırıyorum."))
+        self.assertFalse(living_world.is_tavern_search("Yakınlarda bir kütüphane arıyorum."))
+        self.assertTrue(
+            living_world.is_anchored_structure_inquiry(
+                "Hanın bulunduğu binayı gözden geçiriyorum."
+            )
+        )
+        self.assertTrue(
+            living_world.is_anchored_structure_inquiry(
+                "I look at the building the inn is in."
+            )
+        )
+        self.assertTrue(
+            living_world.is_anchored_structure_inquiry("Han binasında açık bir yer var mı?")
+        )
+        self.assertFalse(
+            living_world.is_anchored_structure_inquiry(
+                "Muhafıza, 'hanın olduğu binayı araştırıyorum' diyorum."
+            )
+        )
+
+        before_ids = set(self.world["locations"])
+        before_inventory = copy.deepcopy(self.world["inventory"])
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            missing = self.session.run_player_turn(sentence)
+        self.assertEqual(set(self.world["locations"]), before_ids)
+        self.assertEqual(self.world["location"], self.root_location)
+        self.assertEqual(self.world["inventory"], before_inventory)
+        self.assertNotEqual(missing["action_result"]["action"], "local_search")
+        self.assertNotIn("pencere yok", missing["narration"].casefold())
+        self.assertNotIn("açık pencere", missing["narration"].casefold())
+
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            search = self.session.run_player_turn("Yakınlarda bir taverna arıyorum.")
+        self.assertEqual(search["action_result"]["action"], "local_search")
+        tavern_id = search["action_result"]["target_id"]
+        door = next(
+            item for item in self.world["doors"]
+            if item.get("id") == f"venue-door:{tavern_id}"
+        )
+        before_door = {
+            key: door.get(key) for key in ("open", "locked", "broken")
+        }
+        location_ids = set(self.world["locations"])
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            looked = self.session.run_player_turn(sentence)
+        action = looked["action_result"]
+        self.assertEqual(action["action"], "inspect")
+        self.assertEqual(action["status"], "not_detailed")
+        self.assertEqual(action["target_id"], tavern_id)
+        self.assertEqual(
+            looked["narration"],
+            f"{self.world['locations'][tavern_id]['name']} binasına bakıyorsun. "
+            "Sokağa açılan kapısı kapalı ve kilitli. "
+            "Bu bakışın seçtiği diğer parça henüz ayrıntılandırılmamış.",
+        )
+        self.assertEqual(set(self.world["locations"]), location_ids)
+        self.assertEqual(self.world["location"], self.root_location)
+        self.assertEqual(
+            {key: door.get(key) for key in ("open", "locked", "broken")},
+            before_door,
+        )
+        self.assertEqual(self.world["inventory"], before_inventory)
+        self.assertEqual(
+            looked["_engine_event_evidence"]["telemetry"]["total_model_calls"],
+            0,
+        )
+
+        self.world["features"].append({
+            "id": "feature_sign",
+            "location": self.root_location,
+            "name": "Tabela",
+            "description": "Soluk bir tabela.",
+            "aliases": ["tabela"],
+            "hidden": False,
+        })
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            sign = self.session.run_player_turn(
+                "hanın olduğu binadaki tabelayı inceliyorum."
+            )
+        self.assertEqual(sign["action_result"]["target_id"], "feature_sign")
+        self.assertEqual(sign["narration"], "Tabela: Soluk bir tabela.")
+        self.assertEqual(set(self.world["locations"]), location_ids)
+        self.assertEqual(
+            {key: door.get(key) for key in ("open", "locked", "broken")},
+            before_door,
+        )
+
+        self.world["features"].append({
+            "id": "feature_hidden_latch",
+            "location": self.root_location,
+            "name": "Gizli sürgü",
+            "description": "Gizli sürgü içeri açılıyor.",
+            "aliases": ["sürgü", "surgu"],
+            "hidden": True,
+        })
+        with patch("game.ollama.chat", side_effect=AssertionError("model")):
+            hidden = self.session.run_player_turn(
+                "hanın olduğu binadaki sürgüye bakıyorum."
+            )
+        self.assertEqual(hidden["action_result"]["status"], "not_visible")
+        self.assertNotIn("içeri açılıyor", hidden["narration"].casefold())
+        self.assertNotIn("gizli sürgü", hidden["narration"].casefold())
+        self.assertEqual(self.world["location"], self.root_location)
+        self.assertEqual(
+            {key: door.get(key) for key in ("open", "locked", "broken")},
+            before_door,
+        )
+
     def test_dynamic_venue_door_action_requires_current_affirmative_named_intent(self):
         self.world["location"] = "fr:city:neverwinter"
         door = {

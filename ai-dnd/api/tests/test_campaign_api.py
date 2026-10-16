@@ -138,6 +138,56 @@ class ControlledVenueOllamaClient(FakeOllamaClient):
         return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
 
 
+class ControlledSceneDetailOllamaClient(FakeOllamaClient):
+    """Synthetic provider proposing one new local detail beneath a building."""
+
+    def __init__(self, location_id, parent_id, proposals=None, narration=None):
+        self.location_id = location_id
+        self.parent_id = parent_id
+        self.proposals = proposals
+        self.narration = narration or "Girişte taş bir kartal kabartması göze çarpıyor."
+        self.calls = 0
+        self.last_intent_schema_has_proposals = False
+        self.last_intent_proposals = None
+
+    def chat(self, *args, **kwargs):
+        self.calls += 1
+        properties = kwargs.get("format", {}).get("properties", {})
+        if "intent" in properties:
+            self.last_intent_schema_has_proposals = (
+                "scene_detail_proposals" in properties
+            )
+            packet = {
+                "intent": "explore",
+                "action": "narrative",
+                "target": {"type": "location", "reference": ""},
+                "explore_type": "inspect",
+                "completion": "completed",
+                "confidence": 1.0,
+            }
+            packet["scene_detail_proposals"] = copy.deepcopy(
+                self.proposals if self.proposals is not None else [{
+                    "proposal_key": "f1",
+                    "location": self.location_id,
+                    "parent_id": self.parent_id,
+                    "name": "Taş Kartal Kabartması",
+                    "description": "Giriş kemerinin üstünde taşa işlenmiş küçük bir kartal.",
+                    "kind": "detail",
+                    "aliases": ["taş kartal", "kartal kabartması"],
+                }]
+            )
+            self.last_intent_proposals = copy.deepcopy(
+                packet["scene_detail_proposals"]
+            )
+        else:
+            packet = {
+                "narration": self.narration,
+                "world_updates": {},
+                "lore_claims": [],
+            }
+        return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+
+
 class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
@@ -167,6 +217,16 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         response = await self.http.post("/api/game/campaigns", json={})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
+
+    async def post_scene_turn(self, url, model, body):
+        with (
+            patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ),
+            patch.object(self.app.state.ollama_adapter, "_client", model),
+        ):
+            return await self.http.post(url, json=body)
 
     async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
         legacy = await self.create_campaign()
@@ -1947,6 +2007,840 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         baseline["new_entities"]["npcs"],
                         "The input must not materialize more NPCs than the ordinary-turn control.",
                     )
+
+    async def test_public_turn_accepts_and_persists_parent_linked_scene_detail(self):
+        city_id, session_id, session, turn_url, tavern_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = ControlledSceneDetailOllamaClient(city_id, tavern_id)
+        action_id = str(uuid.uuid4())
+        request_body = {
+            "message": "hanın olduğu binayı araştırıyorum taş kartal kabartmasını inceliyorum",
+            "action_id": action_id,
+        }
+
+        with (
+            patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ),
+            patch.object(self.app.state.ollama_adapter, "_client", model),
+        ):
+            response = await self.http.post(
+                turn_url,
+                json=request_body,
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertGreater(model.calls, 0, "The synthetic proposal must pass through the model adapter.")
+        self.assertLessEqual(model.calls, 2, "One logical turn must keep the existing model-call budget.")
+        feature = next(
+            (
+                row for row in session.world_state.get("features", [])
+                if row.get("name") == "Taş Kartal Kabartması"
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            feature,
+            "The validated local feature should be committed to world state; "
+            f"schema={model.last_intent_schema_has_proposals}, "
+            f"proposal={model.last_intent_proposals!r}",
+        )
+        self.assertEqual(feature.get("parent_id"), tavern_id)
+        history_after_acceptance = len(
+            self.store.get_campaign(self.manager.get(session_id).campaign_id).history
+        )
+        duplicate = await self.http.post(turn_url, json=request_body)
+        self.assertEqual(duplicate.status_code, 200, duplicate.text)
+        self.assertEqual(duplicate.json(), response.json())
+        self.assertEqual(model.calls, 2)
+        self.assertEqual(
+            len(self.store.get_campaign(self.manager.get(session_id).campaign_id).history),
+            history_after_acceptance,
+        )
+
+        campaign_id = self.manager.get(session_id).campaign_id
+        resumed_manager = SessionManager(
+            campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        )
+        resumed_id, _, _, _, _ = resumed_manager.resume_campaign(campaign_id)
+        resumed_session = resumed_manager.get(resumed_id).game_session
+        resumed_app = create_app(
+            session_manager=resumed_manager,
+            ollama_adapter=self.app.state.ollama_adapter,
+            authenticator=FixedAuthenticator(TEST_PLAYER),
+        )
+        persisted_feature = next(
+            (
+                row for row in resumed_session.world_state.get("features", [])
+                if row.get("id") == feature["id"]
+            ),
+            None,
+        )
+        self.assertEqual(persisted_feature, feature)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=resumed_app),
+            base_url="http://testserver",
+        ) as resumed_http:
+            replay_after_resume = await resumed_http.post(
+                f"/api/game/sessions/{resumed_id}/turn",
+                json=request_body,
+            )
+        self.assertEqual(replay_after_resume.status_code, 200, replay_after_resume.text)
+        self.assertEqual(replay_after_resume.json()["action_id"], action_id)
+        self.assertEqual(replay_after_resume.json()["narration"], response.json()["narration"])
+        self.assertEqual(replay_after_resume.json()["state"], response.json()["state"])
+        self.assertEqual(model.calls, 2)
+
+        calls_before_targeted_inspection = model.calls
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=resumed_app),
+            base_url="http://testserver",
+        ) as resumed_http:
+            with (
+                patch(
+                    "socket.socket.connect",
+                    side_effect=AssertionError("External network is disabled in this API test."),
+                ),
+                patch.object(self.app.state.ollama_adapter, "_client", model),
+            ):
+                targeted = await resumed_http.post(
+                    f"/api/game/sessions/{resumed_id}/turn",
+                    json={
+                        "message": "Hanın bulunduğu binadaki taş kartal kabartmasını inceliyorum.",
+                        "action_id": str(uuid.uuid4()),
+                    },
+                )
+        self.assertEqual(targeted.status_code, 200, targeted.text)
+        self.assertIn("Taş Kartal Kabartması", targeted.json()["narration"])
+        self.assertEqual(
+            model.calls,
+            calls_before_targeted_inspection,
+            "A saved detail should resolve through the existing deterministic inspection path.",
+        )
+
+    async def test_parent_detail_with_different_wording_targets_existing_sit_mechanic(self):
+        city_id, _, session, turn_url, tavern_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        proposal = {
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": tavern_id,
+            "name": "Taş Bank",
+            "description": "Giriş duvarının yanında alçak, sağlam bir taş bank.",
+            "kind": "seat",
+            "aliases": ["taş bank", "bank"],
+        }
+        model = ControlledSceneDetailOllamaClient(
+            city_id, tavern_id, proposals=[proposal],
+            narration="Giriş duvarının yanında taş bir bank göze çarpıyor.",
+        )
+        created = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "Hanın bulunduğu binanın girişindeki taş bankı dikkatle inceliyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(model.calls, 2)
+        feature = next(
+            item for item in session.world_state["features"]
+            if item.get("name") == "Taş Bank"
+        )
+        self.assertEqual(feature.get("parent_id"), tavern_id)
+        calls_before_sit = model.calls
+        seated = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "Taş bankta oturuyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(seated.status_code, 200, seated.text)
+        position = session.world_state["scene_state"]["player_position"]
+        self.assertEqual(position["kind"], "seated")
+        self.assertEqual(position["target_id"], feature["id"])
+        self.assertEqual(model.calls, calls_before_sit)
+
+    async def test_parent_detail_stays_bound_to_explicit_venue_with_sibling_venue(self):
+        city_id, _, session, turn_url, venue_a_id, door_a = (
+            await create_city_with_locked_tavern(self)
+        )
+        session.rng.seed(9)
+        venue_a = session.world_state["locations"][venue_a_id]
+        venue_a.update(name="Gümüş Han", aliases=["Gümüş Han"])
+        venue_b_id = f"{venue_a_id}:bakir-han"
+        venue_b = copy.deepcopy(venue_a)
+        venue_b.update(
+            id=venue_b_id,
+            name="Bakır Han",
+            aliases=["Bakır Han"],
+        )
+        session.world_state["locations"][venue_b_id] = venue_b
+        door_b = copy.deepcopy(door_a)
+        door_b.update(
+            id=f"venue-door:{venue_b_id}",
+            name="Bakır Han Kapısı",
+            aliases=["Bakır Han kapısı"],
+        )
+        session.world_state["doors"].append(door_b)
+        parents = [
+            session.world_state["locations"][identity]
+            for identity in (venue_a_id, venue_b_id)
+        ]
+        self.assertTrue(all(
+            parent.get("parent_location_id") == city_id
+            and parent.get("scene_kind") == "tavern"
+            and parent.get("hidden") is not True
+            for parent in parents
+        ))
+
+        proposal_name = "Taş Kartal Kabartması"
+        proposal = {
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": venue_b_id,
+            "name": proposal_name,
+            "description": "Giriş kemerinin üstünde taşa işlenmiş küçük bir kartal.",
+            "kind": "detail",
+            "aliases": ["taş kartal", "kartal kabartması"],
+        }
+        model = ControlledSceneDetailOllamaClient(
+            city_id,
+            venue_a_id,
+            proposals=[proposal],
+            narration=f"{proposal_name}, Bakır Han'ın kuzey duvarında.",
+        )
+        player_request = (
+            "Gümüş Han'ın olduğu binayı araştırıyorum "
+            "taş kartal kabartmasını inceliyorum"
+        )
+        before_entities = {
+            collection: copy.deepcopy(session.world_state[collection])
+            for collection in ("locations", "features", "doors", "shops")
+        }
+        rejected = await self.post_scene_turn(
+            turn_url,
+            model,
+            {"message": player_request, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(rejected.status_code, 200, rejected.text)
+        self.assertNotIn(proposal_name, rejected.json()["narration"])
+        for collection, before in before_entities.items():
+            self.assertEqual(session.world_state[collection], before, collection)
+        self.assertFalse(any(
+            feature.get("name") == proposal_name
+            and feature.get("parent_id") == venue_b_id
+            for feature in session.world_state["features"]
+        ))
+        self.assertEqual(
+            model.last_intent_proposals[0].get("parent_id"),
+            venue_b_id,
+        )
+        self.assertLessEqual(model.calls, 2)
+
+        proposal["parent_id"] = venue_a_id
+        model.narration = f"{proposal_name}, Gümüş Han'ın kuzey duvarında."
+        calls_before_accept = model.calls
+        accepted = await self.post_scene_turn(
+            turn_url,
+            model,
+            {"message": player_request, "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        accepted_feature = next((
+            feature for feature in session.world_state["features"]
+            if feature.get("name") == proposal_name
+        ), None)
+        self.assertIsNotNone(
+            accepted_feature,
+            f"proposal={model.last_intent_proposals!r}; "
+            f"schema={model.last_intent_schema_has_proposals}; "
+            f"features={session.world_state['features']!r}; "
+            f"narration={accepted.json()['narration']!r}",
+        )
+        self.assertEqual(accepted_feature.get("parent_id"), venue_a_id)
+        self.assertNotIn("Bakır Han", accepted.json()["narration"])
+        self.assertFalse(any(
+            feature.get("name") == proposal_name
+            and feature.get("parent_id") == venue_b_id
+            for feature in session.world_state["features"]
+        ))
+        self.assertLessEqual(model.calls - calls_before_accept, 2)
+
+    async def test_scene_authority_finite_api_cases(self):
+        city_id, _, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        session.rng.seed(9)
+        venue = session.world_state["locations"][venue_id]
+        venue.update(name="Gümüş Han", aliases=["Gümüş Han"])
+        model = ControlledSceneDetailOllamaClient(city_id, venue_id)
+        cases = (
+            ("I am not inspecting the inn building.", None),
+            ("If the inn building is empty, I will inspect it.", None),
+            ("The guard inspects the inn building.", None),
+            ("I inspect the sword while standing near the inn building.", None),
+            ("Han binasını araştırıyorum demiyorum.", None),
+            ("I inspect the inn building.", "say"),
+            ("I inspect the inn building.", "ask_dm"),
+            ("Are there windows in the inn building?", "say"),
+            ("Are there windows in the inn building?", "ask_dm"),
+        )
+        initial_elapsed = session.world_state["campaign_time"]["elapsed_seconds"]
+        for index, (message, mode) in enumerate(cases):
+            with self.subTest(message=message, mode=mode):
+                name = f"Authority probe detail {index}"
+                model.proposals = [{
+                    "proposal_key": "f1",
+                    "location": city_id,
+                    "parent_id": venue_id,
+                    "name": name,
+                    "description": f"Untrusted proposal {index}.",
+                    "kind": "detail",
+                    "aliases": [],
+                }]
+                model.narration = f"{name} is here."
+                before_features = copy.deepcopy(session.world_state["features"])
+                calls_before = model.calls
+                body = {"message": message, "action_id": str(uuid.uuid4())}
+                if mode is not None:
+                    body["interaction_mode"] = mode
+                response = await self.post_scene_turn(turn_url, model, body)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(session.world_state["features"], before_features)
+                self.assertNotIn(name, response.json()["narration"])
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"],
+                    initial_elapsed,
+                )
+                self.assertLessEqual(model.calls - calls_before, 2)
+
+        before_observation = copy.deepcopy(session.world_state["features"])
+        observation = await self.post_scene_turn(
+            turn_url,
+            model,
+            {"message": "I look around freely.", "action_id": str(uuid.uuid4())},
+        )
+        self.assertEqual(observation.status_code, 200, observation.text)
+        self.assertEqual(session.world_state["features"], before_observation)
+
+        model.proposals = [{
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": venue_id,
+            "name": "Confirmed ordinary detail",
+            "description": "A small, visible stone carving.",
+            "kind": "detail",
+            "aliases": [],
+        }]
+        model.narration = "A small, visible stone carving is above the entrance."
+        accepted = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "Gümüş Han'ın olduğu binayı araştırıyorum taş kartal kabartmasını inceliyorum",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.text)
+        created = next(
+            (item for item in session.world_state["features"]
+             if item.get("name") == "Confirmed ordinary detail"),
+            None,
+        )
+        self.assertIsNotNone(created)
+        self.assertEqual(created.get("parent_id"), venue_id)
+
+        question_proposal = {
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": venue_id,
+            "name": "Arched upper windows",
+            "description": "Two narrow arched windows above the entrance.",
+            "kind": "detail",
+            "aliases": [],
+        }
+        model.proposals = [question_proposal]
+        model.narration = "There are two narrow arched windows above the entrance."
+        question_calls_before = model.calls
+        exploratory_question = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "Are there windows in the inn building?",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(
+            exploratory_question.status_code, 200, exploratory_question.text
+        )
+        self.assertLessEqual(model.calls - question_calls_before, 2)
+        self.assertEqual(
+            model.last_intent_proposals[0]["parent_id"], venue_id
+        )
+        proposed_window = next(
+            (
+                item for item in session.world_state["features"]
+                if item.get("name") == "Arched upper windows"
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            proposed_window,
+            f"schema={model.last_intent_schema_has_proposals}; "
+            f"intent_proposals={model.last_intent_proposals!r}; "
+            f"response={exploratory_question.json()!r}; "
+            f"features={session.world_state['features']!r}",
+        )
+        self.assertEqual(proposed_window.get("location"), city_id)
+        self.assertEqual(proposed_window.get("parent_id"), venue_id)
+
+    async def test_scene_target_resolution_uses_affirmed_context_and_parent(self):
+        city_id, _, session, turn_url, first_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        first = session.world_state["locations"][first_id]
+        first.update(name="First Inn", aliases=["First Inn"])
+        second_id = f"{first_id}:second-inn"
+        second = copy.deepcopy(first)
+        second.update(id=second_id, name="Second Inn", aliases=["Second Inn"])
+        session.world_state["locations"][second_id] = second
+        model = ControlledSceneDetailOllamaClient(city_id, second_id)
+        model.proposals = [{
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": second_id,
+            "name": "Second Inn detail",
+            "description": "A newly proposed visible detail.",
+            "kind": "detail",
+            "aliases": [],
+        }]
+        response = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "I inspect Second Inn building.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(model.last_intent_proposals[0]["parent_id"], second_id)
+        stored = next(
+            (item for item in session.world_state["features"]
+             if item.get("name") == "Second Inn detail"),
+            None,
+        )
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored.get("parent_id"), second_id)
+
+        session.world_state["features"].extend([
+            {
+                "id": "feature-first-sign",
+                "location": city_id,
+                "parent_id": first_id,
+                "name": "Tabela",
+                "description": "FIRST_PARENT_SIGN_PRIVATE_DETAIL",
+                "kind": "detail",
+                "aliases": ["Tabela"],
+            },
+            {
+                "id": "feature-second-hidden-sign",
+                "location": city_id,
+                "parent_id": second_id,
+                "name": "Gizli Tabela",
+                "description": "HIDDEN_SIGN_PRIVATE_DETAIL",
+                "kind": "detail",
+                "aliases": ["Tabela"],
+                "hidden": True,
+            },
+        ])
+        quoted = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": 'I inspect Second Inn building; "Tabela" is only a word.',
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(quoted.status_code, 200, quoted.text)
+        self.assertNotIn("FIRST_PARENT_SIGN_PRIVATE_DETAIL", quoted.json()["narration"])
+        self.assertNotIn("HIDDEN_SIGN_PRIVATE_DETAIL", quoted.json()["narration"])
+
+        session.world_state["location"] = second_id
+        model.proposals = []
+        second_detail_before = copy.deepcopy(stored)
+        first_parent_features_before = copy.deepcopy([
+            feature for feature in session.world_state["features"]
+            if feature.get("parent_id") == first_id
+        ])
+        inside = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "I inspect Second Inn building and the Second Inn detail.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(inside.status_code, 200, inside.text)
+        self.assertEqual(inside.json()["state"]["location"], second_id)
+        self.assertIn(stored["name"], inside.json()["narration"])
+        self.assertNotIn("First Inn", inside.json()["narration"])
+        self.assertEqual(
+            next(
+                feature for feature in session.world_state["features"]
+                if feature.get("id") == stored["id"]
+            ),
+            second_detail_before,
+        )
+        self.assertEqual(
+            [
+                feature for feature in session.world_state["features"]
+                if feature.get("parent_id") == first_id
+            ],
+            first_parent_features_before,
+        )
+
+        session.world_state["location"] = city_id
+        hidden = next(
+            feature for feature in session.world_state["features"]
+            if feature.get("id") == "feature-second-hidden-sign"
+        )
+        before_hidden = copy.deepcopy(hidden)
+        model.proposals = [{
+            "proposal_key": "f1",
+            "location": city_id,
+            "parent_id": second_id,
+            "name": hidden["name"],
+            "description": "GUESSED_REPLACEMENT_MUST_NOT_OVERWRITE",
+            "kind": "detail",
+            "aliases": ["Tabela"],
+        }]
+        model.narration = "A guessed detail is visible."
+        hidden_guess = await self.post_scene_turn(
+            turn_url,
+            model,
+            {
+                "message": "I inspect Second Inn building.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(hidden_guess.status_code, 200, hidden_guess.text)
+        self.assertEqual(hidden, before_hidden)
+        self.assertNotIn("HIDDEN_SIGN_PRIVATE_DETAIL", hidden_guess.json()["narration"])
+        self.assertNotIn("GUESSED_REPLACEMENT_MUST_NOT_OVERWRITE", hidden_guess.json()["narration"])
+
+    async def test_parent_detail_rejects_canonical_conflict_and_invalid_parents(self):
+        city_id, _, session, turn_url, tavern_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = ControlledSceneDetailOllamaClient(city_id, tavern_id)
+        cases = [
+            {
+                "name": "Yanlış Parent Ayrıntısı",
+                "parent_id": "unknown-parent",
+                "description": "Sıradan bir taş ayrıntısı.",
+            },
+            {
+                "name": "Gizli Parent Ayrıntısı",
+                "parent_id": tavern_id,
+                "description": "Sıradan bir taş ayrıntısı.",
+                "hide_parent": True,
+            },
+            {
+                "name": door["name"],
+                "parent_id": tavern_id,
+                "description": f"{door['name']} artık açık ve kilitsiz.",
+            },
+        ]
+        for index, case in enumerate(cases):
+            with self.subTest(case=case["name"]):
+                if case.get("hide_parent"):
+                    session.world_state["locations"][tavern_id]["hidden"] = True
+                model.proposals = [{
+                    "proposal_key": "f1",
+                    "location": city_id,
+                    "parent_id": case["parent_id"],
+                    "name": case["name"],
+                    "description": case["description"],
+                    "kind": "detail",
+                    "aliases": [],
+                }]
+                model.narration = f"{case['name']} burada bulunuyor."
+                calls_before = model.calls
+                engine_results = []
+                original_turn = session.run_player_turn
+
+                @wraps(original_turn)
+                def capture_turn(*args, **kwargs):
+                    result = original_turn(*args, **kwargs)
+                    engine_results.append(copy.deepcopy(result["action_result"]))
+                    return result
+
+                with patch.object(session, "run_player_turn", new=capture_turn):
+                    response = await self.post_scene_turn(
+                        turn_url,
+                        model,
+                        {
+                            "message": "hanın olduğu binayı araştırıyorum taş kartal kabartmasını inceliyorum",
+                            "action_id": str(uuid.uuid4()),
+                        },
+                    )
+                if case.get("hide_parent"):
+                    session.world_state["locations"][tavern_id].pop("hidden", None)
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertLessEqual(model.calls - calls_before, 2)
+                self.assertTrue(
+                    engine_results[-1].get("scene_detail_proposal_submitted"),
+                    f"engine={engine_results[-1]!r}; proposal={model.last_intent_proposals!r}",
+                )
+                self.assertEqual(
+                    engine_results[-1].get("verified_world_updates", {}).get(
+                        "create_features"
+                    ),
+                    [],
+                )
+                self.assertNotIn(case["name"], response.json()["narration"])
+                self.assertFalse(any(
+                    item.get("name") == case["name"]
+                    for item in session.world_state["features"]
+                ))
+        self.assertTrue(door["locked"])
+        self.assertFalse(door["open"])
+
+    async def test_question_denial_and_false_history_cannot_authorize_scene_details(self):
+        city_id, _, session, turn_url, tavern_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = ControlledSceneDetailOllamaClient(
+            city_id,
+            tavern_id,
+            proposals=[{
+                "proposal_key": "f1",
+                "location": city_id,
+                "parent_id": tavern_id,
+                "name": "Yetkisiz Kabartma",
+                "description": "Bir taş kartal kabartması.",
+                "kind": "detail",
+                "aliases": ["yetkisiz kabartma"],
+            }],
+            narration="Yetkisiz Kabartma burada bulunuyor.",
+        )
+        messages = (
+            "Hanın bulunduğu binada taş kartal kabartması var mı?",
+            "Hanın bulunduğu binadaki taş kabartmayı incelemiyorum.",
+            "Daha önce hanın duvarında taş kartal kabartması gördüğümü söylüyorum.",
+        )
+        for message in messages:
+            with self.subTest(message=message):
+                before_calls = model.calls
+                response = await self.post_scene_turn(
+                    turn_url,
+                    model,
+                    {"message": message, "action_id": str(uuid.uuid4())},
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertNotIn("Yetkisiz Kabartma", response.json()["narration"])
+                self.assertFalse(any(
+                    item.get("name") == "Yetkisiz Kabartma"
+                    for item in session.world_state["features"]
+                ))
+                self.assertLessEqual(model.calls - before_calls, 2)
+
+    async def test_parent_detail_save_failure_rolls_back_state_rng_and_receipt(self):
+        city_id, session_id, session, turn_url, tavern_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        model = ControlledSceneDetailOllamaClient(city_id, tavern_id)
+        campaign_id = self.manager.get(session_id).campaign_id
+        record = self.manager.get(session_id)
+        before_state = copy.deepcopy(session.serialize_game_state())
+        before_rng = session.rng.getstate()
+        before_saved = self.store.get_campaign(campaign_id)
+        before_history_count = len(before_saved.history)
+        action_id = str(uuid.uuid4())
+        body = {
+            "message": "hanın olduğu binayı araştırıyorum taş kartal kabartmasını inceliyorum",
+            "action_id": action_id,
+        }
+        original_save = self.store.save_campaign
+        save_calls = 0
+
+        def fail_once(*args, **kwargs):
+            nonlocal save_calls
+            save_calls += 1
+            if save_calls == 1:
+                raise CampaignStorageError("synthetic save failure")
+            return original_save(*args, **kwargs)
+
+        with patch.object(self.store, "save_campaign", side_effect=fail_once):
+            failed = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(failed.status_code, 503, failed.text)
+        self.assertEqual(session.serialize_game_state(), before_state)
+        self.assertEqual(session.rng.getstate(), before_rng)
+        self.assertIsNone(
+            self.store.get_turn_action(
+                campaign_id,
+                action_id,
+                principal=TEST_PLAYER,
+            )
+        )
+        self.assertEqual(
+            len(self.store.get_campaign(campaign_id).history),
+            before_history_count,
+        )
+        self.assertFalse(any(
+            item.get("name") == "Taş Kartal Kabartması"
+            for item in session.world_state["features"]
+        ))
+        self.assertEqual(model.calls, 2)
+
+        retry = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(retry.status_code, 200, retry.text)
+        self.assertEqual(model.calls, 4)
+        saved = self.store.get_campaign(campaign_id)
+        self.assertEqual(len(saved.history), before_history_count + 1)
+        self.assertEqual(saved.history[-1]["player_message"], body["message"])
+        self.assertIsNotNone(
+            self.store.get_turn_action(
+                campaign_id,
+                action_id,
+                principal=TEST_PLAYER,
+            )
+        )
+        receipt_replay = await self.post_scene_turn(turn_url, model, body)
+        self.assertEqual(receipt_replay.status_code, 200, receipt_replay.text)
+        self.assertEqual(receipt_replay.json(), retry.json())
+        self.assertEqual(model.calls, 4)
+        self.assertEqual(len(self.store.get_campaign(campaign_id).history), before_history_count + 1)
+
+    async def test_natural_venue_door_knock_binds_the_named_door(self):
+        positives = (
+            ("kael hanı kapısına elimle tıklıyorum", "Kael Hanı Kapısı"),
+            ("Kael Hanı Kapısına tıklatıyorum.", "Kael Hanı Kapısı"),
+            ("Kael Hanı Kapısını çalıyorum.", "Kael Hanı Kapısı"),
+            ("I knock on Old Inn Door.", "Old Inn Door"),
+        )
+        negatives = (
+            ("Kael Hanı Kapısına tıklıyorum demiyorum.", "Kael Hanı Kapısı"),
+            ("Şöyle demiyorum: Kael Hanı Kapısına tıklıyorum.", "Kael Hanı Kapısı"),
+            ("Muhafıza, 'Kael Hanı Kapısına tıklıyorum' diyorum.", "Kael Hanı Kapısı"),
+            ("Eski Han Kapısına tıklıyorum.", "Kael Hanı Kapısı"),
+            ("I am not knocking on Old Inn Door.", "Old Inn Door"),
+            ('I tell the guard, "I knock on Old Inn Door".', "Old Inn Door"),
+            ("I knock on the window.", "Old Inn Door"),
+        )
+
+        async def post_knock(message, door_name):
+            _, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+            door.update({
+                "name": door_name,
+                "description": door_name,
+                "open": False,
+                "locked": True,
+                "broken": False,
+            })
+            before_door = {
+                key: door.get(key) for key in ("open", "locked", "broken")
+            }
+            before_location = session.world_state["location"]
+            before_rng = session.rng.getstate()
+            results = []
+            real_turn = session.run_player_turn
+
+            @wraps(real_turn)
+            def capture_turn(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                action_result = result.get("action_result")
+                results.append(copy.deepcopy(action_result) if isinstance(action_result, dict) else None)
+                return result
+
+            with (
+                patch.object(session, "run_player_turn", new=capture_turn),
+                patch(
+                    "socket.socket.connect",
+                    side_effect=AssertionError("External network is disabled in this API test."),
+                ),
+            ):
+                response = await self.http.post(
+                    turn_url,
+                    json={"message": message, "action_id": str(uuid.uuid4())},
+                )
+            return {
+                "status": response.status_code,
+                "narration": response.json().get("narration") if response.status_code == 200 else "",
+                "skill": response.json().get("skill_check_result") if response.status_code == 200 else None,
+                "action": results[0].get("action") if len(results) == 1 and isinstance(results[0], dict) else None,
+                "door": {key: door.get(key) for key in ("open", "locked", "broken")},
+                "before_door": before_door,
+                "location": session.world_state["location"],
+                "before_location": before_location,
+                "rng_changed": session.rng.getstate() != before_rng,
+            }
+
+        for message, door_name in positives:
+            with self.subTest(message=message):
+                observed = await post_knock(message, door_name)
+                self.assertEqual(observed["status"], 200)
+                self.assertEqual(observed["action"], "door_knock")
+                self.assertIn(door_name, observed["narration"])
+                self.assertIn("kilitli", observed["narration"])
+                self.assertIsNone(observed["skill"])
+                self.assertEqual(observed["door"], observed["before_door"])
+                self.assertEqual(observed["location"], observed["before_location"])
+                self.assertFalse(observed["rng_changed"])
+
+        for message, door_name in negatives:
+            with self.subTest(message=message):
+                _, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+                door.update({
+                    "name": door_name,
+                    "description": door_name,
+                    "open": False,
+                    "locked": True,
+                    "broken": False,
+                })
+                before_door = {
+                    key: door.get(key) for key in ("open", "locked", "broken")
+                }
+                results = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_turn(*args, **kwargs):
+                    result = real_turn(*args, **kwargs)
+                    action_result = result.get("action_result")
+                    results.append(copy.deepcopy(action_result) if isinstance(action_result, dict) else None)
+                    return result
+
+                with (
+                    patch.object(session, "run_player_turn", new=capture_turn),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(intent="narrative"),
+                    ),
+                    patch(
+                        "socket.socket.connect",
+                        side_effect=AssertionError("External network is disabled in this API test."),
+                    ),
+                ):
+                    response = await self.http.post(
+                        turn_url,
+                        json={"message": message, "action_id": str(uuid.uuid4())},
+                    )
+                action = results[0].get("action") if len(results) == 1 and isinstance(results[0], dict) else None
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertNotEqual(action, "door_knock")
+                self.assertEqual(
+                    {key: door.get(key) for key in ("open", "locked", "broken")},
+                    before_door,
+                )
 
     async def test_natural_venue_door_api_binds_operation_to_named_door(self):
         with patch(
@@ -10184,6 +11078,301 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(final_store.get_campaign(campaign_id).history, persisted.history)
             self.assertEqual(final_store.get_turn_action(campaign_id, body["action_id"]), receipt)
             self.assertEqual(final_manager.get_turn_action(final_record, body["action_id"]), receipt)
+
+    async def run_review_scene_turn(
+        self, message, proposals, *, narration="A visible stone detail.",
+        mode=None, prepare=None,
+    ):
+        city_id, _, session, turn_url, venue_id, _ = (
+            await create_city_with_locked_tavern(self)
+        )
+        if prepare:
+            prepare(session, city_id, venue_id)
+        if callable(proposals):
+            proposals = proposals(session, city_id, venue_id)
+        model = ControlledSceneDetailOllamaClient(
+            city_id, venue_id, proposals=proposals, narration=narration,
+        )
+        body = {"message": message, "action_id": str(uuid.uuid4())}
+        if mode:
+            body["interaction_mode"] = mode
+        elapsed_before = session.world_state["campaign_time"]["elapsed_seconds"]
+        rng_before = session.rng.getstate()
+        outcomes = []
+        run_turn = session.run_player_turn
+        @wraps(run_turn)
+        def capture_turn(*args, **kwargs):
+            result = run_turn(*args, **kwargs)
+            outcomes.append(copy.deepcopy(result.get("action_result", {})))
+            return result
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.post_scene_turn(turn_url, model, body)
+        return (
+            response, session, model, city_id, venue_id, outcomes,
+            elapsed_before, rng_before,
+        )
+
+    async def test_review_denied_and_other_actor_intents_do_not_accept_details(self):
+        for index, message in enumerate((
+            "Han binasını inceliyorum demiyorum.",
+            "Muhafız han binasını inceliyor.",
+        )):
+            with self.subTest(message=message):
+                name = f"Denied detail {index}"
+                proposal = [{
+                    "proposal_key": "f1", "location": "fr:city:neverwinter",
+                    "parent_id": "location_001", "name": name,
+                    "description": "A newly proposed detail.", "kind": "detail",
+                }]
+                response, session, _, _, _, outcomes, *_ = await self.run_review_scene_turn(
+                    message, proposal, narration=f"{name} is visible."
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertFalse(any(
+                    row.get("name") == name for row in session.world_state["features"]
+                ))
+                self.assertNotIn(name, response.json()["narration"])
+                self.assertNotIn(
+                    outcomes[0].get("action"),
+                    {"inspect", "investigation", "skill_check"},
+                )
+
+    async def test_review_explicit_unknown_parent_does_not_bind_single_candidate(self):
+        name = "Wrong-parent detail"
+        response, session, _, _, first_id, *_ = await self.run_review_scene_turn(
+            "I inspect Second Inn building.",
+            [{
+                "proposal_key": "f1", "location": "fr:city:neverwinter",
+                "parent_id": "location_001", "name": name,
+                "description": "A visible detail.", "kind": "detail",
+            }],
+            narration=f"{name} is in Second Inn.",
+            prepare=lambda session, city, venue: session.world_state["locations"][venue].update(
+                name="First Inn", aliases=["First Inn"]
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(any(
+            row.get("name") == name for row in session.world_state["features"]
+        ))
+        self.assertNotIn(name, response.json()["narration"])
+
+    async def test_review_acceptance_enforces_one_detail_limit_and_rejects_unsupported_mechanics(self):
+        proposals = [{
+            "proposal_key": f"f{i}", "location": "fr:city:neverwinter",
+            "parent_id": "location_001", "name": f"Detail {i}",
+            "description": "A small visible carving.", "kind": "detail",
+        } for i in range(4)]
+        response, session, *_ = await self.run_review_scene_turn(
+            "I inspect the inn building.", proposals,
+            narration="Four new details are present.",
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertLessEqual(sum(
+            row.get("name", "").startswith("Detail ")
+            for row in session.world_state["features"]
+        ), 1)
+
+        for name, description in (
+            ("Open Entrance", "The entrance is open and leads inside."),
+            ("Secret Passage", "A secret passage leads into the locked inn."),
+        ):
+            with self.subTest(name=name):
+                response, session, *_ = await self.run_review_scene_turn(
+                    f"I inspect the {name.lower()}.",
+                    [{
+                        "proposal_key": "f1", "location": "fr:city:neverwinter",
+                        "parent_id": "location_001", "name": name,
+                        "description": description, "kind": "detail",
+                    }],
+                    narration=description,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertFalse(any(
+                    row.get("name") == name for row in session.world_state["features"]
+                ))
+
+    async def test_review_legacy_unparented_hidden_name_collision_is_rejected(self):
+        hidden_name = "Gizli sürgü"
+        def prepare(session, city, venue):
+            session.world_state["features"].append({
+                "id": "legacy-hidden-feature", "location": city,
+                "name": hidden_name, "description": "PRIVATE_HIDDEN_DESCRIPTION",
+                "kind": "detail", "aliases": [hidden_name], "hidden": True,
+            })
+        response, session, *_ = await self.run_review_scene_turn(
+            "Hanın bulunduğu binayı inceliyorum.",
+            [{
+                "proposal_key": "f1", "location": "fr:city:neverwinter",
+                "parent_id": "location_001", "name": hidden_name,
+                "description": "A harmless new detail.", "kind": "detail",
+            }],
+            narration="A new sliding bolt is visible.", prepare=prepare,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(sum(
+            row.get("name") == hidden_name for row in session.world_state["features"]
+        ), 1)
+        self.assertNotIn("PRIVATE_HIDDEN_DESCRIPTION", response.json()["narration"])
+
+    async def test_review_quote_scope_and_sibling_parent_identity_are_consistent(self):
+        name = "Second-only detail"
+        def prepare(session, city, first_id):
+            session.world_state["locations"][first_id].update(
+                name="First Inn", aliases=["First Inn"]
+            )
+            second_id = f"{first_id}:second-inn"
+            second = copy.deepcopy(session.world_state["locations"][first_id])
+            second.update(id=second_id, name="Second Inn", aliases=["Second Inn"])
+            session.world_state["locations"][second_id] = second
+            session._review_second_id = second_id
+            session.world_state["features"].append({
+                "id": "first-table-sign", "location": city, "parent_id": first_id,
+                "name": name, "description": "FIRST_PARENT_PRIVATE_DETAIL",
+                "kind": "detail", "aliases": [name, "Tabela"],
+            })
+            session.world_state["features"].append({
+                "id": "second-hidden-sign", "location": city, "parent_id": second_id,
+                "name": "Gizli Tabela", "description": "SECOND_HIDDEN_PRIVATE_DETAIL",
+                "kind": "detail", "aliases": ["Tabela"], "hidden": True,
+            })
+        def proposals(session, city, first_id):
+            return [{
+                "proposal_key": "f1", "location": city,
+                "parent_id": session._review_second_id, "name": name,
+                "description": "A visible note on the second building.",
+                "kind": "detail", "aliases": [],
+            }]
+        response, session, model, city, first_id, *_ = await self.run_review_scene_turn(
+            'I inspect Second Inn building; "First Inn" is only a name.',
+            proposals, narration="The second building has a painted mark.",
+            prepare=prepare,
+        )
+        second_id = session._review_second_id
+        self.assertEqual(response.status_code, 200, response.text)
+        stored = [
+            row for row in session.world_state["features"]
+            if row.get("name") == name
+        ]
+        self.assertEqual(len(stored), 2)
+        self.assertEqual(
+            {row.get("parent_id") for row in stored}, {first_id, second_id}
+        )
+        self.assertNotIn("FIRST_PARENT_PRIVATE_DETAIL", response.json()["narration"])
+        self.assertNotIn("SECOND_HIDDEN_PRIVATE_DETAIL", response.json()["narration"])
+
+        response, session, model, city, first_id, *_ = await self.run_review_scene_turn(
+            'I inspect Second Inn building with "Tabela" written in my notebook.',
+            proposals,
+            narration="A new detail is visible.",
+            prepare=prepare,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(any(
+            row.get("name") == name and row.get("parent_id") == second_id
+            for row in session.world_state["features"]
+        ))
+        self.assertNotIn("FIRST_PARENT_PRIVATE_DETAIL", response.json()["narration"])
+        self.assertNotIn("SECOND_HIDDEN_PRIVATE_DETAIL", response.json()["narration"])
+
+    async def test_review_say_and_ask_dm_do_not_inspect_visible_detail(self):
+        for mode in ("say", "ask_dm"):
+            with self.subTest(mode=mode):
+                sentinel = "PRIVATE_VISIBLE_DETAIL"
+                def prepare(session, city, venue):
+                    session.world_state["features"].append({
+                        "id": "visible-detail", "location": city,
+                        "parent_id": venue, "name": "Taş Kartal Kabartması",
+                        "description": sentinel, "kind": "detail",
+                        "aliases": ["taş kartal"],
+                    })
+                response, session, model, city, venue, outcomes, elapsed_before, rng_before = await self.run_review_scene_turn(
+                    "I inspect the Taş Kartal Kabartması.",
+                    [], mode=mode, prepare=prepare,
+                    narration=f"The detail reads {sentinel}.",
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertNotIn(sentinel, response.json()["narration"])
+                self.assertNotIn(outcomes[0].get("status"), {"observed", "not_visible"})
+                self.assertEqual(
+                    session.world_state["campaign_time"]["elapsed_seconds"],
+                    elapsed_before,
+                )
+                self.assertEqual(session.rng.getstate(), rng_before)
+                self.assertEqual(
+                    session.world_state["features"][0]["description"], sentinel
+                )
+
+    async def test_review_canonical_door_truth_is_normalized_and_independent(self):
+        for message, unlocked, expected_count in (
+            ("First Inn Door açık.", False, 0),
+            ("First Inn Door open.", False, 0),
+            ("First Inn Door kapalı.", True, 1),
+        ):
+            with self.subTest(message=message, unlocked=unlocked):
+                name = f"Door claim {expected_count}"
+                def prepare(session, city, venue):
+                    session.world_state["locations"][venue].update(
+                        name="First Inn", aliases=["First Inn"]
+                    )
+                    door = next(
+                        row for row in session.world_state["doors"]
+                        if row.get("id") == f"venue-door:{venue}"
+                    )
+                    door.update(name="First Inn Door", aliases=["First Inn Door"],
+                                open=False, locked=not unlocked)
+                response, session, *_ = await self.run_review_scene_turn(
+                    "I inspect First Inn building.",
+                    [{
+                        "proposal_key": "f1", "location": "fr:city:neverwinter",
+                        "parent_id": "location_001", "name": f"First Inn Door {name}",
+                        "description": message, "kind": "detail",
+                    }],
+                    narration=message, prepare=prepare,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(sum(
+                    row.get("name") == f"First Inn Door {name}"
+                    for row in session.world_state["features"]
+                ), expected_count)
+
+    async def test_review_seat_kind_cannot_claim_secret_passage_but_real_seating_is_supported(self):
+        for name, description, expected_count in (
+            (
+                "Hidden Passage Seat",
+                "A secret passage leads into the locked inn.",
+                0,
+            ),
+            (
+                "Window Bench",
+                "A sturdy bench sits beneath the window.",
+                1,
+            ),
+        ):
+            with self.subTest(name=name):
+                response, session, *_ = await self.run_review_scene_turn(
+                    "I inspect the inn building.",
+                    [{
+                        "proposal_key": "seat-1",
+                        "location": "fr:city:neverwinter",
+                        "parent_id": "location_001",
+                        "name": name,
+                        "description": description,
+                        "kind": "seat",
+                        "aliases": [name.lower()],
+                    }],
+                    narration=description,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                matching = [
+                    row for row in session.world_state["features"]
+                    if row.get("name") == name
+                ]
+                self.assertEqual(len(matching), expected_count)
+                if expected_count:
+                    self.assertEqual(matching[0].get("kind"), "seat")
+                else:
+                    self.assertNotIn(name, response.json()["narration"])
 
 if __name__ == "__main__":
     unittest.main()
