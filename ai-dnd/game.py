@@ -11030,6 +11030,19 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
             None,
         )
         if tavern:
+            door = next(
+                (
+                    item for item in world_state.get("doors", [])
+                    if isinstance(item, dict)
+                    and item.get("id") == f"venue-door:{tavern.get('id')}"
+                ),
+                None,
+            )
+            if isinstance(door, dict) and door.get("locked") is True:
+                return (
+                    f'{name}, “{tavern.get("name", "Han")}’ın kapısı kilitli; '
+                    'şu anda orada dinlenemezsin,” diye yanıt verir.'
+                )
             return (
                 f'{name}, “Yakınlarda {tavern.get("name", "bir han")} var,” '
                 'diye yanıt verir.'

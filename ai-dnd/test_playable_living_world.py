@@ -13,6 +13,7 @@ import game
 import interaction_adventure
 import living_world
 import local_dialogue
+import exploration
 import scheduled_events
 from api.serializers import serialize_session_state, serialize_combat_result
 from api.campaign_journal import empty_campaign_journal, update_campaign_journal
@@ -1174,6 +1175,83 @@ class PlayableLivingWorldTests(unittest.TestCase):
             entered["_engine_event_evidence"]["telemetry"]["total_model_calls"],
             0,
         )
+
+    def test_exact_venue_door_break_is_not_a_tavern_search(self):
+        phrase = "Kael Hanı Kapısını omzumla zorlayarak kırmayı deniyorum."
+        self.assertFalse(living_world.is_tavern_search(phrase))
+        self.assertFalse(living_world.is_local_venue_search(phrase))
+        self.assertTrue(
+            living_world.is_tavern_search("Yakınlarda bir taverna arıyorum.")
+        )
+        self.assertTrue(
+            living_world.is_tavern_search("Yakınlarda oturup dinlenecek bir han arıyorum.")
+        )
+        self.assertFalse(living_world.is_tavern_search("Kael Hanı kapısı kırıldı."))
+        self.assertFalse(living_world.is_tavern_search("Han kapısını kırmalı mıyım?"))
+        self.assertFalse(living_world.is_tavern_search("Kael Hanı kapısını gözlemliyorum."))
+        self.assertEqual(living_world.classify_scene_action("Etrafıma bakıyorum."), "look")
+
+    def test_dynamic_venue_door_action_requires_current_affirmative_named_intent(self):
+        self.world["location"] = "fr:city:neverwinter"
+        door = {
+            "id": "venue-door:location_001",
+            "name": "Kael Hanı Kapısı",
+            "location": "fr:city:neverwinter",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        }
+        self.world["doors"] = [door]
+        exact = "Kael Hanı Kapısını omzumla zorlayarak kırmayı deniyorum."
+        self.assertTrue(exploration.native_request(exact, self.session))
+        self.assertEqual(
+            exploration._natural_venue_door_action(self.session, exact),
+            ("venue-door:location_001", "break"),
+        )
+        for non_action in (
+            "Kael Hanı kapısını kırmalı mıyım?",
+            "Kael Hanı kapısını kırmak istemiyorum.",
+            "Dün Kael Hanı kapısını kırmaya çalıştım.",
+            "Kael Hanı kapısını gözlemliyorum.",
+        ):
+            with self.subTest(message=non_action):
+                self.assertIsNone(
+                    exploration._natural_venue_door_action(self.session, non_action)
+                )
+
+    def test_guard_smalltalk_does_not_recommend_locked_known_tavern_as_unblocked(self):
+        self.world["location"] = "fr:city:neverwinter"
+        self.world["locations"]["location_001"] = {
+            "id": "location_001",
+            "name": "Kael Hanı",
+            "parent_location_id": "fr:city:neverwinter",
+            "scene_kind": "tavern",
+            "type": "inn",
+        }
+        self.world["doors"] = [{
+            "id": "venue-door:location_001",
+            "name": "Kael Hanı Kapısı",
+            "description": "Kael Hanı sokağa açılan kapısı",
+            "location": "fr:city:neverwinter",
+            "locked": True,
+            "open": False,
+            "broken": False,
+        }]
+        npc = {"id": "npc_guard", "name": "Muhafız", "role": "Muhafız"}
+        phrase = (
+            "Muhafız, bu hanın kapısı kilitli. "
+            "Dinlenmek için nereye gidebilirim?"
+        )
+        with patch.object(game, "_session", return_value=self.session):
+            answer = game._direct_npc_smalltalk_response(phrase, npc)
+            self.assertIsNotNone(answer)
+            self.assertIn("kilitli", answer.casefold())
+            self.assertNotIn("Yakınlarda Kael Hanı var", answer)
+            self.world["doors"][0]["locked"] = False
+            unlocked_answer = game._direct_npc_smalltalk_response(phrase, npc)
+            greeting = game._direct_npc_smalltalk_response("Muhafız, merhaba.", npc)
+        self.assertIn("Yakınlarda Kael Hanı var", unlocked_answer)
+        self.assertIn("Merhaba", greeting)
 
     def test_named_destination_still_routes_through_travel(self):
         destination = "castle"

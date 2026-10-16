@@ -436,9 +436,110 @@ def _obstacle_action(session, message, kind, identity, operation):
     return _reply(session, message, text, check.pop("action", "obstacle_interaction"), time_result=advancement, damage_result=damage, **check)
 
 
+def _natural_venue_door_action(session, message):
+    if not isinstance(message, str) or "?" in message or session is None:
+        return None
+    import campaign_time
+    text = campaign_time.normalize(message)
+    for opening, closing in (('"', '"'), ("'", "'"), ("“", "”"), ("‘", "’")):
+        text = re.sub(
+            re.escape(opening) + r".*?" + re.escape(closing),
+            " ",
+            text,
+        )
+    world = session.world_state
+    candidates = [
+        door for door in world.get("doors", [])
+        if isinstance(door, dict)
+        and isinstance(door.get("id"), str)
+        and door["id"].startswith("venue-door:")
+        and door.get("location") == world.get("location")
+        and not door.get("hidden", False)
+    ]
+
+    operation_patterns = (
+        ("break", "en", re.compile(r"\b(?:break|breaking)\b")),
+        ("unlock", "en", re.compile(r"\b(?:unlock|unlocking)\b")),
+        ("break", "tr", re.compile(
+            r"\b(?:kiriyorum|kirmayi\s+deniyorum|kirmaya\s+calisiyorum)\b"
+        )),
+        ("unlock", "tr", re.compile(
+            r"\bkilid(?:i|ini)\s+ac(?:iyorum|mayi\s+deniyorum|maya\s+calisiyorum)\b"
+        )),
+    )
+    rejected_context = re.compile(
+        r"\b(?:not|never|don't|doesn't|didn't|do\s+not|does\s+not|did\s+not|"
+        r"tried|attempted|was|were|had|yesterday|last\s+\w+|tell|told|say|said|demiyorum)\b"
+    )
+    other_lock_targets = re.compile(r"\b(?:chest|box|sandik|sandigim|kutu)\b")
+    resolved = set()
+
+    for door in candidates:
+        reference_patterns = [
+            re.compile(r"(?<![\w:-])" + re.escape(door["id"]) + r"(?![\w:-])")
+        ]
+        name = door.get("name")
+        if isinstance(name, str) and name.strip():
+            normalized_name = campaign_time.normalize(name).strip()
+            name_pattern = r"\s+".join(
+                re.escape(part) for part in normalized_name.split()
+            )
+            # Turkish accusative suffixes are allowed only after the complete name.
+            reference_patterns.append(re.compile(
+                r"(?<!\w)" + name_pattern + r"(?:n[ıiuü])?(?!\w)"
+            ))
+        references = [
+            match
+            for pattern in reference_patterns
+            for match in pattern.finditer(text)
+        ]
+        if not references:
+            continue
+
+        for operation, language, pattern in operation_patterns:
+            for verb in pattern.finditer(text):
+                clause_start = max(
+                    text.rfind(".", 0, verb.start()),
+                    text.rfind("!", 0, verb.start()),
+                    text.rfind("?", 0, verb.start()),
+                    text.rfind(";", 0, verb.start()),
+                ) + 1
+                sentence_end = len(text)
+                for punctuation in ".!?;":
+                    boundary = text.find(punctuation, verb.end())
+                    if boundary != -1:
+                        sentence_end = min(sentence_end, boundary)
+                if rejected_context.search(text[clause_start:sentence_end]):
+                    continue
+                for reference in references:
+                    if verb.end() <= reference.start():
+                        gap = text[verb.end():reference.start()]
+                        if re.fullmatch(r"\s+(?:(?:the|my|a|an)\s+)?", gap):
+                            resolved.add((door["id"], operation))
+                    elif language == "tr" and reference.end() <= verb.start():
+                        gap = text[reference.end():verb.start()]
+                        if operation == "break":
+                            if re.fullmatch(
+                                r"\s+(?:omzumla\s+zorlayarak\s+)?",
+                                gap,
+                            ):
+                                resolved.add((door["id"], operation))
+                        elif (
+                            re.fullmatch(
+                                r"\s+(?:(?:kilitli\.\s*)?(?:iceri girebilmek icin\s*)?)",
+                                gap,
+                            )
+                            and not other_lock_targets.search(gap)
+                        ):
+                            resolved.add((door["id"], operation))
+
+    return next(iter(resolved)) if len(resolved) == 1 else None
+
+
 def native_request(message, session=None):
     return isinstance(message, str) and (
         message.strip().startswith(("/explore", "/travel"))
+        or session is not None and _natural_venue_door_action(session, message) is not None
         or session is not None and active(session.world_state)
         and session.world_state["location"] in catalog.ROOM_IDS
         and (session._has_travel_language(message)
@@ -453,6 +554,9 @@ def resolve_command(session, message):
     parts = message.strip().split()
     world = session.world_state
     session.require_player_can_act()
+    venue_door_action = _natural_venue_door_action(session, message)
+    if venue_door_action is not None:
+        return _door_action(session, message, *venue_door_action)
     if parts == ["/explore", "begin"]:
         return _begin(session, message)
     if parts == ["/travel", "pace"] or parts == ["/explore", "look"]:

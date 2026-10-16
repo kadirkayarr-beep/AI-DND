@@ -1654,6 +1654,367 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(exited.status_code, 200, exited.text)
             self.assertEqual(exited.json()["state"]["location"], city_id)
 
+    async def test_exact_dynamic_venue_door_break_uses_authoritative_handler(self):
+        city_id, session_id, session, turn_url, venue_id, door = (
+            await create_city_with_locked_tavern(self)
+        )
+        venue = session.world_state["locations"][venue_id]
+        venue["name"] = "Kael Hanı"
+        door.update({
+            "name": "Kael Hanı Kapısı",
+            "description": "Kael Hanı sokağa açılan kapısı",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        results = []
+        real_turn = session.run_player_turn
+
+        @wraps(real_turn)
+        def capture_turn(*args, **kwargs):
+            result = real_turn(*args, **kwargs)
+            results.append(copy.deepcopy(result["action_result"]))
+            return result
+
+        body = {
+            "message": "Kael Hanı Kapısını omzumla zorlayarak kırmayı deniyorum.",
+            "action_id": str(uuid.uuid4()),
+        }
+        with patch.object(session, "run_player_turn", new=capture_turn):
+            response = await self.http.post(turn_url, json=body)
+            replay = await self.http.post(turn_url, json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(replay.json(), response.json())
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        self.assertEqual(result["action"], "skill_check")
+        self.assertEqual(result["skill"], "Athletics")
+        self.assertEqual(result["dc"], 15)
+        self.assertEqual(result["success"], result["outcome"] == "success")
+        self.assertEqual(session.world_state["location"], city_id)
+        self.assertEqual(door["id"], f"venue-door:{venue_id}")
+        managed = self.manager.get(session_id)
+        self.assertEqual(
+            self.manager.get_turn_action(managed, body["action_id"])["response"],
+            response.json(),
+        )
+        reopened = SessionManager(
+            campaign_store=CampaignStore(self.store.path, bound_principal=TEST_PLAYER)
+        )
+        resumed_id, resumed_record, *_ = reopened.resume_campaign(
+            managed.campaign_id, principal=TEST_PLAYER
+        )
+        self.assertIsNotNone(resumed_id)
+        resumed_door = next(
+            item for item in resumed_record.game_session.world_state["doors"]
+            if item.get("id") == f"venue-door:{venue_id}"
+        )
+        self.assertEqual(resumed_door["broken"], door["broken"])
+        self.assertEqual(resumed_door["open"], door["open"])
+        self.assertEqual(resumed_door["locked"], door["locked"])
+
+    async def test_dynamic_venue_break_preserves_authoritative_success_and_failure(self):
+        city_id, _, session, turn_url, venue_id, door = await create_city_with_locked_tavern(self)
+        session.world_state["locations"][venue_id]["name"] = "Kael Hanı"
+        door["name"] = "Kael Hanı Kapısı"
+        initial_ids = {
+            "locations": set(session.world_state["locations"]),
+            "npcs": {npc["id"] for npc in session.world_state["npcs"]},
+            "shops": {shop["id"] for shop in session.world_state["shops"]},
+        }
+        outcomes = [
+            {"skill": "Athletics", "dc": 15, "success": False, "outcome": "failure", "action": "skill_check"},
+            {"skill": "Athletics", "dc": 15, "success": True, "outcome": "success", "action": "skill_check"},
+        ]
+        with patch("game.roll_d20", side_effect=[1, 20]):
+            failed = await self.http.post(
+                turn_url,
+                json={"message": "Kael Hanı Kapısını omzumla zorlayarak kırmayı deniyorum.", "action_id": str(uuid.uuid4())},
+            )
+            self.assertEqual(failed.status_code, 200, failed.text)
+            self.assertFalse(door["broken"])
+            self.assertTrue(door["locked"])
+            succeeded = await self.http.post(
+                turn_url,
+                json={"message": "Kael Hanı Kapısını omzumla zorlayarak kırmayı deniyorum.", "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(succeeded.status_code, 200, succeeded.text)
+        self.assertTrue(door["broken"])
+        self.assertTrue(door["open"])
+        self.assertFalse(door["locked"])
+        self.assertEqual(set(session.world_state["locations"]), initial_ids["locations"])
+        self.assertEqual({npc["id"] for npc in session.world_state["npcs"]}, initial_ids["npcs"])
+        self.assertEqual({shop["id"] for shop in session.world_state["shops"]}, initial_ids["shops"])
+
+    async def test_exact_dynamic_venue_unlock_with_tools_uses_existing_skill_check(self):
+        _, _, session, turn_url, venue_id, door = await create_city_with_locked_tavern(self)
+        session.world_state["locations"][venue_id]["name"] = "Kael Hanı"
+        door["name"] = "Kael Hanı Kapısı"
+        session.world_state["inventory"].append("Thieves' Tools")
+        with patch("game.roll_d20", return_value=20):
+            response = await self.http.post(
+                turn_url,
+                json={
+                    "message": "Kael Hanı Kapısı kilitli. İçeri girebilmek için kilidini açmayı deniyorum.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(door["locked"])
+        self.assertFalse(door["open"])
+
+    async def test_exact_dynamic_venue_door_unlock_without_tools_is_no_cost_400(self):
+        _, _, session, turn_url, venue_id, door = await create_city_with_locked_tavern(self)
+        session.world_state["locations"][venue_id]["name"] = "Kael Hanı"
+        door.update({
+            "name": "Kael Hanı Kapısı",
+            "description": "Kael Hanı sokağa açılan kapısı",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        before_world = copy.deepcopy(session.world_state)
+        response = await self.http.post(
+            turn_url,
+            json={
+                "message": "Kael Hanı Kapısı kilitli. İçeri girebilmek için "
+                           "kilidini açmayı deniyorum.",
+                "action_id": str(uuid.uuid4()),
+            },
+        )
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "thieves_tools_required")
+        self.assertEqual(session.world_state, before_world)
+
+    async def test_natural_venue_door_intent_rejects_noncurrent_and_unbound_api_inputs(self):
+        messages = (
+            "I am not breaking Old Inn Door.",
+            "I don't break Old Inn Door.",
+            "Yesterday I tried breaking Old Inn Door.",
+            'I tell the guard, "I break Old Inn Door".',
+            "I examine Old Inn Door and break a stick.",
+            "I eat breakfast beside Old Inn Door.",
+            "I am not breaking Old Inn Doorway.",
+            "Eski Han Kapısını kırmıyorum.",
+            "Dün Eski Han Kapısını kırmayı denedim.",
+            "Muhafıza, 'Eski Han Kapısını kırıyorum' diyorum.",
+            "Eski Han Kapısını inceliyorum ve bir dalı kırıyorum.",
+            "Kael Hanı Kapısını kırmayı deniyorum demiyorum.",
+            "Kael Hanı Kapısını incelerken bir dalı kırıyorum.",
+        )
+
+        def entity_ids(world, key):
+            collection = world.get(key)
+            if isinstance(collection, dict):
+                return set(collection)
+            if isinstance(collection, list):
+                return {
+                    item["id"] for item in collection
+                    if isinstance(item, dict) and isinstance(item.get("id"), str)
+                }
+            return set()
+
+        async def observe_api_turn(message, door_name):
+            _, _, session, turn_url, venue_id, door = await create_city_with_locked_tavern(self)
+            door.update({
+                "name": door_name,
+                "description": door_name,
+                "open": False,
+                "locked": True,
+                "broken": False,
+            })
+            session.rng.seed(1776)
+            before_world = copy.deepcopy(session.world_state)
+            before_door = copy.deepcopy(door)
+            before_character = copy.deepcopy(session.character)
+            before_inventory = copy.deepcopy(session.world_state["inventory"])
+            before_combat = copy.deepcopy(session.world_state["combat"])
+            before_rng = session.rng.getstate()
+            before_clock = campaign_time.public_time(before_world)
+            before_turn_index = before_world["flags"]["turn_index"]
+            before_entities = {
+                key: entity_ids(before_world, key)
+                for key in ("locations", "npcs", "shops", "doors")
+            }
+            results = []
+            real_turn = session.run_player_turn
+
+            @wraps(real_turn)
+            def capture_turn(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                results.append(copy.deepcopy(result.get("action_result")))
+                return result
+
+            with (
+                patch.object(session, "run_player_turn", new=capture_turn),
+                patch.object(
+                    self.app.state.ollama_adapter,
+                    "_client",
+                    ControlledVenueOllamaClient(intent="narrative"),
+                ),
+            ):
+                response = await self.http.post(
+                    turn_url,
+                    json={"message": message, "action_id": str(uuid.uuid4())},
+                )
+
+            after_entities = {
+                key: entity_ids(session.world_state, key)
+                for key in before_entities
+            }
+            return {
+                "status": response.status_code,
+                "action": (
+                    results[0].get("action")
+                    if len(results) == 1 and isinstance(results[0], dict)
+                    else None
+                ),
+                "turn_delta": (
+                    session.world_state["flags"]["turn_index"] - before_turn_index
+                ),
+                "door_state": {
+                    key: door.get(key) for key in ("open", "locked", "broken")
+                },
+                "initial_door_state": {
+                    key: before_door.get(key) for key in ("open", "locked", "broken")
+                },
+                "rng_changed": session.rng.getstate() != before_rng,
+                "character_changed": session.character != before_character,
+                "inventory_changed": (
+                    session.world_state["inventory"] != before_inventory
+                ),
+                "combat_changed": session.world_state["combat"] != before_combat,
+                "clock_changed": (
+                    campaign_time.public_time(session.world_state) != before_clock
+                ),
+                "new_entities": {
+                    key: len(after_entities[key] - before_entities[key])
+                    for key in before_entities
+                },
+            }
+
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            for message in messages:
+                with self.subTest(message=message):
+                    door_name = (
+                        "Eski Han Kapısı"
+                        if message.startswith(("Eski Han", "Dün", "Muhafıza"))
+                        else "Kael Hanı Kapısı"
+                        if message.startswith("Kael Hanı")
+                        else "Old Inn Door"
+                    )
+                    baseline_message = (
+                        "I examine the street."
+                        if "examine" in message.casefold() or "incel" in message.casefold()
+                        else "I take a breath."
+                    )
+                    baseline = await observe_api_turn(baseline_message, door_name)
+                    actual = await observe_api_turn(message, door_name)
+                    self.assertEqual(baseline["status"], 200)
+                    self.assertEqual(actual["status"], 200)
+                    self.assertEqual(baseline["turn_delta"], 1)
+                    self.assertEqual(actual["turn_delta"], 1)
+                    self.assertNotIn(baseline["action"], {"skill_check", "door_interaction"})
+                    self.assertNotIn(actual["action"], {"skill_check", "door_interaction"})
+                    self.assertEqual(actual["door_state"], actual["initial_door_state"])
+                    self.assertFalse(actual["rng_changed"])
+                    self.assertFalse(actual["character_changed"])
+                    self.assertFalse(actual["inventory_changed"])
+                    self.assertFalse(actual["combat_changed"])
+                    self.assertFalse(actual["clock_changed"])
+                    self.assertEqual(actual["new_entities"]["locations"], 0)
+                    self.assertEqual(actual["new_entities"]["shops"], 0)
+                    self.assertEqual(actual["new_entities"]["doors"], 0)
+                    self.assertLessEqual(
+                        actual["new_entities"]["npcs"],
+                        baseline["new_entities"]["npcs"],
+                        "The input must not materialize more NPCs than the ordinary-turn control.",
+                    )
+
+    async def test_natural_venue_door_api_binds_operation_to_named_door(self):
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            _, _, session, turn_url, venue_id, door = await create_city_with_locked_tavern(self)
+        door.update({
+            "name": "Old Inn Door",
+            "description": "Old Inn Door",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        chest_message = "I break Old Inn Door after unlocking my chest."
+        with (
+            patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ),
+            patch("game.roll_d20", return_value=20),
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(intent="narrative"),
+            ),
+        ):
+            chest_response = await self.http.post(
+                turn_url,
+                json={"message": chest_message, "action_id": str(uuid.uuid4())},
+            )
+        self.assertEqual(chest_response.status_code, 200, chest_response.text)
+        self.assertTrue(door["broken"])
+        self.assertTrue(door["open"])
+        self.assertFalse(door["locked"])
+
+    async def test_natural_venue_door_api_matches_door_ids_by_boundaries(self):
+        with patch(
+            "socket.socket.connect",
+            side_effect=AssertionError("External network is disabled in this API test."),
+        ):
+            _, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+        short_door = copy.deepcopy(door)
+        short_door.update({
+            "id": "venue-door:location_001",
+            "name": "Short Door",
+            "open": False,
+            "locked": True,
+            "broken": False,
+        })
+        long_door = copy.deepcopy(short_door)
+        long_door.update({
+            "id": "venue-door:location_0010",
+            "name": "Long Door",
+        })
+        session.world_state["doors"] = [short_door, long_door]
+        with (
+            patch(
+                "socket.socket.connect",
+                side_effect=AssertionError("External network is disabled in this API test."),
+            ),
+            patch("game.roll_d20", return_value=20),
+            patch.object(
+                self.app.state.ollama_adapter,
+                "_client",
+                ControlledVenueOllamaClient(intent="narrative"),
+            ),
+        ):
+            identity_response = await self.http.post(
+                turn_url,
+                json={
+                    "message": "I break venue-door:location_0010.",
+                    "action_id": str(uuid.uuid4()),
+                },
+            )
+        self.assertEqual(identity_response.status_code, 200, identity_response.text)
+        self.assertFalse(short_door["broken"])
+        self.assertTrue(long_door["broken"])
+        self.assertTrue(long_door["open"])
+        self.assertFalse(long_door["locked"])
+
     async def test_venue_gate_targets_legacy_routes_and_campaigns_independently(self):
         city_id, first_id, first, first_url, first_venue_id, first_door = (
             await create_city_with_locked_tavern(self)
