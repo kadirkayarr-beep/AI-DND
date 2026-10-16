@@ -1948,6 +1948,129 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         "The input must not materialize more NPCs than the ordinary-turn control.",
                     )
 
+    async def test_natural_venue_door_knock_binds_the_named_door(self):
+        positives = (
+            ("kael hanı kapısına elimle tıklıyorum", "Kael Hanı Kapısı"),
+            ("Kael Hanı Kapısına tıklatıyorum.", "Kael Hanı Kapısı"),
+            ("Kael Hanı Kapısını çalıyorum.", "Kael Hanı Kapısı"),
+            ("I knock on Old Inn Door.", "Old Inn Door"),
+        )
+        negatives = (
+            ("Kael Hanı Kapısına tıklıyorum demiyorum.", "Kael Hanı Kapısı"),
+            ("Şöyle demiyorum: Kael Hanı Kapısına tıklıyorum.", "Kael Hanı Kapısı"),
+            ("Muhafıza, 'Kael Hanı Kapısına tıklıyorum' diyorum.", "Kael Hanı Kapısı"),
+            ("Eski Han Kapısına tıklıyorum.", "Kael Hanı Kapısı"),
+            ("I am not knocking on Old Inn Door.", "Old Inn Door"),
+            ('I tell the guard, "I knock on Old Inn Door".', "Old Inn Door"),
+            ("I knock on the window.", "Old Inn Door"),
+        )
+
+        async def post_knock(message, door_name):
+            _, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+            door.update({
+                "name": door_name,
+                "description": door_name,
+                "open": False,
+                "locked": True,
+                "broken": False,
+            })
+            before_door = {
+                key: door.get(key) for key in ("open", "locked", "broken")
+            }
+            before_location = session.world_state["location"]
+            before_rng = session.rng.getstate()
+            results = []
+            real_turn = session.run_player_turn
+
+            @wraps(real_turn)
+            def capture_turn(*args, **kwargs):
+                result = real_turn(*args, **kwargs)
+                action_result = result.get("action_result")
+                results.append(copy.deepcopy(action_result) if isinstance(action_result, dict) else None)
+                return result
+
+            with (
+                patch.object(session, "run_player_turn", new=capture_turn),
+                patch(
+                    "socket.socket.connect",
+                    side_effect=AssertionError("External network is disabled in this API test."),
+                ),
+            ):
+                response = await self.http.post(
+                    turn_url,
+                    json={"message": message, "action_id": str(uuid.uuid4())},
+                )
+            return {
+                "status": response.status_code,
+                "narration": response.json().get("narration") if response.status_code == 200 else "",
+                "skill": response.json().get("skill_check_result") if response.status_code == 200 else None,
+                "action": results[0].get("action") if len(results) == 1 and isinstance(results[0], dict) else None,
+                "door": {key: door.get(key) for key in ("open", "locked", "broken")},
+                "before_door": before_door,
+                "location": session.world_state["location"],
+                "before_location": before_location,
+                "rng_changed": session.rng.getstate() != before_rng,
+            }
+
+        for message, door_name in positives:
+            with self.subTest(message=message):
+                observed = await post_knock(message, door_name)
+                self.assertEqual(observed["status"], 200)
+                self.assertEqual(observed["action"], "door_knock")
+                self.assertIn(door_name, observed["narration"])
+                self.assertIn("kilitli", observed["narration"])
+                self.assertIsNone(observed["skill"])
+                self.assertEqual(observed["door"], observed["before_door"])
+                self.assertEqual(observed["location"], observed["before_location"])
+                self.assertFalse(observed["rng_changed"])
+
+        for message, door_name in negatives:
+            with self.subTest(message=message):
+                _, _, session, turn_url, _, door = await create_city_with_locked_tavern(self)
+                door.update({
+                    "name": door_name,
+                    "description": door_name,
+                    "open": False,
+                    "locked": True,
+                    "broken": False,
+                })
+                before_door = {
+                    key: door.get(key) for key in ("open", "locked", "broken")
+                }
+                results = []
+                real_turn = session.run_player_turn
+
+                @wraps(real_turn)
+                def capture_turn(*args, **kwargs):
+                    result = real_turn(*args, **kwargs)
+                    action_result = result.get("action_result")
+                    results.append(copy.deepcopy(action_result) if isinstance(action_result, dict) else None)
+                    return result
+
+                with (
+                    patch.object(session, "run_player_turn", new=capture_turn),
+                    patch.object(
+                        self.app.state.ollama_adapter,
+                        "_client",
+                        ControlledVenueOllamaClient(intent="narrative"),
+                    ),
+                    patch(
+                        "socket.socket.connect",
+                        side_effect=AssertionError("External network is disabled in this API test."),
+                    ),
+                ):
+                    response = await self.http.post(
+                        turn_url,
+                        json={"message": message, "action_id": str(uuid.uuid4())},
+                    )
+                action = results[0].get("action") if len(results) == 1 and isinstance(results[0], dict) else None
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertNotEqual(action, "door_knock")
+                self.assertEqual(
+                    {key: door.get(key) for key in ("open", "locked", "broken")},
+                    before_door,
+                )
+
     async def test_natural_venue_door_api_binds_operation_to_named_door(self):
         with patch(
             "socket.socket.connect",

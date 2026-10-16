@@ -380,29 +380,105 @@ def affirmative_scene_action(value: Any, interaction_mode: str | None = None) ->
     return intent[0] if intent else None
 
 
+def _text_outside_quotes(value: str) -> str:
+    """Drop complete quoted spans. A lone apostrophe is not a quote."""
+    return re.sub(
+        r"(?:\"[^\"]*\"|“[^”]*”|‘[^’]*’|'(?:[^']*)')",
+        " ",
+        value,
+    )
+
+
+def _declines_venue_search(value: str) -> bool:
+    if _NEGATIVE_RE.search(value):
+        return True
+    text = normalize_text(value)
+    return bool(re.search(
+        r"\b(?:arastir|ara|bak|incel|gozlemle|look|examin|inspect)"
+        r"\w*(?:miyorum|muyorum|miyoruz|muyoruz)\b",
+        text,
+    ))
+
+
+def is_anchored_structure_inquiry(value: Any) -> bool:
+    """The player is examining a known structure, not seeking a new venue.
+
+    The venue word is only the anchor. The grammatical object is the building
+    or one of its parts. This is not a list of part names.
+    """
+    if not isinstance(value, str) or _declines_venue_search(value):
+        return False
+    bare = _text_outside_quotes(value)
+    text = normalize_text(bare)
+    if not text:
+        return False
+    venue = bool(re.search(r"\b(?:han|taverna|tavern|inn|meyhane)\b", text))
+    nearby = bool(re.search(
+        r"\b(?:yakin\w*|buralarda|civar\w*|nearby|around here)\b",
+        text,
+    ))
+    definite_building = bool(re.search(r"\bbina(?:yi|sinin|sina|sinda)\b", text))
+    if nearby and venue and not definite_building:
+        return False
+    examines = bool(re.search(
+        r"\b(?:arastir\w*|incel\w*|gozden\s+gecir\w*|gozlemle\w*|bak\w*|"
+        r"look\w*|examin\w*|inspect\w*)\b",
+        text,
+    ))
+    structure = bool(re.search(
+        r"\b(?:bina\w*|yapi\w*|building|duvar\w*|cati\w*|cephe\w*|"
+        r"facade|roof|wall)\b",
+        text,
+    ))
+    locator = bool(re.search(
+        r"\b(?:han|taverna|tavern|inn|meyhane)\w*\s+"
+        r"(?:oldugu|bulundugu|durdugu)\s+\w+",
+        text,
+    ))
+    locative_question = bool(
+        ("?" in bare or re.search(r"\bvar\s+mi\b", text))
+        and re.search(r"\bbina(?:da|sda|sinda)\b", text)
+        and venue
+        and not nearby
+    )
+    if locator and (examines or locative_question):
+        return True
+    if venue and structure and (examines or locative_question):
+        return True
+    return bool(
+        examines
+        and re.search(r"\b(?:inn|tavern)\b", text)
+        and re.search(r"\b(?:building|wall|roof|facade)\b", text)
+    )
+
+
 def is_tavern_search(value: Any) -> bool:
     if (
         not isinstance(value, str)
-        or _NEGATIVE_RE.search(value)
+        or _declines_venue_search(value)
         or _is_route_distance_query(value)
+        or is_anchored_structure_inquiry(value)
     ):
         return False
+    bare = _text_outside_quotes(value)
     explicit_tavern = bool(
-        _TAVERN_RE.search(value)
-        and _SEARCH_RE.search(value)
-        and not _ENTER_RE.search(value)
+        _TAVERN_RE.search(bare)
+        and _SEARCH_RE.search(bare)
+        and not _ENTER_RE.search(bare)
     )
-    return explicit_tavern or is_local_venue_search(value)
+    return explicit_tavern or is_local_venue_search(bare)
 
 
 def is_local_venue_search(value: Any) -> bool:
     """Recognize searches by purpose as well as by the word "tavern"."""
     if (
         not isinstance(value, str)
-        or _NEGATIVE_RE.search(value)
+        or _declines_venue_search(value)
         or _is_route_distance_query(value)
+        or is_anchored_structure_inquiry(value)
     ):
         return False
+    value = _text_outside_quotes(value)
     if _ENTER_RE.search(value):
         return False
     has_search_intent = bool(

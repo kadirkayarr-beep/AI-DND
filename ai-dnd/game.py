@@ -10836,6 +10836,107 @@ def _engine_location_parent(location_id):
     return parent if isinstance(parent, str) and parent in world_state.get("locations", {}) else None
 
 
+def _existing_local_tavern(parent_location_id):
+    locations = _session().world_state.get("locations", {})
+    if not isinstance(locations, dict):
+        return None
+    return next(
+        (
+            location for location in locations.values()
+            if isinstance(location, dict)
+            and location.get("parent_location_id") == parent_location_id
+            and location.get("scene_kind") == "tavern"
+        ),
+        None,
+    )
+
+
+def _anchored_structure_features(player_input, location_id):
+    text = living_world.normalize_text(player_input)
+    visible = []
+    hidden = []
+    for feature in _session().world_state.get("features", []):
+        if not isinstance(feature, dict) or feature.get("location") != location_id:
+            continue
+        aliases = [feature.get("name", ""), *feature.get("aliases", [])]
+        if not any(
+            isinstance(alias, str) and alias
+            and (
+                _entity_reference_in_text(alias, text)
+                or living_world.normalize_text(alias) in text
+            )
+            for alias in aliases
+        ):
+            continue
+        if feature.get("hidden") is True:
+            hidden.append(feature)
+        else:
+            visible.append(feature)
+    return visible, hidden
+
+
+def _observe_anchored_structure(player_input):
+    """Report a known building from stored records. Do not invent a part."""
+    world_state = _session().world_state
+    current = world_state.get("location")
+    tavern = _existing_local_tavern(current)
+    if not isinstance(tavern, dict):
+        return {
+            "action": "inspect",
+            "status": "not_detailed",
+            "success": True,
+            "state_changes": [],
+            "direct_response": "Burada inceleyebileceğin kayıtlı bir bina yok.",
+        }
+    visible, hidden = _anchored_structure_features(player_input, current)
+    if len(visible) == 1:
+        feature = visible[0]
+        return {
+            "action": "inspect",
+            "status": "observed",
+            "success": True,
+            "target_id": feature.get("id"),
+            "state_changes": [],
+            "direct_response": (
+                f"{feature.get('name', 'Bu ayrıntı')}: "
+                f"{feature.get('description', 'belirgin bir değişiklik yok.')}"
+            ),
+        }
+    if len(visible) > 1:
+        return {
+            "action": "inspect",
+            "status": "clarification",
+            "success": False,
+            "target_id": tavern.get("id"),
+            "state_changes": [],
+            "direct_response": "Hangi parçayı incelemek istediğini belirtir misin?",
+        }
+    if hidden:
+        return {
+            "action": "inspect",
+            "status": "not_visible",
+            "success": False,
+            "target_id": tavern.get("id"),
+            "state_changes": [],
+            "direct_response": "Bu bakış görünür bir parça seçmiyor.",
+        }
+    door = _venue_door_for(tavern.get("id"))
+    sentences = [f"{tavern.get('name', 'Bina')} binasına bakıyorsun."]
+    if isinstance(door, dict) and door.get("hidden") is not True:
+        sentences.append(_tavern_door_notice(tavern["id"]))
+        sentences.append("Bu bakışın seçtiği diğer parça henüz ayrıntılandırılmamış.")
+    else:
+        sentences.append("Bu bakışın seçtiği parça henüz ayrıntılandırılmamış.")
+    return {
+        "action": "inspect",
+        "status": "not_detailed",
+        "success": True,
+        "target_id": tavern.get("id"),
+        "state_changes": [],
+        "direct_response": " ".join(sentences),
+    }
+
+
 def _ensure_local_tavern(parent_location_id):
     world_state = _session().world_state
     locations = world_state.setdefault("locations", {})
@@ -11418,7 +11519,12 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
 
     direct = None
     resolved_npc = None
-    if not combat.get("active") and tavern_search:
+    if (
+        not combat.get("active")
+        and living_world.is_anchored_structure_inquiry(player_input)
+    ):
+        direct = _observe_anchored_structure(player_input)
+    if not combat.get("active") and direct is None and tavern_search:
         root_location = current
         while _engine_location_parent(root_location):
             root_location = _engine_location_parent(root_location)

@@ -359,8 +359,17 @@ def _door_action(session, message, identity, operation):
                       if d.get("id") not in catalog.DOORS and d.get("location") == world["location"]
                       and not d.get("hidden", False))
     gate = door(world, identity)
-    if identity not in candidates or not gate or operation not in {"open", "close", "unlock", "break"}:
+    if identity not in candidates or not gate or operation not in {"open", "close", "unlock", "break", "knock"}:
         fail("exploration_door_unknown", "Burada bu kapıya erişemiyorsun.")
+    if operation == "knock":
+        if gate["locked"]:
+            state = "kilitli ve kapalı"
+        elif gate.get("open"):
+            state = "açık"
+        else:
+            state = "kapalı"
+        text = f"{gate['name']}: kapıya vurdun. Kapı {state}."
+        return _reply(session, message, text, "door_knock")
     if operation == "open" and gate["locked"]:
         fail("exploration_door_locked", "Kapı kilitli; önce kilidi açmalı veya kapıyı kırmalısın.")
     if operation == "close" and gate["broken"]:
@@ -447,6 +456,7 @@ _EN_AFFIRMATIVE = re.compile(
     r"\s*i\s+(?:am\s+|do\s+)?(?P<verb>breaking|unlocking|break|unlock)"
     r"\s+(?:(?:the|my|a|an)\s+)?$"
 )
+_EN_KNOCK = re.compile(r"\s*i\s+(?:am\s+)?(?:knocking|knock)(?:\s+on)?\s*$")
 _EN_OTHER_OBJECT_TAIL = re.compile(
     r"\s+(?:after|before|while)\s+(?:i\s+)?(?:am\s+|do\s+)?"
     r"(?:unlocking|breaking|opening|unlock|break|open)\s+"
@@ -460,6 +470,9 @@ _TR_BREAK = re.compile(
 _TR_UNLOCK = re.compile(
     r"\s+(?:kilitli\.\s*)?(?:iceri\s+girebilmek\s+icin\s+)?"
     r"kilid(?:i|ini)\s+ac(?:iyorum|mayi\s+deniyorum|maya\s+calisiyorum)\b"
+)
+_TR_KNOCK = re.compile(
+    r"\s+(?:elimle\s+)?(?:tikliyorum|tiklatiyorum|caliyorum)\b"
 )
 
 
@@ -483,6 +496,8 @@ def _clause_end(text, end):
 
 
 def _english_operation(prefix):
+    if _EN_KNOCK.fullmatch(prefix):
+        return "knock"
     match = _EN_AFFIRMATIVE.fullmatch(prefix)
     if match is None:
         return None
@@ -533,9 +548,10 @@ def _natural_venue_door_action(session, message):
             name_pattern = r"\s+".join(
                 re.escape(part) for part in normalized_name.split()
             )
-            # Turkish accusative suffixes are allowed only after the complete name.
+            # Case suffixes attach only after the complete name.
             reference_patterns.append(re.compile(
-                r"(?<!\w)" + name_pattern + r"(?:n[ıiuü])?(?!\w)"
+                r"(?<!\w)" + name_pattern
+                + r"(?:n(?:dan|den|da|de|a|e|i|u))?(?!\w)"
             ))
         references = [
             match
@@ -559,12 +575,21 @@ def _natural_venue_door_action(session, message):
             if operation is not None:
                 sentence_end = _clause_end(text, reference.end())
                 tail = text[reference.end():sentence_end]
-                if _tail_keeps_operation(tail, door["id"], normalized_name):
+                keeps_tail = (
+                    re.fullmatch(r"\s*", tail)
+                    if operation == "knock"
+                    else _tail_keeps_operation(tail, door["id"], normalized_name)
+                )
+                if keeps_tail:
                     resolved.add((door["id"], operation))
             if re.fullmatch(r"\s*", prefix) is None:
                 continue
             remainder = text[reference.end():]
-            for pattern, operation in ((_TR_BREAK, "break"), (_TR_UNLOCK, "unlock")):
+            for pattern, operation in (
+                (_TR_BREAK, "break"),
+                (_TR_UNLOCK, "unlock"),
+                (_TR_KNOCK, "knock"),
+            ):
                 verb = pattern.match(remainder)
                 if verb is None:
                     continue
