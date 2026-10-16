@@ -344,34 +344,38 @@ def affirmative_scene_intent(value: Any, interaction_mode: str | None = None) ->
     """
     if not isinstance(value, str) or interaction_mode == "ask_dm":
         return None
-    for clause in re.findall(r"[^.!?;,\n]+[.!?;,\n]?", value):
-        text = normalize_text(clause)
-        question_words = re.findall(
-            r"\b(?:kim|ne|neler|nerede|hangi|neden|mi|mu|what|who|where|why)\b",
-            text,
-        )
-        observation_clause = text.rstrip(" \t.!?;,")
-        embedded_observation = bool(
-            re.search(r"\bneler\s+var\b.*\bgozlemliyorum$", observation_clause)
-            and all(word == "neler" for word in question_words)
-            and not re.search(r"""["'“”‘’]""", clause)
-        )
-        if "?" in clause or (question_words and not embedded_observation):
+    for sentence in re.split(r"(?<=[.!?])\s+|\n", value):
+        sentence_text = normalize_text(_text_outside_quotes(sentence))
+        if re.search(r"\b(?:if|when|unless|provided|eger|sayet)\b", sentence_text):
             continue
-        if _NEGATIVE_RE.search(clause) or re.search(
-            r"\b(?:bak|gozlemle|yaklas|gir|cik|otur|bekle|kalk|incele|konus|sor|saldir|vur|seslen|selamla)"
-            r"(?:m[ui]yorum|ma|me|mayalim|meyelim)\b", text
-        ):
-            continue
-        if re.search(r"\b(?:incel\w*|gozden gecir\w*|inspect|examine)\b", text):
-            return "inspect", clause.strip()
-        action = classify_scene_action(clause)
-        if action and action != "presence":
-            return action, clause.strip()
-        if re.search(
-            r"\b(?:konus\w*|seslen\w*|selam\w*|sor\w*|saldir\w*|vur\w*|talk|speak|greet|attack)\b", text
-        ):
-            return "interact", clause.strip()
+        for clause in re.findall(r"[^.!?;,\n]+[.!?;,\n]?", sentence):
+            text = normalize_text(clause)
+            question_words = re.findall(
+                r"\b(?:kim|ne|neler|nerede|hangi|neden|mi|mu|what|who|where|why)\b",
+                text,
+            )
+            observation_clause = text.rstrip(" \t.!?;,")
+            embedded_observation = bool(
+                re.search(r"\bneler\s+var\b.*\bgozlemliyorum$", observation_clause)
+                and all(word == "neler" for word in question_words)
+                and not re.search(r"""["'“”‘’]""", clause)
+            )
+            if "?" in clause or (question_words and not embedded_observation):
+                continue
+            if _NEGATIVE_RE.search(clause) or re.search(
+                r"\b(?:bak|gozlemle|yaklas|gir|cik|otur|bekle|kalk|incele|konus|sor|saldir|vur|seslen|selamla)"
+                r"(?:m[ui]yorum|ma|me|mayalim|meyelim)\b", text
+            ):
+                continue
+            if re.search(r"\b(?:incel\w*|gozden gecir\w*|inspect|examine)\b", text):
+                return "inspect", clause.strip()
+            action = classify_scene_action(clause)
+            if action and action != "presence":
+                return action, clause.strip()
+            if re.search(
+                r"\b(?:konus\w*|seslen\w*|selam\w*|sor\w*|saldir\w*|vur\w*|talk|speak|greet|attack)\b", text
+            ):
+                return "interact", clause.strip()
     return None
 
 
@@ -412,6 +416,18 @@ def is_anchored_structure_inquiry(value: Any) -> bool:
     text = normalize_text(bare)
     if not text:
         return False
+    if re.search(r"\b(?:inspect|examine|incel\w*|arastir\w*)\b", text):
+        target_clause = re.split(
+            r"\b(?:while|whilst|as|standing|near|beside|next\s+to)\b",
+            text,
+            maxsplit=1,
+        )[0]
+        if not re.search(
+            r"\b(?:han|taverna|tavern|inn|meyhane|bina\w*|yapi\w*|"
+            r"building|duvar\w*|cati\w*|cephe\w*|facade|roof|wall)\b",
+            target_clause,
+        ):
+            return False
     venue = bool(re.search(r"\b(?:han|taverna|tavern|inn|meyhane)\b", text))
     nearby = bool(re.search(
         r"\b(?:yakin\w*|buralarda|civar\w*|nearby|around here)\b",
@@ -450,6 +466,40 @@ def is_anchored_structure_inquiry(value: Any) -> bool:
         and re.search(r"\b(?:inn|tavern)\b", text)
         and re.search(r"\b(?:building|wall|roof|facade)\b", text)
     )
+
+
+def is_exploratory_structure_question(
+    value: Any, interaction_mode: str | None = None
+) -> bool:
+    """Allow an anchored scene question to request a bounded local detail proposal."""
+    if not isinstance(value, str) or interaction_mode in {"say", "ask_dm"}:
+        return False
+    bare = _text_outside_quotes(value)
+    text = normalize_text(bare)
+    if (
+        "?" not in bare
+        or not text
+        or _NEGATIVE_RE.search(text)
+        or re.search(
+            r"\b(?:if|when|unless|provided|maybe|perhaps|might|could|eger|sayet|belki)\b",
+            text,
+        )
+    ):
+        return False
+    venue = bool(re.search(r"\b(?:han|taverna|tavern|inn|meyhane)\b", text))
+    structure = bool(re.search(
+        r"\b(?:bina\w*|yapi\w*|building|duvar\w*|cati\w*|cephe\w*|"
+        r"facade|roof|wall)\b",
+        text,
+    ))
+    nearby = bool(re.search(
+        r"\b(?:yakin\w*|buralarda|civar\w*|nearby|around here)\b",
+        text,
+    ))
+    definite_building = bool(re.search(
+        r"\b(?:bina\w*|building)\b", text
+    ))
+    return venue and structure and (not nearby or definite_building)
 
 
 def is_tavern_search(value: Any) -> bool:

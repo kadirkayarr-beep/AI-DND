@@ -3188,11 +3188,19 @@ def create_local_feature(proposal):
     description = _clean_world_text(proposal.get("description", ""), 200) or ""
     if location != world_state.get("location") or not name or "\n" in name:
         return None
+    parent_id = (
+        _valid_local_feature_parent_id(proposal.get("parent_id"), location)
+        if proposal.get("parent_id") is not None
+        else None
+    )
+    if proposal.get("parent_id") is not None and parent_id is None:
+        return None
     existing = next(
         (
             feature for feature in world_state.get("features", [])
             if isinstance(feature, dict)
             and feature.get("location") == location
+            and feature.get("parent_id") == parent_id
             and str(feature.get("name", "")).casefold() == name.casefold()
         ),
         None,
@@ -3214,6 +3222,7 @@ def create_local_feature(proposal):
     return_record = {
         "id": f"feature_{number:03d}",
         "location": location,
+        **({"parent_id": parent_id} if parent_id else {}),
         "name": name,
         "description": description,
         "kind": _clean_world_text(proposal.get("kind", "feature"), 32) or "feature",
@@ -3223,6 +3232,69 @@ def create_local_feature(proposal):
     }
     world_state.setdefault("features", []).append(return_record)
     return return_record
+
+
+def _valid_local_feature_parent_id(parent_id, location):
+    """Allow parent links only to existing, visible entities in this scene."""
+    parent_id = _clean_world_text(parent_id, 128)
+    if not parent_id:
+        return None
+    if parent_id == location:
+        return parent_id
+    world_state = _session().world_state
+    parent_location = world_state.get("locations", {}).get(parent_id)
+    if (
+        isinstance(parent_location, dict)
+        and parent_location.get("parent_location_id") == location
+        and parent_location.get("hidden") is not True
+    ):
+        return parent_id
+    for collection in ("features", "doors", "npcs"):
+        for entity in world_state.get(collection, []):
+            if (
+                isinstance(entity, dict)
+                and entity.get("id") == parent_id
+                and entity.get("location") == location
+                and entity.get("hidden") is not True
+            ):
+                return parent_id
+    return None
+
+
+def _feature_proposal_conflicts_with_canonical_door(proposal, parent_id):
+    door = _venue_door_for(parent_id)
+    if not isinstance(door, dict):
+        return False
+    text = living_world.normalize_text(
+        " ".join(
+            value for value in (
+                proposal.get("name", ""),
+                proposal.get("description", ""),
+                *(proposal.get("aliases", []) if isinstance(proposal.get("aliases"), list) else []),
+            )
+            if isinstance(value, str)
+        )
+    )
+    door_names = [door.get("name", ""), *door.get("aliases", [])]
+    if not any(
+        isinstance(name, str)
+        and living_world.normalize_text(name)
+        and living_world.normalize_text(name) in text
+        for name in door_names
+    ):
+        return False
+    claims_open = bool(re.search(
+        r"\b(?:açık|açıldı|açılıyor|open|unlocked|kilitsiz)\b", text
+    ))
+    claims_closed = bool(re.search(
+        r"\b(?:kapalı|kapandı|closed|locked|kilitli)\b", text
+    ))
+    return (
+        (door.get("open") is False and claims_open)
+        or (door.get("open") is True and claims_closed)
+        or (door.get("locked") is True and claims_open)
+        or (door.get("locked") is False and claims_closed)
+    )
 
 
 _SHOP_ECONOMY_PATTERN = re.compile(
@@ -4833,7 +4905,11 @@ def validate_world_updates(
 
     if allow_new_features and isinstance(updates.get("create_features"), list):
         existing_features = {
-            (feature.get("location"), feature.get("name", "").casefold())
+            (
+                feature.get("location"),
+                feature.get("parent_id"),
+                feature.get("name", "").casefold(),
+            )
             for feature in world_state["features"]
         }
         for index, proposal in enumerate(updates["create_features"][:4]):
@@ -4843,6 +4919,17 @@ def validate_world_updates(
             name = _clean_world_text(proposal.get("name"), 60)
             description = _clean_world_text(proposal.get("description", ""), 200) or ""
             if location != world_state["location"] or not name or "\n" in name:
+                continue
+            parent_id = (
+                _valid_local_feature_parent_id(proposal.get("parent_id"), location)
+                if proposal.get("parent_id") is not None
+                else None
+            )
+            if proposal.get("parent_id") is not None and parent_id is None:
+                continue
+            if parent_id and _feature_proposal_conflicts_with_canonical_door(
+                proposal, parent_id
+            ):
                 continue
             shop_terms = (
                 "shop", "store", "market", "stall", "merchant", "shopkeeper",
@@ -4855,12 +4942,13 @@ def validate_world_updates(
                 or _SHOP_ECONOMY_PATTERN.search(description)
             ):
                 continue
-            key = (location, name.casefold())
+            key = (location, parent_id, name.casefold())
             if key in existing_features or len(location_features(location)) >= 16:
                 continue
             existing_features.add(key)
             result["create_features"].append({
                 "location": location,
+                **({"parent_id": parent_id} if parent_id else {}),
                 "name": name,
                 "description": description,
                 "kind": _clean_world_text(proposal.get("kind", "feature"), 32) or "feature",
@@ -5928,12 +6016,13 @@ def _extract_json_object(raw):
 
 
 def parse_player_intent(player_input, interaction_context=None, dialogue_narration=False,
-                        operation_hint=None):
+                        operation_hint=None, allow_scene_detail_proposals=False):
     """Ask Qwen only to label the current input; it cannot read or write state."""
     world_state = _session().world_state
     locations = [
         {"name": value.get("name"), "aliases": value.get("aliases", [])[:6]}
         for value in list(world_state.get("locations", {}).values())[:20]
+        if isinstance(value, dict) and value.get("hidden") is not True
     ]
     nearby_npcs = [{"name": living_world.public_npc_name(npc), "role": living_world.public_npc_role(npc)} for npc in active_npcs()[:6]]
     prompt = (
@@ -5976,6 +6065,44 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
         )
     schema = (interaction_adventure.intent_schema(INTENT_SCHEMA)
               if interaction_context is not None else INTENT_SCHEMA)
+    if allow_scene_detail_proposals:
+        schema = copy.deepcopy(schema)
+        schema["properties"]["scene_detail_proposals"] = {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "proposal_key": {"type": "string"},
+                    "location": {"type": "string"},
+                    "parent_id": {"type": "string"},
+                    "name": {"type": "string", "maxLength": 60},
+                    "description": {"type": "string", "maxLength": 200},
+                    "kind": {"type": "string", "maxLength": 32},
+                    "aliases": {
+                        "type": "array",
+                        "maxItems": 8,
+                        "items": {"type": "string", "maxLength": 80},
+                    },
+                },
+                "required": [
+                    "proposal_key", "location", "parent_id", "name",
+                    "description", "kind",
+                ],
+                "additionalProperties": False,
+            },
+        }
+        parent = _resolve_explicit_local_scene_parent(
+            world_state.get("location"), player_input
+        )
+        parent_id = parent.get("id") if isinstance(parent, dict) else None
+        prompt += (
+            "\nBu olumlu sahne incelemesinde en fazla bir sıradan ve görünür yerel "
+            "ayrıntı adayı scene_detail_proposals alanına ekle; parent_id mevcut "
+            f"doğrulanmış yapı kimliği olan {parent_id!r} olmalı. Bu yalnızca bir "
+            "öneridir: kaynak veya mekanik oluşturma, gizli geçit/kaçış/kapı durumu "
+            "iddia etme. Python doğrulaması olmadan anlatı veya canon değildir."
+        )
     if operation_hint is not None and interaction_context is not None:
         schema = copy.deepcopy(schema)
         schema["properties"]["interaction"]["properties"]["operation"] = {
@@ -7560,9 +7687,19 @@ def should_generate_npcs(player_input, location_changed=False):
     return bool(location_changed and not active_npcs())
 
 
-def should_generate_features(player_input, location_changed=False):
+def should_generate_features(player_input, location_changed=False, interaction_mode=None):
+    if interaction_mode in {"say", "ask_dm"}:
+        return False
     if is_player_world_assertion(player_input):
         return False
+    if living_world.is_exploratory_structure_question(
+        player_input, interaction_mode
+    ):
+        return True
+    if living_world.is_anchored_structure_inquiry(player_input):
+        intent = living_world.affirmative_scene_intent(player_input, interaction_mode)
+        if intent and intent[0] == "inspect":
+            return True
     text = player_input.casefold()
     if re.search(r"(?:etrafı araştır|çevreyi incele|etrafı incel|ipuçlarını araştır|gizli .{0,20} ara)", text):
         return True
@@ -7625,7 +7762,8 @@ WORLD_UPDATE_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "proposal_key": {"type": "string"},
-                    "location": {"type": "string"}, "name": {"type": "string"},
+                    "location": {"type": "string"}, "parent_id": {"type": "string"},
+                    "name": {"type": "string"},
                     "description": {"type": "string"},
                     "kind": {"type": "string"},
                     "aliases": {"type": "array", "items": {"type": "string"}},
@@ -9267,6 +9405,17 @@ def ask_dungeon_master(
         update_permissions += " Bu lokasyondaki kayıtlı NPC'leri tekrar kullan; yenisini oluşturma."
     if world_entry and allow_new_features and not location_features():
         update_permissions += " Bu lokasyon için en fazla iki özgün çevre özelliği kaydet."
+    if allow_new_features and living_world.is_anchored_structure_inquiry(player_input):
+        parent = _resolve_explicit_local_scene_parent(
+            _session().world_state.get("location"), player_input
+        )
+        if parent:
+            update_permissions += (
+                f" Bu olumlu incelemede en fazla bir sıradan, görünür kampanya-yerel "
+                f"ayrıntı öner; parent_id tam olarak {parent.get('id')} olsun. "
+                "Python kabul etmeden bu ayrıntıyı gerçekmiş gibi anlatma; gizli geçit, "
+                "kaçış veya mevcut kapı durumunu değiştiren özellik önerme."
+            )
     npc_dialogue_guidance = ""
     if npc_target:
         npc_dialogue_guidance = (
@@ -10851,19 +11000,47 @@ def _existing_local_tavern(parent_location_id):
     )
 
 
-def _anchored_structure_features(player_input, location_id):
+def _resolve_explicit_local_scene_parent(parent_location_id, player_input):
+    locations = _session().world_state.get("locations", {})
+    if not isinstance(locations, dict):
+        return None
+    candidates = [
+        location for location in locations.values()
+        if isinstance(location, dict)
+        and location.get("parent_location_id") == parent_location_id
+        and location.get("hidden") is not True
+        and isinstance(location.get("id"), str)
+    ]
+    matched = [
+        location for location in candidates
+        if any(
+            isinstance(name, str) and _entity_reference_in_text(name, player_input)
+            for name in [location.get("name", ""), *location.get("aliases", [])]
+        )
+    ]
+    if len(matched) == 1:
+        return matched[0]
+    if matched:
+        return None
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _anchored_structure_features(player_input, location_id, parent_id):
     text = living_world.normalize_text(player_input)
     visible = []
     hidden = []
     for feature in _session().world_state.get("features", []):
-        if not isinstance(feature, dict) or feature.get("location") != location_id:
+        if (
+            not isinstance(feature, dict)
+            or feature.get("location") not in {location_id, parent_id}
+            or feature.get("parent_id") not in {None, parent_id}
+        ):
             continue
         aliases = [feature.get("name", ""), *feature.get("aliases", [])]
         if not any(
             isinstance(alias, str) and alias
             and (
                 _entity_reference_in_text(alias, text)
-                or living_world.normalize_text(alias) in text
             )
             for alias in aliases
         ):
@@ -10879,8 +11056,24 @@ def _observe_anchored_structure(player_input):
     """Report a known building from stored records. Do not invent a part."""
     world_state = _session().world_state
     current = world_state.get("location")
-    tavern = _existing_local_tavern(current)
+    current_location = world_state.get("locations", {}).get(current)
+    if (
+        isinstance(current_location, dict)
+        and current_location.get("scene_kind") == "tavern"
+        and isinstance(current_location.get("parent_location_id"), str)
+    ):
+        tavern = current_location
+        feature_location = current_location["parent_location_id"]
+    else:
+        tavern = _resolve_explicit_local_scene_parent(current, player_input)
+        feature_location = current
     if not isinstance(tavern, dict):
+        intent = living_world.affirmative_scene_intent(player_input)
+        if (
+            intent and intent[0] == "inspect"
+            and not is_player_world_assertion(player_input)
+        ):
+            return None
         return {
             "action": "inspect",
             "status": "not_detailed",
@@ -10888,7 +11081,9 @@ def _observe_anchored_structure(player_input):
             "state_changes": [],
             "direct_response": "Burada inceleyebileceğin kayıtlı bir bina yok.",
         }
-    visible, hidden = _anchored_structure_features(player_input, current)
+    visible, hidden = _anchored_structure_features(
+        player_input, feature_location, tavern.get("id")
+    )
     if len(visible) == 1:
         feature = visible[0]
         return {
@@ -10920,6 +11115,9 @@ def _observe_anchored_structure(player_input):
             "state_changes": [],
             "direct_response": "Bu bakış görünür bir parça seçmiyor.",
         }
+    intent = living_world.affirmative_scene_intent(player_input)
+    if intent and intent[0] == "inspect" and not is_player_world_assertion(player_input):
+        return None
     door = _venue_door_for(tavern.get("id"))
     sentences = [f"{tavern.get('name', 'Bina')} binasına bakıyorsun."]
     if isinstance(door, dict) and door.get("hidden") is not True:
@@ -11403,6 +11601,9 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     current = world_state.get("location")
     ensure_campaign_clock()
     scene_intent = living_world.affirmative_scene_intent(player_input, interaction_mode)
+    scene_exploration_question = living_world.is_exploratory_structure_question(
+        player_input, interaction_mode
+    )
     # Keep action authority and target resolution in the same clause. A question
     # or declined verb elsewhere in the turn cannot authorize another actor.
     action_input = scene_intent[1] if scene_intent else player_input
@@ -11521,9 +11722,9 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     resolved_npc = None
     if (
         not combat.get("active")
-        and living_world.is_anchored_structure_inquiry(player_input)
+        and living_world.is_anchored_structure_inquiry(action_input)
     ):
-        direct = _observe_anchored_structure(player_input)
+        direct = _observe_anchored_structure(action_input)
     if not combat.get("active") and direct is None and tavern_search:
         root_location = current
         while _engine_location_parent(root_location):
@@ -11770,6 +11971,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         and action != "presence"
         and action != "look"
         and not world_subject_question
+        and not scene_exploration_question
         # A character-sheet question has no NPC subject to disambiguate.
         and not known_character_answer(action_input)
     ):
@@ -12387,6 +12589,25 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
         )
     packet = packet if isinstance(packet, dict) else {}
 
+    rejected_scene_detail_proposal = False
+    if isinstance(resolved_turn.action_result, dict):
+        verified_updates = resolved_turn.action_result.get(
+            "verified_world_updates", {}
+        )
+        verified_features = (
+            verified_updates.get("create_features", [])
+            if isinstance(verified_updates, dict)
+            else []
+        )
+        if (
+            resolved_turn.action_result.get("scene_detail_proposal_submitted")
+            and not verified_features
+        ):
+            rejected_scene_detail_proposal = True
+            packet["valid_response"] = False
+            packet["narration"] = resolved_turn.fallback_response
+            packet["fallback_reason_code"] = "UNVERIFIED_SCENE_DETAIL_PROPOSAL"
+
     proposal_snapshot = _world_snapshot()
     if packet.get("valid_response") and any((packet.get("world_updates") or {}).values()):
         packet["valid_response"] = False
@@ -12538,6 +12759,8 @@ def _narrate_resolved_turn(resolved_turn: ResolvedTurn, player_input, messages, 
             resolved_turn.fallback_response if narration_only else None
         ),
     )
+    if rejected_scene_detail_proposal:
+        finalized_narration = resolved_turn.fallback_response
 
     final_dict = resolved_turn.raw_result
     final_dict["narration"] = finalized_narration
@@ -12674,6 +12897,9 @@ def _run_player_turn_internal(
         True if interaction_mode == "ask_dm"
         else False if interaction_mode == "say"
         else local_dialogue.is_world_subject_question(player_input)
+    )
+    scene_exploration_question = living_world.is_exploratory_structure_question(
+        player_input, interaction_mode
     )
     if messages is None:
         messages = _session().messages
@@ -13263,7 +13489,7 @@ def _run_player_turn_internal(
             flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
         npc_resolution = (
             {"status": "none", "npc": None}
-            if world_subject_question
+            if world_subject_question or scene_exploration_question
             else {"status": "found", "npc": npc_target}
             if npc_target is not None
             else resolve_npc_reference(
@@ -13891,6 +14117,15 @@ def _run_player_turn_internal(
         raw_intent = parse_player_intent(
             player_input,
             interaction_context=interaction_adventure.context(world_state, npc_target),
+            allow_scene_detail_proposals=(
+                not is_player_world_assertion(player_input)
+                and should_generate_features(
+                    player_input, interaction_mode=interaction_mode
+                )
+                and _resolve_explicit_local_scene_parent(
+                    world_state.get("location"), player_input
+                ) is not None
+            ),
         )
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(
@@ -13955,6 +14190,32 @@ def _run_player_turn_internal(
         and should_generate_features(player_input, expected_location_change)
         and not is_player_world_assertion(player_input)
     )
+    scene_parent = _resolve_explicit_local_scene_parent(
+        world_state.get("location"), player_input
+    )
+    if (
+        scene_parent is None
+        and living_world.is_anchored_structure_inquiry(player_input)
+    ):
+        action_result["direct_response"] = (
+            "Burada inceleyebileceğin kayıtlı bir bina yok."
+        )
+    if isinstance(raw_intent, dict):
+        scene_detail_proposals = raw_intent.get("scene_detail_proposals")
+        if isinstance(scene_detail_proposals, list) and scene_detail_proposals:
+            parent_id = scene_parent.get("id") if isinstance(scene_parent, dict) else None
+            bound_proposals = [
+                proposal for proposal in scene_detail_proposals
+                if isinstance(proposal, dict)
+                and proposal.get("parent_id") == parent_id
+            ]
+            action_result["scene_detail_proposal_submitted"] = bool(
+                scene_detail_proposals
+            )
+            action_result["verified_world_updates"] = validate_world_updates(
+                {"create_features": bound_proposals},
+                allow_new_features=allow_new_features,
+            )
     allow_new_shops = bool(shop_request)
 
     quest_transitions = _session().evaluate_quest_events(
