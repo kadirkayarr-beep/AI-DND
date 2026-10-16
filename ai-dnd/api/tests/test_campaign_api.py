@@ -1811,6 +1811,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "Kael Hanı Kapısını kilidini açmayı deniyorum demedim.",
             "I break a branch beside Old Inn Door.",
             "People say I break Old Inn Door.",
+            "Şöyle demiyorum: Kael Hanı Kapısını kırıyorum.",
+            "Diyelim ki Kael Hanı Kapısını kırıyorum.",
+            "Şöyle demiyorum: Kael Hanı Kapısını kilidini açmayı deniyorum.",
+            "Diyelim ki Kael Hanı Kapısını kilidini açmayı deniyorum.",
         )
 
         def entity_ids(world, key):
@@ -1913,7 +1917,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                         "Eski Han Kapısı"
                         if message.startswith(("Eski Han", "Dün", "Muhafıza"))
                         else "Kael Hanı Kapısı"
-                        if message.startswith("Kael Hanı")
+                        if "Kael Hanı" in message
                         else "Old Inn Door"
                     )
                     baseline_message = (

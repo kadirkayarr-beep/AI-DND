@@ -546,18 +546,23 @@ def _natural_venue_door_action(session, message):
             continue
 
         for reference in references:
+            # A colon stays inside the clause, so a denial or hypothesis before it
+            # still covers the door and the verb.
             clause_start = max(
                 text.rfind(".", 0, reference.start()),
                 text.rfind("!", 0, reference.start()),
                 text.rfind("?", 0, reference.start()),
                 text.rfind(";", 0, reference.start()),
             ) + 1
-            operation = _english_operation(text[clause_start:reference.start()])
+            prefix = text[clause_start:reference.start()]
+            operation = _english_operation(prefix)
             if operation is not None:
                 sentence_end = _clause_end(text, reference.end())
                 tail = text[reference.end():sentence_end]
                 if _tail_keeps_operation(tail, door["id"], normalized_name):
                     resolved.add((door["id"], operation))
+            if re.fullmatch(r"\s*", prefix) is None:
+                continue
             remainder = text[reference.end():]
             for pattern, operation in ((_TR_BREAK, "break"), (_TR_UNLOCK, "unlock")):
                 verb = pattern.match(remainder)
