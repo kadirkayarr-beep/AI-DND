@@ -110,7 +110,7 @@ _VENUE_RE = re.compile(
     re.IGNORECASE,
 )
 _SEARCH_RE = re.compile(
-    r"(?:ar(?:a|ı|i)\w*|bul\w*|karşılaş\w*|tanış\w*|find|look for|search for|"
+    r"(?:\bar(?:a|ı|i)\w*|bul\w*|karşılaş\w*|tanış\w*|find|look for|search for|"
     r"meet|locate|nearby|yakın(?:da|larda|ımda)?|buralarda|civar(?:da|larda)?|"
     r"var\s*m[ıi]|bulunur\s*m[ıi]|bulunuyor\s*m[ıi]|görür\s*m[üu]y[üu]m)",
     re.IGNORECASE,
