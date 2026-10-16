@@ -3288,7 +3288,7 @@ def _legacy_hidden_feature_name_collision(proposal, location, parent_id, name):
 
 
 def _local_detail_claims_unsupported_mechanics(proposal, parent_id):
-    if not isinstance(proposal, dict) or proposal.get("kind", "detail") != "detail":
+    if not isinstance(proposal, dict):
         return False
     text = living_world.normalize_text(
         " ".join(
@@ -3298,6 +3298,8 @@ def _local_detail_claims_unsupported_mechanics(proposal, parent_id):
     )
     if re.search(r"\b(?:passage|gecit|path|route|koridor)\b.*\b(?:leads?|connects?|opens?|takes?)\b", text):
         return True
+    if proposal.get("kind", "detail") != "detail":
+        return False
     door = _venue_door_for(parent_id)
     if not isinstance(door, dict) or not re.search(
         r"\b(?:entrance|entry|door|gate|giris|kapi)\b", text

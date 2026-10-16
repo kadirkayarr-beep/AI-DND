@@ -11336,5 +11336,43 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
                     for row in session.world_state["features"]
                 ), expected_count)
 
+    async def test_review_seat_kind_cannot_claim_secret_passage_but_real_seating_is_supported(self):
+        for name, description, expected_count in (
+            (
+                "Hidden Passage Seat",
+                "A secret passage leads into the locked inn.",
+                0,
+            ),
+            (
+                "Window Bench",
+                "A sturdy bench sits beneath the window.",
+                1,
+            ),
+        ):
+            with self.subTest(name=name):
+                response, session, *_ = await self.run_review_scene_turn(
+                    "I inspect the inn building.",
+                    [{
+                        "proposal_key": "seat-1",
+                        "location": "fr:city:neverwinter",
+                        "parent_id": "location_001",
+                        "name": name,
+                        "description": description,
+                        "kind": "seat",
+                        "aliases": [name.lower()],
+                    }],
+                    narration=description,
+                )
+                self.assertEqual(response.status_code, 200, response.text)
+                matching = [
+                    row for row in session.world_state["features"]
+                    if row.get("name") == name
+                ]
+                self.assertEqual(len(matching), expected_count)
+                if expected_count:
+                    self.assertEqual(matching[0].get("kind"), "seat")
+                else:
+                    self.assertNotIn(name, response.json()["narration"])
+
 if __name__ == "__main__":
     unittest.main()
