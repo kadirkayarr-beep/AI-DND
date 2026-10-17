@@ -257,6 +257,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .state-column { min-width: 0; }
 .state-panel { margin-bottom: 15px; border: 1px solid rgba(77, 58, 38, .86); background: rgba(23, 18, 14, .84); padding: 18px; }
 .state-panel h2 { margin: 5px 0 0; color: #e6d7bb; font-family: 'Cinzel', serif; font-size: 20px; letter-spacing: .08em; }
+.identity-notes { max-height: 9rem; margin-top: 16px; overflow: auto; border-top: 1px solid #4b3926; padding-top: 12px; }
+.identity-note { margin-top: 10px; }
+.identity-note-label { color: #aa9a7f; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.identity-note-text { margin: 4px 0 0; color: #e6d7bb; font-family: var(--app-font-serif); font-size: 1rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.identity-note[data-state="missing"] .identity-note-text { color: #8d7d66; }
 .character-top { display: flex; justify-content: space-between; gap: 15px; }
 .character-badge { border: 1px solid rgba(135, 109, 68, .55); padding: 5px 8px; color: #c6a36b; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .1em; white-space: nowrap; }
 .character-sub { margin-top: 5px; color: #aa9a7f; font-family: var(--app-font-serif); font-size: 17px; }
