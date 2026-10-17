@@ -161,8 +161,8 @@ class ConversationProposal(Contract):
     subject_phrase: str = Field(default="", max_length=160)
     subject_role: Literal["addressee", "other_actor", "world_entity", "unknown"] = "unknown"
     meaning: Literal[
-        "personal_purpose", "current_activity", "cause", "lore",
-        "identity", "other", "unclear",
+        "personal_purpose", "current_activity", "occupation", "origin",
+        "cause", "lore", "identity", "other", "unknown", "unclear",
     ] = "unclear"
     topic_relation: Literal["new", "followup", "topic_change", "unclear"] = "unclear"
     candidate_evidence_ids: list[str] = Field(default_factory=list, max_length=8)
@@ -690,12 +690,15 @@ def context(world, npc, player_input=None):
 
 
 def resolve_conversation(world, player_input, raw, npc=None):
-    """Validate a one-turn model interpretation against Python-owned sources."""
+    """Validate the quoted turn and its model interpretation against Python-owned sources."""
     try:
-        proposal = ConversationProposal.model_validate(raw)
+        envelope = Envelope.model_validate(raw)
     except (ValidationError, TypeError, ValueError):
         return None
-    if not isinstance(player_input, str):
+    if not isinstance(player_input, str) or envelope.quote != player_input:
+        return None
+    proposal = envelope.conversation
+    if not isinstance(proposal, ConversationProposal):
         return None
     context_data = context(world, npc, player_input)
     candidates = {
@@ -719,47 +722,34 @@ def resolve_conversation(world, player_input, raw, npc=None):
         if not focus or not npc or focus["speaker_id"] != npc.get("id"):
             return None
     if proposal.subject_role == "addressee":
-        if not npc or not phrase:
+        if not npc:
             return None
         npc_names = {
             normalize(npc.get("name", "")),
             normalize(living_world.public_npc_name(npc)),
         }
-        if normalize(phrase) not in npc_names:
+        if phrase and normalize(phrase) not in npc_names:
             return None
-    elif proposal.meaning in {"personal_purpose", "current_activity"} and selected:
-        return None
+        if not phrase and proposal.topic_relation not in {"followup", "new"}:
+            return None
 
     answer_field = None
     answer_value = None
-    if proposal.meaning in {"personal_purpose", "current_activity"}:
-        expected_field = {
-            "personal_purpose": "reason_for_being_here",
-            "current_activity": "current_activity",
-        }[proposal.meaning]
-        expected_kind = {
-            "personal_purpose": "reason_for_being_here",
-            "current_activity": "current_activity",
-        }[proposal.meaning]
+    expected_field = {
+        "personal_purpose": "reason_for_being_here",
+        "current_activity": "current_activity",
+        "occupation": "occupation",
+        "origin": "origin",
+    }.get(proposal.meaning)
+    if expected_field is not None:
         profile = npc.get("personal_profile") if isinstance(npc, dict) else None
         evidence_id = (
             f"npc-profile:{npc.get('id')}:v1:{expected_field}"
             if isinstance(npc, dict) else None
         )
-        kind_matches = (
-            local_dialogue.personal_question_kind(player_input) == expected_kind
-            or (
-                proposal.topic_relation == "followup"
-                and focus
-                and focus.get("predicate") == expected_field
-                and focus.get("evidence_id") == evidence_id
-                and focus.get("speaker_id") == (npc or {}).get("id")
-            )
-        )
         if (
             proposal.subject_role != "addressee"
             or not npc
-            or not kind_matches
             or selected != [evidence_id]
             or candidates.get(evidence_id, {}).get("field") != expected_field
             or not isinstance(profile, dict)
@@ -774,8 +764,36 @@ def resolve_conversation(world, player_input, raw, npc=None):
             return None
         answer_field = expected_field
         answer_value = profile[expected_field]
+    elif proposal.candidate_evidence_ids:
+        # NPC-profile evidence is only an answer source for its exact predicate.
+        # It cannot establish a cause, rumor, lore claim, or another actor's fact.
+        if any(
+            candidates[key].get("field") in {
+                "reason_for_being_here", "current_activity", "occupation", "origin",
+                "recent_activity", "personal_detail", "mood",
+            }
+            for key in selected
+        ):
+            return None
+
+    if proposal.meaning == "unknown" and selected:
+        return None
+    if proposal.meaning == "identity":
+        if (
+            not npc
+            or proposal.subject_role != "addressee"
+            or selected
+            or proposal.topic_relation == "followup"
+        ):
+            return None
+        role = living_world.public_npc_role(npc)
+        if not isinstance(role, str) or not role.strip():
+            return None
+        answer_field = "npc_identity"
+        answer_value = role
 
     return {
+        "quote": envelope.quote,
         "addressee_id": proposal.addressee_id,
         "subject_phrase": phrase,
         "subject_role": proposal.subject_role,
@@ -862,7 +880,11 @@ def hint(text, npc=None):
 
 def immersive_unknown(npc=None):
     if npc:
-        return f'{living_world.public_npc_name(npc)} başını hafifçe sallıyor. “Bunu kendi gözlerimle görmedim.”'
+        return (
+            f'{living_world.public_npc_name(npc)} başını hafifçe sallıyor. '
+            '“Bunu kendi gözlerimle görmedim; bu konuda doğrulanmış bir '
+            'bilgim yok, kesin konuşamam.”'
+        )
     return "Şu ana kadar gördüklerin bu düşünceyi doğrulamıyor. Nasıl ilerlemek istediğin sana kalmış."
 
 
