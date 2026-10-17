@@ -11703,6 +11703,8 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
     # or declined verb elsewhere in the turn cannot authorize another actor.
     action_input = scene_intent[1] if scene_intent else player_input
     action = scene_intent[0] if scene_intent else living_world.classify_scene_action(player_input)
+    if scene_intent is None and action == "enter":
+        action = None
     if interaction_mode == "say":
         action = None
     elif interaction_mode == "ask_dm" and action not in {"presence", "look"}:
@@ -11782,6 +11784,23 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             re.IGNORECASE,
         )
     )
+    targetless_entry_reference = None
+    entry_text = living_world._text_outside_quotes(action_input)
+    if (
+        action == "enter"
+        and target_id is None
+        and resolve_location_reference(entry_text) is None
+        and not re.search(
+            r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
+            str(entry_text),
+            re.IGNORECASE,
+        )
+    ):
+        targetless_entry_reference = living_world.resolve_entry_target_reference(
+            world_state,
+            current_location_id=current,
+            next_turn_index=turn_index,
+        )
     combat = ensure_combat_state()
     if current in world_state.get("locations", {}) and (
         scheduled_events.pending_events(world_state)
@@ -11805,6 +11824,12 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
         ))
         and not combat.get("active")
         and current in world_state.get("locations", {})
+        and not (
+            targetless_entry_reference
+            and _venue_entry_door(
+                world_state, current, targetless_entry_reference["location_id"]
+            )
+        )
     ):
         scene = living_world.ensure_scene_record(world_state, current, turn_index)
         if scene.get("last_visit_turn") is None:
@@ -11873,14 +11898,16 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             }
 
     if not combat.get("active") and action == "enter":
-        text = str(player_input)
+        text = str(entry_text)
         candidate = None
         explicit_tavern_target = bool(re.search(
             r"(?:taverna|tavern|inn|meyhane|\bhan\b|hanı|hana)",
             text,
             re.IGNORECASE,
         ))
-        if explicit_tavern_target:
+        if target_id is not None:
+            candidate = target_id
+        elif explicit_tavern_target:
             root_location = current
             while _engine_location_parent(root_location):
                 root_location = _engine_location_parent(root_location)
@@ -11888,6 +11915,13 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
             candidate = existing_tavern.get("id") if existing_tavern else None
         if candidate is None:
             candidate = resolve_location_reference(text)
+        if (
+            candidate is None
+            and target_id is None
+            and not explicit_tavern_target
+            and targetless_entry_reference
+        ):
+            candidate = targetless_entry_reference["location_id"]
         candidate_record = world_state.get("locations", {}).get(candidate, {})
         if (
             candidate
@@ -11905,6 +11939,7 @@ def plan_living_world_turn(player_input, target_id=None, interaction_mode=None):
                     "target_id": candidate,
                     "state_changes": [],
                     "direct_response": (
+                        f"{location_display_name(candidate)} girişindeki "
                         f"{venue_door.get('name', 'Kapı')} kilitli. İçeri geçemezsin."
                     ),
                 }
@@ -12440,6 +12475,27 @@ def run_player_turn(
         interaction_mode,
     )
     action_result = result.get("action_result") if isinstance(result, dict) else None
+    resolution = (
+        action_result.get("resolution")
+        if isinstance(action_result, dict)
+        else None
+    )
+    source_action_id = (
+        action_id
+        or (action_result.get("action_id") if isinstance(action_result, dict) else None)
+        or (
+            resolution.get("action_id")
+            if isinstance(resolution, dict)
+            else None
+        )
+    )
+    living_world.record_entry_target_reference(
+        _session().world_state,
+        action_result=action_result,
+        source_action_id=source_action_id,
+        source_turn_index=_session().world_state.get("flags", {}).get("turn_index", 0),
+        source_location_id=before.get("location"),
+    )
     if (
         isinstance(action_result, dict)
         and action_result.get("action") in {"action_economy", "attack", "death_save"}

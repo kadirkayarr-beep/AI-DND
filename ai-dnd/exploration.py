@@ -406,7 +406,16 @@ def _door_action(session, message, identity, operation):
             gate["open"] = operation == "open"
         record_knowledge(world)
     text = f"{gate['name']}: " + ("girişimin sonuç verdi." if check.get("success", True) else "girişimin sonuç vermedi.")
-    return _reply(session, message, text, check.pop("action", "door_interaction"), time_result=advancement, **check)
+    return _reply(
+        session,
+        message,
+        text,
+        check.pop("action", "door_interaction"),
+        time_result=advancement,
+        target_id=identity,
+        target_type="door",
+        **check,
+    )
 
 
 def _obstacle_action(session, message, kind, identity, operation):
