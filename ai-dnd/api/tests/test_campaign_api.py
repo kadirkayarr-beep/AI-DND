@@ -143,14 +143,92 @@ class CapturingConversationContextClient(ControlledVenueOllamaClient):
         super().__init__(intent="narrative")
         self.message_batches = []
         self.generated_narrations = []
+        self.intent_schemas = []
 
     def chat(self, *args, **kwargs):
         messages = copy.deepcopy(kwargs.get("messages", []))
-        self.message_batches.append(messages)
         schema = kwargs.get("format", {})
         properties = schema.get("properties", {}) if isinstance(schema, dict) else {}
         if "intent" in properties:
-            return super().chat(*args, **kwargs)
+            self.intent_schemas.append(copy.deepcopy(schema))
+            self.message_batches.append(messages)
+            response = super().chat(*args, **kwargs)
+            packet = json.loads(response["message"]["content"])
+            prompt = next(
+                item.get("content", "")
+                for item in reversed(messages)
+                if item.get("role") == "user"
+            )
+            quote = prompt.split("Current player message: ", 1)[-1].splitlines()[0]
+            marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+            context = json.loads(
+                prompt.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            )
+            addressee = context.get("addressee") or {}
+            focus = context.get("conversation_focus") or {}
+            name = addressee.get("name", "")
+            candidates = context.get("conversation_candidates", [])
+            candidate_by_field = {
+                item.get("field"): item.get("evidence_id")
+                for item in candidates if isinstance(item, dict)
+            }
+            if "şu an ne yapıyorsun" in quote.casefold():
+                meaning, field = "current_activity", "current_activity"
+                subject, role = name, "addressee"
+            elif "neden buraya geldin" in quote.casefold():
+                meaning, field = "personal_purpose", "reason_for_being_here"
+                subject, role = name, "addressee"
+            elif "arıyorsun" in quote.casefold():
+                meaning, field = "personal_purpose", "reason_for_being_here"
+                subject, role = name, "addressee"
+            elif "neden bunu yap" in quote.casefold() and focus:
+                field = focus.get("predicate")
+                meaning = (
+                    "current_activity"
+                    if field == "current_activity"
+                    else "cause"
+                )
+                subject, role = name, "addressee"
+            elif quote.casefold().rstrip().endswith(("neden?", "niye?")) and focus:
+                field = focus.get("predicate")
+                if field == "reason_for_being_here":
+                    meaning, subject, role = "personal_purpose", name, "addressee"
+                else:
+                    meaning, subject, role = "cause", "", "unknown"
+            elif "neden kilitli" in quote.casefold() and focus:
+                field = focus.get("predicate")
+                meaning, subject, role = "cause", "", "unknown"
+            else:
+                meaning, field = "cause", None
+                subject = next(
+                    (word for word in ("Sera", "kervan", "ejderha", "kapı", "Neverwinter")
+                     if word.casefold() in quote.casefold()),
+                    "",
+                )
+                role = "other_actor" if subject in {"Sera", "kervan", "ejderha"} else "world_entity"
+            proposal = {
+                "addressee_id": addressee.get("npc_id"),
+                "subject_phrase": subject,
+                "subject_role": role,
+                "meaning": meaning,
+                "topic_relation": (
+                    "followup"
+                    if focus and field == focus.get("predicate")
+                    else "topic_change" if focus else "new"
+                ),
+                "candidate_evidence_ids": (
+                    [candidate_by_field[field]]
+                    if field and candidate_by_field.get(field) else []
+                ),
+            }
+            packet["interaction"] = {
+                "operation": "none",
+                "quote": quote,
+                "conversation": proposal,
+            }
+            packet["narration"] = "Bu konuda doğrulanmış bir bilgi yok."
+            return {"message": {"content": json.dumps(packet, ensure_ascii=False)}}
+        self.message_batches.append(messages)
         marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
         scene = None
         for item in messages:
@@ -566,32 +644,38 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(followup.status_code, 200, followup.text)
         self.assertTrue(resolved_targets)
         self.assertEqual(resolved_targets[-1]["npc"]["id"], marek["id"])
-        self.assertTrue(client.message_batches, "The real model adapter was not reached.")
-        context_text = json.dumps(client.message_batches[-1], ensure_ascii=False)
-
+        self.assertTrue(client.message_batches, "The intent parser was not reached.")
+        context_text = json.dumps(client.message_batches, ensure_ascii=False)
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
+        message = next(
+            item["content"]
+            for batch in reversed(client.message_batches)
+            for item in reversed(batch)
+            if marker in item.get("content", "")
+        )
+        scene_context = json.loads(
+            message.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+        )
         def latest_scene_context():
-            marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
-            message = next(
+            latest = next(
                 item["content"]
-                for item in client.message_batches[-1]
+                for batch in reversed(client.message_batches)
+                for item in reversed(batch)
                 if marker in item.get("content", "")
             )
-            payload = message.split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
-            return json.loads(payload)
+            return json.loads(
+                latest.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
+            )
 
-        scene_context = latest_scene_context()
         focus_in_model_context = scene_context["conversation_focus"]
-        self.assertEqual(scene_context["active_npc_target"]["id"], marek["id"])
+        self.assertEqual(scene_context["addressee"]["npc_id"], marek["id"])
         self.assertEqual(focus_in_model_context["speaker_id"], marek["id"])
         self.assertEqual(focus_in_model_context["scene_id"], city_id)
         self.assertEqual(focus_in_model_context["subject_id"], door["id"])
         self.assertEqual(focus_in_model_context["evidence_id"], door["id"])
         self.assertEqual(focus_in_model_context["predicate"], "locked")
-        self.assertIs(focus_in_model_context["value"], True)
+        self.assertNotIn("value", focus_in_model_context)
         self.assertEqual(focus_in_model_context["epistemic"], "owner_verified")
-        self.assertIn("kilidin nedenini kanıtlamaz", context_text)
         self.assertNotIn("reason_for_lock", context_text)
         self.assertNotIn(private_other_npc_fact, context_text)
         other_venue_world = copy.deepcopy(session.world_state)
@@ -619,6 +703,9 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         for epistemic in ("player_claim", "rumor", "belief"):
             untrusted = copy.deepcopy(session.world_state)
+            untrusted["interaction_adventure_v1"]["conversation_focus"] = (
+                copy.deepcopy(stored_focus)
+            )
             untrusted["interaction_adventure_v1"]["conversation_focus"][
                 "epistemic"
             ] = epistemic
@@ -654,20 +741,27 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             short_scene["conversation_focus"]["subject_id"], door["id"]
         )
-        self.assertEqual(short_scene["active_npc_target"]["id"], marek["id"])
+        self.assertEqual(short_scene["addressee"]["npc_id"], marek["id"])
 
         other_topic = await say("Marek, bugün hava nasıl?")
         self.assertEqual(other_topic.status_code, 200, other_topic.text)
-        other_topic_scene = latest_scene_context()
-        self.assertIsNone(other_topic_scene["conversation_focus"])
+        self.assertIsNone(
+            game.interaction_adventure.current_conversation_focus(
+                session.world_state, marek
+            )
+        )
+        self.assertIsNone(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"]
+        )
 
         other_speaker = await say("Sera, bugün hava nasıl?")
         self.assertEqual(other_speaker.status_code, 200, other_speaker.text)
-        other_speaker_scene = latest_scene_context()
         self.assertEqual(
-            other_speaker_scene["active_npc_target"]["id"], "npc_sera"
+            session.world_state["flags"]["active_npc_id"], "npc_sera"
         )
-        self.assertIsNone(other_speaker_scene["conversation_focus"])
+        self.assertIsNone(
+            session.world_state["interaction_adventure_v1"]["conversation_focus"]
+        )
 
         duplicate_marek = copy.deepcopy(marek)
         duplicate_marek["id"] = "npc_marek_duplicate"
@@ -745,7 +839,11 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         first_model = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(first_model.status_code, 200, first_model.text)
         first_context = json.dumps(client.message_batches, ensure_ascii=False)
-        self.assertIn(profile["reason_for_being_here"], first_context)
+        self.assertNotIn(profile["reason_for_being_here"], first_context)
+        self.assertIn(
+            f"npc-profile:{marek['id']}:v1:reason_for_being_here",
+            first_context,
+        )
 
         first = await say("Marek, şu an ne yapıyorsun?")
         self.assertEqual(first.status_code, 200, first.text)
@@ -783,26 +881,23 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(profile["reason_for_being_here"], followup.json()["narration"])
         messages = client.message_batches[-1]
         context_text = json.dumps(messages, ensure_ascii=False)
-        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         payload = next(
-            item["content"].split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
+            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
             for item in messages
             if marker in item.get("content", "")
         )
         scene = json.loads(payload)
         focus = scene["conversation_focus"]
-        accepted_profile = scene["accepted_npc_profile"]
-        self.assertEqual(scene["active_npc_target"]["id"], marek["id"])
+        self.assertEqual(scene["addressee"]["npc_id"], marek["id"])
         self.assertEqual(focus["speaker_id"], marek["id"])
         self.assertEqual(
             focus["subject_id"], f"npc-profile:{marek['id']}:current_activity"
         )
         self.assertEqual(focus["predicate"], "current_activity")
-        self.assertEqual(focus["value"], profile["current_activity"])
+        self.assertNotIn("value", focus)
         self.assertEqual(focus["epistemic"], "witnessed")
-        self.assertIsNone(accepted_profile)
+        self.assertNotIn("accepted_npc_profile", scene)
         self.assertNotIn(private_fact, context_text)
         action_followup = await say("Neden bunu yapıyorsun?")
         self.assertEqual(action_followup.status_code, 200, action_followup.text)
@@ -835,7 +930,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         sera["knowledge"].append(other_npc_only_cause)
         unknown = await say("Marek, neden kayıp yük kayıtlarını arıyorsun?")
         self.assertEqual(unknown.status_code, 200, unknown.text)
-        self.assertIn("doğrulanmış bir bilgi yok", unknown.json()["narration"])
+        self.assertIn("görmedim", unknown.json()["narration"])
         unknown_context = json.dumps(client.message_batches[-1], ensure_ascii=False)
         self.assertNotIn(other_npc_only_cause, unknown_context)
         self.assertNotIn(other_npc_only_cause, unknown.json()["narration"])
@@ -887,12 +982,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "action_id": str(uuid.uuid4()),
         })
         self.assertEqual(changed_state.status_code, 200, changed_state.text)
-        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         changed_messages = client.message_batches[-1]
         changed_payload = next(
-            item["content"].split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
+            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
             for item in changed_messages
             if marker in item.get("content", "")
         )
@@ -1024,14 +1117,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             response = await say(message)
             self.assertEqual(response.status_code, 200, response.text)
             self.assertTrue(client.message_batches, "Expected the real narrative request.")
-            marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+            marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
             content = next(
                 item["content"]
                 for item in client.message_batches[-1]
                 if marker in item.get("content", "")
             )
             return json.loads(
-                content.split(marker, 1)[1].split("\n\nRECENT NARRATION", 1)[0]
+                content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
             )["conversation_focus"]
 
         first = await say("Buralarda han var mı Marek?")
@@ -1097,14 +1190,14 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(client.message_batches, "Expected the real narrative request.")
-        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         content = next(
             item["content"]
             for item in client.message_batches[-1]
             if marker in item.get("content", "")
         )
         scene = json.loads(
-            content.split(marker, 1)[1].split("\n\nRECENT NARRATION", 1)[0]
+            content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
         )
         self.assertIsNone(scene["conversation_focus"])
         self.assertNotEqual(
@@ -1171,16 +1264,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             )),
             response.json()["narration"],
         )
-        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
-        last_messages = client.message_batches[-1]
-        scene_text = next(
-            item["content"].split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
-            for item in last_messages
-            if marker in item.get("content", "")
+        self.assertEqual(
+            len(client.message_batches), batches_before_lore_question,
+            "Unsupported lore remains on the deterministic safety path.",
         )
-        self.assertIsNone(json.loads(scene_text)["accepted_npc_profile"])
 
     async def test_activity_why_does_not_inherit_unrelated_profile_purpose(self):
         city_id, _, session, turn_url, _, _ = await create_city_with_locked_tavern(self)
@@ -1230,12 +1317,10 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(activity, first.json()["narration"])
         followup = await say("Marek, neden?")
         self.assertEqual(followup.status_code, 200, followup.text)
-        marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+        marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
         messages = client.message_batches[-1]
         scene_text = next(
-            item["content"].split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
+            item["content"].split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
             for item in messages
             if marker in item.get("content", "")
         )
@@ -1244,11 +1329,7 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             scene["conversation_focus"]["subject_id"],
             f"npc-profile:{marek['id']}:current_activity",
         )
-        self.assertNotIn(
-            purpose,
-            json.dumps(scene["accepted_npc_profile"], ensure_ascii=False),
-            "A same-NPC purpose is not evidence for an unrelated activity's cause.",
-        )
+        self.assertNotIn(purpose, json.dumps(scene, ensure_ascii=False))
         self.assertNotIn(
             purpose, followup.json()["narration"],
             "A profile purpose is not evidence for an unrelated activity's cause.",
@@ -1304,20 +1385,27 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
 
         def last_scene():
             messages = client.message_batches[-1]
-            marker = "CURRENT LOCAL SCENE STATE (Python-owned, read-only):\n"
+            marker = "NPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
             content = next(
                 item["content"]
                 for item in messages
                 if marker in item.get("content", "")
             )
-            raw = content.split(marker, 1)[1].split(
-                "\n\nRECENT NARRATION", 1
-            )[0]
+            raw = content.split(marker, 1)[1].split("\nNPC dialogue mode", 1)[0]
             return json.loads(raw), json.dumps(messages, ensure_ascii=False)
 
         direct = await post("Marek, neden buraya geldin?")
         self.assertEqual(direct.status_code, 200, direct.text)
         self.assertIn(purpose, direct.json()["narration"])
+        self.assertEqual(
+            len(client.intent_schemas),
+            1,
+            "A free personal question must use exactly one existing intent call.",
+        )
+        self.assertIn(
+            "conversation",
+            client.intent_schemas[-1]["properties"]["interaction"]["properties"],
+        )
         self.assertEqual(
             session.world_state["interaction_adventure_v1"][
                 "conversation_focus"
@@ -1332,51 +1420,18 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
             "Expected a real first conversation-model input after the owned answer.",
         )
         continued_scene, continued_context = last_scene()
-        self.assertEqual(
-            continued_scene["active_npc_target"]["id"], marek["id"]
-        )
-        continued_profile = continued_scene["accepted_npc_profile"]
-        self.assertEqual(continued_profile["speaker_id"], marek["id"])
-        self.assertEqual(
-            continued_profile["subject_id"],
-            f"npc-profile:{marek['id']}:reason_for_being_here",
-        )
-        self.assertEqual(continued_profile["topic"], "reason_for_being_here")
-        self.assertEqual(
-            continued_profile["evidence"],
-            [{
-                "evidence_id": f"npc-profile:{marek['id']}:v1:reason_for_being_here",
-                "field": "reason_for_being_here",
-                "value": purpose,
-                "relation": "conversation_topic",
-            }],
-        )
-        self.assertIn(purpose, continued_context)
-        first_model_context = json.dumps(
-            client.message_batches[-2], ensure_ascii=False
-        )
-        self.assertIn(purpose, first_model_context)
         self.assertIn(
             f"npc-profile:{marek['id']}:v1:reason_for_being_here",
-            first_model_context,
+            [item["evidence_id"] for item in continued_scene["conversation_candidates"]],
         )
-        self.assertIn(purpose, client.generated_narrations[-1])
-        self.assertEqual(
-            continued.json()["narration"],
-            client.generated_narrations[-1],
-            json.dumps({
-                "response_narration": continued.json()["narration"],
-                "accepted_profile": continued_profile,
-                "model_calls": len(client.message_batches),
-                "controlled_narrations": client.generated_narrations,
-            }, ensure_ascii=False),
-        )
+        self.assertNotIn(purpose, continued_context)
+        self.assertIn(purpose, continued.json()["narration"])
 
         door = await post("Marek, burada kapı neden kilitli?")
         self.assertEqual(door.status_code, 200, door.text)
         self.assertNotIn(purpose, door.json()["narration"])
-        door_scene, _ = last_scene()
-        self.assertIsNone(door_scene["accepted_npc_profile"])
+        _, door_context = last_scene()
+        self.assertNotIn(purpose, door_context)
 
         batches_before_lore = len(client.message_batches)
         lore = await post(
@@ -1409,7 +1464,22 @@ class CampaignApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             activity_scene["conversation_focus"]["predicate"], "current_activity"
         )
-        self.assertIsNone(activity_scene["accepted_npc_profile"])
+        self.assertNotIn(purpose, json.dumps(activity_scene, ensure_ascii=False))
+
+        for actor_question in (
+            "Marek, kervan neden buraya geldi?",
+            "Marek, ejderha neden buraya geldi?",
+        ):
+            with self.subTest(actor_question=actor_question):
+                owner_question = await post("Marek, neden buraya geldin?")
+                self.assertEqual(owner_question.status_code, 200, owner_question.text)
+                self.assertIn(purpose, owner_question.json()["narration"])
+
+                actor_answer = await post(actor_question)
+                self.assertEqual(actor_answer.status_code, 200, actor_answer.text)
+                self.assertNotIn(purpose, actor_answer.json()["narration"])
+                _, actor_context = last_scene()
+                self.assertNotIn(purpose, actor_context)
 
     async def test_death_mode_selection_persists_and_legacy_requests_default_to_normal(self):
         legacy = await self.create_campaign()

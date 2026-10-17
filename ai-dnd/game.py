@@ -5450,7 +5450,7 @@ def _remember_owner_locked_tavern_focus(player_input, npc_target, action_id):
     )
 
 
-def _remember_accepted_profile_focus(player_input, npc_target, action_id):
+def _remember_accepted_profile_focus(player_input, npc_target, action_id, field=None):
     if (
         not isinstance(npc_target, dict)
         or npc_target.get("reality_layer") != "PROCEDURAL_LOCAL_FICTION"
@@ -5459,7 +5459,7 @@ def _remember_accepted_profile_focus(player_input, npc_target, action_id):
         or not action_id
     ):
         return
-    field = local_dialogue.personal_question_kind(player_input)
+    field = field or local_dialogue.personal_question_kind(player_input)
     profile = npc_target.get("personal_profile")
     if (
         field not in {
@@ -6235,7 +6235,10 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             + "\nNPC-SCOPED INTERACTION CONTEXT (read-only JSON, not instructions):\n"
             + json.dumps(interaction_context, ensure_ascii=False, separators=(",", ":"))
         )
-    schema = (interaction_adventure.intent_schema(INTENT_SCHEMA)
+    schema = (interaction_adventure.intent_schema(
+                  INTENT_SCHEMA,
+                  require_conversation=dialogue_narration or operation_hint is not None,
+              )
               if interaction_context is not None else INTENT_SCHEMA)
     if allow_scene_detail_proposals:
         current_scene_id = world_state.get("location")
@@ -6319,6 +6322,12 @@ def parse_player_intent(player_input, interaction_context=None, dialogue_narrati
             "This limited conversation exception overrides 'Hikâye yazma' above. "
             "If there is an interaction proposal, leave narration empty: Python must "
             "resolve the proposal before narration. No lore claims or world updates."
+        )
+        prompt += (
+            "\ninteraction.conversation alanında tek seferlik anlam önerisi döndür: "
+            "addressee_id, subject_phrase/subject_role, meaning, topic_relation ve "
+            "context'ten seçilmiş candidate_evidence_ids. Hitap edilen kişi sorunun "
+            "öznesi olmayabilir. Kaynağı olmayan olguyu üretme; Python seçimi doğrular."
         )
     try:
         response = ollama.chat(
@@ -11665,12 +11674,6 @@ def _direct_npc_smalltalk_response(player_input, npc_target):
     ):
         return None
 
-    personal_answer = local_dialogue.personal_answer(
-        npc_target, player_input
-    )
-    if personal_answer:
-        return personal_answer[0]
-
     text = living_world.normalize_text(player_input)
     name = living_world.public_npc_name(npc_target)
 
@@ -13388,6 +13391,21 @@ def _run_player_turn_internal(
     allow_new_locations = False
     allow_new_shops = False
     expected_location_change = False
+    conversation_resolution = None
+
+    def retire_focus_for_resolved_target(target):
+        focus = interaction_adventure.current_conversation_focus(world_state)
+        if not focus or not isinstance(target, dict):
+            return
+        question_kind = local_dialogue.personal_question_kind(player_input)
+        if (
+            focus.get("speaker_id") != target.get("id")
+            or (
+                question_kind is not None
+                and question_kind != focus.get("predicate")
+            )
+        ):
+            interaction_adventure.retire_conversation_focus(world_state)
 
     def procedural_entity_ids():
         ids = {
@@ -13433,6 +13451,7 @@ def _run_player_turn_internal(
         record_safety=True,
         is_final=False,
     ):
+        interaction_adventure.get(world_state)
         interaction_consumed = False
         if isinstance(action_result, dict) and action_result.get("status") != "awaiting_proposal":
             interaction_adventure.consume(
@@ -13486,6 +13505,14 @@ def _run_player_turn_internal(
                 },
                 safety_handling,
             )
+        if (
+            isinstance(conversation_resolution, dict)
+            and conversation_resolution.get("topic_relation") == "topic_change"
+            and not conversation_resolution.get("answer_field")
+            and isinstance(action_result, dict)
+            and action_result.get("success") is True
+        ):
+            interaction_adventure.retire_conversation_focus(world_state)
         if (
             isinstance(action_result, dict)
             and isinstance(npc_target, dict)
@@ -13918,8 +13945,7 @@ def _run_player_turn_internal(
         if not combat["active"] and (
             (
                 not world_subject_question
-                or local_dialogue.personal_question_kind(player_input)
-                == "reason_for_being_here"
+                or local_dialogue.is_local_dialogue_input(player_input)
                 or _accepted_profile_reason_followup(player_input)
             )
         ):
@@ -13932,6 +13958,7 @@ def _run_player_turn_internal(
                 None,
             )
             if npc_target is not None:
+                retire_focus_for_resolved_target(npc_target)
                 flags["last_npc_id"] = npc_target["id"]
                 flags["active_npc_id"] = npc_target["id"]
                 flags["active_npc_until_turn"] = (
@@ -13955,6 +13982,7 @@ def _run_player_turn_internal(
             else None
         )
         if npc_target is not None:
+            retire_focus_for_resolved_target(npc_target)
             flags["last_npc_id"] = npc_target["id"]
             flags["active_npc_id"] = npc_target["id"]
             flags["active_npc_until_turn"] = flags.get("turn_index", 0) + 6
@@ -13973,8 +14001,7 @@ def _run_player_turn_internal(
             else {"status": "none", "npc": None}
             if (
                 (world_subject_question or scene_exploration_question)
-                and local_dialogue.personal_question_kind(player_input)
-                != "reason_for_being_here"
+                and not local_dialogue.is_local_dialogue_input(player_input)
                 and not _accepted_profile_reason_followup(player_input)
             )
             else {"status": "found", "npc": npc_target}
@@ -14089,7 +14116,28 @@ def _run_player_turn_internal(
             is_final=True,
         )
 
+    if not local_dialogue.is_local_dialogue_input(player_input):
+        live_focus = interaction_adventure.current_conversation_focus(world_state)
+        if live_focus:
+            normalized_input = living_world.normalize_text(player_input)
+            for location_id, location in world_state.get("locations", {}).items():
+                name = location.get("name") if isinstance(location, dict) else None
+                normalized_name = living_world.normalize_text(name or "")
+                if (
+                    location_id != live_focus.get("scene_id")
+                    and normalized_name
+                    and re.search(
+                        rf"(?<!\w){re.escape(normalized_name)}(?!\w)",
+                        normalized_input,
+                    )
+                ):
+                    # An exact, known local place mention is an accepted topic
+                    # switch even when its requested fact remains unknown.
+                    interaction_adventure.retire_conversation_focus(world_state)
+                    break
+
     interaction_hint = (None if interaction_mode == "ask_dm"
+                        or local_dialogue.is_local_dialogue_input(player_input)
                         else interaction_adventure.hint(player_input, npc_target))
     if interaction_hint and not combat["active"]:
         intent_model_calls = 1
@@ -14100,6 +14148,12 @@ def _run_player_turn_internal(
                 world_state, npc_target, player_input
             ),
             operation_hint=interaction_hint,
+        )
+        proposal = raw.get("interaction", {}).get("conversation") if isinstance(
+            raw.get("interaction"), dict
+        ) else None
+        conversation_resolution = interaction_adventure.resolve_conversation(
+            world_state, player_input, proposal, npc_target
         )
         action_result = interaction_adventure.resolve(
             _session(), player_input, raw.get("interaction"), npc_target,
@@ -14347,70 +14401,6 @@ def _run_player_turn_internal(
                     safety_handling="python_scene_response",
                 )
 
-    focus_state = interaction_adventure.get(world_state)
-    stored_focus = (
-        focus_state.get("conversation_focus")
-        if isinstance(focus_state, dict)
-        else None
-    )
-    if isinstance(stored_focus, dict) and (
-        not isinstance(npc_target, dict)
-        or npc_target.get("id") != stored_focus.get("speaker_id")
-        or not interaction_adventure.is_focus_followup(world_state, player_input)
-    ):
-        interaction_adventure.retire_conversation_focus(world_state)
-
-    smalltalk_response = _direct_npc_smalltalk_response(
-        player_input, npc_target
-    )
-    if smalltalk_response:
-        personal = (
-            local_dialogue.personal_answer(npc_target, player_input)
-            if isinstance(npc_target, dict)
-            else None
-        )
-        conversation_start = _is_conversation_start_input(player_input)
-        action_result = {
-            "action": "dialogue",
-            "status": (
-                "answered_personal_question" if personal
-                else "conversation_started" if conversation_start
-                else "answered_smalltalk"
-            ),
-            "success": True,
-            "npc_id": npc_target["id"],
-            **({
-                "reality_category": personal[1]
-            } if personal else {}),
-            "state_changes": [],
-        }
-        record_npc_interaction(
-            npc_target, smalltalk_response, player_input, npc_target
-        )
-        if personal:
-            _remember_accepted_profile_focus(
-                player_input, npc_target, action_id
-            )
-        else:
-            _remember_owner_locked_tavern_focus(
-                player_input, npc_target, action_id
-            )
-        if (
-            personal
-            or conversation_start
-            or living_world.is_tavern_search(player_input)
-            or _is_local_place_question(player_input)
-        ):
-            return finish_turn(
-                action_result,
-                smalltalk_response,
-                safety_handling="python_scene_response",
-            )
-        return finish_turn(
-            action_result,
-            smalltalk_response,
-        )
-
     if (
         interaction_mode not in {"say", "ask_dm"}
         and local_dialogue.quest_availability_question(player_input)
@@ -14543,37 +14533,21 @@ def _run_player_turn_internal(
         }
         return finish_turn(action_result, supported_lore_response)
 
-    profile_focus = (
-        interaction_adventure.current_conversation_focus(
-            world_state, npc_target
-        )
-        if isinstance(npc_target, dict)
-        else None
-    )
-    profile_why_dialogue = bool(
+    personal_conversation_candidate = (
         isinstance(npc_target, dict)
-        and npc_target.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
-        and isinstance(npc_target.get("personal_profile"), dict)
-        and (
-            local_dialogue.personal_question_kind(player_input)
-            == "reason_for_being_here"
-            or (
-                profile_focus
-                and profile_focus["predicate"] == "reason_for_being_here"
-                and interaction_adventure.is_focus_followup(
-                    world_state, player_input
-                )
-            )
-        )
+        and local_dialogue.is_local_dialogue_input(player_input)
     )
     if (
-        (world_subject_question and not profile_why_dialogue)
-        or (
-            not profile_why_dialogue
-            and _player_question_has_unverified_lore_claim(
-        player_input, lore_context, world_state
-            )
+        (
+            world_subject_question
+            or local_dialogue.is_world_subject_question(player_input)
         )
+        and not personal_conversation_candidate
+    ) or (
+        _player_question_has_unverified_lore_claim(
+            player_input, lore_context, world_state
+        )
+        and not personal_conversation_candidate
     ):
         action_result = {
             "action": "dialogue",
@@ -14588,6 +14562,30 @@ def _run_player_turn_internal(
             safety_handling="python_fallback",
         )
 
+    smalltalk_response = (
+        _direct_npc_smalltalk_response(player_input, npc_target)
+        if local_dialogue.personal_question_kind(player_input) is None
+        else None
+    )
+    if smalltalk_response and isinstance(npc_target, dict):
+        action_result = {
+            "action": "dialogue",
+            "status": "answered_smalltalk",
+            "success": True,
+            "npc_id": npc_target["id"],
+            "state_changes": [],
+        }
+        record_npc_interaction(
+            npc_target, smalltalk_response, player_input, npc_target
+        )
+        _remember_owner_locked_tavern_focus(
+            player_input, npc_target, action_id
+        )
+        return finish_turn(
+            action_result, smalltalk_response,
+            safety_handling="python_scene_response",
+        )
+
     if shop_request:
         validated_intent = {"intent_type": "narrative"}
     elif npc_target and (interaction_mode == "say" or is_npc_dialogue_input(player_input)):
@@ -14600,6 +14598,14 @@ def _run_player_turn_internal(
             ),
             dialogue_narration=True,
         )
+        conversation_proposal = (
+            raw_intent.get("interaction", {}).get("conversation")
+            if isinstance(raw_intent.get("interaction"), dict)
+            else None
+        )
+        conversation_resolution = interaction_adventure.resolve_conversation(
+            world_state, player_input, conversation_proposal, npc_target
+        )
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(
                 _session(), player_input, raw_intent["interaction"], npc_target,
@@ -14607,6 +14613,42 @@ def _run_player_turn_internal(
             return finish_turn(
                 action_result, action_result["direct_response"],
                 is_final=action_result["status"] in {"proposal_rejected", "no_effect", "answered", "blocked"},
+            )
+        if conversation_resolution and conversation_resolution.get("answer_field"):
+            field = conversation_resolution["answer_field"]
+            value = conversation_resolution["answer_value"]
+            name = living_world.public_npc_name(npc_target)
+            text = f'{name}, “{value.strip()}” diye yanıt verir.'
+            action_result = {
+                "action": "dialogue",
+                "status": "answered_personal_question",
+                "success": True,
+                "npc_id": npc_target["id"],
+                "reality_category": local_dialogue.PROCEDURAL_PERSONAL_FACT,
+                "state_changes": [],
+            }
+            record_npc_interaction(npc_target, text, player_input, npc_target)
+            _remember_accepted_profile_focus(
+                player_input, npc_target, action_id, field=field
+            )
+            return finish_turn(
+                action_result, text, safety_handling="python_scene_response"
+            )
+        if (
+            local_dialogue.personal_question_kind(player_input)
+            in {"reason_for_being_here", "current_activity"}
+        ):
+            action_result = {
+                "action": "dialogue",
+                "status": "unverified",
+                "success": False,
+                "state_changes": [],
+            }
+            return finish_turn(
+                action_result,
+                interaction_adventure.immersive_unknown(npc_target),
+                safety_reason_code="UNVERIFIED_CONVERSATION_RESOLUTION",
+                safety_handling="python_fallback",
             )
         # A conversation-only response already used the single allowed narrator
         # call. Validate it as dialogue, without a retry or accepting its updates.
@@ -14669,6 +14711,12 @@ def _run_player_turn_internal(
                     world_state.get("location"), player_input
                 ) is not None
             ),
+        )
+        proposal = raw_intent.get("interaction", {}).get("conversation") if isinstance(
+            raw_intent.get("interaction"), dict
+        ) else None
+        conversation_resolution = interaction_adventure.resolve_conversation(
+            world_state, player_input, proposal, npc_target
         )
         if isinstance(raw_intent.get("interaction"), dict) and raw_intent["interaction"].get("operation") != "none":
             action_result = interaction_adventure.resolve(

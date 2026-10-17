@@ -154,6 +154,20 @@ class Candidate(Contract):
     evidence_id: str | None = None
 
 
+class ConversationProposal(Contract):
+    """Untrusted, turn-local interpretation; Python resolves every reference."""
+
+    addressee_id: str | None = None
+    subject_phrase: str = Field(default="", max_length=160)
+    subject_role: Literal["addressee", "other_actor", "world_entity", "unknown"] = "unknown"
+    meaning: Literal[
+        "personal_purpose", "current_activity", "cause", "lore",
+        "identity", "other", "unclear",
+    ] = "unclear"
+    topic_relation: Literal["new", "followup", "topic_change", "unclear"] = "unclear"
+    candidate_evidence_ids: list[str] = Field(default_factory=list, max_length=8)
+
+
 class Envelope(Contract):
     operation: Literal["none", "goal", "request", "negotiate", "refuse", "delay",
                        "agree", "conditional", "threat", "promise", "information",
@@ -169,12 +183,13 @@ class Envelope(Contract):
     steps: list[PlanStep] = Field(default_factory=list, max_length=6)
     routes: list[Route] = Field(default_factory=list, max_length=4)
     candidates: list[Candidate] = Field(default_factory=list, max_length=3)
+    conversation: ConversationProposal | None = None
 
 
 PROPOSAL_SCHEMA = Envelope.model_json_schema()
 
 
-def intent_schema(base):
+def intent_schema(base, require_conversation=False):
     schema = copy.deepcopy(base)
     envelope = copy.deepcopy(PROPOSAL_SCHEMA)
     schema["$defs"] = envelope.pop("$defs", {})
@@ -183,6 +198,19 @@ def intent_schema(base):
     # prompt guidance. Require the envelope, including an exact player quote.
     schema["required"] = list(dict.fromkeys([*schema.get("required", []), "interaction"]))
     envelope["required"] = list(dict.fromkeys([*envelope.get("required", []), "quote"]))
+    if require_conversation:
+        envelope["properties"]["conversation"] = {
+            "$ref": "#/$defs/ConversationProposal"
+        }
+        envelope["required"] = list(dict.fromkeys(
+            [*envelope["required"], "conversation"]
+        ))
+        conversation_schema = schema["$defs"]["ConversationProposal"]
+        conversation_schema["required"] = list(dict.fromkeys([
+            *conversation_schema.get("required", []),
+            "subject_phrase", "subject_role", "meaning",
+            "topic_relation", "candidate_evidence_ids",
+        ]))
     return schema
 
 
@@ -208,6 +236,11 @@ def proposal_guidance():
         "Bir tek bilgi sorusunu veya selamı macera üretimine dönüştürme. "
         "steps/candidates çoğu işlemde boş olmalıdır. privacy addressed varsayılandır; "
         "yalnızca açık fısıltıda private, açıkça herkese söylenende public seç. "
+        "conversation yalnızca geçici anlam önerisidir: addressee_id ve candidate_evidence_ids "
+        "yalnızca gönderilen bağlamdaki kimlikler olabilir; subject_phrase oyuncu mesajından "
+        "aynen alınmalı; hitap edilen kişi ile sorunun öznesini ayır. Belirsiz özne unknown, "
+        "bilinmeyen kişi/varlık kimlik üretmeden metin olarak kalır. meaning ve topic_relation "
+        "otorite veya gerçek değildir; Python kaynak, mahremiyet ve ilişkiyi doğrular. "
         "Konuşmadaki inanç/iddia dünya gerçeği değildir. JSON interaction zarfını da döndür."
     )
 
@@ -579,46 +612,54 @@ def context(world, npc, player_input=None):
         addressee = copy.deepcopy(addressee)
         addressee["name"] = living_world.public_npc_name(npc)
         addressee["role"] = living_world.public_npc_role(npc)
+        profile = npc.get("personal_profile")
+        private_profile_values = {
+            value.strip()
+            for value in profile.values()
+            if isinstance(profile, dict)
+            and isinstance(value, str)
+            and value.strip()
+        } if isinstance(profile, dict) else set()
+        addressee["entries"] = [
+            entry for entry in addressee.get("entries", [])
+            if not (
+                isinstance(entry, dict)
+                and isinstance(entry.get("text"), str)
+                and any(
+                    value.casefold() in entry["text"].casefold()
+                    for value in private_profile_values
+                )
+            )
+        ]
     focus = current_conversation_focus(world, npc)
-    accepted_profile = None
+    focus_context = (
+        {key: value for key, value in focus.items() if key != "value"}
+        if isinstance(focus, dict)
+        else None
+    )
     profile = (
         npc.get("personal_profile")
         if isinstance(npc, dict)
         and npc.get("reality_layer") == "PROCEDURAL_LOCAL_FICTION"
         else None
     )
-    purpose_is_relevant = (
-        local_dialogue.personal_question_kind(player_input)
-        == "reason_for_being_here"
-    ) or bool(
-        focus and focus["predicate"] == "reason_for_being_here"
-    )
-    if isinstance(profile, dict) and purpose_is_relevant:
-        evidence = [
-            {
-                "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
-                "field": field,
-                "value": profile[field],
-                "relation": (
-                    "conversation_topic"
-                    if focus and focus["predicate"] == "reason_for_being_here"
-                    else "direct_question_topic"
-                ),
-            }
-            for field in ("reason_for_being_here",)
-            if isinstance(profile.get(field), str) and profile[field].strip()
-        ]
-        if evidence:
-            accepted_profile = {
-                "speaker_id": npc["id"],
-                "subject_id": (
-                    focus["subject_id"]
-                    if focus and focus["predicate"] == "reason_for_being_here"
-                    else f"npc-profile:{npc['id']}:reason_for_being_here"
-                ),
-                "topic": "reason_for_being_here",
-                "evidence": evidence,
-            }
+    # Offer opaque candidate references only. A lexical match or model choice
+    # cannot expose profile values; resolve_conversation checks the owner and
+    # supplies a value from Python after validating the whole proposal.
+    conversation_candidates = [
+        {
+            "evidence_id": f"npc-profile:{npc['id']}:v1:{field}",
+            "owner_id": npc["id"],
+            "field": field,
+        }
+        for field in (
+            "reason_for_being_here", "current_activity", "occupation",
+            "recent_activity", "origin", "personal_detail", "mood",
+        )
+        if isinstance(profile, dict)
+        and isinstance(profile.get(field), str)
+        and profile[field].strip()
+    ] if isinstance(npc, dict) and isinstance(npc.get("id"), str) else []
     return {
         "location_id": world.get("location"),
         "actors": [
@@ -630,8 +671,8 @@ def context(world, npc, player_input=None):
             for n in present_npcs(world)
         ],
         "addressee": addressee,
-        "accepted_npc_profile": accepted_profile,
-        "conversation_focus": focus,
+        "conversation_candidates": conversation_candidates,
+        "conversation_focus": focus_context,
         "threads": threads,
         "commitments": [
             {key: c[key] for key in ("commitment_id", "npc_id", "quote", "kind", "thread_id")}
@@ -645,6 +686,104 @@ def context(world, npc, player_input=None):
         "generation_allowed": generation_eligible(world),
         "recent_categories": state["novelty"] if not npc else [],
         "time": world.get("campaign_time", {}).get("elapsed_seconds", 0),
+    }
+
+
+def resolve_conversation(world, player_input, raw, npc=None):
+    """Validate a one-turn model interpretation against Python-owned sources."""
+    try:
+        proposal = ConversationProposal.model_validate(raw)
+    except (ValidationError, TypeError, ValueError):
+        return None
+    if not isinstance(player_input, str):
+        return None
+    context_data = context(world, npc, player_input)
+    candidates = {
+        item["evidence_id"]: item
+        for item in context_data["conversation_candidates"]
+    }
+    selected = proposal.candidate_evidence_ids
+    if len(selected) != len(set(selected)) or any(key not in candidates for key in selected):
+        return None
+    if npc is None:
+        if proposal.addressee_id is not None or selected:
+            return None
+    elif proposal.addressee_id != npc.get("id"):
+        return None
+
+    phrase = proposal.subject_phrase.strip()
+    if phrase and normalize(phrase) not in normalize(player_input):
+        return None
+    focus = current_conversation_focus(world, npc) if npc else None
+    if proposal.topic_relation == "followup":
+        if not focus or not npc or focus["speaker_id"] != npc.get("id"):
+            return None
+    if proposal.subject_role == "addressee":
+        if not npc or not phrase:
+            return None
+        npc_names = {
+            normalize(npc.get("name", "")),
+            normalize(living_world.public_npc_name(npc)),
+        }
+        if normalize(phrase) not in npc_names:
+            return None
+    elif proposal.meaning in {"personal_purpose", "current_activity"} and selected:
+        return None
+
+    answer_field = None
+    answer_value = None
+    if proposal.meaning in {"personal_purpose", "current_activity"}:
+        expected_field = {
+            "personal_purpose": "reason_for_being_here",
+            "current_activity": "current_activity",
+        }[proposal.meaning]
+        expected_kind = {
+            "personal_purpose": "reason_for_being_here",
+            "current_activity": "current_activity",
+        }[proposal.meaning]
+        profile = npc.get("personal_profile") if isinstance(npc, dict) else None
+        evidence_id = (
+            f"npc-profile:{npc.get('id')}:v1:{expected_field}"
+            if isinstance(npc, dict) else None
+        )
+        kind_matches = (
+            local_dialogue.personal_question_kind(player_input) == expected_kind
+            or (
+                proposal.topic_relation == "followup"
+                and focus
+                and focus.get("predicate") == expected_field
+                and focus.get("evidence_id") == evidence_id
+                and focus.get("speaker_id") == (npc or {}).get("id")
+            )
+        )
+        if (
+            proposal.subject_role != "addressee"
+            or not npc
+            or not kind_matches
+            or selected != [evidence_id]
+            or candidates.get(evidence_id, {}).get("field") != expected_field
+            or not isinstance(profile, dict)
+            or not isinstance(profile.get(expected_field), str)
+            or not profile[expected_field].strip()
+            or (proposal.topic_relation == "followup" and (
+                not focus
+                or focus.get("predicate") != expected_field
+                or focus.get("evidence_id") != evidence_id
+            ))
+        ):
+            return None
+        answer_field = expected_field
+        answer_value = profile[expected_field]
+
+    return {
+        "addressee_id": proposal.addressee_id,
+        "subject_phrase": phrase,
+        "subject_role": proposal.subject_role,
+        "meaning": proposal.meaning,
+        "topic_relation": proposal.topic_relation,
+        "selected_evidence_ids": list(selected),
+        "answer_field": answer_field,
+        "answer_value": answer_value,
     }
 
 

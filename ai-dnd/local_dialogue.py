@@ -331,10 +331,12 @@ def personal_question_kind(value: Any) -> str | None:
     if re.search(
         r"\b(?:neden|niye|nicin|why)\b.{0,45}"
         r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
-        r"\b(?:gel\w*|come\w*)\b|"
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
         r"\b(?:buraya|burada|buradan|here)\b.{0,35}"
         r"\b(?:neden|niye|nicin|why)\b.{0,45}"
-        r"\b(?:gel\w*|come\w*)\b",
+        r"\b(?:gel\w*(?:n|niz|sin|siniz|sun|sunuz)|come\w*)\b|"
+        r"\b(?:neden|niye|nicin|why)\b.{0,65}"
+        r"\b(?:ara|ari|bul|yap|ugras|calis)\w*(?:sin|sın|sun|sün|siniz|sınız|sunuz|sünüz)\b",
         text,
     ):
         return "reason_for_being_here"
